@@ -337,21 +337,26 @@ export default function WalletScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.rootContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      </SafeAreaView>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.container}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.rootContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-
-      {/* Header with gradient */}
-      <LinearGradient
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
+          {/* Header with gradient */}
+          <LinearGradient
         colors={['#7C3AED', '#8B5CF6', '#6366F1']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -773,12 +778,21 @@ export default function WalletScreen() {
             </View>
           </ScrollView>
         </View>
-      </Modal>
-    </SafeAreaView>
+          </Modal>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: '#7C3AED',
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.gray50,

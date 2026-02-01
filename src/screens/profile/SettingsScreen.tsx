@@ -258,20 +258,26 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      </SafeAreaView>
+      <View style={styles.rootContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.container}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.rootContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-
-      {/* Gradient Header */}
-      <LinearGradient
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
+          {/* Gradient Header */}
+          <LinearGradient
         colors={['#7C3AED', '#9333EA', '#D946EF']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -295,9 +301,9 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </View>
-      </LinearGradient>
+          </LinearGradient>
 
-      <ScrollView
+          <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -521,10 +527,10 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+          </ScrollView>
 
-      {/* Delete Account Modal */}
-      <Modal
+          {/* Delete Account Modal */}
+          <Modal
         visible={showDeleteModal}
         transparent
         animationType="fade"
@@ -591,12 +597,21 @@ export default function SettingsScreen() {
             </View>
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+          </Modal>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: '#7C3AED',
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.gray50,

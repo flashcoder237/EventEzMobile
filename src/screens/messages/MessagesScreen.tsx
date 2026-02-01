@@ -319,21 +319,26 @@ export default function MessagesScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      </SafeAreaView>
+      <View style={styles.rootContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.container}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.rootContainer}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
-
-      {/* Header */}
-      <View style={styles.headerContainer}>
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
+          {/* Header */}
+          <View style={styles.headerContainer}>
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
@@ -466,12 +471,21 @@ export default function MessagesScreen() {
             )}
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+          </Modal>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.gray50,

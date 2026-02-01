@@ -296,12 +296,16 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      </SafeAreaView>
+      <View style={styles.rootContainer}>
+        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.container}>
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={Colors.primary} />
+            </View>
+          </View>
+        </SafeAreaView>
+      </View>
     );
   }
 
@@ -397,11 +401,20 @@ export default function NotificationsScreen() {
           }
         />
       )}
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: Colors.primary,
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.gray50,

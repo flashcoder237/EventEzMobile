@@ -12,6 +12,7 @@ import {
   Platform,
   Switch,
   Image,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -645,6 +646,7 @@ export default function EventCreateScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
