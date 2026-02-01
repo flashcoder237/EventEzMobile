@@ -11,13 +11,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { usersAPI } from '../../api/client';
@@ -29,8 +29,6 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -151,6 +149,7 @@ export default function EditProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
@@ -174,12 +173,9 @@ export default function EditProfileScreen() {
                   style={styles.profileImage}
                 />
               ) : (
-                <LinearGradient
-                  colors={Gradients.primary}
-                  style={styles.initialsContainer}
-                >
+                <View style={styles.initialsContainer}>
                   <Text style={styles.initials}>{getInitials()}</Text>
-                </LinearGradient>
+                </View>
               )}
               <View style={styles.editBadge}>
                 <Ionicons name="camera" size={16} color={Colors.white} />
@@ -278,7 +274,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   keyboardView: {
     flex: 1,
@@ -309,7 +305,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: Colors.white,
+    borderColor: Colors.gray100,
   },
   initialsContainer: {
     width: 120,
@@ -317,13 +313,14 @@ const styles = StyleSheet.create({
     borderRadius: 60,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.gray200,
     borderWidth: 3,
-    borderColor: Colors.white,
+    borderColor: Colors.gray100,
   },
   initials: {
     fontSize: 40,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
+    color: Colors.gray600,
   },
   editBadge: {
     position: 'absolute',
@@ -358,7 +355,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.xs,
   },
   input: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
@@ -366,10 +363,9 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     borderWidth: 1,
     borderColor: Colors.gray200,
-    ...Shadows.sm,
   },
   inputDisabled: {
-    backgroundColor: Colors.gray50,
+    backgroundColor: Colors.gray100,
     color: Colors.gray500,
   },
   helpText: {

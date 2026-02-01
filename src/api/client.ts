@@ -218,7 +218,7 @@ export const usersAPI = {
     api.get('/users/me/'),
 
   updateCurrentUser: (data: any) =>
-    api.patch('/users/me/', data),
+    api.put('/users/me/', data),
 
   updateProfile: (data: any) =>
     api.put('/users/update_profile/', data),

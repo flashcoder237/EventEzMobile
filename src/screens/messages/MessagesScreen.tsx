@@ -8,12 +8,12 @@ import {
   RefreshControl,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { messagesAPI } from '../../api/client';
 import { Conversation, RootStackParamList } from '../../types';
@@ -23,8 +23,6 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -96,14 +94,14 @@ export default function MessagesScreen() {
       <TouchableOpacity
         style={[styles.conversationCard, item.unread_count > 0 && styles.unreadCard]}
         onPress={() => navigation.navigate('Conversation', { conversationId: item.id })}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
         {avatar ? (
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
-          <LinearGradient colors={Gradients.primary} style={styles.avatarPlaceholder}>
+          <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarInitials}>{getInitials(displayName)}</Text>
-          </LinearGradient>
+          </View>
         )}
 
         <View style={styles.conversationContent}>
@@ -146,12 +144,9 @@ export default function MessagesScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <LinearGradient
-        colors={[Colors.primaryBg, Colors.white]}
-        style={styles.emptyIconContainer}
-      >
-        <Ionicons name="chatbubbles-outline" size={60} color={Colors.primary} />
-      </LinearGradient>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="chatbubbles-outline" size={48} color={Colors.gray400} />
+      </View>
       <Text style={styles.emptyTitle}>Aucune conversation</Text>
       <Text style={styles.emptyText}>
         Vous n'avez pas encore de messages.{'\n'}
@@ -162,14 +157,24 @@ export default function MessagesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Messages</Text>
+      </View>
+
       <FlatList
         data={conversations}
         renderItem={renderConversation}
@@ -192,17 +197,26 @@ export default function MessagesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+  },
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  headerTitle: {
+    fontSize: FontSizes['2xl'],
+    fontWeight: FontWeights.bold,
+    color: Colors.gray900,
   },
   listContent: {
-    padding: Spacing.base,
-    paddingBottom: Spacing.xl,
+    padding: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing['3xl'],
     flexGrow: 1,
   },
   conversationCard: {
@@ -212,28 +226,31 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
-    ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   unreadCard: {
+    backgroundColor: Colors.gray50,
     borderLeftWidth: 3,
     borderLeftColor: Colors.primary,
   },
   avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   avatarPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.gray200,
   },
   avatarInitials: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
+    color: Colors.gray600,
   },
   conversationContent: {
     flex: 1,
@@ -275,7 +292,7 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.medium,
   },
   unreadBadge: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.primary,
     borderRadius: 12,
     minWidth: 24,
     height: 24,
@@ -295,12 +312,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   emptyTitle: {
     fontSize: FontSizes.xl,

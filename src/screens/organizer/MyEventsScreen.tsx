@@ -8,12 +8,12 @@ import {
   Image,
   RefreshControl,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
@@ -24,8 +24,6 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -113,7 +111,7 @@ export default function MyEventsScreen() {
     <TouchableOpacity
       style={styles.eventCard}
       onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
-      activeOpacity={0.9}
+      activeOpacity={0.7}
     >
       <Image
         source={{ uri: item.banner_image || item.display_image || 'https://via.placeholder.com/400x200' }}
@@ -153,14 +151,14 @@ export default function MyEventsScreen() {
 
         <View style={styles.eventStats}>
           <View style={styles.statItem}>
-            <Ionicons name="people-outline" size={16} color={Colors.primary} />
+            <Ionicons name="people-outline" size={16} color={Colors.gray500} />
             <Text style={styles.statValue}>
               {item.registration_count || item.registrations_count || 0}
             </Text>
             <Text style={styles.statLabel}>inscrits</Text>
           </View>
           <View style={styles.statItem}>
-            <Ionicons name="eye-outline" size={16} color={Colors.primary} />
+            <Ionicons name="eye-outline" size={16} color={Colors.gray500} />
             <Text style={styles.statValue}>{item.view_count || 0}</Text>
             <Text style={styles.statLabel}>vues</Text>
           </View>
@@ -176,12 +174,9 @@ export default function MyEventsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <LinearGradient
-        colors={[Colors.primaryBg, Colors.white]}
-        style={styles.emptyIconContainer}
-      >
-        <Ionicons name="calendar-outline" size={60} color={Colors.primary} />
-      </LinearGradient>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="calendar-outline" size={48} color={Colors.gray400} />
+      </View>
       <Text style={styles.emptyTitle}>Aucun événement</Text>
       <Text style={styles.emptyText}>
         Vous n'avez pas encore créé d'événement.{'\n'}
@@ -209,6 +204,7 @@ export default function MyEventsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -218,6 +214,8 @@ export default function MyEventsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -265,7 +263,7 @@ export default function MyEventsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   loadingContainer: {
     flex: 1,
@@ -295,7 +293,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -312,7 +310,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray100,
   },
   filterTabActive: {
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.gray900,
   },
   filterTabText: {
     fontSize: FontSizes.sm,
@@ -325,14 +323,16 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.lg,
     paddingTop: Spacing.sm,
+    paddingBottom: Spacing['3xl'],
     flexGrow: 1,
   },
   eventCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     overflow: 'hidden',
-    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   eventImage: {
     width: '100%',
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -418,12 +418,13 @@ const styles = StyleSheet.create({
     paddingTop: Spacing['3xl'],
   },
   emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   emptyTitle: {
     fontSize: FontSizes.xl,

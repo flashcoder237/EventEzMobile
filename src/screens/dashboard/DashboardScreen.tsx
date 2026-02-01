@@ -6,12 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api/client';
@@ -23,41 +23,9 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-interface StatCardProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  gradient?: boolean;
-  onPress?: () => void;
-}
-
-const StatCard = ({ icon, title, value, subtitle, gradient, onPress }: StatCardProps) => (
-  <TouchableOpacity style={styles.statCard} onPress={onPress} activeOpacity={onPress ? 0.8 : 1}>
-    {gradient ? (
-      <LinearGradient
-        colors={Gradients.primary}
-        style={styles.statIconGradient}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <Ionicons name={icon} size={24} color={Colors.white} />
-      </LinearGradient>
-    ) : (
-      <View style={styles.statIcon}>
-        <Ionicons name={icon} size={24} color={Colors.primary} />
-      </View>
-    )}
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statTitle}>{title}</Text>
-    {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
-  </TouchableOpacity>
-);
 
 interface QuickActionProps {
   icon: keyof typeof Ionicons.glyphMap;
@@ -67,17 +35,16 @@ interface QuickActionProps {
 }
 
 const QuickAction = ({ icon, title, onPress, badge }: QuickActionProps) => (
-  <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.8}>
+  <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.6}>
     <View style={styles.quickActionIcon}>
-      <Ionicons name={icon} size={22} color={Colors.primary} />
+      <Ionicons name={icon} size={22} color={Colors.gray700} />
+      {badge !== undefined && badge > 0 && (
+        <View style={styles.quickActionBadge}>
+          <Text style={styles.quickActionBadgeText}>{badge > 9 ? '9+' : badge}</Text>
+        </View>
+      )}
     </View>
     <Text style={styles.quickActionTitle}>{title}</Text>
-    {badge !== undefined && badge > 0 && (
-      <View style={styles.quickActionBadge}>
-        <Text style={styles.quickActionBadgeText}>{badge > 99 ? '99+' : badge}</Text>
-      </View>
-    )}
-    <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
   </TouchableOpacity>
 );
 
@@ -89,7 +56,6 @@ export default function DashboardScreen() {
     events: 0,
     tickets: 0,
     notifications: 0,
-    following: 0,
     balance: 0,
   });
 
@@ -104,7 +70,6 @@ export default function DashboardScreen() {
       const promises: Promise<any>[] = [
         ticketPurchasesAPI.getMyTickets({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
         notificationsAPI.getNotifications({ is_read: false, page_size: 1 }).catch(() => ({ data: { count: 0 } })),
-        eventsAPI.getFollowingEvents({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
       ];
 
       if (isOrganizer) {
@@ -119,9 +84,8 @@ export default function DashboardScreen() {
       setStats({
         tickets: results[0].data?.count || results[0].data?.results?.length || 0,
         notifications: results[1].data?.count || results[1].data?.results?.length || 0,
-        following: results[2].data?.count || results[2].data?.results?.length || 0,
-        events: isOrganizer ? (results[3]?.data?.count || results[3]?.data?.results?.length || 0) : 0,
-        balance: isOrganizer ? (results[4]?.data?.available_balance || 0) : 0,
+        events: isOrganizer ? (results[2]?.data?.count || results[2]?.data?.results?.length || 0) : 0,
+        balance: isOrganizer ? (results[3]?.data?.available_balance || 0) : 0,
       });
     } catch (error) {
       console.error('Erreur chargement stats:', error);
@@ -134,16 +98,17 @@ export default function DashboardScreen() {
     setRefreshing(false);
   };
 
-  const handleWelcomePress = () => {
-    if (isOrganizer) {
-      navigation.navigate('EventCreate');
-    } else {
-      navigation.navigate('Main', { screen: 'Explore' } as any);
-    }
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bonjour';
+    if (hour < 18) return 'Bon après-midi';
+    return 'Bonsoir';
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -153,20 +118,19 @@ export default function DashboardScreen() {
             tintColor={Colors.primary}
           />
         }
+        contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerTitle}>Dashboard</Text>
-            <Text style={styles.headerSubtitle}>
-              Bienvenue, {user?.first_name || 'Utilisateur'} !
-            </Text>
+            <Text style={styles.greeting}>{getGreeting()}</Text>
+            <Text style={styles.userName}>{user?.first_name || 'Utilisateur'}</Text>
           </View>
           <TouchableOpacity
             style={styles.notificationButton}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Ionicons name="notifications-outline" size={24} color={Colors.gray800} />
+            <Ionicons name="notifications-outline" size={24} color={Colors.gray700} />
             {stats.notifications > 0 && (
               <View style={styles.notificationBadge}>
                 <Text style={styles.notificationBadgeText}>
@@ -177,45 +141,17 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Welcome Card */}
-        <TouchableOpacity style={styles.welcomeCard} activeOpacity={0.9} onPress={handleWelcomePress}>
-          <LinearGradient
-            colors={Gradients.primary}
-            style={styles.welcomeGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <View style={styles.welcomeContent}>
-              <Text style={styles.welcomeTitle}>
-                {isOrganizer ? 'Créer un événement' : 'Découvrir les événements'}
-              </Text>
-              <Text style={styles.welcomeSubtitle}>
-                {isOrganizer
-                  ? 'Lancez votre prochain événement en quelques clics'
-                  : 'Explorez les événements près de chez vous'}
-              </Text>
-            </View>
-            <View style={styles.welcomeIconContainer}>
-              <Ionicons
-                name={isOrganizer ? 'add-circle' : 'compass'}
-                size={40}
-                color={Colors.white}
-              />
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-
         {/* Organizer Balance Card */}
         {isOrganizer && (
           <TouchableOpacity
             style={styles.balanceCard}
             onPress={() => navigation.navigate('Wallet')}
-            activeOpacity={0.9}
+            activeOpacity={0.8}
           >
-            <View style={styles.balanceContent}>
+            <View>
               <Text style={styles.balanceLabel}>Solde disponible</Text>
               <Text style={styles.balanceValue}>
-                {stats.balance.toLocaleString()} <Text style={styles.balanceCurrency}>FCFA</Text>
+                {stats.balance.toLocaleString()} FCFA
               </Text>
             </View>
             <View style={styles.balanceIcon}>
@@ -224,47 +160,42 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <StatCard
-            icon="ticket"
-            title="Billets"
-            value={stats.tickets}
-            gradient
+        {/* Quick Stats */}
+        <View style={styles.statsRow}>
+          <TouchableOpacity
+            style={styles.statCard}
             onPress={() => navigation.navigate('Main', { screen: 'MyTickets' } as any)}
-          />
-          <StatCard
-            icon="heart"
-            title="Suivis"
-            value={stats.following}
-          />
-          <StatCard
-            icon="notifications"
-            title="Notifications"
-            value={stats.notifications}
-            onPress={() => navigation.navigate('Notifications')}
-          />
-          {isOrganizer ? (
-            <StatCard
-              icon="calendar"
-              title="Mes Événements"
-              value={stats.events}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.statValue}>{stats.tickets}</Text>
+            <Text style={styles.statLabel}>Billets</Text>
+          </TouchableOpacity>
+
+          {isOrganizer && (
+            <TouchableOpacity
+              style={styles.statCard}
               onPress={() => navigation.navigate('MyEvents')}
-            />
-          ) : (
-            <StatCard
-              icon="compass"
-              title="Explorer"
-              value="→"
-              onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
-            />
+              activeOpacity={0.7}
+            >
+              <Text style={styles.statValue}>{stats.events}</Text>
+              <Text style={styles.statLabel}>Événements</Text>
+            </TouchableOpacity>
           )}
+
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="compass-outline" size={24} color={Colors.primary} />
+            <Text style={styles.statLabel}>Explorer</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions rapides</Text>
-          <View style={styles.quickActionsCard}>
+          <Text style={styles.sectionTitle}>Accès rapide</Text>
+          <View style={styles.quickActionsGrid}>
             <QuickAction
               icon="ticket-outline"
               title="Mes billets"
@@ -272,7 +203,7 @@ export default function DashboardScreen() {
             />
             <QuickAction
               icon="heart-outline"
-              title="Événements suivis"
+              title="Favoris"
               onPress={() => {}}
             />
             <QuickAction
@@ -286,39 +217,54 @@ export default function DashboardScreen() {
               title="Messages"
               onPress={() => navigation.navigate('Messages')}
             />
-            <QuickAction
-              icon="settings-outline"
-              title="Paramètres"
-              onPress={() => navigation.navigate('Settings')}
-            />
           </View>
         </View>
 
-        {/* Organizer Section */}
+        {/* Organizer Actions */}
         {isOrganizer && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Organisateur</Text>
-            <View style={styles.quickActionsCard}>
-              <QuickAction
-                icon="add-circle-outline"
-                title="Créer un événement"
+            <View style={styles.organizerActions}>
+              <TouchableOpacity
+                style={styles.organizerActionCard}
                 onPress={() => navigation.navigate('EventCreate')}
-              />
-              <QuickAction
-                icon="calendar-outline"
-                title="Mes événements"
+                activeOpacity={0.7}
+              >
+                <View style={styles.organizerActionIcon}>
+                  <Ionicons name="add" size={24} color={Colors.primary} />
+                </View>
+                <Text style={styles.organizerActionTitle}>Créer un événement</Text>
+                <Text style={styles.organizerActionSubtitle}>Nouveau</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.organizerActionCard}
                 onPress={() => navigation.navigate('MyEvents')}
-              />
-              <QuickAction
-                icon="wallet-outline"
-                title="Mon portefeuille"
-                onPress={() => navigation.navigate('Wallet')}
-              />
+                activeOpacity={0.7}
+              >
+                <View style={styles.organizerActionIcon}>
+                  <Ionicons name="calendar-outline" size={24} color={Colors.primary} />
+                </View>
+                <Text style={styles.organizerActionTitle}>Mes événements</Text>
+                <Text style={styles.organizerActionSubtitle}>{stats.events} actifs</Text>
+              </TouchableOpacity>
             </View>
           </View>
         )}
 
-        <View style={{ height: 40 }} />
+        {/* Settings Link */}
+        <TouchableOpacity
+          style={styles.settingsLink}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <View style={styles.settingsLinkLeft}>
+            <Ionicons name="settings-outline" size={20} color={Colors.gray600} />
+            <Text style={styles.settingsLinkText}>Paramètres</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+        </TouchableOpacity>
+
+        <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -327,33 +273,36 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
+  },
+  scrollContent: {
+    paddingBottom: Spacing.xl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
   },
-  headerTitle: {
+  greeting: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+  userName: {
     fontSize: FontSizes['2xl'],
     fontWeight: FontWeights.bold,
     color: Colors.gray900,
-  },
-  headerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginTop: Spacing.xs,
+    marginTop: 2,
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.sm,
   },
   notificationBadge: {
     position: 'absolute',
@@ -365,57 +314,21 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.error,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
   },
   notificationBadgeText: {
     fontSize: 10,
     fontWeight: FontWeights.bold,
     color: Colors.white,
   },
-  welcomeCard: {
-    marginHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
-    ...Shadows.lg,
-  },
-  welcomeGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  welcomeContent: {
-    flex: 1,
-  },
-  welcomeTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.white,
-    marginBottom: Spacing.xs,
-  },
-  welcomeSubtitle: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  welcomeIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   balanceCard: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.xl,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.gray50,
+    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    ...Shadows.sm,
   },
-  balanceContent: {},
   balanceLabel: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
@@ -426,117 +339,137 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     marginTop: 4,
   },
-  balanceCurrency: {
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray500,
-  },
   balanceIcon: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statsGrid: {
+  statsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     gap: Spacing.md,
   },
   statCard: {
-    width: '47%',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.base,
+    flex: 1,
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
     alignItems: 'center',
-    ...Shadows.sm,
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  statIconGradient: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-    ...Shadows.lg,
   },
   statValue: {
     fontSize: FontSizes['2xl'],
     fontWeight: FontWeights.bold,
     color: Colors.gray900,
   },
-  statTitle: {
+  statLabel: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
-    marginTop: Spacing.xs,
-  },
-  statSubtitle: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray400,
+    marginTop: 4,
   },
   section: {
     marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
-  quickActionsCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
-    ...Shadows.sm,
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
   },
   quickAction: {
-    flexDirection: 'row',
+    width: '47%',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
     alignItems: 'center',
-    padding: Spacing.base,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+  },
+  quickActionBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionBadgeText: {
+    fontSize: 10,
+    fontWeight: FontWeights.bold,
+    color: Colors.white,
+  },
+  quickActionTitle: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray700,
+  },
+  organizerActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  organizerActionCard: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+  },
+  organizerActionIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.primaryBg,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
-  quickActionTitle: {
-    flex: 1,
-    marginLeft: Spacing.md,
+  organizerActionTitle: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.medium,
     color: Colors.gray900,
   },
-  quickActionBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: Colors.error,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-    marginRight: Spacing.sm,
+  organizerActionSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginTop: 2,
   },
-  quickActionBadgeText: {
-    fontSize: 10,
-    fontWeight: FontWeights.bold,
-    color: Colors.white,
+  settingsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  settingsLinkLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  settingsLinkText: {
+    fontSize: FontSizes.base,
+    color: Colors.gray600,
   },
 });

@@ -10,12 +10,12 @@ import {
   Platform,
   ActivityIndicator,
   Image,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,8 +26,6 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -185,9 +183,9 @@ export default function ConversationScreen() {
             avatar ? (
               <Image source={{ uri: avatar }} style={styles.messageAvatar} />
             ) : (
-              <LinearGradient colors={Gradients.primary} style={styles.messageAvatarPlaceholder}>
+              <View style={styles.messageAvatarPlaceholder}>
                 <Text style={styles.messageAvatarInitials}>{getInitials(item)}</Text>
-              </LinearGradient>
+              </View>
             )
           )}
           <View
@@ -221,14 +219,18 @@ export default function ConversationScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['bottom']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -285,13 +287,12 @@ export default function ConversationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.gray50,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
   },
   keyboardView: {
     flex: 1,
@@ -308,7 +309,7 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: FontSizes.xs,
     color: Colors.gray500,
-    backgroundColor: Colors.gray100,
+    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
@@ -334,17 +335,17 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.gray200,
   },
   messageAvatarInitials: {
     fontSize: FontSizes.xs,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
+    color: Colors.gray600,
   },
   messageBubble: {
     maxWidth: '75%',
     padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.sm,
+    borderRadius: BorderRadius.lg,
   },
   messageBubbleOther: {
     backgroundColor: Colors.white,

@@ -7,12 +7,19 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { notificationsAPI } from '../../api/client';
 import { Notification } from '../../types';
-import { Colors, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import {
+  Colors,
+  FontSizes,
+  FontWeights,
+  BorderRadius,
+  Spacing,
+} from '../../constants/theme';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -96,7 +103,7 @@ export default function NotificationsScreen() {
     <TouchableOpacity
       style={[styles.notificationCard, !item.is_read && styles.unreadCard]}
       onPress={() => handleMarkAsRead(item.id)}
-      activeOpacity={0.8}
+      activeOpacity={0.7}
     >
       <View style={[styles.iconContainer, !item.is_read && styles.iconContainerUnread]}>
         <Ionicons
@@ -120,12 +127,9 @@ export default function NotificationsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <LinearGradient
-        colors={[Colors.primaryBg, Colors.white]}
-        style={styles.emptyIconContainer}
-      >
-        <Ionicons name="notifications-off-outline" size={60} color={Colors.primary} />
-      </LinearGradient>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="notifications-off-outline" size={48} color={Colors.gray400} />
+      </View>
       <Text style={styles.emptyTitle}>Aucune notification</Text>
       <Text style={styles.emptyText}>
         Vous n'avez pas encore de notifications.{'\n'}
@@ -138,14 +142,24 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Notifications</Text>
+      </View>
+
       {/* Header Actions */}
       {unreadCount > 0 && (
         <View style={styles.headerActions}>
@@ -174,55 +188,65 @@ export default function NotificationsScreen() {
           />
         }
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+  },
+  header: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  headerTitle: {
+    fontSize: FontSizes['2xl'],
+    fontWeight: FontWeights.bold,
+    color: Colors.gray900,
   },
   headerActions: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray50,
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
   },
   unreadCount: {
     fontSize: FontSizes.sm,
     color: Colors.gray600,
-    fontWeight: '500',
+    fontWeight: FontWeights.medium,
   },
   markAllRead: {
     fontSize: FontSizes.sm,
     color: Colors.primary,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
   },
   listContent: {
-    padding: Spacing.base,
-    paddingBottom: Spacing.xl,
+    padding: Spacing.lg,
+    paddingBottom: Spacing['3xl'],
   },
   notificationCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.base,
+    padding: Spacing.md,
     marginBottom: Spacing.sm,
-    ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   unreadCard: {
+    backgroundColor: Colors.gray50,
     borderLeftWidth: 3,
     borderLeftColor: Colors.primary,
   },
@@ -247,7 +271,7 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   unreadText: {
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
     color: Colors.gray900,
   },
   notificationMessage: {
@@ -264,7 +288,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.secondary,
+    backgroundColor: Colors.primary,
     marginLeft: Spacing.sm,
     marginTop: 4,
   },
@@ -274,16 +298,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
   },
   emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   emptyTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
   },

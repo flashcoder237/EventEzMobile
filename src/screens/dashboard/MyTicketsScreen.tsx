@@ -8,15 +8,22 @@ import {
   Image,
   RefreshControl,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ticketPurchasesAPI } from '../../api/client';
 import { TicketPurchase, RootStackParamList } from '../../types';
-import { Colors, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import {
+  Colors,
+  FontSizes,
+  FontWeights,
+  BorderRadius,
+  Spacing,
+  Shadows,
+} from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -89,21 +96,16 @@ export default function MyTicketsScreen() {
     <TouchableOpacity
       style={styles.ticketCard}
       onPress={() => navigation.navigate('QRCode', { ticketId: item.id })}
-      activeOpacity={0.9}
+      activeOpacity={0.7}
     >
       <View style={styles.ticketLeft}>
         <Image
           source={{ uri: item.event?.banner_image || 'https://via.placeholder.com/100' }}
           style={styles.ticketImage}
         />
-        <LinearGradient
-          colors={[Colors.gradientStart, Colors.gradientEnd]}
-          style={styles.ticketBadge}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
+        <View style={styles.ticketBadge}>
           <Text style={styles.ticketBadgeText}>×{item.quantity}</Text>
-        </LinearGradient>
+        </View>
       </View>
 
       <View style={styles.ticketInfo}>
@@ -141,12 +143,9 @@ export default function MyTicketsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <LinearGradient
-        colors={[Colors.primaryBg, Colors.white]}
-        style={styles.emptyIconContainer}
-      >
-        <Ionicons name="ticket-outline" size={60} color={Colors.primary} />
-      </LinearGradient>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="ticket-outline" size={48} color={Colors.gray400} />
+      </View>
       <Text style={styles.emptyTitle}>Aucun billet</Text>
       <Text style={styles.emptyText}>
         Vous n'avez pas encore acheté de billets.{'\n'}
@@ -155,16 +154,10 @@ export default function MyTicketsScreen() {
       <TouchableOpacity
         style={styles.emptyButton}
         onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+        activeOpacity={0.8}
       >
-        <LinearGradient
-          colors={[Colors.gradientStart, Colors.gradientEnd]}
-          style={styles.emptyButtonGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <Text style={styles.emptyButtonText}>Explorer les événements</Text>
-          <Ionicons name="arrow-forward" size={18} color={Colors.white} />
-        </LinearGradient>
+        <Text style={styles.emptyButtonText}>Explorer les événements</Text>
+        <Ionicons name="arrow-forward" size={18} color={Colors.white} />
       </TouchableOpacity>
     </View>
   );
@@ -172,6 +165,7 @@ export default function MyTicketsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -181,6 +175,8 @@ export default function MyTicketsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mes Billets</Text>
@@ -212,7 +208,7 @@ export default function MyTicketsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   loadingContainer: {
     flex: 1,
@@ -220,12 +216,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
   headerTitle: {
     fontSize: FontSizes['2xl'],
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: Colors.gray900,
   },
   headerSubtitle: {
@@ -234,16 +230,18 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   listContent: {
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     paddingTop: Spacing.sm,
+    paddingBottom: Spacing['3xl'],
   },
   ticketCard: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
     overflow: 'hidden',
-    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   ticketLeft: {
     position: 'relative',
@@ -259,10 +257,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
     paddingVertical: 2,
     borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray900,
   },
   ticketBadgeText: {
     fontSize: FontSizes.xs,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   ticketInfo: {
@@ -272,13 +271,13 @@ const styles = StyleSheet.create({
   },
   ticketTitle: {
     fontSize: FontSizes.base,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
     color: Colors.gray900,
   },
   ticketType: {
     fontSize: FontSizes.sm,
     color: Colors.primary,
-    fontWeight: '500',
+    fontWeight: FontWeights.medium,
     marginTop: Spacing.xs,
   },
   ticketMeta: {
@@ -306,11 +305,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
   },
   ticketPrice: {
     fontSize: FontSizes.sm,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: Colors.gray900,
   },
   ticketRight: {
@@ -325,16 +324,17 @@ const styles = StyleSheet.create({
     paddingTop: Spacing['3xl'],
   },
   emptyIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
   },
   emptyTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: '700',
+    fontWeight: FontWeights.bold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
@@ -346,20 +346,17 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   emptyButton: {
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
-    ...Shadows.violet,
-  },
-  emptyButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.base,
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
   },
   emptyButtonText: {
     fontSize: FontSizes.base,
-    fontWeight: '600',
+    fontWeight: FontWeights.semibold,
     color: Colors.white,
   },
 });

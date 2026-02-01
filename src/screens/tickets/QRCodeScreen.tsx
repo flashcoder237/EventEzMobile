@@ -190,7 +190,7 @@ export default function QRCodeScreen() {
           </View>
           <View style={styles.ticketDetailRow}>
             <Text style={styles.ticketDetailLabel}>Référence</Text>
-            <Text style={styles.ticketDetailValue}>{ticketId.slice(0, 8).toUpperCase()}</Text>
+            <Text style={styles.ticketDetailValue}>{String(ticketId).slice(0, 8).toUpperCase()}</Text>
           </View>
         </View>
       </View>

@@ -114,17 +114,18 @@ export default function TicketPurchaseScreen() {
     setSubmitting(true);
     try {
       // Create registration(s) for each ticket type
-      const ticketPurchases: any[] = [];
+      const tickets: any[] = [];
       selections.forEach((quantity, ticketTypeId) => {
-        ticketPurchases.push({
-          ticket_type: ticketTypeId,
+        tickets.push({
+          ticket_type: parseInt(ticketTypeId),
           quantity,
         });
       });
 
       const response = await registrationsAPI.createRegistration({
         event: eventId,
-        ticket_purchases: ticketPurchases,
+        registration_type: 'billetterie',
+        tickets: tickets,
       });
 
       const registrationId = response.data.id;

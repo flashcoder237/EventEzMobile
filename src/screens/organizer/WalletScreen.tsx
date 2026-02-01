@@ -9,24 +9,21 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { walletAPI, payoutsAPI } from '../../api/client';
 import { OrganizerWallet, WalletTransaction, Payout, RootStackParamList } from '../../types';
-import GradientButton from '../../components/ui/GradientButton';
 import {
   Colors,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -123,14 +120,31 @@ export default function WalletScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mon Portefeuille</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -144,7 +158,7 @@ export default function WalletScreen() {
         }
       >
         {/* Balance Card */}
-        <LinearGradient colors={Gradients.primary} style={styles.balanceCard}>
+        <View style={styles.balanceCard}>
           <Text style={styles.balanceLabel}>Solde disponible</Text>
           <Text style={styles.balanceAmount}>
             {formatPrice(wallet?.available_balance || 0)} <Text style={styles.balanceCurrency}>FCFA</Text>
@@ -174,10 +188,10 @@ export default function WalletScreen() {
             onPress={handleRequestPayout}
             disabled={!wallet?.can_withdraw}
           >
-            <Ionicons name="wallet-outline" size={20} color={Colors.primary} />
+            <Ionicons name="wallet-outline" size={20} color={Colors.white} />
             <Text style={styles.withdrawButtonText}>Demander un retrait</Text>
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
         {/* Stats Cards */}
         <View style={styles.statsRow}>
@@ -323,13 +337,34 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.gray50,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.gray900,
   },
   scrollView: {
     flex: 1,
@@ -339,9 +374,9 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     margin: Spacing.lg,
-    borderRadius: BorderRadius['2xl'],
+    borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
-    ...Shadows.lg,
+    backgroundColor: Colors.primary,
   },
   balanceLabel: {
     fontSize: FontSizes.sm,
@@ -387,18 +422,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.white,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
     marginTop: Spacing.lg,
   },
   withdrawButtonDisabled: {
-    opacity: 0.6,
+    opacity: 0.5,
   },
   withdrawButtonText: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.semibold,
-    color: Colors.primary,
+    color: Colors.white,
   },
   statsRow: {
     flexDirection: 'row',
@@ -408,10 +443,11 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     alignItems: 'center',
-    ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   statIcon: {
     width: 48,
@@ -448,7 +484,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
-    ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   payoutIcon: {
     width: 44,
@@ -490,7 +527,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
-    ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   transactionIcon: {
     width: 40,
@@ -532,9 +570,10 @@ const styles = StyleSheet.create({
   },
   bankCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     padding: Spacing.lg,
-    ...Shadows.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   bankRow: {
     flexDirection: 'row',
@@ -573,7 +612,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
   },
   addBankButtonText: {

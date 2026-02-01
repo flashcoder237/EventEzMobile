@@ -4,13 +4,10 @@ import {
   Text,
   Image,
   StyleSheet,
-  Dimensions,
-  ImageSourcePropType,
+  TouchableOpacity,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
-import AnimatedPressable from '../ui/AnimatedPressable';
 import {
   Colors,
   FontSizes,
@@ -18,10 +15,7 @@ import {
   Spacing,
   BorderRadius,
   Shadows,
-  Gradients,
 } from '../../constants/theme';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface EventCardProps {
   id: string;
@@ -73,15 +67,27 @@ function EventCard({
     }
   };
 
+  const formatFullDate = () => {
+    try {
+      const eventDate = new Date(date);
+      return eventDate.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'short',
+      });
+    } catch {
+      return date;
+    }
+  };
+
   const { day, month } = formatDate();
 
+  // Horizontal variant - clean card style
   if (variant === 'horizontal') {
     return (
-      <AnimatedPressable
+      <TouchableOpacity
         onPress={onPress}
         style={styles.horizontalCard}
-        animationType="lift"
-        scaleValue={0.98}
+        activeOpacity={0.7}
       >
         <Image
           source={
@@ -92,10 +98,6 @@ function EventCard({
           style={styles.horizontalImage}
           resizeMode="cover"
         />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.3)']}
-          style={styles.horizontalImageOverlay}
-        />
         <View style={styles.horizontalContent}>
           <View style={styles.horizontalHeader}>
             {category && (
@@ -103,29 +105,28 @@ function EventCard({
                 <Text style={styles.categoryText}>{category}</Text>
               </View>
             )}
-            <AnimatedPressable
+            <TouchableOpacity
               onPress={onLikePress}
               style={styles.likeButtonSmall}
-              animationType="scale"
-              scaleValue={0.85}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
               <Ionicons
                 name={isLiked ? 'heart' : 'heart-outline'}
                 size={18}
                 color={isLiked ? Colors.error : Colors.gray400}
               />
-            </AnimatedPressable>
+            </TouchableOpacity>
           </View>
           <Text style={styles.horizontalTitle} numberOfLines={2}>
             {title}
           </Text>
           <View style={styles.horizontalMeta}>
             <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={14} color={Colors.primary} />
-              <Text style={styles.metaText}>{date}</Text>
+              <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
+              <Text style={styles.metaText}>{formatFullDate()}</Text>
             </View>
             <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={14} color={Colors.primary} />
+              <Ionicons name="location-outline" size={14} color={Colors.gray500} />
               <Text style={styles.metaText} numberOfLines={1}>
                 {location}
               </Text>
@@ -141,17 +142,17 @@ function EventCard({
             )}
           </View>
         </View>
-      </AnimatedPressable>
+      </TouchableOpacity>
     );
   }
 
+  // Compact variant
   if (variant === 'compact') {
     return (
-      <AnimatedPressable
+      <TouchableOpacity
         onPress={onPress}
         style={styles.compactCard}
-        animationType="lift"
-        scaleValue={0.98}
+        activeOpacity={0.8}
       >
         <Image
           source={
@@ -163,7 +164,7 @@ function EventCard({
           resizeMode="cover"
         />
         <LinearGradient
-          colors={Gradients.darkStrong}
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
           style={styles.compactOverlay}
         />
         <View style={styles.compactDateBadge}>
@@ -178,19 +179,18 @@ function EventCard({
             <Ionicons name="location" size={12} color={Colors.gray300} /> {location}
           </Text>
         </View>
-      </AnimatedPressable>
+      </TouchableOpacity>
     );
   }
 
-  // Featured or Default variant
+  // Featured or Default variant - card with image overlay
   const isFeatured = variant === 'featured';
 
   return (
-    <AnimatedPressable
+    <TouchableOpacity
       onPress={onPress}
       style={[styles.card, isFeatured && styles.featuredCard]}
-      animationType="lift"
-      scaleValue={0.98}
+      activeOpacity={0.8}
     >
       {/* Image */}
       <Image
@@ -205,47 +205,37 @@ function EventCard({
 
       {/* Gradient Overlay */}
       <LinearGradient
-        colors={Gradients.darkStrong}
+        colors={['transparent', 'rgba(0,0,0,0.8)']}
         style={styles.gradientOverlay}
-        start={{ x: 0, y: 0.4 }}
+        start={{ x: 0, y: 0.3 }}
         end={{ x: 0, y: 1 }}
       />
 
       {/* Date Badge */}
       <View style={styles.dateBadge}>
-        <LinearGradient
-          colors={Gradients.primary}
-          style={styles.dateBadgeGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <Text style={styles.dateDay}>{day}</Text>
-          <Text style={styles.dateMonth}>{month}</Text>
-        </LinearGradient>
+        <Text style={styles.dateDay}>{day}</Text>
+        <Text style={styles.dateMonth}>{month}</Text>
       </View>
 
       {/* Like Button */}
-      <AnimatedPressable
+      <TouchableOpacity
         onPress={onLikePress}
         style={styles.likeButton}
-        animationType="scale"
-        scaleValue={0.85}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <BlurView intensity={80} tint="light" style={styles.likeButtonBlur}>
+        <View style={styles.likeButtonBg}>
           <Ionicons
             name={isLiked ? 'heart' : 'heart-outline'}
             size={20}
             color={isLiked ? Colors.error : Colors.gray700}
           />
-        </BlurView>
-      </AnimatedPressable>
+        </View>
+      </TouchableOpacity>
 
       {/* Category Badge */}
       {category && (
         <View style={styles.categoryBadgeTop}>
-          <BlurView intensity={60} tint="dark" style={styles.categoryBlur}>
-            <Text style={styles.categoryTextLight}>{category}</Text>
-          </BlurView>
+          <Text style={styles.categoryTextLight}>{category}</Text>
         </View>
       )}
 
@@ -276,7 +266,7 @@ function EventCard({
                 <Text style={styles.freeBadgeText}>Gratuit</Text>
               </View>
             ) : (
-              <Text style={styles.price}>{formatPrice()}</Text>
+              <Text style={styles.priceLight}>{formatPrice()}</Text>
             )}
           </View>
           {attendees !== undefined && (
@@ -287,23 +277,23 @@ function EventCard({
           )}
         </View>
       </View>
-    </AnimatedPressable>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
   // Default Card
   card: {
-    width: 280,
-    height: 340,
+    width: 260,
+    height: 320,
     borderRadius: BorderRadius.xl,
     backgroundColor: Colors.gray900,
     overflow: 'hidden',
     ...Shadows.lg,
   },
   featuredCard: {
-    width: 300,
-    height: 380,
+    width: 280,
+    height: 360,
   },
   image: {
     width: '100%',
@@ -320,50 +310,43 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.md,
     left: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    ...Shadows.violet,
-  },
-  dateBadgeGradient: {
+    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
     alignItems: 'center',
+    ...Shadows.sm,
   },
   dateDay: {
-    fontSize: FontSizes['2xl'],
+    fontSize: FontSizes.xl,
     fontWeight: FontWeights.bold,
-    color: Colors.white,
-    lineHeight: FontSizes['2xl'] * 1.1,
+    color: Colors.gray900,
+    lineHeight: FontSizes.xl * 1.1,
   },
   dateMonth: {
     fontSize: FontSizes.xs,
     fontWeight: FontWeights.semibold,
-    color: Colors.white,
-    opacity: 0.9,
+    color: Colors.gray500,
     letterSpacing: 1,
   },
   likeButton: {
     position: 'absolute',
     top: Spacing.md,
     right: Spacing.md,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
   },
-  likeButtonBlur: {
+  likeButtonBg: {
     width: 40,
     height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: BorderRadius.full,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
   categoryBadgeTop: {
     position: 'absolute',
     top: Spacing.md,
     left: 80,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-  },
-  categoryBlur: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
@@ -422,7 +405,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  price: {
+  priceLight: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
     color: Colors.white,
@@ -452,20 +435,14 @@ const styles = StyleSheet.create({
   horizontalCard: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    height: 140,
-    ...Shadows.card,
+    height: 130,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   horizontalImage: {
-    width: 130,
-    height: '100%',
-  },
-  horizontalImageOverlay: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: 130,
+    width: 120,
     height: '100%',
   },
   horizontalContent: {
@@ -481,7 +458,7 @@ const styles = StyleSheet.create({
   categoryBadge: {
     backgroundColor: Colors.primaryBg,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingVertical: 2,
     borderRadius: BorderRadius.sm,
   },
   categoryText: {
@@ -517,7 +494,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   priceText: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.sm,
     fontWeight: FontWeights.bold,
     color: Colors.primary,
   },

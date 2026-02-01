@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Switch,
   Alert,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -22,7 +23,6 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -239,7 +239,7 @@ export default function SettingsScreen() {
         <Ionicons
           name={item.icon}
           size={20}
-          color={item.destructive ? Colors.error : Colors.primary}
+          color={item.destructive ? Colors.error : Colors.gray700}
         />
       </View>
       <View style={styles.settingContent}>
@@ -270,6 +270,7 @@ export default function SettingsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -293,13 +294,13 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.gray50,
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing['3xl'],
   },
   section: {
     marginTop: Spacing.lg,
@@ -315,8 +316,9 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    ...Shadows.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   settingItem: {
     flexDirection: 'row',
@@ -326,19 +328,19 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray100,
   },
   settingItemFirst: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
+    borderTopLeftRadius: BorderRadius.lg,
+    borderTopRightRadius: BorderRadius.lg,
   },
   settingItemLast: {
-    borderBottomLeftRadius: BorderRadius.xl,
-    borderBottomRightRadius: BorderRadius.xl,
+    borderBottomLeftRadius: BorderRadius.lg,
+    borderBottomRightRadius: BorderRadius.lg,
     borderBottomWidth: 0,
   },
   settingIcon: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
   },
