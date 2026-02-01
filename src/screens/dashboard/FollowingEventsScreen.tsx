@@ -314,7 +314,7 @@ export default function FollowingEventsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="heart-outline" size={48} color="#EC4899" />
+        <Ionicons name="heart-outline" size={48} color="#8B5CF6" />
       </View>
       <Text style={styles.emptyTitle}>
         {follows.length === 0 ? 'Aucun événement suivi' : 'Aucun résultat'}
@@ -338,41 +338,46 @@ export default function FollowingEventsScreen() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.authRequired}>
-          <View style={styles.authIcon}>
-            <Ionicons name="heart-outline" size={48} color="#EC4899" />
+      <View style={styles.rootContainer}>
+        <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.container}>
+            <View style={styles.authRequired}>
+              <View style={styles.authIcon}>
+                <Ionicons name="heart-outline" size={48} color="#8B5CF6" />
+              </View>
+              <Text style={styles.authTitle}>Connectez-vous</Text>
+              <Text style={styles.authSubtitle}>
+                Vous devez être connecté pour voir vos événements suivis
+              </Text>
+              <TouchableOpacity
+                style={styles.loginButton}
+                onPress={() => navigation.navigate('Login' as never)}
+              >
+                <Text style={styles.loginButtonText}>Se connecter</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={styles.authTitle}>Connectez-vous</Text>
-          <Text style={styles.authSubtitle}>
-            Vous devez être connecté pour voir vos événements suivis
-          </Text>
-          <TouchableOpacity
-            style={styles.loginButton}
-            onPress={() => navigation.navigate('Login' as never)}
-          >
-            <Text style={styles.loginButtonText}>Se connecter</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#EC4899" />
-
-      {/* Header with gradient */}
-      <LinearGradient
-        colors={['#EC4899', '#F43F5E', '#F97316']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerContent}>
-          <View style={styles.headerTitleRow}>
-            <Ionicons name="heart" size={20} color="rgba(255,255,255,0.8)" />
+    <View style={styles.rootContainer}>
+      <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.container}>
+          {/* Header with gradient */}
+          <LinearGradient
+            colors={['#8B5CF6', '#A855F7', '#C084FC']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.header}
+          >
+            <View style={styles.headerContent}>
+              <View style={styles.headerTitleRow}>
+                <Ionicons name="heart" size={20} color="rgba(255,255,255,0.8)" />
             <Text style={styles.headerSubtitle}>Vos favoris</Text>
           </View>
           <Text style={styles.headerTitle}>Événements Suivis</Text>
@@ -384,7 +389,7 @@ export default function FollowingEventsScreen() {
             style={styles.discoverLink}
             onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
           >
-            <Ionicons name="sparkles" size={16} color="#EC4899" />
+            <Ionicons name="sparkles" size={16} color="#8B5CF6" />
             <Text style={styles.discoverLinkText}>Découvrir plus</Text>
           </TouchableOpacity>
         </View>
@@ -482,11 +487,20 @@ export default function FollowingEventsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+    backgroundColor: '#8B5CF6',
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.white,
@@ -532,7 +546,7 @@ const styles = StyleSheet.create({
   discoverLinkText: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    color: '#EC4899',
+    color: '#8B5CF6',
   },
   statsRow: {
     flexDirection: 'row',
@@ -742,7 +756,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 20,
-    backgroundColor: '#FDF2F8',
+    backgroundColor: '#F3E8FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
@@ -761,7 +775,7 @@ const styles = StyleSheet.create({
   discoverButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#EC4899',
+    backgroundColor: '#8B5CF6',
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
@@ -790,7 +804,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 20,
-    backgroundColor: '#FDF2F8',
+    backgroundColor: '#F3E8FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
@@ -806,7 +820,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   loginButton: {
-    backgroundColor: '#EC4899',
+    backgroundColor: '#8B5CF6',
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
