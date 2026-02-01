@@ -13,7 +13,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { ticketPurchasesAPI } from '../../api/client';
 import { TicketPurchase, RootStackParamList } from '../../types';
@@ -24,7 +23,6 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -144,12 +142,9 @@ export default function QRCodeScreen() {
             ) : (
               // Placeholder QR code (in production, generate real QR)
               <View style={styles.qrPlaceholder}>
-                <LinearGradient
-                  colors={Gradients.primary}
-                  style={styles.qrPlaceholderInner}
-                >
-                  <Ionicons name="qr-code" size={100} color={Colors.white} />
-                </LinearGradient>
+                <View style={styles.qrPlaceholderInner}>
+                  <Ionicons name="qr-code" size={100} color={Colors.primary} />
+                </View>
               </View>
             )}
           </View>
@@ -229,13 +224,13 @@ export default function QRCodeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
 
   // Header
@@ -245,6 +240,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
   },
   backButton: {
     width: 40,
@@ -270,8 +267,10 @@ const styles = StyleSheet.create({
   ticketCard: {
     backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
     borderRadius: BorderRadius['2xl'],
-    ...Shadows.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
     overflow: 'hidden',
   },
 
@@ -308,8 +307,10 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
     marginLeft: -12,
+    borderRightWidth: 1,
+    borderRightColor: Colors.gray200,
   },
   dividerLine: {
     flex: 1,
@@ -322,8 +323,10 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
     marginRight: -12,
+    borderLeftWidth: 1,
+    borderLeftColor: Colors.gray200,
   },
 
   // QR Section
@@ -352,6 +355,7 @@ const styles = StyleSheet.create({
     width: QR_SIZE - 40,
     height: QR_SIZE - 40,
     borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -422,7 +426,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
   },

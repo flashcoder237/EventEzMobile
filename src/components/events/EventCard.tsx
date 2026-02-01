@@ -5,8 +5,8 @@ import {
   Image,
   StyleSheet,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
@@ -14,8 +14,9 @@ import {
   FontWeights,
   Spacing,
   BorderRadius,
-  Shadows,
 } from '../../constants/theme';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface EventCardProps {
   id: string;
@@ -56,32 +57,30 @@ function EventCard({
     return price || 'Gratuit';
   };
 
-  const formatDate = () => {
+  const formatDateShort = () => {
     try {
       const eventDate = new Date(date);
-      const day = eventDate.getDate();
+      const day = eventDate.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3).toUpperCase();
+      const dayNum = eventDate.getDate();
       const month = eventDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
-      return { day, month };
+      return `${day} ${dayNum} ${month}`;
     } catch {
-      return { day: '--', month: '---' };
+      return 'Date TBA';
     }
   };
 
-  const formatFullDate = () => {
+  const formatTime = () => {
     try {
       const eventDate = new Date(date);
-      return eventDate.toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-      });
+      return eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     } catch {
-      return date;
+      return '';
     }
   };
 
-  const { day, month } = formatDate();
+  const defaultImage = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800';
 
-  // Horizontal variant - clean card style
+  // ===== HORIZONTAL VARIANT (List item style - Eventbrite) =====
   if (variant === 'horizontal') {
     return (
       <TouchableOpacity
@@ -90,478 +89,396 @@ function EventCard({
         activeOpacity={0.7}
       >
         <Image
-          source={
-            imageUrl
-              ? { uri: imageUrl }
-              : require('../../../assets/defaults/default-event.png')
-          }
+          source={{ uri: imageUrl || defaultImage }}
           style={styles.horizontalImage}
           resizeMode="cover"
         />
         <View style={styles.horizontalContent}>
-          <View style={styles.horizontalHeader}>
-            {category && (
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{category}</Text>
-              </View>
-            )}
-            <TouchableOpacity
-              onPress={onLikePress}
-              style={styles.likeButtonSmall}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={18}
-                color={isLiked ? Colors.error : Colors.gray400}
-              />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.horizontalDate}>
+            {formatDateShort()} {time && `· ${formatTime()}`}
+          </Text>
           <Text style={styles.horizontalTitle} numberOfLines={2}>
             {title}
           </Text>
-          <View style={styles.horizontalMeta}>
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
-              <Text style={styles.metaText}>{formatFullDate()}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name="location-outline" size={14} color={Colors.gray500} />
-              <Text style={styles.metaText} numberOfLines={1}>
-                {location}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.horizontalLocation} numberOfLines={1}>
+            {location}
+          </Text>
           <View style={styles.horizontalFooter}>
-            <Text style={styles.priceText}>{formatPrice()}</Text>
-            {attendees !== undefined && (
-              <View style={styles.attendeesContainer}>
-                <Ionicons name="people-outline" size={14} color={Colors.gray400} />
-                <Text style={styles.attendeesText}>{attendees}</Text>
-              </View>
+            {isFree ? (
+              <Text style={styles.freeText}>Gratuit</Text>
+            ) : (
+              <Text style={styles.priceText}>{formatPrice()}</Text>
             )}
           </View>
         </View>
+        <TouchableOpacity
+          onPress={onLikePress}
+          style={styles.bookmarkButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons
+            name={isLiked ? 'bookmark' : 'bookmark-outline'}
+            size={20}
+            color={isLiked ? Colors.primary : Colors.gray400}
+          />
+        </TouchableOpacity>
       </TouchableOpacity>
     );
   }
 
-  // Compact variant
+  // ===== COMPACT VARIANT (Small grid card) =====
   if (variant === 'compact') {
     return (
       <TouchableOpacity
         onPress={onPress}
         style={styles.compactCard}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
         <Image
-          source={
-            imageUrl
-              ? { uri: imageUrl }
-              : require('../../../assets/defaults/default-event.png')
-          }
+          source={{ uri: imageUrl || defaultImage }}
           style={styles.compactImage}
           resizeMode="cover"
         />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.7)']}
-          style={styles.compactOverlay}
-        />
-        <View style={styles.compactDateBadge}>
-          <Text style={styles.compactDateDay}>{day}</Text>
-          <Text style={styles.compactDateMonth}>{month}</Text>
-        </View>
         <View style={styles.compactContent}>
+          <Text style={styles.compactDate}>{formatDateShort()}</Text>
           <Text style={styles.compactTitle} numberOfLines={2}>
             {title}
           </Text>
-          <Text style={styles.compactLocation} numberOfLines={1}>
-            <Ionicons name="location" size={12} color={Colors.gray300} /> {location}
+          <Text style={styles.compactPrice}>
+            {isFree ? 'Gratuit' : formatPrice()}
           </Text>
         </View>
       </TouchableOpacity>
     );
   }
 
-  // Featured or Default variant - card with image overlay
-  const isFeatured = variant === 'featured';
+  // ===== FEATURED VARIANT (Large hero card) =====
+  if (variant === 'featured') {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        style={styles.featuredCard}
+        activeOpacity={0.8}
+      >
+        <Image
+          source={{ uri: imageUrl || defaultImage }}
+          style={styles.featuredImage}
+          resizeMode="cover"
+        />
+        <TouchableOpacity
+          onPress={onLikePress}
+          style={styles.featuredBookmark}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons
+            name={isLiked ? 'bookmark' : 'bookmark-outline'}
+            size={22}
+            color={Colors.white}
+          />
+        </TouchableOpacity>
+        <View style={styles.featuredContent}>
+          <Text style={styles.featuredDate}>
+            {formatDateShort()} {time && `· ${formatTime()}`}
+          </Text>
+          <Text style={styles.featuredTitle} numberOfLines={2}>
+            {title}
+          </Text>
+          <View style={styles.featuredMeta}>
+            <Ionicons name="location-outline" size={14} color={Colors.gray500} />
+            <Text style={styles.featuredLocation} numberOfLines={1}>
+              {location}
+            </Text>
+          </View>
+          {isFree ? (
+            <View style={styles.freeBadge}>
+              <Text style={styles.freeBadgeText}>Gratuit</Text>
+            </View>
+          ) : (
+            <Text style={styles.featuredPrice}>À partir de {formatPrice()}</Text>
+          )}
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
+  // ===== DEFAULT VARIANT (Standard scrollable card) =====
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[styles.card, isFeatured && styles.featuredCard]}
+      style={styles.defaultCard}
       activeOpacity={0.8}
     >
-      {/* Image */}
       <Image
-        source={
-          imageUrl
-            ? { uri: imageUrl }
-            : require('../../../assets/defaults/default-event.png')
-        }
-        style={[styles.image, isFeatured && styles.featuredImage]}
+        source={{ uri: imageUrl || defaultImage }}
+        style={styles.defaultImage}
         resizeMode="cover"
       />
-
-      {/* Gradient Overlay */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.8)']}
-        style={styles.gradientOverlay}
-        start={{ x: 0, y: 0.3 }}
-        end={{ x: 0, y: 1 }}
-      />
-
-      {/* Date Badge */}
-      <View style={styles.dateBadge}>
-        <Text style={styles.dateDay}>{day}</Text>
-        <Text style={styles.dateMonth}>{month}</Text>
-      </View>
-
-      {/* Like Button */}
       <TouchableOpacity
         onPress={onLikePress}
-        style={styles.likeButton}
+        style={styles.defaultBookmark}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <View style={styles.likeButtonBg}>
-          <Ionicons
-            name={isLiked ? 'heart' : 'heart-outline'}
-            size={20}
-            color={isLiked ? Colors.error : Colors.gray700}
-          />
-        </View>
+        <Ionicons
+          name={isLiked ? 'bookmark' : 'bookmark-outline'}
+          size={20}
+          color={Colors.white}
+        />
       </TouchableOpacity>
-
-      {/* Category Badge */}
-      {category && (
-        <View style={styles.categoryBadgeTop}>
-          <Text style={styles.categoryTextLight}>{category}</Text>
-        </View>
-      )}
-
-      {/* Content */}
-      <View style={styles.content}>
-        <Text style={[styles.title, isFeatured && styles.featuredTitle]} numberOfLines={2}>
+      <View style={styles.defaultContent}>
+        <Text style={styles.defaultDate}>
+          {formatDateShort()} {time && `· ${formatTime()}`}
+        </Text>
+        <Text style={styles.defaultTitle} numberOfLines={2}>
           {title}
         </Text>
-
-        <View style={styles.locationRow}>
-          <Ionicons name="location" size={14} color={Colors.gray300} />
-          <Text style={styles.locationText} numberOfLines={1}>
-            {location}
-          </Text>
-        </View>
-
-        {time && (
-          <View style={styles.timeRow}>
-            <Ionicons name="time-outline" size={14} color={Colors.gray300} />
-            <Text style={styles.timeText}>{time}</Text>
+        <Text style={styles.defaultLocation} numberOfLines={1}>
+          {location}
+        </Text>
+        {isFree ? (
+          <View style={styles.freeBadgeSmall}>
+            <Text style={styles.freeBadgeTextSmall}>Gratuit</Text>
           </View>
+        ) : (
+          <Text style={styles.defaultPrice}>{formatPrice()}</Text>
         )}
-
-        <View style={styles.footer}>
-          <View style={styles.priceContainer}>
-            {isFree ? (
-              <View style={styles.freeBadge}>
-                <Text style={styles.freeBadgeText}>Gratuit</Text>
-              </View>
-            ) : (
-              <Text style={styles.priceLight}>{formatPrice()}</Text>
-            )}
-          </View>
-          {attendees !== undefined && (
-            <View style={styles.attendeesRow}>
-              <Ionicons name="people" size={14} color={Colors.gray300} />
-              <Text style={styles.attendeesTextLight}>{attendees}+</Text>
-            </View>
-          )}
-        </View>
       </View>
     </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  // Default Card
-  card: {
-    width: 260,
-    height: 320,
-    borderRadius: BorderRadius.xl,
-    backgroundColor: Colors.gray900,
-    overflow: 'hidden',
-    ...Shadows.lg,
-  },
-  featuredCard: {
-    width: 280,
-    height: 360,
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  featuredImage: {
-    height: '100%',
-  },
-  gradientOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  dateBadge: {
-    position: 'absolute',
-    top: Spacing.md,
-    left: Spacing.md,
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-    ...Shadows.sm,
-  },
-  dateDay: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
-    lineHeight: FontSizes.xl * 1.1,
-  },
-  dateMonth: {
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray500,
-    letterSpacing: 1,
-  },
-  likeButton: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.md,
-  },
-  likeButtonBg: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-  },
-  categoryBadgeTop: {
-    position: 'absolute',
-    top: Spacing.md,
-    left: 80,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.full,
-  },
-  categoryTextLight: {
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
-    color: Colors.white,
-    letterSpacing: 0.5,
-  },
-  content: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: Spacing.md,
-  },
-  title: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.white,
-    marginBottom: Spacing.sm,
-    lineHeight: FontSizes.lg * 1.3,
-  },
-  featuredTitle: {
-    fontSize: FontSizes.xl,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.xs,
-  },
-  locationText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray300,
-    marginLeft: Spacing.xs,
-    flex: 1,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  timeText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray300,
-    marginLeft: Spacing.xs,
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: Spacing.sm,
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  priceLight: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.white,
-  },
-  freeBadge: {
-    backgroundColor: Colors.success,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-  },
-  freeBadgeText: {
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
-  },
-  attendeesRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  attendeesTextLight: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray300,
-    marginLeft: Spacing.xs,
-  },
-
-  // Horizontal Card
-  horizontalCard: {
-    flexDirection: 'row',
+  // ===== DEFAULT CARD =====
+  defaultCard: {
+    width: SCREEN_WIDTH * 0.7,
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    height: 130,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+  },
+  defaultImage: {
+    width: '100%',
+    height: 140,
+    backgroundColor: Colors.gray100,
+  },
+  defaultBookmark: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  defaultContent: {
+    padding: Spacing.md,
+  },
+  defaultDate: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.bold,
+    color: Colors.primary,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  defaultTitle: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.bold,
+    color: Colors.gray900,
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  defaultLocation: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginBottom: 8,
+  },
+  defaultPrice: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray700,
+  },
+
+  // ===== HORIZONTAL CARD =====
+  horizontalCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.gray100,
   },
   horizontalImage: {
-    width: 120,
-    height: '100%',
+    width: 110,
+    height: 110,
+    backgroundColor: Colors.gray100,
   },
   horizontalContent: {
     flex: 1,
     padding: Spacing.md,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
   },
-  horizontalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  categoryBadge: {
-    backgroundColor: Colors.primaryBg,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  categoryText: {
+  horizontalDate: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
+    fontWeight: FontWeights.bold,
     color: Colors.primary,
-  },
-  likeButtonSmall: {
-    padding: Spacing.xs,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   horizontalTitle: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontWeight: FontWeights.bold,
     color: Colors.gray900,
-    lineHeight: FontSizes.base * 1.3,
+    marginBottom: 4,
+    lineHeight: 20,
   },
-  horizontalMeta: {
-    gap: Spacing.xs,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  metaText: {
-    fontSize: FontSizes.xs,
+  horizontalLocation: {
+    fontSize: FontSizes.sm,
     color: Colors.gray500,
-    flex: 1,
+    marginBottom: 6,
   },
   horizontalFooter: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  bookmarkButton: {
+    padding: Spacing.md,
+    justifyContent: 'center',
   },
   priceText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.bold,
-    color: Colors.primary,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray700,
   },
-  attendeesContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  attendeesText: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray400,
+  freeText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.semibold,
+    color: Colors.success,
   },
 
-  // Compact Card
+  // ===== COMPACT CARD =====
   compactCard: {
-    width: 160,
-    height: 200,
-    borderRadius: BorderRadius.lg,
+    width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md) / 2,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
     overflow: 'hidden',
-    backgroundColor: Colors.gray900,
-    ...Shadows.md,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
   compactImage: {
     width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  compactOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  compactDateBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    borderRadius: BorderRadius.sm,
-    alignItems: 'center',
-  },
-  compactDateDay: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
-  },
-  compactDateMonth: {
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray500,
-    textTransform: 'uppercase',
+    height: 100,
+    backgroundColor: Colors.gray100,
   },
   compactContent: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
     padding: Spacing.sm,
+  },
+  compactDate: {
+    fontSize: 10,
+    fontWeight: FontWeights.bold,
+    color: Colors.primary,
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   compactTitle: {
     fontSize: FontSizes.sm,
     fontWeight: FontWeights.semibold,
-    color: Colors.white,
-    marginBottom: Spacing.xs,
+    color: Colors.gray900,
+    marginBottom: 4,
+    lineHeight: 16,
   },
-  compactLocation: {
+  compactPrice: {
     fontSize: FontSizes.xs,
-    color: Colors.gray300,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray600,
+  },
+
+  // ===== FEATURED CARD =====
+  featuredCard: {
+    width: SCREEN_WIDTH * 0.85,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+  },
+  featuredImage: {
+    width: '100%',
+    height: 180,
+    backgroundColor: Colors.gray100,
+  },
+  featuredBookmark: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  featuredContent: {
+    padding: Spacing.md,
+  },
+  featuredDate: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.bold,
+    color: Colors.primary,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  featuredTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.gray900,
+    marginBottom: 8,
+    lineHeight: 24,
+  },
+  featuredMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  featuredLocation: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginLeft: 4,
+    flex: 1,
+  },
+  featuredPrice: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray700,
+  },
+
+  // ===== SHARED STYLES =====
+  freeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.successLight,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.sm,
+  },
+  freeBadgeText: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.bold,
+    color: Colors.success,
+  },
+  freeBadgeSmall: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.successLight,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.xs,
+  },
+  freeBadgeTextSmall: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.semibold,
+    color: Colors.success,
   },
 });
 

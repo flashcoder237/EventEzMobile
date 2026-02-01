@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   FlatList,
   StatusBar,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -173,25 +174,6 @@ export default function ExploreScreen() {
     [navigation]
   );
 
-  const renderCategory = ({ item }: { item: Category }) => (
-    <TouchableOpacity
-      style={[
-        styles.categoryChip,
-        selectedCategory === item.id && styles.categoryChipActive,
-      ]}
-      onPress={() => setSelectedCategory(selectedCategory === item.id ? null : item.id)}
-    >
-      <Text
-        style={[
-          styles.categoryChipText,
-          selectedCategory === item.id && styles.categoryChipTextActive,
-        ]}
-      >
-        {item.name}
-      </Text>
-    </TouchableOpacity>
-  );
-
   const renderListView = () => (
     <FlatList
       data={events}
@@ -202,8 +184,10 @@ export default function ExploreScreen() {
       ListEmptyComponent={
         !loading ? (
           <View style={styles.emptyContainer}>
-            <Ionicons name="search-outline" size={48} color={Colors.gray300} />
-            <Text style={styles.emptyTitle}>Aucun événement</Text>
+            <View style={styles.emptyIconContainer}>
+              <Ionicons name="search-outline" size={48} color={Colors.gray300} />
+            </View>
+            <Text style={styles.emptyTitle}>Aucun événement trouvé</Text>
             <Text style={styles.emptyText}>
               Essayez de modifier vos critères de recherche
             </Text>
@@ -244,22 +228,17 @@ export default function ExploreScreen() {
           activeOpacity={0.95}
         >
           <View style={styles.selectedCardContent}>
+            <Text style={styles.selectedCardDate}>
+              {formatDate(selectedMarker.start_date).toUpperCase()}
+            </Text>
             <Text style={styles.selectedCardTitle} numberOfLines={1}>
               {selectedMarker.title}
             </Text>
             <View style={styles.selectedCardMeta}>
-              <View style={styles.selectedCardMetaItem}>
-                <Ionicons name="location-outline" size={14} color={Colors.gray500} />
-                <Text style={styles.selectedCardMetaText}>
-                  {selectedMarker.location_city}
-                </Text>
-              </View>
-              <View style={styles.selectedCardMetaItem}>
-                <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
-                <Text style={styles.selectedCardMetaText}>
-                  {formatDate(selectedMarker.start_date)}
-                </Text>
-              </View>
+              <Ionicons name="location-outline" size={14} color={Colors.gray500} />
+              <Text style={styles.selectedCardMetaText}>
+                {selectedMarker.location_city}
+              </Text>
             </View>
           </View>
           <View style={styles.selectedCardButton}>
@@ -274,42 +253,13 @@ export default function ExploreScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Explorer</Text>
-
-        {/* View Mode Toggle */}
-        <View style={styles.viewToggle}>
-          <TouchableOpacity
-            style={[styles.viewToggleButton, viewMode === 'list' && styles.viewToggleButtonActive]}
-            onPress={() => setViewMode('list')}
-          >
-            <Ionicons
-              name="list"
-              size={18}
-              color={viewMode === 'list' ? Colors.primary : Colors.gray500}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.viewToggleButton, viewMode === 'map' && styles.viewToggleButtonActive]}
-            onPress={() => setViewMode('map')}
-          >
-            <Ionicons
-              name="map-outline"
-              size={18}
-              color={viewMode === 'map' ? Colors.primary : Colors.gray500}
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
           <Ionicons name="search" size={20} color={Colors.gray400} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un événement..."
+            placeholder="Rechercher des événements"
             placeholderTextColor={Colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -320,40 +270,73 @@ export default function ExploreScreen() {
             </TouchableOpacity>
           )}
         </View>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
+        >
+          <Ionicons
+            name={viewMode === 'list' ? 'map-outline' : 'list-outline'}
+            size={22}
+            color={Colors.gray700}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* Categories Filter */}
-      {viewMode === 'list' && categories.length > 0 && (
+      {viewMode === 'list' && (
         <View style={styles.categoriesContainer}>
-          <FlatList
+          <ScrollView
             horizontal
-            data={[{ id: 0, name: 'Tous' } as Category, ...categories]}
-            renderItem={({ item }) =>
-              item.id === 0 ? (
-                <TouchableOpacity
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === null && styles.categoryChipActive,
-                  ]}
-                  onPress={() => setSelectedCategory(null)}
-                >
-                  <Text
-                    style={[
-                      styles.categoryChipText,
-                      selectedCategory === null && styles.categoryChipTextActive,
-                    ]}
-                  >
-                    Tous
-                  </Text>
-                </TouchableOpacity>
-              ) : (
-                renderCategory({ item })
-              )
-            }
-            keyExtractor={(item) => item.id.toString()}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.categoriesList}
-          />
+          >
+            <TouchableOpacity
+              style={[
+                styles.categoryChip,
+                selectedCategory === null && styles.categoryChipActive,
+              ]}
+              onPress={() => setSelectedCategory(null)}
+            >
+              <Text
+                style={[
+                  styles.categoryChipText,
+                  selectedCategory === null && styles.categoryChipTextActive,
+                ]}
+              >
+                Tous
+              </Text>
+            </TouchableOpacity>
+            {categories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                style={[
+                  styles.categoryChip,
+                  selectedCategory === category.id && styles.categoryChipActive,
+                ]}
+                onPress={() =>
+                  setSelectedCategory(selectedCategory === category.id ? null : category.id)
+                }
+              >
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    selectedCategory === category.id && styles.categoryChipTextActive,
+                  ]}
+                >
+                  {category.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Results Header */}
+      {viewMode === 'list' && !loading && (
+        <View style={styles.resultsHeader}>
+          <Text style={styles.resultsCount}>
+            {events.length} événement{events.length !== 1 ? 's' : ''}
+          </Text>
         </View>
       )}
 
@@ -376,49 +359,36 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  header: {
+  searchContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  headerTitle: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
-  },
-  viewToggle: {
-    flexDirection: 'row',
-    backgroundColor: Colors.gray100,
-    borderRadius: BorderRadius.md,
-    padding: 4,
-  },
-  viewToggleButton: {
-    paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.sm,
-  },
-  viewToggleButtonActive: {
-    backgroundColor: Colors.white,
-  },
-  searchContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
   },
   searchBar: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
     gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
     fontSize: FontSizes.base,
     color: Colors.gray900,
+    paddingVertical: 4,
+  },
+  filterButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.gray50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   categoriesContainer: {
     borderBottomWidth: 1,
@@ -437,7 +407,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   categoryChipActive: {
-    backgroundColor: Colors.gray900,
+    backgroundColor: Colors.primary,
   },
   categoryChipText: {
     fontSize: FontSizes.sm,
@@ -447,14 +417,23 @@ const styles = StyleSheet.create({
   categoryChipTextActive: {
     color: Colors.white,
   },
+  resultsHeader: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+  },
+  resultsCount: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    fontWeight: FontWeights.medium,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   listContent: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 100,
   },
   eventCardContainer: {
     marginBottom: Spacing.md,
@@ -465,16 +444,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: Spacing['3xl'],
   },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.gray50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
   emptyTitle: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semibold,
     color: Colors.gray700,
-    marginTop: Spacing.md,
+    marginBottom: Spacing.xs,
   },
   emptyText: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
-    marginTop: Spacing.xs,
+    textAlign: 'center',
   },
   mapContainer: {
     flex: 1,
@@ -485,10 +473,10 @@ const styles = StyleSheet.create({
     bottom: 140,
   },
   mapButton: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     backgroundColor: Colors.white,
-    borderRadius: 22,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     ...Shadows.md,
@@ -526,6 +514,12 @@ const styles = StyleSheet.create({
   selectedCardContent: {
     flex: 1,
   },
+  selectedCardDate: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.bold,
+    color: Colors.primary,
+    marginBottom: 4,
+  },
   selectedCardTitle: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.semibold,
@@ -533,10 +527,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   selectedCardMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  selectedCardMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,

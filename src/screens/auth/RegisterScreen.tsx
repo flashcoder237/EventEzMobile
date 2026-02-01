@@ -15,7 +15,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { AuthStackParamList } from '../../types';
 import {
@@ -230,10 +229,6 @@ export default function RegisterScreen() {
 
       {/* Background decoration */}
       <View style={styles.backgroundDecoration}>
-        <LinearGradient
-          colors={[Colors.primaryBg, 'transparent']}
-          style={styles.gradientTop}
-        />
         <View style={styles.decorativeCircle1} />
         <View style={styles.decorativeCircle2} />
       </View>
@@ -397,13 +392,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 400,
-  },
-  gradientTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 300,
   },
   decorativeCircle1: {
     position: 'absolute',

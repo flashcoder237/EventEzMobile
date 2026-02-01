@@ -8,13 +8,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withDelay,
-  withSequence,
 } from 'react-native-reanimated';
 
 import { RootStackParamList } from '../../types';
@@ -24,7 +22,6 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Gradients,
 } from '../../constants/theme';
 import GradientButton from '../../components/ui/GradientButton';
 
@@ -56,12 +53,9 @@ export default function PaymentSuccessScreen() {
       <View style={styles.content}>
         {/* Success Icon */}
         <Animated.View style={[styles.iconContainer, iconStyle]}>
-          <LinearGradient
-            colors={[Colors.success, '#34D399']}
-            style={styles.iconGradient}
-          >
+          <View style={styles.iconCircle}>
             <Ionicons name="checkmark" size={60} color={Colors.white} />
-          </LinearGradient>
+          </View>
         </Animated.View>
 
         <Animated.View style={[styles.textContainer, contentStyle]}>
@@ -123,7 +117,7 @@ export default function PaymentSuccessScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,
@@ -134,10 +128,11 @@ const styles = StyleSheet.create({
   iconContainer: {
     marginBottom: Spacing.xl,
   },
-  iconGradient: {
+  iconCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
+    backgroundColor: Colors.success,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -158,7 +153,7 @@ const styles = StyleSheet.create({
     lineHeight: FontSizes.md * 1.5,
   },
   infoCard: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     width: '100%',
@@ -172,7 +167,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primaryBg,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.md,

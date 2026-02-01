@@ -8,7 +8,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { RootStackParamList } from '../../types';
 import {
@@ -33,12 +32,9 @@ export default function PaymentFailedScreen() {
       <View style={styles.content}>
         {/* Error Icon */}
         <View style={styles.iconContainer}>
-          <LinearGradient
-            colors={[Colors.error, '#F87171']}
-            style={styles.iconGradient}
-          >
+          <View style={styles.iconCircle}>
             <Ionicons name="close" size={60} color={Colors.white} />
-          </LinearGradient>
+          </View>
         </View>
 
         <View style={styles.textContainer}>
@@ -80,7 +76,7 @@ export default function PaymentFailedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,
@@ -91,10 +87,11 @@ const styles = StyleSheet.create({
   iconContainer: {
     marginBottom: Spacing.xl,
   },
-  iconGradient: {
+  iconCircle: {
     width: 120,
     height: 120,
     borderRadius: 60,
+    backgroundColor: Colors.error,
     alignItems: 'center',
     justifyContent: 'center',
   },

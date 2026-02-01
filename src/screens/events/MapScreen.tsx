@@ -9,12 +9,11 @@ import {
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { eventsAPI } from '../../api/client';
 import { MapMarker, RootStackParamList } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
-import { Colors, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { Colors, FontSizes, FontWeights, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Map'>;
@@ -121,10 +120,10 @@ export default function MapScreen() {
       {/* Map Controls */}
       <View style={styles.mapControls}>
         <TouchableOpacity style={styles.mapButton} onPress={centerOnUser}>
-          <Ionicons name="locate" size={24} color={Colors.primary} />
+          <Ionicons name="locate" size={24} color={Colors.gray700} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.mapButton} onPress={fetchMapEvents}>
-          <Ionicons name="refresh" size={24} color={Colors.primary} />
+          <Ionicons name="refresh" size={24} color={Colors.gray700} />
         </TouchableOpacity>
       </View>
 
@@ -137,15 +136,8 @@ export default function MapScreen() {
 
       {/* Events Count */}
       <View style={styles.countBadge}>
-        <LinearGradient
-          colors={[Colors.gradientStart, Colors.gradientEnd]}
-          style={styles.countBadgeGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-        >
-          <Ionicons name="location" size={16} color={Colors.white} />
-          <Text style={styles.countText}>{markers.length} événements</Text>
-        </LinearGradient>
+        <Ionicons name="location" size={14} color={Colors.primary} />
+        <Text style={styles.countText}>{markers.length} événements</Text>
       </View>
 
       {/* Selected Event Card */}
@@ -156,32 +148,22 @@ export default function MapScreen() {
           activeOpacity={0.95}
         >
           <View style={styles.selectedCardContent}>
+            <Text style={styles.selectedCardDate}>
+              {formatDate(selectedMarker.start_date).toUpperCase()}
+            </Text>
             <Text style={styles.selectedCardTitle} numberOfLines={1}>
               {selectedMarker.title}
             </Text>
             <View style={styles.selectedCardMeta}>
-              <View style={styles.selectedCardMetaItem}>
-                <Ionicons name="location-outline" size={14} color={Colors.gray500} />
-                <Text style={styles.selectedCardMetaText}>
-                  {selectedMarker.location_city}
-                </Text>
-              </View>
-              <View style={styles.selectedCardMetaItem}>
-                <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
-                <Text style={styles.selectedCardMetaText}>
-                  {formatDate(selectedMarker.start_date)}
-                </Text>
-              </View>
+              <Ionicons name="location-outline" size={14} color={Colors.gray500} />
+              <Text style={styles.selectedCardMetaText}>
+                {selectedMarker.location_city}
+              </Text>
             </View>
           </View>
-          <LinearGradient
-            colors={[Colors.gradientStart, Colors.gradientEnd]}
-            style={styles.selectedCardButton}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-          >
-            <Ionicons name="arrow-forward" size={20} color={Colors.white} />
-          </LinearGradient>
+          <View style={styles.selectedCardButton}>
+            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+          </View>
         </TouchableOpacity>
       )}
     </View>
@@ -195,7 +177,7 @@ const styles = StyleSheet.create({
   },
   mapControls: {
     position: 'absolute',
-    right: Spacing.base,
+    right: Spacing.md,
     top: Spacing.xl,
     gap: Spacing.sm,
   },
@@ -221,31 +203,29 @@ const styles = StyleSheet.create({
   countBadge: {
     position: 'absolute',
     top: Spacing.xl,
-    left: Spacing.base,
-    borderRadius: BorderRadius.full,
-    overflow: 'hidden',
-    ...Shadows.md,
-  },
-  countBadgeGradient: {
+    left: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
     gap: Spacing.xs,
+    ...Shadows.sm,
   },
   countText: {
-    fontWeight: '600',
-    color: Colors.white,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray700,
     fontSize: FontSizes.sm,
   },
   selectedCard: {
     position: 'absolute',
     bottom: Spacing.xl,
-    left: Spacing.base,
-    right: Spacing.base,
+    left: Spacing.lg,
+    right: Spacing.lg,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.base,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
     ...Shadows.lg,
@@ -253,17 +233,19 @@ const styles = StyleSheet.create({
   selectedCardContent: {
     flex: 1,
   },
+  selectedCardDate: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.bold,
+    color: Colors.primary,
+    marginBottom: 4,
+  },
   selectedCardTitle: {
     fontSize: FontSizes.base,
-    fontWeight: '700',
+    fontWeight: FontWeights.semibold,
     color: Colors.gray900,
     marginBottom: Spacing.xs,
   },
   selectedCardMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  selectedCardMetaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -273,11 +255,11 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
   },
   selectedCardButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.violet,
   },
 });

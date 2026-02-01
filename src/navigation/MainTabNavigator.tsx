@@ -2,10 +2,8 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import { MainTabParamList } from '../types';
-import { Colors, Shadows, BorderRadius, Spacing, Gradients } from '../constants/theme';
+import { Colors, BorderRadius, Spacing } from '../constants/theme';
 
 import HomeScreen from '../screens/events/HomeScreen';
 import ExploreScreen from '../screens/events/ExploreScreen';
@@ -15,13 +13,13 @@ import ProfileScreen from '../screens/profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 85 : 70;
+const TAB_BAR_HEIGHT = Platform.OS === 'ios' ? 88 : 64;
 
 export default function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap;
 
           switch (route.name) {
@@ -29,13 +27,13 @@ export default function MainTabNavigator() {
               iconName = focused ? 'home' : 'home-outline';
               break;
             case 'Explore':
-              iconName = focused ? 'compass' : 'compass-outline';
+              iconName = focused ? 'search' : 'search-outline';
               break;
             case 'MyTickets':
               iconName = focused ? 'ticket' : 'ticket-outline';
               break;
             case 'Dashboard':
-              iconName = focused ? 'grid' : 'grid-outline';
+              iconName = focused ? 'heart' : 'heart-outline';
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
@@ -44,24 +42,14 @@ export default function MainTabNavigator() {
               iconName = 'ellipse';
           }
 
-          if (focused) {
-            return (
-              <View style={styles.activeIconContainer}>
-                <LinearGradient
-                  colors={Gradients.primary}
-                  style={styles.activeIconBg}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                >
-                  <Ionicons name={iconName} size={22} color={Colors.white} />
-                </LinearGradient>
-              </View>
-            );
-          }
-
           return (
-            <View style={styles.inactiveIconContainer}>
-              <Ionicons name={iconName} size={24} color={color} />
+            <View style={styles.iconContainer}>
+              <Ionicons
+                name={iconName}
+                size={24}
+                color={focused ? Colors.primary : Colors.gray400}
+              />
+              {focused && <View style={styles.activeIndicator} />}
             </View>
           );
         },
@@ -69,27 +57,20 @@ export default function MainTabNavigator() {
         tabBarInactiveTintColor: Colors.gray400,
         headerShown: false,
         tabBarStyle: {
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
           backgroundColor: Colors.white,
-          borderTopWidth: 0,
+          borderTopWidth: 1,
+          borderTopColor: Colors.gray100,
           height: TAB_BAR_HEIGHT,
           paddingTop: Spacing.sm,
           paddingBottom: Platform.OS === 'ios' ? Spacing.xl : Spacing.sm,
-          ...Shadows.lg,
-          borderTopLeftRadius: BorderRadius['2xl'],
-          borderTopRightRadius: BorderRadius['2xl'],
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
-          marginTop: 4,
-          letterSpacing: 0.2,
+          fontWeight: '500',
+          marginTop: 2,
         },
         tabBarItemStyle: {
-          paddingVertical: 2,
+          paddingVertical: 4,
         },
         tabBarHideOnKeyboard: true,
       })}
@@ -102,7 +83,7 @@ export default function MainTabNavigator() {
       <Tab.Screen
         name="Explore"
         component={ExploreScreen}
-        options={{ tabBarLabel: 'Explorer' }}
+        options={{ tabBarLabel: 'Recherche' }}
       />
       <Tab.Screen
         name="MyTickets"
@@ -112,7 +93,7 @@ export default function MainTabNavigator() {
       <Tab.Screen
         name="Dashboard"
         component={DashboardScreen}
-        options={{ tabBarLabel: 'Dashboard' }}
+        options={{ tabBarLabel: 'Favoris' }}
       />
       <Tab.Screen
         name="Profile"
@@ -124,23 +105,18 @@ export default function MainTabNavigator() {
 }
 
 const styles = StyleSheet.create({
-  activeIconContainer: {
+  iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: -2,
+    width: 48,
+    height: 32,
   },
-  activeIconBg: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.violet,
-  },
-  inactiveIconContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: 46,
-    height: 46,
+  activeIndicator: {
+    position: 'absolute',
+    bottom: -4,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.primary,
   },
 });

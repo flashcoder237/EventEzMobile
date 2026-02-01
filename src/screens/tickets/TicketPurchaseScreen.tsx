@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { eventsAPI, ticketTypesAPI, registrationsAPI } from '../../api/client';
 import { Event, TicketType, RootStackParamList } from '../../types';
@@ -24,7 +23,6 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
-  Gradients,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;

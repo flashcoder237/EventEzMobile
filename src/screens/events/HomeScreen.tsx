@@ -4,12 +4,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   FlatList,
   RefreshControl,
   Dimensions,
   StatusBar,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -26,12 +26,9 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
 } from '../../constants/theme';
 
 import EventCard from '../../components/events/EventCard';
-import CategoryCard from '../../components/events/CategoryCard';
-import SectionHeader from '../../components/ui/SectionHeader';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -41,6 +38,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
   'musique': 'musical-notes',
   'music': 'musical-notes',
+  'concert': 'musical-notes',
   'sport': 'football',
   'sports': 'football',
   'art': 'color-palette',
@@ -53,6 +51,8 @@ const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
   'education': 'school',
   'santé': 'fitness',
   'health': 'fitness',
+  'film': 'film',
+  'cinéma': 'film',
   'default': 'calendar',
 };
 
@@ -129,13 +129,6 @@ export default function HomeScreen() {
     return categoryIcons[key] || categoryIcons.default;
   };
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bon après-midi';
-    return 'Bonsoir';
-  };
-
   const renderFeaturedEvent = useCallback(
     ({ item, index }: { item: Event; index: number }) => (
       <View style={[styles.featuredCardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
@@ -158,7 +151,7 @@ export default function HomeScreen() {
     [navigation]
   );
 
-  const renderUpcomingEvent = useCallback(
+  const renderEvent = useCallback(
     ({ item, index }: { item: Event; index: number }) => (
       <View style={[styles.cardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
         <EventCard
@@ -182,19 +175,31 @@ export default function HomeScreen() {
 
   const renderCategory = useCallback(
     ({ item, index }: { item: Category; index: number }) => (
-      <View style={[styles.categoryContainer, index === 0 && { marginLeft: Spacing.lg }]}>
-        <CategoryCard
-          id={item.id.toString()}
-          name={item.name}
-          icon={getCategoryIcon(item.name)}
-          eventCount={item.event_count || item.events_count}
-          onPress={() => {
-            navigation.navigate('Main', { screen: 'Explore', params: { category: item.id } } as any);
-          }}
-        />
-      </View>
+      <TouchableOpacity
+        style={[styles.categoryItem, index === 0 && { marginLeft: Spacing.lg }]}
+        onPress={() => {
+          navigation.navigate('Main', { screen: 'Explore', params: { category: item.id } } as any);
+        }}
+        activeOpacity={0.7}
+      >
+        <View style={styles.categoryIcon}>
+          <Ionicons name={getCategoryIcon(item.name)} size={24} color={Colors.primary} />
+        </View>
+        <Text style={styles.categoryName} numberOfLines={1}>{item.name}</Text>
+      </TouchableOpacity>
     ),
-    []
+    [navigation]
+  );
+
+  const SectionHeader = ({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {onSeeAll && (
+        <TouchableOpacity onPress={onSeeAll}>
+          <Text style={styles.seeAllText}>Voir tout</Text>
+        </TouchableOpacity>
+      )}
+    </View>
   );
 
   return (
@@ -215,16 +220,13 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.greetingContainer}>
-              <Text style={styles.greetingSmall}>{getGreeting()}</Text>
-              <Text style={styles.userName}>{user?.first_name || 'Invité'}</Text>
-            </View>
+          <View>
+            <Text style={styles.logoText}>eventez</Text>
           </View>
-          <View style={styles.headerRight}>
+          <View style={styles.headerActions}>
             <TouchableOpacity
+              style={styles.headerButton}
               onPress={() => navigation.navigate('Notifications')}
-              style={styles.iconButton}
             >
               <Ionicons name="notifications-outline" size={24} color={Colors.gray800} />
             </TouchableOpacity>
@@ -233,32 +235,21 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <TouchableOpacity
-          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
           style={styles.searchBar}
+          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
           activeOpacity={0.7}
         >
           <Ionicons name="search" size={20} color={Colors.gray400} />
-          <Text style={styles.searchPlaceholder}>Rechercher un événement...</Text>
+          <Text style={styles.searchPlaceholder}>Rechercher un événement</Text>
         </TouchableOpacity>
 
-        {/* Map Banner */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
-          style={styles.mapBanner}
-          activeOpacity={0.8}
-        >
-          <View style={styles.mapBannerContent}>
-            <View style={styles.mapBannerIcon}>
-              <Ionicons name="map-outline" size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.mapBannerText}>
-              <Text style={styles.mapBannerTitle}>Explorer la carte</Text>
-              <Text style={styles.mapBannerSubtitle}>
-                Découvrez les événements autour de vous
-              </Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+        {/* Location Row */}
+        <TouchableOpacity style={styles.locationRow} activeOpacity={0.7}>
+          <Ionicons name="location-outline" size={18} color={Colors.primary} />
+          <Text style={styles.locationText}>
+            {location ? 'Événements près de vous' : 'Douala, Cameroun'}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={Colors.gray400} />
         </TouchableOpacity>
 
         {/* Categories */}
@@ -267,11 +258,11 @@ export default function HomeScreen() {
             <SectionHeader title="Catégories" />
             <FlatList
               horizontal
-              data={categories}
+              data={categories.slice(0, 8)}
               renderItem={renderCategory}
               keyExtractor={(item) => item.id.toString()}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
+              contentContainerStyle={styles.categoriesList}
             />
           </View>
         )}
@@ -280,9 +271,8 @@ export default function HomeScreen() {
         {featuredEvents.length > 0 && (
           <View style={styles.section}>
             <SectionHeader
-              title="En vedette"
-              actionText="Voir tout"
-              onActionPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+              title="Événements populaires"
+              onSeeAll={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
             />
             <FlatList
               horizontal
@@ -290,8 +280,8 @@ export default function HomeScreen() {
               renderItem={renderFeaturedEvent}
               keyExtractor={(item) => item.id}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-              snapToInterval={300}
+              contentContainerStyle={styles.eventsList}
+              snapToInterval={SCREEN_WIDTH * 0.85 + Spacing.md}
               decelerationRate="fast"
             />
           </View>
@@ -301,43 +291,57 @@ export default function HomeScreen() {
         {nearbyEvents.length > 0 && (
           <View style={styles.section}>
             <SectionHeader
-              title="Près de vous"
-              actionText="Carte"
-              onActionPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+              title="Près de chez vous"
+              onSeeAll={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
             />
             <FlatList
               horizontal
               data={nearbyEvents}
-              renderItem={renderUpcomingEvent}
+              renderItem={renderEvent}
               keyExtractor={(item) => item.id}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
+              contentContainerStyle={styles.eventsList}
             />
           </View>
         )}
 
-        {/* Upcoming Events */}
+        {/* This Weekend */}
         {upcomingEvents.length > 0 && (
           <View style={styles.section}>
             <SectionHeader
-              title="À venir"
-              actionText="Voir tout"
-              onActionPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+              title="Ce week-end"
+              onSeeAll={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
             />
             <FlatList
               horizontal
-              data={upcomingEvents}
-              renderItem={renderUpcomingEvent}
+              data={upcomingEvents.slice(0, 5)}
+              renderItem={renderEvent}
               keyExtractor={(item) => item.id}
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.horizontalList}
-              snapToInterval={280}
-              decelerationRate="fast"
+              contentContainerStyle={styles.eventsList}
             />
           </View>
         )}
 
-        {/* Bottom Spacing */}
+        {/* Free Events */}
+        {upcomingEvents.filter(e => e.is_free).length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="Événements gratuits"
+              onSeeAll={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+            />
+            <FlatList
+              horizontal
+              data={upcomingEvents.filter(e => e.is_free).slice(0, 5)}
+              renderItem={renderEvent}
+              keyExtractor={(item) => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.eventsList}
+            />
+          </View>
+        )}
+
+        {/* Bottom Spacing for Tab Bar */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
@@ -350,7 +354,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   scrollContent: {
-    paddingBottom: Spacing['2xl'],
+    paddingBottom: Spacing.xl,
   },
   header: {
     flexDirection: 'row',
@@ -360,28 +364,18 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  greetingContainer: {
-    justifyContent: 'center',
-  },
-  greetingSmall: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginBottom: 2,
-  },
-  userName: {
-    fontSize: FontSizes['2xl'],
+  logoText: {
+    fontSize: 28,
     fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    color: Colors.primary,
+    letterSpacing: -0.5,
   },
-  headerRight: {
+  headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.sm,
   },
-  iconButton: {
+  headerButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -393,11 +387,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.lg,
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     gap: Spacing.sm,
   },
   searchPlaceholder: {
@@ -405,53 +399,64 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     color: Colors.gray400,
   },
-  mapBanner: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.xs,
   },
-  mapBannerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  mapBannerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primaryBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  mapBannerText: {
-    flex: 1,
-  },
-  mapBannerTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
-  },
-  mapBannerSubtitle: {
+  locationText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginTop: 2,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray700,
+    flex: 1,
   },
   section: {
     marginTop: Spacing.xl,
   },
-  horizontalList: {
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.lg,
+    fontWeight: FontWeights.bold,
+    color: Colors.gray900,
+  },
+  seeAllText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.semibold,
+    color: Colors.primary,
+  },
+  categoriesList: {
     paddingRight: Spacing.lg,
   },
-  categoryContainer: {
-    marginRight: Spacing.sm,
+  categoryItem: {
+    alignItems: 'center',
+    marginRight: Spacing.lg,
+    width: 72,
+  },
+  categoryIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.gray50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
+  categoryName: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray700,
+    textAlign: 'center',
+  },
+  eventsList: {
+    paddingRight: Spacing.lg,
   },
   cardContainer: {
     marginRight: Spacing.md,
@@ -460,6 +465,6 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   bottomSpacing: {
-    height: Spacing['3xl'],
+    height: 100,
   },
 });

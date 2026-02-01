@@ -15,7 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api/client';
-import { RootStackParamList } from '../../types';
+import { RootStackParamList, Event } from '../../types';
+import EventCard from '../../components/events/EventCard';
 import {
   Colors,
   FontSizes,
@@ -75,7 +76,7 @@ export default function DashboardScreen() {
       if (isOrganizer) {
         promises.push(
           eventsAPI.getEvents({ my_events: true, page_size: 1 }).catch(() => ({ data: { count: 0 } })),
-          walletAPI.getWallet().catch(() => ({ data: { available_balance: 0 } }))
+          walletAPI.getMyWallet().catch(() => ({ data: { available_balance: 0 } }))
         );
       }
 
