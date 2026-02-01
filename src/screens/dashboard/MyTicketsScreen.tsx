@@ -15,8 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { ticketPurchasesAPI } from '../../api/client';
-import { TicketPurchase, RootStackParamList } from '../../types';
+import { registrationsAPI } from '../../api/client';
+import { Registration, RootStackParamList } from '../../types';
 import {
   Colors,
   FontFamily,
@@ -33,21 +33,22 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MyTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const [tickets, setTickets] = useState<TicketPurchase[]>([]);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
 
   useEffect(() => {
-    fetchTickets();
+    fetchRegistrations();
   }, []);
 
-  const fetchTickets = async () => {
+  const fetchRegistrations = async () => {
     try {
-      const response = await ticketPurchasesAPI.getMyTickets();
-      setTickets(response.data.results || response.data || []);
+      const response = await registrationsAPI.getMyRegistrations();
+      const data = response.data?.results || response.data || [];
+      setRegistrations(data);
     } catch (error) {
-      console.error('Erreur chargement billets:', error);
+      console.error('Erreur chargement inscriptions:', error);
     } finally {
       setLoading(false);
     }
@@ -55,15 +56,16 @@ export default function MyTicketsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchTickets();
+    await fetchRegistrations();
     setRefreshing(false);
   };
 
-  const filterTickets = useCallback((tab: TabType) => {
+  const filterRegistrations = useCallback((tab: TabType) => {
     const now = new Date();
-    return tickets.filter((ticket) => {
-      const eventDate = ticket.event?.start_date ? new Date(ticket.event.start_date) : null;
-      const isCancelled = ticket.status === 'cancelled' || ticket.status === 'refunded';
+    return registrations.filter((reg) => {
+      const event = reg.event || reg.event_detail;
+      const eventDate = event?.start_date ? new Date(event.start_date) : null;
+      const isCancelled = reg.status === 'cancelled' || reg.status === 'rejected';
 
       switch (tab) {
         case 'upcoming':
@@ -76,9 +78,9 @@ export default function MyTicketsScreen() {
           return true;
       }
     });
-  }, [tickets]);
+  }, [registrations]);
 
-  const filteredTickets = filterTickets(activeTab);
+  const filteredRegistrations = filterRegistrations(activeTab);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -94,26 +96,63 @@ export default function MyTicketsScreen() {
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'confirmed':
+      case 'completed':
         return { color: Colors.success, bg: Colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
       case 'pending':
+      case 'pending_approval':
         return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente', icon: 'time' };
       case 'cancelled':
         return { color: Colors.error, bg: Colors.errorLight, label: 'Annulé', icon: 'close-circle' };
-      case 'refunded':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Remboursé', icon: 'refresh-circle' };
+      case 'rejected':
+        return { color: Colors.error, bg: Colors.errorLight, label: 'Refusé', icon: 'close-circle' };
+      case 'checked_in':
+        return { color: Colors.success, bg: Colors.successLight, label: 'Validé', icon: 'checkmark-done-circle' };
       default:
-        return { color: Colors.gray500, bg: Colors.gray100, label: status, icon: 'help-circle' };
+        return { color: Colors.gray500, bg: Colors.gray100, label: status || 'Inconnu', icon: 'help-circle' };
     }
   };
 
-  const renderTicket = ({ item }: { item: TicketPurchase }) => {
-    const dateInfo = item.event?.start_date ? formatDate(item.event.start_date) : null;
+  const getTotalPrice = (reg: Registration) => {
+    if (reg.tickets && reg.tickets.length > 0) {
+      return reg.tickets.reduce((sum, t) => sum + (t.total_price || 0), 0);
+    }
+    return 0;
+  };
+
+  const getTicketInfo = (reg: Registration) => {
+    if (reg.tickets && reg.tickets.length > 0) {
+      const firstTicket = reg.tickets[0];
+      const ticketType = typeof firstTicket.ticket_type === 'object'
+        ? firstTicket.ticket_type
+        : null;
+      const totalQty = reg.tickets.reduce((sum, t) => sum + (t.quantity || 1), 0);
+      return {
+        name: ticketType?.name || firstTicket.ticket_type_name || 'Billet',
+        quantity: totalQty,
+      };
+    }
+    return { name: 'Inscription', quantity: 1 };
+  };
+
+  const renderRegistration = ({ item }: { item: Registration }) => {
+    const event = item.event || item.event_detail;
+    const dateInfo = event?.start_date ? formatDate(event.start_date) : null;
     const statusConfig = getStatusConfig(item.status);
+    const ticketInfo = getTicketInfo(item);
+    const totalPrice = getTotalPrice(item);
 
     return (
       <TouchableOpacity
         style={styles.ticketCard}
-        onPress={() => navigation.navigate('QRCode', { ticketId: item.id })}
+        onPress={() => {
+          // Navigate to QR code view for this registration
+          if (item.tickets && item.tickets.length > 0) {
+            navigation.navigate('QRCode', { ticketId: item.tickets[0].id });
+          } else {
+            // For inscription type, show event details
+            navigation.navigate('EventDetails', { eventId: (event as any)?.id || item.event as string });
+          }
+        }}
         activeOpacity={0.7}
       >
         {/* Date Badge */}
@@ -126,27 +165,29 @@ export default function MyTicketsScreen() {
         <View style={styles.ticketContent}>
           {/* Event Image */}
           <Image
-            source={{ uri: item.event?.banner_image || item.event?.display_image || 'https://via.placeholder.com/80' }}
+            source={{ uri: (event as any)?.banner_image || (event as any)?.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200' }}
             style={styles.eventImage}
           />
 
           {/* Event Info */}
           <View style={styles.eventInfo}>
             <Text style={styles.eventTitle} numberOfLines={2}>
-              {item.event?.title || 'Événement'}
+              {(event as any)?.title || 'Événement'}
             </Text>
 
             <View style={styles.ticketTypeRow}>
               <Ionicons name="ticket-outline" size={14} color={Colors.primary} />
-              <Text style={styles.ticketTypeName}>{item.ticket_type?.name || 'Billet'}</Text>
-              <Text style={styles.ticketQuantity}>×{item.quantity}</Text>
+              <Text style={styles.ticketTypeName}>{ticketInfo.name}</Text>
+              {ticketInfo.quantity > 1 && (
+                <Text style={styles.ticketQuantity}>×{ticketInfo.quantity}</Text>
+              )}
             </View>
 
             <View style={styles.eventMeta}>
-              {item.event?.location_city && (
+              {(event as any)?.location_city && (
                 <View style={styles.metaItem}>
                   <Ionicons name="location-outline" size={12} color={Colors.gray400} />
-                  <Text style={styles.metaText}>{item.event.location_city}</Text>
+                  <Text style={styles.metaText}>{(event as any).location_city}</Text>
                 </View>
               )}
               {dateInfo && (
@@ -165,7 +206,7 @@ export default function MyTicketsScreen() {
                 </Text>
               </View>
               <Text style={styles.ticketPrice}>
-                {item.total_price?.toLocaleString() || 0} FCFA
+                {totalPrice > 0 ? `${totalPrice.toLocaleString()} FCFA` : 'Gratuit'}
               </Text>
             </View>
           </View>
@@ -254,24 +295,24 @@ export default function MyTicketsScreen() {
         <TabButton
           tab="upcoming"
           label="À venir"
-          count={filterTickets('upcoming').length}
+          count={filterRegistrations('upcoming').length}
         />
         <TabButton
           tab="past"
           label="Passés"
-          count={filterTickets('past').length}
+          count={filterRegistrations('past').length}
         />
         <TabButton
           tab="cancelled"
           label="Annulés"
-          count={filterTickets('cancelled').length}
+          count={filterRegistrations('cancelled').length}
         />
       </View>
 
       {/* Tickets List */}
       <FlatList
-        data={filteredTickets}
-        renderItem={renderTicket}
+        data={filteredRegistrations}
+        renderItem={renderRegistration}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}

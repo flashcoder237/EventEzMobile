@@ -57,9 +57,10 @@ export default function QRCodeScreen() {
 
   const handleShare = async () => {
     if (!ticket) return;
+    const eventTitle = (ticket as any)?.event?.title || (ticket as any)?.event_title || 'Événement';
     try {
       await Share.share({
-        message: `Mon billet pour ${ticket.event?.title}\n\nCode: ${ticketId}`,
+        message: `Mon billet pour ${eventTitle}\n\nCode: ${ticketId}`,
         title: 'Mon billet EventEz',
       });
     } catch (error) {
@@ -106,19 +107,19 @@ export default function QRCodeScreen() {
         {/* Event Info */}
         <View style={styles.eventInfo}>
           <Text style={styles.eventTitle} numberOfLines={2}>
-            {ticket?.event?.title || 'Événement'}
+            {(ticket as any)?.event?.title || (ticket as any)?.event_title || 'Événement'}
           </Text>
           <View style={styles.eventMeta}>
             <View style={styles.eventMetaItem}>
               <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
               <Text style={styles.eventMetaText}>
-                {ticket?.event?.start_date ? formatDate(ticket.event.start_date) : 'Date à confirmer'}
+                {(ticket as any)?.event?.start_date ? formatDate((ticket as any).event.start_date) : 'Date à confirmer'}
               </Text>
             </View>
             <View style={styles.eventMetaItem}>
               <Ionicons name="location-outline" size={16} color={Colors.primary} />
               <Text style={styles.eventMetaText}>
-                {ticket?.event?.location_name || ticket?.event?.location_city || 'Lieu à confirmer'}
+                {(ticket as any)?.event?.location_name || (ticket as any)?.event?.location_city || 'Lieu à confirmer'}
               </Text>
             </View>
           </View>

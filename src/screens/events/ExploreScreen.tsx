@@ -603,19 +603,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
+  // ===== SEARCH CONTAINER =====
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.sm,
     gap: Spacing.sm,
+    backgroundColor: Colors.white,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     gap: Spacing.sm,
@@ -625,8 +627,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
     color: Colors.gray900,
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
+  // ===== ACTION BUTTONS =====
   filterButton: {
     width: 44,
     height: 44,
@@ -662,6 +665,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // ===== CATEGORIES =====
   categoriesContainer: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
@@ -689,6 +693,7 @@ const styles = StyleSheet.create({
   categoryChipTextActive: {
     color: Colors.white,
   },
+  // ===== RESULTS HEADER =====
   resultsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -711,6 +716,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // ===== LIST CONTENT =====
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
@@ -718,6 +724,7 @@ const styles = StyleSheet.create({
   eventCardContainer: {
     marginBottom: Spacing.md,
   },
+  // ===== EMPTY STATE =====
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
@@ -743,6 +750,7 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     textAlign: 'center',
   },
+  // ===== MAP STYLES =====
   mapContainer: {
     flex: 1,
   },
@@ -758,7 +766,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Shadows.md,
+    ...Shadows.sm,
   },
   countBadge: {
     position: 'absolute',
@@ -771,13 +779,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     gap: Spacing.xs,
-    ...Shadows.sm,
+    ...Shadows.xs,
   },
   countText: {
     fontFamily: FontFamily.medium,
     color: Colors.gray700,
     fontSize: FontSizes.sm,
   },
+  // ===== SELECTED CARD =====
   selectedCard: {
     position: 'absolute',
     bottom: Spacing.lg,
@@ -788,7 +797,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    ...Shadows.lg,
+    ...Shadows.md,
   },
   selectedCardContent: {
     flex: 1,
@@ -820,7 +829,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Modal Styles
+  // ===== MODAL STYLES =====
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

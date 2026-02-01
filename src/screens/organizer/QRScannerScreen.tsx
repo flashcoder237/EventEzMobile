@@ -26,6 +26,7 @@ import {
   BorderRadius,
   Spacing,
   TextStyles,
+  Shadows,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;

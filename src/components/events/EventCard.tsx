@@ -64,11 +64,15 @@ function EventCard({
   const formatPrice = () => {
     // Événement explicitement gratuit
     if (isFree) return 'Gratuit';
-    // Prix numérique défini (y compris 0 pour les billets gratuits dans un événement payant)
+    // Prix numérique défini et supérieur à 0
     if (typeof price === 'number' && price > 0) return `${price.toLocaleString()} FCFA`;
+    // Prix égal à 0 (inscription gratuite dans un événement billetterie)
+    if (typeof price === 'number' && price === 0) return 'Gratuit';
     // Prix chaîne définie
     if (typeof price === 'string' && price.trim()) return price;
-    // Prix non défini mais pas marqué gratuit - ne pas afficher "Gratuit"
+    // Type inscription = toujours gratuit par défaut
+    if (eventType === 'inscription') return 'Gratuit';
+    // Prix non défini mais pas marqué gratuit - afficher "Voir prix"
     return 'Voir prix';
   };
 
@@ -222,7 +226,7 @@ function EventCard({
             <Text style={styles.eventTypeBadgeText}>{typeLabel}</Text>
           </View>
         )}
-        <TouchableOpacity
+        {/* <TouchableOpacity
           onPress={onLikePress}
           style={styles.featuredBookmark}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -232,7 +236,7 @@ function EventCard({
             size={22}
             color={Colors.white}
           />
-        </TouchableOpacity>
+        </TouchableOpacity> */}
         <View style={styles.featuredContent}>
           <Text style={styles.featuredDate}>
             {formatDateShort()} {time && `· ${formatTime()}`}
@@ -305,7 +309,7 @@ function EventCard({
             )}
           </View>
 
-          {/* Bookmark Button */}
+          {/* Bookmark Button 
           <TouchableOpacity
             onPress={onLikePress}
             style={styles.gridBookmark}
@@ -316,7 +320,7 @@ function EventCard({
               size={18}
               color={Colors.white}
             />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* Content */}
@@ -384,7 +388,7 @@ function EventCard({
           <Text style={styles.eventTypeBadgeText}>{typeLabel}</Text>
         </View>
       )}
-      <TouchableOpacity
+      {/* <TouchableOpacity
         onPress={onLikePress}
         style={styles.defaultBookmark}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -394,7 +398,7 @@ function EventCard({
           size={20}
           color={Colors.white}
         />
-      </TouchableOpacity>
+      </TouchableOpacity> */}
       <View style={styles.defaultContent}>
         <Text style={styles.defaultDate}>
           {formatDateShort()} {time && `· ${formatTime()}`}
@@ -418,11 +422,11 @@ function EventCard({
 }
 
 const styles = StyleSheet.create({
-  // ===== DEFAULT CARD - Premium Elevated Style =====
+  // ===== DEFAULT CARD =====
   defaultCard: {
     width: SCREEN_WIDTH * 0.7,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
     ...Shadows.card,
   },
@@ -480,8 +484,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.gray100,
+    ...Shadows.card,
   },
   horizontalImage: {
     width: 110,
@@ -497,20 +500,22 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.bold,
     color: Colors.primary,
-    marginBottom: 4,
+    marginBottom: 6,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   horizontalTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
-    marginBottom: 4,
-    lineHeight: 20,
+    marginBottom: 6,
+    lineHeight: 22,
   },
   horizontalLocation: {
     fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
-    marginBottom: 6,
+    marginBottom: 8,
   },
   horizontalFooter: {
     flexDirection: 'row',
@@ -522,12 +527,12 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
+    fontFamily: FontFamily.bold,
+    color: Colors.gray800,
   },
   freeText: {
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     color: Colors.success,
   },
 
@@ -537,8 +542,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.gray100,
+    ...Shadows.card,
   },
   compactImage: {
     width: '100%',
@@ -546,86 +550,88 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray100,
   },
   compactContent: {
-    padding: Spacing.sm,
+    padding: Spacing.md,
   },
   compactDate: {
     fontSize: 10,
     fontFamily: FontFamily.bold,
     color: Colors.primary,
-    marginBottom: 4,
+    marginBottom: 6,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   compactTitle: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
-    marginBottom: 4,
-    lineHeight: 16,
+    marginBottom: 6,
+    lineHeight: 18,
   },
   compactPrice: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray600,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    color: Colors.gray700,
   },
 
   // ===== FEATURED CARD =====
   featuredCard: {
     width: SCREEN_WIDTH * 0.85,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.gray100,
+    ...Shadows.sm,
   },
   featuredImage: {
     width: '100%',
-    height: 180,
+    height: 190,
     backgroundColor: Colors.gray100,
   },
   featuredBookmark: {
     position: 'absolute',
     top: Spacing.md,
     right: Spacing.md,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadows.sm,
   },
   featuredContent: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   featuredDate: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.bold,
     color: Colors.primary,
-    marginBottom: 6,
+    marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   featuredTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
-    marginBottom: 8,
-    lineHeight: 24,
+    marginBottom: 10,
+    lineHeight: 28,
   },
   featuredMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   featuredLocation: {
     fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
-    marginLeft: 4,
+    marginLeft: 6,
     flex: 1,
   },
   featuredPrice: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.bold,
+    color: Colors.gray800,
   },
 
   // ===== SHARED STYLES =====
@@ -638,7 +644,7 @@ const styles = StyleSheet.create({
   },
   freeBadgeText: {
     fontSize: FontSizes.xs,
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.success,
   },
   freeBadgeSmall: {
@@ -660,31 +666,31 @@ const styles = StyleSheet.create({
     left: Spacing.sm,
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: BorderRadius.sm,
   },
   eventTypeBadgeText: {
     fontSize: 10,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     color: Colors.white,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   inscriptionBadge: {
-    backgroundColor: Colors.secondary,
+    backgroundColor: '#10B981',
   },
 
-  // ===== GRID CARD (Web-like design) =====
+  // ===== GRID CARD =====
   gridCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.gray100,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
+    ...Shadows.card,
   },
   gridImageContainer: {
     position: 'relative',
-    height: 160,
+    height: 170,
     backgroundColor: Colors.gray100,
   },
   gridImage: {
@@ -693,9 +699,9 @@ const styles = StyleSheet.create({
   },
   gridBadgesContainer: {
     position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    right: Spacing.sm,
+    top: Spacing.md,
+    left: Spacing.md,
+    right: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -706,31 +712,33 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   gridTypeBadge: {
-    backgroundColor: 'rgba(124, 58, 237, 0.9)',
+    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sm,
   },
   gridInscriptionBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.9)',
+    backgroundColor: '#10B981',
   },
   gridTypeBadgeText: {
     fontSize: 10,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     color: Colors.white,
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   gridLocationBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sm,
   },
   gridLocationBadgeText: {
     fontSize: 10,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
   },
   gridFeaturedBadge: {
     flexDirection: 'row',
@@ -739,11 +747,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FCD34D',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.sm,
   },
   gridFeaturedBadgeText: {
     fontSize: 10,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     color: '#92400E',
   },
   gridBookmark: {
@@ -753,35 +761,37 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.9)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   gridContent: {
-    padding: Spacing.md,
+    padding: Spacing.lg,
   },
   gridCategory: {
-    fontSize: 10,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray500,
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    color: Colors.primary,
     letterSpacing: 0.5,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
   },
   gridTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displaySemiBold,
     color: Colors.gray900,
-    marginBottom: Spacing.sm,
-    lineHeight: 22,
+    marginBottom: Spacing.md,
+    lineHeight: 24,
   },
   gridInfoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.xs,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   gridInfoText: {
     fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
     color: Colors.gray600,
     flex: 1,
   },
@@ -789,39 +799,41 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: Spacing.sm,
-    paddingTop: Spacing.sm,
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
   },
   gridAttendeesRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
   gridAttendeesText: {
     fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
     color: Colors.gray500,
   },
   gridPriceText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.bold,
+    color: Colors.gray900,
   },
   gridFreeText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.success,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.bold,
+    color: '#059669',
   },
   gridDetailsLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: Spacing.sm,
+    gap: 6,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   gridDetailsText: {
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
     color: Colors.primary,
   },
 });

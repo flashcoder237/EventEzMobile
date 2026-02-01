@@ -258,7 +258,7 @@ export default function PaymentScreen() {
           <View style={styles.orderCard}>
             <View style={styles.orderHeader}>
               <Text style={styles.orderEventTitle} numberOfLines={2}>
-                {registration?.event?.title || 'Événement'}
+                {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
               </Text>
             </View>
 

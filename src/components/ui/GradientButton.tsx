@@ -253,12 +253,12 @@ export default function GradientButton({
 }
 
 const styles = StyleSheet.create({
+  // ===== PRIMARY BUTTON =====
   primaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.primary,
-    ...Shadows.sm,
   },
   text: {
     color: Colors.white,
@@ -271,6 +271,7 @@ const styles = StyleSheet.create({
   iconRight: {
     marginLeft: Spacing.sm,
   },
+  // ===== OUTLINE BUTTON =====
   outlineButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -284,6 +285,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.3,
   },
+  // ===== SECONDARY BUTTON =====
   secondaryButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -295,6 +297,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     letterSpacing: 0.3,
   },
+  // ===== GHOST BUTTON =====
   ghostButton: {
     flexDirection: 'row',
     alignItems: 'center',

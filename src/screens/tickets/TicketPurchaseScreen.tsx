@@ -276,7 +276,13 @@ export default function TicketPurchaseScreen() {
           ) : (
             ticketTypes.map((ticketType) => {
               const quantity = selections.get(ticketType.id) || 0;
-              const isAvailable = (ticketType.available_quantity ?? 999) > 0;
+              // Calculate available quantity - try multiple field names for backend compatibility
+              const availableQty = typeof ticketType.quantity_available === 'number'
+                ? ticketType.quantity_available
+                : typeof (ticketType as any).available_quantity === 'number'
+                ? (ticketType as any).available_quantity
+                : (ticketType.quantity_total || 0) - (ticketType.quantity_sold || 0);
+              const isAvailable = availableQty > 0 || (ticketType.quantity_total === undefined && ticketType.quantity_sold === undefined);
 
               return (
                 <View
@@ -294,9 +300,14 @@ export default function TicketPurchaseScreen() {
                       <Text style={styles.ticketPrice}>
                         {ticketType.price === 0 ? 'Gratuit' : `${ticketType.price.toLocaleString()} FCFA`}
                       </Text>
-                      {ticketType.available_quantity !== undefined && (
+                      {availableQty > 0 && ticketType.quantity_total !== undefined && (
                         <Text style={styles.ticketAvailability}>
-                          {ticketType.available_quantity} disponible{ticketType.available_quantity > 1 ? 's' : ''}
+                          {availableQty} disponible{availableQty > 1 ? 's' : ''}
+                        </Text>
+                      )}
+                      {!isAvailable && (
+                        <Text style={[styles.ticketAvailability, { color: Colors.error }]}>
+                          Épuisé
                         </Text>
                       )}
                     </View>
@@ -430,6 +441,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.background,
   },
+  // ===== HEADER =====
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -456,8 +468,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 120,
+    paddingBottom: 130,
   },
+  // ===== EVENT SUMMARY =====
   eventSummary: {
     backgroundColor: Colors.white,
     padding: Spacing.lg,
@@ -482,6 +495,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray600,
   },
+  // ===== TICKETS SECTION =====
   ticketsSection: {
     backgroundColor: Colors.white,
     padding: Spacing.lg,
@@ -498,8 +512,10 @@ const styles = StyleSheet.create({
   },
   noTicketsText: {
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
   },
+  // ===== TICKET CARD =====
   ticketCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -541,6 +557,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.gray500,
   },
+  // ===== QUANTITY SELECTOR =====
   quantitySelector: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -577,11 +594,13 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: Colors.error,
   },
+  // ===== FORM SECTION =====
   formSection: {
     backgroundColor: Colors.white,
     padding: Spacing.lg,
     marginTop: Spacing.md,
   },
+  // ===== ORDER SUMMARY =====
   orderSummary: {
     backgroundColor: Colors.white,
     padding: Spacing.lg,
@@ -622,6 +641,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.displayBold,
     color: Colors.primary,
   },
+  // ===== BOTTOM BAR =====
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -636,7 +656,6 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
-    ...Shadows.lg,
   },
   totalContainer: {},
   totalLabelBottom: {

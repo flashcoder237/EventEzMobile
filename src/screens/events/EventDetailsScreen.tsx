@@ -10,16 +10,23 @@ import {
   Dimensions,
   Share,
   StatusBar,
+  TextInput,
+  Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { eventsAPI } from '../../api/client';
-import { Event, RootStackParamList } from '../../types';
+import { eventsAPI, feedbacksAPI, messagesAPI } from '../../api/client';
+import { Event, RootStackParamList, Feedback } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
+import { useAuth } from '../../contexts/AuthContext';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width } = Dimensions.get('window');
 
@@ -34,13 +41,20 @@ const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }
 
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
+  const { user } = useAuth();
   const { eventId } = route.params;
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [activeTab, setActiveTab] = useState<TabType>('about');
+  // Review state
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [userReview, setUserReview] = useState<Feedback | null>(null);
 
   useEffect(() => {
     fetchEvent();
@@ -65,14 +79,105 @@ export default function EventDetailsScreen() {
 
 
   const handleShare = async () => {
+    if (!event) return;
+
+    const shareUrl = `https://eventez.com/events/${event.id}`;
+    const shareMessage = `${event.title}\n\n${event.short_description || event.description?.slice(0, 100) || ''}\n\n📅 ${formatDate(event.start_date)}\n📍 ${event.location_city || event.location_name || 'Lieu à confirmer'}\n\nDécouvre cet événement sur EventEz: ${shareUrl}`;
+
     try {
       await Share.share({
-        message: `Découvre cet événement sur EventEz: ${event?.title}`,
-        title: event?.title,
+        message: shareMessage,
+        title: event.title,
+        url: shareUrl,
       });
     } catch (error) {
       console.error('Erreur partage:', error);
     }
+  };
+
+  const handleShareToWhatsApp = async () => {
+    if (!event) return;
+    const shareUrl = `https://eventez.com/events/${event.id}`;
+    const message = encodeURIComponent(`${event.title}\n\n📅 ${formatDate(event.start_date)}\n📍 ${event.location_city || 'En ligne'}\n\nDécouvre cet événement: ${shareUrl}`);
+    const url = `whatsapp://send?text=${message}`;
+
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        Alert.alert('Erreur', 'WhatsApp n\'est pas installé sur cet appareil');
+      }
+    } catch (error) {
+      console.error('Erreur partage WhatsApp:', error);
+    }
+  };
+
+  const handleContactOrganizer = async () => {
+    if (!user) {
+      Alert.alert('Connexion requise', 'Connectez-vous pour contacter l\'organisateur');
+      return;
+    }
+
+    if (!event?.organizer?.id) {
+      Alert.alert('Erreur', 'Impossible de contacter l\'organisateur');
+      return;
+    }
+
+    try {
+      // Create or get existing conversation with organizer
+      const response = await messagesAPI.createConversation({
+        participant_ids: [event.organizer.id],
+      });
+
+      navigation.navigate('Conversation', { conversationId: response.data.id });
+    } catch (error) {
+      console.error('Erreur création conversation:', error);
+      Alert.alert('Erreur', 'Impossible de créer la conversation');
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    if (!user) {
+      Alert.alert('Connexion requise', 'Connectez-vous pour laisser un avis');
+      return;
+    }
+
+    if (reviewRating < 1 || reviewRating > 5) {
+      Alert.alert('Erreur', 'Veuillez sélectionner une note entre 1 et 5');
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      await feedbacksAPI.createFeedback({
+        event: eventId,
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+      });
+
+      Alert.alert('Merci !', 'Votre avis a été soumis avec succès');
+      setShowReviewForm(false);
+      setReviewComment('');
+      // Refresh event to get updated feedbacks
+      fetchEvent();
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Impossible de soumettre votre avis';
+      Alert.alert('Erreur', message);
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const getTicketAvailability = (ticket: any) => {
+    // Use quantity_available if provided, otherwise calculate
+    if (typeof ticket.quantity_available === 'number') {
+      return ticket.quantity_available;
+    }
+    // Calculate from total - sold
+    const total = ticket.quantity_total || 0;
+    const sold = ticket.quantity_sold || 0;
+    return Math.max(0, total - sold);
   };
 
   const formatDate = (dateString: string) => {
@@ -210,9 +315,26 @@ export default function EventDetailsScreen() {
                 {event.organizer?.first_name} {event.organizer?.last_name}
               </Text>
             </View>
-            <TouchableOpacity style={styles.followOrgButton}>
-              <Text style={styles.followOrgText}>Suivre</Text>
+            <TouchableOpacity
+              style={styles.contactOrgButton}
+              onPress={handleContactOrganizer}
+            >
+              <Ionicons name="chatbubble-outline" size={16} color={Colors.primary} />
+              <Text style={styles.contactOrgText}>Contacter</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Share Buttons */}
+          <View style={styles.shareRow}>
+            <Text style={styles.shareLabel}>Partager :</Text>
+            <View style={styles.shareButtons}>
+              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+                <Ionicons name="share-social-outline" size={20} color={Colors.gray600} />
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.shareButton, styles.whatsappButton]} onPress={handleShareToWhatsApp}>
+                <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Location Card */}
@@ -325,26 +447,31 @@ export default function EventDetailsScreen() {
                 {event.event_type === 'billetterie' ? 'Types de billets' : 'Inscription'}
               </Text>
               {event.ticket_types && event.ticket_types.length > 0 ? (
-                event.ticket_types.map((ticket, index) => (
-                  <View key={index} style={styles.ticketCard}>
-                    <View style={styles.ticketInfo}>
-                      <Text style={styles.ticketName}>{ticket.name}</Text>
-                      {ticket.description && (
-                        <Text style={styles.ticketDescription}>{ticket.description}</Text>
-                      )}
-                      <Text style={styles.ticketAvailability}>
-                        {ticket.quantity_available > 0
-                          ? `${ticket.quantity_available} disponible${ticket.quantity_available > 1 ? 's' : ''}`
-                          : 'Épuisé'}
-                      </Text>
+                event.ticket_types.map((ticket, index) => {
+                  const available = getTicketAvailability(ticket);
+                  const isSoldOut = available <= 0;
+
+                  return (
+                    <View key={index} style={[styles.ticketCard, isSoldOut && styles.ticketCardSoldOut]}>
+                      <View style={styles.ticketInfo}>
+                        <Text style={styles.ticketName}>{ticket.name}</Text>
+                        {ticket.description && (
+                          <Text style={styles.ticketDescription}>{ticket.description}</Text>
+                        )}
+                        <Text style={[styles.ticketAvailability, isSoldOut && styles.ticketSoldOut]}>
+                          {isSoldOut
+                            ? 'Épuisé'
+                            : `${available} disponible${available > 1 ? 's' : ''}`}
+                        </Text>
+                      </View>
+                      <View style={styles.ticketPriceContainer}>
+                        <Text style={[styles.ticketPrice, isSoldOut && styles.ticketPriceSoldOut]}>
+                          {ticket.price > 0 ? `${ticket.price.toLocaleString()} FCFA` : 'Gratuit'}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={styles.ticketPriceContainer}>
-                      <Text style={styles.ticketPrice}>
-                        {ticket.price > 0 ? `${ticket.price.toLocaleString()} FCFA` : 'Gratuit'}
-                      </Text>
-                    </View>
-                  </View>
-                ))
+                  );
+                })
               ) : (
                 <View style={styles.emptyTab}>
                   <Ionicons name="ticket-outline" size={40} color={Colors.gray300} />
@@ -396,19 +523,95 @@ export default function EventDetailsScreen() {
 
           {activeTab === 'reviews' && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Avis des participants</Text>
+              <View style={styles.reviewsHeader}>
+                <Text style={styles.sectionTitle}>Avis des participants</Text>
+                {user && !showReviewForm && (
+                  <TouchableOpacity
+                    style={styles.addReviewButton}
+                    onPress={() => setShowReviewForm(true)}
+                  >
+                    <Ionicons name="add" size={18} color={Colors.primary} />
+                    <Text style={styles.addReviewText}>Laisser un avis</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Review Form */}
+              {showReviewForm && (
+                <View style={styles.reviewFormCard}>
+                  <Text style={styles.reviewFormTitle}>Votre avis</Text>
+
+                  {/* Rating Stars */}
+                  <View style={styles.ratingInputRow}>
+                    <Text style={styles.ratingLabel}>Note :</Text>
+                    <View style={styles.ratingStars}>
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <TouchableOpacity
+                          key={star}
+                          onPress={() => setReviewRating(star)}
+                          style={styles.ratingStar}
+                        >
+                          <Ionicons
+                            name={star <= reviewRating ? 'star' : 'star-outline'}
+                            size={28}
+                            color={star <= reviewRating ? '#FBBF24' : Colors.gray300}
+                          />
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Comment Input */}
+                  <TextInput
+                    style={styles.reviewInput}
+                    placeholder="Partagez votre expérience (optionnel)"
+                    placeholderTextColor={Colors.gray400}
+                    multiline
+                    numberOfLines={4}
+                    value={reviewComment}
+                    onChangeText={setReviewComment}
+                    textAlignVertical="top"
+                  />
+
+                  {/* Actions */}
+                  <View style={styles.reviewFormActions}>
+                    <TouchableOpacity
+                      style={styles.cancelReviewButton}
+                      onPress={() => {
+                        setShowReviewForm(false);
+                        setReviewComment('');
+                        setReviewRating(5);
+                      }}
+                    >
+                      <Text style={styles.cancelReviewText}>Annuler</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.submitReviewButton}
+                      onPress={handleSubmitReview}
+                      disabled={submittingReview}
+                    >
+                      {submittingReview ? (
+                        <ActivityIndicator size="small" color={Colors.white} />
+                      ) : (
+                        <Text style={styles.submitReviewText}>Soumettre</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
               {event.feedbacks && event.feedbacks.length > 0 ? (
                 event.feedbacks.map((feedback, index) => (
                   <View key={index} style={styles.reviewCard}>
                     <View style={styles.reviewHeader}>
                       <View style={styles.reviewAvatar}>
                         <Text style={styles.reviewAvatarText}>
-                          {feedback.user?.first_name?.[0] || 'U'}
+                          {feedback.user_name?.[0] || (feedback.user as any)?.first_name?.[0] || 'U'}
                         </Text>
                       </View>
                       <View style={styles.reviewUserInfo}>
                         <Text style={styles.reviewUserName}>
-                          {feedback.user?.first_name} {feedback.user?.last_name}
+                          {feedback.user_name || `${(feedback.user as any)?.first_name || ''} ${(feedback.user as any)?.last_name || ''}`.trim() || 'Utilisateur'}
                         </Text>
                         <View style={styles.reviewRating}>
                           {[1, 2, 3, 4, 5].map((star) => (
@@ -427,12 +630,20 @@ export default function EventDetailsScreen() {
                     )}
                   </View>
                 ))
-              ) : (
+              ) : !showReviewForm ? (
                 <View style={styles.emptyTab}>
                   <Ionicons name="star-outline" size={40} color={Colors.gray300} />
                   <Text style={styles.emptyTabText}>Aucun avis pour le moment</Text>
+                  {user && (
+                    <TouchableOpacity
+                      style={styles.firstReviewButton}
+                      onPress={() => setShowReviewForm(true)}
+                    >
+                      <Text style={styles.firstReviewText}>Soyez le premier à donner votre avis</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
-              )}
+              ) : null}
             </View>
           )}
 
@@ -647,17 +858,47 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
-  followOrgButton: {
+  contactOrgButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
     borderColor: Colors.primary,
     borderRadius: BorderRadius.md,
+    gap: 4,
   },
-  followOrgText: {
+  contactOrgText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
     color: Colors.primary,
+  },
+  // Share Row
+  shareRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  shareLabel: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+    marginRight: Spacing.sm,
+  },
+  shareButtons: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  shareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  whatsappButton: {
+    backgroundColor: '#E7F5E7',
   },
   infoCard: {
     flexDirection: 'row',
@@ -751,6 +992,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray600,
   },
+  // ===== BOTTOM BAR =====
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -842,6 +1084,9 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.sm,
   },
+  ticketCardSoldOut: {
+    opacity: 0.6,
+  },
   ticketInfo: {
     flex: 1,
   },
@@ -861,6 +1106,9 @@ const styles = StyleSheet.create({
     color: Colors.success,
     fontFamily: FontFamily.medium,
   },
+  ticketSoldOut: {
+    color: Colors.error,
+  },
   ticketPriceContainer: {
     marginLeft: Spacing.md,
   },
@@ -868,6 +1116,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
     color: Colors.primary,
+  },
+  ticketPriceSoldOut: {
+    color: Colors.gray400,
   },
   // Session Card
   sessionCard: {
@@ -913,6 +1164,111 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray600,
     lineHeight: 18,
+  },
+  // Reviews Section
+  reviewsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  addReviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.md,
+  },
+  addReviewText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+  },
+  // Review Form
+  reviewFormCard: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  reviewFormTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.md,
+  },
+  ratingInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  ratingLabel: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray600,
+    marginRight: Spacing.md,
+  },
+  ratingStars: {
+    flexDirection: 'row',
+    gap: 4,
+  },
+  ratingStar: {
+    padding: 2,
+  },
+  reviewInput: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    padding: Spacing.md,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray900,
+    minHeight: 100,
+    marginBottom: Spacing.md,
+  },
+  reviewFormActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: Spacing.md,
+  },
+  cancelReviewButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+  },
+  cancelReviewText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+  },
+  submitReviewButton: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.md,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  submitReviewText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+  },
+  firstReviewButton: {
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.md,
+  },
+  firstReviewText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.primary,
   },
   // Review Card
   reviewCard: {

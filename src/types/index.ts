@@ -304,7 +304,8 @@ export interface TicketType {
   // Quotas et disponibilité
   quantity_total: number;
   quantity_sold: number;
-  quantity_available?: number; // Calculé
+  quantity_available?: number; // Calculé côté backend
+  available_quantity?: number; // Alias pour compatibilité
   // Période de vente
   sales_start: string;
   sales_end: string;
@@ -334,6 +335,11 @@ export interface TicketPurchase {
   ticket_type_name?: string;
   attendee_name?: string;
   attendee_email?: string;
+  // Event info (may be expanded from backend)
+  event?: Event | string;
+  event_title?: string;
+  // Status (from registration)
+  status?: string;
 }
 
 // Alias pour compatibilité - Ticket représente un TicketPurchase

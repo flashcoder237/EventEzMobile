@@ -26,6 +26,7 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
 } from '../../constants/theme';
 
 import EventCard from '../../components/events/EventCard';
@@ -358,16 +359,18 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Spacing.xl,
   },
+  // ===== PREMIUM HEADER =====
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+    backgroundColor: Colors.white,
   },
   logoText: {
-    fontSize: 28,
+    fontSize: 30,
     fontFamily: FontFamily.displayBold,
     color: Colors.primary,
     letterSpacing: -0.5,
@@ -385,11 +388,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // ===== SEARCH BAR =====
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     marginHorizontal: Spacing.lg,
@@ -402,12 +406,13 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     color: Colors.gray400,
   },
+  // ===== LOCATION ROW =====
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   locationText: {
     fontSize: FontSizes.sm,
@@ -415,26 +420,28 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
     flex: 1,
   },
+  // ===== PREMIUM SECTIONS =====
   section: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing['2xl'],
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
   seeAllText: {
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     color: Colors.primary,
   },
+  // ===== CATEGORIES =====
   categoriesList: {
     paddingRight: Spacing.lg,
   },
@@ -458,6 +465,7 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
     textAlign: 'center',
   },
+  // ===== EVENTS LIST =====
   eventsList: {
     paddingRight: Spacing.lg,
   },
