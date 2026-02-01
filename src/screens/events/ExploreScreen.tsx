@@ -11,10 +11,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { eventsAPI } from '../../api/client';
 import { MapMarker, RootStackParamList } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
+import { Colors, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -99,22 +101,30 @@ export default function ExploreScreen() {
     });
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+    });
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color="#999" />
+          <Ionicons name="search-outline" size={20} color={Colors.gray400} />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher un lieu ou événement..."
-            placeholderTextColor="#999"
+            placeholderTextColor={Colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#999" />
+              <Ionicons name="close-circle" size={20} color={Colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
@@ -133,21 +143,28 @@ export default function ExploreScreen() {
         {/* Map Controls */}
         <View style={styles.mapControls}>
           <TouchableOpacity style={styles.mapButton} onPress={centerOnUser}>
-            <Ionicons name="locate" size={24} color="#7c3aed" />
+            <Ionicons name="locate" size={24} color={Colors.primary} />
           </TouchableOpacity>
         </View>
 
         {/* Loading Indicator */}
         {loading && (
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#7c3aed" />
+            <ActivityIndicator size="large" color={Colors.primary} />
           </View>
         )}
 
         {/* Events Count */}
         <View style={styles.countBadge}>
-          <Ionicons name="location" size={16} color="#7c3aed" />
-          <Text style={styles.countText}>{markers.length} événements</Text>
+          <LinearGradient
+            colors={[Colors.gradientStart, Colors.gradientEnd]}
+            style={styles.countBadgeGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Ionicons name="location" size={16} color={Colors.white} />
+            <Text style={styles.countText}>{markers.length} événements</Text>
+          </LinearGradient>
         </View>
 
         {/* Selected Event Card */}
@@ -155,26 +172,35 @@ export default function ExploreScreen() {
           <TouchableOpacity
             style={styles.selectedCard}
             onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
+            activeOpacity={0.95}
           >
             <View style={styles.selectedCardContent}>
               <Text style={styles.selectedCardTitle} numberOfLines={1}>
                 {selectedMarker.title}
               </Text>
               <View style={styles.selectedCardMeta}>
-                <Ionicons name="location-outline" size={14} color="#666" />
-                <Text style={styles.selectedCardLocation}>
-                  {selectedMarker.location_city}
-                </Text>
-                <Ionicons name="calendar-outline" size={14} color="#666" style={{ marginLeft: 8 }} />
-                <Text style={styles.selectedCardDate}>
-                  {new Date(selectedMarker.start_date).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                  })}
-                </Text>
+                <View style={styles.selectedCardMetaItem}>
+                  <Ionicons name="location-outline" size={14} color={Colors.gray500} />
+                  <Text style={styles.selectedCardMetaText}>
+                    {selectedMarker.location_city}
+                  </Text>
+                </View>
+                <View style={styles.selectedCardMetaItem}>
+                  <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
+                  <Text style={styles.selectedCardMetaText}>
+                    {formatDate(selectedMarker.start_date)}
+                  </Text>
+                </View>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={24} color="#7c3aed" />
+            <LinearGradient
+              colors={[Colors.gradientStart, Colors.gradientEnd]}
+              style={styles.selectedCardButton}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Ionicons name="chevron-forward" size={20} color={Colors.white} />
+            </LinearGradient>
           </TouchableOpacity>
         )}
       </View>
@@ -185,49 +211,45 @@ export default function ExploreScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.white,
   },
   searchContainer: {
-    padding: 16,
-    backgroundColor: '#fff',
+    padding: Spacing.base,
+    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: Colors.gray100,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    backgroundColor: Colors.gray100,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#333',
+    marginLeft: Spacing.sm,
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
   },
   mapContainer: {
     flex: 1,
   },
   mapControls: {
     position: 'absolute',
-    right: 16,
-    bottom: 120,
-    gap: 8,
+    right: Spacing.base,
+    bottom: 140,
+    gap: Spacing.sm,
   },
   mapButton: {
     width: 48,
     height: 48,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.white,
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    ...Shadows.md,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -241,62 +263,63 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     position: 'absolute',
-    top: 16,
-    left: 16,
+    top: Spacing.base,
+    left: Spacing.base,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
+  countBadgeGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
   },
   countText: {
-    marginLeft: 6,
     fontWeight: '600',
-    color: '#333',
+    color: Colors.white,
+    fontSize: FontSizes.sm,
   },
   selectedCard: {
     position: 'absolute',
-    bottom: 16,
-    left: 16,
-    right: 16,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
+    bottom: Spacing.base,
+    left: Spacing.base,
+    right: Spacing.base,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.base,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    ...Shadows.lg,
   },
   selectedCardContent: {
     flex: 1,
   },
   selectedCardTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
+    fontSize: FontSizes.base,
+    fontWeight: '700',
+    color: Colors.gray900,
+    marginBottom: Spacing.xs,
   },
   selectedCardMeta: {
     flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  selectedCardMetaItem: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  selectedCardLocation: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+  selectedCardMetaText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
   },
-  selectedCardDate: {
-    fontSize: 12,
-    color: '#666',
-    marginLeft: 4,
+  selectedCardButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

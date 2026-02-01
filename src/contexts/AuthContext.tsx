@@ -1,16 +1,18 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { authAPI, setTokens, clearTokens } from '../api/client';
+import { authAPI, usersAPI, setTokens, clearTokens } from '../api/client';
 import { User, AuthState } from '../types';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
     email: string;
+    username: string;
     password: string;
+    confirm_password: string;
     first_name: string;
     last_name: string;
-    phone?: string;
+    phone_number?: string;
   }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
@@ -34,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await SecureStore.getItemAsync('eventez_access_token');
       if (token) {
-        const response = await authAPI.getCurrentUser();
+        const response = await usersAPI.getCurrentUser();
         setState({
           user: response.data,
           isAuthenticated: true,
@@ -65,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { access, refresh } = response.data;
       await setTokens(access, refresh);
 
-      const userResponse = await authAPI.getCurrentUser();
+      const userResponse = await usersAPI.getCurrentUser();
       setState({
         user: userResponse.data,
         isAuthenticated: true,
@@ -79,10 +81,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = async (data: {
     email: string;
+    username: string;
     password: string;
+    confirm_password: string;
     first_name: string;
     last_name: string;
-    phone?: string;
+    phone_number?: string;
   }) => {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
@@ -96,7 +100,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = async () => {
-    await clearTokens();
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.warn('Logout API call failed:', error);
+    }
     setState({
       user: null,
       isAuthenticated: false,
@@ -106,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateUser = async (data: Partial<User>) => {
     try {
-      const response = await authAPI.updateProfile(data);
+      const response = await usersAPI.updateCurrentUser(data);
       setState((prev) => ({
         ...prev,
         user: response.data,

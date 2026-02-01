@@ -1,13 +1,189 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Location from 'expo-location';
+import { eventsAPI } from '../../api/client';
+import { MapMarker, RootStackParamList } from '../../types';
+import WebViewMap from '../../components/maps/WebViewMap';
+import { Colors, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type RouteProps = RouteProp<RootStackParamList, 'Map'>;
 
 export default function MapScreen() {
+  const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteProps>();
+  const [markers, setMarkers] = useState<MapMarker[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [region, setRegion] = useState({
+    latitude: 3.848,
+    longitude: 11.502,
+    latitudeDelta: 0.5,
+    longitudeDelta: 0.5,
+  });
+
+  useEffect(() => {
+    requestLocationAndFetch();
+  }, []);
+
+  const requestLocationAndFetch = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        const loc = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          lat: loc.coords.latitude,
+          lng: loc.coords.longitude,
+        });
+        setRegion({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+          latitudeDelta: 0.3,
+          longitudeDelta: 0.3,
+        });
+      }
+    } catch (error) {
+      console.error('Erreur localisation:', error);
+    }
+    fetchMapEvents();
+  };
+
+  const fetchMapEvents = async () => {
+    setLoading(true);
+    try {
+      const response = await eventsAPI.getMapEvents();
+      setMarkers(response.data.markers || []);
+    } catch (error) {
+      console.error('Erreur chargement événements:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const centerOnUser = async () => {
+    try {
+      const loc = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        lat: loc.coords.latitude,
+        lng: loc.coords.longitude,
+      });
+      setRegion({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+        latitudeDelta: 0.1,
+        longitudeDelta: 0.1,
+      });
+    } catch (error) {
+      console.error('Erreur localisation:', error);
+    }
+  };
+
+  const handleMarkerPress = (marker: MapMarker) => {
+    setSelectedMarker(marker);
+    setRegion({
+      latitude: marker.lat,
+      longitude: marker.lng,
+      latitudeDelta: 0.05,
+      longitudeDelta: 0.05,
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'short',
+    });
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Carte des événements</Text>
-      <Text style={styles.placeholder}>
-        Carte plein écran avec tous les événements
-      </Text>
+      {/* Map */}
+      <WebViewMap
+        markers={markers}
+        userLocation={userLocation}
+        selectedMarkerId={selectedMarker?.id}
+        onMarkerPress={handleMarkerPress}
+        initialRegion={region}
+      />
+
+      {/* Map Controls */}
+      <View style={styles.mapControls}>
+        <TouchableOpacity style={styles.mapButton} onPress={centerOnUser}>
+          <Ionicons name="locate" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.mapButton} onPress={fetchMapEvents}>
+          <Ionicons name="refresh" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Loading Indicator */}
+      {loading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      )}
+
+      {/* Events Count */}
+      <View style={styles.countBadge}>
+        <LinearGradient
+          colors={[Colors.gradientStart, Colors.gradientEnd]}
+          style={styles.countBadgeGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <Ionicons name="location" size={16} color={Colors.white} />
+          <Text style={styles.countText}>{markers.length} événements</Text>
+        </LinearGradient>
+      </View>
+
+      {/* Selected Event Card */}
+      {selectedMarker && (
+        <TouchableOpacity
+          style={styles.selectedCard}
+          onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
+          activeOpacity={0.95}
+        >
+          <View style={styles.selectedCardContent}>
+            <Text style={styles.selectedCardTitle} numberOfLines={1}>
+              {selectedMarker.title}
+            </Text>
+            <View style={styles.selectedCardMeta}>
+              <View style={styles.selectedCardMetaItem}>
+                <Ionicons name="location-outline" size={14} color={Colors.gray500} />
+                <Text style={styles.selectedCardMetaText}>
+                  {selectedMarker.location_city}
+                </Text>
+              </View>
+              <View style={styles.selectedCardMetaItem}>
+                <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
+                <Text style={styles.selectedCardMetaText}>
+                  {formatDate(selectedMarker.start_date)}
+                </Text>
+              </View>
+            </View>
+          </View>
+          <LinearGradient
+            colors={[Colors.gradientStart, Colors.gradientEnd]}
+            style={styles.selectedCardButton}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+          </LinearGradient>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -15,17 +191,93 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: Colors.white,
+  },
+  mapControls: {
+    position: 'absolute',
+    right: Spacing.base,
+    top: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  mapButton: {
+    width: 48,
+    height: 48,
+    backgroundColor: Colors.white,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    ...Shadows.md,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  placeholder: {
-    fontSize: 16,
-    color: '#999',
+  countBadge: {
+    position: 'absolute',
+    top: Spacing.xl,
+    left: Spacing.base,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    ...Shadows.md,
+  },
+  countBadgeGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  countText: {
+    fontWeight: '600',
+    color: Colors.white,
+    fontSize: FontSizes.sm,
+  },
+  selectedCard: {
+    position: 'absolute',
+    bottom: Spacing.xl,
+    left: Spacing.base,
+    right: Spacing.base,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.base,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...Shadows.lg,
+  },
+  selectedCardContent: {
+    flex: 1,
+  },
+  selectedCardTitle: {
+    fontSize: FontSizes.base,
+    fontWeight: '700',
+    color: Colors.gray900,
+    marginBottom: Spacing.xs,
+  },
+  selectedCardMeta: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  selectedCardMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  selectedCardMetaText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+  selectedCardButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.violet,
   },
 });
