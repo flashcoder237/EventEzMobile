@@ -44,6 +44,7 @@ const steps = [
   { id: 1, title: 'Informations', icon: 'information-circle-outline' },
   { id: 2, title: 'Date & Lieu', icon: 'calendar-outline' },
   { id: 3, title: 'Tarification', icon: 'pricetag-outline' },
+  { id: 4, title: 'Sessions', icon: 'layers-outline' },
 ];
 
 export default function EventCreateScreen() {
@@ -82,6 +83,20 @@ export default function EventCreateScreen() {
   const [basePrice, setBasePrice] = useState('');
   const [maxCapacity, setMaxCapacity] = useState('');
   const [autoApproveRegistrations, setAutoApproveRegistrations] = useState(true);
+
+  // Sessions
+  const [sessions, setSessions] = useState<Array<{
+    title: string;
+    description: string;
+    session_type: string;
+    start_time: Date | null;
+    end_time: Date | null;
+    location: string;
+    max_capacity: string;
+  }>>([]);
+  const [showSessionStartPicker, setShowSessionStartPicker] = useState<number | null>(null);
+  const [showSessionEndPicker, setShowSessionEndPicker] = useState<number | null>(null);
+  const [sessionPickerMode, setSessionPickerMode] = useState<'date' | 'time'>('date');
 
   // Banner Image
   const [bannerImage, setBannerImage] = useState<string | null>(null);
@@ -282,6 +297,38 @@ export default function EventCreateScreen() {
       minute: '2-digit',
     });
   };
+
+  // Session helpers
+  const addSession = () => {
+    setSessions([...sessions, {
+      title: '',
+      description: '',
+      session_type: 'talk',
+      start_time: null,
+      end_time: null,
+      location: '',
+      max_capacity: '',
+    }]);
+  };
+
+  const updateSession = (index: number, field: string, value: any) => {
+    const updated = [...sessions];
+    updated[index] = { ...updated[index], [field]: value };
+    setSessions(updated);
+  };
+
+  const removeSession = (index: number) => {
+    setSessions(sessions.filter((_, i) => i !== index));
+  };
+
+  const sessionTypes = [
+    { value: 'keynote', label: 'Keynote' },
+    { value: 'talk', label: 'Présentation' },
+    { value: 'panel', label: 'Panel' },
+    { value: 'workshop', label: 'Atelier' },
+    { value: 'networking', label: 'Networking' },
+    { value: 'break', label: 'Pause' },
+  ];
 
   const renderStep1 = () => (
     <View style={styles.stepContent}>
@@ -644,6 +691,130 @@ export default function EventCreateScreen() {
     </View>
   );
 
+  const renderStep4 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Sessions (optionnel)</Text>
+      <Text style={styles.stepDescription}>Ajoutez des sessions à votre événement</Text>
+
+      {/* Info box */}
+      <View style={styles.infoBox}>
+        <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
+        <Text style={styles.infoBoxText}>
+          Cette étape est optionnelle. Vous pouvez ajouter des sessions plus tard depuis votre tableau de bord.
+        </Text>
+      </View>
+
+      {sessions.length === 0 ? (
+        <View style={styles.emptySessionsContainer}>
+          <View style={styles.emptySessionsIcon}>
+            <Ionicons name="layers-outline" size={40} color={Colors.gray400} />
+          </View>
+          <Text style={styles.emptySessionsTitle}>Aucune session</Text>
+          <Text style={styles.emptySessionsText}>
+            Cliquez sur "Ajouter une session" pour commencer
+          </Text>
+          <TouchableOpacity style={styles.addSessionButton} onPress={addSession}>
+            <Ionicons name="add" size={20} color={Colors.white} />
+            <Text style={styles.addSessionButtonText}>Ajouter une session</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          {sessions.map((session, index) => (
+            <View key={index} style={styles.sessionCard}>
+              <View style={styles.sessionCardHeader}>
+                <Text style={styles.sessionCardTitle}>Session {index + 1}</Text>
+                <TouchableOpacity onPress={() => removeSession(index)}>
+                  <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Titre de la session *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={session.title}
+                  onChangeText={(value) => updateSession(index, 'title', value)}
+                  placeholder="Ex: Conférence inaugurale"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Type de session</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.sessionTypesContainer}>
+                    {sessionTypes.map((type) => (
+                      <TouchableOpacity
+                        key={type.value}
+                        style={[
+                          styles.sessionTypeChip,
+                          session.session_type === type.value && styles.sessionTypeChipActive,
+                        ]}
+                        onPress={() => updateSession(index, 'session_type', type.value)}
+                      >
+                        <Text
+                          style={[
+                            styles.sessionTypeChipText,
+                            session.session_type === type.value && styles.sessionTypeChipTextActive,
+                          ]}
+                        >
+                          {type.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Lieu/Salle</Text>
+                <TextInput
+                  style={styles.input}
+                  value={session.location}
+                  onChangeText={(value) => updateSession(index, 'location', value)}
+                  placeholder="Ex: Salle A, Amphithéâtre"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Description</Text>
+                <TextInput
+                  style={[styles.input, styles.textAreaSmall]}
+                  value={session.description}
+                  onChangeText={(value) => updateSession(index, 'description', value)}
+                  placeholder="Décrivez le contenu de cette session"
+                  placeholderTextColor={Colors.gray400}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Capacité maximale</Text>
+                <TextInput
+                  style={styles.input}
+                  value={session.max_capacity}
+                  onChangeText={(value) => updateSession(index, 'max_capacity', value)}
+                  placeholder="Ex: 100"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          ))}
+
+          <TouchableOpacity style={styles.addAnotherSessionButton} onPress={addSession}>
+            <Ionicons name="add" size={20} color={Colors.primary} />
+            <Text style={styles.addAnotherSessionText}>Ajouter une autre session</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
@@ -701,6 +872,7 @@ export default function EventCreateScreen() {
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
         </ScrollView>
 
         {/* Navigation Buttons */}
@@ -1140,5 +1312,129 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     ...TextStyles.button,
+  },
+  // Sessions Step Styles
+  infoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.primaryBg,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  infoBoxText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    lineHeight: 20,
+  },
+  emptySessionsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['3xl'],
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: Colors.gray200,
+  },
+  emptySessionsIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  emptySessionsTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.gray700,
+    marginBottom: Spacing.xs,
+  },
+  emptySessionsText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginBottom: Spacing.lg,
+  },
+  addSessionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  addSessionButtonText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.white,
+  },
+  sessionCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  sessionCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  sessionCardTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
+  },
+  sessionTypesContainer: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.xs,
+  },
+  sessionTypeChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray100,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  sessionTypeChipActive: {
+    backgroundColor: Colors.primaryBg,
+    borderColor: Colors.primary,
+  },
+  sessionTypeChipText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+  },
+  sessionTypeChipTextActive: {
+    color: Colors.primary,
+    fontFamily: FontFamily.medium,
+  },
+  addAnotherSessionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: Colors.gray200,
+    backgroundColor: Colors.gray50,
+    gap: Spacing.sm,
+  },
+  addAnotherSessionText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.base,
+    color: Colors.primary,
   },
 });

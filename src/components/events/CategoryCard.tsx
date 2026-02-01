@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
@@ -17,10 +17,27 @@ interface CategoryCardProps {
   name: string;
   icon: keyof typeof Ionicons.glyphMap;
   color?: string;
+  image?: string;
   eventCount?: number;
   onPress?: () => void;
   variant?: 'default' | 'large' | 'compact';
 }
+
+// Images par défaut pour les catégories (comme sur le web)
+const categoryImages: Record<string, string> = {
+  'Musique': 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400',
+  'Business': 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400',
+  'Conférence': 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400',
+  'Art': 'https://images.unsplash.com/photo-1460661419201-fd4cecdf8a8b?w=400',
+  'Sport': 'https://images.unsplash.com/photo-1461896836934- voices-8a9c7?w=400',
+  'Gastronomie': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400',
+  'Festival': 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=400',
+  'Formation': 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=400',
+  'Networking': 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400',
+  'Culture': 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?w=400',
+  'Technologie': 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400',
+  'Santé': 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=400',
+};
 
 const categoryColors: Record<string, [string, string]> = {
   music: ['#7C3AED', '#A855F7'],
@@ -39,6 +56,7 @@ function CategoryCard({
   name,
   icon,
   color,
+  image,
   eventCount,
   onPress,
   variant = 'default',
@@ -46,6 +64,9 @@ function CategoryCard({
   const gradientColors = color
     ? [color, color]
     : categoryColors[id.toLowerCase()] || categoryColors.default;
+
+  // Get image URL: use provided image, or lookup by name, or null for gradient fallback
+  const imageUrl = image || categoryImages[name] || null;
 
   if (variant === 'large') {
     return (
@@ -55,20 +76,42 @@ function CategoryCard({
         animationType="lift"
         scaleValue={0.96}
       >
-        <LinearGradient
-          colors={gradientColors}
-          style={styles.largeGradient}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.largeIconContainer}>
-            <Ionicons name={icon} size={32} color={Colors.white} />
-          </View>
-          <Text style={styles.largeName}>{name}</Text>
-          {eventCount !== undefined && (
-            <Text style={styles.largeCount}>{eventCount} événements</Text>
-          )}
-        </LinearGradient>
+        {imageUrl ? (
+          <ImageBackground
+            source={{ uri: imageUrl }}
+            style={styles.largeImageBackground}
+            imageStyle={styles.largeImage}
+          >
+            {/* Dark overlay gradient */}
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
+              style={styles.largeOverlay}
+            >
+              <View style={styles.largeIconContainer}>
+                <Ionicons name={icon} size={32} color={Colors.white} />
+              </View>
+              <Text style={styles.largeName}>{name}</Text>
+              {eventCount !== undefined && eventCount > 0 && (
+                <Text style={styles.largeCount}>{eventCount} événement{eventCount > 1 ? 's' : ''}</Text>
+              )}
+            </LinearGradient>
+          </ImageBackground>
+        ) : (
+          <LinearGradient
+            colors={gradientColors}
+            style={styles.largeGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.largeIconContainer}>
+              <Ionicons name={icon} size={32} color={Colors.white} />
+            </View>
+            <Text style={styles.largeName}>{name}</Text>
+            {eventCount !== undefined && eventCount > 0 && (
+              <Text style={styles.largeCount}>{eventCount} événement{eventCount > 1 ? 's' : ''}</Text>
+            )}
+          </LinearGradient>
+        )}
       </AnimatedPressable>
     );
   }
@@ -155,10 +198,23 @@ const styles = StyleSheet.create({
   // Large Card
   largeCard: {
     width: 150,
-    height: 160,
+    height: 180,
     borderRadius: BorderRadius.xl,
     overflow: 'hidden',
     ...Shadows.lg,
+  },
+  largeImageBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  largeImage: {
+    borderRadius: BorderRadius.xl,
+  },
+  largeOverlay: {
+    flex: 1,
+    padding: Spacing.md,
+    justifyContent: 'flex-end',
   },
   largeGradient: {
     flex: 1,

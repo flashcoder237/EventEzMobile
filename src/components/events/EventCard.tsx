@@ -18,6 +18,9 @@ import {
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Image par défaut pour les événements (comme sur le web)
+const DEFAULT_EVENT_IMAGE = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800';
+
 interface EventCardProps {
   id: string;
   title: string;
@@ -30,8 +33,10 @@ interface EventCardProps {
   attendees?: number;
   isFree?: boolean;
   isLiked?: boolean;
+  isFeatured?: boolean;
+  locationType?: 'in_person' | 'online' | 'hybrid';
   eventType?: 'billetterie' | 'inscription';
-  variant?: 'default' | 'featured' | 'horizontal' | 'compact';
+  variant?: 'default' | 'featured' | 'horizontal' | 'compact' | 'grid';
   onPress?: () => void;
   onLikePress?: () => void;
 }
@@ -48,6 +53,8 @@ function EventCard({
   attendees,
   isFree = false,
   isLiked = false,
+  isFeatured = false,
+  locationType = 'in_person',
   eventType,
   variant = 'default',
   onPress,
@@ -70,6 +77,17 @@ function EventCard({
     return null;
   };
 
+  const getLocationTypeConfig = () => {
+    switch (locationType) {
+      case 'online':
+        return { icon: 'videocam' as const, label: 'En ligne', color: '#3B82F6' };
+      case 'hybrid':
+        return { icon: 'globe' as const, label: 'Hybride', color: '#8B5CF6' };
+      default:
+        return { icon: 'location' as const, label: 'Présentiel', color: '#F97316' };
+    }
+  };
+
   const formatDateShort = () => {
     try {
       const eventDate = new Date(date);
@@ -77,6 +95,19 @@ function EventCard({
       const dayNum = eventDate.getDate();
       const month = eventDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
       return `${day} ${dayNum} ${month}`;
+    } catch {
+      return 'Date TBA';
+    }
+  };
+
+  const formatDateFull = () => {
+    try {
+      const eventDate = new Date(date);
+      return eventDate.toLocaleDateString('fr-FR', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'long',
+      });
     } catch {
       return 'Date TBA';
     }
@@ -91,8 +122,6 @@ function EventCard({
     }
   };
 
-  const defaultImage = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800';
-
   // ===== HORIZONTAL VARIANT (List item style - Eventbrite) =====
   if (variant === 'horizontal') {
     const typeLabel = getEventTypeLabel();
@@ -104,7 +133,7 @@ function EventCard({
       >
         <View>
           <Image
-            source={{ uri: imageUrl || defaultImage }}
+            source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
             style={styles.horizontalImage}
             resizeMode="cover"
           />
@@ -156,7 +185,7 @@ function EventCard({
         activeOpacity={0.7}
       >
         <Image
-          source={{ uri: imageUrl || defaultImage }}
+          source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
           style={styles.compactImage}
           resizeMode="cover"
         />
@@ -183,7 +212,7 @@ function EventCard({
         activeOpacity={0.8}
       >
         <Image
-          source={{ uri: imageUrl || defaultImage }}
+          source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
           style={styles.featuredImage}
           resizeMode="cover"
         />
@@ -228,6 +257,114 @@ function EventCard({
     );
   }
 
+  // ===== GRID VARIANT (Web-like card design for search/events page) =====
+  if (variant === 'grid') {
+    const typeLabel = getEventTypeLabel();
+    const locationConfig = getLocationTypeConfig();
+
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        style={styles.gridCard}
+        activeOpacity={0.8}
+      >
+        {/* Image */}
+        <View style={styles.gridImageContainer}>
+          <Image
+            source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
+            style={styles.gridImage}
+            resizeMode="cover"
+          />
+
+          {/* Badges Container */}
+          <View style={styles.gridBadgesContainer}>
+            {/* Left Badges */}
+            <View style={styles.gridLeftBadges}>
+              {/* Type Badge */}
+              {typeLabel && (
+                <View style={[styles.gridTypeBadge, eventType === 'inscription' && styles.gridInscriptionBadge]}>
+                  <Text style={styles.gridTypeBadgeText}>{typeLabel}</Text>
+                </View>
+              )}
+              {/* Location Type Badge */}
+              <View style={[styles.gridLocationBadge, { backgroundColor: `${locationConfig.color}20` }]}>
+                <Ionicons name={locationConfig.icon} size={12} color={locationConfig.color} />
+                <Text style={[styles.gridLocationBadgeText, { color: locationConfig.color }]}>
+                  {locationConfig.label}
+                </Text>
+              </View>
+            </View>
+
+            {/* Featured Badge */}
+            {isFeatured && (
+              <View style={styles.gridFeaturedBadge}>
+                <Ionicons name="star" size={10} color="#92400E" />
+                <Text style={styles.gridFeaturedBadgeText}>Vedette</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Bookmark Button */}
+          <TouchableOpacity
+            onPress={onLikePress}
+            style={styles.gridBookmark}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons
+              name={isLiked ? 'bookmark' : 'bookmark-outline'}
+              size={18}
+              color={Colors.white}
+            />
+          </TouchableOpacity>
+        </View>
+
+        {/* Content */}
+        <View style={styles.gridContent}>
+          {/* Category */}
+          {category && (
+            <Text style={styles.gridCategory}>{category.toUpperCase()}</Text>
+          )}
+
+          {/* Title */}
+          <Text style={styles.gridTitle} numberOfLines={2}>{title}</Text>
+
+          {/* Info */}
+          <View style={styles.gridInfoRow}>
+            <Ionicons name="calendar-outline" size={14} color={Colors.gray400} />
+            <Text style={styles.gridInfoText}>{formatDateFull()}</Text>
+          </View>
+
+          <View style={styles.gridInfoRow}>
+            <Ionicons name={locationConfig.icon} size={14} color={locationConfig.color} />
+            <Text style={styles.gridInfoText} numberOfLines={1}>{location}</Text>
+          </View>
+
+          {/* Footer */}
+          <View style={styles.gridFooter}>
+            <View style={styles.gridAttendeesRow}>
+              <Ionicons name="people-outline" size={14} color={Colors.gray500} />
+              <Text style={styles.gridAttendeesText}>
+                {attendees || 0} inscrit{(attendees || 0) > 1 ? 's' : ''}
+              </Text>
+            </View>
+
+            {isFree || eventType === 'inscription' ? (
+              <Text style={styles.gridFreeText}>Gratuit</Text>
+            ) : (
+              <Text style={styles.gridPriceText}>{formatPrice()}</Text>
+            )}
+          </View>
+
+          {/* See details link */}
+          <View style={styles.gridDetailsLink}>
+            <Text style={styles.gridDetailsText}>Voir les détails</Text>
+            <Ionicons name="arrow-forward" size={14} color={Colors.primary} />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   // ===== DEFAULT VARIANT (Standard scrollable card) =====
   const typeLabel = getEventTypeLabel();
   return (
@@ -237,7 +374,7 @@ function EventCard({
       activeOpacity={0.8}
     >
       <Image
-        source={{ uri: imageUrl || defaultImage }}
+        source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
         style={styles.defaultImage}
         resizeMode="cover"
       />
@@ -531,6 +668,158 @@ const styles = StyleSheet.create({
   },
   inscriptionBadge: {
     backgroundColor: Colors.secondary,
+  },
+
+  // ===== GRID CARD (Web-like design) =====
+  gridCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    marginBottom: Spacing.md,
+  },
+  gridImageContainer: {
+    position: 'relative',
+    height: 160,
+    backgroundColor: Colors.gray100,
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
+  },
+  gridBadgesContainer: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    right: Spacing.sm,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  gridLeftBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  gridTypeBadge: {
+    backgroundColor: 'rgba(124, 58, 237, 0.9)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  gridInscriptionBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.9)',
+  },
+  gridTypeBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+    textTransform: 'uppercase',
+  },
+  gridLocationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  gridLocationBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+  },
+  gridFeaturedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FCD34D',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  gridFeaturedBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    color: '#92400E',
+  },
+  gridBookmark: {
+    position: 'absolute',
+    bottom: Spacing.sm,
+    right: Spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridContent: {
+    padding: Spacing.md,
+  },
+  gridCategory: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+    letterSpacing: 0.5,
+    marginBottom: Spacing.xs,
+  },
+  gridTitle: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.sm,
+    lineHeight: 22,
+  },
+  gridInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginBottom: Spacing.xs,
+  },
+  gridInfoText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    flex: 1,
+  },
+  gridFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  gridAttendeesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  gridAttendeesText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+  gridPriceText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+  },
+  gridFreeText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.success,
+  },
+  gridDetailsLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: Spacing.sm,
+  },
+  gridDetailsText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.primary,
   },
 });
 

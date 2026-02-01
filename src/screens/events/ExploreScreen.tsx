@@ -274,9 +274,11 @@ export default function ExploreScreen() {
           category={item.category?.name}
           price={item.is_free ? 0 : (item.base_price || item.min_price)}
           isFree={item.is_free}
+          isFeatured={item.is_featured}
+          locationType={item.location_type}
           eventType={item.event_type}
           attendees={item.registration_count || item.registrations_count}
-          variant="horizontal"
+          variant="grid"
           onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
         />
       </View>

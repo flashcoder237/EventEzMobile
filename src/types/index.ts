@@ -1,9 +1,16 @@
 // ============================================
 // Types principaux pour l'application EventEz Mobile
+// Synchronisé avec les modèles Django backend
 // ============================================
 
 // Types de lieu pour les événements
 export type LocationType = 'in_person' | 'online' | 'hybrid';
+
+// Rôles utilisateur (accounts.User.ROLE_CHOICES)
+export type UserRole = 'user' | 'organizer' | 'moderator' | 'admin';
+
+// Types d'organisateur (accounts.User.TYPE_CHOICES)
+export type OrganizerType = 'individual' | 'organization';
 
 // ============================================
 // USER & AUTHENTICATION TYPES
@@ -16,18 +23,23 @@ export interface User {
   first_name?: string;
   last_name?: string;
   phone_number?: string;
-  role?: 'user' | 'organizer' | 'admin' | 'moderator';
-  user_type?: 'individual' | 'organization';
-  organizer_type?: 'individual' | 'organization';
+  role?: UserRole;
+  organizer_type?: OrganizerType;
+  // Alias pour compatibilité
+  user_type?: OrganizerType;
+  // Champs pour organisateurs de type organisation
   company_name?: string;
-  profile_picture?: string;
-  image?: string;
-  logo_url?: string;
-  billing_address?: string;
   registration_number?: string;
+  // Médias
+  profile_picture?: string;
+  image?: string; // Alias
+  logo_url?: string; // Alias
+  verification_documents?: string;
+  // Facturation
+  billing_address?: string;
   tax_id?: string;
-  organizer_name?: string;
-  organizer_profile?: OrganizerProfile;
+  // Vérification
+  is_verified?: boolean;
   // Paramètres de notification
   email_notifications?: boolean;
   push_notifications?: boolean;
@@ -36,7 +48,10 @@ export interface User {
   language?: string;
   timezone?: string;
   theme?: string;
-  is_verified?: boolean;
+  // Relations
+  organizer_name?: string;
+  organizer_profile?: OrganizerProfile;
+  // Métadonnées
   created_at?: string;
   updated_at?: string;
 }
@@ -44,20 +59,30 @@ export interface User {
 export interface OrganizerProfile {
   id: string;
   user: string;
-  company_name?: string;
+  description?: string;
+  // Alias pour compatibilité
   company_description?: string;
   logo?: string;
   website?: string;
+  // Statut
+  verified_status: boolean;
+  // Alias pour compatibilité
+  verified?: boolean;
+  // Statistiques
+  rating: number;
+  event_count: number;
+  // Social links (extension frontend)
   social_links?: {
     facebook?: string;
     twitter?: string;
     instagram?: string;
     linkedin?: string;
   };
-  verified: boolean;
+  // Relations
   subscription?: OrganizerSubscription;
-  created_at: string;
-  updated_at: string;
+  // Métadonnées
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface AuthState {
@@ -72,24 +97,32 @@ export interface AuthState {
 // EVENT TYPES
 // ============================================
 
+// Statuts d'événement (events.Event.STATUS_CHOICES)
+export type EventStatus = 'draft' | 'submitted' | 'validated' | 'rejected' | 'completed' | 'cancelled';
+
+// Types d'événement (events.Event.TYPE_CHOICES)
+export type EventType = 'billetterie' | 'inscription';
+
 export interface Event {
   id: string;
   title: string;
   slug: string;
   description: string;
   short_description?: string;
-  event_type: 'billetterie' | 'inscription';
+  event_type: EventType;
   start_date: string;
   end_date: string;
+  registration_deadline?: string;
+  // Alias pour compatibilité UI
   start_time?: string;
   end_time?: string;
   // Type de lieu
   location_type: LocationType;
   location_type_display?: string;
   // Lieu physique (pour présentiel et hybride)
-  location_city?: string;
-  location_address?: string;
   location_name?: string;
+  location_address?: string;
+  location_city?: string;
   location_country?: string;
   location_latitude?: number;
   location_longitude?: number;
@@ -101,61 +134,81 @@ export interface Event {
   online_passcode?: string;
   // Médias
   banner_image?: string;
-  display_image?: string;
+  display_image?: string; // Alias frontend
   gallery_images?: EventImage[];
   // Relations
   category?: Category;
   organizer: User;
+  created_by?: User;
   organizer_name?: string;
   tags?: Tag[];
-  // État
-  status: 'draft' | 'published' | 'validated' | 'cancelled' | 'submitted' | 'rejected' | 'completed';
+  // État (STATUS_CHOICES du backend)
+  status: EventStatus;
   is_featured: boolean;
-  // Prix
+  // Validation tracking
+  validated_by?: User;
+  validated_at?: string;
+  rejection_reason?: string;
+  cancellation_reason?: string;
+  // SEO
+  seo_title?: string;
+  seo_description?: string;
+  // Statistiques
+  view_count: number;
+  registration_count: number;
+  registrations_count?: number; // Alias
+  // Métriques formulaires personnalisés
+  form_storage_usage?: number;
+  form_active_days?: number;
+  // Gestion des inscriptions
+  auto_approve_registrations?: boolean;
+  max_participants?: number;
+  max_capacity?: number; // Alias
+  // Prix (calculés)
   is_free?: boolean;
   base_price?: number;
   min_price?: number;
   max_price?: number;
-  // Statistiques
-  registration_count: number;
-  registrations_count?: number; // Alias
-  view_count: number;
+  ticket_price_range?: string;
+  // Relations étendues
+  form_fields?: FormField[];
+  ticket_types?: TicketType[];
+  sessions?: Session[];
+  feedbacks?: Feedback[];
+  tracks?: Track[];
+  speakers?: Speaker[];
   // Métadonnées
   created_at: string;
   updated_at: string;
-  // Formulaire personnalisé
-  form_fields?: FormField[];
-  registration_deadline?: string;
-  ticket_price_range?: string;
-  ticket_types?: TicketType[];
-  // Gestion des inscriptions
-  auto_approve_registrations?: boolean;
-  max_participants?: number;
-  max_capacity?: number;
-  // UI helpers
+  // UI helpers (calculés côté frontend/API)
   is_following?: boolean;
   distance_km?: number;
 }
 
+// EventImage (events.EventImage)
 export interface EventImage {
   id: string;
   image: string;
   caption?: string;
+  // Extension frontend
   order?: number;
 }
 
+// Category (events.EventCategory)
 export interface Category {
   id: number;
   name: string;
   description?: string;
   image?: string;
-  icon?: string;
   default_event_image?: string;
   is_active?: boolean;
-  event_count?: number;
-  events_count?: number;
   created_by?: number;
   created_by_name?: string;
+  // Extension frontend
+  icon?: string;
+  event_count?: number;
+  events_count?: number;
+  // Métadonnées
   created_at?: string;
   updated_at?: string;
 }
@@ -163,51 +216,127 @@ export interface Category {
 // Alias for backward compatibility
 export type EventCategory = Category;
 
+// Tag (events.EventTag)
 export interface Tag {
   id: number;
   name: string;
+  // Extension frontend
   slug?: string;
 }
 
 // Alias for backward compatibility
 export type EventTag = Tag;
 
+// EventFollow (events.EventFollow)
+export interface EventFollow {
+  id: string;
+  user: string;
+  event: string;
+  notification_preference: 'all' | 'important' | 'none';
+  notify_email: boolean;
+  notify_push: boolean;
+  notify_updates: boolean;
+  notify_reminders: boolean;
+  notify_cancellation: boolean;
+  created_at: string;
+}
+
 // ============================================
 // REGISTRATION & TICKET TYPES
 // ============================================
 
+// Statuts d'inscription (registrations.Registration.STATUS_CHOICES)
+export type RegistrationStatus = 'pending' | 'pending_approval' | 'confirmed' | 'cancelled' | 'rejected' | 'completed' | 'checked_in';
+
+// Statuts d'approbation (registrations.Registration.APPROVAL_STATUS_CHOICES)
+export type ApprovalStatus = 'not_required' | 'pending' | 'approved' | 'rejected';
+
 export interface Registration {
   id: string;
-  user: User;
-  user_name?: string;
-  user_email?: string;
   event: Event;
-  status: 'pending' | 'pending_approval' | 'confirmed' | 'cancelled' | 'rejected' | 'waitlist' | 'checked_in' | 'completed';
-  payment_status: 'pending' | 'paid' | 'failed' | 'refunded';
-  registration_type?: string;
-  tickets?: Ticket[];
-  custom_fields?: Record<string, any>;
-  form_data?: Record<string, any>;
+  user: User;
+  // Informations de base
+  registration_type?: EventType;
+  status: RegistrationStatus;
+  // Approbation par l'organisateur
+  approval_status?: ApprovalStatus;
+  approved_by?: string | User;
+  approved_by_name?: string;
+  approval_note?: string;
+  approval_date?: string;
+  // Paiement
+  payment?: string;
+  payment_required?: boolean;
+  // Alias pour compatibilité
+  requires_payment?: boolean;
+  payment_deadline?: string;
+  // Suivi du temps
   created_at: string;
   updated_at: string;
   confirmed_at?: string;
   checked_in_at?: string;
-  requires_payment: boolean;
-  payment_required?: boolean;
-  payment_deadline?: string;
-  reference_code?: string;
-  qr_code?: string;
+  // Métriques pour tarification formulaires
+  form_data_size?: number;
+  // Référence unique
+  reference_code: string;
+  // Données formulaire personnalisé
+  form_data?: Record<string, any>;
+  custom_fields?: Record<string, any>; // Alias
+  // Relations
+  tickets?: TicketPurchase[];
+  // UI helpers
+  user_name?: string;
+  user_email?: string;
   event_detail?: Event;
   userInfo?: User;
+  qr_code?: string;
   is_checked_in?: boolean;
-  // Approbation
-  approval_status?: 'not_required' | 'pending' | 'approved' | 'rejected';
-  approved_by?: string;
-  approved_by_name?: string;
-  approval_note?: string;
-  approval_date?: string;
+  payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
 }
 
+// TicketType (registrations.TicketType)
+export interface TicketType {
+  id: string;
+  event: string;
+  name: string;
+  description?: string;
+  price: number;
+  // Quotas et disponibilité
+  quantity_total: number;
+  quantity_sold: number;
+  quantity_available?: number; // Calculé
+  // Période de vente
+  sales_start: string;
+  sales_end: string;
+  // Options
+  is_visible?: boolean;
+  max_per_order?: number;
+  min_per_order?: number;
+  // Sessions incluses avec ce type de billet
+  included_sessions?: string[];
+}
+
+// TicketPurchase (registrations.TicketPurchase)
+export interface TicketPurchase {
+  id: string;
+  registration: string;
+  ticket_type: TicketType | string;
+  quantity: number;
+  unit_price: number;
+  discount_code?: string;
+  discount_amount?: number;
+  total_price: number;
+  // QR code et validation
+  qr_code?: string;
+  is_checked_in?: boolean;
+  checked_in_at?: string;
+  // UI helpers
+  ticket_type_name?: string;
+  attendee_name?: string;
+  attendee_email?: string;
+}
+
+// Alias pour compatibilité - Ticket représente un TicketPurchase
 export interface Ticket {
   id: string;
   ticket_type: TicketType;
@@ -223,55 +352,70 @@ export interface Ticket {
   attendee_email?: string;
 }
 
-export interface TicketType {
+// Discount (registrations.Discount)
+export interface Discount {
   id: string;
-  name: string;
-  description?: string;
-  price: number;
-  quantity_total: number;
-  quantity_sold: number;
-  quantity_available?: number;
   event: string;
-  sales_start?: string;
-  sales_end?: string;
-  is_visible?: boolean;
-  max_per_order?: number;
-  min_per_order?: number;
-}
-
-export interface TicketPurchase {
-  id: string;
-  event: Event;
-  ticket_type: TicketType;
-  quantity: number;
-  total_price: number;
-  status: 'pending' | 'confirmed' | 'cancelled' | 'refunded';
-  qr_code?: string;
-  created_at: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  value: number;
+  // Validité
+  valid_from: string;
+  valid_until: string;
+  max_uses?: number;
+  times_used: number;
+  // Alias pour compatibilité
+  current_uses?: number;
+  // Restrictions
+  applicable_ticket_types?: string[];
+  // UI helpers
+  is_active?: boolean;
+  min_purchase_amount?: number;
 }
 
 // ============================================
 // PAYMENT TYPES
 // ============================================
 
-export type PaymentMethod = 'momo' | 'om' | 'mtn_money' | 'orange_money' | 'bank_transfer' | 'card' | 'paypal' | 'transfer';
-export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+// Méthodes de paiement (payments.Payment.PAYMENT_METHOD_CHOICES)
+export type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal' | 'bank_transfer';
+// Alias pour compatibilité UI
+export type PaymentMethodAlias = PaymentMethod | 'momo' | 'om' | 'card' | 'transfer';
+
+// Statuts de paiement (payments.Payment.PAYMENT_STATUS_CHOICES)
+export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 
 export interface Payment {
   id: string;
   registration: string;
-  event: Event | string;
+  user: string;
+  // Informations financières
   amount: number;
   currency?: string;
-  payment_method: PaymentMethod;
+  payment_method: PaymentMethod | PaymentMethodAlias;
   method?: PaymentMethod; // Alias
-  payment_status: PaymentStatus;
-  status?: PaymentStatus; // Alias
+  // Statut et suivi
+  status: PaymentStatus;
+  payment_status?: PaymentStatus; // Alias
   transaction_id?: string;
-  reference?: string;
+  payment_date?: string;
+  // Suivi de la transaction
   created_at: string;
   updated_at: string;
-  payment_date?: string;
+  // Informations de facturation
+  billing_name?: string;
+  billing_email?: string;
+  billing_phone?: string;
+  billing_address?: string;
+  // Pour les formulaires personnalisés (facturation basée sur l'usage)
+  is_usage_based?: boolean;
+  storage_amount?: number;
+  duration_days?: number;
+  // Données de transaction externes
+  payment_gateway_response?: Record<string, any>;
+  // UI helpers
+  event?: Event | string;
+  reference?: string;
   invoice?: string;
   phone_number?: string;
   payer_name?: string;
@@ -280,7 +424,7 @@ export interface Payment {
 
 export interface PaymentInitiation {
   registration_id: string;
-  payment_method: PaymentMethod;
+  payment_method: PaymentMethod | PaymentMethodAlias;
   phone_number?: string;
   return_url?: string;
 }
@@ -292,12 +436,36 @@ export interface PaymentVerification {
   message?: string;
 }
 
+// Refund (payments.Refund)
+export type RefundStatus = 'requested' | 'processing' | 'completed' | 'rejected';
+
+export interface Refund {
+  id: string;
+  payment: string;
+  amount: number;
+  reason: string;
+  status: RefundStatus;
+  requested_at: string;
+  processed_at?: string;
+  processed_by?: string;
+  transaction_id?: string;
+  notes?: string;
+}
+
+// Invoice (payments.Invoice)
 export interface Invoice {
   id: string;
   payment: string;
   invoice_number: string;
+  generated_at: string;
+  due_date?: string;
+  // Pour les paiements basés sur l'usage
+  billing_period_start?: string;
+  billing_period_end?: string;
+  pdf_file?: string;
+  // Alias pour compatibilité
   pdf_url?: string;
-  created_at: string;
+  created_at?: string;
 }
 
 // ============================================
@@ -428,20 +596,28 @@ export interface EventAnalytics {
 // FEEDBACK TYPES
 // ============================================
 
+// EventFeedback (feedback.EventFeedback)
 export interface Feedback {
   id: string;
-  user: User | string;
   event: Event | string;
+  user: User | string;
+  // Évaluation (1-5)
   rating: number;
   comment?: string;
+  // Horodatage
   created_at: string;
   updated_at?: string;
-  is_verified: boolean;
+  // Statut de modération
   is_approved?: boolean;
   is_featured?: boolean;
+  // UI helpers
+  is_verified?: boolean;
   user_name?: string;
   user_avatar?: string;
 }
+
+// Alias pour compatibilité
+export type EventFeedback = Feedback;
 
 export interface FeedbackStats {
   average_rating: number;
@@ -601,6 +777,7 @@ export interface WalletStats {
 // SESSION & AGENDA TYPES
 // ============================================
 
+// Track (events.agenda_models.Track)
 export interface Track {
   id: string;
   event: string;
@@ -608,55 +785,151 @@ export interface Track {
   description?: string;
   color?: string;
   order: number;
+  created_at?: string;
+  updated_at?: string;
+  // Relations
   sessions?: Session[];
 }
 
+// Speaker (events.agenda_models.Speaker)
 export interface Speaker {
   id: string;
   event: string;
-  name: string;
+  // Informations personnelles
+  first_name: string;
+  last_name: string;
   title?: string;
-  bio?: string;
-  photo?: string;
   company?: string;
+  bio?: string;
+  // Contact
   email?: string;
+  phone?: string;
+  // Social & Web
   website?: string;
+  linkedin?: string;
+  twitter?: string;
+  // Média
+  photo?: string;
+  // Lien utilisateur (optionnel)
+  user?: string;
+  // Metadata
+  is_featured?: boolean;
+  order?: number;
+  created_at?: string;
+  updated_at?: string;
+  // UI helpers (calculés)
+  name?: string;
+  full_name?: string;
+  display_name?: string;
   social_links?: {
     twitter?: string;
     linkedin?: string;
   };
 }
 
+// Types de session (events.agenda_models.Session.SESSION_TYPE_CHOICES)
+export type SessionType = 'keynote' | 'talk' | 'panel' | 'workshop' | 'networking' | 'break' | 'lunch' | 'other';
+
+// Niveaux de session
+export type SessionLevel = 'beginner' | 'intermediate' | 'advanced' | 'all';
+
+// Session (events.agenda_models.Session)
 export interface Session {
   id: string;
   event: string;
-  track?: Track;
+  track?: Track | string;
+  // Informations de base
   title: string;
   description?: string;
+  session_type: SessionType;
+  // Horaires
   start_time: string;
   end_time: string;
+  duration_minutes?: number;
+  // Localisation
   location?: string;
+  room?: string;
+  is_virtual?: boolean;
+  virtual_link?: string;
+  // Speakers
   speakers?: Speaker[];
-  max_participants?: number;
-  current_participants?: number;
-  is_registered?: boolean;
+  moderator?: Speaker | string;
+  // Capacité et inscription
+  max_capacity?: number;
+  max_participants?: number; // Alias
   requires_registration: boolean;
+  registration_count?: number;
+  current_participants?: number; // Alias
+  // Contenu
+  slides_url?: string;
+  recording_url?: string;
+  resources?: any[];
+  // Metadata
+  is_featured?: boolean;
+  tags?: string[];
+  level?: SessionLevel;
+  language?: string;
+  created_at?: string;
+  updated_at?: string;
+  // UI helpers
+  is_registered?: boolean;
   registration_deadline?: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 }
 
+// SessionRegistration (events.agenda_models.SessionRegistration)
 export interface SessionRegistration {
   id: string;
   session: string;
   user: string;
-  status: 'registered' | 'attended' | 'cancelled';
+  // Participation
   registered_at: string;
+  attended: boolean;
   attended_at?: string;
+  // Feedback
+  rating?: number;
+  feedback?: string;
+  // UI helpers
+  status?: 'registered' | 'attended' | 'cancelled';
+}
+
+// SessionResource (events.agenda_models.SessionResource)
+export type ResourceType = 'slides' | 'document' | 'video' | 'link' | 'code' | 'other';
+
+export interface SessionResource {
+  id: string;
+  session: string;
+  title: string;
+  description?: string;
+  resource_type: ResourceType;
+  file?: string;
+  url?: string;
+  is_public: boolean;
+  download_count?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+// SessionWaitlist (events.agenda_models.SessionWaitlist)
+export type SessionWaitlistStatus = 'waiting' | 'notified' | 'registered' | 'expired' | 'cancelled';
+
+export interface SessionWaitlist {
+  id: string;
+  session: string;
+  user: string;
+  status: SessionWaitlistStatus;
+  position: number;
+  priority?: number;
+  created_at: string;
+  notified_at?: string;
+  expires_at?: string;
 }
 
 // ============================================
-// WAITLIST TYPES
+// WAITLIST TYPES (registrations.waitlist_models)
 // ============================================
+
+export type WaitlistStatus = 'waiting' | 'notified' | 'converted' | 'expired' | 'cancelled';
 
 export interface WaitlistEntry {
   id: string;
@@ -664,46 +937,38 @@ export interface WaitlistEntry {
   user: string;
   ticket_type?: string;
   position: number;
-  status: 'waiting' | 'notified' | 'converted' | 'expired';
+  priority?: number;
+  status: WaitlistStatus;
   notification_sent_at?: string;
+  notified_at?: string;
   expires_at?: string;
   created_at: string;
-}
-
-// ============================================
-// DISCOUNT TYPES
-// ============================================
-
-export interface Discount {
-  id: string;
-  event: string;
-  code: string;
-  discount_type: 'percentage' | 'fixed';
-  value: number;
-  max_uses?: number;
-  current_uses: number;
-  valid_from: string;
-  valid_until: string;
-  is_active: boolean;
-  min_purchase_amount?: number;
-  applicable_ticket_types?: string[];
 }
 
 // ============================================
 // FORM TYPES
 // ============================================
 
-export type FieldType = 'text' | 'email' | 'number' | 'select' | 'checkbox' | 'textarea' | 'date' | 'phone' | 'url' | 'file';
+// Types de champs (events.CustomFormField.FIELD_TYPES)
+export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'time' | 'select' | 'checkbox' | 'radio' | 'file';
+// Alias pour compatibilité UI (url n'existe pas dans backend)
+export type ExtendedFieldType = FieldType | 'url';
 
+// CustomFormField (events.CustomFormField)
 export interface FormField {
   id: string;
+  event?: string;
   label: string;
-  field_type: FieldType;
+  field_type: FieldType | ExtendedFieldType;
   required: boolean;
   placeholder?: string;
   help_text?: string;
-  options?: string[];
+  options?: string | string[]; // Options séparées par des virgules ou tableau
   order: number;
+  // Support multi-étapes pour les formulaires longs
+  step?: number;
+  step_title?: string;
+  // Extension frontend
   validation?: {
     min?: number;
     max?: number;
@@ -711,6 +976,9 @@ export interface FormField {
     message?: string;
   };
 }
+
+// Alias pour compatibilité
+export type CustomFormField = FormField;
 
 // ============================================
 // MAP TYPES
@@ -773,28 +1041,47 @@ export interface ApiError {
 // MODERATION TYPES
 // ============================================
 
+// Raisons de signalement (feedback.EventFlag.FLAG_REASON_CHOICES)
+export type FlagReason = 'inappropriate' | 'misleading' | 'scam' | 'duplicate' | 'other';
+
+// EventFlag (feedback.EventFlag)
 export interface Flag {
   id: string;
   event: string;
-  reporter: string;
-  reason: string;
+  user: string;
+  // Alias pour compatibilité
+  reporter?: string;
+  reason: FlagReason;
   description?: string;
-  status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
   created_at: string;
+  is_resolved: boolean;
   resolved_at?: string;
   resolved_by?: string;
+  resolution_notes?: string;
+  // Alias pour compatibilité
   resolution_note?: string;
+  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
 }
 
+// Alias pour compatibilité
+export type EventFlag = Flag;
+
+// EventValidation (feedback.EventValidation)
 export interface Validation {
   id: string;
-  event: Event;
+  event: Event | string;
+  user: User | string;
+  // Alias pour compatibilité
   validator?: User;
-  status: 'pending' | 'approved' | 'rejected';
-  notes?: string;
   created_at: string;
+  notes?: string;
+  // UI helpers (calculés depuis Event.status)
+  status?: 'pending' | 'approved' | 'rejected';
   validated_at?: string;
 }
+
+// Alias pour compatibilité
+export type EventValidation = Validation;
 
 // ============================================
 // AUDIT TYPES

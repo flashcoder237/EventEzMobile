@@ -23,6 +23,15 @@ type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
 const { width } = Dimensions.get('window');
 
+type TabType = 'about' | 'tickets' | 'agenda' | 'reviews';
+
+const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { id: 'about', label: 'À propos', icon: 'information-circle-outline' },
+  { id: 'tickets', label: 'Billets', icon: 'ticket-outline' },
+  { id: 'agenda', label: 'Agenda', icon: 'calendar-outline' },
+  { id: 'reviews', label: 'Avis', icon: 'star-outline' },
+];
+
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation();
@@ -31,6 +40,7 @@ export default function EventDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
+  const [activeTab, setActiveTab] = useState<TabType>('about');
 
   useEffect(() => {
     fetchEvent();
@@ -240,43 +250,189 @@ export default function EventDetailsScreen() {
             </View>
           </View>
 
-          {/* About Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>À propos</Text>
-            <Text style={styles.description}>
-              {event.description || event.short_description || 'Aucune description disponible pour cet événement.'}
-            </Text>
-          </View>
-
-          {/* Follow Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Suivre cet événement</Text>
-            <Text style={styles.followDescription}>
-              Recevez des notifications pour les mises à jour, rappels et annonces.
-            </Text>
-            <FollowEventButton
-              eventId={eventId}
-              variant="default"
-              showFollowerCount
-              initialFollowing={isFollowing}
-              onFollowChange={(following) => {
-                setIsFollowing(following);
-                setFollowersCount(prev => following ? prev + 1 : Math.max(0, prev - 1));
-              }}
-            />
-          </View>
-
-          {/* Tags */}
-          {event.tags && event.tags.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tags</Text>
-              <View style={styles.tagsRow}>
-                {event.tags.map((tag) => (
-                  <View key={tag.id} style={styles.tag}>
-                    <Text style={styles.tagText}>#{tag.name}</Text>
-                  </View>
+          {/* Tabs */}
+          <View style={styles.tabsContainer}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.tabsList}>
+                {tabs.map((tab) => (
+                  <TouchableOpacity
+                    key={tab.id}
+                    style={[styles.tab, activeTab === tab.id && styles.tabActive]}
+                    onPress={() => setActiveTab(tab.id)}
+                  >
+                    <Ionicons
+                      name={tab.icon}
+                      size={18}
+                      color={activeTab === tab.id ? Colors.primary : Colors.gray500}
+                    />
+                    <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
+                      {tab.label}
+                    </Text>
+                  </TouchableOpacity>
                 ))}
               </View>
+            </ScrollView>
+          </View>
+
+          {/* Tab Content */}
+          {activeTab === 'about' && (
+            <>
+              {/* About Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Description</Text>
+                <Text style={styles.description}>
+                  {event.description || event.short_description || 'Aucune description disponible pour cet événement.'}
+                </Text>
+              </View>
+
+              {/* Follow Section */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Suivre cet événement</Text>
+                <Text style={styles.followDescription}>
+                  Recevez des notifications pour les mises à jour, rappels et annonces.
+                </Text>
+                <FollowEventButton
+                  eventId={eventId}
+                  variant="default"
+                  showFollowerCount
+                  initialFollowing={isFollowing}
+                  onFollowChange={(following) => {
+                    setIsFollowing(following);
+                    setFollowersCount(prev => following ? prev + 1 : Math.max(0, prev - 1));
+                  }}
+                />
+              </View>
+
+              {/* Tags */}
+              {event.tags && event.tags.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Tags</Text>
+                  <View style={styles.tagsRow}>
+                    {event.tags.map((tag) => (
+                      <View key={tag.id} style={styles.tag}>
+                        <Text style={styles.tagText}>#{tag.name}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {activeTab === 'tickets' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                {event.event_type === 'billetterie' ? 'Types de billets' : 'Inscription'}
+              </Text>
+              {event.ticket_types && event.ticket_types.length > 0 ? (
+                event.ticket_types.map((ticket, index) => (
+                  <View key={index} style={styles.ticketCard}>
+                    <View style={styles.ticketInfo}>
+                      <Text style={styles.ticketName}>{ticket.name}</Text>
+                      {ticket.description && (
+                        <Text style={styles.ticketDescription}>{ticket.description}</Text>
+                      )}
+                      <Text style={styles.ticketAvailability}>
+                        {ticket.quantity_available > 0
+                          ? `${ticket.quantity_available} disponible${ticket.quantity_available > 1 ? 's' : ''}`
+                          : 'Épuisé'}
+                      </Text>
+                    </View>
+                    <View style={styles.ticketPriceContainer}>
+                      <Text style={styles.ticketPrice}>
+                        {ticket.price > 0 ? `${ticket.price.toLocaleString()} FCFA` : 'Gratuit'}
+                      </Text>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyTab}>
+                  <Ionicons name="ticket-outline" size={40} color={Colors.gray300} />
+                  <Text style={styles.emptyTabText}>
+                    {event.event_type === 'billetterie'
+                      ? 'Aucun type de billet disponible'
+                      : 'Inscription gratuite'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === 'agenda' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Programme</Text>
+              {event.sessions && event.sessions.length > 0 ? (
+                event.sessions.map((session, index) => (
+                  <View key={index} style={styles.sessionCard}>
+                    <View style={styles.sessionTime}>
+                      <Text style={styles.sessionTimeText}>
+                        {new Date(session.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <View style={styles.sessionInfo}>
+                      <Text style={styles.sessionTitle}>{session.title}</Text>
+                      {session.location && (
+                        <View style={styles.sessionLocation}>
+                          <Ionicons name="location-outline" size={12} color={Colors.gray500} />
+                          <Text style={styles.sessionLocationText}>{session.location}</Text>
+                        </View>
+                      )}
+                      {session.description && (
+                        <Text style={styles.sessionDescription} numberOfLines={2}>
+                          {session.description}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyTab}>
+                  <Ionicons name="calendar-outline" size={40} color={Colors.gray300} />
+                  <Text style={styles.emptyTabText}>Aucune session programmée</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {activeTab === 'reviews' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Avis des participants</Text>
+              {event.feedbacks && event.feedbacks.length > 0 ? (
+                event.feedbacks.map((feedback, index) => (
+                  <View key={index} style={styles.reviewCard}>
+                    <View style={styles.reviewHeader}>
+                      <View style={styles.reviewAvatar}>
+                        <Text style={styles.reviewAvatarText}>
+                          {feedback.user?.first_name?.[0] || 'U'}
+                        </Text>
+                      </View>
+                      <View style={styles.reviewUserInfo}>
+                        <Text style={styles.reviewUserName}>
+                          {feedback.user?.first_name} {feedback.user?.last_name}
+                        </Text>
+                        <View style={styles.reviewRating}>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Ionicons
+                              key={star}
+                              name={star <= feedback.rating ? 'star' : 'star-outline'}
+                              size={14}
+                              color={star <= feedback.rating ? '#FBBF24' : Colors.gray300}
+                            />
+                          ))}
+                        </View>
+                      </View>
+                    </View>
+                    {feedback.comment && (
+                      <Text style={styles.reviewComment}>{feedback.comment}</Text>
+                    )}
+                  </View>
+                ))
+              ) : (
+                <View style={styles.emptyTab}>
+                  <Ionicons name="star-outline" size={40} color={Colors.gray300} />
+                  <Text style={styles.emptyTabText}>Aucun avis pour le moment</Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -633,5 +789,172 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+  // Tabs
+  tabsContainer: {
+    marginBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  tabsList: {
+    flexDirection: 'row',
+    paddingHorizontal: 0,
+  },
+  tab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    marginRight: Spacing.sm,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+    gap: Spacing.xs,
+  },
+  tabActive: {
+    borderBottomColor: Colors.primary,
+  },
+  tabText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+  },
+  tabTextActive: {
+    color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
+  },
+  // Empty Tab State
+  emptyTab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing['3xl'],
+  },
+  emptyTabText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginTop: Spacing.md,
+  },
+  // Ticket Card
+  ticketCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  ticketInfo: {
+    flex: 1,
+  },
+  ticketName: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: 2,
+  },
+  ticketDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginBottom: 4,
+  },
+  ticketAvailability: {
+    fontSize: FontSizes.xs,
+    color: Colors.success,
+    fontFamily: FontFamily.medium,
+  },
+  ticketPriceContainer: {
+    marginLeft: Spacing.md,
+  },
+  ticketPrice: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.primary,
+  },
+  // Session Card
+  sessionCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  sessionTime: {
+    width: 60,
+    alignItems: 'center',
+    paddingRight: Spacing.md,
+    borderRightWidth: 2,
+    borderRightColor: Colors.primary,
+  },
+  sessionTimeText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    color: Colors.primary,
+  },
+  sessionInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  sessionTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: 4,
+  },
+  sessionLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  sessionLocationText: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+  },
+  sessionDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    lineHeight: 18,
+  },
+  // Review Card
+  reviewCard: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  reviewAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewAvatarText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    color: Colors.white,
+  },
+  reviewUserInfo: {
+    marginLeft: Spacing.sm,
+  },
+  reviewUserName: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    gap: 2,
+    marginTop: 2,
+  },
+  reviewComment: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    lineHeight: 20,
   },
 });
