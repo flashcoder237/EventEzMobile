@@ -130,49 +130,78 @@ export default function HomeScreen() {
     return categoryIcons[key] || categoryIcons.default;
   };
 
+  // Calculate event price from various sources
+  const getEventPrice = (event: Event): number | undefined => {
+    // If explicitly free
+    if (event.is_free) return 0;
+
+    // Try direct price fields
+    if (typeof event.base_price === 'number' && event.base_price > 0) return event.base_price;
+    if (typeof event.min_price === 'number' && event.min_price > 0) return event.min_price;
+
+    // Calculate from ticket_types if available
+    if (event.ticket_types && event.ticket_types.length > 0) {
+      const prices = event.ticket_types.map(t => t.price).filter(p => typeof p === 'number');
+      if (prices.length > 0) {
+        return Math.min(...prices);
+      }
+    }
+
+    // For inscription type without price, consider free
+    if (event.event_type === 'inscription') return 0;
+
+    return undefined;
+  };
+
   const renderFeaturedEvent = useCallback(
-    ({ item, index }: { item: Event; index: number }) => (
-      <View style={[styles.featuredCardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
-        <EventCard
-          id={item.id}
-          title={item.title}
-          date={item.start_date}
-          time={item.start_time}
-          location={item.location_city || item.location_address || 'Lieu à confirmer'}
-          imageUrl={item.banner_image || item.display_image}
-          category={item.category?.name}
-          price={item.is_free ? 0 : (item.base_price || item.min_price)}
-          isFree={item.is_free}
-          eventType={item.event_type}
-          attendees={item.registration_count || item.registrations_count}
-          variant="featured"
-          onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
-        />
-      </View>
-    ),
+    ({ item, index }: { item: Event; index: number }) => {
+      const price = getEventPrice(item);
+      return (
+        <View style={[styles.featuredCardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
+          <EventCard
+            id={item.id}
+            title={item.title}
+            date={item.start_date}
+            time={item.start_time}
+            location={item.location_city || item.location_address || 'Lieu à confirmer'}
+            imageUrl={item.banner_image || item.display_image}
+            category={item.category?.name}
+            price={price}
+            isFree={item.is_free || price === 0}
+            eventType={item.event_type}
+            attendees={item.registration_count || item.registrations_count}
+            variant="featured"
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+          />
+        </View>
+      );
+    },
     [navigation]
   );
 
   const renderEvent = useCallback(
-    ({ item, index }: { item: Event; index: number }) => (
-      <View style={[styles.cardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
-        <EventCard
-          id={item.id}
-          title={item.title}
-          date={item.start_date}
-          time={item.start_time}
-          location={item.location_city || 'Lieu à confirmer'}
-          imageUrl={item.banner_image || item.display_image}
-          category={item.category?.name}
-          price={item.is_free ? 0 : (item.base_price || item.min_price)}
-          isFree={item.is_free}
-          eventType={item.event_type}
-          attendees={item.registration_count || item.registrations_count}
-          variant="default"
-          onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
-        />
-      </View>
-    ),
+    ({ item, index }: { item: Event; index: number }) => {
+      const price = getEventPrice(item);
+      return (
+        <View style={[styles.cardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
+          <EventCard
+            id={item.id}
+            title={item.title}
+            date={item.start_date}
+            time={item.start_time}
+            location={item.location_city || 'Lieu à confirmer'}
+            imageUrl={item.banner_image || item.display_image}
+            category={item.category?.name}
+            price={price}
+            isFree={item.is_free || price === 0}
+            eventType={item.event_type}
+            attendees={item.registration_count || item.registrations_count}
+            variant="default"
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+          />
+        </View>
+      );
+    },
     [navigation]
   );
 

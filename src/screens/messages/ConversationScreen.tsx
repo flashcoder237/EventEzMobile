@@ -12,6 +12,8 @@ import {
   Image,
   StatusBar,
   Alert,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -41,6 +43,8 @@ interface AttachedFile {
   type: 'image' | 'document';
 }
 
+const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
+
 export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConversationRouteProp>();
@@ -54,6 +58,8 @@ export default function ConversationScreen() {
   const [conversationTitle, setConversationTitle] = useState('');
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
+  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -108,7 +114,7 @@ export default function ConversationScreen() {
 
   const fetchMessages = async () => {
     try {
-      const response = await messagesAPI.getMessages(conversationId);
+      const response = await messagesAPI.getMessages({ conversation: conversationId });
       const newMessages = response.data.results || response.data || [];
       setMessages(newMessages.reverse()); // Messages du plus ancien au plus récent
     } catch (error) {
@@ -160,6 +166,45 @@ export default function ConversationScreen() {
     setAttachedFiles([]);
   };
 
+  const handleLongPressMessage = (messageId: string) => {
+    setSelectedMessageId(messageId);
+    setShowReactionPicker(true);
+  };
+
+  const handleAddReaction = async (emoji: string) => {
+    if (!selectedMessageId) return;
+
+    try {
+      await messagesAPI.addReaction(selectedMessageId, emoji);
+
+      // Optimistic update
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === selectedMessageId) {
+          const existingReaction = msg.reactions?.find(r => r.emoji === emoji && r.user === user?.id);
+          if (existingReaction) {
+            // Remove reaction if already exists
+            return {
+              ...msg,
+              reactions: msg.reactions?.filter(r => !(r.emoji === emoji && r.user === user?.id)) || [],
+            };
+          } else {
+            // Add reaction
+            return {
+              ...msg,
+              reactions: [...(msg.reactions || []), { id: `temp-${Date.now()}`, emoji, user: user?.id || '', created_at: new Date().toISOString() }],
+            };
+          }
+        }
+        return msg;
+      }));
+    } catch (error) {
+      console.error('Erreur ajout réaction:', error);
+    } finally {
+      setShowReactionPicker(false);
+      setSelectedMessageId(null);
+    }
+  };
+
   const handleSend = async () => {
     if ((!newMessage.trim() && attachedFiles.length === 0) || sending) return;
 
@@ -173,13 +218,17 @@ export default function ConversationScreen() {
       conversation: conversationId,
       sender: user!,
       content: messageContent,
+      message_type: attachedFiles.length > 0 ? 'image' : 'text',
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
       is_read: false,
       attachments: attachedFiles.map(f => ({
         id: `temp-${Date.now()}`,
         file: f.uri,
         attachment_type: f.type,
         file_name: f.name,
+        file_size: 0,
+        mime_type: 'image/jpeg',
       })),
     };
     setMessages((prev) => [...prev, tempMessage]);
@@ -210,9 +259,9 @@ export default function ConversationScreen() {
         }
       }
 
-      const response = await messagesAPI.sendMessage(conversationId, {
+      const response = await messagesAPI.sendMessage({
+        conversation: conversationId,
         content: messageContent,
-        attachments: attachmentIds,
       });
 
       // Replace temp message with real one
@@ -296,6 +345,27 @@ export default function ConversationScreen() {
     );
   };
 
+  const renderReactions = (reactions: any[] | undefined, isMine: boolean) => {
+    if (!reactions || reactions.length === 0) return null;
+
+    // Group reactions by emoji
+    const grouped = reactions.reduce((acc, r) => {
+      acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return (
+      <View style={[styles.reactionsContainer, isMine && styles.reactionsContainerMine]}>
+        {Object.entries(grouped).map(([emoji, count]) => (
+          <View key={emoji} style={styles.reactionBadge}>
+            <Text style={styles.reactionEmoji}>{emoji}</Text>
+            {(count as number) > 1 && <Text style={styles.reactionCount}>{count}</Text>}
+          </View>
+        ))}
+      </View>
+    );
+  };
+
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item);
     const showDate = shouldShowDate(index);
@@ -310,7 +380,12 @@ export default function ConversationScreen() {
             <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
           </View>
         )}
-        <View style={[styles.messageRow, isMine && styles.messageRowMine]}>
+        <TouchableOpacity
+          style={[styles.messageRow, isMine && styles.messageRowMine]}
+          onLongPress={() => handleLongPressMessage(item.id)}
+          delayLongPress={300}
+          activeOpacity={0.8}
+        >
           {!isMine && (
             avatar ? (
               <Image source={{ uri: avatar }} style={styles.messageAvatar} />
@@ -347,6 +422,9 @@ export default function ConversationScreen() {
               </View>
             )}
 
+            {/* Reactions */}
+            {renderReactions(item.reactions, isMine)}
+
             {/* Time */}
             <View style={[styles.messageTimeRow, isMine && styles.messageTimeRowMine]}>
               <Text style={styles.messageTime}>{formatTime(item.created_at)}</Text>
@@ -360,7 +438,7 @@ export default function ConversationScreen() {
               )}
             </View>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
     );
   }, [messages, user]);
@@ -462,6 +540,40 @@ export default function ConversationScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Reaction Picker Modal */}
+      <Modal
+        visible={showReactionPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setShowReactionPicker(false);
+          setSelectedMessageId(null);
+        }}
+      >
+        <Pressable
+          style={styles.reactionModalOverlay}
+          onPress={() => {
+            setShowReactionPicker(false);
+            setSelectedMessageId(null);
+          }}
+        >
+          <View style={styles.reactionPickerContainer}>
+            <Text style={styles.reactionPickerTitle}>Réagir au message</Text>
+            <View style={styles.reactionPickerRow}>
+              {REACTION_EMOJIS.map((emoji) => (
+                <TouchableOpacity
+                  key={emoji}
+                  style={styles.reactionPickerItem}
+                  onPress={() => handleAddReaction(emoji)}
+                >
+                  <Text style={styles.reactionPickerEmoji}>{emoji}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -728,5 +840,71 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: Colors.gray300,
+  },
+
+  // Reactions
+  reactionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 4,
+    gap: 4,
+  },
+  reactionsContainerMine: {
+    justifyContent: 'flex-end',
+  },
+  reactionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  reactionEmoji: {
+    fontSize: 14,
+  },
+  reactionCount: {
+    fontSize: 11,
+    color: Colors.gray600,
+    marginLeft: 2,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Reaction Picker Modal
+  reactionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reactionPickerContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginHorizontal: Spacing.xl,
+    alignItems: 'center',
+  },
+  reactionPickerTitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+    marginBottom: Spacing.md,
+  },
+  reactionPickerRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  reactionPickerItem: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.gray50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reactionPickerEmoji: {
+    fontSize: 24,
   },
 });

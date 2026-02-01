@@ -251,6 +251,33 @@ export default function DashboardScreen() {
                 <Text style={styles.organizerActionSubtitle}>{stats.events} actifs</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Additional Organizer Actions */}
+            <View style={[styles.organizerActions, { marginTop: Spacing.md }]}>
+              <TouchableOpacity
+                style={styles.organizerActionCard}
+                onPress={() => navigation.navigate('Wallet')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.organizerActionIcon, { backgroundColor: '#F0FDF4' }]}>
+                  <Ionicons name="wallet-outline" size={24} color="#10B981" />
+                </View>
+                <Text style={styles.organizerActionTitle}>Portefeuille</Text>
+                <Text style={styles.organizerActionSubtitle}>Revenus & paiements</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.organizerActionCard}
+                onPress={() => navigation.navigate('MyEvents')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.organizerActionIcon, { backgroundColor: '#FEF3C7' }]}>
+                  <Ionicons name="stats-chart-outline" size={24} color="#F59E0B" />
+                </View>
+                <Text style={styles.organizerActionTitle}>Analytiques</Text>
+                <Text style={styles.organizerActionSubtitle}>Voir les stats</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 

@@ -19,8 +19,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { eventsAPI, feedbacksAPI, messagesAPI } from '../../api/client';
-import { Event, RootStackParamList, Feedback } from '../../types';
+import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI } from '../../api/client';
+import { Event, RootStackParamList, Feedback, WaitlistEntry } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import { useAuth } from '../../contexts/AuthContext';
@@ -55,10 +55,16 @@ export default function EventDetailsScreen() {
   const [reviewComment, setReviewComment] = useState('');
   const [submittingReview, setSubmittingReview] = useState(false);
   const [userReview, setUserReview] = useState<Feedback | null>(null);
+  // Waitlist state
+  const [waitlistEntry, setWaitlistEntry] = useState<WaitlistEntry | null>(null);
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
 
   useEffect(() => {
     fetchEvent();
-  }, [eventId]);
+    if (user) {
+      fetchWaitlistStatus();
+    }
+  }, [eventId, user]);
 
   const fetchEvent = async () => {
     try {
@@ -75,6 +81,61 @@ export default function EventDetailsScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchWaitlistStatus = async () => {
+    try {
+      const response = await waitlistAPI.getMyWaitlist();
+      const entries = response.data?.results || response.data || [];
+      const entry = entries.find((e: WaitlistEntry) => e.event === eventId || (e as any).event?.id === eventId);
+      setWaitlistEntry(entry || null);
+    } catch (error) {
+      console.log('No waitlist entry found');
+    }
+  };
+
+  const handleJoinWaitlist = async () => {
+    if (!user) {
+      Alert.alert('Connexion requise', 'Connectez-vous pour rejoindre la liste d\'attente');
+      return;
+    }
+
+    setJoiningWaitlist(true);
+    try {
+      const response = await waitlistAPI.joinWaitlist({ event: eventId });
+      setWaitlistEntry(response.data);
+      Alert.alert('Succès', 'Vous avez rejoint la liste d\'attente. Vous serez notifié dès qu\'une place se libère.');
+    } catch (error: any) {
+      const message = error.response?.data?.detail || 'Impossible de rejoindre la liste d\'attente';
+      Alert.alert('Erreur', message);
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  };
+
+  const handleLeaveWaitlist = async () => {
+    if (!waitlistEntry) return;
+
+    Alert.alert(
+      'Quitter la liste d\'attente',
+      'Êtes-vous sûr de vouloir quitter la liste d\'attente ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Quitter',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await waitlistAPI.cancelWaitlist(waitlistEntry.id);
+              setWaitlistEntry(null);
+              Alert.alert('Succès', 'Vous avez quitté la liste d\'attente');
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de quitter la liste d\'attente');
+            }
+          },
+        },
+      ]
+    );
   };
 
 
@@ -178,6 +239,11 @@ export default function EventDetailsScreen() {
     const total = ticket.quantity_total || 0;
     const sold = ticket.quantity_sold || 0;
     return Math.max(0, total - sold);
+  };
+
+  const areAllTicketsSoldOut = () => {
+    if (!event?.ticket_types || event.ticket_types.length === 0) return false;
+    return event.ticket_types.every(ticket => getTicketAvailability(ticket) <= 0);
   };
 
   const formatDate = (dateString: string) => {
@@ -447,31 +513,73 @@ export default function EventDetailsScreen() {
                 {event.event_type === 'billetterie' ? 'Types de billets' : 'Inscription'}
               </Text>
               {event.ticket_types && event.ticket_types.length > 0 ? (
-                event.ticket_types.map((ticket, index) => {
-                  const available = getTicketAvailability(ticket);
-                  const isSoldOut = available <= 0;
+                <>
+                  {event.ticket_types.map((ticket, index) => {
+                    const available = getTicketAvailability(ticket);
+                    const isSoldOut = available <= 0;
 
-                  return (
-                    <View key={index} style={[styles.ticketCard, isSoldOut && styles.ticketCardSoldOut]}>
-                      <View style={styles.ticketInfo}>
-                        <Text style={styles.ticketName}>{ticket.name}</Text>
-                        {ticket.description && (
-                          <Text style={styles.ticketDescription}>{ticket.description}</Text>
-                        )}
-                        <Text style={[styles.ticketAvailability, isSoldOut && styles.ticketSoldOut]}>
-                          {isSoldOut
-                            ? 'Épuisé'
-                            : `${available} disponible${available > 1 ? 's' : ''}`}
-                        </Text>
+                    return (
+                      <View key={index} style={[styles.ticketCard, isSoldOut && styles.ticketCardSoldOut]}>
+                        <View style={styles.ticketInfo}>
+                          <Text style={styles.ticketName}>{ticket.name}</Text>
+                          {ticket.description && (
+                            <Text style={styles.ticketDescription}>{ticket.description}</Text>
+                          )}
+                          <Text style={[styles.ticketAvailability, isSoldOut && styles.ticketSoldOut]}>
+                            {isSoldOut
+                              ? 'Épuisé'
+                              : `${available} disponible${available > 1 ? 's' : ''}`}
+                          </Text>
+                        </View>
+                        <View style={styles.ticketPriceContainer}>
+                          <Text style={[styles.ticketPrice, isSoldOut && styles.ticketPriceSoldOut]}>
+                            {ticket.price > 0 ? `${ticket.price.toLocaleString()} FCFA` : 'Gratuit'}
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.ticketPriceContainer}>
-                        <Text style={[styles.ticketPrice, isSoldOut && styles.ticketPriceSoldOut]}>
-                          {ticket.price > 0 ? `${ticket.price.toLocaleString()} FCFA` : 'Gratuit'}
-                        </Text>
+                    );
+                  })}
+
+                  {/* Waitlist Section */}
+                  {areAllTicketsSoldOut() && (
+                    <View style={styles.waitlistSection}>
+                      <View style={styles.waitlistInfo}>
+                        <Ionicons name="time-outline" size={24} color={Colors.warning} />
+                        <View style={styles.waitlistTextContainer}>
+                          <Text style={styles.waitlistTitle}>Tous les billets sont épuisés</Text>
+                          <Text style={styles.waitlistDescription}>
+                            {waitlistEntry
+                              ? 'Vous êtes sur la liste d\'attente. Vous serez notifié si une place se libère.'
+                              : 'Rejoignez la liste d\'attente pour être notifié si une place se libère.'}
+                          </Text>
+                        </View>
                       </View>
+                      {waitlistEntry ? (
+                        <TouchableOpacity
+                          style={styles.leaveWaitlistButton}
+                          onPress={handleLeaveWaitlist}
+                        >
+                          <Text style={styles.leaveWaitlistText}>Quitter la liste</Text>
+                        </TouchableOpacity>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.joinWaitlistButton}
+                          onPress={handleJoinWaitlist}
+                          disabled={joiningWaitlist}
+                        >
+                          {joiningWaitlist ? (
+                            <ActivityIndicator size="small" color={Colors.white} />
+                          ) : (
+                            <>
+                              <Ionicons name="notifications-outline" size={18} color={Colors.white} />
+                              <Text style={styles.joinWaitlistText}>Rejoindre la liste d'attente</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      )}
                     </View>
-                  );
-                })
+                  )}
+                </>
               ) : (
                 <View style={styles.emptyTab}>
                   <Ionicons name="ticket-outline" size={40} color={Colors.gray300} />
@@ -1269,6 +1377,63 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
     color: Colors.primary,
+  },
+  // Waitlist Section
+  waitlistSection: {
+    backgroundColor: Colors.warningLight,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  waitlistInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  waitlistTextContainer: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  waitlistTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: 4,
+  },
+  waitlistDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    lineHeight: 20,
+  },
+  joinWaitlistButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.warning,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  joinWaitlistText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+  },
+  leaveWaitlistButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray300,
+  },
+  leaveWaitlistText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray600,
   },
   // Review Card
   reviewCard: {

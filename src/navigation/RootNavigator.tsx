@@ -37,6 +37,7 @@ import EventCreateScreen from '../screens/organizer/EventCreateScreen';
 import WalletScreen from '../screens/organizer/WalletScreen';
 import MyEventsScreen from '../screens/organizer/MyEventsScreen';
 import QRScannerScreen from '../screens/organizer/QRScannerScreen';
+import EventAnalyticsScreen from '../screens/organizer/EventAnalyticsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -212,6 +213,13 @@ export default function RootNavigator() {
             options={{
               headerShown: false,
               presentation: 'fullScreenModal',
+            }}
+          />
+          <Stack.Screen
+            name="EventAnalytics"
+            component={EventAnalyticsScreen}
+            options={{
+              headerShown: false,
             }}
           />
         </>

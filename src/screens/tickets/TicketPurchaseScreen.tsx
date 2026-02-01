@@ -7,14 +7,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { eventsAPI, ticketTypesAPI, registrationsAPI } from '../../api/client';
-import { Event, TicketType, RootStackParamList, FormField } from '../../types';
+import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api/client';
+import { Event, TicketType, RootStackParamList, FormField, Discount } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
 import DynamicFormFields from '../../components/forms/DynamicFormFields';
 import {
@@ -48,6 +49,11 @@ export default function TicketPurchaseScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  // Discount state
+  const [discountCode, setDiscountCode] = useState('');
+  const [validatingDiscount, setValidatingDiscount] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState<Discount | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -120,7 +126,7 @@ export default function TicketPurchaseScreen() {
     setSelections(newSelections);
   };
 
-  const getTotalPrice = () => {
+  const getSubtotal = () => {
     let total = 0;
     selections.forEach((quantity, ticketTypeId) => {
       const ticketType = ticketTypes.find(t => t.id === ticketTypeId);
@@ -129,6 +135,54 @@ export default function TicketPurchaseScreen() {
       }
     });
     return total;
+  };
+
+  const getDiscountAmount = () => {
+    if (!appliedDiscount) return 0;
+    const subtotal = getSubtotal();
+    if (appliedDiscount.discount_type === 'percentage') {
+      return Math.round((subtotal * appliedDiscount.value) / 100);
+    }
+    return Math.min(appliedDiscount.value, subtotal);
+  };
+
+  const getTotalPrice = () => {
+    return Math.max(0, getSubtotal() - getDiscountAmount());
+  };
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) {
+      setDiscountError('Veuillez entrer un code promo');
+      return;
+    }
+
+    setValidatingDiscount(true);
+    setDiscountError(null);
+
+    try {
+      const response = await discountsAPI.validateDiscount(discountCode.trim(), eventId);
+      const discount = response.data;
+
+      if (discount && discount.is_active !== false) {
+        setAppliedDiscount(discount);
+        setDiscountError(null);
+        Alert.alert('Succès', `Code promo "${discountCode}" appliqué !`);
+      } else {
+        setDiscountError('Ce code promo n\'est pas valide');
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.detail || error.response?.data?.message || 'Code promo invalide ou expiré';
+      setDiscountError(message);
+      setAppliedDiscount(null);
+    } finally {
+      setValidatingDiscount(false);
+    }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode('');
+    setDiscountError(null);
   };
 
   const getTotalQuantity = () => {
@@ -178,6 +232,11 @@ export default function TicketPurchaseScreen() {
           });
         });
         registrationData.tickets = tickets;
+
+        // Add discount code if applied
+        if (appliedDiscount) {
+          registrationData.discount_code = appliedDiscount.code;
+        }
       }
 
       const response = await registrationsAPI.createRegistration(registrationData);
@@ -346,6 +405,63 @@ export default function TicketPurchaseScreen() {
         </View>
         )}
 
+        {/* Discount Code Section */}
+        {event?.event_type === 'billetterie' && getTotalQuantity() > 0 && (
+          <View style={styles.discountSection}>
+            <Text style={styles.sectionTitle}>Code promo</Text>
+            {appliedDiscount ? (
+              <View style={styles.appliedDiscountCard}>
+                <View style={styles.appliedDiscountInfo}>
+                  <Ionicons name="pricetag" size={20} color={Colors.success} />
+                  <View style={styles.appliedDiscountText}>
+                    <Text style={styles.appliedDiscountCode}>{appliedDiscount.code}</Text>
+                    <Text style={styles.appliedDiscountValue}>
+                      {appliedDiscount.discount_type === 'percentage'
+                        ? `-${appliedDiscount.value}%`
+                        : `-${appliedDiscount.value.toLocaleString()} FCFA`}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={styles.removeDiscountButton}
+                  onPress={handleRemoveDiscount}
+                >
+                  <Ionicons name="close-circle" size={24} color={Colors.gray400} />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.discountInputRow}>
+                <TextInput
+                  style={[styles.discountInput, discountError && styles.discountInputError]}
+                  placeholder="Entrer le code promo"
+                  placeholderTextColor={Colors.gray400}
+                  value={discountCode}
+                  onChangeText={(text) => {
+                    setDiscountCode(text.toUpperCase());
+                    setDiscountError(null);
+                  }}
+                  autoCapitalize="characters"
+                  editable={!validatingDiscount}
+                />
+                <TouchableOpacity
+                  style={[styles.applyDiscountButton, validatingDiscount && styles.applyDiscountButtonDisabled]}
+                  onPress={handleApplyDiscount}
+                  disabled={validatingDiscount}
+                >
+                  {validatingDiscount ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Text style={styles.applyDiscountText}>Appliquer</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+            {discountError && (
+              <Text style={styles.discountErrorText}>{discountError}</Text>
+            )}
+          </View>
+        )}
+
         {/* Dynamic Form Fields */}
         {formFields.length > 0 && (
           <View style={styles.formSection}>
@@ -378,6 +494,28 @@ export default function TicketPurchaseScreen() {
                   </View>
                 );
               })}
+              {appliedDiscount && (
+                <>
+                  <View style={styles.summaryDivider} />
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Sous-total</Text>
+                    <Text style={styles.summaryValue}>
+                      {getSubtotal().toLocaleString()} FCFA
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <View style={styles.discountLabelRow}>
+                      <Ionicons name="pricetag" size={14} color={Colors.success} />
+                      <Text style={styles.discountLabel}>
+                        Réduction ({appliedDiscount.code})
+                      </Text>
+                    </View>
+                    <Text style={styles.discountValue}>
+                      -{getDiscountAmount().toLocaleString()} FCFA
+                    </Text>
+                  </View>
+                </>
+              )}
               <View style={styles.summaryDivider} />
               <View style={styles.summaryRow}>
                 <Text style={styles.totalLabel}>Total</Text>
@@ -593,6 +731,99 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.semiBold,
     color: Colors.error,
+  },
+  // ===== DISCOUNT SECTION =====
+  discountSection: {
+    backgroundColor: Colors.white,
+    padding: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  discountInputRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  discountInput: {
+    flex: 1,
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray900,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  discountInputError: {
+    borderColor: Colors.error,
+  },
+  applyDiscountButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  applyDiscountButtonDisabled: {
+    opacity: 0.7,
+  },
+  applyDiscountText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+  },
+  discountErrorText: {
+    fontSize: FontSizes.sm,
+    color: Colors.error,
+    marginTop: Spacing.sm,
+  },
+  appliedDiscountCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.successLight,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.success,
+  },
+  appliedDiscountInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  appliedDiscountText: {
+    marginLeft: Spacing.xs,
+  },
+  appliedDiscountCode: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  appliedDiscountValue: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.success,
+  },
+  removeDiscountButton: {
+    padding: Spacing.xs,
+  },
+  discountLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  discountLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.success,
+    fontFamily: FontFamily.medium,
+  },
+  discountValue: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.success,
   },
   // ===== FORM SECTION =====
   formSection: {

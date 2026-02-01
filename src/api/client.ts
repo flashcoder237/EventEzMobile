@@ -1272,6 +1272,9 @@ export const messagesAPI = {
   markMessageAsRead: (id: string) =>
     api.post(`/messages/${id}/mark_as_read/`),
 
+  markConversationAsRead: (conversationId: string) =>
+    api.post(`/conversations/${conversationId}/mark_as_read/`),
+
   starMessage: (id: string) =>
     api.post(`/messages/${id}/star/`),
 
