@@ -22,6 +22,7 @@ import { Event, Category, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
@@ -366,7 +367,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 28,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.primary,
     letterSpacing: -0.5,
   },
@@ -397,6 +398,7 @@ const styles = StyleSheet.create({
   searchPlaceholder: {
     flex: 1,
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray400,
   },
   locationRow: {
@@ -408,7 +410,7 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     flex: 1,
   },
@@ -424,12 +426,12 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
   seeAllText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.primary,
   },
   categoriesList: {
@@ -451,7 +453,7 @@ const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     textAlign: 'center',
   },

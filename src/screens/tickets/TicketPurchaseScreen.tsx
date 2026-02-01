@@ -14,8 +14,9 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { eventsAPI, ticketTypesAPI, registrationsAPI } from '../../api/client';
-import { Event, TicketType, RootStackParamList } from '../../types';
+import { Event, TicketType, RootStackParamList, FormField } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
+import DynamicFormFields from '../../components/forms/DynamicFormFields';
 import {
   Colors,
   FontSizes,
@@ -40,9 +41,12 @@ export default function TicketPurchaseScreen() {
 
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
+  const [formFields, setFormFields] = useState<FormField[]>([]);
   const [selections, setSelections] = useState<Map<string, number>>(new Map());
+  const [formData, setFormData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchData();
@@ -51,12 +55,18 @@ export default function TicketPurchaseScreen() {
   const fetchData = async () => {
     try {
       const [eventRes, ticketsRes] = await Promise.all([
-        eventsAPI.getEvent(eventId),
+        eventsAPI.getEventById(eventId),
         ticketTypesAPI.getTicketTypes({ event: eventId }),
       ]);
 
-      setEvent(eventRes.data);
+      const eventData = eventRes.data;
+      setEvent(eventData);
       setTicketTypes(ticketsRes.data.results || ticketsRes.data || []);
+
+      // Set form fields if available
+      if (eventData.form_fields && eventData.form_fields.length > 0) {
+        setFormFields(eventData.form_fields);
+      }
 
       // Pre-select if ticketTypeId is provided
       if (ticketTypeId) {
@@ -68,6 +78,31 @@ export default function TicketPurchaseScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFormFieldChange = (fieldLabel: string, value: any) => {
+    setFormData(prev => ({ ...prev, [fieldLabel]: value }));
+    // Clear error when field is changed
+    if (formErrors[fieldLabel]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldLabel];
+        return newErrors;
+      });
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    formFields.forEach(field => {
+      if (field.required && !formData[field.label]) {
+        errors[field.label] = 'Ce champ est requis';
+      }
+    });
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const updateQuantity = (ticketTypeId: string, delta: number) => {
@@ -104,42 +139,68 @@ export default function TicketPurchaseScreen() {
   };
 
   const handleProceed = async () => {
-    if (getTotalQuantity() === 0) {
+    const isInscription = event?.event_type === 'inscription';
+    const isBilletterie = event?.event_type === 'billetterie';
+
+    // Validate tickets for billetterie
+    if (isBilletterie && getTotalQuantity() === 0) {
       Alert.alert('Attention', 'Veuillez sélectionner au moins un billet');
+      return;
+    }
+
+    // Validate form fields if present
+    if (formFields.length > 0 && !validateForm()) {
+      Alert.alert('Attention', 'Veuillez remplir tous les champs obligatoires');
       return;
     }
 
     setSubmitting(true);
     try {
-      // Create registration(s) for each ticket type
-      const tickets: any[] = [];
-      selections.forEach((quantity, ticketTypeId) => {
-        tickets.push({
-          ticket_type: parseInt(ticketTypeId),
-          quantity,
-        });
-      });
-
-      const response = await registrationsAPI.createRegistration({
+      // Build registration data
+      const registrationData: any = {
         event: eventId,
-        registration_type: 'billetterie',
-        tickets: tickets,
-      });
+        registration_type: event?.event_type || 'billetterie',
+      };
 
+      // Add form data if present
+      if (formFields.length > 0) {
+        registrationData.form_data = formData;
+      }
+
+      // Add tickets for billetterie
+      if (isBilletterie) {
+        const tickets: any[] = [];
+        selections.forEach((quantity, ticketTypeId) => {
+          tickets.push({
+            ticket_type: parseInt(ticketTypeId),
+            quantity,
+          });
+        });
+        registrationData.tickets = tickets;
+      }
+
+      const response = await registrationsAPI.createRegistration(registrationData);
       const registrationId = response.data.id;
 
-      // Navigate to payment
-      if (getTotalPrice() > 0) {
+      // Navigate based on payment requirements
+      const totalPrice = isBilletterie ? getTotalPrice() : (event?.base_price || 0);
+
+      if (totalPrice > 0) {
         navigation.navigate('Payment', { registrationId });
       } else {
-        // Free event - go to success
+        // Free event - confirm and go to success
+        try {
+          await registrationsAPI.updateRegistration(registrationId, { status: 'confirmed' });
+        } catch (e) {
+          console.log('Could not auto-confirm:', e);
+        }
         navigation.navigate('PaymentSuccess', { paymentId: registrationId });
       }
     } catch (error: any) {
       console.error('Erreur création inscription:', error);
       Alert.alert(
         'Erreur',
-        error.response?.data?.message || 'Impossible de créer l\'inscription'
+        error.response?.data?.detail || error.response?.data?.message || 'Impossible de créer l\'inscription'
       );
     } finally {
       setSubmitting(false);
@@ -173,7 +234,9 @@ export default function TicketPurchaseScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sélectionner les billets</Text>
+        <Text style={styles.headerTitle}>
+          {event?.event_type === 'inscription' ? 'Inscription' : 'Sélectionner les billets'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -201,7 +264,8 @@ export default function TicketPurchaseScreen() {
           </View>
         </View>
 
-        {/* Ticket Types */}
+        {/* Ticket Types - Only for billetterie */}
+        {event?.event_type === 'billetterie' && (
         <View style={styles.ticketsSection}>
           <Text style={styles.sectionTitle}>Types de billets</Text>
           {ticketTypes.length === 0 ? (
@@ -268,6 +332,19 @@ export default function TicketPurchaseScreen() {
             })
           )}
         </View>
+        )}
+
+        {/* Dynamic Form Fields */}
+        {formFields.length > 0 && (
+          <View style={styles.formSection}>
+            <DynamicFormFields
+              formFields={formFields}
+              formData={formData}
+              onFieldChange={handleFormFieldChange}
+              errors={formErrors}
+            />
+          </View>
+        )}
 
         {/* Order Summary */}
         {getTotalQuantity() > 0 && (
@@ -304,18 +381,29 @@ export default function TicketPurchaseScreen() {
       {/* Bottom CTA */}
       <View style={styles.bottomBar}>
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabelBottom}>Total</Text>
-          <Text style={styles.totalValueBottom}>
-            {getTotalPrice().toLocaleString()} FCFA
-          </Text>
-          <Text style={styles.totalQuantityBottom}>
-            {getTotalQuantity()} billet{getTotalQuantity() > 1 ? 's' : ''}
-          </Text>
+          {event?.event_type === 'billetterie' ? (
+            <>
+              <Text style={styles.totalLabelBottom}>Total</Text>
+              <Text style={styles.totalValueBottom}>
+                {getTotalPrice().toLocaleString()} FCFA
+              </Text>
+              <Text style={styles.totalQuantityBottom}>
+                {getTotalQuantity()} billet{getTotalQuantity() > 1 ? 's' : ''}
+              </Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.totalLabelBottom}>Inscription</Text>
+              <Text style={styles.totalValueBottom}>
+                {event?.is_free || !event?.base_price ? 'Gratuit' : `${(event?.base_price || 0).toLocaleString()} FCFA`}
+              </Text>
+            </>
+          )}
         </View>
         <GradientButton
-          title={submitting ? 'Traitement...' : 'Continuer'}
+          title={submitting ? 'Traitement...' : (event?.event_type === 'inscription' ? "S'inscrire" : 'Continuer')}
           onPress={handleProceed}
-          disabled={getTotalQuantity() === 0 || submitting}
+          disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting}
           icon={
             submitting ? (
               <ActivityIndicator size="small" color={Colors.white} />
@@ -487,6 +575,11 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontWeight: FontWeights.semibold,
     color: Colors.error,
+  },
+  formSection: {
+    backgroundColor: Colors.white,
+    padding: Spacing.lg,
+    marginTop: Spacing.md,
   },
   orderSummary: {
     backgroundColor: Colors.white,

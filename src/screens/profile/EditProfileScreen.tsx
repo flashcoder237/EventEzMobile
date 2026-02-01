@@ -33,44 +33,85 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+interface SectionProps {
+  title: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  children: React.ReactNode;
+  defaultExpanded?: boolean;
+}
+
+const Section = ({ title, icon, children, defaultExpanded = false }: SectionProps) => {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  return (
+    <View style={styles.section}>
+      <TouchableOpacity
+        style={styles.sectionHeader}
+        onPress={() => setExpanded(!expanded)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.sectionHeaderLeft}>
+          <View style={styles.sectionIconContainer}>
+            <Ionicons name={icon} size={20} color={Colors.primary} />
+          </View>
+          <Text style={styles.sectionTitle}>{title}</Text>
+        </View>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color={Colors.gray400}
+        />
+      </TouchableOpacity>
+      {expanded && <View style={styles.sectionContent}>{children}</View>}
+    </View>
+  );
+};
+
 export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, updateUser } = useAuth();
 
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Informations personnelles
   const [firstName, setFirstName] = useState(user?.first_name || '');
   const [lastName, setLastName] = useState(user?.last_name || '');
   const [phone, setPhone] = useState(user?.phone_number || '');
-  const [companyName, setCompanyName] = useState(user?.company_name || '');
+  const [dateOfBirth, setDateOfBirth] = useState(user?.date_of_birth || '');
   const [profileImage, setProfileImage] = useState<string | null>(
     user?.profile_picture || user?.image || null
   );
 
-  const hasChanges =
+  // Adresse
+  const [address, setAddress] = useState(user?.address || '');
+  const [city, setCity] = useState(user?.city || '');
+  const [country, setCountry] = useState(user?.country || 'Cameroun');
+  const [bio, setBio] = useState(user?.bio || '');
+
+  // Organisateur
+  const [companyName, setCompanyName] = useState(user?.company_name || '');
+
+  // Mot de passe
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const hasProfileChanges =
     firstName !== (user?.first_name || '') ||
     lastName !== (user?.last_name || '') ||
     phone !== (user?.phone_number || '') ||
+    dateOfBirth !== (user?.date_of_birth || '') ||
+    address !== (user?.address || '') ||
+    city !== (user?.city || '') ||
+    country !== (user?.country || 'Cameroun') ||
+    bio !== (user?.bio || '') ||
     companyName !== (user?.company_name || '');
 
-  useEffect(() => {
-    navigation.setOptions({
-      headerRight: () => (
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={!hasChanges || loading}
-        >
-          <Text
-            style={[
-              styles.saveButton,
-              (!hasChanges || loading) && styles.saveButtonDisabled,
-            ]}
-          >
-            {loading ? 'Enregistrement...' : 'Enregistrer'}
-          </Text>
-        </TouchableOpacity>
-      ),
-    });
-  }, [hasChanges, loading, firstName, lastName, phone, companyName]);
+  const hasPasswordChanges = currentPassword && newPassword && confirmPassword;
 
   const handlePickImage = async () => {
     try {
@@ -93,7 +134,8 @@ export default function EditProfileScreen() {
 
       if (!result.canceled && result.assets[0]) {
         setProfileImage(result.assets[0].uri);
-        // TODO: Upload image to server
+        // Upload image
+        await handleUploadImage(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Erreur sélection image:', error);
@@ -101,40 +143,95 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleSave = async () => {
-    if (!hasChanges) return;
+  const handleUploadImage = async (imageUri: string) => {
+    try {
+      const formData = new FormData();
+      const filename = imageUri.split('/').pop() || 'profile.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-    setLoading(true);
+      formData.append('profile_image', {
+        uri: imageUri,
+        name: filename,
+        type,
+      } as any);
+
+      const response = await usersAPI.updateProfile(formData);
+      if (response.data) {
+        updateUser(response.data);
+      }
+    } catch (error) {
+      console.error('Erreur upload image:', error);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!hasProfileChanges) return;
+
+    setSaving(true);
     try {
       const updateData: Record<string, string> = {};
 
-      if (firstName !== (user?.first_name || '')) {
-        updateData.first_name = firstName;
-      }
-      if (lastName !== (user?.last_name || '')) {
-        updateData.last_name = lastName;
-      }
-      if (phone !== (user?.phone_number || '')) {
-        updateData.phone_number = phone;
-      }
-      if (companyName !== (user?.company_name || '')) {
-        updateData.company_name = companyName;
-      }
+      if (firstName !== (user?.first_name || '')) updateData.first_name = firstName;
+      if (lastName !== (user?.last_name || '')) updateData.last_name = lastName;
+      if (phone !== (user?.phone_number || '')) updateData.phone_number = phone;
+      if (dateOfBirth !== (user?.date_of_birth || '')) updateData.date_of_birth = dateOfBirth;
+      if (address !== (user?.address || '')) updateData.address = address;
+      if (city !== (user?.city || '')) updateData.city = city;
+      if (country !== (user?.country || 'Cameroun')) updateData.country = country;
+      if (bio !== (user?.bio || '')) updateData.bio = bio;
+      if (companyName !== (user?.company_name || '')) updateData.company_name = companyName;
 
       const response = await usersAPI.updateCurrentUser(updateData);
       updateUser(response.data);
 
-      Alert.alert('Succès', 'Votre profil a été mis à jour', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
+      Alert.alert('Succès', 'Votre profil a été mis à jour');
     } catch (error: any) {
       console.error('Erreur mise à jour profil:', error);
       Alert.alert(
         'Erreur',
-        error.response?.data?.message || 'Impossible de mettre à jour le profil'
+        error.response?.data?.detail || 'Impossible de mettre à jour le profil'
       );
     } finally {
-      setLoading(false);
+      setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await usersAPI.changePassword({
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+
+      Alert.alert('Succès', 'Votre mot de passe a été modifié');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error: any) {
+      console.error('Erreur changement mot de passe:', error);
+      Alert.alert(
+        'Erreur',
+        error.response?.data?.detail || 'Impossible de changer le mot de passe'
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -160,7 +257,7 @@ export default function EditProfileScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Profile Image */}
+          {/* Profile Image Header */}
           <View style={styles.imageSection}>
             <TouchableOpacity
               style={styles.imageContainer}
@@ -182,87 +279,244 @@ export default function EditProfileScreen() {
               </View>
             </TouchableOpacity>
             <Text style={styles.changePhotoText}>Changer la photo</Text>
+            <Text style={styles.emailText}>{user?.email}</Text>
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Prénom</Text>
-              <TextInput
-                style={styles.input}
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="Entrez votre prénom"
-                placeholderTextColor={Colors.gray400}
-                autoCapitalize="words"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nom</Text>
-              <TextInput
-                style={styles.input}
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Entrez votre nom"
-                placeholderTextColor={Colors.gray400}
-                autoCapitalize="words"
-              />
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email</Text>
-              <TextInput
-                style={[styles.input, styles.inputDisabled]}
-                value={user?.email}
-                editable={false}
-              />
-              <Text style={styles.helpText}>
-                L'email ne peut pas être modifié
-              </Text>
+          {/* Informations personnelles */}
+          <Section title="Informations personnelles" icon="person-outline" defaultExpanded={true}>
+            <View style={styles.inputRow}>
+              <View style={[styles.inputGroup, styles.inputHalf]}>
+                <Text style={styles.label}>Prénom</Text>
+                <TextInput
+                  style={styles.input}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="Prénom"
+                  placeholderTextColor={Colors.gray400}
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={[styles.inputGroup, styles.inputHalf]}>
+                <Text style={styles.label}>Nom</Text>
+                <TextInput
+                  style={styles.input}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Nom"
+                  placeholderTextColor={Colors.gray400}
+                  autoCapitalize="words"
+                />
+              </View>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Téléphone</Text>
+              <View style={styles.inputWithIcon}>
+                <Ionicons name="call-outline" size={18} color={Colors.gray400} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, styles.inputWithIconPadding]}
+                  value={phone}
+                  onChangeText={setPhone}
+                  placeholder="+237 6XX XXX XXX"
+                  placeholderTextColor={Colors.gray400}
+                  keyboardType="phone-pad"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Date de naissance</Text>
+              <View style={styles.inputWithIcon}>
+                <Ionicons name="calendar-outline" size={18} color={Colors.gray400} style={styles.inputIcon} />
+                <TextInput
+                  style={[styles.input, styles.inputWithIconPadding]}
+                  value={dateOfBirth}
+                  onChangeText={setDateOfBirth}
+                  placeholder="AAAA-MM-JJ"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+            </View>
+          </Section>
+
+          {/* Adresse */}
+          <Section title="Adresse" icon="location-outline">
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Adresse</Text>
               <TextInput
                 style={styles.input}
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="+237 6XX XXX XXX"
+                value={address}
+                onChangeText={setAddress}
+                placeholder="Votre adresse"
                 placeholderTextColor={Colors.gray400}
-                keyboardType="phone-pad"
               />
             </View>
 
-            {user?.role === 'organizer' && (
+            <View style={styles.inputRow}>
+              <View style={[styles.inputGroup, styles.inputHalf]}>
+                <Text style={styles.label}>Ville</Text>
+                <TextInput
+                  style={styles.input}
+                  value={city}
+                  onChangeText={setCity}
+                  placeholder="Ville"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+              <View style={[styles.inputGroup, styles.inputHalf]}>
+                <Text style={styles.label}>Pays</Text>
+                <TextInput
+                  style={styles.input}
+                  value={country}
+                  onChangeText={setCountry}
+                  placeholder="Pays"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Biographie</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                value={bio}
+                onChangeText={setBio}
+                placeholder="Parlez-nous un peu de vous..."
+                placeholderTextColor={Colors.gray400}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+            </View>
+          </Section>
+
+          {/* Organisateur */}
+          {user?.role === 'organizer' && (
+            <Section title="Organisation" icon="business-outline">
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Nom de l'entreprise</Text>
                 <TextInput
                   style={styles.input}
                   value={companyName}
                   onChangeText={setCompanyName}
-                  placeholder="Entrez le nom de votre entreprise"
+                  placeholder="Nom de votre entreprise"
                   placeholderTextColor={Colors.gray400}
                 />
               </View>
-            )}
-          </View>
-
-          {/* Save Button (for Android/bottom) */}
-          {Platform.OS === 'android' && (
-            <View style={styles.bottomButton}>
-              <GradientButton
-                title={loading ? 'Enregistrement...' : 'Enregistrer'}
-                onPress={handleSave}
-                disabled={!hasChanges || loading}
-                fullWidth
-              />
-            </View>
+            </Section>
           )}
+
+          {/* Sécurité - Mot de passe */}
+          <Section title="Sécurité" icon="lock-closed-outline">
+            <View style={styles.passwordNotice}>
+              <Ionicons name="information-circle" size={18} color={Colors.primary} />
+              <Text style={styles.passwordNoticeText}>
+                Remplissez ces champs uniquement si vous souhaitez changer votre mot de passe
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Mot de passe actuel</Text>
+              <View style={styles.passwordInput}>
+                <TextInput
+                  style={[styles.input, styles.passwordInputField]}
+                  value={currentPassword}
+                  onChangeText={setCurrentPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={Colors.gray400}
+                  secureTextEntry={!showCurrentPassword}
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+                >
+                  <Ionicons
+                    name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={Colors.gray400}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Nouveau mot de passe</Text>
+              <View style={styles.passwordInput}>
+                <TextInput
+                  style={[styles.input, styles.passwordInputField]}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={Colors.gray400}
+                  secureTextEntry={!showNewPassword}
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowNewPassword(!showNewPassword)}
+                >
+                  <Ionicons
+                    name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={Colors.gray400}
+                  />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.helpText}>
+                Minimum 8 caractères avec lettres, chiffres et symboles
+              </Text>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirmer le mot de passe</Text>
+              <View style={styles.passwordInput}>
+                <TextInput
+                  style={[styles.input, styles.passwordInputField]}
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  placeholder="••••••••"
+                  placeholderTextColor={Colors.gray400}
+                  secureTextEntry={!showConfirmPassword}
+                />
+                <TouchableOpacity
+                  style={styles.passwordToggle}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <Ionicons
+                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={Colors.gray400}
+                  />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {hasPasswordChanges && (
+              <TouchableOpacity
+                style={styles.changePasswordButton}
+                onPress={handleChangePassword}
+                disabled={saving}
+              >
+                <Text style={styles.changePasswordButtonText}>
+                  Changer le mot de passe
+                </Text>
+              </TouchableOpacity>
+            )}
+          </Section>
+
+          {/* Save Button */}
+          <View style={styles.bottomButton}>
+            <GradientButton
+              title={saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+              onPress={handleSaveProfile}
+              disabled={!hasProfileChanges || saving}
+              fullWidth
+              icon={<Ionicons name="checkmark" size={20} color={Colors.white} />}
+            />
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {loading && (
+      {saving && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -274,7 +528,7 @@ export default function EditProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray50,
   },
   keyboardView: {
     flex: 1,
@@ -285,40 +539,35 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: Spacing['3xl'],
   },
-  saveButton: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.primary,
-  },
-  saveButtonDisabled: {
-    color: Colors.gray400,
-  },
   imageSection: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
   },
   imageContainer: {
     position: 'relative',
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     borderWidth: 3,
-    borderColor: Colors.gray100,
+    borderColor: Colors.primary,
   },
   initialsContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: Colors.gray200,
     borderWidth: 3,
-    borderColor: Colors.gray100,
+    borderColor: Colors.primary,
   },
   initials: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: FontWeights.bold,
     color: Colors.gray600,
   },
@@ -326,9 +575,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -341,22 +590,72 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontWeight: FontWeights.medium,
   },
-  form: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
+  emailText: {
+    marginTop: Spacing.xs,
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+
+  // Sections
+  section: {
+    marginTop: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    overflow: 'hidden',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray900,
+  },
+  sectionContent: {
+    padding: Spacing.md,
+  },
+
+  // Inputs
+  inputRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
   },
   inputGroup: {
-    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  inputHalf: {
+    flex: 1,
   },
   label: {
     fontSize: FontSizes.sm,
     fontWeight: FontWeights.medium,
     color: Colors.gray700,
-    marginLeft: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
   input: {
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSizes.base,
@@ -364,15 +663,73 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.gray200,
   },
-  inputDisabled: {
-    backgroundColor: Colors.gray100,
-    color: Colors.gray500,
+  inputWithIcon: {
+    position: 'relative',
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: Spacing.md,
+    top: '50%',
+    transform: [{ translateY: -9 }],
+    zIndex: 1,
+  },
+  inputWithIconPadding: {
+    paddingLeft: Spacing.md + 26,
+  },
+  textArea: {
+    minHeight: 100,
+    paddingTop: Spacing.md,
   },
   helpText: {
     fontSize: FontSizes.xs,
     color: Colors.gray500,
-    marginLeft: Spacing.xs,
+    marginTop: Spacing.xs,
   },
+
+  // Password
+  passwordNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primaryLight,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.xs,
+  },
+  passwordNoticeText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+  },
+  passwordInput: {
+    position: 'relative',
+  },
+  passwordInputField: {
+    paddingRight: 50,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  changePasswordButton: {
+    backgroundColor: Colors.gray100,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+  },
+  changePasswordButtonText: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray700,
+  },
+
+  // Bottom
   bottomButton: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,

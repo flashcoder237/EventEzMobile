@@ -71,13 +71,14 @@ export const Colors = {
 };
 
 export const FontFamily = {
-  // Titles - Funnel Display
-  displayBold: 'FunnelDisplay-Bold',
-  displaySemiBold: 'FunnelDisplay-SemiBold',
-  displayMedium: 'FunnelDisplay-Medium',
-  displayRegular: 'FunnelDisplay-Regular',
+  // Titles - Funnel Display (h1, h2, hero text)
+  displayExtraBold: 'FunnelDisplay_800ExtraBold',
+  displayBold: 'FunnelDisplay_700Bold',
+  displaySemiBold: 'FunnelDisplay_600SemiBold',
+  displayMedium: 'FunnelDisplay_500Medium',
+  displayRegular: 'FunnelDisplay_400Regular',
 
-  // Body - Montserrat
+  // Body - Montserrat (paragraphs, labels, buttons)
   bold: 'Montserrat_700Bold',
   semiBold: 'Montserrat_600SemiBold',
   medium: 'Montserrat_500Medium',

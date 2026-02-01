@@ -24,6 +24,7 @@ import TicketPurchaseScreen from '../screens/tickets/TicketPurchaseScreen';
 
 // Dashboard & Profile Screens
 import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
+import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 
@@ -35,6 +36,7 @@ import ConversationScreen from '../screens/messages/ConversationScreen';
 import EventCreateScreen from '../screens/organizer/EventCreateScreen';
 import WalletScreen from '../screens/organizer/WalletScreen';
 import MyEventsScreen from '../screens/organizer/MyEventsScreen';
+import QRScannerScreen from '../screens/organizer/QRScannerScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -145,6 +147,13 @@ export default function RootNavigator() {
             }}
           />
           <Stack.Screen
+            name="UserDashboard"
+            component={DashboardScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
             name="Settings"
             component={SettingsScreen}
             options={{
@@ -225,6 +234,14 @@ export default function RootNavigator() {
             component={MyEventsScreen}
             options={{
               headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="QRScanner"
+            component={QRScannerScreen}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
             }}
           />
         </>

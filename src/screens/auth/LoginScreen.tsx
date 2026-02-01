@@ -19,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
@@ -184,7 +185,7 @@ export default function LoginScreen() {
                 <View style={styles.labelRow}>
                   <Text style={styles.inputLabel}>Mot de passe</Text>
                   <AnimatedPressable
-                    onPress={() => {}}
+                    onPress={() => navigation.navigate('ForgotPassword')}
                     animationType="scale"
                     scaleValue={0.95}
                   >
@@ -354,13 +355,14 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes['4xl'],
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
     letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
     lineHeight: FontSizes.base * 1.5,
   },
@@ -377,7 +379,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     marginBottom: Spacing.xs,
   },
@@ -407,6 +409,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md + 2,
     paddingHorizontal: Spacing.sm,
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray900,
   },
   eyeButton: {
@@ -425,7 +428,7 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: Colors.primary,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
   },
   loginButton: {
     marginTop: Spacing.md,
@@ -444,7 +447,7 @@ const styles = StyleSheet.create({
     color: Colors.gray400,
     paddingHorizontal: Spacing.md,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   socialButtons: {
     flexDirection: 'row',
@@ -465,7 +468,7 @@ const styles = StyleSheet.create({
   },
   socialButtonText: {
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
   },
   registerContainer: {
@@ -477,10 +480,11 @@ const styles = StyleSheet.create({
   registerText: {
     color: Colors.gray500,
     fontSize: FontSizes.md,
+    fontFamily: FontFamily.regular,
   },
   registerLink: {
     color: Colors.primary,
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
   },
 });

@@ -13,6 +13,13 @@ import {
   Montserrat_600SemiBold,
   Montserrat_700Bold,
 } from '@expo-google-fonts/montserrat';
+import {
+  FunnelDisplay_400Regular,
+  FunnelDisplay_500Medium,
+  FunnelDisplay_600SemiBold,
+  FunnelDisplay_700Bold,
+  FunnelDisplay_800ExtraBold,
+} from '@expo-google-fonts/funnel-display';
 
 import { AuthProvider } from './src/contexts/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -20,11 +27,18 @@ import { Colors } from './src/constants/theme';
 
 export default function App() {
   const [fontsLoaded] = useFonts({
+    // Montserrat - Body text
     Montserrat_300Light,
     Montserrat_400Regular,
     Montserrat_500Medium,
     Montserrat_600SemiBold,
     Montserrat_700Bold,
+    // Funnel Display - Headings
+    FunnelDisplay_400Regular,
+    FunnelDisplay_500Medium,
+    FunnelDisplay_600SemiBold,
+    FunnelDisplay_700Bold,
+    FunnelDisplay_800ExtraBold,
   });
 
   if (!fontsLoaded) {

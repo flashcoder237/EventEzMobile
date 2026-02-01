@@ -11,11 +11,13 @@ import {
   ActivityIndicator,
   Image,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,6 +33,13 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ConversationRouteProp = RouteProp<RootStackParamList, 'Conversation'>;
 
+interface AttachedFile {
+  id?: string;
+  uri: string;
+  name: string;
+  type: 'image' | 'document';
+}
+
 export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConversationRouteProp>();
@@ -42,6 +51,8 @@ export default function ConversationScreen() {
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [conversationTitle, setConversationTitle] = useState('');
+  const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
 
   const flatListRef = useRef<FlatList>(null);
 
@@ -59,8 +70,36 @@ export default function ConversationScreen() {
     try {
       const response = await messagesAPI.getConversation(conversationId);
       const conversation = response.data;
-      setConversationTitle(conversation.title || 'Conversation');
-      navigation.setOptions({ headerTitle: conversation.title || 'Conversation' });
+
+      // Get other participant info
+      const otherParticipant = conversation.participants?.find(
+        (p: any) => p.id !== user?.id
+      );
+
+      const title = conversation.title ||
+        (otherParticipant?.first_name && otherParticipant?.last_name
+          ? `${otherParticipant.first_name} ${otherParticipant.last_name}`
+          : otherParticipant?.email?.split('@')[0] || 'Conversation');
+
+      setConversationTitle(title);
+      setOtherUserAvatar(otherParticipant?.profile_picture || otherParticipant?.image || null);
+
+      navigation.setOptions({
+        headerTitle: () => (
+          <View style={styles.headerTitleContainer}>
+            {otherUserAvatar ? (
+              <Image source={{ uri: otherUserAvatar }} style={styles.headerAvatar} />
+            ) : (
+              <View style={styles.headerAvatarPlaceholder}>
+                <Text style={styles.headerAvatarText}>
+                  {title.substring(0, 2).toUpperCase()}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.headerTitleText} numberOfLines={1}>{title}</Text>
+          </View>
+        ),
+      });
     } catch (error) {
       console.error('Erreur chargement détails conversation:', error);
     }
@@ -86,8 +125,42 @@ export default function ConversationScreen() {
     }
   };
 
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        Alert.alert('Permission requise', 'Autorisez l\'accès aux photos pour envoyer des images.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const asset = result.assets[0];
+        const filename = asset.uri.split('/').pop() || 'image.jpg';
+
+        setAttachedFiles([{
+          uri: asset.uri,
+          name: filename,
+          type: 'image',
+        }]);
+      }
+    } catch (error) {
+      console.error('Erreur sélection image:', error);
+      Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+    }
+  };
+
+  const handleRemoveAttachment = () => {
+    setAttachedFiles([]);
+  };
+
   const handleSend = async () => {
-    if (!newMessage.trim() || sending) return;
+    if ((!newMessage.trim() && attachedFiles.length === 0) || sending) return;
 
     const messageContent = newMessage.trim();
     setNewMessage('');
@@ -101,11 +174,46 @@ export default function ConversationScreen() {
       content: messageContent,
       created_at: new Date().toISOString(),
       is_read: false,
+      attachments: attachedFiles.map(f => ({
+        id: `temp-${Date.now()}`,
+        file: f.uri,
+        attachment_type: f.type,
+        file_name: f.name,
+      })),
     };
     setMessages((prev) => [...prev, tempMessage]);
+    setAttachedFiles([]);
 
     try {
-      const response = await messagesAPI.sendMessage(conversationId, { content: messageContent });
+      // If there are attachments, upload them first
+      let attachmentIds: string[] = [];
+
+      if (tempMessage.attachments && tempMessage.attachments.length > 0) {
+        for (const att of tempMessage.attachments) {
+          const formData = new FormData();
+          formData.append('file', {
+            uri: att.file,
+            name: att.file_name,
+            type: 'image/jpeg',
+          } as any);
+          formData.append('type', att.attachment_type);
+
+          try {
+            const uploadResponse = await messagesAPI.uploadAttachment(formData);
+            if (uploadResponse.data?.id) {
+              attachmentIds.push(uploadResponse.data.id);
+            }
+          } catch (uploadError) {
+            console.error('Erreur upload attachment:', uploadError);
+          }
+        }
+      }
+
+      const response = await messagesAPI.sendMessage(conversationId, {
+        content: messageContent,
+        attachments: attachmentIds,
+      });
+
       // Replace temp message with real one
       setMessages((prev) =>
         prev.map((msg) => (msg.id === tempMessage.id ? response.data : msg))
@@ -115,6 +223,7 @@ export default function ConversationScreen() {
       // Remove temp message on error
       setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
       setNewMessage(messageContent); // Restore message content
+      Alert.alert('Erreur', 'Impossible d\'envoyer le message');
     } finally {
       setSending(false);
     }
@@ -165,11 +274,33 @@ export default function ConversationScreen() {
     return (sender.email?.[0] || 'U').toUpperCase();
   };
 
+  const renderAttachment = (attachment: any, isMine: boolean) => {
+    if (attachment.attachment_type === 'image') {
+      return (
+        <Image
+          source={{ uri: attachment.file }}
+          style={styles.attachmentImage}
+          resizeMode="cover"
+        />
+      );
+    }
+
+    return (
+      <TouchableOpacity style={[styles.attachmentFile, isMine && styles.attachmentFileMine]}>
+        <Ionicons name="document-outline" size={20} color={isMine ? Colors.white : Colors.gray600} />
+        <Text style={[styles.attachmentFileName, isMine && styles.attachmentFileNameMine]} numberOfLines={1}>
+          {attachment.file_name || 'Document'}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item);
     const showDate = shouldShowDate(index);
     const sender = typeof item.sender === 'object' ? item.sender : null;
     const avatar = sender?.profile_picture || sender?.image;
+    const hasAttachments = item.attachments && item.attachments.length > 0;
 
     return (
       <View>
@@ -188,21 +319,45 @@ export default function ConversationScreen() {
               </View>
             )
           )}
-          <View
-            style={[
-              styles.messageBubble,
-              isMine ? styles.messageBubbleMine : styles.messageBubbleOther,
-            ]}
-          >
-            <Text style={[styles.messageText, isMine && styles.messageTextMine]}>
-              {item.content}
-            </Text>
-            <Text style={[styles.messageTime, isMine && styles.messageTimeMine]}>
-              {formatTime(item.created_at)}
-              {isMine && item.is_read && (
-                <Text style={styles.readIndicator}> ✓✓</Text>
+          <View style={styles.messageBubbleContainer}>
+            {/* Attachments */}
+            {hasAttachments && (
+              <View style={styles.attachmentsContainer}>
+                {item.attachments?.map((att, i) => (
+                  <View key={att.id || i}>
+                    {renderAttachment(att, isMine)}
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Text content */}
+            {item.content && (
+              <View
+                style={[
+                  styles.messageBubble,
+                  isMine ? styles.messageBubbleMine : styles.messageBubbleOther,
+                  hasAttachments && styles.messageBubbleWithAttachment,
+                ]}
+              >
+                <Text style={[styles.messageText, isMine && styles.messageTextMine]}>
+                  {item.content}
+                </Text>
+              </View>
+            )}
+
+            {/* Time */}
+            <View style={[styles.messageTimeRow, isMine && styles.messageTimeRowMine]}>
+              <Text style={styles.messageTime}>{formatTime(item.created_at)}</Text>
+              {isMine && (
+                <Ionicons
+                  name={item.is_read ? 'checkmark-done' : 'checkmark'}
+                  size={14}
+                  color={item.is_read ? Colors.primary : Colors.gray400}
+                  style={{ marginLeft: 4 }}
+                />
               )}
-            </Text>
+            </View>
           </View>
         </View>
       </View>
@@ -211,7 +366,9 @@ export default function ConversationScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="chatbubble-ellipses-outline" size={48} color={Colors.gray300} />
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="chatbubble-ellipses-outline" size={48} color={Colors.gray300} />
+      </View>
       <Text style={styles.emptyText}>Aucun message</Text>
       <Text style={styles.emptySubtext}>Commencez la conversation !</Text>
     </View>
@@ -251,9 +408,32 @@ export default function ConversationScreen() {
           }}
         />
 
+        {/* Attachment Preview */}
+        {attachedFiles.length > 0 && (
+          <View style={styles.attachmentPreview}>
+            {attachedFiles.map((file, index) => (
+              <View key={index} style={styles.attachmentPreviewItem}>
+                {file.type === 'image' && (
+                  <Image source={{ uri: file.uri }} style={styles.attachmentPreviewImage} />
+                )}
+                <TouchableOpacity
+                  style={styles.attachmentRemoveButton}
+                  onPress={handleRemoveAttachment}
+                >
+                  <Ionicons name="close-circle" size={20} color={Colors.error} />
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+
         {/* Input Area */}
         <View style={styles.inputContainer}>
           <View style={styles.inputWrapper}>
+            <TouchableOpacity style={styles.attachButton} onPress={handlePickImage}>
+              <Ionicons name="image-outline" size={22} color={Colors.primary} />
+            </TouchableOpacity>
+
             <TextInput
               style={styles.input}
               value={newMessage}
@@ -263,18 +443,19 @@ export default function ConversationScreen() {
               multiline
               maxLength={1000}
             />
+
             <TouchableOpacity
               style={[
                 styles.sendButton,
-                (!newMessage.trim() || sending) && styles.sendButtonDisabled,
+                ((!newMessage.trim() && attachedFiles.length === 0) || sending) && styles.sendButtonDisabled,
               ]}
               onPress={handleSend}
-              disabled={!newMessage.trim() || sending}
+              disabled={(!newMessage.trim() && attachedFiles.length === 0) || sending}
             >
               {sending ? (
                 <ActivityIndicator size="small" color={Colors.white} />
               ) : (
-                <Ionicons name="send" size={20} color={Colors.white} />
+                <Ionicons name="send" size={18} color={Colors.white} />
               )}
             </TouchableOpacity>
           </View>
@@ -297,11 +478,47 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+
+  // Header
+  headerTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    marginRight: Spacing.sm,
+  },
+  headerAvatarPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  headerAvatarText: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.bold,
+    color: Colors.white,
+  },
+  headerTitleText: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray900,
+    maxWidth: 180,
+  },
+
+  // Messages List
   messagesList: {
     padding: Spacing.md,
     paddingBottom: Spacing.sm,
     flexGrow: 1,
   },
+
+  // Date
   dateContainer: {
     alignItems: 'center',
     marginVertical: Spacing.md,
@@ -314,6 +531,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
   },
+
+  // Message Row
   messageRow: {
     flexDirection: 'row',
     marginBottom: Spacing.sm,
@@ -322,6 +541,8 @@ const styles = StyleSheet.create({
   messageRowMine: {
     flexDirection: 'row-reverse',
   },
+
+  // Avatar
   messageAvatar: {
     width: 32,
     height: 32,
@@ -342,8 +563,12 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.bold,
     color: Colors.gray600,
   },
-  messageBubble: {
+
+  // Bubble
+  messageBubbleContainer: {
     maxWidth: '75%',
+  },
+  messageBubble: {
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
   },
@@ -355,6 +580,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderBottomRightRadius: 4,
   },
+  messageBubbleWithAttachment: {
+    marginTop: Spacing.xs,
+  },
   messageText: {
     fontSize: FontSizes.base,
     color: Colors.gray900,
@@ -363,35 +591,104 @@ const styles = StyleSheet.create({
   messageTextMine: {
     color: Colors.white,
   },
+
+  // Time
+  messageTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  messageTimeRowMine: {
+    justifyContent: 'flex-end',
+  },
   messageTime: {
     fontSize: FontSizes.xs,
     color: Colors.gray400,
-    marginTop: Spacing.xs,
-    alignSelf: 'flex-end',
   },
-  messageTimeMine: {
-    color: 'rgba(255,255,255,0.7)',
+
+  // Attachments
+  attachmentsContainer: {
+    marginBottom: Spacing.xs,
   },
-  readIndicator: {
-    color: 'rgba(255,255,255,0.8)',
+  attachmentImage: {
+    width: 200,
+    height: 150,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray100,
   },
+  attachmentFile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray100,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  attachmentFileMine: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  attachmentFileName: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray700,
+    flex: 1,
+  },
+  attachmentFileNameMine: {
+    color: Colors.white,
+  },
+
+  // Empty
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing['3xl'],
   },
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
   emptyText: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semibold,
     color: Colors.gray500,
-    marginTop: Spacing.md,
   },
   emptySubtext: {
     fontSize: FontSizes.sm,
     color: Colors.gray400,
     marginTop: Spacing.xs,
   },
+
+  // Attachment Preview
+  attachmentPreview: {
+    flexDirection: 'row',
+    padding: Spacing.sm,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  attachmentPreviewItem: {
+    position: 'relative',
+    marginRight: Spacing.sm,
+  },
+  attachmentPreviewImage: {
+    width: 60,
+    height: 60,
+    borderRadius: BorderRadius.md,
+  },
+  attachmentRemoveButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: Colors.white,
+    borderRadius: 10,
+  },
+
+  // Input
   inputContainer: {
     backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
@@ -404,9 +701,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.xl,
-    paddingLeft: Spacing.md,
+    paddingLeft: Spacing.xs,
     paddingRight: Spacing.xs,
     paddingVertical: Spacing.xs,
+  },
+  attachButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     flex: 1,
@@ -414,6 +717,7 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     maxHeight: 100,
     paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
   sendButton: {
     width: 40,
@@ -422,7 +726,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: Spacing.sm,
   },
   sendButtonDisabled: {
     backgroundColor: Colors.gray300,

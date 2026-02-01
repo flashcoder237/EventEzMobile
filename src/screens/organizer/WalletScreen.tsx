@@ -10,14 +10,25 @@ import {
   Alert,
   Platform,
   StatusBar,
+  Modal,
+  TextInput,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { walletAPI, payoutsAPI } from '../../api/client';
-import { OrganizerWallet, WalletTransaction, Payout, RootStackParamList } from '../../types';
+import {
+  OrganizerWallet,
+  WalletTransaction,
+  Payout,
+  PendingEarning,
+  RootStackParamList,
+  PayoutMethod,
+} from '../../types';
 import {
   Colors,
   FontSizes,
@@ -27,14 +38,41 @@ import {
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type TabType = 'overview' | 'transactions' | 'payouts' | 'pending';
+
+const tabs: { key: TabType; label: string }[] = [
+  { key: 'overview', label: 'Aperçu' },
+  { key: 'transactions', label: 'Transactions' },
+  { key: 'payouts', label: 'Retraits' },
+  { key: 'pending', label: 'En attente' },
+];
 
 export default function WalletScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [wallet, setWallet] = useState<OrganizerWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [pendingPayouts, setPendingPayouts] = useState<Payout[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [pendingEarnings, setPendingEarnings] = useState<PendingEarning[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
+
+  // Payout modal states
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState('');
+  const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('mtn_money');
+  const [processingPayout, setProcessingPayout] = useState(false);
+
+  // Bank modal states
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [bankDetails, setBankDetails] = useState({
+    bank_name: '',
+    bank_account_name: '',
+    bank_account_number: '',
+    mobile_money_number: '',
+    mobile_money_provider: '',
+  });
+  const [savingBank, setSavingBank] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -42,53 +80,106 @@ export default function WalletScreen() {
 
   const fetchData = async () => {
     try {
-      const [walletRes, transactionsRes, payoutsRes] = await Promise.all([
-        walletAPI.getWallet(),
-        walletAPI.getTransactions({ page_size: 20 }),
-        payoutsAPI.getPayouts({ status: 'pending' }),
+      const [walletRes, transactionsRes, payoutsRes, pendingRes] = await Promise.all([
+        walletAPI.getMyWallet(),
+        walletAPI.getTransactions({ limit: 50 }),
+        payoutsAPI.getPayouts(),
+        walletAPI.getPendingEarnings(),
       ]);
 
-      setWallet(walletRes.data);
-      setTransactions(transactionsRes.data.results || transactionsRes.data || []);
-      setPendingPayouts(payoutsRes.data.results || payoutsRes.data || []);
+      const walletData = walletRes.data;
+      setWallet(walletData);
+      setTransactions(transactionsRes.data?.results || transactionsRes.data || []);
+      setPayouts(payoutsRes.data?.results || payoutsRes.data || []);
+      setPendingEarnings(pendingRes.data?.results || pendingRes.data || []);
+
+      // Pre-fill bank details
+      if (walletData) {
+        setBankDetails({
+          bank_name: walletData.bank_name || '',
+          bank_account_name: walletData.bank_account_name || '',
+          bank_account_number: walletData.bank_account_number || '',
+          mobile_money_number: walletData.mobile_money_number || '',
+          mobile_money_provider: walletData.mobile_money_provider || '',
+        });
+      }
     } catch (error) {
       console.error('Erreur chargement données portefeuille:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
+    fetchData();
   };
 
-  const handleRequestPayout = () => {
-    if (!wallet?.can_withdraw) {
-      Alert.alert(
-        'Retrait impossible',
-        `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} FCFA`
-      );
+  const handleRequestPayout = async () => {
+    if (!payoutAmount || parseFloat(payoutAmount) <= 0) {
+      Alert.alert('Erreur', 'Montant invalide');
       return;
     }
-    navigation.navigate('PayoutRequest');
+
+    if (!wallet) return;
+
+    const amount = parseFloat(payoutAmount);
+    if (amount > wallet.available_balance) {
+      Alert.alert('Erreur', 'Solde insuffisant');
+      return;
+    }
+
+    if (amount < wallet.minimum_payout) {
+      Alert.alert('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} FCFA`);
+      return;
+    }
+
+    setProcessingPayout(true);
+    try {
+      await payoutsAPI.requestPayout({
+        amount,
+        payout_method: payoutMethod,
+      });
+      Alert.alert('Succès', 'Demande de retrait envoyée');
+      setShowPayoutModal(false);
+      setPayoutAmount('');
+      fetchData();
+    } catch (error: any) {
+      Alert.alert('Erreur', error.response?.data?.detail || 'Erreur lors de la demande');
+    } finally {
+      setProcessingPayout(false);
+    }
+  };
+
+  const handleUpdateBankDetails = async () => {
+    setSavingBank(true);
+    try {
+      await walletAPI.updateBankDetails(bankDetails);
+      Alert.alert('Succès', 'Informations mises à jour');
+      setShowBankModal(false);
+      fetchData();
+    } catch (error: any) {
+      Alert.alert('Erreur', error.response?.data?.detail || 'Erreur lors de la mise à jour');
+    } finally {
+      setSavingBank(false);
+    }
   };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('fr-FR').format(price);
   };
 
-  const getTransactionIcon = (type: string) => {
+  const getTransactionIcon = (type: string): keyof typeof Ionicons.glyphMap => {
     switch (type) {
       case 'credit':
         return 'arrow-down-circle';
       case 'debit':
         return 'arrow-up-circle';
       case 'fee':
-        return 'remove-circle';
+        return 'receipt';
       case 'refund':
-        return 'return-down-back';
+        return 'refresh-circle';
       default:
         return 'swap-horizontal';
     }
@@ -97,12 +188,13 @@ export default function WalletScreen() {
   const getTransactionColor = (type: string) => {
     switch (type) {
       case 'credit':
-        return Colors.success;
+        return '#10B981';
       case 'debit':
+        return '#EF4444';
       case 'fee':
-        return Colors.error;
+        return '#F59E0B';
       case 'refund':
-        return Colors.warning;
+        return '#3B82F6';
       default:
         return Colors.gray500;
     }
@@ -118,10 +210,134 @@ export default function WalletScreen() {
     });
   };
 
+  const getPayoutStatusConfig = (status: string) => {
+    const configs: Record<string, { color: string; bgColor: string; label: string }> = {
+      pending: { color: '#F59E0B', bgColor: '#FEF3C7', label: 'En attente' },
+      processing: { color: '#3B82F6', bgColor: '#DBEAFE', label: 'En cours' },
+      completed: { color: '#10B981', bgColor: '#D1FAE5', label: 'Effectué' },
+      failed: { color: '#EF4444', bgColor: '#FEE2E2', label: 'Échoué' },
+      cancelled: { color: '#6B7280', bgColor: '#F3F4F6', label: 'Annulé' },
+    };
+    return configs[status] || configs.pending;
+  };
+
+  const renderTransactionItem = (transaction: WalletTransaction) => (
+    <View key={transaction.id} style={styles.transactionCard}>
+      <View
+        style={[
+          styles.transactionIcon,
+          { backgroundColor: `${getTransactionColor(transaction.transaction_type)}20` },
+        ]}
+      >
+        <Ionicons
+          name={getTransactionIcon(transaction.transaction_type)}
+          size={20}
+          color={getTransactionColor(transaction.transaction_type)}
+        />
+      </View>
+      <View style={styles.transactionContent}>
+        <Text style={styles.transactionDescription} numberOfLines={1}>
+          {transaction.description}
+        </Text>
+        {transaction.event_title && (
+          <Text style={styles.transactionEvent} numberOfLines={1}>
+            {transaction.event_title}
+          </Text>
+        )}
+        <Text style={styles.transactionDate}>
+          {formatDate(transaction.created_at)}
+        </Text>
+      </View>
+      <View style={styles.transactionAmountContainer}>
+        <Text
+          style={[
+            styles.transactionAmount,
+            { color: getTransactionColor(transaction.transaction_type) },
+          ]}
+        >
+          {transaction.transaction_type === 'credit' ? '+' : '-'}
+          {formatPrice(Math.abs(transaction.amount))}
+        </Text>
+        <Text style={styles.transactionBalance}>
+          Solde: {formatPrice(transaction.balance_after)}
+        </Text>
+      </View>
+    </View>
+  );
+
+  const renderPayoutItem = (payout: Payout) => {
+    const statusConfig = getPayoutStatusConfig(payout.status);
+    return (
+      <View key={payout.id} style={styles.payoutCard}>
+        <View style={[styles.payoutIcon, {
+          backgroundColor: payout.payout_method === 'bank_transfer' ? '#DBEAFE' : '#FED7AA'
+        }]}>
+          <Ionicons
+            name={payout.payout_method === 'bank_transfer' ? 'business' : 'phone-portrait'}
+            size={20}
+            color={payout.payout_method === 'bank_transfer' ? '#3B82F6' : '#F97316'}
+          />
+        </View>
+        <View style={styles.payoutContent}>
+          <Text style={styles.payoutAmount}>
+            {formatPrice(payout.amount)} FCFA
+          </Text>
+          <Text style={styles.payoutMethod}>
+            {payout.payout_method === 'mtn_money' ? 'MTN Mobile Money' :
+             payout.payout_method === 'orange_money' ? 'Orange Money' : 'Virement bancaire'}
+          </Text>
+          <Text style={styles.payoutDestination}>
+            {payout.destination_account} - {payout.destination_name}
+          </Text>
+        </View>
+        <View style={styles.payoutRight}>
+          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
+            <Text style={[styles.statusText, { color: statusConfig.color }]}>
+              {statusConfig.label}
+            </Text>
+          </View>
+          <Text style={styles.payoutDate}>{formatDate(payout.requested_at)}</Text>
+          {payout.failure_reason && (
+            <Text style={styles.failureReason} numberOfLines={1}>
+              {payout.failure_reason}
+            </Text>
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const renderPendingItem = (earning: PendingEarning) => (
+    <View key={earning.id} style={styles.pendingCard}>
+      <View style={styles.pendingIcon}>
+        <Ionicons name="time" size={20} color="#F59E0B" />
+      </View>
+      <View style={styles.pendingContent}>
+        <Text style={styles.pendingTitle} numberOfLines={1}>
+          {earning.event_title}
+        </Text>
+        <Text style={styles.pendingRelease}>
+          Libération: {formatDate(earning.release_date)}
+        </Text>
+      </View>
+      <View style={styles.pendingRight}>
+        <Text style={styles.pendingAmount}>
+          {formatPrice(earning.amount)} FCFA
+        </Text>
+        <Text style={styles.pendingDays}>
+          {earning.days_until_release > 0
+            ? `Dans ${earning.days_until_release} jour${earning.days_until_release > 1 ? 's' : ''}`
+            : 'Bientôt disponible'
+          }
+        </Text>
+      </View>
+    </View>
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -131,20 +347,102 @@ export default function WalletScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
 
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={['#7C3AED', '#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Mon Portefeuille</Text>
+          <TouchableOpacity
+            style={styles.settingsButton}
+            onPress={() => setShowBankModal(true)}
+          >
+            <Ionicons name="settings-outline" size={22} color={Colors.white} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Balance Display */}
+        <View style={styles.balanceSection}>
+          <Text style={styles.balanceLabel}>Solde disponible</Text>
+          <Text style={styles.balanceAmount}>
+            {formatPrice(wallet?.available_balance || 0)}
+            <Text style={styles.balanceCurrency}> FCFA</Text>
+          </Text>
+        </View>
+
+        {/* Quick Stats */}
+        <View style={styles.quickStats}>
+          <View style={styles.quickStatItem}>
+            <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.quickStatLabel}>En attente</Text>
+            <Text style={styles.quickStatValue}>{formatPrice(wallet?.pending_balance || 0)}</Text>
+          </View>
+          <View style={styles.quickStatDivider} />
+          <View style={styles.quickStatItem}>
+            <Ionicons name="trending-up" size={16} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.quickStatLabel}>Total gagné</Text>
+            <Text style={styles.quickStatValue}>{formatPrice(wallet?.total_earnings || 0)}</Text>
+          </View>
+          <View style={styles.quickStatDivider} />
+          <View style={styles.quickStatItem}>
+            <Ionicons name="wallet-outline" size={16} color="rgba(255,255,255,0.7)" />
+            <Text style={styles.quickStatLabel}>Retiré</Text>
+            <Text style={styles.quickStatValue}>{formatPrice(wallet?.total_withdrawn || 0)}</Text>
+          </View>
+        </View>
+
+        {/* Withdraw Button */}
         <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          style={[styles.withdrawButton, !wallet?.can_withdraw && styles.withdrawButtonDisabled]}
+          onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : Alert.alert(
+            'Retrait impossible',
+            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} FCFA`
+          )}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-up-circle" size={20} color={wallet?.can_withdraw ? '#7C3AED' : Colors.gray400} />
+          <Text style={[styles.withdrawButtonText, !wallet?.can_withdraw && { color: Colors.gray400 }]}>
+            Demander un retrait
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon Portefeuille</Text>
-        <View style={{ width: 40 }} />
+      </LinearGradient>
+
+      {/* Commission Info */}
+      <View style={styles.commissionInfo}>
+        <Ionicons name="information-circle" size={18} color="#F59E0B" />
+        <Text style={styles.commissionText}>
+          Commission EventEz: 5% + 100 FCFA par vente. Fonds libérés 48h après l'événement.
+        </Text>
       </View>
 
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsList}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+              onPress={() => setActiveTab(tab.key)}
+            >
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Tab Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -154,182 +452,327 @@ export default function WalletScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={Colors.primary}
+            colors={[Colors.primary]}
           />
         }
       >
-        {/* Balance Card */}
-        <View style={styles.balanceCard}>
-          <Text style={styles.balanceLabel}>Solde disponible</Text>
-          <Text style={styles.balanceAmount}>
-            {formatPrice(wallet?.available_balance || 0)} <Text style={styles.balanceCurrency}>FCFA</Text>
-          </Text>
-
-          <View style={styles.balanceDetails}>
-            <View style={styles.balanceItem}>
-              <Text style={styles.balanceItemLabel}>En attente</Text>
-              <Text style={styles.balanceItemValue}>
-                {formatPrice(wallet?.pending_balance || 0)} FCFA
-              </Text>
-            </View>
-            <View style={styles.balanceDivider} />
-            <View style={styles.balanceItem}>
-              <Text style={styles.balanceItemLabel}>Total gagné</Text>
-              <Text style={styles.balanceItemValue}>
-                {formatPrice(wallet?.total_earnings || 0)} FCFA
-              </Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[
-              styles.withdrawButton,
-              !wallet?.can_withdraw && styles.withdrawButtonDisabled,
-            ]}
-            onPress={handleRequestPayout}
-            disabled={!wallet?.can_withdraw}
-          >
-            <Ionicons name="wallet-outline" size={20} color={Colors.white} />
-            <Text style={styles.withdrawButtonText}>Demander un retrait</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats Cards */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: Colors.successLight }]}>
-              <Ionicons name="trending-up" size={24} color={Colors.success} />
-            </View>
-            <Text style={styles.statValue}>{formatPrice(wallet?.total_earnings || 0)}</Text>
-            <Text style={styles.statLabel}>Revenus totaux</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: Colors.errorLight }]}>
-              <Ionicons name="trending-down" size={24} color={Colors.error} />
-            </View>
-            <Text style={styles.statValue}>{formatPrice(wallet?.total_withdrawn || 0)}</Text>
-            <Text style={styles.statLabel}>Total retiré</Text>
-          </View>
-        </View>
-
-        {/* Pending Payouts */}
-        {pendingPayouts.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Retraits en cours</Text>
-            {pendingPayouts.map((payout) => (
-              <View key={payout.id} style={styles.payoutCard}>
-                <View style={styles.payoutIcon}>
-                  <Ionicons name="hourglass-outline" size={24} color={Colors.warning} />
-                </View>
-                <View style={styles.payoutContent}>
-                  <Text style={styles.payoutAmount}>
-                    {formatPrice(payout.amount)} FCFA
-                  </Text>
-                  <Text style={styles.payoutMethod}>
-                    {payout.payout_method === 'mtn_money' ? 'MTN Money' :
-                     payout.payout_method === 'orange_money' ? 'Orange Money' : 'Virement bancaire'}
-                  </Text>
-                </View>
-                <View style={styles.payoutStatus}>
-                  <Text style={styles.payoutStatusText}>En attente</Text>
-                </View>
+        {activeTab === 'overview' && (
+          <>
+            {/* Recent Transactions */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Transactions récentes</Text>
+                <TouchableOpacity onPress={() => setActiveTab('transactions')}>
+                  <Text style={styles.seeAll}>Voir tout</Text>
+                </TouchableOpacity>
               </View>
-            ))}
-          </View>
+              {transactions.slice(0, 5).length > 0 ? (
+                transactions.slice(0, 5).map(renderTransactionItem)
+              ) : (
+                <View style={styles.emptySection}>
+                  <Ionicons name="receipt-outline" size={40} color={Colors.gray300} />
+                  <Text style={styles.emptyText}>Aucune transaction</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Recent Payouts */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Derniers retraits</Text>
+                <TouchableOpacity onPress={() => setActiveTab('payouts')}>
+                  <Text style={styles.seeAll}>Voir tout</Text>
+                </TouchableOpacity>
+              </View>
+              {payouts.slice(0, 3).length > 0 ? (
+                payouts.slice(0, 3).map(renderPayoutItem)
+              ) : (
+                <View style={styles.emptySection}>
+                  <Ionicons name="arrow-up-circle-outline" size={40} color={Colors.gray300} />
+                  <Text style={styles.emptyText}>Aucun retrait</Text>
+                </View>
+              )}
+            </View>
+          </>
         )}
 
-        {/* Recent Transactions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Transactions récentes</Text>
-          {transactions.length === 0 ? (
-            <View style={styles.emptyTransactions}>
-              <Ionicons name="receipt-outline" size={48} color={Colors.gray300} />
-              <Text style={styles.emptyText}>Aucune transaction</Text>
-            </View>
-          ) : (
-            transactions.map((transaction) => (
-              <View key={transaction.id} style={styles.transactionCard}>
-                <View
-                  style={[
-                    styles.transactionIcon,
-                    { backgroundColor: `${getTransactionColor(transaction.transaction_type)}20` },
-                  ]}
-                >
-                  <Ionicons
-                    name={getTransactionIcon(transaction.transaction_type) as any}
-                    size={20}
-                    color={getTransactionColor(transaction.transaction_type)}
-                  />
-                </View>
-                <View style={styles.transactionContent}>
-                  <Text style={styles.transactionDescription} numberOfLines={1}>
-                    {transaction.description}
-                  </Text>
-                  {transaction.event_title && (
-                    <Text style={styles.transactionEvent} numberOfLines={1}>
-                      {transaction.event_title}
-                    </Text>
-                  )}
-                  <Text style={styles.transactionDate}>
-                    {formatDate(transaction.created_at)}
-                  </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.transactionAmount,
-                    { color: getTransactionColor(transaction.transaction_type) },
-                  ]}
-                >
-                  {transaction.transaction_type === 'credit' ? '+' : '-'}
-                  {formatPrice(transaction.amount)}
-                </Text>
-              </View>
-            ))
-          )}
-        </View>
-
-        {/* Bank Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informations de paiement</Text>
-          <View style={styles.bankCard}>
-            {wallet?.mobile_money_number ? (
-              <>
-                <View style={styles.bankRow}>
-                  <Ionicons name="phone-portrait-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.bankLabel}>Mobile Money</Text>
-                </View>
-                <Text style={styles.bankValue}>
-                  {wallet.mobile_money_provider} - {wallet.mobile_money_number}
-                </Text>
-              </>
-            ) : wallet?.bank_account_number ? (
-              <>
-                <View style={styles.bankRow}>
-                  <Ionicons name="business-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.bankLabel}>Compte bancaire</Text>
-                </View>
-                <Text style={styles.bankValue}>{wallet.bank_name}</Text>
-                <Text style={styles.bankValue}>{wallet.bank_account_name}</Text>
-                <Text style={styles.bankAccountNumber}>
-                  **** **** {wallet.bank_account_number.slice(-4)}
-                </Text>
-              </>
+        {activeTab === 'transactions' && (
+          <View style={styles.section}>
+            {transactions.length > 0 ? (
+              transactions.map(renderTransactionItem)
             ) : (
-              <View style={styles.noBankInfo}>
-                <Ionicons name="alert-circle-outline" size={24} color={Colors.warning} />
-                <Text style={styles.noBankText}>
-                  Aucune information de paiement configurée
-                </Text>
-                <TouchableOpacity
-                  style={styles.addBankButton}
-                  onPress={() => navigation.navigate('Settings')}
-                >
-                  <Text style={styles.addBankButtonText}>Configurer</Text>
-                </TouchableOpacity>
+              <View style={styles.emptySection}>
+                <Ionicons name="receipt-outline" size={48} color={Colors.gray300} />
+                <Text style={styles.emptyText}>Aucune transaction</Text>
               </View>
             )}
           </View>
-        </View>
+        )}
+
+        {activeTab === 'payouts' && (
+          <View style={styles.section}>
+            {payouts.length > 0 ? (
+              payouts.map(renderPayoutItem)
+            ) : (
+              <View style={styles.emptySection}>
+                <Ionicons name="arrow-up-circle-outline" size={48} color={Colors.gray300} />
+                <Text style={styles.emptyText}>Aucun retrait effectué</Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {activeTab === 'pending' && (
+          <View style={styles.section}>
+            {pendingEarnings.length > 0 ? (
+              pendingEarnings.map(renderPendingItem)
+            ) : (
+              <View style={styles.emptySection}>
+                <Ionicons name="time-outline" size={48} color={Colors.gray300} />
+                <Text style={styles.emptyText}>Aucun revenu en attente</Text>
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
+
+      {/* Payout Modal */}
+      <Modal
+        visible={showPayoutModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowPayoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Demande de retrait</Text>
+              <TouchableOpacity onPress={() => setShowPayoutModal(false)}>
+                <Ionicons name="close" size={24} color={Colors.gray500} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalSubtitle}>
+              Solde disponible: {formatPrice(wallet?.available_balance || 0)} FCFA
+            </Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Montant (FCFA)</Text>
+              <TextInput
+                style={styles.input}
+                value={payoutAmount}
+                onChangeText={setPayoutAmount}
+                keyboardType="numeric"
+                placeholder={`Min: ${formatPrice(wallet?.minimum_payout || 5000)}`}
+                placeholderTextColor={Colors.gray400}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Méthode de retrait</Text>
+              <View style={styles.methodsRow}>
+                {[
+                  { value: 'mtn_money' as PayoutMethod, label: 'MTN', icon: 'phone-portrait', color: '#FBBF24' },
+                  { value: 'orange_money' as PayoutMethod, label: 'Orange', icon: 'phone-portrait', color: '#F97316' },
+                  { value: 'bank_transfer' as PayoutMethod, label: 'Banque', icon: 'business', color: '#3B82F6' },
+                ].map((method) => (
+                  <TouchableOpacity
+                    key={method.value}
+                    style={[
+                      styles.methodButton,
+                      payoutMethod === method.value && styles.methodButtonActive,
+                    ]}
+                    onPress={() => setPayoutMethod(method.value)}
+                  >
+                    <Ionicons
+                      name={method.icon as any}
+                      size={20}
+                      color={payoutMethod === method.value ? Colors.primary : Colors.gray400}
+                    />
+                    <Text style={[
+                      styles.methodText,
+                      payoutMethod === method.value && styles.methodTextActive,
+                    ]}>
+                      {method.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {payoutMethod !== 'bank_transfer' && !wallet?.mobile_money_number && (
+              <View style={styles.warningBox}>
+                <Ionicons name="alert-circle" size={18} color="#F59E0B" />
+                <Text style={styles.warningText}>
+                  Configurez d'abord votre numéro Mobile Money
+                </Text>
+              </View>
+            )}
+
+            {payoutMethod === 'bank_transfer' && !wallet?.bank_account_number && (
+              <View style={styles.warningBox}>
+                <Ionicons name="alert-circle" size={18} color="#F59E0B" />
+                <Text style={styles.warningText}>
+                  Configurez d'abord vos informations bancaires
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowPayoutModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmButton, (!payoutAmount || processingPayout) && styles.confirmButtonDisabled]}
+                onPress={handleRequestPayout}
+                disabled={!payoutAmount || processingPayout}
+              >
+                {processingPayout ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <>
+                    <Ionicons name="arrow-up-circle" size={18} color={Colors.white} />
+                    <Text style={styles.confirmButtonText}>Retirer</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Bank Details Modal */}
+      <Modal
+        visible={showBankModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowBankModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <ScrollView style={styles.bankModalScroll}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Informations de paiement</Text>
+                <TouchableOpacity onPress={() => setShowBankModal(false)}>
+                  <Ionicons name="close" size={24} color={Colors.gray500} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Mobile Money Section */}
+              <View style={styles.bankSection}>
+                <View style={styles.bankSectionHeader}>
+                  <Ionicons name="phone-portrait" size={18} color={Colors.primary} />
+                  <Text style={styles.bankSectionTitle}>Mobile Money</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Numéro</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={bankDetails.mobile_money_number}
+                    onChangeText={(text) => setBankDetails({ ...bankDetails, mobile_money_number: text })}
+                    placeholder="Ex: 6XX XXX XXX"
+                    placeholderTextColor={Colors.gray400}
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Opérateur</Text>
+                  <View style={styles.pickerRow}>
+                    {[
+                      { value: 'mtn_money', label: 'MTN Mobile Money' },
+                      { value: 'orange_money', label: 'Orange Money' },
+                    ].map((option) => (
+                      <TouchableOpacity
+                        key={option.value}
+                        style={[
+                          styles.pickerOption,
+                          bankDetails.mobile_money_provider === option.value && styles.pickerOptionActive,
+                        ]}
+                        onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.value })}
+                      >
+                        <Text style={[
+                          styles.pickerOptionText,
+                          bankDetails.mobile_money_provider === option.value && styles.pickerOptionTextActive,
+                        ]}>
+                          {option.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.divider} />
+
+              {/* Bank Account Section */}
+              <View style={styles.bankSection}>
+                <View style={styles.bankSectionHeader}>
+                  <Ionicons name="business" size={18} color={Colors.primary} />
+                  <Text style={styles.bankSectionTitle}>Compte bancaire</Text>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Nom de la banque</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={bankDetails.bank_name}
+                    onChangeText={(text) => setBankDetails({ ...bankDetails, bank_name: text })}
+                    placeholder="Ex: Afriland First Bank"
+                    placeholderTextColor={Colors.gray400}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Titulaire du compte</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={bankDetails.bank_account_name}
+                    onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_name: text })}
+                    placeholder="Nom complet"
+                    placeholderTextColor={Colors.gray400}
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Numéro de compte</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={bankDetails.bank_account_number}
+                    onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_number: text })}
+                    placeholder="IBAN ou numéro de compte"
+                    placeholderTextColor={Colors.gray400}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={() => setShowBankModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.confirmButton, savingBank && styles.confirmButtonDisabled]}
+                  onPress={handleUpdateBankDetails}
+                  disabled={savingBank}
+                >
+                  {savingBank ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Text style={styles.confirmButtonText}>Enregistrer</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -345,14 +788,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    marginBottom: Spacing.lg,
   },
   backButton: {
     width: 40,
@@ -362,21 +805,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    color: Colors.white,
   },
-  scrollView: {
-    flex: 1,
+  settingsButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  scrollContent: {
-    paddingBottom: Spacing['3xl'],
-  },
-  balanceCard: {
-    margin: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    backgroundColor: Colors.primary,
+  balanceSection: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
   },
   balanceLabel: {
     fontSize: FontSizes.sm,
@@ -392,133 +835,122 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.medium,
   },
-  balanceDetails: {
+  quickStats: {
     flexDirection: 'row',
-    marginTop: Spacing.lg,
-    paddingTop: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
   },
-  balanceItem: {
+  quickStatItem: {
     flex: 1,
+    alignItems: 'center',
+    gap: 4,
   },
-  balanceItemLabel: {
+  quickStatLabel: {
     fontSize: FontSizes.xs,
     color: 'rgba(255,255,255,0.7)',
-    marginBottom: 4,
   },
-  balanceItemValue: {
-    fontSize: FontSizes.base,
+  quickStatValue: {
+    fontSize: FontSizes.sm,
     fontWeight: FontWeights.semibold,
     color: Colors.white,
   },
-  balanceDivider: {
+  quickStatDivider: {
     width: 1,
     backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: Spacing.md,
+    marginHorizontal: Spacing.sm,
   },
   withdrawButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
-    marginTop: Spacing.lg,
   },
   withdrawButtonDisabled: {
-    opacity: 0.5,
+    backgroundColor: 'rgba(255,255,255,0.5)',
   },
   withdrawButtonText: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    color: '#7C3AED',
   },
-  statsRow: {
+  commissionInfo: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
-  statCard: {
+  commissionText: {
     flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.gray100,
-  },
-  statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  statValue: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
-  },
-  statLabel: {
     fontSize: FontSizes.xs,
+    color: '#92400E',
+  },
+  tabsContainer: {
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  tabsList: {
+    paddingHorizontal: Spacing.md,
+  },
+  tab: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    marginRight: Spacing.sm,
+  },
+  tabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: Colors.primary,
+  },
+  tabText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
     color: Colors.gray500,
-    marginTop: 4,
+  },
+  tabTextActive: {
+    color: Colors.primary,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: Spacing['3xl'],
   },
   section: {
-    marginTop: Spacing.xl,
-    paddingHorizontal: Spacing.lg,
+    padding: Spacing.lg,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
   },
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontWeight: FontWeights.semibold,
     color: Colors.gray900,
-    marginBottom: Spacing.md,
   },
-  payoutCard: {
-    flexDirection: 'row',
+  seeAll: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontWeight: FontWeights.medium,
+  },
+  emptySection: {
     alignItems: 'center',
+    paddingVertical: Spacing.xl,
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
   },
-  payoutIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.warningLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  payoutContent: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  payoutAmount: {
+  emptyText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
-  },
-  payoutMethod: {
-    fontSize: FontSizes.sm,
     color: Colors.gray500,
-    marginTop: 2,
-  },
-  payoutStatus: {
-    backgroundColor: Colors.warningLight,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  payoutStatusText: {
-    fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
-    color: Colors.warning,
+    marginTop: Spacing.md,
   },
   transactionCard: {
     flexDirection: 'row',
@@ -527,8 +959,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
   },
   transactionIcon: {
     width: 40,
@@ -543,6 +973,7 @@ const styles = StyleSheet.create({
   },
   transactionDescription: {
     fontSize: FontSizes.base,
+    fontWeight: FontWeights.medium,
     color: Colors.gray900,
   },
   transactionEvent: {
@@ -555,69 +986,286 @@ const styles = StyleSheet.create({
     color: Colors.gray400,
     marginTop: 4,
   },
+  transactionAmountContainer: {
+    alignItems: 'flex-end',
+  },
   transactionAmount: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.semibold,
   },
-  emptyTransactions: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl,
+  transactionBalance: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray400,
+    marginTop: 2,
   },
-  emptyText: {
-    fontSize: FontSizes.base,
-    color: Colors.gray500,
-    marginTop: Spacing.md,
-  },
-  bankCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.lg,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
-  },
-  bankRow: {
+  payoutCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
     marginBottom: Spacing.sm,
   },
-  bankLabel: {
+  payoutIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  payoutContent: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  payoutAmount: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.semibold,
     color: Colors.gray900,
   },
-  bankValue: {
+  payoutMethod: {
     fontSize: FontSizes.sm,
     color: Colors.gray600,
+    marginTop: 2,
+  },
+  payoutDestination: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray400,
+    marginTop: 2,
+  },
+  payoutRight: {
+    alignItems: 'flex-end',
+  },
+  statusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  statusText: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.semibold,
+  },
+  payoutDate: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray400,
     marginTop: 4,
   },
-  bankAccountNumber: {
+  failureReason: {
+    fontSize: FontSizes.xs,
+    color: '#EF4444',
+    marginTop: 2,
+    maxWidth: 100,
+  },
+  pendingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  pendingIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FEF3C7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingContent: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  pendingTitle: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.medium,
     color: Colors.gray900,
-    marginTop: Spacing.sm,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
-  noBankInfo: {
+  pendingRelease: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  pendingRight: {
+    alignItems: 'flex-end',
+  },
+  pendingAmount: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: '#F59E0B',
+  },
+  pendingDays: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray400,
+    marginTop: 2,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    padding: Spacing.xl,
+  },
+  bankModalScroll: {
+    flex: 1,
+    marginTop: 100,
+  },
+  modalHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
   },
-  noBankText: {
+  modalTitle: {
+    fontSize: FontSizes.xl,
+    fontWeight: FontWeights.bold,
+    color: Colors.gray900,
+  },
+  modalSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginBottom: Spacing.lg,
+  },
+  inputGroup: {
+    marginBottom: Spacing.md,
+  },
+  inputLabel: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray700,
+    marginBottom: Spacing.xs,
+  },
+  input: {
+    backgroundColor: Colors.gray50,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
+  },
+  methodsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  methodButton: {
+    flex: 1,
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 2,
+    borderColor: Colors.gray200,
+    gap: Spacing.xs,
+  },
+  methodButtonActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#F3E8FF',
+  },
+  methodText: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray600,
+  },
+  methodTextActive: {
+    color: Colors.primary,
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    backgroundColor: '#FEF3C7',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.md,
+  },
+  warningText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: '#92400E',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+  },
+  cancelButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  cancelButtonText: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray700,
+  },
+  confirmButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.primary,
+  },
+  confirmButtonDisabled: {
+    opacity: 0.5,
+  },
+  confirmButtonText: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.white,
+  },
+  bankSection: {
+    marginBottom: Spacing.lg,
+  },
+  bankSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  bankSectionTitle: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.gray900,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.gray200,
+    marginVertical: Spacing.lg,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  pickerOption: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    alignItems: 'center',
+  },
+  pickerOptionActive: {
+    borderColor: Colors.primary,
+    backgroundColor: '#F3E8FF',
+  },
+  pickerOptionText: {
     fontSize: FontSizes.sm,
     color: Colors.gray600,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
   },
-  addBankButton: {
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
-  },
-  addBankButtonText: {
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+  pickerOptionTextActive: {
     color: Colors.primary,
+    fontWeight: FontWeights.medium,
   },
 });

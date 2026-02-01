@@ -16,7 +16,8 @@ import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
-import { Colors, FontSizes, FontWeights, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, FontWeights, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import FollowEventButton from '../../components/events/FollowEventButton';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -29,6 +30,7 @@ export default function EventDetailsScreen() {
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
 
   useEffect(() => {
     fetchEvent();
@@ -36,9 +38,14 @@ export default function EventDetailsScreen() {
 
   const fetchEvent = async () => {
     try {
-      const response = await eventsAPI.getEvent(eventId);
-      setEvent(response.data);
-      setIsFollowing(response.data.is_following || false);
+      const [eventResponse, followResponse, countResponse] = await Promise.all([
+        eventsAPI.getEvent(eventId),
+        eventsAPI.isFollowing(eventId).catch(() => ({ data: { is_following: false } })),
+        eventsAPI.getFollowersCount(eventId).catch(() => ({ data: { followers_count: 0 } })),
+      ]);
+      setEvent(eventResponse.data);
+      setIsFollowing(followResponse.data?.is_following || eventResponse.data.is_following || false);
+      setFollowersCount(countResponse.data?.followers_count || eventResponse.data.followers_count || 0);
     } catch (error) {
       console.error('Erreur chargement événement:', error);
     } finally {
@@ -46,18 +53,6 @@ export default function EventDetailsScreen() {
     }
   };
 
-  const handleFollow = async () => {
-    try {
-      if (isFollowing) {
-        await eventsAPI.unfollowEvent(eventId);
-      } else {
-        await eventsAPI.followEvent(eventId);
-      }
-      setIsFollowing(!isFollowing);
-    } catch (error) {
-      console.error('Erreur follow:', error);
-    }
-  };
 
   const handleShare = async () => {
     try {
@@ -145,13 +140,15 @@ export default function EventDetailsScreen() {
               <Ionicons name="arrow-back" size={24} color={Colors.white} />
             </TouchableOpacity>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleFollow}>
-                <Ionicons
-                  name={isFollowing ? 'heart' : 'heart-outline'}
-                  size={22}
-                  color={isFollowing ? Colors.error : Colors.white}
-                />
-              </TouchableOpacity>
+              <FollowEventButton
+                eventId={eventId}
+                variant="icon-only"
+                initialFollowing={isFollowing}
+                onFollowChange={(following) => {
+                  setIsFollowing(following);
+                  setFollowersCount(prev => following ? prev + 1 : Math.max(0, prev - 1));
+                }}
+              />
               <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
                 <Ionicons name="share-outline" size={22} color={Colors.white} />
               </TouchableOpacity>
@@ -237,8 +234,8 @@ export default function EventDetailsScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Ionicons name="star-outline" size={20} color={Colors.gray500} />
-              <Text style={styles.statValue}>{event.followers_count || 0}</Text>
+              <Ionicons name="heart-outline" size={20} color={Colors.gray500} />
+              <Text style={styles.statValue}>{followersCount}</Text>
               <Text style={styles.statLabel}>favoris</Text>
             </View>
           </View>
@@ -249,6 +246,24 @@ export default function EventDetailsScreen() {
             <Text style={styles.description}>
               {event.description || event.short_description || 'Aucune description disponible pour cet événement.'}
             </Text>
+          </View>
+
+          {/* Follow Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Suivre cet événement</Text>
+            <Text style={styles.followDescription}>
+              Recevez des notifications pour les mises à jour, rappels et annonces.
+            </Text>
+            <FollowEventButton
+              eventId={eventId}
+              variant="default"
+              showFollowerCount
+              initialFollowing={isFollowing}
+              onFollowChange={(following) => {
+                setIsFollowing(following);
+                setFollowersCount(prev => following ? prev + 1 : Math.max(0, prev - 1));
+              }}
+            />
           </View>
 
           {/* Tags */}
@@ -419,7 +434,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
     lineHeight: 32,
@@ -550,7 +565,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
@@ -558,6 +573,11 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     color: Colors.gray600,
     lineHeight: 24,
+  },
+  followDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginBottom: Spacing.md,
   },
   tagsRow: {
     flexDirection: 'row',

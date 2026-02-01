@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,17 @@ import {
   RefreshControl,
   ActivityIndicator,
   StatusBar,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
-import GradientButton from '../../components/ui/GradientButton';
 import {
   Colors,
   FontSizes,
@@ -28,38 +30,123 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
+type FilterStatus = 'all' | 'draft' | 'submitted' | 'validated' | 'rejected' | 'completed' | 'cancelled';
+
+const statusConfig: Record<string, { color: string; bgColor: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  draft: { color: '#6B7280', bgColor: '#F3F4F6', label: 'Brouillon', icon: 'document-outline' },
+  submitted: { color: '#F59E0B', bgColor: '#FEF3C7', label: 'En attente', icon: 'time-outline' },
+  validated: { color: '#10B981', bgColor: '#D1FAE5', label: 'Validé', icon: 'checkmark-circle-outline' },
+  published: { color: '#10B981', bgColor: '#D1FAE5', label: 'Publié', icon: 'checkmark-circle-outline' },
+  rejected: { color: '#EF4444', bgColor: '#FEE2E2', label: 'Rejeté', icon: 'close-circle-outline' },
+  completed: { color: '#3B82F6', bgColor: '#DBEAFE', label: 'Terminé', icon: 'flag-outline' },
+  cancelled: { color: '#6B7280', bgColor: '#F3F4F6', label: 'Annulé', icon: 'ban-outline' },
+};
+
+const filterOptions: { value: FilterStatus; label: string }[] = [
+  { value: 'all', label: 'Tous' },
+  { value: 'validated', label: 'Validés' },
+  { value: 'draft', label: 'Brouillons' },
+  { value: 'submitted', label: 'En attente' },
+  { value: 'rejected', label: 'Rejetés' },
+  { value: 'completed', label: 'Terminés' },
+];
+
 export default function MyEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'published' | 'draft'>('all');
+  const [filter, setFilter] = useState<FilterStatus>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetchEvents();
-  }, [filter]);
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchEvents();
+    }, [])
+  );
 
   const fetchEvents = async () => {
     try {
-      const params: Record<string, any> = { my_events: true };
-      if (filter === 'published') {
-        params.status = 'validated';
-      } else if (filter === 'draft') {
-        params.status = 'draft';
-      }
-      const response = await eventsAPI.getEvents(params);
-      setEvents(response.data.results || response.data || []);
+      const response = await eventsAPI.getMyEvents();
+      setEvents(response.data?.results || response.data || []);
     } catch (error) {
       console.error('Erreur chargement événements:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
-  const onRefresh = async () => {
+  const onRefresh = () => {
     setRefreshing(true);
-    await fetchEvents();
-    setRefreshing(false);
+    fetchEvents();
+  };
+
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      const statusMatch = filter === 'all' || event.status === filter;
+      const searchMatch = !searchQuery ||
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (event.short_description?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        event.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      return statusMatch && searchMatch;
+    });
+  }, [events, filter, searchQuery]);
+
+  const stats = useMemo(() => ({
+    total: events.length,
+    draft: events.filter(e => e.status === 'draft').length,
+    validated: events.filter(e => e.status === 'validated').length,
+    submitted: events.filter(e => e.status === 'submitted').length,
+  }), [events]);
+
+  const handleDeleteEvent = (eventId: string) => {
+    Alert.alert(
+      'Supprimer l\'événement',
+      'Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await eventsAPI.deleteEvent(eventId);
+              setEvents(prev => prev.filter(e => e.id !== eventId));
+              Alert.alert('Succès', 'Événement supprimé');
+            } catch (error) {
+              console.error('Erreur suppression:', error);
+              Alert.alert('Erreur', 'Impossible de supprimer l\'événement');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleSubmitForValidation = (eventId: string) => {
+    Alert.alert(
+      'Soumettre pour validation',
+      'Voulez-vous soumettre cet événement pour validation ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Soumettre',
+          onPress: async () => {
+            try {
+              await eventsAPI.submitForValidation(eventId);
+              setEvents(prev => prev.map(e =>
+                e.id === eventId ? { ...e, status: 'submitted' } : e
+              ));
+              Alert.alert('Succès', 'Événement soumis pour validation');
+            } catch (error: any) {
+              console.error('Erreur soumission:', error);
+              Alert.alert('Erreur', error.response?.data?.detail || 'Impossible de soumettre l\'événement');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -68,143 +155,217 @@ export default function MyEventsScreen() {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'validated':
-      case 'published':
-        return Colors.success;
-      case 'draft':
-        return Colors.gray500;
-      case 'submitted':
-        return Colors.warning;
-      case 'rejected':
-      case 'cancelled':
-        return Colors.error;
-      default:
-        return Colors.gray500;
+  const getLocationDisplay = (event: Event) => {
+    if (event.location_type === 'online') {
+      return { icon: 'videocam-outline' as const, text: 'En ligne', color: '#3B82F6' };
+    } else if (event.location_type === 'hybrid') {
+      return { icon: 'globe-outline' as const, text: `${event.location_city || 'Hybride'} + En ligne`, color: '#8B5CF6' };
     }
+    return { icon: 'location-outline' as const, text: event.location_city || 'Non spécifié', color: Colors.gray500 };
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'validated':
-        return 'Publié';
-      case 'draft':
-        return 'Brouillon';
-      case 'submitted':
-        return 'En attente';
-      case 'rejected':
-        return 'Rejeté';
-      case 'cancelled':
-        return 'Annulé';
-      case 'completed':
-        return 'Terminé';
-      default:
-        return status;
+  const showEventActions = (event: Event) => {
+    const actions: { text: string; onPress: () => void; style?: 'destructive' | 'cancel' | 'default' }[] = [
+      {
+        text: 'Voir l\'événement',
+        onPress: () => navigation.navigate('EventDetails', { eventId: event.id }),
+      },
+    ];
+
+    if (event.status === 'validated') {
+      actions.push({
+        text: 'Scanner QR (Check-in)',
+        onPress: () => navigation.navigate('QRScanner', { eventId: event.id }),
+      });
+      actions.push({
+        text: 'Voir les statistiques',
+        onPress: () => navigation.navigate('EventAnalytics', { eventId: event.id }),
+      });
+      actions.push({
+        text: 'Gérer les inscriptions',
+        onPress: () => navigation.navigate('EventRegistrations', { eventId: event.id }),
+      });
     }
+
+    if (event.status === 'draft' || event.status === 'rejected') {
+      actions.push({
+        text: 'Modifier',
+        onPress: () => navigation.navigate('EventEdit', { eventId: event.id }),
+      });
+    }
+
+    if (event.status === 'draft') {
+      actions.push({
+        text: 'Soumettre pour validation',
+        onPress: () => handleSubmitForValidation(event.id),
+      });
+    }
+
+    actions.push({
+      text: 'Supprimer',
+      onPress: () => handleDeleteEvent(event.id),
+      style: 'destructive',
+    });
+
+    actions.push({
+      text: 'Annuler',
+      style: 'cancel',
+      onPress: () => {},
+    });
+
+    Alert.alert('Actions', event.title, actions);
   };
 
-  const renderEvent = ({ item }: { item: Event }) => (
-    <TouchableOpacity
-      style={styles.eventCard}
-      onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
-      activeOpacity={0.7}
-    >
-      <Image
-        source={{ uri: item.banner_image || item.display_image || 'https://via.placeholder.com/400x200' }}
-        style={styles.eventImage}
-      />
-      <View style={styles.eventContent}>
-        <View style={styles.eventHeader}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {getStatusLabel(item.status)}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
-          >
-            <Ionicons name="stats-chart" size={18} color={Colors.primary} />
-          </TouchableOpacity>
+  const renderEvent = ({ item }: { item: Event }) => {
+    const config = statusConfig[item.status] || statusConfig.draft;
+    const location = getLocationDisplay(item);
+
+    return (
+      <TouchableOpacity
+        style={styles.eventCard}
+        onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+        onLongPress={() => showEventActions(item)}
+        activeOpacity={0.7}
+      >
+        <Image
+          source={{ uri: item.banner_image || item.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
+          style={styles.eventImage}
+        />
+
+        {/* Status Badge */}
+        <View style={[styles.statusBadge, { backgroundColor: config.bgColor }]}>
+          <Ionicons name={config.icon} size={12} color={config.color} />
+          <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
         </View>
 
-        <Text style={styles.eventTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
+        <View style={styles.eventContent}>
+          <Text style={styles.eventTitle} numberOfLines={2}>{item.title}</Text>
 
-        <View style={styles.eventMeta}>
-          <View style={styles.eventMetaItem}>
-            <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
-            <Text style={styles.eventMetaText}>{formatDate(item.start_date)}</Text>
+          <View style={styles.eventMeta}>
+            <View style={styles.metaItem}>
+              <Ionicons name="time-outline" size={14} color={Colors.gray500} />
+              <Text style={styles.metaText}>{formatDate(item.start_date)}</Text>
+            </View>
+            <View style={styles.metaItem}>
+              <Ionicons name={location.icon} size={14} color={location.color} />
+              <Text style={[styles.metaText, { color: location.color }]} numberOfLines={1}>
+                {location.text}
+              </Text>
+            </View>
           </View>
-          <View style={styles.eventMetaItem}>
-            <Ionicons name="location-outline" size={14} color={Colors.gray500} />
-            <Text style={styles.eventMetaText}>
-              {item.location_city || 'En ligne'}
-            </Text>
-          </View>
-        </View>
 
-        <View style={styles.eventStats}>
-          <View style={styles.statItem}>
-            <Ionicons name="people-outline" size={16} color={Colors.gray500} />
-            <Text style={styles.statValue}>
-              {item.registration_count || item.registrations_count || 0}
-            </Text>
-            <Text style={styles.statLabel}>inscrits</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="eye-outline" size={16} color={Colors.gray500} />
-            <Text style={styles.statValue}>{item.view_count || 0}</Text>
-            <Text style={styles.statLabel}>vues</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.priceValue}>
+          <View style={styles.eventStats}>
+            <View style={styles.statItem}>
+              <Ionicons name="people-outline" size={16} color={Colors.gray500} />
+              <Text style={styles.statValue}>
+                {item.registration_count || item.registrations_count || 0}
+              </Text>
+              <Text style={styles.statLabel}>inscrits</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="eye-outline" size={16} color={Colors.gray500} />
+              <Text style={styles.statValue}>{item.view_count || 0}</Text>
+              <Text style={styles.statLabel}>vues</Text>
+            </View>
+            <Text style={styles.priceText}>
               {item.is_free ? 'Gratuit' : `${item.base_price?.toLocaleString() || 0} FCFA`}
             </Text>
           </View>
+
+          {/* Quick Actions */}
+          <View style={styles.actionsRow}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+            >
+              <Ionicons name="eye-outline" size={16} color={Colors.gray600} />
+              <Text style={styles.actionText}>Voir</Text>
+            </TouchableOpacity>
+
+            {item.status === 'validated' && (
+              <>
+                <TouchableOpacity
+                  style={[styles.actionButton, { backgroundColor: '#10B981' }]}
+                  onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
+                >
+                  <Ionicons name="qr-code" size={16} color={Colors.white} />
+                  <Text style={[styles.actionText, { color: Colors.white }]}>Scanner</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
+                >
+                  <Ionicons name="stats-chart" size={16} color={Colors.primary} />
+                  <Text style={[styles.actionText, { color: Colors.primary }]}>Stats</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {item.status === 'draft' && (
+              <TouchableOpacity
+                style={[styles.actionButton, styles.actionButtonPrimary]}
+                onPress={() => handleSubmitForValidation(item.id)}
+              >
+                <Ionicons name="send" size={16} color={Colors.white} />
+                <Text style={[styles.actionText, { color: Colors.white }]}>Publier</Text>
+              </TouchableOpacity>
+            )}
+
+            {(item.status === 'draft' || item.status === 'rejected') && (
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
+              >
+                <Ionicons name="create-outline" size={16} color={Colors.gray600} />
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => showEventActions(item)}
+            >
+              <Ionicons name="ellipsis-vertical" size={16} color={Colors.gray600} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconContainer}>
+      <View style={styles.emptyIcon}>
         <Ionicons name="calendar-outline" size={48} color={Colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>Aucun événement</Text>
+      <Text style={styles.emptyTitle}>
+        {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Aucun événement'}
+      </Text>
       <Text style={styles.emptyText}>
-        Vous n'avez pas encore créé d'événement.{'\n'}
-        Commencez à organiser !
+        {searchQuery || filter !== 'all'
+          ? 'Essayez de modifier vos critères de recherche'
+          : 'Créez votre premier événement pour commencer'}
       </Text>
-      <GradientButton
-        title="Créer un événement"
-        onPress={() => navigation.navigate('EventCreate')}
-        icon={<Ionicons name="add-circle" size={20} color={Colors.white} />}
-      />
+      {!searchQuery && filter === 'all' && (
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={() => navigation.navigate('EventCreate')}
+        >
+          <Ionicons name="add" size={20} color={Colors.white} />
+          <Text style={styles.createButtonText}>Créer mon premier événement</Text>
+        </TouchableOpacity>
+      )}
     </View>
-  );
-
-  const FilterTab = ({ label, value }: { label: string; value: typeof filter }) => (
-    <TouchableOpacity
-      style={[styles.filterTab, filter === value && styles.filterTabActive]}
-      onPress={() => setFilter(value)}
-    >
-      <Text style={[styles.filterTabText, filter === value && styles.filterTabTextActive]}>
-        {label}
-      </Text>
-    </TouchableOpacity>
   );
 
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -214,35 +375,79 @@ export default function MyEventsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes Événements</Text>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => navigation.navigate('EventCreate')}
-        >
-          <Ionicons name="add" size={24} color={Colors.primary} />
-        </TouchableOpacity>
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={['#7C3AED', '#8B5CF6', '#6366F1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Mes événements</Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => navigation.navigate('EventCreate')}
+          >
+            <Ionicons name="add" size={24} color="#7C3AED" />
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.headerStats}>
+          {stats.total} événement{stats.total > 1 ? 's' : ''} · {stats.validated} validé{stats.validated > 1 ? 's' : ''} · {stats.draft} brouillon{stats.draft > 1 ? 's' : ''}
+        </Text>
+      </LinearGradient>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={20} color={Colors.gray400} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Rechercher un événement..."
+            placeholderTextColor={Colors.gray400}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color={Colors.gray400} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Filter Tabs */}
-      <View style={styles.filterTabs}>
-        <FilterTab label="Tous" value="all" />
-        <FilterTab label="Publiés" value="published" />
-        <FilterTab label="Brouillons" value="draft" />
+      <View style={styles.filterContainer}>
+        <FlatList
+          horizontal
+          data={filterOptions}
+          keyExtractor={(item) => item.value}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.filterTab, filter === item.value && styles.filterTabActive]}
+              onPress={() => setFilter(item.value)}
+            >
+              <Text style={[styles.filterTabText, filter === item.value && styles.filterTabTextActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
       </View>
 
       {/* Events List */}
       <FlatList
-        data={events}
+        data={filteredEvents}
         renderItem={renderEvent}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -253,6 +458,7 @@ export default function MyEventsScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={Colors.primary}
+            colors={[Colors.primary]}
           />
         }
       />
@@ -271,11 +477,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   backButton: {
     width: 40,
@@ -285,22 +494,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes['2xl'],
     fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    color: Colors.white,
   },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.gray50,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  filterTabs: {
+  headerStats: {
+    fontSize: FontSizes.base,
+    color: 'rgba(255,255,255,0.8)',
+    textAlign: 'center',
+  },
+  searchContainer: {
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  searchBar: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
+  },
+  filterContainer: {
+    paddingBottom: Spacing.sm,
+  },
+  filterList: {
     paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
     gap: Spacing.sm,
   },
   filterTab: {
@@ -308,9 +542,10 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.gray100,
+    marginRight: Spacing.sm,
   },
   filterTabActive: {
-    backgroundColor: Colors.gray900,
+    backgroundColor: '#7C3AED',
   },
   filterTabText: {
     fontSize: FontSizes.sm,
@@ -328,7 +563,7 @@ const styles = StyleSheet.create({
   },
   eventCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     marginBottom: Spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
@@ -336,33 +571,26 @@ const styles = StyleSheet.create({
   },
   eventImage: {
     width: '100%',
-    height: 140,
-  },
-  eventContent: {
-    padding: Spacing.md,
-  },
-  eventHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
+    height: 160,
+    backgroundColor: Colors.gray200,
   },
   statusBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
+    gap: 4,
   },
   statusText: {
     fontSize: FontSizes.xs,
     fontWeight: FontWeights.semibold,
   },
-  moreButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.gray50,
-    alignItems: 'center',
-    justifyContent: 'center',
+  eventContent: {
+    padding: Spacing.md,
   },
   eventTitle: {
     fontSize: FontSizes.lg,
@@ -371,26 +599,27 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   eventMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
+    gap: Spacing.xs,
     marginBottom: Spacing.md,
   },
-  eventMetaItem: {
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xs,
   },
-  eventMetaText: {
+  metaText: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
+    flex: 1,
   },
   eventStats: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Spacing.md,
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
+    marginBottom: Spacing.sm,
   },
   statItem: {
     flexDirection: 'row',
@@ -406,10 +635,34 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray500,
   },
-  priceValue: {
+  priceText: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.bold,
     color: Colors.primary,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray50,
+    gap: Spacing.xs,
+  },
+  actionButtonPrimary: {
+    backgroundColor: Colors.primary,
+  },
+  actionText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    fontWeight: FontWeights.medium,
   },
   emptyContainer: {
     flex: 1,
@@ -417,7 +670,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: Spacing['3xl'],
   },
-  emptyIconContainer: {
+  emptyIcon: {
     width: 100,
     height: 100,
     borderRadius: 50,
@@ -437,6 +690,21 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     textAlign: 'center',
     lineHeight: 22,
+    paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.xl,
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  createButtonText: {
+    fontSize: FontSizes.base,
+    fontWeight: FontWeights.semibold,
+    color: Colors.white,
   },
 });

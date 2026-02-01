@@ -829,6 +829,7 @@ export type RootStackParamList = {
   EditProfile: undefined;
   Settings: undefined;
   Notifications: undefined;
+  UserDashboard: undefined;
   Messages: undefined;
   Conversation: { conversationId: string };
   NewConversation: { userId?: string };
@@ -844,6 +845,7 @@ export type RootStackParamList = {
   Wallet: undefined;
   PayoutRequest: undefined;
   Subscription: undefined;
+  QRScanner: { eventId: string };
 };
 
 export type AuthStackParamList = {

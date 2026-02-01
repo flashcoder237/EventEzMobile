@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -22,16 +23,19 @@ import {
   FontWeights,
   BorderRadius,
   Spacing,
-  Shadows,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type TabType = 'upcoming' | 'past' | 'cancelled';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MyTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [tickets, setTickets] = useState<TicketPurchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabType>('upcoming');
 
   useEffect(() => {
     fetchTickets();
@@ -54,112 +58,174 @@ export default function MyTicketsScreen() {
     setRefreshing(false);
   };
 
+  const filterTickets = useCallback((tab: TabType) => {
+    const now = new Date();
+    return tickets.filter((ticket) => {
+      const eventDate = ticket.event?.start_date ? new Date(ticket.event.start_date) : null;
+      const isCancelled = ticket.status === 'cancelled' || ticket.status === 'refunded';
+
+      switch (tab) {
+        case 'upcoming':
+          return !isCancelled && eventDate && eventDate >= now;
+        case 'past':
+          return !isCancelled && eventDate && eventDate < now;
+        case 'cancelled':
+          return isCancelled;
+        default:
+          return true;
+      }
+    });
+  }, [tickets]);
+
+  const filteredTickets = filterTickets(activeTab);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return {
+      day: date.getDate().toString().padStart(2, '0'),
+      month: date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase(),
+      year: date.getFullYear(),
+      time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      full: date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' }),
+    };
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'confirmed':
-        return Colors.success;
+        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
       case 'pending':
-        return Colors.warning;
+        return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente', icon: 'time' };
       case 'cancelled':
+        return { color: Colors.error, bg: Colors.errorLight, label: 'Annulé', icon: 'close-circle' };
       case 'refunded':
-        return Colors.error;
+        return { color: Colors.error, bg: Colors.errorLight, label: 'Remboursé', icon: 'refresh-circle' };
       default:
-        return Colors.gray500;
+        return { color: Colors.gray500, bg: Colors.gray100, label: status, icon: 'help-circle' };
     }
   };
 
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'Confirmé';
-      case 'pending':
-        return 'En attente';
-      case 'cancelled':
-        return 'Annulé';
-      case 'refunded':
-        return 'Remboursé';
-      default:
-        return status;
-    }
+  const renderTicket = ({ item }: { item: TicketPurchase }) => {
+    const dateInfo = item.event?.start_date ? formatDate(item.event.start_date) : null;
+    const statusConfig = getStatusConfig(item.status);
+
+    return (
+      <TouchableOpacity
+        style={styles.ticketCard}
+        onPress={() => navigation.navigate('QRCode', { ticketId: item.id })}
+        activeOpacity={0.7}
+      >
+        {/* Date Badge */}
+        <View style={styles.dateBadge}>
+          <Text style={styles.dateDay}>{dateInfo?.day || '--'}</Text>
+          <Text style={styles.dateMonth}>{dateInfo?.month || '---'}</Text>
+        </View>
+
+        {/* Ticket Content */}
+        <View style={styles.ticketContent}>
+          {/* Event Image */}
+          <Image
+            source={{ uri: item.event?.banner_image || item.event?.display_image || 'https://via.placeholder.com/80' }}
+            style={styles.eventImage}
+          />
+
+          {/* Event Info */}
+          <View style={styles.eventInfo}>
+            <Text style={styles.eventTitle} numberOfLines={2}>
+              {item.event?.title || 'Événement'}
+            </Text>
+
+            <View style={styles.ticketTypeRow}>
+              <Ionicons name="ticket-outline" size={14} color={Colors.primary} />
+              <Text style={styles.ticketTypeName}>{item.ticket_type?.name || 'Billet'}</Text>
+              <Text style={styles.ticketQuantity}>×{item.quantity}</Text>
+            </View>
+
+            <View style={styles.eventMeta}>
+              {item.event?.location_city && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="location-outline" size={12} color={Colors.gray400} />
+                  <Text style={styles.metaText}>{item.event.location_city}</Text>
+                </View>
+              )}
+              {dateInfo && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="time-outline" size={12} color={Colors.gray400} />
+                  <Text style={styles.metaText}>{dateInfo.time}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.ticketFooter}>
+              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+                <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
+                <Text style={[styles.statusText, { color: statusConfig.color }]}>
+                  {statusConfig.label}
+                </Text>
+              </View>
+              <Text style={styles.ticketPrice}>
+                {item.total_price?.toLocaleString() || 0} FCFA
+              </Text>
+            </View>
+          </View>
+
+          {/* QR Icon */}
+          <View style={styles.qrButton}>
+            <Ionicons name="qr-code" size={22} color={Colors.primary} />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
   };
-
-  const renderTicket = ({ item }: { item: TicketPurchase }) => (
-    <TouchableOpacity
-      style={styles.ticketCard}
-      onPress={() => navigation.navigate('QRCode', { ticketId: item.id })}
-      activeOpacity={0.7}
-    >
-      <View style={styles.ticketLeft}>
-        <Image
-          source={{ uri: item.event?.banner_image || 'https://via.placeholder.com/100' }}
-          style={styles.ticketImage}
-        />
-        <View style={styles.ticketBadge}>
-          <Text style={styles.ticketBadgeText}>×{item.quantity}</Text>
-        </View>
-      </View>
-
-      <View style={styles.ticketInfo}>
-        <Text style={styles.ticketTitle} numberOfLines={2}>
-          {item.event?.title || 'Événement'}
-        </Text>
-        <Text style={styles.ticketType}>{item.ticket_type?.name}</Text>
-
-        <View style={styles.ticketMeta}>
-          <View style={styles.ticketMetaItem}>
-            <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
-            <Text style={styles.ticketMetaText}>
-              {item.event?.start_date ? formatDate(item.event.start_date) : '-'}
-            </Text>
-          </View>
-        </View>
-
-        <View style={styles.ticketFooter}>
-          <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-              {getStatusLabel(item.status)}
-            </Text>
-          </View>
-          <Text style={styles.ticketPrice}>
-            {item.total_price?.toLocaleString()} FCFA
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.ticketRight}>
-        <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
-      </View>
-    </TouchableOpacity>
-  );
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
-        <Ionicons name="ticket-outline" size={48} color={Colors.gray400} />
+        <Ionicons
+          name={activeTab === 'cancelled' ? 'close-circle-outline' : 'ticket-outline'}
+          size={48}
+          color={Colors.gray300}
+        />
       </View>
-      <Text style={styles.emptyTitle}>Aucun billet</Text>
-      <Text style={styles.emptyText}>
-        Vous n'avez pas encore acheté de billets.{'\n'}
-        Explorez les événements pour commencer !
+      <Text style={styles.emptyTitle}>
+        {activeTab === 'upcoming' && 'Aucun billet à venir'}
+        {activeTab === 'past' && 'Aucun billet passé'}
+        {activeTab === 'cancelled' && 'Aucun billet annulé'}
       </Text>
-      <TouchableOpacity
-        style={styles.emptyButton}
-        onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
-        activeOpacity={0.8}
-      >
-        <Text style={styles.emptyButtonText}>Explorer les événements</Text>
-        <Ionicons name="arrow-forward" size={18} color={Colors.white} />
-      </TouchableOpacity>
+      <Text style={styles.emptyText}>
+        {activeTab === 'upcoming'
+          ? 'Explorez les événements et achetez vos premiers billets !'
+          : 'Les billets correspondants apparaîtront ici.'}
+      </Text>
+      {activeTab === 'upcoming' && (
+        <TouchableOpacity
+          style={styles.emptyButton}
+          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.emptyButtonText}>Explorer les événements</Text>
+          <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+        </TouchableOpacity>
+      )}
     </View>
+  );
+
+  const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => (
+    <TouchableOpacity
+      style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
+      onPress={() => setActiveTab(tab)}
+    >
+      <Text style={[styles.tabButtonText, activeTab === tab && styles.tabButtonTextActive]}>
+        {label}
+      </Text>
+      {count > 0 && (
+        <View style={[styles.tabBadge, activeTab === tab && styles.tabBadgeActive]}>
+          <Text style={[styles.tabBadgeText, activeTab === tab && styles.tabBadgeTextActive]}>
+            {count}
+          </Text>
+        </View>
+      )}
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -180,14 +246,30 @@ export default function MyTicketsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mes Billets</Text>
-        <Text style={styles.headerSubtitle}>
-          {tickets.length} billet{tickets.length > 1 ? 's' : ''}
-        </Text>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TabButton
+          tab="upcoming"
+          label="À venir"
+          count={filterTickets('upcoming').length}
+        />
+        <TabButton
+          tab="past"
+          label="Passés"
+          count={filterTickets('past').length}
+        />
+        <TabButton
+          tab="cancelled"
+          label="Annulés"
+          count={filterTickets('cancelled').length}
+        />
       </View>
 
       {/* Tickets List */}
       <FlatList
-        data={tickets}
+        data={filteredTickets}
         renderItem={renderTicket}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
@@ -217,90 +299,155 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
   headerTitle: {
     fontSize: FontSizes['2xl'],
     fontWeight: FontWeights.bold,
     color: Colors.gray900,
   },
-  headerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginTop: Spacing.xs,
+
+  // Tabs
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+    gap: Spacing.sm,
   },
+  tabButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray100,
+    gap: Spacing.xs,
+  },
+  tabButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  tabButtonText: {
+    fontSize: FontSizes.sm,
+    fontWeight: FontWeights.medium,
+    color: Colors.gray600,
+  },
+  tabButtonTextActive: {
+    color: Colors.white,
+  },
+  tabBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.gray200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  tabBadgeText: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.bold,
+    color: Colors.gray600,
+  },
+  tabBadgeTextActive: {
+    color: Colors.white,
+  },
+
+  // List
   listContent: {
     padding: Spacing.lg,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing['3xl'],
+    paddingBottom: 120,
   },
+
+  // Ticket Card
   ticketCard: {
-    flexDirection: 'row',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.md,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.gray100,
+    overflow: 'hidden',
   },
-  ticketLeft: {
-    position: 'relative',
+  dateBadge: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
   },
-  ticketImage: {
-    width: 100,
-    height: 120,
-  },
-  ticketBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray900,
-  },
-  ticketBadgeText: {
-    fontSize: FontSizes.xs,
+  dateDay: {
+    fontSize: FontSizes['2xl'],
     fontWeight: FontWeights.bold,
     color: Colors.white,
   },
-  ticketInfo: {
-    flex: 1,
-    padding: Spacing.md,
-    justifyContent: 'space-between',
+  dateMonth: {
+    fontSize: FontSizes.xs,
+    fontWeight: FontWeights.semibold,
+    color: 'rgba(255,255,255,0.8)',
+    textTransform: 'uppercase',
   },
-  ticketTitle: {
+  ticketContent: {
+    flexDirection: 'row',
+    padding: Spacing.md,
+  },
+  eventImage: {
+    width: 70,
+    height: 70,
+    borderRadius: BorderRadius.md,
+  },
+  eventInfo: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  eventTitle: {
     fontSize: FontSizes.base,
     fontWeight: FontWeights.semibold,
     color: Colors.gray900,
+    marginBottom: Spacing.xs,
   },
-  ticketType: {
+  ticketTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: Spacing.xs,
+  },
+  ticketTypeName: {
     fontSize: FontSizes.sm,
     color: Colors.primary,
     fontWeight: FontWeights.medium,
-    marginTop: Spacing.xs,
   },
-  ticketMeta: {
-    marginTop: Spacing.xs,
+  ticketQuantity: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    fontWeight: FontWeights.semibold,
   },
-  ticketMetaItem: {
+  eventMeta: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  ticketMetaText: {
-    fontSize: FontSizes.sm,
+  metaText: {
+    fontSize: FontSizes.xs,
     color: Colors.gray500,
   },
   ticketFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: Spacing.sm,
   },
   statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: BorderRadius.full,
   },
   statusText: {
@@ -312,16 +459,17 @@ const styles = StyleSheet.create({
     fontWeight: FontWeights.bold,
     color: Colors.gray900,
   },
-  ticketRight: {
+  qrButton: {
     justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
-    borderLeftWidth: 1,
-    borderLeftColor: Colors.gray100,
-    borderStyle: 'dashed',
+    alignItems: 'center',
+    paddingLeft: Spacing.md,
   },
+
+  // Empty State
   emptyContainer: {
     alignItems: 'center',
     paddingTop: Spacing['3xl'],
+    paddingHorizontal: Spacing.xl,
   },
   emptyIconContainer: {
     width: 100,
@@ -333,9 +481,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.lg,
     fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    color: Colors.gray700,
     marginBottom: Spacing.sm,
   },
   emptyText: {
@@ -352,7 +500,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
   },
   emptyButtonText: {
     fontSize: FontSizes.base,
