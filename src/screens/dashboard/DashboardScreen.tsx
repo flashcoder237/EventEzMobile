@@ -19,11 +19,13 @@ import { RootStackParamList, Event } from '../../types';
 import EventCard from '../../components/events/EventCard';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -288,13 +290,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.lg,
   },
   greeting: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
   },
   userName: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h2,
     marginTop: 2,
   },
   notificationButton: {
@@ -331,13 +331,11 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   balanceLabel: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
   },
   balanceValue: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h2,
     marginTop: 4,
   },
   balanceIcon: {
@@ -362,12 +360,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h2,
   },
   statLabel: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 4,
   },
@@ -376,9 +372,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   sectionTitle: {
+    ...TextStyles.h4,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   quickActionsGrid: {
@@ -419,9 +414,8 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   quickActionTitle: {
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray700,
+    ...TextStyles.smallBold,
+    fontFamily: FontFamily.medium,
   },
   organizerActions: {
     flexDirection: 'row',
@@ -445,12 +439,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   organizerActionTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
+    fontFamily: FontFamily.medium,
   },
   organizerActionSubtitle: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },

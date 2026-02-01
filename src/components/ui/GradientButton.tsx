@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
@@ -262,7 +263,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: Colors.white,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     letterSpacing: 0.3,
   },
   iconLeft: {
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
   },
   outlineText: {
     color: Colors.primary,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     letterSpacing: 0.3,
   },
   secondaryButton: {

@@ -200,6 +200,70 @@ export const SafeArea = {
   bottom: 24, // Navigation bar height approximation
 };
 
+// ===== TYPOGRAPHY STYLES =====
+// Styles prêts à l'emploi pour les textes
+// Règle: Funnel Display pour titres (h1, h2), Montserrat pour le reste
+export const TextStyles = {
+  // Headings - Funnel Display
+  h1: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['4xl'],
+    color: Colors.gray900,
+  },
+  h2: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['2xl'],
+    color: Colors.gray900,
+  },
+  h3: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: FontSizes.xl,
+    color: Colors.gray900,
+  },
+  h4: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: FontSizes.lg,
+    color: Colors.gray900,
+  },
+
+  // Body - Montserrat
+  body: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.base,
+    color: Colors.gray700,
+  },
+  bodyBold: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
+  },
+  small: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+  },
+  smallBold: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+    color: Colors.gray700,
+  },
+  caption: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+  },
+  label: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: Colors.gray700,
+  },
+  button: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.white,
+  },
+};
+
 const theme = {
   colors: Colors,
   fontFamily: FontFamily,
@@ -210,6 +274,7 @@ const theme = {
   shadows: Shadows,
   gradients: Gradients,
   safeArea: SafeArea,
+  textStyles: TextStyles,
 };
 
 export default theme;

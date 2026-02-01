@@ -19,11 +19,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
+  TextStyles,
 } from '../../constants/theme';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
@@ -447,16 +449,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   title: {
+    ...TextStyles.h1,
     fontSize: FontSizes['3xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
     marginBottom: Spacing.xs,
     letterSpacing: -0.5,
   },
   subtitle: {
-    fontSize: FontSizes.base,
+    ...TextStyles.body,
     color: Colors.gray500,
-    lineHeight: FontSizes.base * 1.5,
   },
   form: {
     gap: Spacing.md,
@@ -497,6 +497,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray900,
   },
   eyeButton: {
@@ -509,14 +510,14 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.xs,
   },
   termsText: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     lineHeight: FontSizes.sm * 1.6,
     marginTop: Spacing.sm,
   },
   termsLink: {
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   registerButton: {
     marginTop: Spacing.lg,
@@ -529,12 +530,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xl,
   },
   loginText: {
+    ...TextStyles.body,
     color: Colors.gray500,
-    fontSize: FontSizes.md,
   },
   loginLink: {
+    ...TextStyles.bodyBold,
     color: Colors.primary,
-    fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
   },
 });

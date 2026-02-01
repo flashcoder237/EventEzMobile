@@ -22,11 +22,13 @@ import WebViewMap from '../../components/maps/WebViewMap';
 import EventCard from '../../components/events/EventCard';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -379,6 +381,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray900,
     paddingVertical: 4,
   },
@@ -412,7 +415,7 @@ const styles = StyleSheet.create({
   categoryChipText: {
     fontSize: FontSizes.sm,
     color: Colors.gray600,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   categoryChipTextActive: {
     color: Colors.white,
@@ -454,13 +457,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   emptyTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    ...TextStyles.h4,
     color: Colors.gray700,
     marginBottom: Spacing.xs,
   },
   emptyText: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     textAlign: 'center',
   },
@@ -521,9 +523,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   selectedCardTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
     marginBottom: Spacing.xs,
   },
   selectedCardMeta: {

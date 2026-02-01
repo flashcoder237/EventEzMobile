@@ -23,10 +23,12 @@ import { usersAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -626,8 +628,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   headerTitle: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
     color: Colors.white,
     marginBottom: 4,
   },
@@ -672,12 +674,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sectionTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   sectionSubtitle: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },
@@ -707,12 +707,11 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   settingTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
+    fontFamily: FontFamily.medium,
   },
   settingSubtitle: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },
@@ -747,13 +746,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   modalTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h4,
     textAlign: 'center',
   },
   modalSubtitle: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray600,
     textAlign: 'center',
     marginTop: Spacing.sm,
@@ -797,8 +794,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    ...TextStyles.button,
     color: Colors.gray700,
   },
   deleteButton: {
@@ -810,8 +806,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 });

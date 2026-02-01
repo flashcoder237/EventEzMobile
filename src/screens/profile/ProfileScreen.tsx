@@ -19,11 +19,13 @@ import { ticketPurchasesAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -291,9 +293,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerTitle: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h2,
   },
   settingsButton: {
     width: 44,
@@ -331,8 +331,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
     color: Colors.gray600,
   },
   userInfo: {
@@ -340,12 +340,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   userName: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.h4,
   },
   userEmail: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },
@@ -375,12 +373,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h2,
   },
   statLabel: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },
@@ -393,8 +389,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   menuSectionTitle: {
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    ...TextStyles.label,
     color: Colors.gray500,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
@@ -429,15 +424,14 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   menuTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
+    fontFamily: FontFamily.medium,
   },
   menuTitleDanger: {
     color: Colors.error,
   },
   menuSubtitle: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },

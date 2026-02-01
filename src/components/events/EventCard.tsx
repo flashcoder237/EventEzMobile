@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   Spacing,
@@ -277,7 +278,7 @@ const styles = StyleSheet.create({
   },
   defaultDate: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.primary,
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -285,7 +286,7 @@ const styles = StyleSheet.create({
   },
   defaultTitle: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginBottom: 6,
     lineHeight: 20,
@@ -322,14 +323,14 @@ const styles = StyleSheet.create({
   },
   horizontalDate: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.primary,
     marginBottom: 4,
     textTransform: 'uppercase',
   },
   horizontalTitle: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginBottom: 4,
     lineHeight: 20,
@@ -377,7 +378,7 @@ const styles = StyleSheet.create({
   },
   compactDate: {
     fontSize: 10,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.primary,
     marginBottom: 4,
     textTransform: 'uppercase',
@@ -425,7 +426,7 @@ const styles = StyleSheet.create({
   },
   featuredDate: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.primary,
     marginBottom: 6,
     textTransform: 'uppercase',
@@ -433,7 +434,7 @@ const styles = StyleSheet.create({
   },
   featuredTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: 8,
     lineHeight: 24,

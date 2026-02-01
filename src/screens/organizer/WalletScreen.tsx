@@ -31,10 +31,12 @@ import {
 } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -805,8 +807,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   settingsButton: {
@@ -827,8 +829,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   balanceAmount: {
+    fontFamily: FontFamily.displayBold,
     fontSize: 36,
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   balanceCurrency: {
@@ -874,8 +876,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.5)',
   },
   withdrawButtonText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
     color: '#7C3AED',
   },
   commissionInfo: {
@@ -909,8 +911,8 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.primary,
   },
   tabText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.gray500,
   },
   tabTextActive: {
@@ -932,8 +934,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   sectionTitle: {
+    fontFamily: FontFamily.displaySemiBold,
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
     color: Colors.gray900,
   },
   seeAll: {

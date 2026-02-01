@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   },
   dateDay: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.white,
     lineHeight: 24,
   },
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
   },
   organizerName: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   followOrgButton: {
@@ -547,7 +547,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.gray900,
     marginTop: Spacing.xs,
   },
@@ -571,6 +571,7 @@ const styles = StyleSheet.create({
   },
   description: {
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray600,
     lineHeight: 24,
   },
@@ -616,7 +617,7 @@ const styles = StyleSheet.create({
   },
   priceValue: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
   ctaButton: {
@@ -630,7 +631,7 @@ const styles = StyleSheet.create({
   },
   ctaButtonText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.white,
   },
 });

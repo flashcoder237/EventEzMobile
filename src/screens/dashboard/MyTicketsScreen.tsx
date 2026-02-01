@@ -19,10 +19,12 @@ import { ticketPurchasesAPI } from '../../api/client';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
   FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -303,9 +305,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   headerTitle: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h2,
   },
 
   // Tabs
@@ -329,7 +329,7 @@ const styles = StyleSheet.create({
   },
   tabButtonText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray600,
   },
   tabButtonTextActive: {
@@ -378,8 +378,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dateDay: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   dateMonth: {
@@ -402,9 +402,7 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   eventTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
     marginBottom: Spacing.xs,
   },
   ticketTypeRow: {
@@ -481,13 +479,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    ...TextStyles.h4,
     color: Colors.gray700,
     marginBottom: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSizes.base,
+    ...TextStyles.body,
     color: Colors.gray500,
     textAlign: 'center',
     lineHeight: 22,
@@ -503,8 +500,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   emptyButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 });
