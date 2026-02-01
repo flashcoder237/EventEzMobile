@@ -70,12 +70,7 @@ export default function RootNavigator() {
             name="EventDetails"
             component={EventDetailsScreen}
             options={{
-              headerShown: true,
-              headerTitle: '',
-              headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
-              headerShadowVisible: false,
+              headerShown: false,
             }}
           />
           <Stack.Screen
@@ -138,12 +133,7 @@ export default function RootNavigator() {
             name="Notifications"
             component={NotificationsScreen}
             options={{
-              headerShown: true,
-              headerTitle: 'Notifications',
-              headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
-              headerShadowVisible: false,
+              headerShown: false,
             }}
           />
           <Stack.Screen
@@ -157,12 +147,7 @@ export default function RootNavigator() {
             name="Settings"
             component={SettingsScreen}
             options={{
-              headerShown: true,
-              headerTitle: 'Paramètres',
-              headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
-              headerShadowVisible: false,
+              headerShown: false,
             }}
           />
           <Stack.Screen
@@ -183,12 +168,7 @@ export default function RootNavigator() {
             name="Messages"
             component={MessagesScreen}
             options={{
-              headerShown: true,
-              headerTitle: 'Messages',
-              headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
-              headerShadowVisible: false,
+              headerShown: false,
             }}
           />
           <Stack.Screen
@@ -209,24 +189,14 @@ export default function RootNavigator() {
             name="EventCreate"
             component={EventCreateScreen}
             options={{
-              headerShown: true,
-              headerTitle: 'Créer un événement',
-              headerBackTitle: 'Annuler',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
-              headerShadowVisible: false,
+              headerShown: false,
             }}
           />
           <Stack.Screen
             name="Wallet"
             component={WalletScreen}
             options={{
-              headerShown: true,
-              headerTitle: 'Mon Portefeuille',
-              headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
-              headerShadowVisible: false,
+              headerShown: false,
             }}
           />
           <Stack.Screen

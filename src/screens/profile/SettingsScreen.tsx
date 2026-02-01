@@ -277,6 +277,12 @@ export default function SettingsScreen() {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+        </TouchableOpacity>
         <View style={styles.headerContent}>
           <View style={styles.headerIconContainer}>
             <Ionicons name="settings" size={24} color="rgba(255,255,255,0.8)" />
@@ -604,6 +610,14 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
   headerContent: {
     flexDirection: 'row',

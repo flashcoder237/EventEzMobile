@@ -15,7 +15,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   mainButtonText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.white,
   },
   mainButtonTextFollowing: {
@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.white,
   },
   badgeTextFollowing: {
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
   },
   compactText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
   },
   compactTextActive: {
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   modalCancel: {
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   },
   modalSave: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.primary,
   },
   modalSaveDisabled: {
@@ -486,7 +486,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray500,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,

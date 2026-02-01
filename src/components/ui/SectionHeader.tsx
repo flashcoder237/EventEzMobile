@@ -5,7 +5,7 @@ import AnimatedPressable from './AnimatedPressable';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
   Spacing,
 } from '../../constants/theme';
 
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.primary,
   },
 });

@@ -644,11 +644,23 @@ export default function EventCreateScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
+        {/* Header with back button */}
+        <View style={styles.headerBar}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          </TouchableOpacity>
+          <Text style={styles.headerBarTitle}>Créer un événement</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
         {/* Progress Steps */}
         <View style={styles.progressContainer}>
           {steps.map((step, index) => (
@@ -766,6 +778,28 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+    backgroundColor: Colors.white,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerBarTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.lg,
+    color: Colors.gray900,
   },
   progressContainer: {
     flexDirection: 'row',

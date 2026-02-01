@@ -12,7 +12,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   Spacing,
   BorderRadius,
 } from '../../constants/theme';
@@ -31,6 +30,7 @@ interface EventCardProps {
   attendees?: number;
   isFree?: boolean;
   isLiked?: boolean;
+  eventType?: 'billetterie' | 'inscription';
   variant?: 'default' | 'featured' | 'horizontal' | 'compact';
   onPress?: () => void;
   onLikePress?: () => void;
@@ -48,14 +48,26 @@ function EventCard({
   attendees,
   isFree = false,
   isLiked = false,
+  eventType,
   variant = 'default',
   onPress,
   onLikePress,
 }: EventCardProps) {
   const formatPrice = () => {
+    // Événement explicitement gratuit
     if (isFree) return 'Gratuit';
-    if (typeof price === 'number') return `${price.toLocaleString()} FCFA`;
-    return price || 'Gratuit';
+    // Prix numérique défini (y compris 0 pour les billets gratuits dans un événement payant)
+    if (typeof price === 'number' && price > 0) return `${price.toLocaleString()} FCFA`;
+    // Prix chaîne définie
+    if (typeof price === 'string' && price.trim()) return price;
+    // Prix non défini mais pas marqué gratuit - ne pas afficher "Gratuit"
+    return 'Voir prix';
+  };
+
+  const getEventTypeLabel = () => {
+    if (eventType === 'billetterie') return 'Billetterie';
+    if (eventType === 'inscription') return 'Inscription';
+    return null;
   };
 
   const formatDateShort = () => {
@@ -83,17 +95,25 @@ function EventCard({
 
   // ===== HORIZONTAL VARIANT (List item style - Eventbrite) =====
   if (variant === 'horizontal') {
+    const typeLabel = getEventTypeLabel();
     return (
       <TouchableOpacity
         onPress={onPress}
         style={styles.horizontalCard}
         activeOpacity={0.7}
       >
-        <Image
-          source={{ uri: imageUrl || defaultImage }}
-          style={styles.horizontalImage}
-          resizeMode="cover"
-        />
+        <View>
+          <Image
+            source={{ uri: imageUrl || defaultImage }}
+            style={styles.horizontalImage}
+            resizeMode="cover"
+          />
+          {typeLabel && (
+            <View style={[styles.eventTypeBadge, eventType === 'inscription' && styles.inscriptionBadge]}>
+              <Text style={styles.eventTypeBadgeText}>{typeLabel}</Text>
+            </View>
+          )}
+        </View>
         <View style={styles.horizontalContent}>
           <Text style={styles.horizontalDate}>
             {formatDateShort()} {time && `· ${formatTime()}`}
@@ -155,6 +175,7 @@ function EventCard({
 
   // ===== FEATURED VARIANT (Large hero card) =====
   if (variant === 'featured') {
+    const typeLabel = getEventTypeLabel();
     return (
       <TouchableOpacity
         onPress={onPress}
@@ -166,6 +187,11 @@ function EventCard({
           style={styles.featuredImage}
           resizeMode="cover"
         />
+        {typeLabel && (
+          <View style={[styles.eventTypeBadge, eventType === 'inscription' && styles.inscriptionBadge]}>
+            <Text style={styles.eventTypeBadgeText}>{typeLabel}</Text>
+          </View>
+        )}
         <TouchableOpacity
           onPress={onLikePress}
           style={styles.featuredBookmark}
@@ -203,6 +229,7 @@ function EventCard({
   }
 
   // ===== DEFAULT VARIANT (Standard scrollable card) =====
+  const typeLabel = getEventTypeLabel();
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -214,6 +241,11 @@ function EventCard({
         style={styles.defaultImage}
         resizeMode="cover"
       />
+      {typeLabel && (
+        <View style={[styles.eventTypeBadge, eventType === 'inscription' && styles.inscriptionBadge]}>
+          <Text style={styles.eventTypeBadgeText}>{typeLabel}</Text>
+        </View>
+      )}
       <TouchableOpacity
         onPress={onLikePress}
         style={styles.defaultBookmark}
@@ -298,7 +330,7 @@ const styles = StyleSheet.create({
   },
   defaultPrice: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray700,
   },
 
@@ -350,12 +382,12 @@ const styles = StyleSheet.create({
   },
   priceText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray700,
   },
   freeText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.success,
   },
 
@@ -385,14 +417,14 @@ const styles = StyleSheet.create({
   },
   compactTitle: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginBottom: 4,
     lineHeight: 16,
   },
   compactPrice: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray600,
   },
 
@@ -452,7 +484,7 @@ const styles = StyleSheet.create({
   },
   featuredPrice: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray700,
   },
 
@@ -478,8 +510,27 @@ const styles = StyleSheet.create({
   },
   freeBadgeTextSmall: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.success,
+  },
+  // Event type badge
+  eventTypeBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  eventTypeBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+    textTransform: 'uppercase',
+  },
+  inscriptionBadge: {
+    backgroundColor: Colors.secondary,
   },
 });
 

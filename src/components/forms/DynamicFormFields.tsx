@@ -16,7 +16,7 @@ import { FormField } from '../../types';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
   },
   required: {
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
   },
   selectOptionTextActive: {
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   radioContainer: {
     gap: Spacing.sm,
@@ -555,7 +555,7 @@ const styles = StyleSheet.create({
   },
   stepNumber: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray500,
   },
   stepNumberActive: {
@@ -572,7 +572,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginBottom: 4,
   },
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
   },
   navButtonText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
   },
   navButtonTextDisabled: {
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   },
   navButtonTextPrimary: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.white,
   },
 });

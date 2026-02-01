@@ -142,6 +142,7 @@ export default function HomeScreen() {
           category={item.category?.name}
           price={item.is_free ? 0 : (item.base_price || item.min_price)}
           isFree={item.is_free}
+          eventType={item.event_type}
           attendees={item.registration_count || item.registrations_count}
           variant="featured"
           onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
@@ -164,6 +165,7 @@ export default function HomeScreen() {
           category={item.category?.name}
           price={item.is_free ? 0 : (item.base_price || item.min_price)}
           isFree={item.is_free}
+          eventType={item.event_type}
           attendees={item.registration_count || item.registrations_count}
           variant="default"
           onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}

@@ -6,7 +6,6 @@ import AnimatedPressable from '../ui/AnimatedPressable';
 import {
   Colors,
   FontSizes,
-  FontWeights,
   Spacing,
   BorderRadius,
   Shadows,
@@ -143,7 +142,7 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     textAlign: 'center',
   },
@@ -206,7 +205,7 @@ const styles = StyleSheet.create({
   },
   compactName: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
   },
 });

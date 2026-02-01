@@ -9,6 +9,7 @@ import {
   FlatList,
   StatusBar,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -32,24 +33,51 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ViewMode = 'list' | 'map';
+type EventTypeFilter = 'all' | 'billetterie' | 'inscription';
+type PriceFilter = 'all' | 'free' | 'paid';
+type DateFilter = 'all' | 'today' | 'weekend' | 'week' | 'month';
+
+interface Filters {
+  eventType: EventTypeFilter;
+  price: PriceFilter;
+  date: DateFilter;
+}
 
 export default function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [events, setEvents] = useState<Event[]>([]);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [markers, setMarkers] = useState<MapMarker[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<Filters>({
+    eventType: 'all',
+    price: 'all',
+    date: 'all',
+  });
+  const [tempFilters, setTempFilters] = useState<Filters>({
+    eventType: 'all',
+    price: 'all',
+    date: 'all',
+  });
   const [region, setRegion] = useState({
     latitude: 3.848,
     longitude: 11.502,
     latitudeDelta: 0.5,
     longitudeDelta: 0.5,
   });
+
+  const activeFiltersCount = [
+    filters.eventType !== 'all',
+    filters.price !== 'all',
+    filters.date !== 'all',
+  ].filter(Boolean).length;
 
   useEffect(() => {
     requestLocationAndFetch();
@@ -59,6 +87,65 @@ export default function ExploreScreen() {
   useEffect(() => {
     fetchEvents();
   }, [searchQuery, selectedCategory]);
+
+  useEffect(() => {
+    applyFilters();
+  }, [events, filters]);
+
+  const applyFilters = () => {
+    let result = [...events];
+
+    // Filter by event type
+    if (filters.eventType !== 'all') {
+      result = result.filter(event => event.event_type === filters.eventType);
+    }
+
+    // Filter by price
+    if (filters.price === 'free') {
+      result = result.filter(event => event.is_free);
+    } else if (filters.price === 'paid') {
+      result = result.filter(event => !event.is_free);
+    }
+
+    // Filter by date
+    if (filters.date !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      result = result.filter(event => {
+        const eventDate = new Date(event.start_date);
+        const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+        switch (filters.date) {
+          case 'today':
+            return eventDay.getTime() === today.getTime();
+          case 'weekend': {
+            const dayOfWeek = today.getDay();
+            const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+            const saturday = new Date(today);
+            saturday.setDate(today.getDate() + daysUntilSaturday);
+            const sunday = new Date(saturday);
+            sunday.setDate(saturday.getDate() + 1);
+            return eventDay >= saturday && eventDay <= sunday;
+          }
+          case 'week': {
+            const weekEnd = new Date(today);
+            weekEnd.setDate(today.getDate() + 7);
+            return eventDay >= today && eventDay <= weekEnd;
+          }
+          case 'month': {
+            const monthEnd = new Date(today);
+            monthEnd.setMonth(today.getMonth() + 1);
+            return eventDay >= today && eventDay <= monthEnd;
+          }
+          default:
+            return true;
+        }
+      });
+    }
+
+    setFilteredEvents(result);
+  };
 
   const requestLocationAndFetch = async () => {
     try {
@@ -153,6 +240,27 @@ export default function ExploreScreen() {
     });
   };
 
+  const openFilters = () => {
+    setTempFilters({ ...filters });
+    setShowFilters(true);
+  };
+
+  const applyFilterChanges = () => {
+    setFilters({ ...tempFilters });
+    setShowFilters(false);
+  };
+
+  const resetFilters = () => {
+    const defaultFilters: Filters = {
+      eventType: 'all',
+      price: 'all',
+      date: 'all',
+    };
+    setTempFilters(defaultFilters);
+    setFilters(defaultFilters);
+    setShowFilters(false);
+  };
+
   const renderEvent = useCallback(
     ({ item }: { item: Event }) => (
       <View style={styles.eventCardContainer}>
@@ -166,6 +274,7 @@ export default function ExploreScreen() {
           category={item.category?.name}
           price={item.is_free ? 0 : (item.base_price || item.min_price)}
           isFree={item.is_free}
+          eventType={item.event_type}
           attendees={item.registration_count || item.registrations_count}
           variant="horizontal"
           onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
@@ -175,9 +284,122 @@ export default function ExploreScreen() {
     [navigation]
   );
 
+  const renderFilterOption = (
+    label: string,
+    value: string,
+    currentValue: string,
+    onPress: () => void
+  ) => (
+    <TouchableOpacity
+      style={[
+        styles.filterOption,
+        currentValue === value && styles.filterOptionActive,
+      ]}
+      onPress={onPress}
+    >
+      <Text
+        style={[
+          styles.filterOptionText,
+          currentValue === value && styles.filterOptionTextActive,
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
+  const renderFiltersModal = () => (
+    <Modal
+      visible={showFilters}
+      animationType="slide"
+      transparent
+      onRequestClose={() => setShowFilters(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          {/* Header */}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Filtres</Text>
+            <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <Ionicons name="close" size={24} color={Colors.gray700} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* Event Type Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Type d'événement</Text>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('Tous', 'all', tempFilters.eventType, () =>
+                  setTempFilters({ ...tempFilters, eventType: 'all' })
+                )}
+                {renderFilterOption('Billetterie', 'billetterie', tempFilters.eventType, () =>
+                  setTempFilters({ ...tempFilters, eventType: 'billetterie' })
+                )}
+                {renderFilterOption('Inscription', 'inscription', tempFilters.eventType, () =>
+                  setTempFilters({ ...tempFilters, eventType: 'inscription' })
+                )}
+              </View>
+            </View>
+
+            {/* Price Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Prix</Text>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('Tous', 'all', tempFilters.price, () =>
+                  setTempFilters({ ...tempFilters, price: 'all' })
+                )}
+                {renderFilterOption('Gratuit', 'free', tempFilters.price, () =>
+                  setTempFilters({ ...tempFilters, price: 'free' })
+                )}
+                {renderFilterOption('Payant', 'paid', tempFilters.price, () =>
+                  setTempFilters({ ...tempFilters, price: 'paid' })
+                )}
+              </View>
+            </View>
+
+            {/* Date Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Date</Text>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('Tous', 'all', tempFilters.date, () =>
+                  setTempFilters({ ...tempFilters, date: 'all' })
+                )}
+                {renderFilterOption("Aujourd'hui", 'today', tempFilters.date, () =>
+                  setTempFilters({ ...tempFilters, date: 'today' })
+                )}
+              </View>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('Ce weekend', 'weekend', tempFilters.date, () =>
+                  setTempFilters({ ...tempFilters, date: 'weekend' })
+                )}
+                {renderFilterOption('Cette semaine', 'week', tempFilters.date, () =>
+                  setTempFilters({ ...tempFilters, date: 'week' })
+                )}
+                {renderFilterOption('Ce mois', 'month', tempFilters.date, () =>
+                  setTempFilters({ ...tempFilters, date: 'month' })
+                )}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Footer */}
+          <View style={styles.modalFooter}>
+            <TouchableOpacity style={styles.resetButton} onPress={resetFilters}>
+              <Text style={styles.resetButtonText}>Réinitialiser</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.applyButton} onPress={applyFilterChanges}>
+              <Text style={styles.applyButtonText}>Appliquer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   const renderListView = () => (
     <FlatList
-      data={events}
+      data={filteredEvents}
       renderItem={renderEvent}
       keyExtractor={(item) => item.id}
       contentContainerStyle={styles.listContent}
@@ -272,7 +494,18 @@ export default function ExploreScreen() {
           )}
         </View>
         <TouchableOpacity
-          style={styles.filterButton}
+          style={[styles.filterButton, activeFiltersCount > 0 && styles.filterButtonActive]}
+          onPress={openFilters}
+        >
+          <Ionicons name="options-outline" size={22} color={activeFiltersCount > 0 ? Colors.white : Colors.gray700} />
+          {activeFiltersCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.mapToggleButton}
           onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
         >
           <Ionicons
@@ -336,8 +569,13 @@ export default function ExploreScreen() {
       {viewMode === 'list' && !loading && (
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
-            {events.length} événement{events.length !== 1 ? 's' : ''}
+            {filteredEvents.length} événement{filteredEvents.length !== 1 ? 's' : ''}
           </Text>
+          {activeFiltersCount > 0 && (
+            <TouchableOpacity onPress={resetFilters}>
+              <Text style={styles.clearFiltersText}>Effacer les filtres</Text>
+            </TouchableOpacity>
+          )}
         </View>
       )}
 
@@ -351,6 +589,9 @@ export default function ExploreScreen() {
       ) : (
         renderMapView()
       )}
+
+      {/* Filters Modal */}
+      {renderFiltersModal()}
     </SafeAreaView>
   );
 }
@@ -392,6 +633,33 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  filterButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: Colors.white,
+  },
+  mapToggleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.gray50,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   categoriesContainer: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
@@ -420,12 +688,20 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   resultsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
   resultsCount: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
+    fontFamily: FontFamily.medium,
+  },
+  clearFiltersText: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
     fontFamily: FontFamily.medium,
   },
   loadingContainer: {
@@ -541,5 +817,101 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  modalTitle: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
+  },
+  modalBody: {
+    padding: Spacing.lg,
+  },
+  filterSection: {
+    marginBottom: Spacing.xl,
+  },
+  filterSectionTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.md,
+  },
+  filterOptionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  filterOption: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    backgroundColor: Colors.white,
+  },
+  filterOptionActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterOptionText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray700,
+  },
+  filterOptionTextActive: {
+    color: Colors.white,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+    gap: Spacing.md,
+  },
+  resetButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray700,
+  },
+  applyButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
 });

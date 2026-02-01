@@ -335,6 +335,12 @@ export default function MessagesScreen() {
       {/* Header */}
       <View style={styles.headerContainer}>
         <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
           <View style={styles.headerLeft}>
             <View style={styles.headerIconContainer}>
               <Ionicons name="chatbubbles" size={24} color={Colors.white} />
@@ -491,7 +497,15 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
   },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerLeft: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
   },

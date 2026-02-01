@@ -12,7 +12,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
@@ -293,7 +292,7 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: Colors.gray700,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     letterSpacing: 0.3,
   },
   ghostButton: {
@@ -304,7 +303,7 @@ const styles = StyleSheet.create({
   },
   ghostText: {
     color: Colors.primary,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     letterSpacing: 0.3,
   },
   buttonDisabled: {
