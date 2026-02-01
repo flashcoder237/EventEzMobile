@@ -14,6 +14,7 @@ import {
   FontSizes,
   Spacing,
   BorderRadius,
+  Shadows,
 } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -417,14 +418,13 @@ function EventCard({
 }
 
 const styles = StyleSheet.create({
-  // ===== DEFAULT CARD =====
+  // ===== DEFAULT CARD - Premium Elevated Style =====
   defaultCard: {
     width: SCREEN_WIDTH * 0.7,
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.gray100,
+    ...Shadows.card,
   },
   defaultImage: {
     width: '100%',
@@ -438,37 +438,40 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
+    ...Shadows.sm,
   },
   defaultContent: {
     padding: Spacing.md,
+    paddingTop: Spacing.base,
   },
   defaultDate: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.bold,
     color: Colors.primary,
-    marginBottom: 6,
+    marginBottom: 8,
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   defaultTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
-    marginBottom: 6,
-    lineHeight: 20,
+    marginBottom: 8,
+    lineHeight: 22,
   },
   defaultLocation: {
     fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   defaultPrice: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.bold,
+    color: Colors.gray800,
   },
 
   // ===== HORIZONTAL CARD =====

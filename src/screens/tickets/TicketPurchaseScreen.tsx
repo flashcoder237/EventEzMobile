@@ -56,7 +56,7 @@ export default function TicketPurchaseScreen() {
   const fetchData = async () => {
     try {
       const [eventRes, ticketsRes] = await Promise.all([
-        eventsAPI.getEventById(eventId),
+        eventsAPI.getEvent(eventId),
         ticketTypesAPI.getTicketTypes({ event: eventId }),
       ]);
 

@@ -65,7 +65,7 @@ export default function QRScannerScreen() {
   useEffect(() => {
     const fetchEvent = async () => {
       try {
-        const response = await eventsAPI.getEventById(eventId);
+        const response = await eventsAPI.getEvent(eventId);
         setEvent(response.data);
       } catch (error) {
         console.error('Error fetching event:', error);
