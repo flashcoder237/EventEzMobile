@@ -6,25 +6,45 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.eventez.mobile"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "package": "com.eventez.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Permet à EventEz d'accéder à votre position pour trouver des événements à proximité."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Permet à EventEz d'utiliser la caméra pour scanner les QR codes."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#7c3aed"
+        }
+      ]
+    ]
   }
 }
