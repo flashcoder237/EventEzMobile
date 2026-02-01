@@ -1,6 +1,6 @@
 // ============================================
 // EventEz Mobile API Client
-// Complete API with all endpoints from web frontend
+// Synchronisé avec les endpoints API du backend Django
 // ============================================
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
@@ -205,15 +205,14 @@ export const authAPI = {
 // ============================================
 
 export const usersAPI = {
-  getOrganizers: (params?: any) =>
-    api.get('/users/organizers/', { params }),
-
+  // CRUD de base
   getUsers: (params?: any) =>
     api.get('/users/', { params }),
 
   getUser: (id: string) =>
     api.get(`/users/${id}/`),
 
+  // Utilisateur courant
   getCurrentUser: () =>
     api.get('/users/me/'),
 
@@ -228,22 +227,6 @@ export const usersAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
 
-  changePassword: (data: { current_password: string; new_password: string }) =>
-    api.post('/users/change_password/', data),
-
-  becomeOrganizer: (data?: {
-    user_type: 'individual' | 'organization';
-    company_name?: string;
-    registration_number?: string;
-    phone?: string;
-  }) => api.post('/users/become_organizer/', data || {}),
-
-  updateNotificationSettings: (data: any) =>
-    api.patch('/users/notification_settings/', data),
-
-  getUserAnalytics: () =>
-    api.get('/users/analytics/'),
-
   getUserSettings: () =>
     api.get('/users/me/settings/'),
 
@@ -252,6 +235,43 @@ export const usersAPI = {
 
   deleteAccount: (data: { password: string; reason?: string }) =>
     api.post('/users/me/delete_account/', data),
+
+  // Organisateurs
+  getOrganizers: (params?: any) =>
+    api.get('/users/organizers/', { params }),
+
+  becomeOrganizer: (data?: {
+    organizer_type: 'individual' | 'organization';
+    company_name?: string;
+    registration_number?: string;
+    phone?: string;
+  }) => api.post('/users/become_organizer/', data || {}),
+
+  // Authentification & Sécurité
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    api.post('/users/change_password/', data),
+
+  // Notifications
+  updateNotificationSettings: (data: any) =>
+    api.patch('/users/notification_settings/', data),
+
+  // Analytics
+  getUserAnalytics: () =>
+    api.get('/users/analytics/'),
+
+  // Admin/Modérateur: Création d'utilisateurs
+  createUser: (data: any) =>
+    api.post('/users/create_user/', data),
+
+  // Admin/Modérateur: Vérification de profils
+  getPendingVerification: () =>
+    api.get('/users/pending_verification/'),
+
+  verifyProfile: (id: string, data?: { verified_status?: boolean; note?: string }) =>
+    api.post(`/users/${id}/verify_profile/`, data || {}),
+
+  rejectProfile: (id: string, data: { reason: string }) =>
+    api.post(`/users/${id}/reject_profile/`, data),
 };
 
 // ============================================
@@ -259,14 +279,38 @@ export const usersAPI = {
 // ============================================
 
 export const categoriesAPI = {
+  // CRUD de base
   getCategories: (params?: any) =>
     api.get('/categories/', { params }),
 
   getCategory: (id: number) =>
     api.get(`/categories/${id}/`),
 
+  createCategory: (data: any) =>
+    api.post('/categories/', data),
+
+  updateCategory: (id: number, data: any) =>
+    api.put(`/categories/${id}/`, data),
+
+  deleteCategory: (id: number) =>
+    api.delete(`/categories/${id}/`),
+
+  // Actions
   getCategoryEvents: (id: number) =>
     api.get(`/categories/${id}/events/`),
+
+  toggleActive: (id: number) =>
+    api.post(`/categories/${id}/toggle_active/`),
+
+  uploadImage: (id: number, formData: FormData) =>
+    api.post(`/categories/${id}/upload_image/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  uploadDefaultEventImage: (id: number, formData: FormData) =>
+    api.post(`/categories/${id}/upload_default_event_image/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 };
 
 // ============================================
@@ -395,6 +439,10 @@ export const eventsAPI = {
 
   updateFormFields: (id: string, fieldsData: any) =>
     api.post(`/events/${id}/update_form_fields/`, fieldsData),
+
+  // Demande de mise en avant
+  requestFeature: (id: string, data?: any) =>
+    api.post(`/events/${id}/request_feature/`, data || {}),
 };
 
 // ============================================
@@ -453,6 +501,7 @@ export const ticketsAPI = ticketPurchasesAPI;
 // ============================================
 
 export const discountsAPI = {
+  // CRUD de base
   getDiscounts: (params?: any) =>
     api.get('/discounts/', { params }),
 
@@ -465,11 +514,19 @@ export const discountsAPI = {
   updateDiscount: (id: string, data: any) =>
     api.put(`/discounts/${id}/`, data),
 
+  patchDiscount: (id: string, data: any) =>
+    api.patch(`/discounts/${id}/`, data),
+
   deleteDiscount: (id: string) =>
     api.delete(`/discounts/${id}/`),
 
-  validateDiscount: (code: string, eventId: string) =>
-    api.post('/discounts/validate/', { code, event: eventId }),
+  // Validation de code promo
+  validateDiscount: (code: string, eventId: string, ticketTypeId?: string) =>
+    api.post('/discounts/validate/', {
+      code,
+      event: eventId,
+      ticket_type: ticketTypeId
+    }),
 };
 
 // ============================================
@@ -477,6 +534,7 @@ export const discountsAPI = {
 // ============================================
 
 export const registrationsAPI = {
+  // CRUD de base
   getRegistrations: (params?: any) =>
     api.get('/registrations/', { params }),
 
@@ -495,15 +553,32 @@ export const registrationsAPI = {
   deleteRegistration: (id: string) =>
     api.delete(`/registrations/${id}/`),
 
+  // Mes inscriptions
   getMyRegistrations: () =>
     api.get('/registrations/my_registrations/'),
 
+  // Recherche et filtres
+  searchRegistrations: (params?: any) =>
+    api.get('/registrations/search/', { params }),
+
+  getByUser: (params?: { user_id?: string }) =>
+    api.get('/registrations/by_user/', { params }),
+
+  // QR Codes et billets
   generateQrCodes: (id: string) =>
     api.post(`/registrations/${id}/generate_qr_codes/`),
+
+  bulkGenerateTickets: (registrationIds: string[]) =>
+    api.post('/registrations/bulk_generate_tickets/', { registration_ids: registrationIds }),
+
+  // Validation et annulation
+  validateRegistration: (id: string) =>
+    api.post(`/registrations/${id}/validate/`),
 
   cancelRegistration: (id: string) =>
     api.post(`/registrations/${id}/cancel/`),
 
+  // Check-in
   checkIn: (id: string) =>
     api.post(`/registrations/${id}/check_in/`),
 
@@ -516,13 +591,22 @@ export const registrationsAPI = {
   bulkCheckIn: (registrationIds: string[]) =>
     api.post('/registrations/bulk_check_in/', { registration_ids: registrationIds }),
 
+  // Statistiques
   getRegistrationStats: (eventId: string) =>
     api.get('/registrations/stats/', { params: { event_id: eventId } }),
 
+  // Communication
   resendConfirmation: (registrationId: string) =>
     api.post(`/registrations/${registrationId}/resend_confirmation/`),
 
-  // Approval endpoints
+  sendEmail: (data: { registration_ids: string[]; subject: string; message: string }) =>
+    api.post('/registrations/send_email/', data),
+
+  // Export
+  exportRegistrations: (params?: { event_id?: string; format?: 'csv' | 'xlsx' }) =>
+    api.get('/registrations/export/', { params, responseType: 'blob' }),
+
+  // Approbation par l'organisateur
   getPendingApproval: (params?: any) =>
     api.get('/registrations/pending_approval/', { params }),
 
@@ -613,32 +697,80 @@ export const validationsAPI = {
 // ============================================
 
 export const notificationsAPI = {
+  // CRUD de base
   getNotifications: (params?: any) =>
     api.get('/notifications/', { params }),
 
   getNotification: (id: string) =>
     api.get(`/notifications/${id}/`),
 
+  deleteNotification: (id: string) =>
+    api.delete(`/notifications/${id}/`),
+
+  // Lecture
   markAsRead: (id: string) =>
     api.post(`/notifications/${id}/mark_as_read/`),
 
   markAllAsRead: () =>
     api.post('/notifications/mark_all_as_read/'),
 
-  deleteNotification: (id: string) =>
-    api.delete(`/notifications/${id}/`),
-
+  // Suppression multiple
   deleteMultiple: (notificationIds: string[]) =>
     api.post('/notifications/delete_multiple/', { notification_ids: notificationIds }),
 
-  getNotificationStatistics: (params?: any) =>
-    api.get('/notifications/statistics/', { params }),
+  // Envoi de notifications (organisateur/admin)
+  sendNotification: (data: {
+    user_ids?: string[];
+    event_id?: string;
+    title: string;
+    message: string;
+    notification_type?: string;
+  }) => api.post('/notifications/send/', data),
+
+  // Planification de notifications
+  scheduleNotification: (data: {
+    user_ids?: string[];
+    event_id?: string;
+    title: string;
+    message: string;
+    scheduled_time: string;
+    notification_type?: string;
+  }) => api.post('/notifications/schedule/', data),
 
   getScheduledNotifications: () =>
     api.get('/notifications/scheduled/'),
 
+  cancelScheduledNotification: (id: string) =>
+    api.post(`/notifications/${id}/cancel_scheduled/`),
+
+  // Statistiques
+  getNotificationStatistics: (params?: any) =>
+    api.get('/notifications/statistics/', { params }),
+
+  // Préférences
   updatePreferences: (data: any) =>
     api.patch('/notifications/preferences/', data),
+};
+
+// ============================================
+// NOTIFICATION TEMPLATES API
+// ============================================
+
+export const notificationTemplatesAPI = {
+  getTemplates: (params?: any) =>
+    api.get('/notification-templates/', { params }),
+
+  getTemplate: (id: string) =>
+    api.get(`/notification-templates/${id}/`),
+
+  createTemplate: (data: any) =>
+    api.post('/notification-templates/', data),
+
+  updateTemplate: (id: string, data: any) =>
+    api.put(`/notification-templates/${id}/`, data),
+
+  deleteTemplate: (id: string) =>
+    api.delete(`/notification-templates/${id}/`),
 };
 
 // ============================================
@@ -646,6 +778,7 @@ export const notificationsAPI = {
 // ============================================
 
 export const sessionsAPI = {
+  // CRUD de base
   getSessions: (params?: any) =>
     api.get('/sessions/', { params }),
 
@@ -661,28 +794,37 @@ export const sessionsAPI = {
   deleteSession: (id: string) =>
     api.delete(`/sessions/${id}/`),
 
+  // Calendrier et mes sessions
   getCalendar: (params?: any) =>
     api.get('/sessions/calendar/', { params }),
 
   getMySessions: () =>
     api.get('/sessions/my_sessions/'),
 
+  // Inscription aux sessions
   registerToSession: (id: string) =>
     api.post(`/sessions/${id}/register/`),
 
   unregisterFromSession: (id: string) =>
     api.post(`/sessions/${id}/unregister/`),
 
+  // Présence
+  markAttended: (id: string, data?: { user_id?: string }) =>
+    api.post(`/sessions/${id}/mark_attended/`, data || {}),
+
+  // Participants
   getAttendees: (id: string) =>
     api.get(`/sessions/${id}/attendees/`),
 
+  // Statistiques
   getStatistics: (id: string) =>
     api.get(`/sessions/${id}/statistics/`),
 
+  // Ressources
   addResource: (id: string, resourceData: any) =>
     api.post(`/sessions/${id}/add_resource/`, resourceData),
 
-  // Session waitlist
+  // Liste d'attente session
   joinWaitlist: (id: string) =>
     api.post(`/sessions/${id}/join_waitlist/`),
 
@@ -694,10 +836,56 @@ export const sessionsAPI = {
 };
 
 // ============================================
+// SESSION REGISTRATIONS API
+// ============================================
+
+export const sessionRegistrationsAPI = {
+  getSessionRegistrations: (params?: any) =>
+    api.get('/session-registrations/', { params }),
+
+  getSessionRegistration: (id: string) =>
+    api.get(`/session-registrations/${id}/`),
+
+  createSessionRegistration: (data: any) =>
+    api.post('/session-registrations/', data),
+
+  updateSessionRegistration: (id: string, data: any) =>
+    api.put(`/session-registrations/${id}/`, data),
+
+  deleteSessionRegistration: (id: string) =>
+    api.delete(`/session-registrations/${id}/`),
+};
+
+// ============================================
+// SESSION RESOURCES API
+// ============================================
+
+export const sessionResourcesAPI = {
+  getSessionResources: (params?: any) =>
+    api.get('/session-resources/', { params }),
+
+  getSessionResource: (id: string) =>
+    api.get(`/session-resources/${id}/`),
+
+  createSessionResource: (data: any) =>
+    api.post('/session-resources/', data),
+
+  updateSessionResource: (id: string, data: any) =>
+    api.put(`/session-resources/${id}/`, data),
+
+  deleteSessionResource: (id: string) =>
+    api.delete(`/session-resources/${id}/`),
+
+  downloadResource: (id: string) =>
+    api.post(`/session-resources/${id}/download/`),
+};
+
+// ============================================
 // SPEAKERS API
 // ============================================
 
 export const speakersAPI = {
+  // CRUD de base
   getSpeakers: (params?: any) =>
     api.get('/speakers/', { params }),
 
@@ -710,11 +898,21 @@ export const speakersAPI = {
   updateSpeaker: (id: string, data: any) =>
     api.put(`/speakers/${id}/`, data),
 
+  patchSpeaker: (id: string, data: any) =>
+    api.patch(`/speakers/${id}/`, data),
+
   deleteSpeaker: (id: string) =>
     api.delete(`/speakers/${id}/`),
 
+  // Sessions du speaker
   getSpeakerSessions: (id: string) =>
     api.get(`/speakers/${id}/sessions/`),
+
+  // Upload photo
+  uploadPhoto: (id: string, formData: FormData) =>
+    api.patch(`/speakers/${id}/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
 };
 
 // ============================================
@@ -743,26 +941,55 @@ export const tracksAPI = {
 // ============================================
 
 export const waitlistAPI = {
+  // CRUD de base
   getWaitlist: (params?: any) =>
     api.get('/waitlist/', { params }),
 
   getWaitlistEntry: (id: string) =>
     api.get(`/waitlist/${id}/`),
 
+  // Rejoindre/Quitter la liste d'attente
   joinWaitlist: (data: { event: string; ticket_type?: string }) =>
     api.post('/waitlist/join/', data),
-
-  getMyWaitlist: () =>
-    api.get('/waitlist/my_waitlist/'),
 
   cancelWaitlist: (id: string) =>
     api.post(`/waitlist/${id}/cancel/`),
 
+  // Ma liste d'attente
+  getMyWaitlist: () =>
+    api.get('/waitlist/my_waitlist/'),
+
+  // Notifications (organisateur)
+  notifyEntry: (id: string) =>
+    api.post(`/waitlist/${id}/notify/`),
+
+  notifyBatch: (data: { event: string; count?: number }) =>
+    api.post('/waitlist/notify_batch/', data),
+
+  // Statistiques
   getStatistics: (eventId: string) =>
     api.get('/waitlist/statistics/', { params: { event: eventId } }),
+};
 
-  notifyBatch: (data: any) =>
-    api.post('/waitlist/notify_batch/', data),
+// ============================================
+// WAITLIST SETTINGS API
+// ============================================
+
+export const waitlistSettingsAPI = {
+  getWaitlistSettings: (params?: any) =>
+    api.get('/waitlist-settings/', { params }),
+
+  getWaitlistSetting: (id: string) =>
+    api.get(`/waitlist-settings/${id}/`),
+
+  createWaitlistSetting: (data: any) =>
+    api.post('/waitlist-settings/', data),
+
+  updateWaitlistSetting: (id: string, data: any) =>
+    api.put(`/waitlist-settings/${id}/`, data),
+
+  deleteWaitlistSetting: (id: string) =>
+    api.delete(`/waitlist-settings/${id}/`),
 };
 
 // ============================================
@@ -921,11 +1148,18 @@ export const commissionsAPI = {
 // ============================================
 
 export const analyticsAPI = {
+  // AnalyticsViewSet actions
   getDashboardSummary: (params?: any) =>
     api.get('/analytics/analytics/dashboard_summary/', { params }),
 
   getEventAnalytics: (params?: any) =>
     api.get('/analytics/analytics/events/', { params }),
+
+  getEventRegistrations: (params?: any) =>
+    api.get('/analytics/analytics/event_registrations/', { params }),
+
+  predictAttendance: (params?: { event_id: string }) =>
+    api.get('/analytics/analytics/predict_attendance/', { params }),
 
   getRegistrationAnalytics: (params?: any) =>
     api.get('/analytics/analytics/registrations/', { params }),
@@ -955,6 +1189,22 @@ export const analyticsAPI = {
   getDashboardWidgets: (id: string) =>
     api.get(`/analytics/dashboards/${id}/widgets/`),
 
+  // Dashboard Widgets
+  getWidgets: (params?: any) =>
+    api.get('/analytics/dashboard-widgets/', { params }),
+
+  getWidget: (id: string) =>
+    api.get(`/analytics/dashboard-widgets/${id}/`),
+
+  createWidget: (data: any) =>
+    api.post('/analytics/dashboard-widgets/', data),
+
+  updateWidget: (id: string, data: any) =>
+    api.put(`/analytics/dashboard-widgets/${id}/`, data),
+
+  deleteWidget: (id: string) =>
+    api.delete(`/analytics/dashboard-widgets/${id}/`),
+
   // Reports
   getReports: (params?: any) =>
     api.get('/analytics/reports/', { params }),
@@ -965,8 +1215,14 @@ export const analyticsAPI = {
   createReport: (data: any) =>
     api.post('/analytics/reports/', data),
 
+  updateReport: (id: string, data: any) =>
+    api.put(`/analytics/reports/${id}/`, data),
+
+  deleteReport: (id: string) =>
+    api.delete(`/analytics/reports/${id}/`),
+
   exportReport: (id: string, format: string) =>
-    api.get(`/analytics/reports/${id}/export/`, { params: { format } }),
+    api.get(`/analytics/reports/${id}/export/`, { params: { format }, responseType: 'blob' }),
 
   generateReport: (data: any) =>
     api.post('/analytics/reports/generate/', data),
@@ -1060,9 +1316,17 @@ export const messagesAPI = {
 // ============================================
 
 export const auditAPI = {
+  // CRUD de base (route: /api/audit/logs/)
   getLogs: (params?: any) =>
-    api.get('/audit/', { params }),
+    api.get('/audit/logs/', { params }),
 
   getLog: (id: string) =>
-    api.get(`/audit/${id}/`),
+    api.get(`/audit/logs/${id}/`),
+
+  // Actions
+  getStatistics: (params?: any) =>
+    api.get('/audit/logs/statistics/', { params }),
+
+  getRecentLogs: (params?: { limit?: number }) =>
+    api.get('/audit/logs/recent/', { params }),
 };
