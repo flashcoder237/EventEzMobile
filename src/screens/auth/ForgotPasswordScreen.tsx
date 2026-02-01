@@ -19,7 +19,8 @@ import { AuthStackParamList } from '../../types';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
+  TextStyles,
   BorderRadius,
   Spacing,
   Shadows,
@@ -272,7 +273,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes['3xl'],
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
     textAlign: 'center',
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     marginBottom: Spacing.xs,
   },
@@ -344,7 +345,7 @@ const styles = StyleSheet.create({
   loginLink: {
     color: Colors.primary,
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
   },
   // Success state
   successContainer: {
@@ -364,7 +365,7 @@ const styles = StyleSheet.create({
   },
   successTitle: {
     fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },

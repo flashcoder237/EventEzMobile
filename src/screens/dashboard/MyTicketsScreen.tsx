@@ -21,7 +21,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   TextStyles,
@@ -349,7 +348,7 @@ const styles = StyleSheet.create({
   },
   tabBadgeText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray600,
   },
   tabBadgeTextActive: {
@@ -384,7 +383,7 @@ const styles = StyleSheet.create({
   },
   dateMonth: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: 'rgba(255,255,255,0.8)',
     textTransform: 'uppercase',
   },
@@ -414,12 +413,12 @@ const styles = StyleSheet.create({
   ticketTypeName: {
     fontSize: FontSizes.sm,
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   ticketQuantity: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
   },
   eventMeta: {
     flexDirection: 'row',
@@ -450,11 +449,11 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
   },
   ticketPrice: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
   qrButton: {

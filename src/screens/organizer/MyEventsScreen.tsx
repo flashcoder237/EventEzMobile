@@ -22,10 +22,11 @@ import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -494,8 +495,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
+    ...TextStyles.h2,
     color: Colors.white,
   },
   addButton: {
@@ -548,8 +548,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#7C3AED',
   },
   filterTabText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.gray600,
   },
   filterTabTextActive: {
@@ -586,16 +586,14 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statusText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
   },
   eventContent: {
     padding: Spacing.md,
   },
   eventTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.h4,
     marginBottom: Spacing.sm,
   },
   eventMeta: {
@@ -627,17 +625,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statValue: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   statLabel: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
   },
   priceText: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.bold,
     color: Colors.primary,
   },
   actionsRow: {
@@ -660,9 +656,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   actionText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
     color: Colors.gray600,
-    fontWeight: FontWeights.medium,
   },
   emptyContainer: {
     flex: 1,
@@ -680,9 +676,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.sm,
   },
   emptyText: {
@@ -703,8 +697,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   createButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 });

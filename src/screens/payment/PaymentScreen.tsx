@@ -20,7 +20,8 @@ import { Registration, RootStackParamList } from '../../types';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
+  TextStyles,
   BorderRadius,
   Spacing,
   Shadows,
@@ -417,7 +418,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
 
@@ -436,7 +437,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
@@ -456,7 +457,7 @@ const styles = StyleSheet.create({
   },
   orderEventTitle: {
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   orderItem: {
@@ -484,7 +485,7 @@ const styles = StyleSheet.create({
   },
   orderItemPrice: {
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   orderTotal: {
@@ -498,12 +499,12 @@ const styles = StyleSheet.create({
   },
   orderTotalLabel: {
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray700,
   },
   orderTotalValue: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.primary,
   },
 
@@ -539,7 +540,7 @@ const styles = StyleSheet.create({
   },
   methodName: {
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   methodDescription: {
@@ -578,7 +579,7 @@ const styles = StyleSheet.create({
   },
   phonePrefixText: {
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray700,
   },
   phoneInput: {
@@ -621,7 +622,7 @@ const styles = StyleSheet.create({
   },
   totalValue: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
   payButton: {
@@ -646,7 +647,7 @@ const styles = StyleSheet.create({
   },
   processingTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,

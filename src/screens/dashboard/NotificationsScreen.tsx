@@ -17,10 +17,11 @@ import { notificationsAPI } from '../../api/client';
 import { Notification } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type FilterType = 'all' | 'unread' | 'read' | 'event' | 'payment' | 'ticket';
@@ -429,8 +430,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
+    ...TextStyles.h2,
     color: Colors.white,
   },
   headerSubtitle: {
@@ -456,8 +456,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   statValue: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   statDot: {
@@ -505,8 +505,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   filterText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.gray600,
   },
   filterTextActive: {
@@ -523,8 +523,8 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.gray100,
   },
   markAllText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.primary,
   },
 
@@ -535,8 +535,8 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.sm,
   },
   sectionTitle: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
     color: Colors.gray500,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   unreadText: {
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   typeBadge: {
@@ -598,8 +598,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   typeBadgeText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
   },
   notificationMessage: {
     fontSize: FontSizes.sm,
@@ -645,9 +645,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.sm,
     textAlign: 'center',
   },

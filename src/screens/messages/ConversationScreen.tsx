@@ -24,10 +24,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Message, RootStackParamList } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -500,14 +501,12 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   headerAvatarText: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   headerTitleText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
     maxWidth: 180,
   },
 
@@ -559,8 +558,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray200,
   },
   messageAvatarInitials: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
     color: Colors.gray600,
   },
 
@@ -653,8 +652,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   emptyText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
     color: Colors.gray500,
   },
   emptySubtext: {

@@ -21,7 +21,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
@@ -357,7 +356,7 @@ const styles = StyleSheet.create({
   },
   organizerBadgeText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.white,
   },
   statsContainer: {

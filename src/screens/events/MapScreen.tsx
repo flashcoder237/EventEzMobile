@@ -13,7 +13,7 @@ import * as Location from 'expo-location';
 import { eventsAPI } from '../../api/client';
 import { MapMarker, RootStackParamList } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
-import { Colors, FontSizes, FontWeights, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { Colors, FontSizes, FontFamily, TextStyles, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Map'>;
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   countText: {
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     fontSize: FontSizes.sm,
   },
@@ -235,13 +235,13 @@ const styles = StyleSheet.create({
   },
   selectedCardDate: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.primary,
     marginBottom: 4,
   },
   selectedCardTitle: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginBottom: Spacing.xs,
   },

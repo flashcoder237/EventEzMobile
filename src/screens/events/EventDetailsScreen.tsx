@@ -16,7 +16,7 @@ import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
-import { Colors, FontFamily, FontSizes, FontWeights, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
   },
   backButtonErrorText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.white,
   },
   bannerContainer: {
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   },
   dateMonth: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: 'rgba(255,255,255,0.9)',
     textTransform: 'uppercase',
   },
@@ -423,7 +423,7 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray900,
     textTransform: 'capitalize',
   },
@@ -449,7 +449,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.primary,
   },
   organizerCard: {
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   },
   organizerInitial: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.white,
   },
   organizerInfo: {
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
   },
   followOrgText: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.primary,
   },
   infoCard: {
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   infoSubtitle: {

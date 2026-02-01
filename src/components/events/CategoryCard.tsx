@@ -10,6 +10,7 @@ import {
   Spacing,
   BorderRadius,
   Shadows,
+  FontFamily,
 } from '../../constants/theme';
 
 interface CategoryCardProps {
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
   },
   largeName: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.white,
     marginBottom: Spacing.xs,
   },

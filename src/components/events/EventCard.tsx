@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
   },
   freeBadgeText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.success,
   },
   freeBadgeSmall: {

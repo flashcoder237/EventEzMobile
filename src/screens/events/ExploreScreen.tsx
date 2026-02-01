@@ -24,7 +24,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
@@ -427,7 +426,7 @@ const styles = StyleSheet.create({
   resultsCount: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   loadingContainer: {
     flex: 1,
@@ -497,7 +496,7 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   countText: {
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     fontSize: FontSizes.sm,
   },
@@ -518,7 +517,7 @@ const styles = StyleSheet.create({
   },
   selectedCardDate: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.primary,
     marginBottom: 4,
   },

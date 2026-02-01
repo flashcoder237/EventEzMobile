@@ -21,7 +21,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   Shadows,
@@ -207,7 +206,7 @@ export default function DashboardScreen() {
             <QuickAction
               icon="heart-outline"
               title="Favoris"
-              onPress={() => {}}
+              onPress={() => { }}
             />
             <QuickAction
               icon="notifications-outline"
@@ -318,7 +317,7 @@ const styles = StyleSheet.create({
   },
   notificationBadgeText: {
     fontSize: 10,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.white,
   },
   balanceCard: {
@@ -410,7 +409,7 @@ const styles = StyleSheet.create({
   },
   quickActionBadgeText: {
     fontSize: 10,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.white,
   },
   quickActionTitle: {

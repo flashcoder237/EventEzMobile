@@ -20,7 +20,8 @@ import DynamicFormFields from '../../components/forms/DynamicFormFields';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
+  TextStyles,
   BorderRadius,
   Spacing,
   Shadows,
@@ -448,7 +449,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   scrollView: {
@@ -464,7 +465,7 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
@@ -487,7 +488,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
@@ -517,7 +518,7 @@ const styles = StyleSheet.create({
   },
   ticketName: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   ticketDescription: {
@@ -533,7 +534,7 @@ const styles = StyleSheet.create({
   },
   ticketPrice: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.primary,
   },
   ticketAvailability: {
@@ -560,7 +561,7 @@ const styles = StyleSheet.create({
   },
   quantityValue: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     minWidth: 30,
     textAlign: 'center',
@@ -573,7 +574,7 @@ const styles = StyleSheet.create({
   },
   soldOutText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.error,
   },
   formSection: {
@@ -603,7 +604,7 @@ const styles = StyleSheet.create({
   },
   summaryValue: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray900,
   },
   summaryDivider: {
@@ -613,12 +614,12 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   totalValue: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.primary,
   },
   bottomBar: {
@@ -644,7 +645,7 @@ const styles = StyleSheet.create({
   },
   totalValueBottom: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
   totalQuantityBottom: {

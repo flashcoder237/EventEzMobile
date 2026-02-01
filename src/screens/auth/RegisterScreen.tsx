@@ -21,7 +21,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   Shadows,

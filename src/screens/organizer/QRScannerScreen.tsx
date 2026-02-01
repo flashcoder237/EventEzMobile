@@ -21,10 +21,11 @@ import { registrationsAPI, eventsAPI } from '../../api/client';
 import { RootStackParamList, Registration, Event } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -380,9 +381,7 @@ const styles = StyleSheet.create({
     padding: Spacing.xl,
   },
   permissionTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
   },
@@ -399,9 +398,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
   },
   permissionButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   backLink: {
     marginTop: Spacing.lg,
@@ -436,8 +433,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.sm,
   },
   headerTitle: {
+    fontFamily: FontFamily.displaySemiBold,
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
     color: Colors.white,
   },
   headerSubtitle: {
@@ -522,8 +519,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   statLabel: {
@@ -586,9 +583,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
   },
   resultTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.sm,
   },
   resultMessage: {
@@ -616,8 +611,8 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
   },
   ticketDetailValue: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.gray900,
     maxWidth: '60%',
     textAlign: 'right',
@@ -633,9 +628,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   manualCheckInText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   continueButton: {
     flexDirection: 'row',
@@ -648,8 +641,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   continueButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 });

@@ -19,7 +19,8 @@ import { TicketPurchase, RootStackParamList } from '../../types';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
+  TextStyles,
   BorderRadius,
   Spacing,
   Shadows,
@@ -252,7 +253,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   shareButton: {
@@ -280,7 +281,7 @@ const styles = StyleSheet.create({
   },
   eventTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
   },
   ticketDetailValue: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   statusBadge: {
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray600,
   },
   statusTextConfirmed: {

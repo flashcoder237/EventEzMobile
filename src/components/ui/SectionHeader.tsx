@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
     color: Colors.gray900,
     letterSpacing: -0.3,
   },

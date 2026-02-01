@@ -19,7 +19,8 @@ import { RootStackParamList } from '../../types';
 import {
   Colors,
   FontSizes,
-  FontWeights,
+  FontFamily,
+  TextStyles,
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes['3xl'],
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   },
   infoTitle: {
     fontSize: FontSizes.md,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   infoDescription: {

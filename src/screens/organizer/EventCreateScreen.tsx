@@ -24,10 +24,11 @@ import { eventsAPI, categoriesAPI } from '../../api/client';
 import { Category, RootStackParamList, LocationType } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -810,9 +811,7 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   stepTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.xs,
   },
   stepDescription: {
@@ -824,9 +823,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   label: {
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray700,
+    ...TextStyles.label,
     marginBottom: Spacing.xs,
   },
   input: {
@@ -911,8 +908,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   typeOptionText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.gray600,
   },
   typeOptionTextActive: {
@@ -941,7 +938,7 @@ const styles = StyleSheet.create({
   },
   categoryChipTextActive: {
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   dateTimeRow: {
     flexDirection: 'row',
@@ -980,8 +977,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   locationTypeLabel: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.gray700,
     marginTop: Spacing.xs,
   },
@@ -1001,8 +998,7 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.gray100,
   },
   subSectionTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    ...TextStyles.bodyBold,
     color: Colors.gray800,
     marginBottom: Spacing.md,
   },
@@ -1020,8 +1016,8 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   switchLabel: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
     color: Colors.gray900,
   },
   switchDescription: {
@@ -1036,9 +1032,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.lg,
   },
   summaryTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
     marginBottom: Spacing.md,
   },
   summaryRow: {
@@ -1053,8 +1047,8 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
   },
   summaryValue: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: Colors.gray900,
     maxWidth: '60%',
     textAlign: 'right',
@@ -1078,8 +1072,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   prevButtonText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
     color: Colors.gray600,
   },
   nextButton: {
@@ -1093,9 +1087,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   nextButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   submitButton: {
     flex: 2,
@@ -1111,8 +1103,6 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 });

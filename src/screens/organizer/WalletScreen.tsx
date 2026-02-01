@@ -33,7 +33,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   TextStyles,
@@ -835,7 +834,7 @@ const styles = StyleSheet.create({
   },
   balanceCurrency: {
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   quickStats: {
     flexDirection: 'row',
@@ -855,7 +854,7 @@ const styles = StyleSheet.create({
   },
   quickStatValue: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.white,
   },
   quickStatDivider: {
@@ -941,7 +940,7 @@ const styles = StyleSheet.create({
   seeAll: {
     fontSize: FontSizes.sm,
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   emptySection: {
     alignItems: 'center',
@@ -975,7 +974,7 @@ const styles = StyleSheet.create({
   },
   transactionDescription: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray900,
   },
   transactionEvent: {
@@ -993,7 +992,7 @@ const styles = StyleSheet.create({
   },
   transactionAmount: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
   },
   transactionBalance: {
     fontSize: FontSizes.xs,
@@ -1021,7 +1020,7 @@ const styles = StyleSheet.create({
   },
   payoutAmount: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   payoutMethod: {
@@ -1044,7 +1043,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
   },
   payoutDate: {
     fontSize: FontSizes.xs,
@@ -1079,7 +1078,7 @@ const styles = StyleSheet.create({
   },
   pendingTitle: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray900,
   },
   pendingRelease: {
@@ -1092,7 +1091,7 @@ const styles = StyleSheet.create({
   },
   pendingAmount: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: '#F59E0B',
   },
   pendingDays: {
@@ -1123,7 +1122,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
   modalSubtitle: {
@@ -1136,7 +1135,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     marginBottom: Spacing.xs,
   },
@@ -1169,7 +1168,7 @@ const styles = StyleSheet.create({
   },
   methodText: {
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray600,
   },
   methodTextActive: {
@@ -1205,7 +1204,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray700,
   },
   confirmButton: {
@@ -1223,7 +1222,7 @@ const styles = StyleSheet.create({
   },
   confirmButtonText: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.white,
   },
   bankSection: {
@@ -1237,7 +1236,7 @@ const styles = StyleSheet.create({
   },
   bankSectionTitle: {
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
   divider: {
@@ -1268,6 +1267,6 @@ const styles = StyleSheet.create({
   },
   pickerOptionTextActive: {
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
 });

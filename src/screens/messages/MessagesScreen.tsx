@@ -23,10 +23,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Conversation, RootStackParamList, User } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -504,8 +505,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
+    ...TextStyles.h3,
     color: Colors.white,
   },
   headerSubtitle: {
@@ -559,8 +559,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   tabText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
     color: 'rgba(255,255,255,0.7)',
   },
   tabTextActive: {
@@ -604,8 +604,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   avatarInitials: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   conversationContent: {
@@ -619,14 +619,14 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   conversationName: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
     color: Colors.gray900,
     flex: 1,
     marginRight: Spacing.sm,
   },
   unreadText: {
-    fontWeight: FontWeights.bold,
+    fontFamily: FontFamily.bold,
   },
   conversationTime: {
     fontSize: FontSizes.xs,
@@ -645,7 +645,7 @@ const styles = StyleSheet.create({
   },
   lastMessageUnread: {
     color: Colors.gray700,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
   },
   unreadBadge: {
     backgroundColor: Colors.primary,
@@ -657,8 +657,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   unreadCountText: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
 
@@ -679,9 +679,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.sm,
   },
   emptyText: {
@@ -698,9 +696,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   emptyButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 
   // Modal
@@ -724,9 +720,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray100,
   },
   modalTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h4,
   },
   modalSearchContainer: {
     flexDirection: 'row',
@@ -771,8 +765,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   userAvatarInitials: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   userInfo: {
@@ -780,8 +774,8 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   userName: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.medium,
     color: Colors.gray900,
   },
   userEmail: {

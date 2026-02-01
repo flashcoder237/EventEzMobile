@@ -23,10 +23,11 @@ import { eventsAPI } from '../../api/client';
 import { RootStackParamList, Event } from '../../types';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -504,13 +505,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   headerSubtitle: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
     color: 'rgba(255,255,255,0.8)',
-    fontWeight: FontWeights.medium,
   },
   headerTitle: {
-    fontSize: FontSizes['2xl'],
-    fontWeight: FontWeights.bold,
+    ...TextStyles.h2,
     color: Colors.white,
     marginBottom: Spacing.xs,
   },
@@ -530,8 +530,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   discoverLinkText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.semibold,
     color: '#EC4899',
   },
   statsRow: {
@@ -561,8 +561,8 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.8)',
   },
   statValue: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
     color: Colors.white,
   },
   searchContainer: {
@@ -606,9 +606,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primaryBg,
   },
   filterIndicatorText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
   },
   listContent: {
     padding: Spacing.lg,
@@ -644,8 +644,8 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   badgeText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.medium,
   },
   dateBadge: {
     position: 'absolute',
@@ -657,17 +657,15 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   dateText: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.xs,
-    fontWeight: FontWeights.bold,
     color: Colors.gray900,
   },
   eventContent: {
     padding: Spacing.md,
   },
   eventTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
     marginBottom: Spacing.sm,
   },
   eventMeta: {
@@ -732,9 +730,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   unfollowText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
     color: '#EF4444',
-    fontWeight: FontWeights.medium,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -750,9 +748,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    fontSize: FontSizes.lg,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.h4,
     marginBottom: Spacing.sm,
   },
   emptySubtitle: {
@@ -772,9 +768,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   discoverButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   loadingContainer: {
     flex: 1,
@@ -802,9 +796,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   authTitle: {
-    fontSize: FontSizes.xl,
-    fontWeight: FontWeights.bold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.sm,
   },
   authSubtitle: {
@@ -820,8 +812,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
   },
   loginButtonText: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 });

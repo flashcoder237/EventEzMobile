@@ -25,10 +25,11 @@ import { RootStackParamList } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
 import {
   Colors,
+  FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
+  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -567,8 +568,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   initials: {
+    fontFamily: FontFamily.displayBold,
     fontSize: 36,
-    fontWeight: FontWeights.bold,
     color: Colors.gray600,
   },
   editBadge: {
@@ -586,9 +587,9 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     marginTop: Spacing.sm,
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
     color: Colors.primary,
-    fontWeight: FontWeights.medium,
   },
   emailText: {
     marginTop: Spacing.xs,
@@ -628,9 +629,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   sectionTitle: {
-    fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   sectionContent: {
     padding: Spacing.md,
@@ -648,9 +647,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
-    color: Colors.gray700,
+    ...TextStyles.label,
     marginBottom: Spacing.xs,
   },
   input: {
@@ -724,8 +721,8 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   changePasswordButtonText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
-    fontWeight: FontWeights.semibold,
     color: Colors.gray700,
   },
 

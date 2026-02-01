@@ -25,7 +25,6 @@ import {
   Colors,
   FontFamily,
   FontSizes,
-  FontWeights,
   BorderRadius,
   Spacing,
   TextStyles,
@@ -762,7 +761,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: FontSizes.sm,
-    fontWeight: FontWeights.medium,
+    fontFamily: FontFamily.medium,
     color: Colors.gray700,
     marginBottom: Spacing.xs,
     marginTop: Spacing.md,
