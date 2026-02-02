@@ -28,6 +28,7 @@ import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
+import TermsScreen from '../screens/profile/TermsScreen';
 
 // Messages Screens
 import MessagesScreen from '../screens/messages/MessagesScreen';
@@ -39,6 +40,7 @@ import WalletScreen from '../screens/organizer/WalletScreen';
 import MyEventsScreen from '../screens/organizer/MyEventsScreen';
 import QRScannerScreen from '../screens/organizer/QRScannerScreen';
 import EventAnalyticsScreen from '../screens/organizer/EventAnalyticsScreen';
+import EventRegistrationsScreen from '../screens/organizer/EventRegistrationsScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -172,6 +174,13 @@ export default function RootNavigator() {
               headerShadowVisible: false,
             }}
           />
+          <Stack.Screen
+            name="Terms"
+            component={TermsScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
 
           {/* Messages Screens */}
           <Stack.Screen
@@ -227,6 +236,13 @@ export default function RootNavigator() {
           <Stack.Screen
             name="EventAnalytics"
             component={EventAnalyticsScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="EventRegistrations"
+            component={EventRegistrationsScreen}
             options={{
               headerShown: false,
             }}

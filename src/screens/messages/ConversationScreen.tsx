@@ -48,34 +48,55 @@ const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
 export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConversationRouteProp>();
-  const { conversationId } = route.params;
+  const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
 
+  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(initialConversationId);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!!initialConversationId); // Ne pas charger si nouvelle conversation
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
-  const [conversationTitle, setConversationTitle] = useState('');
+  const [conversationTitle, setConversationTitle] = useState(userName || '');
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
+  const [isNewConversation, setIsNewConversation] = useState(!initialConversationId && !!userId);
 
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    fetchMessages();
-    fetchConversationDetails();
-    markAsRead();
+    if (currentConversationId) {
+      fetchMessages();
+      fetchConversationDetails();
+      markAsRead();
 
-    // Polling for new messages (every 5 seconds)
-    const interval = setInterval(fetchMessages, 5000);
-    return () => clearInterval(interval);
-  }, [conversationId]);
+      // Polling for new messages (every 3 seconds for better real-time feel)
+      const interval = setInterval(fetchMessages, 3000);
+      return () => clearInterval(interval);
+    } else if (userName) {
+      // Nouvelle conversation - afficher juste le titre
+      setConversationTitle(userName);
+      navigation.setOptions({
+        headerTitle: () => (
+          <View style={styles.headerTitleContainer}>
+            <View style={styles.headerAvatarPlaceholder}>
+              <Text style={styles.headerAvatarText}>
+                {userName.substring(0, 2).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.headerTitleText} numberOfLines={1}>{userName}</Text>
+          </View>
+        ),
+      });
+      setLoading(false);
+    }
+  }, [currentConversationId]);
 
   const fetchConversationDetails = async () => {
+    if (!currentConversationId) return;
     try {
-      const response = await messagesAPI.getConversation(conversationId);
+      const response = await messagesAPI.getConversation(currentConversationId);
       const conversation = response.data;
 
       // Get other participant info
@@ -113,8 +134,12 @@ export default function ConversationScreen() {
   };
 
   const fetchMessages = async () => {
+    if (!currentConversationId) {
+      setLoading(false);
+      return;
+    }
     try {
-      const response = await messagesAPI.getMessages({ conversation: conversationId });
+      const response = await messagesAPI.getMessages({ conversation: currentConversationId });
       const newMessages = response.data.results || response.data || [];
       setMessages(newMessages.reverse()); // Messages du plus ancien au plus récent
     } catch (error) {
@@ -125,8 +150,9 @@ export default function ConversationScreen() {
   };
 
   const markAsRead = async () => {
+    if (!currentConversationId) return;
     try {
-      await messagesAPI.markConversationAsRead(conversationId);
+      await messagesAPI.markConversationAsRead(currentConversationId);
     } catch (error) {
       console.error('Erreur marquage lu:', error);
     }
@@ -212,29 +238,45 @@ export default function ConversationScreen() {
     setNewMessage('');
     setSending(true);
 
-    // Optimistic update
-    const tempMessage: Message = {
-      id: `temp-${Date.now()}`,
-      conversation: conversationId,
-      sender: user!,
-      content: messageContent,
-      message_type: attachedFiles.length > 0 ? 'image' : 'text',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      is_read: false,
-      attachments: attachedFiles.map(f => ({
-        id: `temp-${Date.now()}`,
-        file: f.uri,
-        attachment_type: f.type,
-        file_name: f.name,
-        file_size: 0,
-        mime_type: 'image/jpeg',
-      })),
-    };
-    setMessages((prev) => [...prev, tempMessage]);
-    setAttachedFiles([]);
+    let conversationIdToUse = currentConversationId;
 
     try {
+      // Si c'est une nouvelle conversation, créer d'abord la conversation
+      if (isNewConversation && userId && !currentConversationId) {
+        const convResponse = await messagesAPI.createConversation({
+          participant_ids: [user?.id, userId],
+        });
+        conversationIdToUse = convResponse.data.id;
+        setCurrentConversationId(conversationIdToUse);
+        setIsNewConversation(false);
+      }
+
+      if (!conversationIdToUse) {
+        throw new Error('Pas de conversation disponible');
+      }
+
+      // Optimistic update
+      const tempMessage: Message = {
+        id: `temp-${Date.now()}`,
+        conversation: conversationIdToUse,
+        sender: user!,
+        content: messageContent,
+        message_type: attachedFiles.length > 0 ? 'image' : 'text',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        is_read: false,
+        attachments: attachedFiles.map(f => ({
+          id: `temp-${Date.now()}`,
+          file: f.uri,
+          attachment_type: f.type,
+          file_name: f.name,
+          file_size: 0,
+          mime_type: 'image/jpeg',
+        })),
+      };
+      setMessages((prev) => [...prev, tempMessage]);
+      setAttachedFiles([]);
+
       // If there are attachments, upload them first
       let attachmentIds: string[] = [];
 
@@ -260,7 +302,7 @@ export default function ConversationScreen() {
       }
 
       const response = await messagesAPI.sendMessage({
-        conversation: conversationId,
+        conversation: conversationIdToUse,
         content: messageContent,
       });
 
@@ -271,7 +313,7 @@ export default function ConversationScreen() {
     } catch (error) {
       console.error('Erreur envoi message:', error);
       // Remove temp message on error
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+      setMessages((prev) => prev.filter((msg) => msg.id.startsWith('temp-')));
       setNewMessage(messageContent); // Restore message content
       Alert.alert('Erreur', 'Impossible d\'envoyer le message');
     } finally {
@@ -448,8 +490,14 @@ export default function ConversationScreen() {
       <View style={styles.emptyIconContainer}>
         <Ionicons name="chatbubble-ellipses-outline" size={48} color={Colors.gray300} />
       </View>
-      <Text style={styles.emptyText}>Aucun message</Text>
-      <Text style={styles.emptySubtext}>Commencez la conversation !</Text>
+      <Text style={styles.emptyText}>
+        {isNewConversation ? 'Nouvelle conversation' : 'Aucun message'}
+      </Text>
+      <Text style={styles.emptySubtext}>
+        {isNewConversation
+          ? `Envoyez un message à ${conversationTitle}`
+          : 'Commencez la conversation !'}
+      </Text>
     </View>
   );
 

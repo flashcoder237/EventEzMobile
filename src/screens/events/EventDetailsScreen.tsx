@@ -404,18 +404,91 @@ export default function EventDetailsScreen() {
           </View>
 
           {/* Location Card */}
-          <TouchableOpacity style={styles.infoCard} activeOpacity={0.7}>
-            <View style={styles.infoIconContainer}>
-              <Ionicons name="location" size={22} color={Colors.primary} />
-            </View>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>{event.location_name || 'Lieu à définir'}</Text>
-              <Text style={styles.infoSubtitle}>
-                {event.location_address || `${event.location_city}, ${event.location_country}`}
+          {event.location_type === 'online' ? (
+            <View style={styles.onlineEventCard}>
+              <View style={styles.onlineEventHeader}>
+                <View style={[styles.infoIconContainer, { backgroundColor: '#DBEAFE' }]}>
+                  <Ionicons name="videocam" size={22} color="#3B82F6" />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoTitle}>Événement en ligne</Text>
+                  <Text style={styles.infoSubtitle}>
+                    {event.online_platform || 'Plateforme de visioconférence'}
+                  </Text>
+                </View>
+              </View>
+              {event.online_instructions && (
+                <Text style={styles.onlineInstructions}>
+                  {event.online_instructions}
+                </Text>
+              )}
+              <View style={styles.onlineMeetingInfo}>
+                {event.online_meeting_id && (
+                  <View style={styles.meetingInfoRow}>
+                    <Text style={styles.meetingInfoLabel}>ID de réunion :</Text>
+                    <Text style={styles.meetingInfoValue}>{event.online_meeting_id}</Text>
+                  </View>
+                )}
+                {event.online_passcode && (
+                  <View style={styles.meetingInfoRow}>
+                    <Text style={styles.meetingInfoLabel}>Code d'accès :</Text>
+                    <Text style={styles.meetingInfoValue}>{event.online_passcode}</Text>
+                  </View>
+                )}
+              </View>
+              {event.online_url && (
+                <TouchableOpacity
+                  style={styles.joinOnlineButton}
+                  onPress={() => {
+                    // TODO: Open URL in browser
+                    Alert.alert('Rejoindre', `Le lien de l'événement : ${event.online_url}`);
+                  }}
+                >
+                  <Ionicons name="videocam" size={18} color={Colors.white} />
+                  <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
+                </TouchableOpacity>
+              )}
+              <Text style={styles.onlineNote}>
+                Le lien de connexion sera disponible après inscription
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
-          </TouchableOpacity>
+          ) : event.location_type === 'hybrid' ? (
+            <View style={styles.hybridEventCard}>
+              {/* Physical location */}
+              <TouchableOpacity style={styles.infoCard} activeOpacity={0.7}>
+                <View style={styles.infoIconContainer}>
+                  <Ionicons name="location" size={22} color={Colors.primary} />
+                </View>
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoTitle}>{event.location_name || 'Lieu à définir'}</Text>
+                  <Text style={styles.infoSubtitle}>
+                    {event.location_address || `${event.location_city}, ${event.location_country}`}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+              </TouchableOpacity>
+              {/* Online option */}
+              <View style={styles.hybridOnlineOption}>
+                <Ionicons name="videocam" size={18} color="#3B82F6" />
+                <Text style={styles.hybridOnlineText}>
+                  Également disponible en ligne via {event.online_platform || 'visioconférence'}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.infoCard} activeOpacity={0.7}>
+              <View style={styles.infoIconContainer}>
+                <Ionicons name="location" size={22} color={Colors.primary} />
+              </View>
+              <View style={styles.infoContent}>
+                <Text style={styles.infoTitle}>{event.location_name || 'Lieu à définir'}</Text>
+                <Text style={styles.infoSubtitle}>
+                  {event.location_address || `${event.location_city}, ${event.location_country}`}
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+            </TouchableOpacity>
+          )}
 
           {/* Stats Row */}
           <View style={styles.statsRow}>
@@ -1477,5 +1550,88 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray600,
     lineHeight: 20,
+  },
+  // Online Event Styles
+  onlineEventCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  onlineEventHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  onlineInstructions: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  onlineMeetingInfo: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  meetingInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  meetingInfoLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+  meetingInfoValue: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray900,
+  },
+  joinOnlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  joinOnlineButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+  },
+  onlineNote: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray400,
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  // Hybrid Event Styles
+  hybridEventCard: {
+    marginBottom: Spacing.lg,
+  },
+  hybridOnlineOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  hybridOnlineText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: '#1D4ED8',
   },
 });

@@ -22,6 +22,7 @@ import {
 } from '@expo-google-fonts/funnel-display';
 
 import { AuthProvider } from './src/contexts/AuthContext';
+import { NotificationProvider } from './src/contexts/NotificationContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { Colors } from './src/constants/theme';
 
@@ -54,8 +55,10 @@ export default function App() {
       <SafeAreaProvider>
         <NavigationContainer>
           <AuthProvider>
-            <StatusBar style="dark" />
-            <RootNavigator />
+            <NotificationProvider>
+              <StatusBar style="dark" />
+              <RootNavigator />
+            </NotificationProvider>
           </AuthProvider>
         </NavigationContainer>
       </SafeAreaProvider>

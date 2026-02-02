@@ -217,10 +217,10 @@ export const usersAPI = {
     api.get('/users/me/'),
 
   updateCurrentUser: (data: any) =>
-    api.put('/users/me/', data),
+    api.patch('/users/me/', data),
 
   updateProfile: (data: any) =>
-    api.put('/users/update_profile/', data),
+    api.patch('/users/update_profile/', data),
 
   updateProfileImage: (formData: FormData) =>
     api.patch('/users/me/upload_profile_image/', formData, {

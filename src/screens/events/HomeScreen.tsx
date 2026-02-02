@@ -20,6 +20,7 @@ import * as Location from 'expo-location';
 import { eventsAPI, categoriesAPI } from '../../api/client';
 import { Event, Category, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import {
   Colors,
   FontFamily,
@@ -60,6 +61,7 @@ const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { unreadNotificationCount } = useNotifications();
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -252,15 +254,24 @@ export default function HomeScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.logoText}>eventez</Text>
-          </View>
+          <Image
+            source={require('../../../assets/logo.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => navigation.navigate('Notifications')}
             >
               <Ionicons name="notifications-outline" size={24} color={Colors.gray800} />
+              {unreadNotificationCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -398,11 +409,9 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
     backgroundColor: Colors.white,
   },
-  logoText: {
-    fontSize: 30,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.primary,
-    letterSpacing: -0.5,
+  logoImage: {
+    height: 36,
+    width: 120,
   },
   headerActions: {
     flexDirection: 'row',
@@ -416,6 +425,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: Colors.white,
   },
   // ===== SEARCH BAR =====
   searchBar: {

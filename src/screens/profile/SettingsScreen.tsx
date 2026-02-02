@@ -454,7 +454,11 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingItem} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate('Terms')}
+            >
               <View style={styles.settingIcon}>
                 <Ionicons name="document-text-outline" size={20} color={Colors.gray600} />
               </View>

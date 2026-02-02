@@ -1,30 +1,70 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { eventsAPI } from '../../api/client';
-import { MapMarker, RootStackParamList } from '../../types';
+import { eventsAPI, categoriesAPI } from '../../api/client';
+import { MapMarker, RootStackParamList, Category } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
-import { Colors, FontSizes, FontFamily, TextStyles, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import {
+  Colors,
+  FontSizes,
+  FontFamily,
+  BorderRadius,
+  Spacing,
+  Shadows,
+} from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'Map'>;
 
+type EventTypeFilter = 'all' | 'billetterie' | 'inscription';
+type PriceFilter = 'all' | 'free' | 'paid';
+type DateFilter = 'all' | 'today' | 'weekend' | 'week' | 'month';
+
+interface Filters {
+  eventType: EventTypeFilter;
+  price: PriceFilter;
+  date: DateFilter;
+  category: number | null;
+}
+
+const RADIUS_OPTIONS = [10, 25, 50, 100, 200, 500];
+const DEFAULT_RADIUS = 100;
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 export default function MapScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
-  const [markers, setMarkers] = useState<MapMarker[]>([]);
+
+  const [allMarkers, setAllMarkers] = useState<MapMarker[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [radius, setRadius] = useState(DEFAULT_RADIUS);
+  const [showRadiusSelector, setShowRadiusSelector] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    eventType: 'all',
+    price: 'all',
+    date: 'all',
+    category: null,
+  });
+  const [tempFilters, setTempFilters] = useState<Filters>(filters);
+
   const [region, setRegion] = useState({
     latitude: 3.848,
     longitude: 11.502,
@@ -34,7 +74,89 @@ export default function MapScreen() {
 
   useEffect(() => {
     requestLocationAndFetch();
+    fetchCategories();
   }, []);
+
+  // Calcul de distance Haversine
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  // Filtrer les marqueurs
+  const filteredMarkers = useMemo(() => {
+    let result = [...allMarkers];
+
+    // Filtrer par rayon
+    if (userLocation && radius > 0) {
+      result = result.filter(marker => {
+        if (!marker.lat || !marker.lng) return false;
+        const dist = calculateDistance(userLocation.lat, userLocation.lng, marker.lat, marker.lng);
+        return dist <= radius;
+      });
+    }
+
+    // Filtrer par catégorie
+    if (filters.category) {
+      result = result.filter(marker => (marker as any).category === filters.category);
+    }
+
+    // Filtrer par date
+    if (filters.date !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      result = result.filter(marker => {
+        if (!marker.start_date) return true;
+        const eventDate = new Date(marker.start_date);
+        const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+        switch (filters.date) {
+          case 'today':
+            return eventDay.getTime() === today.getTime();
+          case 'weekend': {
+            const dayOfWeek = today.getDay();
+            const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+            const saturday = new Date(today);
+            saturday.setDate(today.getDate() + daysUntilSaturday);
+            const sunday = new Date(saturday);
+            sunday.setDate(saturday.getDate() + 1);
+            return eventDay >= saturday && eventDay <= sunday;
+          }
+          case 'week': {
+            const weekEnd = new Date(today);
+            weekEnd.setDate(today.getDate() + 7);
+            return eventDay >= today && eventDay <= weekEnd;
+          }
+          case 'month': {
+            const monthEnd = new Date(today);
+            monthEnd.setMonth(today.getMonth() + 1);
+            return eventDay >= today && eventDay <= monthEnd;
+          }
+          default:
+            return true;
+        }
+      });
+    }
+
+    return result;
+  }, [allMarkers, userLocation, radius, filters]);
+
+  const activeFiltersCount = useMemo(() => {
+    return [
+      filters.eventType !== 'all',
+      filters.price !== 'all',
+      filters.date !== 'all',
+      filters.category !== null,
+    ].filter(Boolean).length;
+  }, [filters]);
 
   const requestLocationAndFetch = async () => {
     try {
@@ -58,11 +180,20 @@ export default function MapScreen() {
     fetchMapEvents();
   };
 
+  const fetchCategories = async () => {
+    try {
+      const response = await categoriesAPI.getCategories();
+      setCategories(response.data?.results || response.data || []);
+    } catch (error) {
+      console.error('Erreur chargement catégories:', error);
+    }
+  };
+
   const fetchMapEvents = async () => {
     setLoading(true);
     try {
       const response = await eventsAPI.getMapEvents();
-      setMarkers(response.data.markers || []);
+      setAllMarkers(response.data.markers || []);
     } catch (error) {
       console.error('Erreur chargement événements:', error);
     } finally {
@@ -90,12 +221,21 @@ export default function MapScreen() {
 
   const handleMarkerPress = (marker: MapMarker) => {
     setSelectedMarker(marker);
-    setRegion({
-      latitude: marker.lat,
-      longitude: marker.lng,
-      latitudeDelta: 0.05,
-      longitudeDelta: 0.05,
-    });
+  };
+
+  const applyFilters = () => {
+    setFilters(tempFilters);
+    setShowFilters(false);
+  };
+
+  const resetFilters = () => {
+    const defaultFilters: Filters = {
+      eventType: 'all',
+      price: 'all',
+      date: 'all',
+      category: null,
+    };
+    setTempFilters(defaultFilters);
   };
 
   const formatDate = (dateString: string) => {
@@ -106,16 +246,75 @@ export default function MapScreen() {
     });
   };
 
+  const FilterButton = ({
+    label,
+    isActive,
+    onPress,
+  }: {
+    label: string;
+    isActive: boolean;
+    onPress: () => void;
+  }) => (
+    <TouchableOpacity
+      style={[styles.filterButton, isActive && styles.filterButtonActive]}
+      onPress={onPress}
+    >
+      <Text style={[styles.filterButtonText, isActive && styles.filterButtonTextActive]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+
   return (
     <View style={styles.container}>
       {/* Map */}
       <WebViewMap
-        markers={markers}
+        markers={filteredMarkers}
         userLocation={userLocation}
         selectedMarkerId={selectedMarker?.id}
         onMarkerPress={handleMarkerPress}
         initialRegion={region}
+        radiusKm={radius}
+        showRadius={!!userLocation}
       />
+
+      {/* Top Bar - Back + Filters */}
+      <SafeAreaView style={styles.topBar} edges={['top']}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+        </TouchableOpacity>
+
+        <View style={styles.topBarRight}>
+          {/* Radius Selector */}
+          <TouchableOpacity
+            style={styles.radiusButton}
+            onPress={() => setShowRadiusSelector(true)}
+          >
+            <Ionicons name="radio-button-on" size={18} color={Colors.primary} />
+            <Text style={styles.radiusButtonText}>{radius} km</Text>
+            <Ionicons name="chevron-down" size={16} color={Colors.gray500} />
+          </TouchableOpacity>
+
+          {/* Filter Button */}
+          <TouchableOpacity
+            style={styles.filterIconButton}
+            onPress={() => {
+              setTempFilters(filters);
+              setShowFilters(true);
+            }}
+          >
+            <Ionicons name="options-outline" size={22} color={Colors.gray700} />
+            {activeFiltersCount > 0 && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
@@ -137,7 +336,10 @@ export default function MapScreen() {
       {/* Events Count */}
       <View style={styles.countBadge}>
         <Ionicons name="location" size={14} color={Colors.primary} />
-        <Text style={styles.countText}>{markers.length} événements</Text>
+        <Text style={styles.countText}>
+          {filteredMarkers.length} événement{filteredMarkers.length > 1 ? 's' : ''}
+          {radius > 0 && ` dans ${radius} km`}
+        </Text>
       </View>
 
       {/* Selected Event Card */}
@@ -159,6 +361,11 @@ export default function MapScreen() {
               <Text style={styles.selectedCardMetaText}>
                 {selectedMarker.location_city}
               </Text>
+              {userLocation && selectedMarker.lat && selectedMarker.lng && (
+                <Text style={styles.selectedCardDistance}>
+                  • {Math.round(calculateDistance(userLocation.lat, userLocation.lng, selectedMarker.lat, selectedMarker.lng))} km
+                </Text>
+              )}
             </View>
           </View>
           <View style={styles.selectedCardButton}>
@@ -166,6 +373,181 @@ export default function MapScreen() {
           </View>
         </TouchableOpacity>
       )}
+
+      {/* Radius Selector Modal */}
+      <Modal
+        visible={showRadiusSelector}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setShowRadiusSelector(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowRadiusSelector(false)}
+        >
+          <View style={styles.radiusSelectorModal}>
+            <Text style={styles.radiusSelectorTitle}>Rayon de recherche</Text>
+            <View style={styles.radiusOptions}>
+              {RADIUS_OPTIONS.map((r) => (
+                <TouchableOpacity
+                  key={r}
+                  style={[
+                    styles.radiusOption,
+                    radius === r && styles.radiusOptionActive,
+                  ]}
+                  onPress={() => {
+                    setRadius(r);
+                    setShowRadiusSelector(false);
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.radiusOptionText,
+                      radius === r && styles.radiusOptionTextActive,
+                    ]}
+                  >
+                    {r} km
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Filters Modal */}
+      <Modal
+        visible={showFilters}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <SafeAreaView style={styles.filtersModal}>
+          {/* Header */}
+          <View style={styles.filtersHeader}>
+            <TouchableOpacity onPress={() => setShowFilters(false)}>
+              <Ionicons name="close" size={24} color={Colors.gray700} />
+            </TouchableOpacity>
+            <Text style={styles.filtersTitle}>Filtres</Text>
+            <TouchableOpacity onPress={resetFilters}>
+              <Text style={styles.resetText}>Réinitialiser</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.filtersContent}>
+            {/* Type d'événement */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Type d'événement</Text>
+              <View style={styles.filterOptions}>
+                <FilterButton
+                  label="Tous"
+                  isActive={tempFilters.eventType === 'all'}
+                  onPress={() => setTempFilters({ ...tempFilters, eventType: 'all' })}
+                />
+                <FilterButton
+                  label="Billetterie"
+                  isActive={tempFilters.eventType === 'billetterie'}
+                  onPress={() => setTempFilters({ ...tempFilters, eventType: 'billetterie' })}
+                />
+                <FilterButton
+                  label="Inscription"
+                  isActive={tempFilters.eventType === 'inscription'}
+                  onPress={() => setTempFilters({ ...tempFilters, eventType: 'inscription' })}
+                />
+              </View>
+            </View>
+
+            {/* Prix */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Prix</Text>
+              <View style={styles.filterOptions}>
+                <FilterButton
+                  label="Tous"
+                  isActive={tempFilters.price === 'all'}
+                  onPress={() => setTempFilters({ ...tempFilters, price: 'all' })}
+                />
+                <FilterButton
+                  label="Gratuit"
+                  isActive={tempFilters.price === 'free'}
+                  onPress={() => setTempFilters({ ...tempFilters, price: 'free' })}
+                />
+                <FilterButton
+                  label="Payant"
+                  isActive={tempFilters.price === 'paid'}
+                  onPress={() => setTempFilters({ ...tempFilters, price: 'paid' })}
+                />
+              </View>
+            </View>
+
+            {/* Date */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Date</Text>
+              <View style={styles.filterOptions}>
+                <FilterButton
+                  label="Toutes"
+                  isActive={tempFilters.date === 'all'}
+                  onPress={() => setTempFilters({ ...tempFilters, date: 'all' })}
+                />
+                <FilterButton
+                  label="Aujourd'hui"
+                  isActive={tempFilters.date === 'today'}
+                  onPress={() => setTempFilters({ ...tempFilters, date: 'today' })}
+                />
+                <FilterButton
+                  label="Ce week-end"
+                  isActive={tempFilters.date === 'weekend'}
+                  onPress={() => setTempFilters({ ...tempFilters, date: 'weekend' })}
+                />
+                <FilterButton
+                  label="Cette semaine"
+                  isActive={tempFilters.date === 'week'}
+                  onPress={() => setTempFilters({ ...tempFilters, date: 'week' })}
+                />
+                <FilterButton
+                  label="Ce mois"
+                  isActive={tempFilters.date === 'month'}
+                  onPress={() => setTempFilters({ ...tempFilters, date: 'month' })}
+                />
+              </View>
+            </View>
+
+            {/* Catégories */}
+            {categories.length > 0 && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Catégorie</Text>
+                <View style={styles.filterOptions}>
+                  <FilterButton
+                    label="Toutes"
+                    isActive={tempFilters.category === null}
+                    onPress={() => setTempFilters({ ...tempFilters, category: null })}
+                  />
+                  {categories.map((cat) => (
+                    <FilterButton
+                      key={cat.id}
+                      label={cat.name}
+                      isActive={tempFilters.category === cat.id}
+                      onPress={() => setTempFilters({ ...tempFilters, category: cat.id })}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+          </ScrollView>
+
+          {/* Apply Button */}
+          <View style={styles.filtersFooter}>
+            <TouchableOpacity
+              style={styles.applyButton}
+              onPress={applyFilters}
+            >
+              <Text style={styles.applyButtonText}>
+                Appliquer les filtres
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -175,10 +557,74 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
+  topBar: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.white,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  topBarRight: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  radiusButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    gap: Spacing.xs,
+    ...Shadows.md,
+  },
+  radiusButtonText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray700,
+  },
+  filterIconButton: {
+    width: 44,
+    height: 44,
+    backgroundColor: Colors.white,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.white,
+  },
   mapControls: {
     position: 'absolute',
     right: Spacing.md,
-    top: Spacing.xl,
+    top: 120,
     gap: Spacing.sm,
   },
   mapButton: {
@@ -202,8 +648,8 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     position: 'absolute',
-    top: Spacing.xl,
-    left: Spacing.md,
+    bottom: 100,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
@@ -211,7 +657,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     gap: Spacing.xs,
-    ...Shadows.sm,
+    ...Shadows.md,
   },
   countText: {
     fontFamily: FontFamily.medium,
@@ -254,6 +700,11 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray500,
   },
+  selectedCardDistance: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontFamily: FontFamily.medium,
+  },
   selectedCardButton: {
     width: 40,
     height: 40,
@@ -261,5 +712,132 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Radius Selector Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  radiusSelectorModal: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    width: SCREEN_WIDTH - Spacing.xl * 2,
+  },
+  radiusSelectorTitle: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.lg,
+    textAlign: 'center',
+  },
+  radiusOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    justifyContent: 'center',
+  },
+  radiusOption: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray100,
+    minWidth: 80,
+    alignItems: 'center',
+  },
+  radiusOptionActive: {
+    backgroundColor: Colors.primary,
+  },
+  radiusOptionText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray700,
+  },
+  radiusOptionTextActive: {
+    color: Colors.white,
+  },
+
+  // Filters Modal
+  filtersModal: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  filtersHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  filtersTitle: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  resetText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.primary,
+  },
+  filtersContent: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+  },
+  filterSection: {
+    paddingVertical: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  filterSectionTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.md,
+  },
+  filterOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  filterButton: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray100,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  filterButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterButtonText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray700,
+  },
+  filterButtonTextActive: {
+    color: Colors.white,
+  },
+  filtersFooter: {
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  applyButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  applyButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
 });

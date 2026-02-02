@@ -12,7 +12,7 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,6 +54,7 @@ const filterOptions: { value: FilterStatus; label: string }[] = [
 
 export default function MyEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -299,10 +300,16 @@ export default function MyEventsScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.actionButton}
+                  onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
+                >
+                  <Ionicons name="people" size={16} color={Colors.primary} />
+                  <Text style={[styles.actionText, { color: Colors.primary }]}>Inscrits</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
                   onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
                 >
-                  <Ionicons name="stats-chart" size={16} color={Colors.primary} />
-                  <Text style={[styles.actionText, { color: Colors.primary }]}>Stats</Text>
+                  <Ionicons name="stats-chart" size={16} color={Colors.gray600} />
                 </TouchableOpacity>
               </>
             )}
@@ -365,17 +372,17 @@ export default function MyEventsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.mainContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
+          <ActivityIndicator size="large" color={Colors.white} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.mainContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
 
       {/* Header with gradient */}
@@ -383,7 +390,7 @@ export default function MyEventsScreen() {
         colors={['#7C3AED', '#8B5CF6', '#6366F1']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + Spacing.md }]}
       >
         <View style={styles.headerTop}>
           <TouchableOpacity
@@ -463,11 +470,15 @@ export default function MyEventsScreen() {
           />
         }
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  mainContainer: {
+    flex: 1,
+    backgroundColor: '#7C3AED',
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.white,

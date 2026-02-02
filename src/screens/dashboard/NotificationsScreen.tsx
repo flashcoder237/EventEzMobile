@@ -10,12 +10,17 @@ import {
   StatusBar,
   Alert,
   SectionList,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { notificationsAPI } from '../../api/client';
-import { Notification } from '../../types';
+import { Notification, RootStackParamList } from '../../types';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 import {
   Colors,
   FontFamily,
@@ -92,11 +97,13 @@ const filters: { key: FilterType; label: string }[] = [
 ];
 
 export default function NotificationsScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   useEffect(() => {
     fetchNotifications();
@@ -233,13 +240,107 @@ export default function NotificationsScreen() {
     );
   };
 
+  const handleNotificationPress = async (notification: Notification) => {
+    // Mark as read
+    if (!notification.is_read) {
+      await handleMarkAsRead(notification.id);
+    }
+    // Show detail modal
+    setSelectedNotification(notification);
+    setShowDetailModal(true);
+  };
+
+  const handleNavigateToRelated = () => {
+    if (!selectedNotification) return;
+
+    setShowDetailModal(false);
+
+    // Navigate based on notification type or related object
+    const { notification_type, related_object_type, related_object_id, event, data } = selectedNotification;
+
+    // Check for event-related notifications
+    if (event && typeof event === 'object' && event.id) {
+      navigation.navigate('EventDetails', { eventId: event.id });
+      return;
+    }
+
+    // Check for related object
+    if (related_object_type && related_object_id) {
+      switch (related_object_type) {
+        case 'event':
+          navigation.navigate('EventDetails', { eventId: related_object_id });
+          break;
+        case 'registration':
+          navigation.navigate('RegistrationDetails', { registrationId: related_object_id });
+          break;
+        case 'ticket':
+        case 'ticket_purchase':
+          navigation.navigate('QRCode', { ticketId: related_object_id });
+          break;
+        case 'payment':
+          // No specific payment detail screen, go to tickets
+          navigation.navigate('Main', { screen: 'MyTickets' } as any);
+          break;
+        case 'conversation':
+        case 'message':
+          navigation.navigate('Conversation', { conversationId: related_object_id });
+          break;
+        default:
+          break;
+      }
+      return;
+    }
+
+    // Check data for event_id or other IDs
+    if (data) {
+      if (data.event_id) {
+        navigation.navigate('EventDetails', { eventId: data.event_id });
+        return;
+      }
+      if (data.registration_id) {
+        navigation.navigate('RegistrationDetails', { registrationId: data.registration_id });
+        return;
+      }
+    }
+
+    // Fallback based on notification type
+    switch (notification_type) {
+      case 'event':
+      case 'event_update':
+      case 'event_reminder':
+        // No specific event to navigate to
+        break;
+      case 'registration':
+      case 'registration_confirmation':
+        navigation.navigate('Main', { screen: 'MyTickets' } as any);
+        break;
+      case 'payment':
+      case 'payment_confirmation':
+        navigation.navigate('Main', { screen: 'MyTickets' } as any);
+        break;
+      case 'message':
+        navigation.navigate('Messages');
+        break;
+      default:
+        break;
+    }
+  };
+
+  const canNavigate = (notification: Notification): boolean => {
+    if (notification.event && typeof notification.event === 'object') return true;
+    if (notification.related_object_type && notification.related_object_id) return true;
+    if (notification.data?.event_id || notification.data?.registration_id) return true;
+    if (['registration', 'registration_confirmation', 'payment', 'payment_confirmation', 'message'].includes(notification.notification_type)) return true;
+    return false;
+  };
+
   const renderNotification = ({ item }: { item: Notification }) => {
     const config = getTypeConfig(item.notification_type);
 
     return (
       <TouchableOpacity
         style={[styles.notificationCard, !item.is_read && styles.unreadCard]}
-        onPress={() => handleMarkAsRead(item.id)}
+        onPress={() => handleNotificationPress(item)}
         onLongPress={() => handleDelete(item.id)}
         activeOpacity={0.7}
       >
@@ -401,6 +502,89 @@ export default function NotificationsScreen() {
           }
         />
       )}
+
+          {/* Notification Detail Modal */}
+          <Modal
+            visible={showDetailModal}
+            transparent
+            animationType="fade"
+            onRequestClose={() => setShowDetailModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                {selectedNotification && (
+                  <>
+                    <View style={styles.modalHeader}>
+                      <View style={[
+                        styles.modalIconContainer,
+                        { backgroundColor: getTypeConfig(selectedNotification.notification_type).bgColor }
+                      ]}>
+                        <Ionicons
+                          name={getTypeConfig(selectedNotification.notification_type).icon}
+                          size={28}
+                          color={getTypeConfig(selectedNotification.notification_type).color}
+                        />
+                      </View>
+                      <TouchableOpacity
+                        style={styles.modalCloseButton}
+                        onPress={() => setShowDetailModal(false)}
+                      >
+                        <Ionicons name="close" size={24} color={Colors.gray500} />
+                      </TouchableOpacity>
+                    </View>
+
+                    <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                      <View style={[
+                        styles.modalTypeBadge,
+                        { backgroundColor: getTypeConfig(selectedNotification.notification_type).bgColor }
+                      ]}>
+                        <Text style={[
+                          styles.modalTypeBadgeText,
+                          { color: getTypeConfig(selectedNotification.notification_type).color }
+                        ]}>
+                          {getTypeConfig(selectedNotification.notification_type).label}
+                        </Text>
+                      </View>
+
+                      <Text style={styles.modalTitle}>{selectedNotification.title}</Text>
+                      <Text style={styles.modalMessage}>{selectedNotification.message}</Text>
+
+                      <View style={styles.modalTimeRow}>
+                        <Ionicons name="time-outline" size={16} color={Colors.gray400} />
+                        <Text style={styles.modalTime}>
+                          {new Date(selectedNotification.created_at).toLocaleDateString('fr-FR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </Text>
+                      </View>
+                    </ScrollView>
+
+                    <View style={styles.modalFooter}>
+                      <TouchableOpacity
+                        style={styles.modalSecondaryButton}
+                        onPress={() => setShowDetailModal(false)}
+                      >
+                        <Text style={styles.modalSecondaryButtonText}>Fermer</Text>
+                      </TouchableOpacity>
+                      {canNavigate(selectedNotification) && (
+                        <TouchableOpacity
+                          style={styles.modalPrimaryButton}
+                          onPress={handleNavigateToRelated}
+                        >
+                          <Text style={styles.modalPrimaryButtonText}>Voir les détails</Text>
+                          <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </>
+                )}
+              </View>
+            </View>
+          </Modal>
         </View>
       </SafeAreaView>
     </View>
@@ -684,5 +868,118 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     textAlign: 'center',
     lineHeight: 22,
+  },
+
+  // Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: Spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+    overflow: 'hidden',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    padding: Spacing.lg,
+    paddingBottom: 0,
+  },
+  modalIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBody: {
+    padding: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  modalTypeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.sm,
+  },
+  modalTypeBadgeText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+  },
+  modalTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.xl,
+    color: Colors.gray900,
+    marginBottom: Spacing.sm,
+  },
+  modalMessage: {
+    fontSize: FontSizes.base,
+    color: Colors.gray600,
+    lineHeight: 24,
+    marginBottom: Spacing.md,
+  },
+  modalTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  modalTime: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    padding: Spacing.lg,
+    paddingTop: Spacing.sm,
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  modalSecondaryButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.gray100,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  modalSecondaryButtonText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.gray700,
+  },
+  modalPrimaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+  },
+  modalPrimaryButtonText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.white,
   },
 });

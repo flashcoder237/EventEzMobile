@@ -89,30 +89,27 @@ export default function MessagesScreen() {
   };
 
   const handleStartConversation = async (targetUser: User) => {
-    // Vérifier si une conversation existe déjà
+    // Vérifier si une conversation existe déjà avec cet utilisateur
     const existingConv = conversations.find(conv => {
-      if (conv.participants) {
+      if (conv.participants && conv.participants.length > 0) {
         return conv.participants.some(p => p.id === targetUser.id);
       }
       return false;
     });
 
-    if (existingConv) {
-      setShowNewModal(false);
-      navigation.navigate('Conversation', { conversationId: existingConv.id });
-      return;
-    }
+    setShowNewModal(false);
 
-    // Créer nouvelle conversation
-    try {
-      const response = await messagesAPI.createConversation({
-        participant_ids: [user?.id, targetUser.id],
+    if (existingConv) {
+      // Rediriger vers la conversation existante
+      navigation.navigate('Conversation', { conversationId: existingConv.id });
+    } else {
+      // Ne pas créer de conversation maintenant - passer l'ID utilisateur
+      // La conversation sera créée lors de l'envoi du premier message
+      const targetName = getDisplayName(targetUser);
+      navigation.navigate('Conversation', {
+        userId: targetUser.id,
+        userName: targetName
       });
-      setShowNewModal(false);
-      await fetchConversations();
-      navigation.navigate('Conversation', { conversationId: response.data.id });
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de créer la conversation');
     }
   };
 

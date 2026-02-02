@@ -15,7 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
-import { ticketPurchasesAPI } from '../../api/client';
+import { ticketPurchasesAPI, eventsAPI, feedbacksAPI, registrationsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -66,6 +66,8 @@ export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const [stats, setStats] = useState({
     tickets: 0,
+    favorites: 0,
+    reviews: 0,
   });
 
   useEffect(() => {
@@ -74,9 +76,23 @@ export default function ProfileScreen() {
 
   const fetchStats = async () => {
     try {
-      const ticketsRes = await ticketPurchasesAPI.getMyTickets({ page_size: 1 });
+      // Fetch all stats in parallel
+      const [ticketsRes, registrationsRes, followingRes, feedbacksRes] = await Promise.all([
+        ticketPurchasesAPI.getMyTickets({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
+        registrationsAPI.getMyRegistrations({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
+        eventsAPI.getFollowingEvents().catch(() => ({ data: [] })),
+        feedbacksAPI.getFeedbacks({ user: 'me', page_size: 1 }).catch(() => ({ data: { count: 0 } })),
+      ]);
+
+      const ticketsCount = ticketsRes.data?.count || 0;
+      const registrationsCount = registrationsRes.data?.count || 0;
+      const followingList = followingRes.data?.results || followingRes.data || [];
+      const feedbacksCount = feedbacksRes.data?.count || 0;
+
       setStats({
-        tickets: ticketsRes.data?.count || 0,
+        tickets: ticketsCount + registrationsCount,
+        favorites: Array.isArray(followingList) ? followingList.length : 0,
+        reviews: feedbacksCount,
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -159,16 +175,16 @@ export default function ProfileScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statValue}>{stats.tickets}</Text>
-            <Text style={styles.statLabel}>Billets</Text>
+            <Text style={styles.statLabel}>Réservations</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>{stats.favorites}</Text>
             <Text style={styles.statLabel}>Favoris</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>0</Text>
+            <Text style={styles.statValue}>{stats.reviews}</Text>
             <Text style={styles.statLabel}>Avis</Text>
           </View>
         </View>

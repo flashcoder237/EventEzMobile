@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import Slider from '@react-native-community/slider';
 
 import { eventsAPI, categoriesAPI } from '../../api/client';
 import { Event, MapMarker, Category, RootStackParamList } from '../../types';
@@ -54,6 +55,9 @@ interface Filters {
 }
 
 const PAGE_SIZE = 20;
+const MIN_RADIUS = 5;
+const MAX_RADIUS = 5000;
+const DEFAULT_RADIUS = 100;
 
 const defaultFilters: Filters = {
   eventType: 'all',
@@ -90,6 +94,9 @@ export default function ExploreScreen() {
     longitudeDelta: 0.5,
   });
 
+  // Map radius state
+  const [mapRadius, setMapRadius] = useState(DEFAULT_RADIUS);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -110,6 +117,107 @@ export default function ExploreScreen() {
     filters.sortBy !== 'date',
   ].filter(Boolean).length;
 
+  // Calcul de la distance entre deux points (formule Haversine)
+  const calculateDistance = useCallback((lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Rayon de la Terre en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, []);
+
+  // Filtered markers for map view
+  const filteredMarkers = useMemo(() => {
+    let result = [...markers];
+
+    // Filter by radius
+    if (userLocation && mapRadius > 0) {
+      result = result.filter(marker => {
+        if (!marker.lat || !marker.lng) return false;
+        const dist = calculateDistance(userLocation.lat, userLocation.lng, marker.lat, marker.lng);
+        return dist <= mapRadius;
+      });
+    }
+
+    // Filter by event type
+    if (filters.eventType !== 'all') {
+      result = result.filter(marker => (marker as any).event_type === filters.eventType);
+    }
+
+    // Filter by location type
+    if (filters.locationType !== 'all') {
+      result = result.filter(marker => (marker as any).location_type === filters.locationType);
+    }
+
+    // Filter by price (free/paid)
+    if (filters.price === 'free') {
+      result = result.filter(marker => {
+        const markerData = marker as any;
+        return markerData.is_free || markerData.price === 0 || markerData.min_price === 0;
+      });
+    } else if (filters.price === 'paid') {
+      result = result.filter(marker => {
+        const markerData = marker as any;
+        return !markerData.is_free && (markerData.price > 0 || markerData.min_price > 0);
+      });
+    }
+
+    // Filter by price range
+    if (filters.priceMin > 0 || filters.priceMax > 0) {
+      result = result.filter(marker => {
+        const markerData = marker as any;
+        const price = markerData.price || markerData.min_price || 0;
+        if (filters.priceMin > 0 && price < filters.priceMin) return false;
+        if (filters.priceMax > 0 && price > filters.priceMax) return false;
+        return true;
+      });
+    }
+
+    // Filter by date
+    if (filters.date !== 'all') {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      result = result.filter(marker => {
+        if (!marker.start_date) return true;
+        const eventDate = new Date(marker.start_date);
+        const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
+
+        switch (filters.date) {
+          case 'today':
+            return eventDay.getTime() === today.getTime();
+          case 'weekend': {
+            const dayOfWeek = today.getDay();
+            const daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
+            const saturday = new Date(today);
+            saturday.setDate(today.getDate() + daysUntilSaturday);
+            const sunday = new Date(saturday);
+            sunday.setDate(saturday.getDate() + 1);
+            return eventDay >= saturday && eventDay <= sunday;
+          }
+          case 'week': {
+            const weekEnd = new Date(today);
+            weekEnd.setDate(today.getDate() + 7);
+            return eventDay >= today && eventDay <= weekEnd;
+          }
+          case 'month': {
+            const monthEnd = new Date(today);
+            monthEnd.setMonth(today.getMonth() + 1);
+            return eventDay >= today && eventDay <= monthEnd;
+          }
+          default:
+            return true;
+        }
+      });
+    }
+
+    return result;
+  }, [markers, userLocation, mapRadius, filters, calculateDistance]);
+
   useEffect(() => {
     requestLocationAndFetch();
     fetchCategories();
@@ -123,19 +231,6 @@ export default function ExploreScreen() {
   useEffect(() => {
     applyFilters();
   }, [events, filters]);
-
-  // Calcul de la distance entre deux points (formule Haversine)
-  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
-    const R = 6371; // Rayon de la Terre en km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLng = (lng2 - lng1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLng / 2) * Math.sin(dLng / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
   const applyFilters = () => {
     let result = [...events];
@@ -754,24 +849,56 @@ export default function ExploreScreen() {
   const renderMapView = () => (
     <View style={styles.mapContainer}>
       <WebViewMap
-        markers={markers}
+        markers={filteredMarkers}
         userLocation={userLocation}
         selectedMarkerId={selectedMarker?.id}
         onMarkerPress={handleMarkerPress}
         initialRegion={region}
+        radiusKm={mapRadius}
+        showRadius={!!userLocation}
       />
+
+      {/* Radius Slider Panel */}
+      <View style={styles.radiusSliderContainer}>
+        <View style={styles.radiusSliderHeader}>
+          <Ionicons name="radio-button-on" size={18} color={Colors.primary} />
+          <Text style={styles.radiusSliderTitle}>Rayon de recherche</Text>
+          <Text style={styles.radiusSliderValue}>{mapRadius} km</Text>
+        </View>
+        <Slider
+          style={styles.radiusSlider}
+          minimumValue={MIN_RADIUS}
+          maximumValue={MAX_RADIUS}
+          step={10}
+          value={mapRadius}
+          onValueChange={(value) => setMapRadius(Math.round(value))}
+          minimumTrackTintColor={Colors.primary}
+          maximumTrackTintColor={Colors.gray200}
+          thumbTintColor={Colors.primary}
+        />
+        <View style={styles.radiusSliderLabels}>
+          <Text style={styles.radiusSliderLabel}>{MIN_RADIUS} km</Text>
+          <Text style={styles.radiusSliderLabel}>{MAX_RADIUS} km</Text>
+        </View>
+      </View>
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
         <TouchableOpacity style={styles.mapButton} onPress={centerOnUser}>
           <Ionicons name="locate" size={22} color={Colors.gray700} />
         </TouchableOpacity>
+        <TouchableOpacity style={styles.mapButton} onPress={fetchMapEvents}>
+          <Ionicons name="refresh" size={22} color={Colors.gray700} />
+        </TouchableOpacity>
       </View>
 
       {/* Events Count */}
       <View style={styles.countBadge}>
         <Ionicons name="location" size={14} color={Colors.primary} />
-        <Text style={styles.countText}>{markers.length} événements</Text>
+        <Text style={styles.countText}>
+          {filteredMarkers.length} événement{filteredMarkers.length > 1 ? 's' : ''}
+          {mapRadius > 0 && ` dans ${mapRadius} km`}
+        </Text>
       </View>
 
       {/* Selected Event Card */}
@@ -793,6 +920,11 @@ export default function ExploreScreen() {
               <Text style={styles.selectedCardMetaText}>
                 {selectedMarker.location_city}
               </Text>
+              {userLocation && selectedMarker.lat && selectedMarker.lng && (
+                <Text style={styles.selectedCardDistance}>
+                  • {Math.round(calculateDistance(userLocation.lat, userLocation.lng, selectedMarker.lat, selectedMarker.lng))} km
+                </Text>
+              )}
             </View>
           </View>
           <View style={styles.selectedCardButton}>
@@ -1151,10 +1283,52 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
   },
+  radiusSliderContainer: {
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.md,
+    right: Spacing.md,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    ...Shadows.md,
+  },
+  radiusSliderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  radiusSliderTitle: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray700,
+  },
+  radiusSliderValue: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.bold,
+    color: Colors.primary,
+  },
+  radiusSlider: {
+    width: '100%',
+    height: 40,
+  },
+  radiusSliderLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: -Spacing.xs,
+  },
+  radiusSliderLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray400,
+  },
   mapControls: {
     position: 'absolute',
     right: Spacing.md,
     bottom: 140,
+    gap: Spacing.sm,
   },
   mapButton: {
     width: 48,
@@ -1167,8 +1341,8 @@ const styles = StyleSheet.create({
   },
   countBadge: {
     position: 'absolute',
-    top: Spacing.md,
-    left: Spacing.md,
+    bottom: 140,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
@@ -1176,7 +1350,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
     gap: Spacing.xs,
-    ...Shadows.xs,
+    ...Shadows.md,
   },
   countText: {
     fontFamily: FontFamily.medium,
@@ -1217,6 +1391,11 @@ const styles = StyleSheet.create({
   selectedCardMetaText: {
     fontSize: FontSizes.sm,
     color: Colors.gray500,
+  },
+  selectedCardDistance: {
+    fontSize: FontSizes.sm,
+    color: Colors.primary,
+    fontFamily: FontFamily.medium,
   },
   selectedCardButton: {
     width: 40,

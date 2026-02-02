@@ -1001,6 +1001,12 @@ export interface MapMarker {
   category: string | null;
   banner_image: string | null;
   registration_count: number;
+  // Filter fields
+  event_type?: 'billetterie' | 'inscription';
+  location_type?: 'in_person' | 'online' | 'hybrid';
+  is_free?: boolean;
+  price?: number;
+  min_price?: number;
 }
 
 export interface Location {
@@ -1131,7 +1137,7 @@ export type RootStackParamList = {
   Notifications: undefined;
   UserDashboard: undefined;
   Messages: undefined;
-  Conversation: { conversationId: string };
+  Conversation: { conversationId?: string; userId?: string; userName?: string };
   NewConversation: { userId?: string };
   Map: { eventId?: string };
   EventCreate: undefined;
@@ -1146,6 +1152,8 @@ export type RootStackParamList = {
   PayoutRequest: undefined;
   Subscription: undefined;
   QRScanner: { eventId: string };
+  Terms: undefined;
+  Privacy: undefined;
 };
 
 export type AuthStackParamList = {
