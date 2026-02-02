@@ -78,11 +78,13 @@ export default function EventCreateScreen() {
   const [onlineUrl, setOnlineUrl] = useState('');
   const [onlinePlatform, setOnlinePlatform] = useState('');
   const [onlineInstructions, setOnlineInstructions] = useState('');
+  const [onlineMeetingId, setOnlineMeetingId] = useState('');
+  const [onlinePasscode, setOnlinePasscode] = useState('');
 
   // Pricing
   const [isFree, setIsFree] = useState(false);
   const [basePrice, setBasePrice] = useState('');
-  const [maxCapacity, setMaxCapacity] = useState('');
+  const [maxParticipants, setMaxParticipants] = useState('');
   const [autoApproveRegistrations, setAutoApproveRegistrations] = useState(true);
 
   // Sessions
@@ -216,12 +218,16 @@ export default function EventCreateScreen() {
         formData.append('online_url', onlineUrl);
         formData.append('online_platform', onlinePlatform);
         formData.append('online_instructions', onlineInstructions);
+        if (onlineMeetingId) {
+          formData.append('online_meeting_id', onlineMeetingId);
+        }
+        if (onlinePasscode) {
+          formData.append('online_passcode', onlinePasscode);
+        }
       }
 
-      formData.append('is_free', String(isFree));
-      formData.append('base_price', String(isFree ? 0 : parseFloat(basePrice || '0')));
-      if (maxCapacity) {
-        formData.append('max_capacity', maxCapacity);
+      if (maxParticipants) {
+        formData.append('max_participants', maxParticipants);
       }
       formData.append('auto_approve_registrations', String(autoApproveRegistrations));
       formData.append('status', 'draft');
@@ -265,9 +271,12 @@ export default function EventCreateScreen() {
               setLocationAddress('');
               setOnlineUrl('');
               setOnlinePlatform('');
+              setOnlineInstructions('');
+              setOnlineMeetingId('');
+              setOnlinePasscode('');
               setIsFree(false);
               setBasePrice('');
-              setMaxCapacity('');
+              setMaxParticipants('');
             },
           },
         ],
@@ -585,6 +594,26 @@ export default function EventCreateScreen() {
             />
           </View>
           <View style={styles.inputGroup}>
+            <Text style={styles.label}>ID de réunion</Text>
+            <TextInput
+              style={styles.input}
+              value={onlineMeetingId}
+              onChangeText={setOnlineMeetingId}
+              placeholder="Ex: 123 456 7890"
+              placeholderTextColor={Colors.gray400}
+            />
+          </View>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Code d'accès</Text>
+            <TextInput
+              style={styles.input}
+              value={onlinePasscode}
+              onChangeText={setOnlinePasscode}
+              placeholder="Ex: abc123"
+              placeholderTextColor={Colors.gray400}
+            />
+          </View>
+          <View style={styles.inputGroup}>
             <Text style={styles.label}>Instructions de connexion</Text>
             <TextInput
               style={[styles.input, styles.textAreaSmall]}
@@ -638,12 +667,12 @@ export default function EventCreateScreen() {
       )}
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Capacité maximale</Text>
+        <Text style={styles.label}>Nombre maximum de participants</Text>
         <TextInput
           style={styles.input}
-          value={maxCapacity}
-          onChangeText={setMaxCapacity}
-          placeholder="Laisser vide pour illimité"
+          value={maxParticipants}
+          onChangeText={setMaxParticipants}
+          placeholder="Laisser vide pour illimité (0 = illimité)"
           placeholderTextColor={Colors.gray400}
           keyboardType="numeric"
         />

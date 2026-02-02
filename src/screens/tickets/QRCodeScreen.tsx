@@ -183,6 +183,21 @@ export default function QRCodeScreen() {
                 </View>
               )}
             </View>
+
+            {/* View Event Button */}
+            <TouchableOpacity
+              style={styles.viewEventButton}
+              onPress={() => {
+                const eventId = event?.id || (ticket as any)?.event_id;
+                if (eventId) {
+                  navigation.navigate('EventDetails', { eventId });
+                }
+              }}
+            >
+              <Ionicons name="eye-outline" size={18} color={Colors.primary} />
+              <Text style={styles.viewEventButtonText}>Voir les détails de l'événement</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+            </TouchableOpacity>
           </View>
 
           {/* Divider */}
@@ -433,6 +448,23 @@ const styles = StyleSheet.create({
   eventMetaText: {
     fontSize: FontSizes.sm,
     color: Colors.gray600,
+  },
+  viewEventButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  viewEventButtonText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
   },
 
   // Divider
