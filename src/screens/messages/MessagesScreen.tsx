@@ -11,7 +11,6 @@ import {
   StatusBar,
   TextInput,
   Modal,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -20,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { messagesAPI, usersAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { Conversation, RootStackParamList, User } from '../../types';
 import {
   Colors,
@@ -36,6 +36,7 @@ type TabType = 'all' | 'archived';
 export default function MessagesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { showConfirm } = useAlert();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -123,24 +124,20 @@ export default function MessagesScreen() {
   };
 
   const handleDelete = (conversationId: string) => {
-    Alert.alert(
+    showConfirm(
       'Supprimer',
       'Supprimer cette conversation ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await messagesAPI.deleteConversation(conversationId);
-              fetchConversations();
-            } catch (error) {
-              console.error('Erreur suppression:', error);
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await messagesAPI.deleteConversation(conversationId);
+          fetchConversations();
+        } catch (error) {
+          console.error('Erreur suppression:', error);
+        }
+      },
+      undefined,
+      'Supprimer',
+      'Annuler'
     );
   };
 
@@ -204,21 +201,13 @@ export default function MessagesScreen() {
         style={[styles.conversationCard, item.unread_count > 0 && styles.unreadCard]}
         onPress={() => navigation.navigate('Conversation', { conversationId: item.id })}
         onLongPress={() => {
-          Alert.alert(
+          showConfirm(
             'Options',
             displayName,
-            [
-              { text: 'Annuler', style: 'cancel' },
-              {
-                text: item.is_archived ? 'Désarchiver' : 'Archiver',
-                onPress: () => handleArchive(item.id),
-              },
-              {
-                text: 'Supprimer',
-                style: 'destructive',
-                onPress: () => handleDelete(item.id),
-              },
-            ]
+            () => handleArchive(item.id),
+            () => handleDelete(item.id),
+            item.is_archived ? 'Désarchiver' : 'Archiver',
+            'Supprimer'
           );
         }}
         activeOpacity={0.7}

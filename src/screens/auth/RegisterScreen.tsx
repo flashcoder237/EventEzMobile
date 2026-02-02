@@ -6,7 +6,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
   Image,
   StatusBar,
@@ -16,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -54,6 +54,7 @@ interface FormErrors {
 export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { register, isLoading } = useAuth();
+  const { showError } = useAlert();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -157,7 +158,7 @@ export default function RegisterScreen() {
         }
       }
 
-      Alert.alert('Erreur d\'inscription', message);
+      showError('Erreur d\'inscription', message);
     }
   };
 

@@ -454,7 +454,7 @@ export default function EventDetailsScreen() {
                       )}
                     </View>
                   )}
-                  {event.online_url && (
+                  {event.online_url ? (
                     <TouchableOpacity
                       style={styles.joinOnlineButton}
                       onPress={() => {
@@ -466,7 +466,21 @@ export default function EventDetailsScreen() {
                       <Ionicons name="videocam" size={18} color={Colors.white} />
                       <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
                     </TouchableOpacity>
-                  )}
+                  ) : event.online_platform?.toLowerCase().includes('eventez') ? (
+                    <View style={styles.eventezVisioNotice}>
+                      <Ionicons name="information-circle" size={18} color="#3B82F6" />
+                      <Text style={styles.eventezVisioNoticeText}>
+                        La visioconférence EventEz sera disponible le jour de l'événement
+                      </Text>
+                    </View>
+                  ) : !event.online_meeting_id && !event.online_passcode ? (
+                    <View style={styles.eventezVisioNotice}>
+                      <Ionicons name="time-outline" size={18} color={Colors.gray500} />
+                      <Text style={styles.eventezVisioNoticeText}>
+                        Les informations de connexion seront communiquées avant l'événement
+                      </Text>
+                    </View>
+                  ) : null}
                 </>
               ) : (
                 <View style={styles.onlineLockedInfo}>
@@ -1688,6 +1702,21 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.sm,
     color: Colors.gray500,
+    lineHeight: 20,
+  },
+  eventezVisioNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  eventezVisioNoticeText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
     lineHeight: 20,
   },
   // Hybrid Event Styles

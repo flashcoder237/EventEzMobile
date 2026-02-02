@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Switch,
-  Alert,
   StatusBar,
   TextInput,
   Modal,
@@ -19,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { usersAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
@@ -81,6 +81,7 @@ const SelectItem = ({ icon, title, value, onPress }: SelectItemProps) => (
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout, updateUser } = useAuth();
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -155,19 +156,16 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    showConfirm(
       'Déconnexion',
       'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Déconnexion', style: 'destructive', onPress: logout },
-      ]
+      logout
     );
   };
 
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
-      Alert.alert('Erreur', 'Veuillez entrer votre mot de passe');
+      showError('Erreur', 'Veuillez entrer votre mot de passe');
       return;
     }
 
@@ -181,7 +179,7 @@ export default function SettingsScreen() {
       logout();
     } catch (error: any) {
       console.error('Erreur suppression compte:', error);
-      Alert.alert(
+      showError(
         'Erreur',
         error.response?.data?.detail || 'Impossible de supprimer le compte'
       );
@@ -218,7 +216,7 @@ export default function SettingsScreen() {
   };
 
   const showLanguagePicker = () => {
-    Alert.alert(
+    showAlert(
       'Langue',
       'Choisissez votre langue',
       [
@@ -230,7 +228,7 @@ export default function SettingsScreen() {
   };
 
   const showThemePicker = () => {
-    Alert.alert(
+    showAlert(
       'Thème',
       'Choisissez votre thème',
       [
@@ -243,7 +241,7 @@ export default function SettingsScreen() {
   };
 
   const showTimezonePicker = () => {
-    Alert.alert(
+    showAlert(
       'Fuseau horaire',
       'Choisissez votre fuseau horaire',
       [

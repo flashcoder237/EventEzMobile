@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   Modal,
   Switch,
@@ -12,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { eventsAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import {
   Colors,
   FontSizes,
@@ -45,6 +45,7 @@ export default function FollowEventButton({
   initialFollowing = false,
 }: FollowEventButtonProps) {
   const { user } = useAuth();
+  const { showAlert, showError, showWarning } = useAlert();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const [isLoading, setIsLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -97,10 +98,7 @@ export default function FollowEventButton({
 
   const handleToggleFollow = async () => {
     if (!user) {
-      Alert.alert(
-        'Connexion requise',
-        'Vous devez être connecté pour suivre un événement'
-      );
+      showWarning('Connexion requise', 'Vous devez être connecté pour suivre un événement');
       return;
     }
 
@@ -120,7 +118,7 @@ export default function FollowEventButton({
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
-      Alert.alert('Erreur', 'Une erreur est survenue');
+      showError('Erreur', 'Une erreur est survenue');
     } finally {
       setIsLoading(false);
     }
@@ -133,31 +131,32 @@ export default function FollowEventButton({
       setShowPreferences(false);
     } catch (error) {
       console.error('Error updating preferences:', error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour les préférences');
+      showError('Erreur', 'Impossible de mettre à jour les préférences');
     } finally {
       setIsLoading(false);
     }
   };
 
   const selectNotificationLevel = () => {
-    Alert.alert(
+    showAlert(
       'Niveau de notifications',
       'Choisissez le niveau de notifications',
       [
         {
-          text: 'Toutes les notifications',
+          text: 'Toutes',
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'all' })),
         },
         {
-          text: 'Importantes uniquement',
+          text: 'Importantes',
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'important' })),
         },
         {
-          text: 'Aucune notification',
+          text: 'Aucune',
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'none' })),
         },
         { text: 'Annuler', style: 'cancel' },
-      ]
+      ],
+      'info'
     );
   };
 

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -21,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 
+import { useAlert } from '../../contexts/AlertContext';
 import { eventsAPI, categoriesAPI } from '../../api/client';
 import { Category, RootStackParamList, LocationType } from '../../types';
 import {
@@ -49,6 +49,7 @@ const steps = [
 
 export default function EventCreateScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { showAlert, showSuccess, showError } = useAlert();
 
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -117,7 +118,7 @@ export default function EventCreateScreen() {
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission requise', 'Veuillez autoriser l\'accès à la galerie');
+      showAlert('Permission requise', 'Veuillez autoriser l\'accès à la galerie', undefined, 'warning');
       return;
     }
 
@@ -137,39 +138,39 @@ export default function EventCreateScreen() {
     switch (step) {
       case 1:
         if (!title.trim()) {
-          Alert.alert('Erreur', 'Le titre est requis');
+          showError('Erreur', 'Le titre est requis');
           return false;
         }
         if (!description.trim()) {
-          Alert.alert('Erreur', 'La description est requise');
+          showError('Erreur', 'La description est requise');
           return false;
         }
         if (!categoryId) {
-          Alert.alert('Erreur', 'Veuillez sélectionner une catégorie');
+          showError('Erreur', 'Veuillez sélectionner une catégorie');
           return false;
         }
         return true;
       case 2:
         if (endDate <= startDate) {
-          Alert.alert('Erreur', 'La date de fin doit être après la date de début');
+          showError('Erreur', 'La date de fin doit être après la date de début');
           return false;
         }
         if (locationType === 'in_person' || locationType === 'hybrid') {
           if (!locationCity.trim()) {
-            Alert.alert('Erreur', 'La ville est requise pour un événement présentiel');
+            showError('Erreur', 'La ville est requise pour un événement présentiel');
             return false;
           }
         }
         if (locationType === 'online' || locationType === 'hybrid') {
           if (!onlineUrl.trim() && !onlinePlatform.trim()) {
-            Alert.alert('Erreur', 'Veuillez indiquer une URL ou une plateforme pour l\'événement en ligne');
+            showError('Erreur', 'Veuillez indiquer une URL ou une plateforme pour l\'événement en ligne');
             return false;
           }
         }
         return true;
       case 3:
         if (!isFree && !basePrice) {
-          Alert.alert('Erreur', 'Veuillez indiquer un prix ou marquer l\'événement comme gratuit');
+          showError('Erreur', 'Veuillez indiquer un prix ou marquer l\'événement comme gratuit');
           return false;
         }
         return true;
@@ -238,7 +239,7 @@ export default function EventCreateScreen() {
 
       const response = await eventsAPI.createEvent(formData);
 
-      Alert.alert(
+      showAlert(
         'Succès',
         'Votre événement a été créé en tant que brouillon. Vous pouvez le modifier et le publier depuis Mes événements.',
         [
@@ -269,11 +270,12 @@ export default function EventCreateScreen() {
               setMaxCapacity('');
             },
           },
-        ]
+        ],
+        'success'
       );
     } catch (error: any) {
       console.error('Erreur création événement:', error);
-      Alert.alert(
+      showError(
         'Erreur',
         error.response?.data?.message || error.response?.data?.detail || 'Impossible de créer l\'événement'
       );

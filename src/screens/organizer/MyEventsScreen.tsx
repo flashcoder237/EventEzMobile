@@ -10,7 +10,6 @@ import {
   ActivityIndicator,
   StatusBar,
   TextInput,
-  Alert,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -18,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { useAlert } from '../../contexts/AlertContext';
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import {
@@ -55,6 +55,7 @@ const filterOptions: { value: FilterStatus; label: string }[] = [
 export default function MyEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,51 +104,38 @@ export default function MyEventsScreen() {
   }), [events]);
 
   const handleDeleteEvent = (eventId: string) => {
-    Alert.alert(
+    showConfirm(
       'Supprimer l\'événement',
       'Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await eventsAPI.deleteEvent(eventId);
-              setEvents(prev => prev.filter(e => e.id !== eventId));
-              Alert.alert('Succès', 'Événement supprimé');
-            } catch (error) {
-              console.error('Erreur suppression:', error);
-              Alert.alert('Erreur', 'Impossible de supprimer l\'événement');
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await eventsAPI.deleteEvent(eventId);
+          setEvents(prev => prev.filter(e => e.id !== eventId));
+          showSuccess('Succès', 'Événement supprimé');
+        } catch (error) {
+          console.error('Erreur suppression:', error);
+          showError('Erreur', 'Impossible de supprimer l\'événement');
+        }
+      }
     );
   };
 
   const handleSubmitForValidation = (eventId: string) => {
-    Alert.alert(
+    showConfirm(
       'Soumettre pour validation',
       'Voulez-vous soumettre cet événement pour validation ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Soumettre',
-          onPress: async () => {
-            try {
-              await eventsAPI.submitForValidation(eventId);
-              setEvents(prev => prev.map(e =>
-                e.id === eventId ? { ...e, status: 'submitted' } : e
-              ));
-              Alert.alert('Succès', 'Événement soumis pour validation');
-            } catch (error: any) {
-              console.error('Erreur soumission:', error);
-              Alert.alert('Erreur', error.response?.data?.detail || 'Impossible de soumettre l\'événement');
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await eventsAPI.submitForValidation(eventId);
+          setEvents(prev => prev.map(e =>
+            e.id === eventId ? { ...e, status: 'submitted' } : e
+          ));
+          showSuccess('Succès', 'Événement soumis pour validation');
+        } catch (error: any) {
+          console.error('Erreur soumission:', error);
+          showError('Erreur', error.response?.data?.detail || 'Impossible de soumettre l\'événement');
+        }
+      }
     );
   };
 
@@ -220,7 +208,7 @@ export default function MyEventsScreen() {
       onPress: () => {},
     });
 
-    Alert.alert('Actions', event.title, actions);
+    showAlert('Actions', event.title, actions);
   };
 
   const renderEvent = ({ item }: { item: Event }) => {

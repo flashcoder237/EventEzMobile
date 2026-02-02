@@ -7,7 +7,6 @@ import {
   TextInput,
   TouchableOpacity,
   Image,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { usersAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
@@ -71,6 +71,7 @@ const Section = ({ title, icon, children, defaultExpanded = false }: SectionProp
 export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, updateUser } = useAuth();
+  const { showSuccess, showError } = useAlert();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -119,7 +120,7 @@ export default function EditProfileScreen() {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (!permissionResult.granted) {
-        Alert.alert(
+        showError(
           'Permission requise',
           'Veuillez autoriser l\'accès à vos photos pour changer votre image de profil.'
         );
@@ -140,7 +141,7 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       console.error('Erreur sélection image:', error);
-      Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+      showError('Erreur', 'Impossible de sélectionner l\'image');
     }
   };
 
@@ -186,10 +187,10 @@ export default function EditProfileScreen() {
       const response = await usersAPI.updateCurrentUser(updateData);
       updateUser(response.data);
 
-      Alert.alert('Succès', 'Votre profil a été mis à jour');
+      showSuccess('Succès', 'Votre profil a été mis à jour');
     } catch (error: any) {
       console.error('Erreur mise à jour profil:', error);
-      Alert.alert(
+      showError(
         'Erreur',
         error.response?.data?.detail || 'Impossible de mettre à jour le profil'
       );
@@ -200,17 +201,17 @@ export default function EditProfileScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      showError('Erreur', 'Veuillez remplir tous les champs');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas');
+      showError('Erreur', 'Les mots de passe ne correspondent pas');
       return;
     }
 
     if (newPassword.length < 8) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
+      showError('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
       return;
     }
 
@@ -221,13 +222,13 @@ export default function EditProfileScreen() {
         new_password: newPassword,
       });
 
-      Alert.alert('Succès', 'Votre mot de passe a été modifié');
+      showSuccess('Succès', 'Votre mot de passe a été modifié');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
       console.error('Erreur changement mot de passe:', error);
-      Alert.alert(
+      showError(
         'Erreur',
         error.response?.data?.detail || 'Impossible de changer le mot de passe'
       );

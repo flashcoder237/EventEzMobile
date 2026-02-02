@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,6 +13,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useAlert } from '../../contexts/AlertContext';
 import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api/client';
 import { Event, TicketType, RootStackParamList, FormField, Discount } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
@@ -40,6 +40,7 @@ export default function TicketPurchaseScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<TicketPurchaseRouteProp>();
   const { eventId, ticketTypeId } = route.params;
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -96,7 +97,7 @@ export default function TicketPurchaseScreen() {
       }
     } catch (error) {
       console.error('Erreur chargement données:', error);
-      Alert.alert('Erreur', 'Impossible de charger les informations');
+      showError('Erreur', 'Impossible de charger les informations');
     } finally {
       setLoading(false);
     }
@@ -181,7 +182,7 @@ export default function TicketPurchaseScreen() {
       if (discount && discount.is_active !== false) {
         setAppliedDiscount(discount);
         setDiscountError(null);
-        Alert.alert('Succès', `Code promo "${discountCode}" appliqué !`);
+        showSuccess('Succès', `Code promo "${discountCode}" appliqué !`);
       } else {
         setDiscountError('Ce code promo n\'est pas valide');
       }
@@ -214,13 +215,13 @@ export default function TicketPurchaseScreen() {
 
     // Validate tickets for billetterie
     if (isBilletterie && getTotalQuantity() === 0) {
-      Alert.alert('Attention', 'Veuillez sélectionner au moins un billet');
+      showAlert('Attention', 'Veuillez sélectionner au moins un billet', undefined, 'warning');
       return;
     }
 
     // Validate form fields if present
     if (formFields.length > 0 && !validateForm()) {
-      Alert.alert('Attention', 'Veuillez remplir tous les champs obligatoires');
+      showAlert('Attention', 'Veuillez remplir tous les champs obligatoires', undefined, 'warning');
       return;
     }
 
@@ -280,7 +281,7 @@ export default function TicketPurchaseScreen() {
       }
     } catch (error: any) {
       console.error('Erreur création inscription:', error);
-      Alert.alert(
+      showError(
         'Erreur',
         error.response?.data?.detail || error.response?.data?.message || 'Impossible de créer l\'inscription'
       );
@@ -381,25 +382,18 @@ export default function TicketPurchaseScreen() {
               <TouchableOpacity
                 style={styles.cancelRegButton}
                 onPress={() => {
-                  Alert.alert(
+                  showConfirm(
                     'Annuler l\'inscription',
                     'Voulez-vous vraiment annuler votre inscription à cet événement ?',
-                    [
-                      { text: 'Non', style: 'cancel' },
-                      {
-                        text: 'Oui, annuler',
-                        style: 'destructive',
-                        onPress: async () => {
-                          try {
-                            await registrationsAPI.cancelRegistration(existingRegistration.id);
-                            setExistingRegistration(null);
-                            Alert.alert('Succès', 'Votre inscription a été annulée');
-                          } catch (error) {
-                            Alert.alert('Erreur', 'Impossible d\'annuler l\'inscription');
-                          }
-                        },
-                      },
-                    ]
+                    async () => {
+                      try {
+                        await registrationsAPI.cancelRegistration(existingRegistration.id);
+                        setExistingRegistration(null);
+                        showSuccess('Succès', 'Votre inscription a été annulée');
+                      } catch (error) {
+                        showError('Erreur', 'Impossible d\'annuler l\'inscription');
+                      }
+                    }
                   );
                 }}
               >

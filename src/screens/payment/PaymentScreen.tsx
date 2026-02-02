@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Alert,
   ActivityIndicator,
   Image,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { registrationsAPI, paymentsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
+import { useAlert } from '../../contexts/AlertContext';
 import {
   Colors,
   FontSizes,
@@ -70,6 +70,7 @@ export default function PaymentScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentRouteProp>();
   const { registrationId } = route.params;
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,7 +89,7 @@ export default function PaymentScreen() {
       setRegistration(response.data);
     } catch (error) {
       console.error('Error fetching registration:', error);
-      Alert.alert('Erreur', 'Impossible de charger les détails de la commande');
+      showError('Erreur', 'Impossible de charger les détails de la commande');
     } finally {
       setLoading(false);
     }
@@ -106,17 +107,17 @@ export default function PaymentScreen() {
 
     const cleanNumber = phoneNumber.replace(/\s/g, '');
     if (cleanNumber.length < 9) {
-      Alert.alert('Erreur', 'Numéro de téléphone invalide');
+      showError('Erreur', 'Numéro de téléphone invalide');
       return false;
     }
 
     if (method === 'mtn_money' && !cleanNumber.match(/^(237)?(6[78]\d{7})$/)) {
-      Alert.alert('Erreur', 'Ce numéro n\'est pas un numéro MTN valide');
+      showError('Erreur', 'Ce numéro n\'est pas un numéro MTN valide');
       return false;
     }
 
     if (method === 'orange_money' && !cleanNumber.match(/^(237)?(6[59]\d{7})$/)) {
-      Alert.alert('Erreur', 'Ce numéro n\'est pas un numéro Orange valide');
+      showError('Erreur', 'Ce numéro n\'est pas un numéro Orange valide');
       return false;
     }
 
@@ -125,7 +126,7 @@ export default function PaymentScreen() {
 
   const handlePayment = async () => {
     if (!selectedMethod) {
-      Alert.alert('Erreur', 'Veuillez sélectionner un mode de paiement');
+      showError('Erreur', 'Veuillez sélectionner un mode de paiement');
       return;
     }
 
@@ -160,7 +161,7 @@ export default function PaymentScreen() {
       pollPaymentStatus(newPaymentId);
     } catch (error: any) {
       setProcessing(false);
-      Alert.alert(
+      showError(
         'Erreur de paiement',
         error.response?.data?.detail || 'Une erreur est survenue lors du paiement'
       );
@@ -193,7 +194,7 @@ export default function PaymentScreen() {
           setTimeout(checkStatus, 5000);
         } else {
           setProcessing(false);
-          Alert.alert(
+          showAlert(
             'Délai dépassé',
             'Le paiement prend plus de temps que prévu. Vérifiez votre téléphone pour confirmer la transaction.',
             [
@@ -212,10 +213,9 @@ export default function PaymentScreen() {
 
     // Show waiting message for Mobile Money
     if (selectedMethod === 'mtn_money' || selectedMethod === 'orange_money') {
-      Alert.alert(
+      showAlert(
         'Confirmation requise',
-        'Une demande de paiement a été envoyée à votre téléphone. Veuillez valider la transaction avec votre code PIN.',
-        [{ text: 'OK' }]
+        'Une demande de paiement a été envoyée à votre téléphone. Veuillez valider la transaction avec votre code PIN.'
       );
     }
 

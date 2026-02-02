@@ -8,7 +8,6 @@ import {
   RefreshControl,
   ActivityIndicator,
   StatusBar,
-  Alert,
   SectionList,
   Modal,
   ScrollView,
@@ -19,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { notificationsAPI } from '../../api/client';
 import { Notification, RootStackParamList } from '../../types';
+import { useAlert } from '../../contexts/AlertContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 import {
@@ -98,6 +98,7 @@ const filters: { key: FilterType; label: string }[] = [
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -219,24 +220,17 @@ export default function NotificationsScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    Alert.alert(
+    showConfirm(
       'Supprimer',
       'Supprimer cette notification ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await notificationsAPI.deleteNotification(id);
-              setNotifications(prev => prev.filter(n => n.id !== id));
-            } catch (error) {
-              console.error('Erreur suppression:', error);
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await notificationsAPI.deleteNotification(id);
+          setNotifications(prev => prev.filter(n => n.id !== id));
+        } catch (error) {
+          console.error('Erreur suppression:', error);
+        }
+      }
     );
   };
 

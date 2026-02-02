@@ -10,7 +10,6 @@ import {
   StatusBar,
   Modal,
   TextInput,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -18,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { useAlert } from '../../contexts/AlertContext';
 import { registrationsAPI, eventsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
 import {
@@ -56,6 +56,7 @@ export default function EventRegistrationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
+  const { showAlert, showSuccess, showError } = useAlert();
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -142,10 +143,10 @@ export default function EventRegistrationsScreen() {
         )
       );
       setShowDetailModal(false);
-      Alert.alert('Succès', 'Inscription approuvée avec succès');
+      showSuccess('Succès', 'Inscription approuvée avec succès');
     } catch (error) {
       console.error('Erreur approbation:', error);
-      Alert.alert('Erreur', 'Impossible d\'approuver l\'inscription');
+      showError('Erreur', 'Impossible d\'approuver l\'inscription');
     } finally {
       setProcessing(false);
     }
@@ -153,7 +154,7 @@ export default function EventRegistrationsScreen() {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      Alert.alert('Erreur', 'Veuillez indiquer une raison de refus');
+      showError('Erreur', 'Veuillez indiquer une raison de refus');
       return;
     }
 
@@ -172,10 +173,10 @@ export default function EventRegistrationsScreen() {
       setShowRejectModal(false);
       setShowDetailModal(false);
       setRejectReason('');
-      Alert.alert('Succès', 'Inscription refusée');
+      showSuccess('Succès', 'Inscription refusée');
     } catch (error) {
       console.error('Erreur refus:', error);
-      Alert.alert('Erreur', 'Impossible de refuser l\'inscription');
+      showError('Erreur', 'Impossible de refuser l\'inscription');
     } finally {
       setProcessing(false);
     }

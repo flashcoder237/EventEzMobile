@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
-  Alert,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { ticketPurchasesAPI, eventsAPI, feedbacksAPI, registrationsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
@@ -64,6 +64,7 @@ const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, danger }: 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout } = useAuth();
+  const { showAlert, showConfirm } = useAlert();
   const [stats, setStats] = useState({
     tickets: 0,
     favorites: 0,
@@ -110,13 +111,10 @@ export default function ProfileScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
+    showConfirm(
       'Déconnexion',
       'Êtes-vous sûr de vouloir vous déconnecter ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Déconnexion', style: 'destructive', onPress: logout },
-      ]
+      logout
     );
   };
 
@@ -263,12 +261,12 @@ export default function ProfileScreen() {
             <MenuItem
               icon="help-circle-outline"
               title="Centre d'aide"
-              onPress={() => Alert.alert('Info', 'Bientôt disponible')}
+              onPress={() => showAlert('Info', 'Bientôt disponible')}
             />
             <MenuItem
               icon="document-text-outline"
               title="Conditions d'utilisation"
-              onPress={() => Alert.alert('Info', 'Consulter les CGU')}
+              onPress={() => showAlert('Info', 'Consulter les CGU')}
             />
           </View>
         </View>

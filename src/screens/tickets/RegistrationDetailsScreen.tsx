@@ -228,7 +228,7 @@ export default function RegistrationDetailsScreen() {
             </View>
 
             {/* Online Event Access Card */}
-            {(event?.location_type === 'online' || event?.location_type === 'hybrid') && event?.online_url && (
+            {(event?.location_type === 'online' || event?.location_type === 'hybrid') && (
               <View style={styles.onlineAccessCard}>
                 <View style={styles.onlineAccessHeader}>
                   <Ionicons name="videocam" size={20} color="#3B82F6" />
@@ -256,17 +256,33 @@ export default function RegistrationDetailsScreen() {
                     )}
                   </View>
                 )}
-                <TouchableOpacity
-                  style={styles.joinOnlineButton}
-                  onPress={() => {
-                    Linking.openURL(event.online_url!).catch(() => {
-                      showError('Erreur', 'Impossible d\'ouvrir le lien de l\'événement');
-                    });
-                  }}
-                >
-                  <Ionicons name="videocam" size={18} color={Colors.white} />
-                  <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
-                </TouchableOpacity>
+                {event.online_url ? (
+                  <TouchableOpacity
+                    style={styles.joinOnlineButton}
+                    onPress={() => {
+                      Linking.openURL(event.online_url!).catch(() => {
+                        showError('Erreur', 'Impossible d\'ouvrir le lien de l\'événement');
+                      });
+                    }}
+                  >
+                    <Ionicons name="videocam" size={18} color={Colors.white} />
+                    <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
+                  </TouchableOpacity>
+                ) : event.online_platform?.toLowerCase() === 'eventez_visio' || event.online_platform?.toLowerCase() === 'eventez visio' ? (
+                  <View style={styles.eventezVisioInfo}>
+                    <Ionicons name="information-circle" size={18} color="#3B82F6" />
+                    <Text style={styles.eventezVisioText}>
+                      La visioconférence EventEz sera disponible le jour de l'événement
+                    </Text>
+                  </View>
+                ) : !event.online_meeting_id && !event.online_passcode ? (
+                  <View style={styles.eventezVisioInfo}>
+                    <Ionicons name="time-outline" size={18} color={Colors.gray500} />
+                    <Text style={styles.eventezVisioText}>
+                      Les informations de connexion seront communiquées avant l'événement
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             )}
           </View>
@@ -741,5 +757,19 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+  eventezVisioInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+  },
+  eventezVisioText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    lineHeight: 20,
   },
 });

@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Vibration,
   Modal,
   ActivityIndicator,
@@ -17,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { useAlert } from '../../contexts/AlertContext';
 import { registrationsAPI, eventsAPI } from '../../api/client';
 import { RootStackParamList, Registration, Event } from '../../types';
 import {
@@ -46,6 +46,7 @@ export default function QRScannerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
+  const { showError } = useAlert();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -144,7 +145,7 @@ export default function QRScannerScreen() {
         alreadyCheckedIn: false,
       } : null);
     } catch (error: any) {
-      Alert.alert('Erreur', error.response?.data?.detail || 'Impossible d\'effectuer le check-in');
+      showError('Erreur', error.response?.data?.detail || 'Impossible d\'effectuer le check-in');
     } finally {
       setProcessing(false);
     }

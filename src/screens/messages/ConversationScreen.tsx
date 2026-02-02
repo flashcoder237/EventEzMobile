@@ -11,7 +11,6 @@ import {
   ActivityIndicator,
   Image,
   StatusBar,
-  Alert,
   Modal,
   Pressable,
 } from 'react-native';
@@ -23,6 +22,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { Message, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -50,6 +50,7 @@ export default function ConversationScreen() {
   const route = useRoute<ConversationRouteProp>();
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
+  const { showError } = useAlert();
 
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(initialConversationId);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -162,7 +163,7 @@ export default function ConversationScreen() {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        Alert.alert('Permission requise', 'Autorisez l\'accès aux photos pour envoyer des images.');
+        showError('Permission requise', 'Autorisez l\'accès aux photos pour envoyer des images.');
         return;
       }
 
@@ -184,7 +185,7 @@ export default function ConversationScreen() {
       }
     } catch (error) {
       console.error('Erreur sélection image:', error);
-      Alert.alert('Erreur', 'Impossible de sélectionner l\'image');
+      showError('Erreur', 'Impossible de sélectionner l\'image');
     }
   };
 
@@ -315,7 +316,7 @@ export default function ConversationScreen() {
       // Remove temp message on error
       setMessages((prev) => prev.filter((msg) => msg.id.startsWith('temp-')));
       setNewMessage(messageContent); // Restore message content
-      Alert.alert('Erreur', 'Impossible d\'envoyer le message');
+      showError('Erreur', 'Impossible d\'envoyer le message');
     } finally {
       setSending(false);
     }

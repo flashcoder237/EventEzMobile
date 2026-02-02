@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  Alert,
   Platform,
   StatusBar,
   Modal,
@@ -20,6 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { useAlert } from '../../contexts/AlertContext';
 import { walletAPI, payoutsAPI } from '../../api/client';
 import {
   OrganizerWallet,
@@ -50,6 +50,7 @@ const tabs: { key: TabType; label: string }[] = [
 
 export default function WalletScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { showAlert, showSuccess, showError } = useAlert();
   const [wallet, setWallet] = useState<OrganizerWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -119,7 +120,7 @@ export default function WalletScreen() {
 
   const handleRequestPayout = async () => {
     if (!payoutAmount || parseFloat(payoutAmount) <= 0) {
-      Alert.alert('Erreur', 'Montant invalide');
+      showError('Erreur', 'Montant invalide');
       return;
     }
 
@@ -127,12 +128,12 @@ export default function WalletScreen() {
 
     const amount = parseFloat(payoutAmount);
     if (amount > wallet.available_balance) {
-      Alert.alert('Erreur', 'Solde insuffisant');
+      showError('Erreur', 'Solde insuffisant');
       return;
     }
 
     if (amount < wallet.minimum_payout) {
-      Alert.alert('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} FCFA`);
+      showError('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} FCFA`);
       return;
     }
 
@@ -142,12 +143,12 @@ export default function WalletScreen() {
         amount,
         payout_method: payoutMethod,
       });
-      Alert.alert('Succès', 'Demande de retrait envoyée');
+      showSuccess('Succès', 'Demande de retrait envoyée');
       setShowPayoutModal(false);
       setPayoutAmount('');
       fetchData();
     } catch (error: any) {
-      Alert.alert('Erreur', error.response?.data?.detail || 'Erreur lors de la demande');
+      showError('Erreur', error.response?.data?.detail || 'Erreur lors de la demande');
     } finally {
       setProcessingPayout(false);
     }
@@ -157,11 +158,11 @@ export default function WalletScreen() {
     setSavingBank(true);
     try {
       await walletAPI.updateBankDetails(bankDetails);
-      Alert.alert('Succès', 'Informations mises à jour');
+      showSuccess('Succès', 'Informations mises à jour');
       setShowBankModal(false);
       fetchData();
     } catch (error: any) {
-      Alert.alert('Erreur', error.response?.data?.detail || 'Erreur lors de la mise à jour');
+      showError('Erreur', error.response?.data?.detail || 'Erreur lors de la mise à jour');
     } finally {
       setSavingBank(false);
     }
@@ -411,9 +412,11 @@ export default function WalletScreen() {
         {/* Withdraw Button */}
         <TouchableOpacity
           style={[styles.withdrawButton, !wallet?.can_withdraw && styles.withdrawButtonDisabled]}
-          onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : Alert.alert(
+          onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
             'Retrait impossible',
-            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} FCFA`
+            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} FCFA`,
+            undefined,
+            'warning'
           )}
         >
           <Ionicons name="arrow-up-circle" size={20} color={wallet?.can_withdraw ? '#7C3AED' : Colors.gray400} />

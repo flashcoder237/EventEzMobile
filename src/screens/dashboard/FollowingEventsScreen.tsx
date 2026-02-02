@@ -9,7 +9,6 @@ import {
   Image,
   RefreshControl,
   StatusBar,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { eventsAPI } from '../../api/client';
 import { RootStackParamList, Event } from '../../types';
 import {
@@ -59,6 +59,7 @@ const notificationBadges: Record<string, NotificationBadgeConfig> = {
 export default function FollowingEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const [follows, setFollows] = useState<FollowData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,31 +92,23 @@ export default function FollowingEventsScreen() {
   };
 
   const handleUnfollow = async (eventId: string) => {
-    Alert.alert(
+    showConfirm(
       'Ne plus suivre',
       'Voulez-vous vraiment ne plus suivre cet événement ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Confirmer',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await eventsAPI.unfollowEvent(eventId);
-              setFollows(prev => prev.filter(f => f.event !== eventId && f.event_details?.id !== eventId));
-            } catch (error) {
-              console.error('Error unfollowing:', error);
-              Alert.alert('Erreur', 'Impossible de ne plus suivre cet événement');
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await eventsAPI.unfollowEvent(eventId);
+          setFollows(prev => prev.filter(f => f.event !== eventId && f.event_details?.id !== eventId));
+        } catch (error) {
+          console.error('Error unfollowing:', error);
+          showError('Erreur', 'Impossible de ne plus suivre cet événement');
+        }
+      }
     );
   };
 
   const handleUpdatePreferences = (follow: FollowData) => {
-    const options = ['Toutes les notifications', 'Importantes seulement', 'Aucune notification', 'Annuler'];
-    Alert.alert(
+    showAlert(
       'Préférences de notification',
       'Choisissez le niveau de notifications pour cet événement',
       [
@@ -148,7 +141,7 @@ export default function FollowingEventsScreen() {
       );
     } catch (error) {
       console.error('Error updating preferences:', error);
-      Alert.alert('Erreur', 'Impossible de mettre à jour les préférences');
+      showError('Erreur', 'Impossible de mettre à jour les préférences');
     }
   };
 
@@ -195,7 +188,7 @@ export default function FollowingEventsScreen() {
   };
 
   const showFilterOptions = () => {
-    Alert.alert(
+    showAlert(
       'Filtrer par notifications',
       '',
       [

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
   StatusBar,
 } from 'react-native';
@@ -15,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../api/client';
+import { useAlert } from '../../contexts/AlertContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -32,6 +32,7 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassw
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { showError } = useAlert();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -60,9 +61,9 @@ export default function ForgotPasswordScreen() {
     } catch (err: any) {
       const errorData = err.response?.data;
       if (errorData?.email) {
-        Alert.alert('Erreur', Array.isArray(errorData.email) ? errorData.email[0] : errorData.email);
+        showError('Erreur', Array.isArray(errorData.email) ? errorData.email[0] : errorData.email);
       } else if (errorData?.detail) {
-        Alert.alert('Erreur', errorData.detail);
+        showError('Erreur', errorData.detail);
       } else {
         // On affiche un succès même si l'email n'existe pas (sécurité)
         setIsSuccess(true);

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  Alert,
   ScrollView,
   Image,
   StatusBar,
@@ -16,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -33,6 +33,7 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { login, isLoading } = useAuth();
+  const { showError } = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -89,7 +90,7 @@ export default function LoginScreen() {
         message = 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
       }
 
-      Alert.alert('Erreur de connexion', message);
+      showError('Erreur de connexion', message);
     }
   };
 

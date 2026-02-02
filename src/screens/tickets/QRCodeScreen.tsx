@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Share,
-  Alert,
   Image,
   Dimensions,
 } from 'react-native';
@@ -16,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useAlert } from '../../contexts/AlertContext';
 import { ticketPurchasesAPI, registrationsAPI } from '../../api/client';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import {
@@ -36,6 +36,7 @@ export default function QRCodeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<QRCodeRouteProp>();
   const { ticketId } = route.params;
+  const { showError } = useAlert();
 
   const [ticket, setTicket] = useState<TicketPurchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ export default function QRCodeScreen() {
       setTicket(response.data);
     } catch (error) {
       console.error('Error fetching ticket:', error);
-      Alert.alert('Erreur', 'Impossible de charger les détails du billet');
+      showError('Erreur', 'Impossible de charger les détails du billet');
     } finally {
       setLoading(false);
     }
