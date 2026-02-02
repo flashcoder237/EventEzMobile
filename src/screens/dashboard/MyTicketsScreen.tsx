@@ -28,6 +28,7 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
+type RegistrationType = 'billetterie' | 'inscription';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -66,12 +67,16 @@ export default function MyTicketsScreen() {
       const event = reg.event || reg.event_detail;
       const eventDate = event?.start_date ? new Date(event.start_date) : null;
       const isCancelled = reg.status === 'cancelled' || reg.status === 'rejected';
+      const isPendingApproval = reg.approval_status === 'pending' || reg.status === 'pending_approval';
 
       switch (tab) {
         case 'upcoming':
-          return !isCancelled && eventDate && eventDate >= now;
+          // Include: not cancelled AND (future date OR no date OR pending approval)
+          if (isCancelled) return false;
+          if (!eventDate) return true; // Show if no date (edge case)
+          return eventDate >= now || isPendingApproval;
         case 'past':
-          return !isCancelled && eventDate && eventDate < now;
+          return !isCancelled && eventDate && eventDate < now && !isPendingApproval;
         case 'cancelled':
           return isCancelled;
         default:
@@ -119,8 +124,26 @@ export default function MyTicketsScreen() {
     return 0;
   };
 
-  const getTicketInfo = (reg: Registration) => {
+  const getRegistrationType = (reg: Registration): RegistrationType => {
+    // Check registration_type first, then event type
+    if (reg.registration_type) {
+      return reg.registration_type;
+    }
+    const event = reg.event || reg.event_detail;
+    if ((event as any)?.event_type) {
+      return (event as any).event_type;
+    }
+    // If has tickets, it's billetterie
     if (reg.tickets && reg.tickets.length > 0) {
+      return 'billetterie';
+    }
+    return 'inscription';
+  };
+
+  const getTicketInfo = (reg: Registration) => {
+    const type = getRegistrationType(reg);
+
+    if (type === 'billetterie' && reg.tickets && reg.tickets.length > 0) {
       const firstTicket = reg.tickets[0];
       const ticketType = typeof firstTicket.ticket_type === 'object'
         ? firstTicket.ticket_type
@@ -129,9 +152,29 @@ export default function MyTicketsScreen() {
       return {
         name: ticketType?.name || firstTicket.ticket_type_name || 'Billet',
         quantity: totalQty,
+        type: 'billetterie' as RegistrationType,
+        icon: 'ticket-outline' as const,
       };
     }
-    return { name: 'Inscription', quantity: 1 };
+    return {
+      name: 'Inscription',
+      quantity: 1,
+      type: 'inscription' as RegistrationType,
+      icon: 'document-text-outline' as const,
+    };
+  };
+
+  const getApprovalStatusConfig = (approvalStatus?: string) => {
+    switch (approvalStatus) {
+      case 'pending':
+        return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente de validation', icon: 'hourglass-outline' };
+      case 'approved':
+        return { color: Colors.success, bg: Colors.successLight, label: 'Validée', icon: 'checkmark-circle' };
+      case 'rejected':
+        return { color: Colors.error, bg: Colors.errorLight, label: 'Refusée', icon: 'close-circle' };
+      default:
+        return null;
+    }
   };
 
   const renderRegistration = ({ item }: { item: Registration }) => {
@@ -140,80 +183,112 @@ export default function MyTicketsScreen() {
     const statusConfig = getStatusConfig(item.status);
     const ticketInfo = getTicketInfo(item);
     const totalPrice = getTotalPrice(item);
+    const isInscription = ticketInfo.type === 'inscription';
+    const approvalConfig = isInscription ? getApprovalStatusConfig(item.approval_status) : null;
+
+    // Use approval status for inscriptions if pending
+    const displayStatus = isInscription && approvalConfig && item.approval_status === 'pending'
+      ? approvalConfig
+      : statusConfig;
 
     return (
       <TouchableOpacity
-        style={styles.ticketCard}
+        style={styles.card}
         onPress={() => {
-          // Navigate to QR code view for this registration
           if (item.tickets && item.tickets.length > 0) {
             navigation.navigate('QRCode', { ticketId: item.tickets[0].id });
           } else {
-            // For inscription type, show event details
             navigation.navigate('EventDetails', { eventId: (event as any)?.id || item.event as string });
           }
         }}
-        activeOpacity={0.7}
+        activeOpacity={0.8}
       >
-        {/* Date Badge */}
-        <View style={styles.dateBadge}>
-          <Text style={styles.dateDay}>{dateInfo?.day || '--'}</Text>
-          <Text style={styles.dateMonth}>{dateInfo?.month || '---'}</Text>
+        {/* Image avec overlay gradient */}
+        <View style={styles.cardImageContainer}>
+          <Image
+            source={{ uri: (event as any)?.banner_image || (event as any)?.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
+            style={styles.cardImage}
+          />
+          <View style={styles.cardImageOverlay} />
+
+          {/* Type badge en haut à gauche */}
+          <View style={[
+            styles.cardTypeBadge,
+            isInscription ? styles.cardTypeBadgeInscription : styles.cardTypeBadgeBillet,
+          ]}>
+            <Ionicons
+              name={isInscription ? 'document-text' : 'ticket'}
+              size={12}
+              color={Colors.white}
+            />
+            <Text style={styles.cardTypeBadgeText}>
+              {isInscription ? 'Inscription' : 'Billet'}
+            </Text>
+          </View>
+
+          {/* Date en haut à droite */}
+          <View style={styles.cardDateBadge}>
+            <Text style={styles.cardDateDay}>{dateInfo?.day || '--'}</Text>
+            <Text style={styles.cardDateMonth}>{dateInfo?.month || '---'}</Text>
+          </View>
         </View>
 
-        {/* Ticket Content */}
-        <View style={styles.ticketContent}>
-          {/* Event Image */}
-          <Image
-            source={{ uri: (event as any)?.banner_image || (event as any)?.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=200' }}
-            style={styles.eventImage}
-          />
-
-          {/* Event Info */}
-          <View style={styles.eventInfo}>
-            <Text style={styles.eventTitle} numberOfLines={2}>
+        {/* Contenu de la carte */}
+        <View style={styles.cardContent}>
+          {/* Titre et lieu */}
+          <View style={styles.cardMain}>
+            <Text style={styles.cardTitle} numberOfLines={2}>
               {(event as any)?.title || 'Événement'}
             </Text>
 
-            <View style={styles.ticketTypeRow}>
-              <Ionicons name="ticket-outline" size={14} color={Colors.primary} />
-              <Text style={styles.ticketTypeName}>{ticketInfo.name}</Text>
-              {ticketInfo.quantity > 1 && (
-                <Text style={styles.ticketQuantity}>×{ticketInfo.quantity}</Text>
-              )}
-            </View>
-
-            <View style={styles.eventMeta}>
+            <View style={styles.cardMeta}>
               {(event as any)?.location_city && (
-                <View style={styles.metaItem}>
-                  <Ionicons name="location-outline" size={12} color={Colors.gray400} />
-                  <Text style={styles.metaText}>{(event as any).location_city}</Text>
+                <View style={styles.cardMetaItem}>
+                  <Ionicons name="location" size={14} color={Colors.gray400} />
+                  <Text style={styles.cardMetaText}>{(event as any).location_city}</Text>
                 </View>
               )}
               {dateInfo && (
-                <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={12} color={Colors.gray400} />
-                  <Text style={styles.metaText}>{dateInfo.time}</Text>
+                <View style={styles.cardMetaItem}>
+                  <Ionicons name="time" size={14} color={Colors.gray400} />
+                  <Text style={styles.cardMetaText}>{dateInfo.time}</Text>
                 </View>
               )}
             </View>
-
-            <View style={styles.ticketFooter}>
-              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-                <Ionicons name={statusConfig.icon as any} size={12} color={statusConfig.color} />
-                <Text style={[styles.statusText, { color: statusConfig.color }]}>
-                  {statusConfig.label}
-                </Text>
-              </View>
-              <Text style={styles.ticketPrice}>
-                {totalPrice > 0 ? `${totalPrice.toLocaleString()} FCFA` : 'Gratuit'}
-              </Text>
-            </View>
           </View>
 
-          {/* QR Icon */}
-          <View style={styles.qrButton}>
-            <Ionicons name="qr-code" size={22} color={Colors.primary} />
+          {/* Séparateur avec effet ticket */}
+          <View style={styles.cardDivider}>
+            <View style={styles.cardDividerCircleLeft} />
+            <View style={styles.cardDividerLine} />
+            <View style={styles.cardDividerCircleRight} />
+          </View>
+
+          {/* Footer avec statut et QR */}
+          <View style={styles.cardFooter}>
+            <View style={styles.cardFooterLeft}>
+              <View style={[styles.cardStatusBadge, { backgroundColor: displayStatus.bg }]}>
+                <Ionicons name={displayStatus.icon as any} size={14} color={displayStatus.color} />
+                <Text style={[styles.cardStatusText, { color: displayStatus.color }]}>
+                  {displayStatus.label}
+                </Text>
+              </View>
+              {ticketInfo.quantity > 1 && (
+                <Text style={styles.cardQuantity}>×{ticketInfo.quantity}</Text>
+              )}
+            </View>
+
+            <View style={styles.cardFooterRight}>
+              {totalPrice > 0 && (
+                <Text style={styles.cardPrice}>{totalPrice.toLocaleString()} F</Text>
+              )}
+              <View style={[
+                styles.cardQrButton,
+                isInscription && styles.cardQrButtonInscription,
+              ]}>
+                <Ionicons name="qr-code" size={20} color={Colors.white} />
+              </View>
+            </View>
           </View>
         </View>
       </TouchableOpacity>
@@ -224,20 +299,20 @@ export default function MyTicketsScreen() {
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconContainer}>
         <Ionicons
-          name={activeTab === 'cancelled' ? 'close-circle-outline' : 'ticket-outline'}
+          name={activeTab === 'cancelled' ? 'close-circle-outline' : 'calendar-outline'}
           size={48}
           color={Colors.gray300}
         />
       </View>
       <Text style={styles.emptyTitle}>
-        {activeTab === 'upcoming' && 'Aucun billet à venir'}
-        {activeTab === 'past' && 'Aucun billet passé'}
-        {activeTab === 'cancelled' && 'Aucun billet annulé'}
+        {activeTab === 'upcoming' && 'Aucun billet ou inscription à venir'}
+        {activeTab === 'past' && 'Aucun billet ou inscription passé'}
+        {activeTab === 'cancelled' && 'Aucune annulation'}
       </Text>
       <Text style={styles.emptyText}>
         {activeTab === 'upcoming'
-          ? 'Explorez les événements et achetez vos premiers billets !'
-          : 'Les billets correspondants apparaîtront ici.'}
+          ? 'Explorez les événements et inscrivez-vous ou achetez vos premiers billets !'
+          : 'Les billets et inscriptions correspondants apparaîtront ici.'}
       </Text>
       {activeTab === 'upcoming' && (
         <TouchableOpacity
@@ -287,7 +362,7 @@ export default function MyTicketsScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mes Billets</Text>
+        <Text style={styles.headerTitle}>Mes Billets & Inscriptions</Text>
       </View>
 
       {/* Tabs */}
@@ -403,84 +478,34 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
 
-  // Ticket Card
-  ticketCard: {
+  // Card styles
+  card: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.lg,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  dateBadge: {
-    backgroundColor: Colors.primary,
-    paddingVertical: Spacing.sm,
-    alignItems: 'center',
+  cardImageContainer: {
+    height: 120,
+    position: 'relative',
   },
-  dateDay: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes['2xl'],
-    color: Colors.white,
+  cardImage: {
+    width: '100%',
+    height: '100%',
   },
-  dateMonth: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-    color: 'rgba(255,255,255,0.8)',
-    textTransform: 'uppercase',
+  cardImageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  ticketContent: {
-    flexDirection: 'row',
-    padding: Spacing.md,
-  },
-  eventImage: {
-    width: 70,
-    height: 70,
-    borderRadius: BorderRadius.md,
-  },
-  eventInfo: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  eventTitle: {
-    ...TextStyles.bodyBold,
-    marginBottom: Spacing.xs,
-  },
-  ticketTypeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: Spacing.xs,
-  },
-  ticketTypeName: {
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontFamily: FontFamily.medium,
-  },
-  ticketQuantity: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    fontFamily: FontFamily.semiBold,
-  },
-  eventMeta: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray500,
-  },
-  ticketFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  statusBadge: {
+  cardTypeBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    left: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
@@ -488,19 +513,144 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: BorderRadius.full,
   },
-  statusText: {
+  cardTypeBadgeBillet: {
+    backgroundColor: Colors.primary,
+  },
+  cardTypeBadgeInscription: {
+    backgroundColor: Colors.secondary || '#8B5CF6',
+  },
+  cardTypeBadgeText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+  },
+  cardDateBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    alignItems: 'center',
+    minWidth: 44,
+  },
+  cardDateDay: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
+    lineHeight: 22,
+  },
+  cardDateMonth: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray500,
+    textTransform: 'uppercase',
+  },
+  cardContent: {
+    padding: Spacing.md,
+  },
+  cardMain: {
+    marginBottom: Spacing.md,
+  },
+  cardTitle: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.xs,
+    lineHeight: 22,
+  },
+  cardMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.md,
+  },
+  cardMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  cardMetaText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    fontFamily: FontFamily.regular,
+  },
+  // Divider effet ticket
+  cardDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: Spacing.sm,
+  },
+  cardDividerCircleLeft: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.gray100,
+    marginLeft: -Spacing.md - 8,
+  },
+  cardDividerLine: {
+    flex: 1,
+    height: 1,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    marginHorizontal: Spacing.xs,
+  },
+  cardDividerCircleRight: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.gray100,
+    marginRight: -Spacing.md - 8,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  cardFooterLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+  },
+  cardStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  cardStatusText: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.semiBold,
   },
-  ticketPrice: {
+  cardQuantity: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray500,
+  },
+  cardFooterRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  cardPrice: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    color: Colors.gray700,
   },
-  qrButton: {
-    justifyContent: 'center',
+  cardQrButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
     alignItems: 'center',
-    paddingLeft: Spacing.md,
+    justifyContent: 'center',
+  },
+  cardQrButtonInscription: {
+    backgroundColor: Colors.secondary || '#8B5CF6',
   },
 
   // Empty State

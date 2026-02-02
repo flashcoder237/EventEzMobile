@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,9 +29,24 @@ import GradientButton from '../../components/ui/GradientButton';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, 'PaymentSuccess'>;
 
+interface SuccessContent {
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  title: string;
+  subtitle: string;
+  infoItems: Array<{
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    description: string;
+  }>;
+  primaryButtonText: string;
+  primaryButtonIcon: keyof typeof Ionicons.glyphMap;
+}
+
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
+  const { eventType, approvalStatus, eventTitle } = route.params;
 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -49,58 +64,122 @@ export default function PaymentSuccessScreen() {
     opacity: opacity.value,
   }));
 
+  // Déterminer le contenu à afficher selon le type d'événement et le statut
+  const content: SuccessContent = useMemo(() => {
+    const isInscription = eventType === 'inscription';
+    const isPendingApproval = approvalStatus === 'pending';
+
+    if (isInscription) {
+      if (isPendingApproval) {
+        // Inscription en attente de validation
+        return {
+          icon: 'time-outline',
+          iconColor: Colors.warning || '#F59E0B',
+          title: 'Inscription soumise !',
+          subtitle: `Votre inscription${eventTitle ? ` pour "${eventTitle}"` : ''} a été soumise avec succès.\nElle est en attente de validation par l'organisateur.`,
+          infoItems: [
+            {
+              icon: 'hourglass-outline',
+              title: 'En attente de validation',
+              description: 'L\'organisateur examinera votre inscription',
+            },
+            {
+              icon: 'notifications-outline',
+              title: 'Notification',
+              description: 'Vous serez notifié dès la validation',
+            },
+          ],
+          primaryButtonText: 'Voir mes inscriptions',
+          primaryButtonIcon: 'list',
+        };
+      } else {
+        // Inscription confirmée (auto-validée)
+        return {
+          icon: 'checkmark-circle',
+          iconColor: Colors.success,
+          title: 'Inscription confirmée !',
+          subtitle: `Votre inscription${eventTitle ? ` pour "${eventTitle}"` : ''} a été confirmée.\nVous recevrez un email de confirmation.`,
+          infoItems: [
+            {
+              icon: 'calendar-outline',
+              title: 'Votre inscription',
+              description: 'Retrouvez les détails dans "Mes Billets"',
+            },
+            {
+              icon: 'qr-code-outline',
+              title: 'QR Code',
+              description: 'Présentez votre QR code à l\'entrée',
+            },
+          ],
+          primaryButtonText: 'Voir mes inscriptions',
+          primaryButtonIcon: 'list',
+        };
+      }
+    } else {
+      // Type billetterie - comportement par défaut
+      return {
+        icon: 'checkmark',
+        iconColor: Colors.success,
+        title: 'Paiement réussi !',
+        subtitle: 'Votre paiement a été effectué avec succès.\nVous recevrez un email de confirmation.',
+        infoItems: [
+          {
+            icon: 'ticket-outline',
+            title: 'Vos billets',
+            description: 'Retrouvez vos billets dans "Mes Billets"',
+          },
+          {
+            icon: 'qr-code-outline',
+            title: 'QR Code',
+            description: 'Présentez votre QR code à l\'entrée',
+          },
+        ],
+        primaryButtonText: 'Voir mes billets',
+        primaryButtonIcon: 'ticket',
+      };
+    }
+  }, [eventType, approvalStatus, eventTitle]);
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
         {/* Success Icon */}
         <Animated.View style={[styles.iconContainer, iconStyle]}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="checkmark" size={60} color={Colors.white} />
+          <View style={[
+            styles.iconCircle,
+            { backgroundColor: content.icon === 'time-outline' ? (Colors.warning || '#F59E0B') : Colors.success }
+          ]}>
+            <Ionicons name={content.icon} size={60} color={Colors.white} />
           </View>
         </Animated.View>
 
         <Animated.View style={[styles.textContainer, contentStyle]}>
-          <Text style={styles.title}>Paiement réussi !</Text>
-          <Text style={styles.subtitle}>
-            Votre paiement a été effectué avec succès.{'\n'}
-            Vous recevrez un email de confirmation.
-          </Text>
+          <Text style={styles.title}>{content.title}</Text>
+          <Text style={styles.subtitle}>{content.subtitle}</Text>
         </Animated.View>
 
         {/* Info Card */}
         <Animated.View style={[styles.infoCard, contentStyle]}>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="ticket-outline" size={24} color={Colors.primary} />
+          {content.infoItems.map((item, index) => (
+            <View key={index} style={styles.infoRow}>
+              <View style={styles.infoIcon}>
+                <Ionicons name={item.icon} size={24} color={Colors.primary} />
+              </View>
+              <View style={styles.infoText}>
+                <Text style={styles.infoTitle}>{item.title}</Text>
+                <Text style={styles.infoDescription}>{item.description}</Text>
+              </View>
             </View>
-            <View style={styles.infoText}>
-              <Text style={styles.infoTitle}>Vos billets</Text>
-              <Text style={styles.infoDescription}>
-                Retrouvez vos billets dans "Mes Billets"
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoRow}>
-            <View style={styles.infoIcon}>
-              <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
-            </View>
-            <View style={styles.infoText}>
-              <Text style={styles.infoTitle}>QR Code</Text>
-              <Text style={styles.infoDescription}>
-                Présentez votre QR code à l'entrée
-              </Text>
-            </View>
-          </View>
+          ))}
         </Animated.View>
       </View>
 
       {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
         <GradientButton
-          title="Voir mes billets"
+          title={content.primaryButtonText}
           onPress={() => navigation.replace('Main', { screen: 'MyTickets' } as any)}
-          icon={<Ionicons name="ticket" size={20} color={Colors.white} />}
+          icon={<Ionicons name={content.primaryButtonIcon} size={20} color={Colors.white} />}
           fullWidth
         />
         <View style={{ height: Spacing.md }} />

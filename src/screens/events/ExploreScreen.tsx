@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,9 @@ import {
   StatusBar,
   ScrollView,
   Modal,
+  Animated,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -36,15 +39,36 @@ type ViewMode = 'list' | 'map';
 type EventTypeFilter = 'all' | 'billetterie' | 'inscription';
 type PriceFilter = 'all' | 'free' | 'paid';
 type DateFilter = 'all' | 'today' | 'weekend' | 'week' | 'month';
+type LocationTypeFilter = 'all' | 'in_person' | 'online' | 'hybrid';
+type SortOption = 'date' | 'price_asc' | 'price_desc' | 'popularity' | 'distance';
 
 interface Filters {
   eventType: EventTypeFilter;
   price: PriceFilter;
   date: DateFilter;
+  locationType: LocationTypeFilter;
+  distance: number; // en km, 0 = pas de limite
+  priceMin: number;
+  priceMax: number; // 0 = pas de limite
+  sortBy: SortOption;
 }
+
+const PAGE_SIZE = 20;
+
+const defaultFilters: Filters = {
+  eventType: 'all',
+  price: 'all',
+  date: 'all',
+  locationType: 'all',
+  distance: 0,
+  priceMin: 0,
+  priceMax: 0,
+  sortBy: 'date',
+};
 
 export default function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const flatListRef = useRef<FlatList>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
   const [events, setEvents] = useState<Event[]>([]);
@@ -53,19 +77,12 @@ export default function ExploreScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [selectedMarker, setSelectedMarker] = useState<MapMarker | null>(null);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>({
-    eventType: 'all',
-    price: 'all',
-    date: 'all',
-  });
-  const [tempFilters, setTempFilters] = useState<Filters>({
-    eventType: 'all',
-    price: 'all',
-    date: 'all',
-  });
+  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const [tempFilters, setTempFilters] = useState<Filters>(defaultFilters);
   const [region, setRegion] = useState({
     latitude: 3.848,
     longitude: 11.502,
@@ -73,10 +90,24 @@ export default function ExploreScreen() {
     longitudeDelta: 0.5,
   });
 
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+
+  // Scroll to top button
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  const scrollY = useRef(new Animated.Value(0)).current;
+
   const activeFiltersCount = [
     filters.eventType !== 'all',
     filters.price !== 'all',
     filters.date !== 'all',
+    filters.locationType !== 'all',
+    filters.distance > 0,
+    filters.priceMin > 0,
+    filters.priceMax > 0,
+    filters.sortBy !== 'date',
   ].filter(Boolean).length;
 
   useEffect(() => {
@@ -85,12 +116,26 @@ export default function ExploreScreen() {
   }, []);
 
   useEffect(() => {
-    fetchEvents();
-  }, [searchQuery, selectedCategory]);
+    setCurrentPage(1);
+    fetchEvents(1, false);
+  }, [searchQuery, selectedCategory, filters.sortBy]);
 
   useEffect(() => {
     applyFilters();
   }, [events, filters]);
+
+  // Calcul de la distance entre deux points (formule Haversine)
+  const calculateDistance = (lat1: number, lng1: number, lat2: number, lng2: number): number => {
+    const R = 6371; // Rayon de la Terre en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
 
   const applyFilters = () => {
     let result = [...events];
@@ -100,11 +145,41 @@ export default function ExploreScreen() {
       result = result.filter(event => event.event_type === filters.eventType);
     }
 
-    // Filter by price
+    // Filter by location type
+    if (filters.locationType !== 'all') {
+      result = result.filter(event => event.location_type === filters.locationType);
+    }
+
+    // Filter by price (free/paid)
     if (filters.price === 'free') {
-      result = result.filter(event => event.is_free);
+      result = result.filter(event => event.is_free || getEventPrice(event) === 0);
     } else if (filters.price === 'paid') {
-      result = result.filter(event => !event.is_free);
+      result = result.filter(event => !event.is_free && getEventPrice(event) !== 0);
+    }
+
+    // Filter by price range
+    if (filters.priceMin > 0 || filters.priceMax > 0) {
+      result = result.filter(event => {
+        const price = getEventPrice(event);
+        if (price === undefined) return true;
+        if (filters.priceMin > 0 && price < filters.priceMin) return false;
+        if (filters.priceMax > 0 && price > filters.priceMax) return false;
+        return true;
+      });
+    }
+
+    // Filter by distance
+    if (filters.distance > 0 && userLocation) {
+      result = result.filter(event => {
+        if (!event.location_latitude || !event.location_longitude) return true;
+        const dist = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          event.location_latitude,
+          event.location_longitude
+        );
+        return dist <= filters.distance;
+      });
     }
 
     // Filter by date
@@ -144,6 +219,37 @@ export default function ExploreScreen() {
       });
     }
 
+    // Apply sorting (client-side for filters not supported by API)
+    result.sort((a, b) => {
+      switch (filters.sortBy) {
+        case 'date':
+          return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+        case 'price_asc': {
+          const priceA = getEventPrice(a) ?? 0;
+          const priceB = getEventPrice(b) ?? 0;
+          return priceA - priceB;
+        }
+        case 'price_desc': {
+          const priceA = getEventPrice(a) ?? 0;
+          const priceB = getEventPrice(b) ?? 0;
+          return priceB - priceA;
+        }
+        case 'popularity':
+          return (b.registration_count || 0) - (a.registration_count || 0);
+        case 'distance':
+          if (!userLocation) return 0;
+          const distA = a.location_latitude && a.location_longitude
+            ? calculateDistance(userLocation.lat, userLocation.lng, a.location_latitude, a.location_longitude)
+            : Infinity;
+          const distB = b.location_latitude && b.location_longitude
+            ? calculateDistance(userLocation.lat, userLocation.lng, b.location_latitude, b.location_longitude)
+            : Infinity;
+          return distA - distB;
+        default:
+          return 0;
+      }
+    });
+
     setFilteredEvents(result);
   };
 
@@ -179,19 +285,52 @@ export default function ExploreScreen() {
     }
   };
 
-  const fetchEvents = async () => {
-    setLoading(true);
+  const fetchEvents = async (page: number = 1, append: boolean = false) => {
+    if (page === 1) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
+    }
     try {
-      const params: any = {};
+      const params: any = {
+        page,
+        page_size: PAGE_SIZE,
+      };
       if (searchQuery) params.search = searchQuery;
       if (selectedCategory) params.category = selectedCategory;
 
+      // Ajouter le tri au niveau de l'API si possible
+      if (filters.sortBy === 'date') {
+        params.ordering = 'start_date';
+      } else if (filters.sortBy === 'popularity') {
+        params.ordering = '-registration_count';
+      }
+
       const response = await eventsAPI.getEvents(params);
-      setEvents(response.data?.results || response.data || []);
+      const newEvents = response.data?.results || response.data || [];
+      const count = response.data?.count || newEvents.length;
+      const nextPage = response.data?.next;
+
+      if (append) {
+        setEvents(prev => [...prev, ...newEvents]);
+      } else {
+        setEvents(newEvents);
+      }
+
+      setTotalCount(count);
+      setHasNextPage(!!nextPage);
+      setCurrentPage(page);
     } catch (error) {
       console.error('Erreur chargement événements:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreEvents = () => {
+    if (!loadingMore && hasNextPage) {
+      fetchEvents(currentPage + 1, true);
     }
   };
 
@@ -274,14 +413,19 @@ export default function ExploreScreen() {
   };
 
   const resetFilters = () => {
-    const defaultFilters: Filters = {
-      eventType: 'all',
-      price: 'all',
-      date: 'all',
-    };
     setTempFilters(defaultFilters);
     setFilters(defaultFilters);
     setShowFilters(false);
+  };
+
+  // Scroll handlers
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setShowScrollToTop(offsetY > 500);
+  };
+
+  const scrollToTop = () => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
   };
 
   const renderEvent = useCallback(
@@ -354,6 +498,34 @@ export default function ExploreScreen() {
           </View>
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+            {/* Sort By */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Trier par</Text>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('Date', 'date', tempFilters.sortBy, () =>
+                  setTempFilters({ ...tempFilters, sortBy: 'date' })
+                )}
+                {renderFilterOption('Popularité', 'popularity', tempFilters.sortBy, () =>
+                  setTempFilters({ ...tempFilters, sortBy: 'popularity' })
+                )}
+              </View>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('Prix croissant', 'price_asc', tempFilters.sortBy, () =>
+                  setTempFilters({ ...tempFilters, sortBy: 'price_asc' })
+                )}
+                {renderFilterOption('Prix décroissant', 'price_desc', tempFilters.sortBy, () =>
+                  setTempFilters({ ...tempFilters, sortBy: 'price_desc' })
+                )}
+              </View>
+              {userLocation && (
+                <View style={styles.filterOptionsRow}>
+                  {renderFilterOption('Distance', 'distance', tempFilters.sortBy, () =>
+                    setTempFilters({ ...tempFilters, sortBy: 'distance' })
+                  )}
+                </View>
+              )}
+            </View>
+
             {/* Event Type Filter */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Type d'événement</Text>
@@ -366,6 +538,27 @@ export default function ExploreScreen() {
                 )}
                 {renderFilterOption('Inscription', 'inscription', tempFilters.eventType, () =>
                   setTempFilters({ ...tempFilters, eventType: 'inscription' })
+                )}
+              </View>
+            </View>
+
+            {/* Location Type Filter */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Type de lieu</Text>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('Tous', 'all', tempFilters.locationType, () =>
+                  setTempFilters({ ...tempFilters, locationType: 'all' })
+                )}
+                {renderFilterOption('Présentiel', 'in_person', tempFilters.locationType, () =>
+                  setTempFilters({ ...tempFilters, locationType: 'in_person' })
+                )}
+              </View>
+              <View style={styles.filterOptionsRow}>
+                {renderFilterOption('En ligne', 'online', tempFilters.locationType, () =>
+                  setTempFilters({ ...tempFilters, locationType: 'online' })
+                )}
+                {renderFilterOption('Hybride', 'hybrid', tempFilters.locationType, () =>
+                  setTempFilters({ ...tempFilters, locationType: 'hybrid' })
                 )}
               </View>
             </View>
@@ -385,6 +578,73 @@ export default function ExploreScreen() {
                 )}
               </View>
             </View>
+
+            {/* Price Range */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Fourchette de prix (FCFA)</Text>
+              <View style={styles.priceRangeContainer}>
+                <View style={styles.priceInputContainer}>
+                  <Text style={styles.priceInputLabel}>Min</Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    value={tempFilters.priceMin > 0 ? tempFilters.priceMin.toString() : ''}
+                    onChangeText={(text) => {
+                      const value = parseInt(text) || 0;
+                      setTempFilters({ ...tempFilters, priceMin: value });
+                    }}
+                    keyboardType="numeric"
+                    placeholder="0"
+                    placeholderTextColor={Colors.gray400}
+                  />
+                </View>
+                <View style={styles.priceRangeSeparator}>
+                  <Text style={styles.priceRangeSeparatorText}>-</Text>
+                </View>
+                <View style={styles.priceInputContainer}>
+                  <Text style={styles.priceInputLabel}>Max</Text>
+                  <TextInput
+                    style={styles.priceInput}
+                    value={tempFilters.priceMax > 0 ? tempFilters.priceMax.toString() : ''}
+                    onChangeText={(text) => {
+                      const value = parseInt(text) || 0;
+                      setTempFilters({ ...tempFilters, priceMax: value });
+                    }}
+                    keyboardType="numeric"
+                    placeholder="Illimité"
+                    placeholderTextColor={Colors.gray400}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Distance Filter */}
+            {userLocation && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Distance maximale</Text>
+                <View style={styles.filterOptionsRow}>
+                  {renderFilterOption('Illimitée', '0', tempFilters.distance.toString(), () =>
+                    setTempFilters({ ...tempFilters, distance: 0 })
+                  )}
+                  {renderFilterOption('5 km', '5', tempFilters.distance.toString(), () =>
+                    setTempFilters({ ...tempFilters, distance: 5 })
+                  )}
+                  {renderFilterOption('10 km', '10', tempFilters.distance.toString(), () =>
+                    setTempFilters({ ...tempFilters, distance: 10 })
+                  )}
+                </View>
+                <View style={styles.filterOptionsRow}>
+                  {renderFilterOption('25 km', '25', tempFilters.distance.toString(), () =>
+                    setTempFilters({ ...tempFilters, distance: 25 })
+                  )}
+                  {renderFilterOption('50 km', '50', tempFilters.distance.toString(), () =>
+                    setTempFilters({ ...tempFilters, distance: 50 })
+                  )}
+                  {renderFilterOption('100 km', '100', tempFilters.distance.toString(), () =>
+                    setTempFilters({ ...tempFilters, distance: 100 })
+                  )}
+                </View>
+              </View>
+            )}
 
             {/* Date Filter */}
             <View style={styles.filterSection}>
@@ -425,27 +685,70 @@ export default function ExploreScreen() {
     </Modal>
   );
 
-  const renderListView = () => (
-    <FlatList
-      data={filteredEvents}
-      renderItem={renderEvent}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={styles.listContent}
-      showsVerticalScrollIndicator={false}
-      ListEmptyComponent={
-        !loading ? (
-          <View style={styles.emptyContainer}>
-            <View style={styles.emptyIconContainer}>
-              <Ionicons name="search-outline" size={48} color={Colors.gray300} />
-            </View>
-            <Text style={styles.emptyTitle}>Aucun événement trouvé</Text>
-            <Text style={styles.emptyText}>
-              Essayez de modifier vos critères de recherche
-            </Text>
+  const renderListFooter = () => {
+    if (loading) return null;
+
+    return (
+      <View style={styles.listFooter}>
+        {loadingMore ? (
+          <View style={styles.loadingMoreContainer}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.loadingMoreText}>Chargement...</Text>
           </View>
-        ) : null
-      }
-    />
+        ) : hasNextPage ? (
+          <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreEvents}>
+            <Text style={styles.loadMoreButtonText}>Voir plus</Text>
+            <Ionicons name="chevron-down" size={20} color={Colors.primary} />
+          </TouchableOpacity>
+        ) : filteredEvents.length > 0 ? (
+          <View style={styles.endOfListContainer}>
+            <View style={styles.endOfListLine} />
+            <Text style={styles.endOfListText}>Fin des résultats</Text>
+            <View style={styles.endOfListLine} />
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  const renderListView = () => (
+    <View style={styles.listViewContainer}>
+      <FlatList
+        ref={flatListRef}
+        data={filteredEvents}
+        renderItem={renderEvent}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        ListFooterComponent={renderListFooter}
+        ListEmptyComponent={
+          !loading ? (
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconContainer}>
+                <Ionicons name="search-outline" size={48} color={Colors.gray300} />
+              </View>
+              <Text style={styles.emptyTitle}>Aucun événement trouvé</Text>
+              <Text style={styles.emptyText}>
+                Essayez de modifier vos critères de recherche
+              </Text>
+            </View>
+          ) : null
+        }
+      />
+
+      {/* Scroll to Top Button */}
+      {showScrollToTop && (
+        <TouchableOpacity
+          style={styles.scrollToTopButton}
+          onPress={scrollToTop}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="arrow-up" size={24} color={Colors.white} />
+        </TouchableOpacity>
+      )}
+    </View>
   );
 
   const renderMapView = () => (
@@ -598,6 +901,7 @@ export default function ExploreScreen() {
         <View style={styles.resultsHeader}>
           <Text style={styles.resultsCount}>
             {filteredEvents.length} événement{filteredEvents.length !== 1 ? 's' : ''}
+            {totalCount > filteredEvents.length && ` sur ${totalCount}`}
           </Text>
           {activeFiltersCount > 0 && (
             <TouchableOpacity onPress={resetFilters}>
@@ -743,12 +1047,79 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   // ===== LIST CONTENT =====
+  listViewContainer: {
+    flex: 1,
+    position: 'relative',
+  },
   listContent: {
     paddingHorizontal: Spacing.lg,
     paddingBottom: 100,
   },
   eventCardContainer: {
     marginBottom: Spacing.md,
+  },
+  // ===== LIST FOOTER (Pagination) =====
+  listFooter: {
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+  },
+  loadingMoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  loadingMoreText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+  },
+  loadMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    backgroundColor: Colors.primaryLight || Colors.gray50,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    gap: Spacing.xs,
+  },
+  loadMoreButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+  },
+  endOfListContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.lg,
+    gap: Spacing.md,
+  },
+  endOfListLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.gray200,
+  },
+  endOfListText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray400,
+  },
+  // ===== SCROLL TO TOP BUTTON =====
+  scrollToTopButton: {
+    position: 'absolute',
+    right: Spacing.lg,
+    bottom: Spacing.xl,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.md,
+    elevation: 5,
   },
   // ===== EMPTY STATE =====
   emptyContainer: {
@@ -897,6 +1268,39 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
+  },
+  // ===== PRICE RANGE =====
+  priceRangeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  priceInputContainer: {
+    flex: 1,
+  },
+  priceInputLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+    marginBottom: Spacing.xs,
+  },
+  priceInput: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray900,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  priceRangeSeparator: {
+    paddingTop: Spacing.lg,
+  },
+  priceRangeSeparatorText: {
+    fontSize: FontSizes.lg,
+    color: Colors.gray400,
   },
   filterOption: {
     paddingHorizontal: Spacing.md,

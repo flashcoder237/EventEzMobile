@@ -35,7 +35,7 @@ export default function MainTabNavigator() {
               iconName = focused ? 'search' : 'search-outline';
               break;
             case 'MyTickets':
-              iconName = focused ? 'ticket' : 'ticket-outline';
+              iconName = focused ? 'calendar' : 'calendar-outline';
               break;
             case 'Dashboard':
               iconName = focused ? 'heart' : 'heart-outline';
@@ -87,7 +87,7 @@ export default function MainTabNavigator() {
       <Tab.Screen
         name="MyTickets"
         component={MyTicketsScreen}
-        options={{ tabBarLabel: 'Billets' }}
+        options={{ tabBarLabel: 'Réservations' }}
       />
       <Tab.Screen
         name="Dashboard"

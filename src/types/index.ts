@@ -1115,7 +1115,13 @@ export type RootStackParamList = {
   EventDetails: { eventId: string };
   TicketPurchase: { eventId: string; ticketTypeId?: string };
   Payment: { registrationId: string };
-  PaymentSuccess: { paymentId: string };
+  PaymentSuccess: {
+    paymentId: string;
+    eventType?: 'billetterie' | 'inscription';
+    registrationStatus?: string;
+    approvalStatus?: string;
+    eventTitle?: string;
+  };
   PaymentFailed: { paymentId?: string; error?: string };
   QRCode: { ticketId: string };
   Profile: { userId?: string };

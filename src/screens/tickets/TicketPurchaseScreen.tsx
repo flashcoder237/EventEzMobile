@@ -249,12 +249,19 @@ export default function TicketPurchaseScreen() {
         navigation.navigate('Payment', { registrationId });
       } else {
         // Free event - confirm and go to success
+        const registrationData = response.data;
         try {
-          await registrationsAPI.updateRegistration(registrationId, { status: 'confirmed' });
+          await registrationsAPI.patchRegistration(registrationId, { status: 'confirmed' });
         } catch (e) {
           console.log('Could not auto-confirm:', e);
         }
-        navigation.navigate('PaymentSuccess', { paymentId: registrationId });
+        navigation.navigate('PaymentSuccess', {
+          paymentId: registrationId,
+          eventType: event?.event_type,
+          registrationStatus: registrationData.status,
+          approvalStatus: registrationData.approval_status,
+          eventTitle: event?.title,
+        });
       }
     } catch (error: any) {
       console.error('Erreur création inscription:', error);

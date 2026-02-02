@@ -178,7 +178,13 @@ export default function PaymentScreen() {
 
         if (status === 'completed') {
           setProcessing(false);
-          navigation.replace('PaymentSuccess', { paymentId: pId });
+          navigation.replace('PaymentSuccess', {
+            paymentId: pId,
+            eventType: registration?.event?.event_type || registration?.registration_type,
+            registrationStatus: registration?.status,
+            approvalStatus: registration?.approval_status,
+            eventTitle: registration?.event?.title,
+          });
         } else if (status === 'failed') {
           setProcessing(false);
           navigation.replace('PaymentFailed', { paymentId: pId, error: 'Le paiement a échoué' });
