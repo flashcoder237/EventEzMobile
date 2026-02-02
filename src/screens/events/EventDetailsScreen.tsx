@@ -18,8 +18,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI } from '../../api/client';
-import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration } from '../../types';
+import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI } from '../../api/client';
+import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import { useAuth } from '../../contexts/AuthContext';
@@ -61,9 +61,17 @@ export default function EventDetailsScreen() {
   const [joiningWaitlist, setJoiningWaitlist] = useState(false);
   // User registration state
   const [userRegistration, setUserRegistration] = useState<Registration | null>(null);
+  // Feedbacks state
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
+  // Sessions state
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
 
   useEffect(() => {
     fetchEvent();
+    fetchFeedbacks();
+    fetchSessions();
     if (user) {
       fetchWaitlistStatus();
       fetchUserRegistration();
@@ -99,6 +107,36 @@ export default function EventDetailsScreen() {
       console.error('Erreur chargement événement:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFeedbacks = async () => {
+    setLoadingFeedbacks(true);
+    try {
+      const response = await feedbacksAPI.getFeedbacks({ event: eventId });
+      const feedbacksList = response.data?.results || response.data || [];
+      setFeedbacks(feedbacksList);
+    } catch (error) {
+      console.error('Erreur chargement avis:', error);
+    } finally {
+      setLoadingFeedbacks(false);
+    }
+  };
+
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const response = await sessionsAPI.getSessions({ event: eventId });
+      const sessionsList = response.data?.results || response.data || [];
+      // Trier par heure de début
+      sessionsList.sort((a: Session, b: Session) =>
+        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+      );
+      setSessions(sessionsList);
+    } catch (error) {
+      console.error('Erreur chargement sessions:', error);
+    } finally {
+      setLoadingSessions(false);
     }
   };
 
@@ -232,8 +270,8 @@ export default function EventDetailsScreen() {
       showSuccess('Merci !', 'Votre avis a été soumis avec succès');
       setShowReviewForm(false);
       setReviewComment('');
-      // Refresh event to get updated feedbacks
-      fetchEvent();
+      // Refresh feedbacks
+      fetchFeedbacks();
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Impossible de soumettre votre avis';
       showError('Erreur', message);
@@ -722,20 +760,45 @@ export default function EventDetailsScreen() {
           {activeTab === 'agenda' && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Programme</Text>
-              {event.sessions && event.sessions.length > 0 ? (
-                event.sessions.map((session, index) => (
-                  <View key={index} style={styles.sessionCard}>
+              {loadingSessions ? (
+                <View style={styles.emptyTab}>
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                  <Text style={styles.emptyTabText}>Chargement du programme...</Text>
+                </View>
+              ) : sessions && sessions.length > 0 ? (
+                sessions.map((session, index) => (
+                  <View key={session.id || index} style={styles.sessionCard}>
                     <View style={styles.sessionTime}>
                       <Text style={styles.sessionTimeText}>
                         {new Date(session.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                       </Text>
+                      {session.end_time && (
+                        <Text style={styles.sessionEndTime}>
+                          {new Date(session.end_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.sessionInfo}>
                       <Text style={styles.sessionTitle}>{session.title}</Text>
-                      {session.location && (
+                      {session.session_type && (
+                        <View style={styles.sessionTypeBadge}>
+                          <Text style={styles.sessionTypeText}>{session.session_type}</Text>
+                        </View>
+                      )}
+                      {(session.location || session.room) && (
                         <View style={styles.sessionLocation}>
                           <Ionicons name="location-outline" size={12} color={Colors.gray500} />
-                          <Text style={styles.sessionLocationText}>{session.location}</Text>
+                          <Text style={styles.sessionLocationText}>
+                            {session.room ? `${session.room}${session.location ? ` - ${session.location}` : ''}` : session.location}
+                          </Text>
+                        </View>
+                      )}
+                      {session.speakers_detail && session.speakers_detail.length > 0 && (
+                        <View style={styles.sessionSpeakers}>
+                          <Ionicons name="person-outline" size={12} color={Colors.gray500} />
+                          <Text style={styles.sessionSpeakersText}>
+                            {session.speakers_detail.map((s: any) => s.full_name).join(', ')}
+                          </Text>
                         </View>
                       )}
                       {session.description && (
@@ -834,8 +897,13 @@ export default function EventDetailsScreen() {
                 </View>
               )}
 
-              {event.feedbacks && event.feedbacks.length > 0 ? (
-                event.feedbacks.map((feedback, index) => (
+              {loadingFeedbacks ? (
+                <View style={styles.emptyTab}>
+                  <ActivityIndicator size="large" color={Colors.primary} />
+                  <Text style={styles.emptyTabText}>Chargement des avis...</Text>
+                </View>
+              ) : feedbacks && feedbacks.length > 0 ? (
+                feedbacks.map((feedback, index) => (
                   <View key={index} style={styles.reviewCard}>
                     <View style={styles.reviewHeader}>
                       <View style={styles.reviewAvatar}>
@@ -1418,6 +1486,36 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray600,
     lineHeight: 18,
+  },
+  sessionEndTime: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray400,
+    marginTop: 2,
+  },
+  sessionTypeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+    marginBottom: 4,
+  },
+  sessionTypeText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: Colors.primary,
+    textTransform: 'capitalize',
+  },
+  sessionSpeakers: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  sessionSpeakersText: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray600,
+    flex: 1,
   },
   // Reviews Section
   reviewsHeader: {

@@ -859,7 +859,10 @@ export interface Session {
   virtual_link?: string;
   // Speakers
   speakers?: Speaker[];
+  speakers_detail?: { id: string; full_name: string; title?: string; company?: string; photo?: string }[];
   moderator?: Speaker | string;
+  moderator_detail?: { id: string; full_name: string; title?: string; company?: string; photo?: string };
+  track_detail?: { id: string; name: string; color?: string };
   // Capacité et inscription
   max_capacity?: number;
   max_participants?: number; // Alias
