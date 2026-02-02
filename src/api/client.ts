@@ -1015,10 +1015,10 @@ export const paymentsAPI = {
   verifyPayment: (id: string) =>
     api.get(`/payments/${id}/verify_payment/`),
 
-  processMtnMoney: (id: string, data?: { phone_number?: string }) =>
+  processMtnMoney: (id: string, data?: { phone?: string }) =>
     api.post(`/payments/${id}/process_mtn_money/`, data || {}),
 
-  processOrangeMoney: (id: string, data?: { phone_number?: string }) =>
+  processOrangeMoney: (id: string, data?: { phone?: string }) =>
     api.post(`/payments/${id}/process_orange_money/`, data || {}),
 
   getPaymentHistory: () =>

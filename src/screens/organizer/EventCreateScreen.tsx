@@ -64,8 +64,12 @@ export default function EventCreateScreen() {
   const [shortDescription, setShortDescription] = useState('');
   const [eventType, setEventType] = useState<'billetterie' | 'inscription'>('billetterie');
   const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [tags, setTags] = useState(''); // Tags separes par des virgules
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date(Date.now() + 3600000));
+  const [registrationDeadline, setRegistrationDeadline] = useState<Date | null>(null);
+  const [hasRegistrationDeadline, setHasRegistrationDeadline] = useState(false);
+  const [showRegistrationDeadlinePicker, setShowRegistrationDeadlinePicker] = useState(false);
 
   // Location
   const [locationType, setLocationType] = useState<LocationType>('in_person');
@@ -208,6 +212,16 @@ export default function EventCreateScreen() {
       formData.append('location_type', locationType);
       formData.append('location_country', locationCountry);
 
+      // Tags (envoyer comme chaîne, le backend les gère)
+      if (tags.trim()) {
+        formData.append('tags', tags.trim());
+      }
+
+      // Date limite d'inscription
+      if (hasRegistrationDeadline && registrationDeadline) {
+        formData.append('registration_deadline', registrationDeadline.toISOString());
+      }
+
       if (locationType === 'in_person' || locationType === 'hybrid') {
         formData.append('location_name', locationName);
         formData.append('location_city', locationCity);
@@ -262,9 +276,12 @@ export default function EventCreateScreen() {
               setDescription('');
               setShortDescription('');
               setCategoryId(null);
+              setTags('');
               setBannerImage(null);
               setStartDate(new Date());
               setEndDate(new Date(Date.now() + 3600000));
+              setRegistrationDeadline(null);
+              setHasRegistrationDeadline(false);
               setLocationType('in_person');
               setLocationName('');
               setLocationCity('');
@@ -457,6 +474,20 @@ export default function EventCreateScreen() {
           </View>
         </ScrollView>
       </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Tags</Text>
+        <TextInput
+          style={styles.input}
+          value={tags}
+          onChangeText={setTags}
+          placeholder="Ex: musique, concert, jazz (separes par des virgules)"
+          placeholderTextColor={Colors.gray400}
+        />
+        <Text style={styles.inputHint}>
+          Ajoutez des mots-cles pour aider les participants a trouver votre evenement
+        </Text>
+      </View>
     </View>
   );
 
@@ -505,6 +536,43 @@ export default function EventCreateScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* Registration Deadline */}
+      <View style={styles.switchRow}>
+        <View style={styles.switchContent}>
+          <Text style={styles.switchLabel}>Date limite d'inscription</Text>
+          <Text style={styles.switchDescription}>Definir une date limite pour s'inscrire</Text>
+        </View>
+        <Switch
+          value={hasRegistrationDeadline}
+          onValueChange={(value) => {
+            setHasRegistrationDeadline(value);
+            if (value && !registrationDeadline) {
+              // Par defaut, la veille de l'evenement
+              const deadline = new Date(startDate);
+              deadline.setDate(deadline.getDate() - 1);
+              setRegistrationDeadline(deadline);
+            }
+          }}
+          trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
+          thumbColor={hasRegistrationDeadline ? Colors.primary : Colors.gray400}
+        />
+      </View>
+
+      {hasRegistrationDeadline && (
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Date limite</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowRegistrationDeadlinePicker(true)}
+          >
+            <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+            <Text style={styles.dateButtonText}>
+              {registrationDeadline ? formatDate(registrationDeadline) : 'Selectionner une date'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Location Type */}
       <View style={styles.inputGroup}>
@@ -969,6 +1037,19 @@ export default function EventCreateScreen() {
           onChange={(_, date) => {
             setShowEndPicker(false);
             if (date) setEndDate(date);
+          }}
+        />
+      )}
+
+      {showRegistrationDeadlinePicker && (
+        <DateTimePicker
+          value={registrationDeadline || new Date()}
+          mode="date"
+          display="spinner"
+          maximumDate={startDate}
+          onChange={(_, date) => {
+            setShowRegistrationDeadlinePicker(false);
+            if (date) setRegistrationDeadline(date);
           }}
         />
       )}

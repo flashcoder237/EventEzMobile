@@ -32,7 +32,8 @@ import GradientButton from '../../components/ui/GradientButton';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
 
-type PaymentMethod = 'mtn_money' | 'orange_money' | 'card';
+// Les valeurs doivent correspondre exactement aux choix backend (PAYMENT_METHOD_CHOICES)
+type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card';
 
 interface PaymentMethodOption {
   id: PaymentMethod;
@@ -58,7 +59,7 @@ const paymentMethods: PaymentMethodOption[] = [
     description: 'Payez avec votre compte Orange Money',
   },
   {
-    id: 'card',
+    id: 'credit_card',
     name: 'Carte bancaire',
     icon: '💳',
     color: '#1A1F71',
@@ -103,7 +104,7 @@ export default function PaymentScreen() {
   };
 
   const validatePhoneNumber = (method: PaymentMethod) => {
-    if (method === 'card') return true;
+    if (method === 'credit_card') return true;
 
     const cleanNumber = phoneNumber.replace(/\s/g, '');
     if (cleanNumber.length < 9) {
@@ -137,22 +138,40 @@ export default function PaymentScreen() {
     setProcessing(true);
 
     try {
-      // Create payment
+      // Formater le numero de telephone avec indicatif si necessaire
+      const cleanPhone = phoneNumber.replace(/\s/g, '');
+      const formattedPhone = cleanPhone.startsWith('237') ? cleanPhone : `237${cleanPhone}`;
+
+      // Create payment avec les bons noms de champs (billing_phone, pas phone_number)
       const paymentResponse = await paymentsAPI.createPayment({
         registration: registrationId,
         amount: calculateTotal(),
-        payment_method: selectedMethod === 'mtn_money' ? 'momo' : selectedMethod === 'orange_money' ? 'om' : 'card',
-        phone_number: phoneNumber.replace(/\s/g, ''),
+        currency: 'XAF',
+        payment_method: selectedMethod, // Utiliser directement la valeur (mtn_money, orange_money, credit_card)
+        billing_phone: formattedPhone,
+        billing_email: '', // Sera rempli par le backend avec l'email de l'utilisateur
       });
 
-      const newPaymentId = paymentResponse.data.id;
+      // Extraire l'ID du paiement de la reponse
+      // Le backend peut retourner l'ID dans data.id ou directement dans data
+      const responseData = paymentResponse.data;
+      const newPaymentId = responseData.id || responseData.payment_id || responseData;
+
+      console.log('[Payment] Created payment response:', JSON.stringify(responseData));
+      console.log('[Payment] Extracted payment ID:', newPaymentId);
+
+      if (!newPaymentId || newPaymentId === 'undefined') {
+        throw new Error('ID de paiement non recu du serveur');
+      }
+
       setPaymentId(newPaymentId);
 
       // Initialize payment based on method
+      // Backend attend 'phone' (pas 'phone_number') pour les endpoints process_*_money
       if (selectedMethod === 'mtn_money') {
-        await paymentsAPI.processMtnMoney(newPaymentId, { phone_number: phoneNumber });
+        await paymentsAPI.processMtnMoney(newPaymentId, { phone: formattedPhone });
       } else if (selectedMethod === 'orange_money') {
-        await paymentsAPI.processOrangeMoney(newPaymentId, { phone_number: phoneNumber });
+        await paymentsAPI.processOrangeMoney(newPaymentId, { phone: formattedPhone });
       } else {
         await paymentsAPI.initializePayment(newPaymentId);
       }
@@ -331,8 +350,8 @@ export default function PaymentScreen() {
           ))}
         </View>
 
-        {/* Phone Number Input */}
-        {(selectedMethod === 'mtn_money' || selectedMethod === 'orange_money') && (
+        {/* Phone Number Input - Afficher pour Mobile Money uniquement */}
+        {selectedMethod && selectedMethod !== 'credit_card' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Numéro de téléphone</Text>
             <View style={styles.phoneInputContainer}>
@@ -383,7 +402,7 @@ export default function PaymentScreen() {
             <ActivityIndicator size="large" color={Colors.primary} />
             <Text style={styles.processingTitle}>Traitement en cours</Text>
             <Text style={styles.processingText}>
-              {selectedMethod === 'mtn_money' || selectedMethod === 'orange_money'
+              {selectedMethod !== 'credit_card'
                 ? 'Veuillez valider la transaction sur votre téléphone'
                 : 'Veuillez patienter...'}
             </Text>
