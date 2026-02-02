@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   TextInput,
   ActivityIndicator,
   Image,
+  ImageSourcePropType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -29,6 +30,13 @@ import {
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import GradientButton from '../../components/ui/GradientButton';
 
+// Import des icônes de paiement
+const PaymentIcons = {
+  mtn_money: require('../../../assets/payments/momo.png'),
+  orange_money: require('../../../assets/payments/om.png'),
+  credit_card: require('../../../assets/payments/bank.png'),
+};
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
 
@@ -38,7 +46,7 @@ type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card';
 interface PaymentMethodOption {
   id: PaymentMethod;
   name: string;
-  icon: string;
+  icon: ImageSourcePropType;
   color: string;
   description: string;
 }
@@ -47,21 +55,21 @@ const paymentMethods: PaymentMethodOption[] = [
   {
     id: 'mtn_money',
     name: 'MTN Mobile Money',
-    icon: '📱',
+    icon: PaymentIcons.mtn_money,
     color: '#FFCC00',
     description: 'Payez avec votre compte MTN MoMo',
   },
   {
     id: 'orange_money',
     name: 'Orange Money',
-    icon: '📱',
+    icon: PaymentIcons.orange_money,
     color: '#FF6600',
     description: 'Payez avec votre compte Orange Money',
   },
   {
     id: 'credit_card',
     name: 'Carte bancaire',
-    icon: '💳',
+    icon: PaymentIcons.credit_card,
     color: '#1A1F71',
     description: 'Visa, Mastercard, etc.',
   },
@@ -76,9 +84,13 @@ export default function PaymentScreen() {
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [paymentId, setPaymentId] = useState<string | null>(null);
+
+  // Ref pour arrêter le polling
+  const pollingRef = useRef<{ stop: boolean }>({ stop: false });
 
   useEffect(() => {
     fetchRegistration();
@@ -103,26 +115,43 @@ export default function PaymentScreen() {
     }, 0);
   };
 
-  const validatePhoneNumber = (method: PaymentMethod) => {
-    if (method === 'credit_card') return true;
+  const validatePhoneNumber = (method: PaymentMethod): { valid: boolean; formatted?: string } => {
+    if (method === 'credit_card') return { valid: true };
 
-    const cleanNumber = phoneNumber.replace(/\s/g, '');
-    if (cleanNumber.length < 9) {
-      showError('Erreur', 'Numéro de téléphone invalide');
-      return false;
+    const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
+
+    // Supprimer le préfixe 237 s'il est présent pour la validation
+    const numberWithoutPrefix = cleanNumber.startsWith('237') ? cleanNumber.slice(3) : cleanNumber;
+
+    if (numberWithoutPrefix.length !== 9) {
+      showError('Numéro invalide', 'Le numéro doit contenir 9 chiffres (ex: 6XX XXX XXX)');
+      return { valid: false };
     }
 
-    if (method === 'mtn_money' && !cleanNumber.match(/^(237)?(6[78]\d{7})$/)) {
-      showError('Erreur', 'Ce numéro n\'est pas un numéro MTN valide');
-      return false;
+    // Validation MTN: 67, 68, 77, 78, 650-654
+    if (method === 'mtn_money') {
+      if (!numberWithoutPrefix.match(/^(6[78]\d|7[78]\d|65[0-4])\d{6}$/)) {
+        showError(
+          'Numéro MTN invalide',
+          'Les numéros MTN commencent par 67, 68, 77, 78 ou 650-654.\nExemple: 670 123 456'
+        );
+        return { valid: false };
+      }
     }
 
-    if (method === 'orange_money' && !cleanNumber.match(/^(237)?(6[59]\d{7})$/)) {
-      showError('Erreur', 'Ce numéro n\'est pas un numéro Orange valide');
-      return false;
+    // Validation Orange: 655-659, 69, 55, 59
+    if (method === 'orange_money') {
+      if (!numberWithoutPrefix.match(/^(65[5-9]|69\d|5[59]\d)\d{6}$/)) {
+        showError(
+          'Numéro Orange invalide',
+          'Les numéros Orange commencent par 655-659, 69, 55 ou 59.\nExemple: 655 123 456'
+        );
+        return { valid: false };
+      }
     }
 
-    return true;
+    // Retourner le numéro formaté avec l'indicatif pays
+    return { valid: true, formatted: `237${numberWithoutPrefix}` };
   };
 
   const handlePayment = async () => {
@@ -131,72 +160,145 @@ export default function PaymentScreen() {
       return;
     }
 
-    if (!validatePhoneNumber(selectedMethod)) {
+    // Validation du numéro de téléphone pour Mobile Money
+    const validation = validatePhoneNumber(selectedMethod);
+    if (!validation.valid) {
       return;
     }
+
+    const formattedPhone = validation.formatted || '';
 
     setProcessing(true);
 
     try {
-      // Formater le numero de telephone avec indicatif si necessaire
-      const cleanPhone = phoneNumber.replace(/\s/g, '');
-      const formattedPhone = cleanPhone.startsWith('237') ? cleanPhone : `237${cleanPhone}`;
-
-      // Create payment avec les bons noms de champs (billing_phone, pas phone_number)
+      // Create payment avec les bons noms de champs
       const paymentResponse = await paymentsAPI.createPayment({
         registration: registrationId,
         amount: calculateTotal(),
         currency: 'XAF',
-        payment_method: selectedMethod, // Utiliser directement la valeur (mtn_money, orange_money, credit_card)
+        payment_method: selectedMethod,
         billing_phone: formattedPhone,
-        billing_email: '', // Sera rempli par le backend avec l'email de l'utilisateur
+        billing_email: '',
       });
 
-      // Extraire l'ID du paiement de la reponse
-      // Le backend peut retourner l'ID dans data.id ou directement dans data
+      // Extraire l'ID du paiement de la réponse
       const responseData = paymentResponse.data;
       const newPaymentId = responseData.id || responseData.payment_id || responseData;
 
-      console.log('[Payment] Created payment response:', JSON.stringify(responseData));
-      console.log('[Payment] Extracted payment ID:', newPaymentId);
+      console.log('[Payment] Created payment:', newPaymentId);
 
       if (!newPaymentId || newPaymentId === 'undefined') {
-        throw new Error('ID de paiement non recu du serveur');
+        throw new Error('ID de paiement non reçu du serveur');
       }
 
       setPaymentId(newPaymentId);
 
-      // Initialize payment based on method
-      // Backend attend 'phone' (pas 'phone_number') pour les endpoints process_*_money
+      // Traiter le paiement selon la méthode
       if (selectedMethod === 'mtn_money') {
-        await paymentsAPI.processMtnMoney(newPaymentId, { phone: formattedPhone });
+        const response = await paymentsAPI.processMtnMoney(newPaymentId, { phone: formattedPhone });
+        console.log('[Payment] MTN processing response:', response.data);
       } else if (selectedMethod === 'orange_money') {
-        await paymentsAPI.processOrangeMoney(newPaymentId, { phone: formattedPhone });
+        const response = await paymentsAPI.processOrangeMoney(newPaymentId, { phone: formattedPhone });
+        console.log('[Payment] Orange processing response:', response.data);
       } else {
-        await paymentsAPI.initializePayment(newPaymentId);
+        // Carte bancaire - redirection vers page de paiement
+        const response = await paymentsAPI.initializePayment(newPaymentId);
+        console.log('[Payment] Card initialization response:', response.data);
+
+        // Si on reçoit une URL d'autorisation, ouvrir dans le navigateur
+        if (response.data?.authorization_url) {
+          // TODO: Ouvrir l'URL dans un WebView ou navigateur
+          console.log('[Payment] Authorization URL:', response.data.authorization_url);
+        }
       }
 
-      // Poll for payment status
+      // Démarrer le polling du statut
       pollPaymentStatus(newPaymentId);
     } catch (error: any) {
       setProcessing(false);
-      showError(
-        'Erreur de paiement',
-        error.response?.data?.detail || 'Une erreur est survenue lors du paiement'
+      console.error('[Payment] Error:', error.response?.data || error);
+
+      // Extraire le message d'erreur détaillé
+      const errorData = error.response?.data;
+      let errorMessage = 'Une erreur est survenue lors du paiement';
+
+      if (errorData?.detail) {
+        errorMessage = errorData.detail;
+      } else if (errorData?.message) {
+        errorMessage = errorData.message;
+      } else if (errorData?.error) {
+        errorMessage = errorData.error;
+      } else if (typeof errorData === 'string') {
+        errorMessage = errorData;
+      }
+
+      showError('Erreur de paiement', errorMessage);
+    }
+  };
+
+  const cancelPayment = async () => {
+    if (!paymentId) {
+      setProcessing(false);
+      return;
+    }
+
+    setCancelling(true);
+    pollingRef.current.stop = true; // Arrêter le polling
+
+    try {
+      const response = await paymentsAPI.cancelPayment(paymentId);
+      console.log('[Payment] Cancel response:', response.data);
+
+      setProcessing(false);
+      setCancelling(false);
+
+      showAlert(
+        'Paiement annulé',
+        'Votre paiement a été annulé.',
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
+    } catch (error: any) {
+      console.error('[Payment] Cancel error:', error);
+      setCancelling(false);
+
+      // Même si l'annulation échoue côté serveur, on arrête le processing
+      setProcessing(false);
+
+      const errorMessage = error.response?.data?.message || 'Impossible d\'annuler le paiement';
+      showError('Erreur', errorMessage);
     }
   };
 
   const pollPaymentStatus = async (pId: string) => {
     let attempts = 0;
     const maxAttempts = 60; // 5 minutes max (5s interval)
+    const failedStatuses = ['failed', 'cancelled', 'rejected', 'expired', 'error'];
+
+    // Réinitialiser le flag de stop
+    pollingRef.current.stop = false;
 
     const checkStatus = async () => {
+      // Vérifier si on doit arrêter le polling
+      if (pollingRef.current.stop) {
+        console.log('[Payment] Polling stopped by user');
+        return;
+      }
+
       try {
         const response = await paymentsAPI.verifyPayment(pId);
-        const status = response.data.status || response.data.payment_status;
+        const data = response.data;
+        const status = (data.status || data.payment_status || data.payment?.status || '').toLowerCase();
+        const errorMessage = data.message || data.error || data.detail || 'Le paiement a échoué';
 
-        if (status === 'completed') {
+        console.log(`[Payment] Poll #${attempts + 1}: status = ${status}`);
+
+        // Vérifier encore si on doit arrêter
+        if (pollingRef.current.stop) {
+          console.log('[Payment] Polling stopped by user');
+          return;
+        }
+
+        if (status === 'completed' || status === 'complete' || status === 'successful') {
           setProcessing(false);
           navigation.replace('PaymentSuccess', {
             paymentId: pId,
@@ -205,38 +307,54 @@ export default function PaymentScreen() {
             approvalStatus: registration?.approval_status,
             eventTitle: registration?.event?.title,
           });
-        } else if (status === 'failed') {
+        } else if (failedStatuses.includes(status)) {
+          // Paiement échoué
           setProcessing(false);
-          navigation.replace('PaymentFailed', { paymentId: pId, error: 'Le paiement a échoué' });
+          navigation.replace('PaymentFailed', { paymentId: pId, error: errorMessage });
         } else if (attempts < maxAttempts) {
+          // Encore en cours (pending, processing, initiated...)
           attempts++;
           setTimeout(checkStatus, 5000);
         } else {
+          // Timeout
           setProcessing(false);
           showAlert(
             'Délai dépassé',
             'Le paiement prend plus de temps que prévu. Vérifiez votre téléphone pour confirmer la transaction.',
             [
               { text: 'Réessayer', onPress: () => pollPaymentStatus(pId) },
-              { text: 'Annuler', style: 'cancel' },
+              { text: 'Annuler', onPress: cancelPayment },
             ]
           );
         }
-      } catch (error) {
-        if (attempts < maxAttempts) {
+      } catch (error: any) {
+        // Vérifier si on doit arrêter
+        if (pollingRef.current.stop) {
+          console.log('[Payment] Polling stopped by user');
+          return;
+        }
+
+        console.error('[Payment] Poll error:', error);
+
+        // Vérifier si l'erreur contient un statut d'échec
+        const errorData = error.response?.data;
+        const errorStatus = (errorData?.status || errorData?.payment_status || '').toLowerCase();
+
+        if (failedStatuses.includes(errorStatus)) {
+          setProcessing(false);
+          navigation.replace('PaymentFailed', {
+            paymentId: pId,
+            error: errorData?.message || errorData?.detail || 'Le paiement a échoué'
+          });
+        } else if (attempts < maxAttempts) {
           attempts++;
           setTimeout(checkStatus, 5000);
+        } else {
+          setProcessing(false);
+          showError('Erreur', 'Impossible de vérifier le statut du paiement. Veuillez vérifier dans votre historique.');
         }
       }
     };
-
-    // Show waiting message for Mobile Money
-    if (selectedMethod === 'mtn_money' || selectedMethod === 'orange_money') {
-      showAlert(
-        'Confirmation requise',
-        'Une demande de paiement a été envoyée à votre téléphone. Veuillez valider la transaction avec votre code PIN.'
-      );
-    }
 
     checkStatus();
   };
@@ -330,7 +448,7 @@ export default function PaymentScreen() {
                   { backgroundColor: method.color + '20' },
                 ]}
               >
-                <Text style={styles.methodIconText}>{method.icon}</Text>
+                <Image source={method.icon} style={styles.methodIconImage} resizeMode="contain" />
               </View>
               <View style={styles.methodInfo}>
                 <Text style={styles.methodName}>{method.name}</Text>
@@ -370,8 +488,8 @@ export default function PaymentScreen() {
             </View>
             <Text style={styles.phoneHint}>
               {selectedMethod === 'mtn_money'
-                ? 'Entrez votre numéro MTN (67, 68)'
-                : 'Entrez votre numéro Orange (65, 69)'}
+                ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
+                : 'Numéros Orange valides: 655-659, 69, 55, 59'}
             </Text>
           </View>
         )}
@@ -399,13 +517,91 @@ export default function PaymentScreen() {
       {processing && (
         <View style={styles.processingOverlay}>
           <View style={styles.processingCard}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.processingTitle}>Traitement en cours</Text>
-            <Text style={styles.processingText}>
-              {selectedMethod !== 'credit_card'
-                ? 'Veuillez valider la transaction sur votre téléphone'
-                : 'Veuillez patienter...'}
+            {/* Icône animée */}
+            <View style={[
+              styles.processingIconContainer,
+              { backgroundColor: selectedMethod === 'mtn_money' ? '#FFCC0020' : selectedMethod === 'orange_money' ? '#FF660020' : '#1A1F7120' }
+            ]}>
+              <Image
+                source={selectedMethod ? PaymentIcons[selectedMethod] : PaymentIcons.credit_card}
+                style={styles.processingIconImage}
+                resizeMode="contain"
+              />
+            </View>
+
+            <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: Spacing.md }} />
+
+            <Text style={styles.processingTitle}>
+              {selectedMethod === 'mtn_money' ? 'MTN Mobile Money' :
+               selectedMethod === 'orange_money' ? 'Orange Money' :
+               'Paiement par carte'}
             </Text>
+
+            <Text style={styles.processingSubtitle}>Traitement en cours...</Text>
+
+            {/* Instructions détaillées pour Mobile Money */}
+            {selectedMethod !== 'credit_card' && (
+              <View style={styles.instructionsContainer}>
+                <Text style={styles.instructionsTitle}>Comment valider :</Text>
+
+                <View style={styles.instructionStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Vous allez recevoir une notification sur votre téléphone
+                  </Text>
+                </View>
+
+                <View style={styles.instructionStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Entrez votre code PIN {selectedMethod === 'mtn_money' ? 'MTN MoMo' : 'Orange Money'}
+                  </Text>
+                </View>
+
+                <View style={styles.instructionStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Confirmez la transaction
+                  </Text>
+                </View>
+
+                <View style={styles.waitingNote}>
+                  <Ionicons name="time-outline" size={16} color={Colors.gray500} />
+                  <Text style={styles.waitingNoteText}>
+                    Cette page se met à jour automatiquement
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Message pour carte bancaire */}
+            {selectedMethod === 'credit_card' && (
+              <Text style={styles.processingText}>
+                Veuillez patienter pendant le traitement sécurisé de votre paiement...
+              </Text>
+            )}
+
+            {/* Bouton Annuler */}
+            <TouchableOpacity
+              style={[styles.cancelButton, cancelling && styles.cancelButtonDisabled]}
+              onPress={cancelPayment}
+              disabled={cancelling}
+            >
+              {cancelling ? (
+                <View style={styles.cancellingContainer}>
+                  <ActivityIndicator size="small" color={Colors.error} />
+                  <Text style={styles.cancelButtonTextActive}>Annulation...</Text>
+                </View>
+              ) : (
+                <Text style={styles.cancelButtonText}>Annuler le paiement</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -556,8 +752,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  methodIconText: {
-    fontSize: 24,
+  methodIconImage: {
+    width: 32,
+    height: 32,
   },
   methodInfo: {
     flex: 1,
@@ -657,7 +854,7 @@ const styles = StyleSheet.create({
   // Processing Overlay
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
@@ -667,19 +864,121 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
     alignItems: 'center',
-    marginHorizontal: Spacing.xl,
+    marginHorizontal: Spacing.lg,
+    maxWidth: 340,
+    width: '100%',
     ...Shadows.lg,
   },
+  processingIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  processingIconImage: {
+    width: 50,
+    height: 50,
+  },
   processingTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  processingSubtitle: {
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.lg,
   },
   processingText: {
     fontSize: FontSizes.md,
     color: Colors.gray600,
     textAlign: 'center',
+    paddingHorizontal: Spacing.md,
+  },
+  instructionsContainer: {
+    width: '100%',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  instructionsTitle: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray800,
+    marginBottom: Spacing.md,
+  },
+  instructionStep: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.sm,
+  },
+  stepNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+  stepNumberText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
+  },
+  stepText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.gray700,
+    lineHeight: 20,
+  },
+  waitingNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray200,
+  },
+  waitingNoteText: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+    marginLeft: Spacing.xs,
+  },
+  cancelButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.error,
+    backgroundColor: Colors.white,
+  },
+  cancelButtonDisabled: {
+    borderColor: Colors.gray300,
+    backgroundColor: Colors.gray50,
+  },
+  cancelButtonText: {
+    fontSize: FontSizes.md,
+    color: Colors.error,
+    fontFamily: FontFamily.semiBold,
+    textAlign: 'center',
+  },
+  cancelButtonTextActive: {
+    fontSize: FontSizes.md,
+    color: Colors.error,
+    fontFamily: FontFamily.medium,
+    marginLeft: Spacing.sm,
+  },
+  cancellingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

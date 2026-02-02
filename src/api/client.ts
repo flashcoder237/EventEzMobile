@@ -1026,6 +1026,9 @@ export const paymentsAPI = {
 
   calculateUsageFees: (id: string) =>
     api.post(`/payments/${id}/calculate_usage_fees/`),
+
+  cancelPayment: (id: string) =>
+    api.post(`/payments/${id}/cancel_payment/`),
 };
 
 // ============================================
