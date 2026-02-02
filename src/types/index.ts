@@ -1124,6 +1124,7 @@ export type RootStackParamList = {
   };
   PaymentFailed: { paymentId?: string; error?: string };
   QRCode: { ticketId: string };
+  RegistrationDetails: { registrationId: string };
   Profile: { userId?: string };
   EditProfile: undefined;
   Settings: undefined;

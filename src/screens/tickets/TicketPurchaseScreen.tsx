@@ -49,6 +49,7 @@ export default function TicketPurchaseScreen() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [existingRegistration, setExistingRegistration] = useState<any>(null);
   // Discount state
   const [discountCode, setDiscountCode] = useState('');
   const [validatingDiscount, setValidatingDiscount] = useState(false);
@@ -61,14 +62,28 @@ export default function TicketPurchaseScreen() {
 
   const fetchData = async () => {
     try {
-      const [eventRes, ticketsRes] = await Promise.all([
+      const [eventRes, ticketsRes, myRegsRes] = await Promise.all([
         eventsAPI.getEvent(eventId),
         ticketTypesAPI.getTicketTypes({ event: eventId }),
+        registrationsAPI.getMyRegistrations(),
       ]);
 
       const eventData = eventRes.data;
       setEvent(eventData);
       setTicketTypes(ticketsRes.data.results || ticketsRes.data || []);
+
+      // Check for existing active registration
+      const myRegistrations = myRegsRes.data?.results || myRegsRes.data || [];
+      const existingReg = myRegistrations.find((reg: any) => {
+        const regEventId = reg.event_detail?.id || reg.event_id || reg.event;
+        const isForThisEvent = regEventId === eventId || String(regEventId) === eventId;
+        const isActive = reg.status !== 'cancelled' && reg.status !== 'rejected';
+        return isForThisEvent && isActive;
+      });
+
+      if (existingReg) {
+        setExistingRegistration(existingReg);
+      }
 
       // Set form fields if available
       if (eventData.form_fields && eventData.form_fields.length > 0) {
@@ -331,6 +346,70 @@ export default function TicketPurchaseScreen() {
           </View>
         </View>
 
+        {/* Existing Registration Warning */}
+        {existingRegistration && (
+          <View style={styles.existingRegWarning}>
+            <View style={styles.existingRegHeader}>
+              <Ionicons name="information-circle" size={24} color={Colors.warning} />
+              <Text style={styles.existingRegTitle}>
+                Vous êtes déjà inscrit à cet événement
+              </Text>
+            </View>
+            <Text style={styles.existingRegText}>
+              {existingRegistration.registration_type === 'inscription'
+                ? 'Votre inscription est '
+                : 'Votre réservation est '}
+              {existingRegistration.status === 'confirmed' ? 'confirmée' :
+               existingRegistration.status === 'pending' ? 'en attente' :
+               existingRegistration.approval_status === 'pending' ? 'en attente de validation' :
+               existingRegistration.status}
+            </Text>
+            <View style={styles.existingRegActions}>
+              <TouchableOpacity
+                style={styles.viewRegButton}
+                onPress={() => {
+                  if (existingRegistration.tickets && existingRegistration.tickets.length > 0) {
+                    navigation.navigate('QRCode', { ticketId: existingRegistration.tickets[0].id });
+                  } else {
+                    navigation.navigate('RegistrationDetails', { registrationId: existingRegistration.id });
+                  }
+                }}
+              >
+                <Ionicons name="eye-outline" size={18} color={Colors.primary} />
+                <Text style={styles.viewRegButtonText}>Voir ma réservation</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelRegButton}
+                onPress={() => {
+                  Alert.alert(
+                    'Annuler l\'inscription',
+                    'Voulez-vous vraiment annuler votre inscription à cet événement ?',
+                    [
+                      { text: 'Non', style: 'cancel' },
+                      {
+                        text: 'Oui, annuler',
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            await registrationsAPI.cancelRegistration(existingRegistration.id);
+                            setExistingRegistration(null);
+                            Alert.alert('Succès', 'Votre inscription a été annulée');
+                          } catch (error) {
+                            Alert.alert('Erreur', 'Impossible d\'annuler l\'inscription');
+                          }
+                        },
+                      },
+                    ]
+                  );
+                }}
+              >
+                <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
+                <Text style={styles.cancelRegButtonText}>Annuler</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Ticket Types - Only for billetterie */}
         {event?.event_type === 'billetterie' && (
         <View style={styles.ticketsSection}>
@@ -560,7 +639,7 @@ export default function TicketPurchaseScreen() {
         <GradientButton
           title={submitting ? 'Traitement...' : (event?.event_type === 'inscription' ? "S'inscrire" : 'Continuer')}
           onPress={handleProceed}
-          disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting}
+          disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || !!existingRegistration}
           icon={
             submitting ? (
               <ActivityIndicator size="small" color={Colors.white} />
@@ -639,6 +718,72 @@ const styles = StyleSheet.create({
   eventMetaText: {
     fontSize: FontSizes.sm,
     color: Colors.gray600,
+  },
+  // ===== EXISTING REGISTRATION WARNING =====
+  existingRegWarning: {
+    backgroundColor: Colors.warningLight,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+  },
+  existingRegHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  existingRegTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    flex: 1,
+  },
+  existingRegText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    marginBottom: Spacing.md,
+  },
+  existingRegActions: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  viewRegButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  viewRegButtonText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+  },
+  cancelRegButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  cancelRegButtonText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.error,
   },
   // ===== TICKETS SECTION =====
   ticketsSection: {

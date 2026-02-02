@@ -16,8 +16,8 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { ticketPurchasesAPI, registrationsAPI } from '../../api/client';
-import { TicketPurchase, RootStackParamList } from '../../types';
+import { registrationsAPI } from '../../api/client';
+import { Registration, RootStackParamList } from '../../types';
 import {
   Colors,
   FontSizes,
@@ -27,46 +27,70 @@ import {
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type QRCodeRouteProp = RouteProp<RootStackParamList, 'QRCode'>;
+type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationDetails'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const QR_SIZE = SCREEN_WIDTH - Spacing.xl * 4;
 
-export default function QRCodeScreen() {
+export default function RegistrationDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute<QRCodeRouteProp>();
-  const { ticketId } = route.params;
+  const route = useRoute<RegistrationDetailsRouteProp>();
+  const { registrationId } = route.params;
 
-  const [ticket, setTicket] = useState<TicketPurchase | null>(null);
+  const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTicket();
-  }, [ticketId]);
+    fetchRegistration();
+  }, [registrationId]);
 
-  const fetchTicket = async () => {
+  const fetchRegistration = async () => {
     try {
-      const response = await ticketPurchasesAPI.getTicketPurchase(ticketId);
-      setTicket(response.data);
+      const response = await registrationsAPI.getRegistration(registrationId);
+      setRegistration(response.data);
     } catch (error) {
-      console.error('Error fetching ticket:', error);
-      Alert.alert('Erreur', 'Impossible de charger les détails du billet');
+      console.error('Error fetching registration:', error);
+      Alert.alert('Erreur', 'Impossible de charger les détails de l\'inscription');
     } finally {
       setLoading(false);
     }
   };
 
   const handleShare = async () => {
-    if (!ticket) return;
-    const eventTitle = (ticket as any)?.event?.title || (ticket as any)?.event_title || 'Événement';
+    if (!registration) return;
+    const event = registration.event_detail || registration.event;
+    const eventTitle = typeof event === 'object' ? event.title : 'Événement';
     try {
       await Share.share({
-        message: `Mon billet pour ${eventTitle}\n\nRéférence: ${String(ticketId).slice(0, 8).toUpperCase()}`,
-        title: 'Mon billet EventEz',
+        message: `Mon inscription pour ${eventTitle}\n\nRéférence: ${registration.reference_code}`,
+        title: 'Mon inscription EventEz',
       });
     } catch (error) {
       console.error('Error sharing:', error);
     }
+  };
+
+  const handleCancelRegistration = () => {
+    Alert.alert(
+      'Annuler l\'inscription',
+      'Voulez-vous vraiment annuler votre inscription à cet événement ?',
+      [
+        { text: 'Non', style: 'cancel' },
+        {
+          text: 'Oui, annuler',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await registrationsAPI.cancelRegistration(registrationId);
+              Alert.alert('Succès', 'Votre inscription a été annulée');
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible d\'annuler l\'inscription');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -87,19 +111,25 @@ export default function QRCodeScreen() {
     });
   };
 
-  const getStatusConfig = (status?: string) => {
+  const getStatusConfig = (status: string, approvalStatus?: string) => {
+    if (approvalStatus === 'pending') {
+      return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente de validation', icon: 'hourglass-outline' };
+    }
     switch (status) {
       case 'confirmed':
       case 'completed':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
+        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmée', icon: 'checkmark-circle' };
       case 'pending':
+      case 'pending_approval':
         return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente', icon: 'time' };
       case 'cancelled':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Annulé', icon: 'close-circle' };
+        return { color: Colors.error, bg: Colors.errorLight, label: 'Annulée', icon: 'close-circle' };
+      case 'rejected':
+        return { color: Colors.error, bg: Colors.errorLight, label: 'Refusée', icon: 'close-circle' };
       case 'checked_in':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Validé', icon: 'checkmark-done-circle' };
+        return { color: Colors.success, bg: Colors.successLight, label: 'Validée', icon: 'checkmark-done-circle' };
       default:
-        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
+        return { color: Colors.gray500, bg: Colors.gray100, label: status || 'Inconnu', icon: 'help-circle' };
     }
   };
 
@@ -111,27 +141,27 @@ export default function QRCodeScreen() {
     );
   }
 
-  if (!ticket) {
+  if (!registration) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mon Billet</Text>
+          <Text style={styles.headerTitle}>Inscription</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.errorText}>Billet non trouvé</Text>
+          <Text style={styles.errorText}>Inscription non trouvée</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const event = (ticket as any)?.event;
-  const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
-  const statusConfig = getStatusConfig(ticket.status);
+  const event = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
+  const statusConfig = getStatusConfig(registration.status, registration.approval_status);
+  const isActive = registration.status !== 'cancelled' && registration.status !== 'rejected';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,24 +170,24 @@ export default function QRCodeScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon Billet</Text>
+        <Text style={styles.headerTitle}>Mon Inscription</Text>
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Ionicons name="share-outline" size={24} color={Colors.gray900} />
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Ticket Card */}
+        {/* Registration Card */}
         <View style={styles.card}>
           {/* Event Info */}
           <View style={styles.eventInfo}>
-            <View style={[styles.typeBadge, { backgroundColor: 'rgba(99, 102, 241, 0.1)' }]}>
-              <Ionicons name="ticket" size={14} color={Colors.primary} />
-              <Text style={[styles.typeBadgeText, { color: Colors.primary }]}>Billet</Text>
+            <View style={[styles.typeBadge, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="document-text" size={14} color="#8B5CF6" />
+              <Text style={[styles.typeBadgeText, { color: '#8B5CF6' }]}>Inscription</Text>
             </View>
 
             <Text style={styles.eventTitle} numberOfLines={2}>
-              {event?.title || (ticket as any)?.event_title || 'Événement'}
+              {event?.title || 'Événement'}
             </Text>
 
             <View style={styles.eventMeta}>
@@ -194,16 +224,16 @@ export default function QRCodeScreen() {
           {/* QR Code Section */}
           <View style={styles.qrSection}>
             <View style={styles.qrContainer}>
-              {ticket?.qr_code ? (
+              {registration.qr_code ? (
                 <Image
-                  source={{ uri: ticket.qr_code }}
+                  source={{ uri: registration.qr_code }}
                   style={styles.qrImage}
                   resizeMode="contain"
                 />
               ) : (
                 <View style={styles.qrPlaceholder}>
                   <View style={styles.qrPlaceholderInner}>
-                    <Ionicons name="qr-code" size={80} color={Colors.primary} />
+                    <Ionicons name="qr-code" size={80} color="#8B5CF6" />
                   </View>
                 </View>
               )}
@@ -213,7 +243,7 @@ export default function QRCodeScreen() {
             </Text>
           </View>
 
-          {/* Ticket Details */}
+          {/* Registration Details */}
           <View style={styles.detailsSection}>
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Statut</Text>
@@ -225,82 +255,56 @@ export default function QRCodeScreen() {
               </View>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Type de billet</Text>
-              <Text style={styles.detailValue}>
-                {ticketType?.name || ticket.ticket_type_name || 'Standard'}
-              </Text>
+              <Text style={styles.detailLabel}>Référence</Text>
+              <Text style={styles.detailValue}>{registration.reference_code}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Quantité</Text>
-              <Text style={styles.detailValue}>{ticket.quantity || 1}</Text>
+              <Text style={styles.detailLabel}>Date d'inscription</Text>
+              <Text style={styles.detailValue}>{formatDate(registration.created_at)}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Prix unitaire</Text>
-              <Text style={styles.detailValue}>
-                {ticket.unit_price ? `${ticket.unit_price.toLocaleString()} FCFA` : 'Gratuit'}
-              </Text>
-            </View>
-            {ticket.discount_amount && ticket.discount_amount > 0 && (
+            {registration.confirmed_at && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Réduction</Text>
-                <Text style={[styles.detailValue, { color: Colors.success }]}>
-                  -{ticket.discount_amount.toLocaleString()} FCFA
-                </Text>
+                <Text style={styles.detailLabel}>Confirmée le</Text>
+                <Text style={styles.detailValue}>{formatDate(registration.confirmed_at)}</Text>
               </View>
             )}
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Total payé</Text>
-              <Text style={[styles.detailValue, styles.totalPrice]}>
-                {ticket.total_price ? `${ticket.total_price.toLocaleString()} FCFA` : 'Gratuit'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Référence</Text>
-              <Text style={styles.detailValue}>{String(ticketId).slice(0, 8).toUpperCase()}</Text>
-            </View>
           </View>
         </View>
 
-        {/* Attendee Info if available */}
-        {(ticket.attendee_name || ticket.attendee_email) && (
-          <View style={styles.attendeeCard}>
-            <Text style={styles.sectionTitle}>Participant</Text>
-            {ticket.attendee_name && (
-              <View style={styles.attendeeRow}>
-                <Ionicons name="person-outline" size={18} color={Colors.gray500} />
-                <Text style={styles.attendeeText}>{ticket.attendee_name}</Text>
+        {/* Form Data */}
+        {registration.form_data && Object.keys(registration.form_data).length > 0 && (
+          <View style={styles.formDataCard}>
+            <Text style={styles.sectionTitle}>Informations fournies</Text>
+            {Object.entries(registration.form_data).map(([key, value]) => (
+              <View key={key} style={styles.formDataRow}>
+                <Text style={styles.formDataLabel}>{key}</Text>
+                <Text style={styles.formDataValue}>{String(value)}</Text>
               </View>
-            )}
-            {ticket.attendee_email && (
-              <View style={styles.attendeeRow}>
-                <Ionicons name="mail-outline" size={18} color={Colors.gray500} />
-                <Text style={styles.attendeeText}>{ticket.attendee_email}</Text>
-              </View>
-            )}
+            ))}
           </View>
         )}
 
         {/* Instructions */}
         <View style={styles.instructions}>
           <View style={styles.instructionItem}>
-            <View style={styles.instructionIcon}>
-              <Ionicons name="scan-outline" size={20} color={Colors.primary} />
+            <View style={[styles.instructionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="scan-outline" size={20} color="#8B5CF6" />
             </View>
             <Text style={styles.instructionText}>
               Le QR code sera scanné à l'entrée
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={styles.instructionIcon}>
-              <Ionicons name="phone-portrait-outline" size={20} color={Colors.primary} />
+            <View style={[styles.instructionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="phone-portrait-outline" size={20} color="#8B5CF6" />
             </View>
             <Text style={styles.instructionText}>
               Gardez votre téléphone chargé
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={styles.instructionIcon}>
-              <Ionicons name="time-outline" size={20} color={Colors.primary} />
+            <View style={[styles.instructionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="time-outline" size={20} color="#8B5CF6" />
             </View>
             <Text style={styles.instructionText}>
               Arrivez à l'heure pour éviter les files
@@ -308,18 +312,16 @@ export default function QRCodeScreen() {
           </View>
         </View>
 
-        {/* Check-in status */}
-        {ticket.is_checked_in && (
-          <View style={styles.checkedInBanner}>
-            <Ionicons name="checkmark-done-circle" size={24} color={Colors.success} />
-            <View style={styles.checkedInText}>
-              <Text style={styles.checkedInTitle}>Billet validé</Text>
-              {ticket.checked_in_at && (
-                <Text style={styles.checkedInDate}>
-                  Entrée le {formatDate(ticket.checked_in_at)} à {formatTime(ticket.checked_in_at)}
-                </Text>
-              )}
-            </View>
+        {/* Actions */}
+        {isActive && (
+          <View style={styles.actionsSection}>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={handleCancelRegistration}
+            >
+              <Ionicons name="close-circle-outline" size={20} color={Colors.error} />
+              <Text style={styles.cancelButtonText}>Annuler mon inscription</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -472,7 +474,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
-    borderColor: Colors.primary,
+    borderColor: '#8B5CF6',
   },
   qrImage: {
     width: QR_SIZE,
@@ -488,7 +490,7 @@ const styles = StyleSheet.create({
     width: QR_SIZE - 40,
     height: QR_SIZE - 40,
     borderRadius: BorderRadius.lg,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -519,10 +521,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
-  totalPrice: {
-    color: Colors.primary,
-    fontSize: FontSizes.base,
-  },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -536,8 +534,8 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
   },
 
-  // Attendee Card
-  attendeeCard: {
+  // Form Data
+  formDataCard: {
     backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
@@ -552,15 +550,25 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
-  attendeeRow: {
+  formDataRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
   },
-  attendeeText: {
+  formDataLabel: {
     fontSize: FontSizes.sm,
-    color: Colors.gray700,
+    color: Colors.gray500,
+    flex: 1,
+  },
+  formDataValue: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray900,
+    flex: 2,
+    textAlign: 'right',
   },
 
   // Instructions
@@ -579,7 +587,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -589,30 +596,26 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Checked In Banner
-  checkedInBanner: {
+  // Actions
+  actionsSection: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  cancelButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: Colors.successLight,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.errorLight,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.success,
+    borderColor: Colors.error,
   },
-  checkedInText: {
-    flex: 1,
-  },
-  checkedInTitle: {
+  cancelButtonText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.success,
-  },
-  checkedInDate: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray600,
-    marginTop: 2,
+    color: Colors.error,
   },
 });

@@ -21,6 +21,7 @@ import PaymentFailedScreen from '../screens/payment/PaymentFailedScreen';
 // Ticket Screens
 import QRCodeScreen from '../screens/tickets/QRCodeScreen';
 import TicketPurchaseScreen from '../screens/tickets/TicketPurchaseScreen';
+import RegistrationDetailsScreen from '../screens/tickets/RegistrationDetailsScreen';
 
 // Dashboard & Profile Screens
 import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
@@ -123,6 +124,14 @@ export default function RootNavigator() {
           <Stack.Screen
             name="QRCode"
             component={QRCodeScreen}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="RegistrationDetails"
+            component={RegistrationDetailsScreen}
             options={{
               headerShown: false,
               presentation: 'modal',
