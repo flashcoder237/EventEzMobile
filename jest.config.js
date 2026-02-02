@@ -24,14 +24,15 @@ module.exports = {
       statements: 50,
     },
   },
-  testEnvironment: 'jsdom',
   globals: {
     __DEV__: true,
   },
-  // Ignore les modules qui posent problème
   modulePathIgnorePatterns: [
     '<rootDir>/node_modules/react-native-reanimated/mock',
   ],
-  // Timeout pour les tests asynchrones
   testTimeout: 10000,
+  // Bail on first error to see the issue clearly
+  bail: false,
+  // Use verbose output
+  verbose: true,
 };
