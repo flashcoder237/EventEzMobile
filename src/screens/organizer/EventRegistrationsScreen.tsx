@@ -18,7 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { registrationsAPI } from '../../api/client';
+import { registrationsAPI, eventsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -74,14 +74,25 @@ export default function EventRegistrationsScreen() {
 
   const fetchRegistrations = async () => {
     try {
-      const response = await registrationsAPI.getRegistrations({ event: eventId });
-      const data = response.data.results || response.data || [];
-      setRegistrations(data);
+      // Fetch event details and registrations in parallel
+      const [eventResponse, registrationsResponse] = await Promise.all([
+        eventsAPI.getEvent(eventId),
+        registrationsAPI.getRegistrations({ event: eventId, event_id: eventId }),
+      ]);
 
-      // Get event title from first registration
-      if (data.length > 0 && data[0].event_detail) {
-        setEventTitle(data[0].event_detail.title || '');
+      // Set event title
+      if (eventResponse.data) {
+        setEventTitle(eventResponse.data.title || '');
       }
+
+      // Set registrations - filter to make sure we only get this event's registrations
+      const data = registrationsResponse.data.results || registrationsResponse.data || [];
+      const filteredData = data.filter((r: Registration) => {
+        // Handle both cases: event as string or event as object
+        const regEventId = typeof r.event === 'string' ? r.event : r.event?.id;
+        return regEventId === eventId;
+      });
+      setRegistrations(filteredData);
     } catch (error) {
       console.error('Erreur chargement inscriptions:', error);
     } finally {

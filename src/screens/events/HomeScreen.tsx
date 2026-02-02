@@ -36,6 +36,15 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// Helper function to check if event is in the future
+const isEventInFuture = (event: Event): boolean => {
+  if (!event.start_date) return true; // If no date, show it
+  const eventDate = new Date(event.start_date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Start of today
+  return eventDate >= today;
+};
+
 // Map category names to icons
 const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
   'musique': 'musical-notes',
@@ -61,7 +70,7 @@ const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
-  const { unreadNotificationCount } = useNotifications();
+  const { unreadNotificationCount, unreadMessageCount } = useNotifications();
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -97,9 +106,12 @@ export default function HomeScreen() {
         eventsAPI.getEvents({ ordering: 'start_date', limit: 10 }),
       ]);
 
-      setFeaturedEvents(featuredRes.data?.results || featuredRes.data || []);
+      const featuredData = (featuredRes.data?.results || featuredRes.data || []).filter(isEventInFuture);
+      const upcomingData = (upcomingRes.data?.results || upcomingRes.data || []).filter(isEventInFuture);
+
+      setFeaturedEvents(featuredData);
       setCategories(categoriesRes.data?.results || categoriesRes.data || []);
-      setUpcomingEvents(upcomingRes.data?.results || upcomingRes.data || []);
+      setUpcomingEvents(upcomingData);
     } catch (error) {
       console.error('Erreur de chargement:', error);
     }
@@ -115,7 +127,8 @@ export default function HomeScreen() {
     if (!location) return;
     try {
       const response = await eventsAPI.getNearbyEvents(location.lat, location.lng, 50, 10);
-      setNearbyEvents(response.data?.results || []);
+      const nearbyData = (response.data?.results || []).filter(isEventInFuture);
+      setNearbyEvents(nearbyData);
     } catch (error) {
       console.error('Erreur événements proches:', error);
     }
@@ -260,6 +273,19 @@ export default function HomeScreen() {
             resizeMode="contain"
           />
           <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={() => navigation.navigate('Messages')}
+            >
+              <Ionicons name="chatbubble-outline" size={22} color={Colors.gray800} />
+              {unreadMessageCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.headerButton}
               onPress={() => navigation.navigate('Notifications')}

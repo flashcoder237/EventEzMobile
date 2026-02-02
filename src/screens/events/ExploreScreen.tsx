@@ -134,6 +134,15 @@ export default function ExploreScreen() {
   const filteredMarkers = useMemo(() => {
     let result = [...markers];
 
+    // Filter out past events
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    result = result.filter(marker => {
+      if (!marker.start_date) return true;
+      const eventDate = new Date(marker.start_date);
+      return eventDate >= today;
+    });
+
     // Filter by radius
     if (userLocation && mapRadius > 0) {
       result = result.filter(marker => {
@@ -234,6 +243,15 @@ export default function ExploreScreen() {
 
   const applyFilters = () => {
     let result = [...events];
+
+    // Filter out past events
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    result = result.filter(event => {
+      if (!event.start_date) return true;
+      const eventDate = new Date(event.start_date);
+      return eventDate >= today;
+    });
 
     // Filter by event type
     if (filters.eventType !== 'all') {

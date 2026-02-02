@@ -23,6 +23,7 @@ import {
 
 import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
+import { AlertProvider } from './src/contexts/AlertContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import { Colors } from './src/constants/theme';
 
@@ -56,8 +57,10 @@ export default function App() {
         <NavigationContainer>
           <AuthProvider>
             <NotificationProvider>
-              <StatusBar style="dark" />
-              <RootNavigator />
+              <AlertProvider>
+                <StatusBar style="dark" />
+                <RootNavigator />
+              </AlertProvider>
             </NotificationProvider>
           </AuthProvider>
         </NavigationContainer>

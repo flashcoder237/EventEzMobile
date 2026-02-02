@@ -413,48 +413,50 @@ export default function MyEventsScreen() {
         </Text>
       </LinearGradient>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={Colors.gray400} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher un événement..."
-            placeholderTextColor={Colors.gray400}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.gray400} />
-            </TouchableOpacity>
-          )}
+      {/* White content area */}
+      <View style={styles.contentArea}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color={Colors.gray400} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher un événement..."
+              placeholderTextColor={Colors.gray400}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color={Colors.gray400} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-      </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.filterContainer}>
+        {/* Filter Tabs */}
+        <View style={styles.filterContainer}>
+          <FlatList
+            horizontal
+            data={filterOptions}
+            keyExtractor={(item) => item.value}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterList}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[styles.filterTab, filter === item.value && styles.filterTabActive]}
+                onPress={() => setFilter(item.value)}
+              >
+                <Text style={[styles.filterTabText, filter === item.value && styles.filterTabTextActive]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+
+        {/* Events List */}
         <FlatList
-          horizontal
-          data={filterOptions}
-          keyExtractor={(item) => item.value}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.filterTab, filter === item.value && styles.filterTabActive]}
-              onPress={() => setFilter(item.value)}
-            >
-              <Text style={[styles.filterTabText, filter === item.value && styles.filterTabTextActive]}>
-                {item.label}
-              </Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
-
-      {/* Events List */}
-      <FlatList
         data={filteredEvents}
         renderItem={renderEvent}
         keyExtractor={(item) => item.id}
@@ -469,7 +471,8 @@ export default function MyEventsScreen() {
             colors={[Colors.primary]}
           />
         }
-      />
+        />
+      </View>
     </View>
   );
 }
@@ -491,6 +494,13 @@ const styles = StyleSheet.create({
   header: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xl,
+  },
+  contentArea: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    marginTop: -Spacing.md,
   },
   headerTop: {
     flexDirection: 'row',

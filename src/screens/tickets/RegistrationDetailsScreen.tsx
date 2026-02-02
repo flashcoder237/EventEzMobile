@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Share,
-  Alert,
   Image,
   Dimensions,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -24,7 +24,9 @@ import {
   FontFamily,
   BorderRadius,
   Spacing,
+  Shadows,
 } from '../../constants/theme';
+import { useAlert } from '../../contexts/AlertContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationDetails'>;
@@ -36,6 +38,7 @@ export default function RegistrationDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RegistrationDetailsRouteProp>();
   const { registrationId } = route.params;
+  const { showError, showSuccess, showConfirm } = useAlert();
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +53,7 @@ export default function RegistrationDetailsScreen() {
       setRegistration(response.data);
     } catch (error) {
       console.error('Error fetching registration:', error);
-      Alert.alert('Erreur', 'Impossible de charger les détails de l\'inscription');
+      showError('Erreur', 'Impossible de charger les détails de l\'inscription');
     } finally {
       setLoading(false);
     }
@@ -71,25 +74,18 @@ export default function RegistrationDetailsScreen() {
   };
 
   const handleCancelRegistration = () => {
-    Alert.alert(
+    showConfirm(
       'Annuler l\'inscription',
       'Voulez-vous vraiment annuler votre inscription à cet événement ?',
-      [
-        { text: 'Non', style: 'cancel' },
-        {
-          text: 'Oui, annuler',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await registrationsAPI.cancelRegistration(registrationId);
-              Alert.alert('Succès', 'Votre inscription a été annulée');
-              navigation.goBack();
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible d\'annuler l\'inscription');
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await registrationsAPI.cancelRegistration(registrationId);
+          showSuccess('Succès', 'Votre inscription a été annulée');
+          navigation.goBack();
+        } catch (error) {
+          showError('Erreur', 'Impossible d\'annuler l\'inscription');
+        }
+      }
     );
   };
 
@@ -203,7 +199,25 @@ export default function RegistrationDetailsScreen() {
                   <Text style={styles.eventMetaText}>{formatTime(event.start_date)}</Text>
                 </View>
               )}
-              {(event?.location_name || event?.location_city) && (
+              {event?.location_type === 'online' ? (
+                <View style={styles.eventMetaItem}>
+                  <Ionicons name="videocam-outline" size={16} color={Colors.primary} />
+                  <Text style={styles.eventMetaText}>Événement en ligne</Text>
+                </View>
+              ) : event?.location_type === 'hybrid' ? (
+                <>
+                  <View style={styles.eventMetaItem}>
+                    <Ionicons name="location-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.eventMetaText}>
+                      {event.location_name || event.location_city}
+                    </Text>
+                  </View>
+                  <View style={styles.eventMetaItem}>
+                    <Ionicons name="videocam-outline" size={16} color={Colors.primary} />
+                    <Text style={styles.eventMetaText}>+ Option en ligne</Text>
+                  </View>
+                </>
+              ) : (event?.location_name || event?.location_city) && (
                 <View style={styles.eventMetaItem}>
                   <Ionicons name="location-outline" size={16} color={Colors.primary} />
                   <Text style={styles.eventMetaText}>
@@ -212,6 +226,49 @@ export default function RegistrationDetailsScreen() {
                 </View>
               )}
             </View>
+
+            {/* Online Event Access Card */}
+            {(event?.location_type === 'online' || event?.location_type === 'hybrid') && event?.online_url && (
+              <View style={styles.onlineAccessCard}>
+                <View style={styles.onlineAccessHeader}>
+                  <Ionicons name="videocam" size={20} color="#3B82F6" />
+                  <Text style={styles.onlineAccessTitle}>Accès à l'événement en ligne</Text>
+                </View>
+                {event.online_platform && (
+                  <Text style={styles.onlinePlatform}>Via {event.online_platform}</Text>
+                )}
+                {event.online_instructions && (
+                  <Text style={styles.onlineInstructions}>{event.online_instructions}</Text>
+                )}
+                {(event.online_meeting_id || event.online_passcode) && (
+                  <View style={styles.onlineMeetingDetails}>
+                    {event.online_meeting_id && (
+                      <View style={styles.meetingDetailRow}>
+                        <Text style={styles.meetingDetailLabel}>ID de réunion :</Text>
+                        <Text style={styles.meetingDetailValue}>{event.online_meeting_id}</Text>
+                      </View>
+                    )}
+                    {event.online_passcode && (
+                      <View style={styles.meetingDetailRow}>
+                        <Text style={styles.meetingDetailLabel}>Code d'accès :</Text>
+                        <Text style={styles.meetingDetailValue}>{event.online_passcode}</Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.joinOnlineButton}
+                  onPress={() => {
+                    Linking.openURL(event.online_url!).catch(() => {
+                      showError('Erreur', 'Impossible d\'ouvrir le lien de l\'événement');
+                    });
+                  }}
+                >
+                  <Ionicons name="videocam" size={18} color={Colors.white} />
+                  <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Divider */}
@@ -617,5 +674,72 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.error,
+  },
+
+  // Online Access Card
+  onlineAccessCard: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginTop: Spacing.lg,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  onlineAccessHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  onlineAccessTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: '#1D4ED8',
+  },
+  onlinePlatform: {
+    fontSize: FontSizes.sm,
+    color: '#3B82F6',
+    marginBottom: Spacing.xs,
+  },
+  onlineInstructions: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    lineHeight: 20,
+    marginBottom: Spacing.md,
+  },
+  onlineMeetingDetails: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  meetingDetailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+  },
+  meetingDetailLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+  meetingDetailValue: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray900,
+  },
+  joinOnlineButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: BorderRadius.lg,
+    paddingVertical: Spacing.md,
+    gap: Spacing.sm,
+  },
+  joinOnlineButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
 });

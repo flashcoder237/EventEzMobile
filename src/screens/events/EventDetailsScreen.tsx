@@ -11,7 +11,6 @@ import {
   Share,
   StatusBar,
   TextInput,
-  Alert,
   Linking,
   Platform,
 } from 'react-native';
@@ -19,11 +18,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI } from '../../api/client';
-import { Event, RootStackParamList, Feedback, WaitlistEntry } from '../../types';
+import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI } from '../../api/client';
+import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -43,6 +43,7 @@ export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { eventId } = route.params;
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
@@ -58,13 +59,31 @@ export default function EventDetailsScreen() {
   // Waitlist state
   const [waitlistEntry, setWaitlistEntry] = useState<WaitlistEntry | null>(null);
   const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+  // User registration state
+  const [userRegistration, setUserRegistration] = useState<Registration | null>(null);
 
   useEffect(() => {
     fetchEvent();
     if (user) {
       fetchWaitlistStatus();
+      fetchUserRegistration();
     }
   }, [eventId, user]);
+
+  const fetchUserRegistration = async () => {
+    try {
+      const response = await registrationsAPI.getMyRegistrations();
+      const registrations = response.data?.results || response.data || [];
+      // Find registration for this event
+      const registration = registrations.find((r: Registration) => {
+        const regEventId = typeof r.event === 'string' ? r.event : (r.event as any)?.id;
+        return regEventId === eventId && r.status !== 'cancelled';
+      });
+      setUserRegistration(registration || null);
+    } catch (error) {
+      console.log('No registration found for this event');
+    }
+  };
 
   const fetchEvent = async () => {
     try {
@@ -96,7 +115,7 @@ export default function EventDetailsScreen() {
 
   const handleJoinWaitlist = async () => {
     if (!user) {
-      Alert.alert('Connexion requise', 'Connectez-vous pour rejoindre la liste d\'attente');
+      showAlert('Connexion requise', 'Connectez-vous pour rejoindre la liste d\'attente');
       return;
     }
 
@@ -104,10 +123,10 @@ export default function EventDetailsScreen() {
     try {
       const response = await waitlistAPI.joinWaitlist({ event: eventId });
       setWaitlistEntry(response.data);
-      Alert.alert('Succès', 'Vous avez rejoint la liste d\'attente. Vous serez notifié dès qu\'une place se libère.');
+      showSuccess('Succès', 'Vous avez rejoint la liste d\'attente. Vous serez notifié dès qu\'une place se libère.');
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Impossible de rejoindre la liste d\'attente';
-      Alert.alert('Erreur', message);
+      showError('Erreur', message);
     } finally {
       setJoiningWaitlist(false);
     }
@@ -116,25 +135,18 @@ export default function EventDetailsScreen() {
   const handleLeaveWaitlist = async () => {
     if (!waitlistEntry) return;
 
-    Alert.alert(
+    showConfirm(
       'Quitter la liste d\'attente',
       'Êtes-vous sûr de vouloir quitter la liste d\'attente ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Quitter',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await waitlistAPI.cancelWaitlist(waitlistEntry.id);
-              setWaitlistEntry(null);
-              Alert.alert('Succès', 'Vous avez quitté la liste d\'attente');
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de quitter la liste d\'attente');
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await waitlistAPI.cancelWaitlist(waitlistEntry.id);
+          setWaitlistEntry(null);
+          showSuccess('Succès', 'Vous avez quitté la liste d\'attente');
+        } catch (error) {
+          showError('Erreur', 'Impossible de quitter la liste d\'attente');
+        }
+      }
     );
   };
 
@@ -167,7 +179,7 @@ export default function EventDetailsScreen() {
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        Alert.alert('Erreur', 'WhatsApp n\'est pas installé sur cet appareil');
+        showError('Erreur', 'WhatsApp n\'est pas installé sur cet appareil');
       }
     } catch (error) {
       console.error('Erreur partage WhatsApp:', error);
@@ -176,12 +188,12 @@ export default function EventDetailsScreen() {
 
   const handleContactOrganizer = async () => {
     if (!user) {
-      Alert.alert('Connexion requise', 'Connectez-vous pour contacter l\'organisateur');
+      showAlert('Connexion requise', 'Connectez-vous pour contacter l\'organisateur');
       return;
     }
 
     if (!event?.organizer?.id) {
-      Alert.alert('Erreur', 'Impossible de contacter l\'organisateur');
+      showError('Erreur', 'Impossible de contacter l\'organisateur');
       return;
     }
 
@@ -194,18 +206,18 @@ export default function EventDetailsScreen() {
       navigation.navigate('Conversation', { conversationId: response.data.id });
     } catch (error) {
       console.error('Erreur création conversation:', error);
-      Alert.alert('Erreur', 'Impossible de créer la conversation');
+      showError('Erreur', 'Impossible de créer la conversation');
     }
   };
 
   const handleSubmitReview = async () => {
     if (!user) {
-      Alert.alert('Connexion requise', 'Connectez-vous pour laisser un avis');
+      showAlert('Connexion requise', 'Connectez-vous pour laisser un avis');
       return;
     }
 
     if (reviewRating < 1 || reviewRating > 5) {
-      Alert.alert('Erreur', 'Veuillez sélectionner une note entre 1 et 5');
+      showError('Erreur', 'Veuillez sélectionner une note entre 1 et 5');
       return;
     }
 
@@ -217,14 +229,14 @@ export default function EventDetailsScreen() {
         comment: reviewComment.trim() || undefined,
       });
 
-      Alert.alert('Merci !', 'Votre avis a été soumis avec succès');
+      showSuccess('Merci !', 'Votre avis a été soumis avec succès');
       setShowReviewForm(false);
       setReviewComment('');
       // Refresh event to get updated feedbacks
       fetchEvent();
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Impossible de soumettre votre avis';
-      Alert.alert('Erreur', message);
+      showError('Erreur', message);
     } finally {
       setSubmittingReview(false);
     }
@@ -417,40 +429,53 @@ export default function EventDetailsScreen() {
                   </Text>
                 </View>
               </View>
-              {event.online_instructions && (
-                <Text style={styles.onlineInstructions}>
-                  {event.online_instructions}
-                </Text>
+
+              {/* Show meeting info only if user is registered */}
+              {userRegistration ? (
+                <>
+                  {event.online_instructions && (
+                    <Text style={styles.onlineInstructions}>
+                      {event.online_instructions}
+                    </Text>
+                  )}
+                  {(event.online_meeting_id || event.online_passcode) && (
+                    <View style={styles.onlineMeetingInfo}>
+                      {event.online_meeting_id && (
+                        <View style={styles.meetingInfoRow}>
+                          <Text style={styles.meetingInfoLabel}>ID de réunion :</Text>
+                          <Text style={styles.meetingInfoValue}>{event.online_meeting_id}</Text>
+                        </View>
+                      )}
+                      {event.online_passcode && (
+                        <View style={styles.meetingInfoRow}>
+                          <Text style={styles.meetingInfoLabel}>Code d'accès :</Text>
+                          <Text style={styles.meetingInfoValue}>{event.online_passcode}</Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                  {event.online_url && (
+                    <TouchableOpacity
+                      style={styles.joinOnlineButton}
+                      onPress={() => {
+                        Linking.openURL(event.online_url!).catch(() => {
+                          showError('Erreur', 'Impossible d\'ouvrir le lien de l\'événement');
+                        });
+                      }}
+                    >
+                      <Ionicons name="videocam" size={18} color={Colors.white} />
+                      <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              ) : (
+                <View style={styles.onlineLockedInfo}>
+                  <Ionicons name="lock-closed" size={20} color={Colors.gray400} />
+                  <Text style={styles.onlineLockedText}>
+                    Les informations de connexion seront disponibles après votre inscription
+                  </Text>
+                </View>
               )}
-              <View style={styles.onlineMeetingInfo}>
-                {event.online_meeting_id && (
-                  <View style={styles.meetingInfoRow}>
-                    <Text style={styles.meetingInfoLabel}>ID de réunion :</Text>
-                    <Text style={styles.meetingInfoValue}>{event.online_meeting_id}</Text>
-                  </View>
-                )}
-                {event.online_passcode && (
-                  <View style={styles.meetingInfoRow}>
-                    <Text style={styles.meetingInfoLabel}>Code d'accès :</Text>
-                    <Text style={styles.meetingInfoValue}>{event.online_passcode}</Text>
-                  </View>
-                )}
-              </View>
-              {event.online_url && (
-                <TouchableOpacity
-                  style={styles.joinOnlineButton}
-                  onPress={() => {
-                    // TODO: Open URL in browser
-                    Alert.alert('Rejoindre', `Le lien de l'événement : ${event.online_url}`);
-                  }}
-                >
-                  <Ionicons name="videocam" size={18} color={Colors.white} />
-                  <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
-                </TouchableOpacity>
-              )}
-              <Text style={styles.onlineNote}>
-                Le lien de connexion sera disponible après inscription
-              </Text>
             </View>
           ) : event.location_type === 'hybrid' ? (
             <View style={styles.hybridEventCard}>
@@ -474,6 +499,20 @@ export default function EventDetailsScreen() {
                   Également disponible en ligne via {event.online_platform || 'visioconférence'}
                 </Text>
               </View>
+              {/* Show meeting info if registered */}
+              {userRegistration && event.online_url && (
+                <TouchableOpacity
+                  style={[styles.joinOnlineButton, { marginTop: Spacing.sm }]}
+                  onPress={() => {
+                    Linking.openURL(event.online_url!).catch(() => {
+                      showError('Erreur', 'Impossible d\'ouvrir le lien de l\'événement');
+                    });
+                  }}
+                >
+                  <Ionicons name="videocam" size={18} color={Colors.white} />
+                  <Text style={styles.joinOnlineButtonText}>Rejoindre en ligne</Text>
+                </TouchableOpacity>
+              )}
             </View>
           ) : (
             <TouchableOpacity style={styles.infoCard} activeOpacity={0.7}>
@@ -836,23 +875,43 @@ export default function EventDetailsScreen() {
       {/* Bottom CTA */}
       <View style={styles.bottomBar}>
         <View style={styles.priceContainer}>
-          <Text style={styles.priceLabel}>
-            {minPrice > 0 ? 'À partir de' : 'Prix'}
-          </Text>
-          <Text style={styles.priceValue}>
-            {minPrice > 0 ? `${minPrice.toLocaleString()} FCFA` : 'Gratuit'}
-          </Text>
+          {userRegistration ? (
+            <>
+              <Text style={styles.priceLabel}>Statut</Text>
+              <Text style={[styles.priceValue, { color: Colors.success }]}>Inscrit</Text>
+            </>
+          ) : (
+            <>
+              <Text style={styles.priceLabel}>
+                {minPrice > 0 ? 'À partir de' : 'Prix'}
+              </Text>
+              <Text style={styles.priceValue}>
+                {minPrice > 0 ? `${minPrice.toLocaleString()} FCFA` : 'Gratuit'}
+              </Text>
+            </>
+          )}
         </View>
-        <TouchableOpacity
-          style={styles.ctaButton}
-          onPress={() => navigation.navigate('TicketPurchase' as never, { eventId } as never)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.ctaButtonText}>
-            {event.event_type === 'billetterie' ? 'Acheter des billets' : 'S\'inscrire'}
-          </Text>
-          <Ionicons name="arrow-forward" size={18} color={Colors.white} />
-        </TouchableOpacity>
+        {userRegistration ? (
+          <TouchableOpacity
+            style={[styles.ctaButton, { backgroundColor: Colors.success }]}
+            onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.ctaButtonText}>Voir mon inscription</Text>
+            <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={styles.ctaButton}
+            onPress={() => navigation.navigate('TicketPurchase' as never, { eventId } as never)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.ctaButtonText}>
+              {event.event_type === 'billetterie' ? 'Acheter des billets' : 'S\'inscrire'}
+            </Text>
+            <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -1615,6 +1674,21 @@ const styles = StyleSheet.create({
     color: Colors.gray400,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+  onlineLockedInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  onlineLockedText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    lineHeight: 20,
   },
   // Hybrid Event Styles
   hybridEventCard: {
