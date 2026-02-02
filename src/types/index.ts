@@ -253,7 +253,7 @@ export type ApprovalStatus = 'not_required' | 'pending' | 'approved' | 'rejected
 
 export interface Registration {
   id: string;
-  event: Event;
+  event: Event | string; // Can be full Event object or just UUID string
   user: User;
   // Informations de base
   registration_type?: EventType;

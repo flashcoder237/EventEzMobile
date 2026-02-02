@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   RefreshControl,
   ActivityIndicator,
   StatusBar,
   Dimensions,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { registrationsAPI } from '../../api/client';
-import { Registration, RootStackParamList } from '../../types';
+import { Registration, RootStackParamList, Event } from '../../types';
 import {
   Colors,
   FontFamily,
@@ -29,6 +29,7 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
 type RegistrationType = 'billetterie' | 'inscription';
+type FilterType = 'all' | 'billetterie' | 'inscription';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ export default function MyTicketsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('upcoming');
+  const [typeFilter, setTypeFilter] = useState<FilterType>('all');
 
   useEffect(() => {
     fetchRegistrations();
@@ -47,6 +49,10 @@ export default function MyTicketsScreen() {
     try {
       const response = await registrationsAPI.getMyRegistrations();
       const data = response.data?.results || response.data || [];
+      // Debug: log data structure
+      if (__DEV__ && data.length > 0) {
+        console.log('[MyTickets] Sample registration:', JSON.stringify(data[0], null, 2));
+      }
       setRegistrations(data);
     } catch (error) {
       console.error('Erreur chargement inscriptions:', error);
@@ -55,37 +61,24 @@ export default function MyTicketsScreen() {
     }
   };
 
+  // Helper to get event data from registration
+  const getEventData = useCallback((reg: Registration): Partial<Event> | null => {
+    // event_detail contains the full event object from the API
+    if (reg.event_detail && typeof reg.event_detail === 'object') {
+      return reg.event_detail;
+    }
+    // event might be a full object or just an ID
+    if (reg.event && typeof reg.event === 'object') {
+      return reg.event as Event;
+    }
+    return null;
+  }, []);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchRegistrations();
     setRefreshing(false);
   };
-
-  const filterRegistrations = useCallback((tab: TabType) => {
-    const now = new Date();
-    return registrations.filter((reg) => {
-      const event = reg.event || reg.event_detail;
-      const eventDate = event?.start_date ? new Date(event.start_date) : null;
-      const isCancelled = reg.status === 'cancelled' || reg.status === 'rejected';
-      const isPendingApproval = reg.approval_status === 'pending' || reg.status === 'pending_approval';
-
-      switch (tab) {
-        case 'upcoming':
-          // Include: not cancelled AND (future date OR no date OR pending approval)
-          if (isCancelled) return false;
-          if (!eventDate) return true; // Show if no date (edge case)
-          return eventDate >= now || isPendingApproval;
-        case 'past':
-          return !isCancelled && eventDate && eventDate < now && !isPendingApproval;
-        case 'cancelled':
-          return isCancelled;
-        default:
-          return true;
-      }
-    });
-  }, [registrations]);
-
-  const filteredRegistrations = filterRegistrations(activeTab);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -117,6 +110,67 @@ export default function MyTicketsScreen() {
     }
   };
 
+  const getRegistrationType = useCallback((reg: Registration): RegistrationType => {
+    // Check registration_type first, then event type
+    if (reg.registration_type) {
+      return reg.registration_type;
+    }
+    const event = getEventData(reg);
+    if (event?.event_type) {
+      return event.event_type;
+    }
+    // If has tickets, it's billetterie
+    if (reg.tickets && reg.tickets.length > 0) {
+      return 'billetterie';
+    }
+    return 'inscription';
+  }, [getEventData]);
+
+  const filterRegistrations = useCallback((tab: TabType, type: FilterType) => {
+    const now = new Date();
+    return registrations.filter((reg) => {
+      const event = getEventData(reg);
+      const eventDate = event?.start_date ? new Date(event.start_date) : null;
+      const isCancelled = reg.status === 'cancelled' || reg.status === 'rejected';
+      const isPendingApproval = reg.approval_status === 'pending' || reg.status === 'pending_approval';
+
+      // Filter by type
+      if (type !== 'all') {
+        const regType = getRegistrationType(reg);
+        if (regType !== type) return false;
+      }
+
+      switch (tab) {
+        case 'upcoming':
+          // Include: not cancelled AND (future date OR no date OR pending approval)
+          if (isCancelled) return false;
+          if (!eventDate) return true; // Show if no date (edge case)
+          return eventDate >= now || isPendingApproval;
+        case 'past':
+          return !isCancelled && eventDate && eventDate < now && !isPendingApproval;
+        case 'cancelled':
+          return isCancelled;
+        default:
+          return true;
+      }
+    });
+  }, [registrations, getEventData, getRegistrationType]);
+
+  const filteredRegistrations = useMemo(() =>
+    filterRegistrations(activeTab, typeFilter),
+    [filterRegistrations, activeTab, typeFilter]
+  );
+
+  // Count by type for filter badges
+  const typeCounts = useMemo(() => {
+    const tabRegistrations = filterRegistrations(activeTab, 'all');
+    return {
+      all: tabRegistrations.length,
+      billetterie: tabRegistrations.filter(r => getRegistrationType(r) === 'billetterie').length,
+      inscription: tabRegistrations.filter(r => getRegistrationType(r) === 'inscription').length,
+    };
+  }, [filterRegistrations, activeTab, getRegistrationType]);
+
   const getTotalPrice = (reg: Registration) => {
     if (reg.tickets && reg.tickets.length > 0) {
       return reg.tickets.reduce((sum, t) => sum + (t.total_price || 0), 0);
@@ -124,23 +178,7 @@ export default function MyTicketsScreen() {
     return 0;
   };
 
-  const getRegistrationType = (reg: Registration): RegistrationType => {
-    // Check registration_type first, then event type
-    if (reg.registration_type) {
-      return reg.registration_type;
-    }
-    const event = reg.event || reg.event_detail;
-    if ((event as any)?.event_type) {
-      return (event as any).event_type;
-    }
-    // If has tickets, it's billetterie
-    if (reg.tickets && reg.tickets.length > 0) {
-      return 'billetterie';
-    }
-    return 'inscription';
-  };
-
-  const getTicketInfo = (reg: Registration) => {
+  const getTicketInfo = useCallback((reg: Registration) => {
     const type = getRegistrationType(reg);
 
     if (type === 'billetterie' && reg.tickets && reg.tickets.length > 0) {
@@ -162,7 +200,7 @@ export default function MyTicketsScreen() {
       type: 'inscription' as RegistrationType,
       icon: 'document-text-outline' as const,
     };
-  };
+  }, [getRegistrationType]);
 
   const getApprovalStatusConfig = (approvalStatus?: string) => {
     switch (approvalStatus) {
@@ -178,18 +216,19 @@ export default function MyTicketsScreen() {
   };
 
   const renderRegistration = ({ item }: { item: Registration }) => {
-    const event = item.event || item.event_detail;
+    const event = getEventData(item);
     const dateInfo = event?.start_date ? formatDate(event.start_date) : null;
     const statusConfig = getStatusConfig(item.status);
     const ticketInfo = getTicketInfo(item);
-    const totalPrice = getTotalPrice(item);
     const isInscription = ticketInfo.type === 'inscription';
     const approvalConfig = isInscription ? getApprovalStatusConfig(item.approval_status) : null;
 
-    // Use approval status for inscriptions if pending
     const displayStatus = isInscription && approvalConfig && item.approval_status === 'pending'
       ? approvalConfig
       : statusConfig;
+
+    // Get event ID - handle both object and string cases
+    const eventId = event?.id || (typeof item.event === 'string' ? item.event : undefined);
 
     return (
       <TouchableOpacity
@@ -197,99 +236,91 @@ export default function MyTicketsScreen() {
         onPress={() => {
           if (item.tickets && item.tickets.length > 0) {
             navigation.navigate('QRCode', { ticketId: item.tickets[0].id });
-          } else {
-            navigation.navigate('EventDetails', { eventId: (event as any)?.id || item.event as string });
+          } else if (eventId) {
+            navigation.navigate('EventDetails', { eventId });
           }
         }}
-        activeOpacity={0.8}
+        activeOpacity={0.7}
       >
-        {/* Image avec overlay gradient */}
-        <View style={styles.cardImageContainer}>
-          <Image
-            source={{ uri: (event as any)?.banner_image || (event as any)?.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
-            style={styles.cardImage}
-          />
-          <View style={styles.cardImageOverlay} />
-
-          {/* Type badge en haut à gauche */}
+        <View style={styles.cardRow}>
+          {/* Date badge à gauche */}
           <View style={[
-            styles.cardTypeBadge,
-            isInscription ? styles.cardTypeBadgeInscription : styles.cardTypeBadgeBillet,
+            styles.dateBadge,
+            isInscription && styles.dateBadgeInscription,
           ]}>
-            <Ionicons
-              name={isInscription ? 'document-text' : 'ticket'}
-              size={12}
-              color={Colors.white}
-            />
-            <Text style={styles.cardTypeBadgeText}>
-              {isInscription ? 'Inscription' : 'Billet'}
-            </Text>
+            <Text style={styles.dateDay}>{dateInfo?.day || '--'}</Text>
+            <Text style={styles.dateMonth}>{dateInfo?.month || '---'}</Text>
           </View>
 
-          {/* Date en haut à droite */}
-          <View style={styles.cardDateBadge}>
-            <Text style={styles.cardDateDay}>{dateInfo?.day || '--'}</Text>
-            <Text style={styles.cardDateMonth}>{dateInfo?.month || '---'}</Text>
-          </View>
-        </View>
-
-        {/* Contenu de la carte */}
-        <View style={styles.cardContent}>
-          {/* Titre et lieu */}
-          <View style={styles.cardMain}>
-            <Text style={styles.cardTitle} numberOfLines={2}>
-              {(event as any)?.title || 'Événement'}
-            </Text>
-
-            <View style={styles.cardMeta}>
-              {(event as any)?.location_city && (
-                <View style={styles.cardMetaItem}>
-                  <Ionicons name="location" size={14} color={Colors.gray400} />
-                  <Text style={styles.cardMetaText}>{(event as any).location_city}</Text>
-                </View>
-              )}
-              {dateInfo && (
-                <View style={styles.cardMetaItem}>
-                  <Ionicons name="time" size={14} color={Colors.gray400} />
-                  <Text style={styles.cardMetaText}>{dateInfo.time}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-
-          {/* Séparateur avec effet ticket */}
-          <View style={styles.cardDivider}>
-            <View style={styles.cardDividerCircleLeft} />
-            <View style={styles.cardDividerLine} />
-            <View style={styles.cardDividerCircleRight} />
-          </View>
-
-          {/* Footer avec statut et QR */}
-          <View style={styles.cardFooter}>
-            <View style={styles.cardFooterLeft}>
-              <View style={[styles.cardStatusBadge, { backgroundColor: displayStatus.bg }]}>
-                <Ionicons name={displayStatus.icon as any} size={14} color={displayStatus.color} />
-                <Text style={[styles.cardStatusText, { color: displayStatus.color }]}>
+          {/* Contenu principal */}
+          <View style={styles.cardContent}>
+            {/* Type + Titre */}
+            <View style={styles.cardHeader}>
+              <View style={[
+                styles.typeBadge,
+                isInscription ? styles.typeBadgeInscription : styles.typeBadgeBillet,
+              ]}>
+                <Ionicons
+                  name={isInscription ? 'document-text' : 'ticket'}
+                  size={10}
+                  color={isInscription ? '#8B5CF6' : Colors.primary}
+                />
+                <Text style={[
+                  styles.typeBadgeText,
+                  isInscription ? styles.typeBadgeTextInscription : styles.typeBadgeTextBillet,
+                ]}>
+                  {isInscription ? 'Inscription' : 'Billet'}
+                </Text>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: displayStatus.bg }]}>
+                <Ionicons name={displayStatus.icon as any} size={12} color={displayStatus.color} />
+                <Text style={[styles.statusText, { color: displayStatus.color }]}>
                   {displayStatus.label}
                 </Text>
               </View>
-              {ticketInfo.quantity > 1 && (
-                <Text style={styles.cardQuantity}>×{ticketInfo.quantity}</Text>
-              )}
             </View>
 
-            <View style={styles.cardFooterRight}>
-              {totalPrice > 0 && (
-                <Text style={styles.cardPrice}>{totalPrice.toLocaleString()} F</Text>
+            {/* Titre */}
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {event?.title || 'Événement'}
+            </Text>
+
+            {/* Métadonnées */}
+            <View style={styles.cardMeta}>
+              {dateInfo && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="time-outline" size={12} color={Colors.gray400} />
+                  <Text style={styles.metaText}>{dateInfo.time}</Text>
+                </View>
               )}
-              <View style={[
-                styles.cardQrButton,
-                isInscription && styles.cardQrButtonInscription,
-              ]}>
-                <Ionicons name="qr-code" size={20} color={Colors.white} />
-              </View>
+              {event?.location_city && (
+                <View style={styles.metaItem}>
+                  <Ionicons name="location-outline" size={12} color={Colors.gray400} />
+                  <Text style={styles.metaText}>{event.location_city}</Text>
+                </View>
+              )}
+              {item.reference_code && (
+                <View style={styles.refCodeBadge}>
+                  <Text style={styles.refCodeText}>#{item.reference_code}</Text>
+                </View>
+              )}
             </View>
           </View>
+
+          {/* QR Button à droite */}
+          <TouchableOpacity
+            style={[
+              styles.qrButton,
+              isInscription && styles.qrButtonInscription,
+            ]}
+            onPress={() => {
+              if (item.tickets && item.tickets.length > 0) {
+                navigation.navigate('QRCode', { ticketId: item.tickets[0].id });
+              }
+            }}
+          >
+            <Ionicons name="qr-code" size={20} color={Colors.white} />
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     );
@@ -370,18 +401,86 @@ export default function MyTicketsScreen() {
         <TabButton
           tab="upcoming"
           label="À venir"
-          count={filterRegistrations('upcoming').length}
+          count={filterRegistrations('upcoming', 'all').length}
         />
         <TabButton
           tab="past"
           label="Passés"
-          count={filterRegistrations('past').length}
+          count={filterRegistrations('past', 'all').length}
         />
         <TabButton
           tab="cancelled"
           label="Annulés"
-          count={filterRegistrations('cancelled').length}
+          count={filterRegistrations('cancelled', 'all').length}
         />
+      </View>
+
+      {/* Type Filters */}
+      <View style={styles.filterContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterScroll}
+        >
+          <TouchableOpacity
+            style={[styles.filterChip, typeFilter === 'all' && styles.filterChipActive]}
+            onPress={() => setTypeFilter('all')}
+          >
+            <Ionicons
+              name="apps"
+              size={14}
+              color={typeFilter === 'all' ? Colors.white : Colors.gray500}
+            />
+            <Text style={[
+              styles.filterChipText,
+              typeFilter === 'all' && styles.filterChipTextActive,
+            ]}>
+              Tous ({typeCounts.all})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              typeFilter === 'billetterie' && styles.filterChipActiveBillet,
+            ]}
+            onPress={() => setTypeFilter('billetterie')}
+          >
+            <Ionicons
+              name="ticket"
+              size={14}
+              color={typeFilter === 'billetterie' ? Colors.white : Colors.primary}
+            />
+            <Text style={[
+              styles.filterChipText,
+              typeFilter === 'billetterie' && styles.filterChipTextActive,
+              typeFilter !== 'billetterie' && { color: Colors.primary },
+            ]}>
+              Billets ({typeCounts.billetterie})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.filterChip,
+              typeFilter === 'inscription' && styles.filterChipActiveInscription,
+            ]}
+            onPress={() => setTypeFilter('inscription')}
+          >
+            <Ionicons
+              name="document-text"
+              size={14}
+              color={typeFilter === 'inscription' ? Colors.white : '#8B5CF6'}
+            />
+            <Text style={[
+              styles.filterChipText,
+              typeFilter === 'inscription' && styles.filterChipTextActive,
+              typeFilter !== 'inscription' && { color: '#8B5CF6' },
+            ]}>
+              Inscriptions ({typeCounts.inscription})
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </View>
 
       {/* Tickets List */}
@@ -471,6 +570,46 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
+  // Filters
+  filterContainer: {
+    paddingBottom: Spacing.sm,
+  },
+  filterScroll: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray50,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    gap: 6,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.gray700,
+    borderColor: Colors.gray700,
+  },
+  filterChipActiveBillet: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterChipActiveInscription: {
+    backgroundColor: '#8B5CF6',
+    borderColor: '#8B5CF6',
+  },
+  filterChipText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray600,
+  },
+  filterChipTextActive: {
+    color: Colors.white,
+  },
+
   // List
   listContent: {
     padding: Spacing.lg,
@@ -478,179 +617,140 @@ const styles = StyleSheet.create({
     paddingBottom: 120,
   },
 
-  // Card styles
+  // Card styles - Simple list design
   card: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.lg,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    borderRadius: BorderRadius.lg,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
   },
-  cardImageContainer: {
-    height: 120,
-    position: 'relative',
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-  },
-  cardImageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.2)',
-  },
-  cardTypeBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
+  cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
   },
-  cardTypeBadgeBillet: {
+  // Date badge
+  dateBadge: {
+    width: 56,
     backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopLeftRadius: BorderRadius.lg,
+    borderBottomLeftRadius: BorderRadius.lg,
   },
-  cardTypeBadgeInscription: {
-    backgroundColor: Colors.secondary || '#8B5CF6',
+  dateBadgeInscription: {
+    backgroundColor: '#8B5CF6',
   },
-  cardTypeBadgeText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
+  dateDay: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
     color: Colors.white,
   },
-  cardDateBadge: {
-    position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    alignItems: 'center',
-    minWidth: 44,
-  },
-  cardDateDay: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
-    lineHeight: 22,
-  },
-  cardDateMonth: {
+  dateMonth: {
     fontSize: 10,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray500,
+    color: 'rgba(255,255,255,0.8)',
     textTransform: 'uppercase',
   },
+  // Card content
   cardContent: {
-    padding: Spacing.md,
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
-  cardMain: {
-    marginBottom: Spacing.md,
-  },
-  cardTitle: {
-    fontSize: FontSizes.md,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
-    marginBottom: Spacing.xs,
-    lineHeight: 22,
-  },
-  cardMeta: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  cardMetaItem: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  cardMetaText: {
+  // Type badge
+  typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  typeBadgeBillet: {
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+  },
+  typeBadgeInscription: {
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+  },
+  typeBadgeTextBillet: {
+    color: Colors.primary,
+  },
+  typeBadgeTextInscription: {
+    color: '#8B5CF6',
+  },
+  // Status badge
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  statusText: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+  },
+  // Title
+  cardTitle: {
     fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: 4,
+  },
+  // Meta
+  cardMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  metaText: {
+    fontSize: FontSizes.xs,
     color: Colors.gray500,
     fontFamily: FontFamily.regular,
   },
-  // Divider effet ticket
-  cardDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: Spacing.sm,
-  },
-  cardDividerCircleLeft: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  refCodeBadge: {
     backgroundColor: Colors.gray100,
-    marginLeft: -Spacing.md - 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
   },
-  cardDividerLine: {
-    flex: 1,
-    height: 1,
-    borderStyle: 'dashed',
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-    marginHorizontal: Spacing.xs,
-  },
-  cardDividerCircleRight: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: Colors.gray100,
-    marginRight: -Spacing.md - 8,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  cardFooterLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    flex: 1,
-  },
-  cardStatusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-  },
-  cardStatusText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-  },
-  cardQuantity: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
+  refCodeText: {
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
     color: Colors.gray500,
   },
-  cardFooterRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  cardPrice: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray700,
-  },
-  cardQrButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  // QR Button
+  qrButton: {
+    width: 44,
+    height: '100%',
+    minHeight: 70,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    borderTopRightRadius: BorderRadius.lg,
+    borderBottomRightRadius: BorderRadius.lg,
   },
-  cardQrButtonInscription: {
-    backgroundColor: Colors.secondary || '#8B5CF6',
+  qrButtonInscription: {
+    backgroundColor: '#8B5CF6',
   },
 
   // Empty State

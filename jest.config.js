@@ -16,6 +16,13 @@ module.exports = {
     '^expo-blur$': '<rootDir>/src/__tests__/mocks/expoBlurMock.js',
     '^@expo/vector-icons$': '<rootDir>/src/__tests__/mocks/expoVectorIconsMock.js',
     '^@expo/vector-icons/(.*)$': '<rootDir>/src/__tests__/mocks/expoVectorIconsMock.js',
+    '^react-native-webview$': '<rootDir>/src/__tests__/mocks/reactNativeWebviewMock.js',
+    '^react-native-safe-area-context$': '<rootDir>/src/__tests__/mocks/safeAreaContextMock.js',
+    '^expo-location$': '<rootDir>/src/__tests__/mocks/expoLocationMock.js',
+    '^expo-camera$': '<rootDir>/src/__tests__/mocks/expoCameraMock.js',
+    '^expo-secure-store$': '<rootDir>/src/__tests__/mocks/expoSecureStoreMock.js',
+    '^expo-image-picker$': '<rootDir>/src/__tests__/mocks/expoImagePickerMock.js',
+    '.*constants/theme.*': '<rootDir>/src/__tests__/mocks/themeMock.js',
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
