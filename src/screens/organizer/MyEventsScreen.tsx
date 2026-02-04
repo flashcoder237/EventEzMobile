@@ -223,7 +223,7 @@ export default function MyEventsScreen() {
         activeOpacity={0.7}
       >
         <Image
-          source={{ uri: item.banner_image || item.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
+          source={{ uri: item.banner_image || item.category?.default_event_image || item.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
           style={styles.eventImage}
         />
 

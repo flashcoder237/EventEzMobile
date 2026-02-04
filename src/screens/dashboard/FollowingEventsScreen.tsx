@@ -216,7 +216,7 @@ export default function FollowingEventsScreen() {
       >
         {/* Event Image */}
         <Image
-          source={{ uri: event.banner_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
+          source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
           style={styles.eventImage}
         />
 

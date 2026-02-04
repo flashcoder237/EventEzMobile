@@ -552,7 +552,7 @@ export default function ExploreScreen() {
             date={item.start_date}
             time={item.start_time}
             location={item.location_city || item.location_address || 'Lieu à confirmer'}
-            imageUrl={item.banner_image || item.display_image}
+            imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
             category={item.category?.name}
             price={price}
             isFree={item.is_free || price === 0}

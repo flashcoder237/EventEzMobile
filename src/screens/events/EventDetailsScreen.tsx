@@ -371,7 +371,7 @@ export default function EventDetailsScreen() {
         {/* Banner Image */}
         <View style={styles.bannerContainer}>
           <Image
-            source={{ uri: event.banner_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
+            source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
             style={styles.bannerImage}
           />
 

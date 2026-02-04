@@ -877,6 +877,20 @@ export const notificationsAPI = {
   // Préférences
   updatePreferences: (data: any) =>
     api.patch('/notifications/preferences/', data),
+
+  // Push Notifications - Device Registration
+  registerDevice: (data: {
+    push_token: string;
+    device_type: 'ios' | 'android' | 'web';
+    device_name?: string;
+    app_version?: string;
+  }) => api.post('/notifications/register-device/', data),
+
+  unregisterDevice: (push_token: string) =>
+    api.post('/notifications/unregister-device/', { push_token }),
+
+  getDevices: () =>
+    api.get('/notifications/devices/'),
 };
 
 // ============================================
