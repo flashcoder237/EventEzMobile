@@ -697,6 +697,14 @@ export const registrationsAPI = {
   cancelRegistration: (id: string) =>
     api.post(`/registrations/${id}/cancel/`),
 
+  // Modifier les billets d'une inscription en attente
+  updateTickets: (id: string, tickets: Array<{ ticket_type: number; quantity: number }>) =>
+    api.post(`/registrations/${id}/update_tickets/`, { tickets }),
+
+  // Ajouter des billets supplémentaires à une inscription confirmée
+  addTickets: (id: string, tickets: Array<{ ticket_type: number; quantity: number }>) =>
+    api.post(`/registrations/${id}/add_tickets/`, { tickets }),
+
   // Check-in
   checkIn: (id: string) =>
     api.post(`/registrations/${id}/check_in/`),

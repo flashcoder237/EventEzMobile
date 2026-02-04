@@ -104,6 +104,16 @@ export default function QRCodeScreen() {
     }
   };
 
+  // Helper pour vérifier si le paiement est requis
+  const isPaymentRequired = (t: TicketPurchase | null): boolean => {
+    if (!t) return false;
+    // Vérifier d'abord le champ payment_required
+    if (t.payment_required === true) return true;
+    // Fallback: vérifier si le total_price > 0 et status pending
+    if (t.total_price && t.total_price > 0 && t.status === 'pending') return true;
+    return false;
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -340,7 +350,7 @@ export default function QRCodeScreen() {
         )}
 
         {/* Payment required banner */}
-        {ticket.payment_required && ticket.status === 'pending' && (
+        {ticket.status === 'pending' && isPaymentRequired(ticket) && (
           <View style={styles.paymentRequiredBanner}>
             <Ionicons name="warning" size={24} color={Colors.warning} />
             <View style={styles.paymentRequiredText}>
@@ -353,17 +363,34 @@ export default function QRCodeScreen() {
         )}
 
         {/* Complete payment button */}
-        {ticket.payment_required && ticket.status === 'pending' && (
+        {ticket.status === 'pending' && isPaymentRequired(ticket) && (
           <TouchableOpacity
             style={styles.completePaymentButton}
             onPress={() => {
-              navigation.navigate('Payment', {
-                registrationId: ticket.registration
-              });
+              const regId = ticket.registration_id || ticket.registration;
+              if (regId) {
+                navigation.navigate('Payment', { registrationId: regId });
+              }
             }}
           >
             <Ionicons name="card-outline" size={20} color={Colors.white} />
             <Text style={styles.completePaymentText}>Finaliser le paiement</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Buy more tickets button - for confirmed tickets */}
+        {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
+          <TouchableOpacity
+            style={styles.buyMoreButton}
+            onPress={() => {
+              const eventId = event?.id || ticket.event_id;
+              if (eventId) {
+                navigation.navigate('TicketPurchase', { eventId, additionalTickets: true });
+              }
+            }}
+          >
+            <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+            <Text style={styles.buyMoreButtonText}>Acheter plus de billets</Text>
           </TouchableOpacity>
         )}
 
@@ -720,5 +747,25 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+
+  // Buy More Tickets Button
+  buyMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    gap: Spacing.sm,
+  },
+  buyMoreButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
   },
 });

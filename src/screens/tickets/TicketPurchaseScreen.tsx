@@ -39,8 +39,13 @@ interface TicketSelection {
 export default function TicketPurchaseScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<TicketPurchaseRouteProp>();
-  const { eventId, ticketTypeId } = route.params;
+  const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+
+  // Mode d'édition: modifier une inscription existante
+  const isEditMode = !!registrationId;
+  // Mode achat supplémentaire: acheter des billets en plus
+  const isAdditionalMode = !!additionalTickets;
 
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -84,6 +89,23 @@ export default function TicketPurchaseScreen() {
 
       if (existingReg) {
         setExistingRegistration(existingReg);
+
+        // En mode édition, pré-remplir les sélections avec les billets existants
+        if (isEditMode && existingReg.tickets && existingReg.tickets.length > 0) {
+          const initialSelections = new Map<string, number>();
+          existingReg.tickets.forEach((ticket: any) => {
+            const ticketTypeId = typeof ticket.ticket_type === 'object'
+              ? ticket.ticket_type.id
+              : ticket.ticket_type;
+            initialSelections.set(String(ticketTypeId), ticket.quantity || 1);
+          });
+          setSelections(initialSelections);
+        }
+
+        // En mode édition, pré-remplir les données de formulaire
+        if (isEditMode && existingReg.form_data) {
+          setFormData(existingReg.form_data);
+        }
       }
 
       // Set form fields if available
@@ -92,7 +114,7 @@ export default function TicketPurchaseScreen() {
       }
 
       // Pre-select if ticketTypeId is provided
-      if (ticketTypeId) {
+      if (ticketTypeId && !isEditMode) {
         setSelections(new Map([[ticketTypeId, 1]]));
       }
     } catch (error) {
@@ -256,51 +278,71 @@ export default function TicketPurchaseScreen() {
 
     setSubmitting(true);
     try {
-      // Build registration data
-      const registrationData: any = {
-        event: eventId,
-        registration_type: event?.event_type || 'billetterie',
-      };
-
-      // Add form data if present
-      if (formFields.length > 0) {
-        registrationData.form_data = formData;
-      }
-
-      // Add tickets for billetterie
+      // Préparer les billets
+      const tickets: any[] = [];
       if (isBilletterie) {
-        const tickets: any[] = [];
         selections.forEach((quantity, ticketTypeId) => {
           tickets.push({
             ticket_type: parseInt(ticketTypeId),
             quantity,
           });
         });
-        registrationData.tickets = tickets;
-
-        // Add discount code if applied
-        if (appliedDiscount) {
-          registrationData.discount_code = appliedDiscount.code;
-        }
       }
 
-      const response = await registrationsAPI.createRegistration(registrationData);
-      const registrationId = response.data.id;
+      let finalRegistrationId: string;
+      let paymentRequired = false;
+
+      // Mode édition: mettre à jour les billets existants
+      if (isEditMode && registrationId) {
+        const response = await registrationsAPI.updateTickets(registrationId, tickets);
+        finalRegistrationId = registrationId;
+        paymentRequired = response.data.registration?.payment_required || getTotalPrice() > 0;
+        showSuccess('Succès', 'Vos billets ont été mis à jour');
+      } else if (isAdditionalMode && existingRegistration) {
+        // Mode achat supplémentaire: ajouter des billets à une inscription confirmée
+        const response = await registrationsAPI.addTickets(existingRegistration.id, tickets);
+        finalRegistrationId = existingRegistration.id;
+        paymentRequired = response.data.payment_required || false;
+        showSuccess('Succès', `${response.data.message || 'Billets ajoutés avec succès'}`);
+      } else {
+        // Mode création: créer une nouvelle inscription
+        const registrationData: any = {
+          event: eventId,
+          registration_type: event?.event_type || 'billetterie',
+        };
+
+        // Add form data if present
+        if (formFields.length > 0) {
+          registrationData.form_data = formData;
+        }
+
+        // Add tickets for billetterie
+        if (isBilletterie) {
+          registrationData.tickets = tickets;
+
+          // Add discount code if applied
+          if (appliedDiscount) {
+            registrationData.discount_code = appliedDiscount.code;
+          }
+        }
+
+        const response = await registrationsAPI.createRegistration(registrationData);
+        finalRegistrationId = response.data.id;
+        paymentRequired = response.data.payment_required || getTotalPrice() > 0;
+      }
 
       // Navigate based on payment requirements
       const totalPrice = isBilletterie ? getTotalPrice() : (event?.base_price || 0);
 
-      if (totalPrice > 0) {
-        navigation.navigate('Payment', { registrationId });
+      if (paymentRequired || totalPrice > 0) {
+        navigation.navigate('Payment', { registrationId: finalRegistrationId });
       } else {
         // Free event - confirm only if auto_approve is enabled
-        const registrationData = response.data;
-
         // Confirmer automatiquement SEULEMENT si auto_approve_registrations est true
         // Sinon, laisser en pending_approval pour validation manuelle par l'organisateur
         if (event?.auto_approve_registrations !== false) {
           try {
-            await registrationsAPI.patchRegistration(registrationId, { status: 'confirmed' });
+            await registrationsAPI.patchRegistration(finalRegistrationId, { status: 'confirmed' });
           } catch (e) {
             console.log('Could not auto-confirm:', e);
           }
@@ -308,19 +350,39 @@ export default function TicketPurchaseScreen() {
         // Note: Si auto_approve_registrations=false, le backend a déjà mis status='pending_approval'
 
         navigation.navigate('PaymentSuccess', {
-          paymentId: registrationId,
+          paymentId: finalRegistrationId,
           eventType: event?.event_type,
-          registrationStatus: registrationData.status,
-          approvalStatus: registrationData.approval_status,
+          registrationStatus: 'confirmed',
+          approvalStatus: event?.require_approval ? 'pending' : 'approved',
           eventTitle: event?.title,
         });
       }
     } catch (error: any) {
       console.error('Erreur création inscription:', error);
-      showError(
-        'Erreur',
-        error.response?.data?.detail || error.response?.data?.message || 'Impossible de créer l\'inscription'
-      );
+
+      // Gérer le cas d'une inscription existante confirmée
+      const errorData = error.response?.data;
+      if (errorData && errorData.existing_registration) {
+        // L'utilisateur a déjà une inscription confirmée
+        showConfirm(
+          'Déjà inscrit',
+          errorData.message || 'Vous êtes déjà inscrit à cet événement.',
+          () => {
+            // Rediriger vers les détails de l'inscription ou acheter plus de billets
+            navigation.navigate('TicketPurchase', {
+              eventId,
+              additionalTickets: true,
+            });
+          },
+          'Acheter plus de billets',
+          'Fermer'
+        );
+      } else {
+        showError(
+          'Erreur',
+          errorData?.detail || errorData?.message || 'Impossible de créer l\'inscription'
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -354,7 +416,13 @@ export default function TicketPurchaseScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-          {event?.event_type === 'inscription' ? 'Inscription' : 'Sélectionner les billets'}
+          {isEditMode
+            ? 'Modifier mes billets'
+            : isAdditionalMode
+              ? 'Billets supplémentaires'
+              : event?.event_type === 'inscription'
+                ? 'Inscription'
+                : 'Sélectionner les billets'}
         </Text>
         <View style={{ width: 40 }} />
       </View>
@@ -383,8 +451,8 @@ export default function TicketPurchaseScreen() {
           </View>
         </View>
 
-        {/* Existing Registration Warning */}
-        {existingRegistration && (
+        {/* Existing Registration Warning - Ne pas afficher en mode édition ou achat supplémentaire */}
+        {existingRegistration && !isEditMode && !isAdditionalMode && (
           <View style={styles.existingRegWarning}>
             <View style={styles.existingRegHeader}>
               <Ionicons name="information-circle" size={24} color={Colors.warning} />
@@ -397,11 +465,12 @@ export default function TicketPurchaseScreen() {
                 ? 'Votre inscription est '
                 : 'Votre réservation est '}
               {existingRegistration.status === 'confirmed' ? 'confirmée' :
-               existingRegistration.status === 'pending' ? 'en attente' :
+               existingRegistration.status === 'pending' ? 'en attente de paiement' :
                existingRegistration.approval_status === 'pending' ? 'en attente de validation' :
                existingRegistration.status}
             </Text>
             <View style={styles.existingRegActions}>
+              {/* Bouton Voir ma réservation */}
               <TouchableOpacity
                 style={styles.viewRegButton}
                 onPress={() => {
@@ -413,8 +482,29 @@ export default function TicketPurchaseScreen() {
                 }}
               >
                 <Ionicons name="eye-outline" size={18} color={Colors.primary} />
-                <Text style={styles.viewRegButtonText}>Voir ma réservation</Text>
+                <Text style={styles.viewRegButtonText}>Voir</Text>
               </TouchableOpacity>
+
+              {/* Bouton Modifier (inscription pending) ou Acheter plus (inscription confirmée) */}
+              {existingRegistration.status === 'pending' ? (
+                <TouchableOpacity
+                  style={styles.viewRegButton}
+                  onPress={() => navigation.navigate('TicketPurchase', { eventId, registrationId: existingRegistration.id })}
+                >
+                  <Ionicons name="create-outline" size={18} color={Colors.primary} />
+                  <Text style={styles.viewRegButtonText}>Modifier</Text>
+                </TouchableOpacity>
+              ) : existingRegistration.status === 'confirmed' || existingRegistration.status === 'completed' ? (
+                <TouchableOpacity
+                  style={styles.viewRegButton}
+                  onPress={() => navigation.navigate('TicketPurchase', { eventId, additionalTickets: true })}
+                >
+                  <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                  <Text style={styles.viewRegButtonText}>+ Billets</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {/* Bouton Annuler */}
               <TouchableOpacity
                 style={styles.cancelRegButton}
                 onPress={() => {
@@ -667,9 +757,19 @@ export default function TicketPurchaseScreen() {
           )}
         </View>
         <GradientButton
-          title={submitting ? 'Traitement...' : (event?.event_type === 'inscription' ? "S'inscrire" : 'Continuer')}
+          title={
+            submitting
+              ? 'Traitement...'
+              : isEditMode
+                ? 'Mettre à jour les billets'
+                : isAdditionalMode
+                  ? 'Acheter des billets supplémentaires'
+                  : event?.event_type === 'inscription'
+                    ? "S'inscrire"
+                    : 'Continuer'
+          }
           onPress={handleProceed}
-          disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || !!existingRegistration}
+          disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || (!isEditMode && !isAdditionalMode && !!existingRegistration)}
           icon={
             submitting ? (
               <ActivityIndicator size="small" color={Colors.white} />

@@ -321,6 +321,7 @@ export interface TicketType {
 export interface TicketPurchase {
   id: string;
   registration: string;
+  registration_id?: string;
   ticket_type: TicketType | string;
   quantity: number;
   unit_price: number;
@@ -1155,7 +1156,12 @@ export type RootStackParamList = {
   Main: undefined;
   Auth: undefined;
   EventDetails: { eventId: string };
-  TicketPurchase: { eventId: string; ticketTypeId?: string };
+  TicketPurchase: {
+    eventId: string;
+    ticketTypeId?: string;
+    registrationId?: string;  // Pour modifier une inscription en attente
+    additionalTickets?: boolean;  // Pour acheter des billets supplémentaires
+  };
   Payment: { registrationId: string };
   PaymentSuccess: {
     paymentId: string;

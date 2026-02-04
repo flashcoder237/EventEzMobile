@@ -314,6 +314,19 @@ export default function EventDetailsScreen() {
     return { day, dayNum, month };
   };
 
+  // Helper pour vérifier si le paiement est requis
+  const isPaymentRequired = (registration: Registration | null): boolean => {
+    if (!registration) return false;
+    // Vérifier d'abord le champ payment_required
+    if (registration.payment_required === true) return true;
+    // Fallback: vérifier si les billets ont un prix total > 0
+    if (registration.tickets && registration.tickets.length > 0) {
+      const totalPrice = registration.tickets.reduce((sum, t) => sum + (t.total_price || 0), 0);
+      return totalPrice > 0;
+    }
+    return false;
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('fr-FR', {
@@ -389,6 +402,28 @@ export default function EventDetailsScreen() {
 
         {/* Content */}
         <View style={styles.content}>
+          {/* Pending Payment Alert */}
+          {userRegistration && userRegistration.status === 'pending' && isPaymentRequired(userRegistration) && (
+            <View style={styles.pendingPaymentBanner}>
+              <View style={styles.pendingPaymentInfo}>
+                <Ionicons name="warning" size={24} color={Colors.warning} />
+                <View style={styles.pendingPaymentTextContainer}>
+                  <Text style={styles.pendingPaymentTitle}>Paiement en attente</Text>
+                  <Text style={styles.pendingPaymentDescription}>
+                    Finalisez votre paiement pour confirmer votre inscription
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={styles.pendingPaymentButton}
+                onPress={() => navigation.navigate('Payment', { registrationId: userRegistration.id })}
+              >
+                <Ionicons name="card-outline" size={18} color={Colors.white} />
+                <Text style={styles.pendingPaymentButtonText}>Finaliser le paiement</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Date Badge */}
           <View style={styles.dateRow}>
             <View style={styles.dateBadge}>
@@ -974,14 +1009,53 @@ export default function EventDetailsScreen() {
           )}
         </View>
         {userRegistration ? (
-          <TouchableOpacity
-            style={[styles.ctaButton, { backgroundColor: Colors.success }]}
-            onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.ctaButtonText}>Voir mon inscription</Text>
-            <Ionicons name="ticket-outline" size={18} color={Colors.white} />
-          </TouchableOpacity>
+          userRegistration.status === 'pending' && isPaymentRequired(userRegistration) ? (
+            <View style={styles.ctaButtonsRow}>
+              <TouchableOpacity
+                style={[styles.ctaButtonSecondary]}
+                onPress={() => navigation.navigate('TicketPurchase', { eventId, registrationId: userRegistration.id })}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="create-outline" size={18} color={Colors.primary} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.ctaButton, { backgroundColor: Colors.warning, flex: 1 }]}
+                onPress={() => navigation.navigate('Payment', { registrationId: userRegistration.id })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.ctaButtonText}>Finaliser le paiement</Text>
+                <Ionicons name="card-outline" size={18} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+          ) : userRegistration.status === 'confirmed' ? (
+            <View style={styles.ctaButtonsRow}>
+              <TouchableOpacity
+                style={[styles.ctaButtonSecondary]}
+                onPress={() => navigation.navigate('TicketPurchase', { eventId, additionalTickets: true })}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
+                <Text style={styles.ctaButtonSecondaryText}>Plus</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.ctaButton, { backgroundColor: Colors.success, flex: 1 }]}
+                onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.ctaButtonText}>Voir mon inscription</Text>
+                <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.ctaButton, { backgroundColor: Colors.success }]}
+              onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.ctaButtonText}>Voir mon inscription</Text>
+              <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+            </TouchableOpacity>
+          )
         ) : (
           <TouchableOpacity
             style={styles.ctaButton}
@@ -1340,6 +1414,11 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
+  ctaButtonsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
   ctaButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1353,6 +1432,23 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+  ctaButtonSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    gap: 4,
+  },
+  ctaButtonSecondaryText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
   },
   // Tabs
   tabsContainer: {
@@ -1834,5 +1930,49 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.sm,
     color: '#1D4ED8',
+  },
+  // Pending Payment Banner
+  pendingPaymentBanner: {
+    backgroundColor: Colors.warningLight,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.lg,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+  },
+  pendingPaymentInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  pendingPaymentTextContainer: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  pendingPaymentTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.warning,
+    marginBottom: 4,
+  },
+  pendingPaymentDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    lineHeight: 20,
+  },
+  pendingPaymentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+  },
+  pendingPaymentButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
 });
