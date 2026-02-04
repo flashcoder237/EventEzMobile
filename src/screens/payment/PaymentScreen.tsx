@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { registrationsAPI, paymentsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   Colors,
   FontSizes,
@@ -35,6 +36,36 @@ const PaymentIcons = {
   mtn_money: require('../../../assets/payments/momo.png'),
   orange_money: require('../../../assets/payments/om.png'),
   credit_card: require('../../../assets/payments/bank.png'),
+};
+
+// ============================================
+// CONSTANTES DE STATUS DE PAIEMENT
+// ============================================
+// Ces constantes doivent correspondre aux valeurs retournées par le backend
+const PAYMENT_STATUS = {
+  // Status de succès
+  SUCCESS: ['completed', 'complete', 'successful', 'paid'],
+  // Status d'échec
+  FAILED: ['failed', 'cancelled', 'rejected', 'expired', 'error', 'declined', 'timeout'],
+  // Status en cours
+  PENDING: ['pending', 'processing', 'initiated', 'awaiting_confirmation'],
+};
+
+const isPaymentSuccess = (status: string): boolean => {
+  return PAYMENT_STATUS.SUCCESS.includes(status.toLowerCase());
+};
+
+const isPaymentFailed = (status: string): boolean => {
+  return PAYMENT_STATUS.FAILED.includes(status.toLowerCase());
+};
+
+/**
+ * Génère une clé d'idempotence unique pour éviter les doubles paiements
+ */
+const generateIdempotencyKey = (registrationId: string): string => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 15);
+  return `${registrationId}-${timestamp}-${random}`;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -80,6 +111,7 @@ export default function PaymentScreen() {
   const route = useRoute<PaymentRouteProp>();
   const { registrationId } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { user } = useAuth();
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +123,8 @@ export default function PaymentScreen() {
 
   // Ref pour arrêter le polling
   const pollingRef = useRef<{ stop: boolean }>({ stop: false });
+  // Ref pour la clé d'idempotence (évite les doubles paiements)
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetchRegistration();
@@ -155,6 +189,12 @@ export default function PaymentScreen() {
   };
 
   const handlePayment = async () => {
+    // Protection contre double soumission
+    if (processing) {
+      console.log('[Payment] Soumission ignorée - déjà en cours');
+      return;
+    }
+
     if (!selectedMethod) {
       showError('Erreur', 'Veuillez sélectionner un mode de paiement');
       return;
@@ -171,25 +211,46 @@ export default function PaymentScreen() {
     setProcessing(true);
 
     try {
-      // Create payment avec les bons noms de champs
+      // Valider l'email (requis par le backend)
+      const userEmail = user?.email;
+      if (!userEmail) {
+        throw new Error('Email utilisateur non disponible. Veuillez vous reconnecter.');
+      }
+
+      // Générer une clé d'idempotence si pas encore fait
+      if (!idempotencyKeyRef.current) {
+        idempotencyKeyRef.current = generateIdempotencyKey(registrationId);
+      }
+
+      // Create payment avec les bons noms de champs + clé d'idempotence
       const paymentResponse = await paymentsAPI.createPayment({
         registration: registrationId,
         amount: calculateTotal(),
         currency: 'XAF',
         payment_method: selectedMethod,
         billing_phone: formattedPhone,
-        billing_email: '',
+        billing_email: userEmail,
+        idempotency_key: idempotencyKeyRef.current,
       });
 
-      // Extraire l'ID du paiement de la réponse
+      // Extraire l'ID du paiement de la réponse de manière sécurisée
       const responseData = paymentResponse.data;
-      const newPaymentId = responseData.id || responseData.payment_id || responseData;
+      let newPaymentId: string | null = null;
+
+      // Vérifier les différents formats de réponse possibles
+      if (typeof responseData === 'object' && responseData !== null) {
+        newPaymentId = responseData.id || responseData.payment_id || responseData.payment?.id || null;
+      }
 
       console.log('[Payment] Created payment:', newPaymentId);
 
-      if (!newPaymentId || newPaymentId === 'undefined') {
+      // Validation stricte de l'ID
+      if (!newPaymentId || typeof newPaymentId !== 'string' || newPaymentId === 'undefined') {
         throw new Error('ID de paiement non reçu du serveur');
       }
+
+      // Réinitialiser la clé d'idempotence après succès
+      idempotencyKeyRef.current = null;
 
       setPaymentId(newPaymentId);
 
@@ -272,7 +333,6 @@ export default function PaymentScreen() {
   const pollPaymentStatus = async (pId: string) => {
     let attempts = 0;
     const maxAttempts = 60; // 5 minutes max (5s interval)
-    const failedStatuses = ['failed', 'cancelled', 'rejected', 'expired', 'error'];
 
     // Réinitialiser le flag de stop
     pollingRef.current.stop = false;
@@ -298,7 +358,8 @@ export default function PaymentScreen() {
           return;
         }
 
-        if (status === 'completed' || status === 'complete' || status === 'successful') {
+        // Utiliser les constantes centralisées pour vérifier le status
+        if (isPaymentSuccess(status)) {
           setProcessing(false);
           navigation.replace('PaymentSuccess', {
             paymentId: pId,
@@ -307,7 +368,7 @@ export default function PaymentScreen() {
             approvalStatus: registration?.approval_status,
             eventTitle: registration?.event?.title,
           });
-        } else if (failedStatuses.includes(status)) {
+        } else if (isPaymentFailed(status)) {
           // Paiement échoué
           setProcessing(false);
           navigation.replace('PaymentFailed', { paymentId: pId, error: errorMessage });
@@ -340,7 +401,7 @@ export default function PaymentScreen() {
         const errorData = error.response?.data;
         const errorStatus = (errorData?.status || errorData?.payment_status || '').toLowerCase();
 
-        if (failedStatuses.includes(errorStatus)) {
+        if (isPaymentFailed(errorStatus)) {
           setProcessing(false);
           navigation.replace('PaymentFailed', {
             paymentId: pId,

@@ -156,6 +156,80 @@ api.interceptors.response.use(
 );
 
 // ============================================
+// REQUEST DEDUPLICATION
+// ============================================
+// Évite les requêtes GET identiques simultanées (ex: double tap, re-render rapide)
+
+interface PendingRequest {
+  promise: Promise<any>;
+  timestamp: number;
+}
+
+const pendingRequests = new Map<string, PendingRequest>();
+const REQUEST_CACHE_TTL = 100; // 100ms - fenêtre de déduplication
+
+/**
+ * Génère une clé unique pour identifier une requête
+ */
+const getRequestKey = (url: string, params?: any): string => {
+  const paramString = params ? JSON.stringify(params) : '';
+  return `${url}::${paramString}`;
+};
+
+/**
+ * Nettoie les requêtes expirées du cache
+ */
+const cleanupExpiredRequests = () => {
+  const now = Date.now();
+  for (const [key, request] of pendingRequests.entries()) {
+    if (now - request.timestamp > REQUEST_CACHE_TTL) {
+      pendingRequests.delete(key);
+    }
+  }
+};
+
+/**
+ * GET dédupliqué - évite les requêtes GET identiques simultanées
+ * Si une requête identique est déjà en cours (dans les 100ms), retourne la même promesse
+ */
+export const deduplicatedGet = async <T = any>(url: string, config?: any): Promise<T> => {
+  const requestKey = getRequestKey(url, config?.params);
+
+  // Nettoyer les requêtes expirées
+  cleanupExpiredRequests();
+
+  // Vérifier s'il y a une requête identique en cours
+  const existingRequest = pendingRequests.get(requestKey);
+  if (existingRequest && Date.now() - existingRequest.timestamp < REQUEST_CACHE_TTL) {
+    if (__DEV__) {
+      console.log(`[API] Deduplication - reusing pending request for ${url}`);
+    }
+    return existingRequest.promise;
+  }
+
+  // Créer une nouvelle requête
+  const requestPromise = api.get(url, config)
+    .then(response => {
+      // Supprimer du cache une fois terminée
+      setTimeout(() => pendingRequests.delete(requestKey), REQUEST_CACHE_TTL);
+      return response.data;
+    })
+    .catch(error => {
+      // Supprimer du cache en cas d'erreur aussi
+      pendingRequests.delete(requestKey);
+      throw error;
+    });
+
+  // Stocker la requête en cours
+  pendingRequests.set(requestKey, {
+    promise: requestPromise,
+    timestamp: Date.now(),
+  });
+
+  return requestPromise;
+};
+
+// ============================================
 // TOKEN MANAGEMENT FUNCTIONS
 // ============================================
 
@@ -565,8 +639,9 @@ export const discountsAPI = {
     api.delete(`/discounts/${id}/`),
 
   // Validation de code promo
+  // Note: Utilise /discounts/validate_code/ (action sans ID)
   validateDiscount: (code: string, eventId: string, ticketTypeId?: string) =>
-    api.post('/discounts/validate/', {
+    api.post('/discounts/validate_code/', {
       code,
       event: eventId,
       ticket_type: ticketTypeId

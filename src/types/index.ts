@@ -163,7 +163,7 @@ export interface Event {
   // Gestion des inscriptions
   auto_approve_registrations?: boolean;
   max_participants?: number;
-  max_capacity?: number; // Alias
+  // Note: Le backend utilise 'max_participants', pas 'max_capacity'
   // Prix (calculés)
   is_free?: boolean;
   base_price?: number;
@@ -528,7 +528,20 @@ export interface MessageReaction {
 // NOTIFICATION TYPES
 // ============================================
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'event' | 'registration' | 'payment' | 'message';
+// Types de notification synchronisés avec le backend (notifications.models.Notification.NOTIFICATION_TYPE_CHOICES)
+export type NotificationType =
+  | 'event_update'
+  | 'event_revalidation'
+  | 'registration_confirmation'
+  | 'payment_confirmation'
+  | 'event_reminder'
+  | 'system_message'
+  | 'custom_message'
+  | 'feature_request'
+  | 'general';
+
+// Type de canal de notification
+export type NotificationChannel = 'email' | 'sms' | 'push' | 'in_app';
 
 export interface Notification {
   id: string;
@@ -536,12 +549,19 @@ export interface Notification {
   title: string;
   message: string;
   notification_type: NotificationType;
+  channel?: NotificationChannel;
   is_read: boolean;
+  is_sent?: boolean;
   created_at: string;
+  scheduled_for?: string;
+  sent_at?: string;
+  read_at?: string;
   link?: string;
   event?: Event;
   related_object_id?: string;
-  related_object_type?: string;
+  related_object_type?: 'event' | 'registration' | 'payment' | string;
+  extra_data?: Record<string, any>;
+  // Alias pour compatibilité avec l'ancien code
   data?: Record<string, any>;
 }
 

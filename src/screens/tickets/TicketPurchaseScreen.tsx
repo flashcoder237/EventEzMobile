@@ -210,8 +210,32 @@ export default function TicketPurchaseScreen() {
   };
 
   const handleProceed = async () => {
+    // Protection contre double soumission
+    if (submitting) {
+      console.log('[TicketPurchase] Soumission ignorée - déjà en cours');
+      return;
+    }
+
     const isInscription = event?.event_type === 'inscription';
     const isBilletterie = event?.event_type === 'billetterie';
+
+    // Vérifier si la date limite d'inscription est dépassée
+    if (event?.registration_deadline) {
+      const deadline = new Date(event.registration_deadline);
+      if (deadline < new Date()) {
+        showError('Inscription fermée', 'La date limite d\'inscription est dépassée');
+        return;
+      }
+    }
+
+    // Vérifier si l'événement est terminé
+    if (event?.end_date) {
+      const endDate = new Date(event.end_date);
+      if (endDate < new Date()) {
+        showError('Événement terminé', 'Cet événement est déjà terminé');
+        return;
+      }
+    }
 
     // Validate tickets for billetterie
     if (isBilletterie && getTotalQuantity() === 0) {
@@ -264,13 +288,20 @@ export default function TicketPurchaseScreen() {
       if (totalPrice > 0) {
         navigation.navigate('Payment', { registrationId });
       } else {
-        // Free event - confirm and go to success
+        // Free event - confirm only if auto_approve is enabled
         const registrationData = response.data;
-        try {
-          await registrationsAPI.patchRegistration(registrationId, { status: 'confirmed' });
-        } catch (e) {
-          console.log('Could not auto-confirm:', e);
+
+        // Confirmer automatiquement SEULEMENT si auto_approve_registrations est true
+        // Sinon, laisser en pending_approval pour validation manuelle par l'organisateur
+        if (event?.auto_approve_registrations !== false) {
+          try {
+            await registrationsAPI.patchRegistration(registrationId, { status: 'confirmed' });
+          } catch (e) {
+            console.log('Could not auto-confirm:', e);
+          }
         }
+        // Note: Si auto_approve_registrations=false, le backend a déjà mis status='pending_approval'
+
         navigation.navigate('PaymentSuccess', {
           paymentId: registrationId,
           eventType: event?.event_type,
