@@ -109,9 +109,12 @@ const paymentMethods: PaymentMethodOption[] = [
 export default function PaymentScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentRouteProp>();
-  const { registrationId } = route.params;
+  const { registrationId, newTickets, totalAmount } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
+
+  // Mode billets supplémentaires: on a des newTickets passés en params
+  const isAdditionalTicketsMode = !!(newTickets && newTickets.length > 0);
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -142,9 +145,25 @@ export default function PaymentScreen() {
     }
   };
 
+  // Obtenir les billets à afficher (nouveaux ou tous)
+  const getTicketsToDisplay = () => {
+    if (isAdditionalTicketsMode && newTickets) {
+      return newTickets;
+    }
+    return registration?.tickets || [];
+  };
+
   const calculateTotal = () => {
-    if (!registration?.tickets) return 0;
-    return registration.tickets.reduce((total, ticket) => {
+    // Si on a un montant total passé en param (mode billets supplémentaires)
+    if (isAdditionalTicketsMode && totalAmount !== undefined) {
+      return totalAmount;
+    }
+
+    // Sinon calculer depuis les billets
+    const tickets = getTicketsToDisplay();
+    if (!tickets || tickets.length === 0) return 0;
+
+    return tickets.reduce((total, ticket: any) => {
       // Convert to number to avoid string concatenation (backend may return Decimal as string)
       const ticketPrice = Number(ticket.total_price) || (Number(ticket.unit_price) || 0) * (Number(ticket.quantity) || 1);
       return total + ticketPrice;
@@ -461,16 +480,21 @@ export default function PaymentScreen() {
       >
         {/* Order Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Récapitulatif</Text>
+          <Text style={styles.sectionTitle}>
+            {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Récapitulatif'}
+          </Text>
           <View style={styles.orderCard}>
             <View style={styles.orderHeader}>
               <Text style={styles.orderEventTitle} numberOfLines={2}>
                 {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
               </Text>
+              {isAdditionalTicketsMode && (
+                <Text style={styles.additionalBadge}>Achat supplémentaire</Text>
+              )}
             </View>
 
-            {registration?.tickets?.map((ticket, index) => (
-              <View key={index} style={styles.orderItem}>
+            {getTicketsToDisplay().map((ticket: any, index: number) => (
+              <View key={ticket.id || index} style={styles.orderItem}>
                 <View style={styles.orderItemLeft}>
                   <Text style={styles.orderItemName}>
                     {ticket.ticket_type_name || ticket.ticket_type?.name}
@@ -478,13 +502,13 @@ export default function PaymentScreen() {
                   <Text style={styles.orderItemQty}>x{ticket.quantity || 1}</Text>
                 </View>
                 <Text style={styles.orderItemPrice}>
-                  {(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} FCFA
+                  {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} FCFA
                 </Text>
               </View>
             ))}
 
             <View style={styles.orderTotal}>
-              <Text style={styles.orderTotalLabel}>Total</Text>
+              <Text style={styles.orderTotalLabel}>Total à payer</Text>
               <Text style={styles.orderTotalValue}>
                 {calculateTotal().toLocaleString()} FCFA
               </Text>
@@ -744,6 +768,18 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
+  },
+  additionalBadge: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.sm,
+    marginTop: Spacing.xs,
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
   },
   orderItem: {
     flexDirection: 'row',

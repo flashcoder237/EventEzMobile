@@ -303,6 +303,27 @@ export default function TicketPurchaseScreen() {
         const response = await registrationsAPI.addTickets(existingRegistration.id, tickets);
         finalRegistrationId = existingRegistration.id;
         paymentRequired = response.data.payment_required || false;
+
+        // Stocker les nouveaux billets pour les passer à l'écran de paiement
+        const newTicketsData = response.data.new_tickets || [];
+        const newTotalPrice = Number(response.data.total_price) || getTotalPrice();
+
+        if (paymentRequired && newTicketsData.length > 0) {
+          // Naviguer directement vers le paiement avec les nouveaux billets
+          navigation.navigate('Payment', {
+            registrationId: finalRegistrationId,
+            newTickets: newTicketsData.map((t: any) => ({
+              id: t.id,
+              ticket_type_name: t.ticket_type_name || t.ticket_type?.name,
+              quantity: Number(t.quantity) || 1,
+              unit_price: Number(t.unit_price) || 0,
+              total_price: Number(t.total_price) || 0,
+            })),
+            totalAmount: newTotalPrice,
+          });
+          return;
+        }
+
         showSuccess('Succès', `${response.data.message || 'Billets ajoutés avec succès'}`);
       } else {
         // Mode création: créer une nouvelle inscription

@@ -1162,7 +1162,18 @@ export type RootStackParamList = {
     registrationId?: string;  // Pour modifier une inscription en attente
     additionalTickets?: boolean;  // Pour acheter des billets supplémentaires
   };
-  Payment: { registrationId: string };
+  Payment: {
+    registrationId: string;
+    // Pour les billets supplémentaires: passer les nouveaux billets à payer
+    newTickets?: Array<{
+      id: string;
+      ticket_type_name: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>;
+    totalAmount?: number;
+  };
   PaymentSuccess: {
     paymentId: string;
     registrationId?: string;
