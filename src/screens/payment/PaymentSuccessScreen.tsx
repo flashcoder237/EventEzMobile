@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -15,6 +16,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 
+import { registrationsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -46,8 +48,9 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle } = route.params;
+  const { eventType, approvalStatus, eventTitle, registrationId } = route.params;
 
+  const [loadingTicket, setLoadingTicket] = useState(false);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -55,6 +58,37 @@ export default function PaymentSuccessScreen() {
     scale.value = withSpring(1, { damping: 10, stiffness: 100 });
     opacity.value = withDelay(300, withSpring(1));
   }, []);
+
+  // Fonction pour voir le billet directement
+  const handleViewTicket = async () => {
+    if (!registrationId) {
+      // Fallback vers la liste des billets
+      navigation.replace('Main', { screen: 'MyTickets' } as any);
+      return;
+    }
+
+    setLoadingTicket(true);
+    try {
+      const response = await registrationsAPI.getRegistration(registrationId);
+      const registration = response.data;
+
+      // Récupérer le premier ticket de la registration
+      const tickets = registration.tickets || [];
+      if (tickets.length > 0) {
+        const firstTicketId = tickets[0].id;
+        navigation.replace('QRCode', { ticketId: firstTicketId });
+      } else {
+        // Pas de tickets, aller vers MyTickets
+        navigation.replace('Main', { screen: 'MyTickets' } as any);
+      }
+    } catch (error) {
+      console.error('Error fetching registration:', error);
+      // En cas d'erreur, aller vers MyTickets
+      navigation.replace('Main', { screen: 'MyTickets' } as any);
+    } finally {
+      setLoadingTicket(false);
+    }
+  };
 
   const iconStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -177,10 +211,14 @@ export default function PaymentSuccessScreen() {
       {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
         <GradientButton
-          title={content.primaryButtonText}
-          onPress={() => navigation.replace('Main', { screen: 'MyTickets' } as any)}
-          icon={<Ionicons name={content.primaryButtonIcon} size={20} color={Colors.white} />}
+          title={loadingTicket ? 'Chargement...' : content.primaryButtonText}
+          onPress={handleViewTicket}
+          icon={loadingTicket
+            ? <ActivityIndicator size="small" color={Colors.white} />
+            : <Ionicons name={content.primaryButtonIcon} size={20} color={Colors.white} />
+          }
           fullWidth
+          disabled={loadingTicket}
         />
         <View style={{ height: Spacing.md }} />
         <GradientButton
@@ -188,6 +226,7 @@ export default function PaymentSuccessScreen() {
           onPress={() => navigation.replace('Main', { screen: 'Home' } as any)}
           variant="outline"
           fullWidth
+          disabled={loadingTicket}
         />
       </View>
     </SafeAreaView>

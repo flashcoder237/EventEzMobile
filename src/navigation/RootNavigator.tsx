@@ -42,6 +42,13 @@ import QRScannerScreen from '../screens/organizer/QRScannerScreen';
 import EventAnalyticsScreen from '../screens/organizer/EventAnalyticsScreen';
 import EventRegistrationsScreen from '../screens/organizer/EventRegistrationsScreen';
 
+// Moderation Screens
+import ModerationScreen from '../screens/moderation/ModerationScreen';
+
+// Payment Management Screens
+import MyPaymentsScreen from '../screens/payment/MyPaymentsScreen';
+import RefundRequestScreen from '../screens/payment/RefundRequestScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
@@ -245,6 +252,32 @@ export default function RootNavigator() {
             component={EventRegistrationsScreen}
             options={{
               headerShown: false,
+            }}
+          />
+
+          {/* Moderation Screens */}
+          <Stack.Screen
+            name="Moderation"
+            component={ModerationScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+
+          {/* Payment Management Screens */}
+          <Stack.Screen
+            name="MyPayments"
+            component={MyPaymentsScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="RefundRequest"
+            component={RefundRequestScreen}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
             }}
           />
         </>

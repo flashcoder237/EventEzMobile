@@ -339,6 +339,34 @@ export default function QRCodeScreen() {
           </View>
         )}
 
+        {/* Payment required banner */}
+        {ticket.payment_required && ticket.status === 'pending' && (
+          <View style={styles.paymentRequiredBanner}>
+            <Ionicons name="warning" size={24} color={Colors.warning} />
+            <View style={styles.paymentRequiredText}>
+              <Text style={styles.paymentRequiredTitle}>Paiement en attente</Text>
+              <Text style={styles.paymentRequiredDesc}>
+                Finalisez votre paiement pour confirmer votre inscription
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Complete payment button */}
+        {ticket.payment_required && ticket.status === 'pending' && (
+          <TouchableOpacity
+            style={styles.completePaymentButton}
+            onPress={() => {
+              navigation.navigate('Payment', {
+                registrationId: ticket.registration
+              });
+            }}
+          >
+            <Ionicons name="card-outline" size={20} color={Colors.white} />
+            <Text style={styles.completePaymentText}>Finaliser le paiement</Text>
+          </TouchableOpacity>
+        )}
+
         <View style={{ height: Spacing.xl * 2 }} />
       </ScrollView>
     </SafeAreaView>
@@ -647,5 +675,50 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray600,
     marginTop: 2,
+  },
+
+  // Payment Required Banner
+  paymentRequiredBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.warningLight,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.warning,
+  },
+  paymentRequiredText: {
+    flex: 1,
+  },
+  paymentRequiredTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.warning,
+  },
+  paymentRequiredDesc: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    marginTop: 2,
+  },
+
+  // Complete Payment Button
+  completePaymentButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    gap: Spacing.sm,
+  },
+  completePaymentText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
 });

@@ -119,6 +119,7 @@ export default function ProfileScreen() {
   };
 
   const isOrganizer = user?.role === 'organizer';
+  const isModerator = user?.role === 'moderator' || user?.role === 'admin';
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -187,6 +188,21 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Moderator Section */}
+        {isModerator && (
+          <View style={styles.menuSection}>
+            <Text style={styles.menuSectionTitle}>Modération</Text>
+            <View style={styles.menuCard}>
+              <MenuItem
+                icon="shield-checkmark-outline"
+                title="File de modération"
+                subtitle="Valider les événements"
+                onPress={() => navigation.navigate('Moderation')}
+              />
+            </View>
+          </View>
+        )}
+
         {/* Organizer Section */}
         {isOrganizer && (
           <View style={styles.menuSection}>
@@ -219,6 +235,12 @@ export default function ProfileScreen() {
               icon="person-outline"
               title="Modifier le profil"
               onPress={() => navigation.navigate('EditProfile')}
+            />
+            <MenuItem
+              icon="card-outline"
+              title="Mes paiements"
+              subtitle="Historique et remboursements"
+              onPress={() => navigation.navigate('MyPayments')}
             />
             <MenuItem
               icon="notifications-outline"

@@ -336,10 +336,23 @@ export interface TicketPurchase {
   attendee_name?: string;
   attendee_email?: string;
   // Event info (may be expanded from backend)
-  event?: Event | string;
+  event?: {
+    id: string;
+    title: string;
+    start_date?: string;
+    end_date?: string;
+    location_name?: string;
+    location_city?: string;
+    location_address?: string;
+    banner_image?: string;
+  } | string;
+  event_id?: string;
   event_title?: string;
   // Status (from registration)
   status?: string;
+  registration_status?: string;
+  payment_status?: string;
+  payment_required?: boolean;
 }
 
 // Alias pour compatibilité - Ticket représente un TicketPurchase
@@ -1146,6 +1159,7 @@ export type RootStackParamList = {
   Payment: { registrationId: string };
   PaymentSuccess: {
     paymentId: string;
+    registrationId?: string;
     eventType?: 'billetterie' | 'inscription';
     registrationStatus?: string;
     approvalStatus?: string;
@@ -1177,6 +1191,9 @@ export type RootStackParamList = {
   QRScanner: { eventId: string };
   Terms: undefined;
   Privacy: undefined;
+  Moderation: undefined;
+  MyPayments: undefined;
+  RefundRequest: { paymentId: string };
 };
 
 export type AuthStackParamList = {

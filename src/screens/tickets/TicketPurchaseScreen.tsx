@@ -177,14 +177,19 @@ export default function TicketPurchaseScreen() {
 
     try {
       const response = await discountsAPI.validateDiscount(discountCode.trim(), eventId);
-      const discount = response.data;
+      const data = response.data;
 
-      if (discount && discount.is_active !== false) {
+      if (data.valid && data.discount) {
+        // Convertir value en number si nécessaire (peut être string depuis l'API)
+        const discount = {
+          ...data.discount,
+          value: Number(data.discount.value) || 0
+        };
         setAppliedDiscount(discount);
         setDiscountError(null);
         showSuccess('Succès', `Code promo "${discountCode}" appliqué !`);
       } else {
-        setDiscountError('Ce code promo n\'est pas valide');
+        setDiscountError(data.message || 'Ce code promo n\'est pas valide');
       }
     } catch (error: any) {
       const message = error.response?.data?.detail || error.response?.data?.message || 'Code promo invalide ou expiré';
@@ -528,8 +533,8 @@ export default function TicketPurchaseScreen() {
                     <Text style={styles.appliedDiscountCode}>{appliedDiscount.code}</Text>
                     <Text style={styles.appliedDiscountValue}>
                       {appliedDiscount.discount_type === 'percentage'
-                        ? `-${appliedDiscount.value}%`
-                        : `-${appliedDiscount.value.toLocaleString()} FCFA`}
+                        ? `-${appliedDiscount.value || 0}%`
+                        : `-${(appliedDiscount.value || 0).toLocaleString()} FCFA`}
                     </Text>
                   </View>
                 </View>

@@ -363,6 +363,7 @@ export default function PaymentScreen() {
           setProcessing(false);
           navigation.replace('PaymentSuccess', {
             paymentId: pId,
+            registrationId: registrationId,
             eventType: registration?.event?.event_type || registration?.registration_type,
             registrationStatus: registration?.status,
             approvalStatus: registration?.approval_status,
