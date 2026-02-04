@@ -9,6 +9,7 @@ import {
   ScrollView,
   Image,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useGoogleAuth, useAppleAuth } from '../../hooks/useSocialAuth';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -32,13 +34,48 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { login, isLoading } = useAuth();
+  const { login, isLoading, setUser } = useAuth();
   const { showError } = useAlert();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  // Hooks d'authentification sociale
+  const {
+    signIn: googleSignIn,
+    isLoading: googleLoading,
+    isReady: googleReady,
+  } = useGoogleAuth();
+
+  const {
+    signIn: appleSignIn,
+    isLoading: appleLoading,
+    isAvailable: appleAvailable,
+  } = useAppleAuth();
+
+  // Handler pour Google Sign-In
+  const handleGoogleSignIn = async () => {
+    const result = await googleSignIn();
+    if (result.success && result.user) {
+      // L'utilisateur est connecté, mettre à jour le contexte
+      setUser(result.user);
+    } else if (result.error && result.error !== 'Connexion annulée') {
+      showError('Erreur Google', result.error);
+    }
+  };
+
+  // Handler pour Apple Sign-In
+  const handleAppleSignIn = async () => {
+    const result = await appleSignIn();
+    if (result.success && result.user) {
+      // L'utilisateur est connecté, mettre à jour le contexte
+      setUser(result.user);
+    } else if (result.error && result.error !== 'Connexion annulée') {
+      showError('Erreur Apple', result.error);
+    }
+  };
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -262,21 +299,46 @@ export default function LoginScreen() {
             {/* Social Login */}
             <View style={styles.socialButtons}>
               <AnimatedPressable
-                style={styles.socialButton}
+                style={[
+                  styles.socialButton,
+                  (!googleReady || googleLoading) && styles.socialButtonDisabled,
+                ]}
+                onPress={handleGoogleSignIn}
+                disabled={!googleReady || googleLoading || isLoading}
                 animationType="lift"
                 scaleValue={0.98}
               >
-                <Ionicons name="logo-google" size={22} color="#DB4437" />
-                <Text style={styles.socialButtonText}>Google</Text>
+                {googleLoading ? (
+                  <ActivityIndicator size="small" color="#DB4437" />
+                ) : (
+                  <>
+                    <Ionicons name="logo-google" size={22} color="#DB4437" />
+                    <Text style={styles.socialButtonText}>Google</Text>
+                  </>
+                )}
               </AnimatedPressable>
-              <AnimatedPressable
-                style={styles.socialButton}
-                animationType="lift"
-                scaleValue={0.98}
-              >
-                <Ionicons name="logo-apple" size={22} color={Colors.gray900} />
-                <Text style={styles.socialButtonText}>Apple</Text>
-              </AnimatedPressable>
+
+              {appleAvailable && (
+                <AnimatedPressable
+                  style={[
+                    styles.socialButton,
+                    appleLoading && styles.socialButtonDisabled,
+                  ]}
+                  onPress={handleAppleSignIn}
+                  disabled={appleLoading || isLoading}
+                  animationType="lift"
+                  scaleValue={0.98}
+                >
+                  {appleLoading ? (
+                    <ActivityIndicator size="small" color={Colors.gray900} />
+                  ) : (
+                    <>
+                      <Ionicons name="logo-apple" size={22} color={Colors.gray900} />
+                      <Text style={styles.socialButtonText}>Apple</Text>
+                    </>
+                  )}
+                </AnimatedPressable>
+              )}
             </View>
 
             {/* Register Link */}
@@ -470,6 +532,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.md,
     fontFamily: FontFamily.medium,
     color: Colors.gray700,
+  },
+  socialButtonDisabled: {
+    opacity: 0.6,
   },
   registerContainer: {
     flexDirection: 'row',

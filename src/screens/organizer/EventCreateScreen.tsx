@@ -21,8 +21,10 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAlert } from '../../contexts/AlertContext';
-import { eventsAPI, categoriesAPI } from '../../api/client';
-import { Category, RootStackParamList, LocationType } from '../../types';
+import { eventsAPI, categoriesAPI, ticketTypesAPI, tagsAPI } from '../../api/client';
+import { Category, RootStackParamList, LocationType, Tag } from '../../types';
+import TagInput from '../../components/common/TagInput';
+import MapPickerModal from '../../components/common/MapPickerModal';
 import {
   Colors,
   FontFamily,
@@ -54,9 +56,11 @@ export default function EventCreateScreen() {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
+  const [showMapPicker, setShowMapPicker] = useState(false);
 
   // Form state
   const [title, setTitle] = useState('');
@@ -64,7 +68,8 @@ export default function EventCreateScreen() {
   const [shortDescription, setShortDescription] = useState('');
   const [eventType, setEventType] = useState<'billetterie' | 'inscription'>('billetterie');
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [tags, setTags] = useState(''); // Tags separes par des virgules
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [customTags, setCustomTags] = useState<string[]>([]);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date(Date.now() + 3600000));
   const [registrationDeadline, setRegistrationDeadline] = useState<Date | null>(null);
@@ -85,11 +90,46 @@ export default function EventCreateScreen() {
   const [onlineMeetingId, setOnlineMeetingId] = useState('');
   const [onlinePasscode, setOnlinePasscode] = useState('');
 
+  // GPS Coordinates
+  const [locationLatitude, setLocationLatitude] = useState('');
+  const [locationLongitude, setLocationLongitude] = useState('');
+
   // Pricing
   const [isFree, setIsFree] = useState(false);
-  const [basePrice, setBasePrice] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('');
   const [autoApproveRegistrations, setAutoApproveRegistrations] = useState(true);
+
+  // Ticket Types (for billetterie)
+  const [ticketTypes, setTicketTypes] = useState<Array<{
+    name: string;
+    description: string;
+    price: string;
+    quantity_total: string;
+    sales_start: Date;
+    sales_end: Date;
+    is_visible: boolean;
+    max_per_order: string;
+    min_per_order: string;
+  }>>([]);
+
+  // Form Fields (for inscription)
+  const [formFields, setFormFields] = useState<Array<{
+    label: string;
+    field_type: string;
+    required: boolean;
+    placeholder: string;
+    help_text: string;
+    options: string;
+    order: number;
+  }>>([]);
+
+  // Pickers for ticket dates
+  const [showTicketStartPicker, setShowTicketStartPicker] = useState<number | null>(null);
+  const [showTicketEndPicker, setShowTicketEndPicker] = useState<number | null>(null);
+  const [ticketPickerMode, setTicketPickerMode] = useState<'date' | 'time'>('date');
+
+  // Form fields for billetterie (optional)
+  const [showFormFieldsForBilletterie, setShowFormFieldsForBilletterie] = useState(false);
 
   // Sessions
   const [sessions, setSessions] = useState<Array<{
@@ -110,6 +150,7 @@ export default function EventCreateScreen() {
 
   useEffect(() => {
     fetchCategories();
+    fetchTags();
   }, []);
 
   const fetchCategories = async () => {
@@ -119,6 +160,42 @@ export default function EventCreateScreen() {
     } catch (error) {
       console.error('Erreur chargement catégories:', error);
     }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const response = await tagsAPI.getTags();
+      setAvailableTags(response.data.results || response.data || []);
+    } catch (error) {
+      console.error('Erreur chargement tags:', error);
+    }
+  };
+
+  const handleCustomTagAdd = (tag: string) => {
+    if (!customTags.includes(tag)) {
+      setCustomTags([...customTags, tag]);
+    }
+  };
+
+  const handleCustomTagRemove = (tag: string) => {
+    setCustomTags(customTags.filter(t => t !== tag));
+  };
+
+  const handleMapLocationSelect = (location: {
+    lat: number;
+    lng: number;
+    address?: string;
+    city?: string;
+    country?: string;
+    locationName?: string;
+  }) => {
+    // Limiter à 6 décimales pour respecter la contrainte du backend
+    setLocationLatitude(location.lat.toFixed(6));
+    setLocationLongitude(location.lng.toFixed(6));
+    if (location.locationName) setLocationName(location.locationName);
+    if (location.address) setLocationAddress(location.address);
+    if (location.city) setLocationCity(location.city);
+    if (location.country) setLocationCountry(location.country);
   };
 
   const pickImage = async () => {
@@ -175,9 +252,55 @@ export default function EventCreateScreen() {
         }
         return true;
       case 3:
-        if (!isFree && !basePrice) {
-          showError('Erreur', 'Veuillez indiquer un prix ou marquer l\'événement comme gratuit');
-          return false;
+        if (eventType === 'billetterie') {
+          if (!isFree && ticketTypes.length === 0) {
+            showError('Erreur', 'Veuillez ajouter au moins un type de billet');
+            return false;
+          }
+          // Validate each ticket type
+          for (let i = 0; i < ticketTypes.length; i++) {
+            const ticket = ticketTypes[i];
+            if (!ticket.name.trim()) {
+              showError('Erreur', `Le nom du billet #${i + 1} est requis`);
+              return false;
+            }
+            if (parseInt(ticket.quantity_total) <= 0) {
+              showError('Erreur', `La quantité du billet "${ticket.name}" doit être supérieure à 0`);
+              return false;
+            }
+          }
+          // Validate form fields if enabled for billetterie
+          if (showFormFieldsForBilletterie && formFields.length > 0) {
+            for (let i = 0; i < formFields.length; i++) {
+              const field = formFields[i];
+              if (!field.label.trim()) {
+                showError('Erreur', `L'intitulé du champ #${i + 1} est requis`);
+                return false;
+              }
+              if (['select', 'checkbox', 'radio'].includes(field.field_type) && !field.options.trim()) {
+                showError('Erreur', `Les options sont requises pour le champ "${field.label}"`);
+                return false;
+              }
+            }
+          }
+        } else {
+          // inscription type
+          if (formFields.length === 0) {
+            showError('Erreur', 'Veuillez ajouter au moins un champ de formulaire');
+            return false;
+          }
+          // Validate each form field
+          for (let i = 0; i < formFields.length; i++) {
+            const field = formFields[i];
+            if (!field.label.trim()) {
+              showError('Erreur', `L'intitulé du champ #${i + 1} est requis`);
+              return false;
+            }
+            if (['select', 'checkbox', 'radio'].includes(field.field_type) && !field.options.trim()) {
+              showError('Erreur', `Les options sont requises pour le champ "${field.label}"`);
+              return false;
+            }
+          }
         }
         return true;
       default:
@@ -212,10 +335,19 @@ export default function EventCreateScreen() {
       formData.append('location_type', locationType);
       formData.append('location_country', locationCountry);
 
-      // Tags (envoyer comme chaîne, le backend les gère)
-      if (tags.trim()) {
-        formData.append('tags', tags.trim());
-      }
+      // Tags - envoyer les noms des tags sélectionnés et personnalisés
+      const allTags: string[] = [];
+      // Ajouter les tags existants sélectionnés par nom
+      selectedTagIds.forEach(tagId => {
+        const tag = availableTags.find(t => t.id === tagId);
+        if (tag) allTags.push(tag.name);
+      });
+      // Ajouter les tags personnalisés
+      customTags.forEach(tag => allTags.push(tag));
+      // Envoyer au backend
+      allTags.forEach(tag => {
+        formData.append('tags', tag);
+      });
 
       // Date limite d'inscription
       if (hasRegistrationDeadline && registrationDeadline) {
@@ -226,6 +358,12 @@ export default function EventCreateScreen() {
         formData.append('location_name', locationName);
         formData.append('location_city', locationCity);
         formData.append('location_address', locationAddress);
+
+        // Coordonnées GPS
+        if (locationLatitude && locationLongitude) {
+          formData.append('location_latitude', locationLatitude);
+          formData.append('location_longitude', locationLongitude);
+        }
       }
 
       if (locationType === 'online' || locationType === 'hybrid') {
@@ -258,6 +396,45 @@ export default function EventCreateScreen() {
       }
 
       const response = await eventsAPI.createEvent(formData);
+      const eventId = response.data.id;
+
+      // Create ticket types for billetterie events
+      if (eventType === 'billetterie' && ticketTypes.length > 0) {
+        await Promise.all(ticketTypes.map(ticket =>
+          ticketTypesAPI.createTicketType({
+            event: eventId,
+            name: ticket.name,
+            description: ticket.description,
+            price: parseFloat(ticket.price) || 0,
+            quantity_total: parseInt(ticket.quantity_total) || 100,
+            sales_start: ticket.sales_start.toISOString(),
+            sales_end: ticket.sales_end.toISOString(),
+            is_visible: ticket.is_visible,
+            max_per_order: parseInt(ticket.max_per_order) || 10,
+            min_per_order: parseInt(ticket.min_per_order) || 1,
+          })
+        ));
+      }
+
+      // Create form fields for inscription events OR billetterie events with form fields enabled
+      const shouldCreateFormFields =
+        (eventType === 'inscription' && formFields.length > 0) ||
+        (eventType === 'billetterie' && showFormFieldsForBilletterie && formFields.length > 0);
+
+      if (shouldCreateFormFields) {
+        await Promise.all(formFields.map((field, index) =>
+          eventsAPI.createFormField({
+            event: eventId,
+            label: field.label,
+            field_type: field.field_type,
+            required: field.required,
+            placeholder: field.placeholder,
+            help_text: field.help_text,
+            options: field.options,
+            order: index,
+          })
+        ));
+      }
 
       showAlert(
         'Succès',
@@ -276,7 +453,8 @@ export default function EventCreateScreen() {
               setDescription('');
               setShortDescription('');
               setCategoryId(null);
-              setTags('');
+              setSelectedTagIds([]);
+              setCustomTags([]);
               setBannerImage(null);
               setStartDate(new Date());
               setEndDate(new Date(Date.now() + 3600000));
@@ -286,14 +464,19 @@ export default function EventCreateScreen() {
               setLocationName('');
               setLocationCity('');
               setLocationAddress('');
+              setLocationLatitude('');
+              setLocationLongitude('');
               setOnlineUrl('');
               setOnlinePlatform('');
               setOnlineInstructions('');
               setOnlineMeetingId('');
               setOnlinePasscode('');
               setIsFree(false);
-              setBasePrice('');
               setMaxParticipants('');
+              setTicketTypes([]);
+              setFormFields([]);
+              setSessions([]);
+              setShowFormFieldsForBilletterie(false);
             },
           },
         ],
@@ -348,6 +531,68 @@ export default function EventCreateScreen() {
   const removeSession = (index: number) => {
     setSessions(sessions.filter((_, i) => i !== index));
   };
+
+  // Ticket Type helpers
+  const addTicketType = () => {
+    const salesStart = new Date(startDate);
+    salesStart.setDate(salesStart.getDate() - 7); // Default: 7 days before event
+    setTicketTypes([...ticketTypes, {
+      name: '',
+      description: '',
+      price: '0',
+      quantity_total: '100',
+      sales_start: salesStart,
+      sales_end: new Date(startDate),
+      is_visible: true,
+      max_per_order: '10',
+      min_per_order: '1',
+    }]);
+  };
+
+  const updateTicketType = (index: number, field: string, value: any) => {
+    const updated = [...ticketTypes];
+    updated[index] = { ...updated[index], [field]: value };
+    setTicketTypes(updated);
+  };
+
+  const removeTicketType = (index: number) => {
+    setTicketTypes(ticketTypes.filter((_, i) => i !== index));
+  };
+
+  // Form Field helpers
+  const addFormField = () => {
+    setFormFields([...formFields, {
+      label: '',
+      field_type: 'text',
+      required: false,
+      placeholder: '',
+      help_text: '',
+      options: '',
+      order: formFields.length,
+    }]);
+  };
+
+  const updateFormField = (index: number, field: string, value: any) => {
+    const updated = [...formFields];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormFields(updated);
+  };
+
+  const removeFormField = (index: number) => {
+    setFormFields(formFields.filter((_, i) => i !== index));
+  };
+
+  const fieldTypes = [
+    { value: 'text', label: 'Texte' },
+    { value: 'textarea', label: 'Texte long' },
+    { value: 'email', label: 'Email' },
+    { value: 'phone', label: 'Téléphone' },
+    { value: 'number', label: 'Nombre' },
+    { value: 'date', label: 'Date' },
+    { value: 'select', label: 'Liste déroulante' },
+    { value: 'checkbox', label: 'Cases à cocher' },
+    { value: 'radio', label: 'Boutons radio' },
+  ];
 
   const sessionTypes = [
     { value: 'keynote', label: 'Keynote' },
@@ -477,15 +722,26 @@ export default function EventCreateScreen() {
 
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Tags</Text>
-        <TextInput
-          style={styles.input}
-          value={tags}
-          onChangeText={setTags}
-          placeholder="Ex: musique, concert, jazz (separes par des virgules)"
-          placeholderTextColor={Colors.gray400}
-        />
         <Text style={styles.inputHint}>
-          Ajoutez des mots-cles pour aider les participants a trouver votre evenement
+          Ajoutez des mots-clés pour aider les participants à trouver votre événement
+        </Text>
+        <View style={{ marginTop: Spacing.sm }}>
+          <TagInput
+            existingTags={availableTags}
+            selectedTagIds={selectedTagIds}
+            customTags={customTags}
+            onTagsChange={setSelectedTagIds}
+            onCustomTagAdd={handleCustomTagAdd}
+            onCustomTagRemove={handleCustomTagRemove}
+          />
+        </View>
+      </View>
+
+      {/* Featured Event Info */}
+      <View style={styles.warningInfoBox}>
+        <Ionicons name="star-outline" size={20} color={Colors.warningDark} />
+        <Text style={styles.warningInfoBoxText}>
+          Vous pourrez demander la mise en avant de votre événement après sa création depuis "Mes événements".
         </Text>
       </View>
     </View>
@@ -632,6 +888,37 @@ export default function EventCreateScreen() {
               placeholderTextColor={Colors.gray400}
             />
           </View>
+
+          {/* Map Picker */}
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Emplacement sur la carte</Text>
+            <TouchableOpacity
+              style={styles.mapPickerButton}
+              onPress={() => setShowMapPicker(true)}
+            >
+              <Ionicons name="map-outline" size={20} color={Colors.primary} />
+              <Text style={styles.mapPickerButtonText}>
+                {locationLatitude && locationLongitude
+                  ? 'Modifier l\'emplacement sur la carte'
+                  : 'Choisir sur la carte'}
+              </Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
+            </TouchableOpacity>
+
+            {/* Display selected coordinates */}
+            {locationLatitude && locationLongitude && (
+              <View style={styles.selectedCoordsContainer}>
+                <Ionicons name="location" size={16} color={Colors.success} />
+                <Text style={styles.selectedCoordsText}>
+                  {locationLatitude}, {locationLongitude}
+                </Text>
+              </View>
+            )}
+
+            <Text style={styles.inputHint}>
+              Pour afficher l'événement sur la carte et permettre la navigation
+            </Text>
+          </View>
         </View>
       )}
 
@@ -699,64 +986,409 @@ export default function EventCreateScreen() {
     </View>
   );
 
+  // Helper to render form fields section (used by both billetterie and inscription)
+  const renderFormFieldsSection = (isOptional: boolean = false) => (
+    <>
+      {formFields.length === 0 ? (
+        <View style={styles.emptySessionsContainer}>
+          <View style={styles.emptySessionsIcon}>
+            <Ionicons name="document-text-outline" size={40} color={Colors.gray400} />
+          </View>
+          <Text style={styles.emptySessionsTitle}>
+            {isOptional ? 'Aucun champ supplémentaire' : 'Aucun champ'}
+          </Text>
+          <Text style={styles.emptySessionsText}>
+            {isOptional
+              ? 'Ajoutez des champs pour collecter des informations supplémentaires lors de l\'achat'
+              : 'Ajoutez des champs pour collecter les informations des participants'}
+          </Text>
+          <TouchableOpacity style={styles.addSessionButton} onPress={addFormField}>
+            <Ionicons name="add" size={20} color={Colors.white} />
+            <Text style={styles.addSessionButtonText}>Ajouter un champ</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          {formFields.map((field, index) => (
+            <View key={index} style={styles.sessionCard}>
+              <View style={styles.sessionCardHeader}>
+                <Text style={styles.sessionCardTitle}>Champ {index + 1}</Text>
+                <TouchableOpacity onPress={() => removeFormField(index)}>
+                  <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Intitulé *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={field.label}
+                  onChangeText={(value) => updateFormField(index, 'label', value)}
+                  placeholder="Ex: Nom complet, Entreprise, Poste"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Type de champ</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.sessionTypesContainer}>
+                    {fieldTypes.map((type) => (
+                      <TouchableOpacity
+                        key={type.value}
+                        style={[
+                          styles.sessionTypeChip,
+                          field.field_type === type.value && styles.sessionTypeChipActive,
+                        ]}
+                        onPress={() => updateFormField(index, 'field_type', type.value)}
+                      >
+                        <Text
+                          style={[
+                            styles.sessionTypeChipText,
+                            field.field_type === type.value && styles.sessionTypeChipTextActive,
+                          ]}
+                        >
+                          {type.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Placeholder</Text>
+                <TextInput
+                  style={styles.input}
+                  value={field.placeholder}
+                  onChangeText={(value) => updateFormField(index, 'placeholder', value)}
+                  placeholder="Texte d'aide dans le champ"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+
+              {['select', 'checkbox', 'radio'].includes(field.field_type) && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Options (séparées par des virgules) *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={field.options}
+                    onChangeText={(value) => updateFormField(index, 'options', value)}
+                    placeholder="Ex: Option 1, Option 2, Option 3"
+                    placeholderTextColor={Colors.gray400}
+                  />
+                </View>
+              )}
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Texte d'aide</Text>
+                <TextInput
+                  style={styles.input}
+                  value={field.help_text}
+                  onChangeText={(value) => updateFormField(index, 'help_text', value)}
+                  placeholder="Instructions supplémentaires"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+
+              <View style={styles.switchRow}>
+                <View style={styles.switchContent}>
+                  <Text style={styles.switchLabel}>Obligatoire</Text>
+                  <Text style={styles.switchDescription}>Ce champ doit être rempli</Text>
+                </View>
+                <Switch
+                  value={field.required}
+                  onValueChange={(value) => updateFormField(index, 'required', value)}
+                  trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
+                  thumbColor={field.required ? Colors.primary : Colors.gray400}
+                />
+              </View>
+            </View>
+          ))}
+
+          <TouchableOpacity style={styles.addAnotherSessionButton} onPress={addFormField}>
+            <Ionicons name="add" size={20} color={Colors.primary} />
+            <Text style={styles.addAnotherSessionText}>Ajouter un autre champ</Text>
+          </TouchableOpacity>
+        </>
+      )}
+    </>
+  );
+
   const renderStep3 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Tarification</Text>
-      <Text style={styles.stepDescription}>Définissez le prix et les options de votre événement</Text>
+      <Text style={styles.stepTitle}>
+        {eventType === 'billetterie' ? 'Billetterie' : 'Formulaire d\'inscription'}
+      </Text>
+      <Text style={styles.stepDescription}>
+        {eventType === 'billetterie'
+          ? 'Créez les différents types de billets pour votre événement'
+          : 'Définissez les champs du formulaire d\'inscription'}
+      </Text>
 
-      <View style={styles.switchRow}>
-        <View style={styles.switchContent}>
-          <Text style={styles.switchLabel}>Événement gratuit</Text>
-          <Text style={styles.switchDescription}>Aucun billet payant ne sera proposé</Text>
-        </View>
-        <Switch
-          value={isFree}
-          onValueChange={setIsFree}
-          trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-          thumbColor={isFree ? Colors.primary : Colors.gray400}
-        />
-      </View>
+      {eventType === 'billetterie' ? (
+        // BILLETTERIE - Ticket Types + Optional Form Fields
+        <>
+          <View style={styles.switchRow}>
+            <View style={styles.switchContent}>
+              <Text style={styles.switchLabel}>Événement gratuit</Text>
+              <Text style={styles.switchDescription}>Aucun billet payant ne sera proposé</Text>
+            </View>
+            <Switch
+              value={isFree}
+              onValueChange={(value) => {
+                setIsFree(value);
+                if (value && ticketTypes.length === 0) {
+                  // Add a free ticket by default
+                  addTicketType();
+                  setTimeout(() => {
+                    updateTicketType(0, 'name', 'Entrée gratuite');
+                    updateTicketType(0, 'price', '0');
+                  }, 100);
+                }
+              }}
+              trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
+              thumbColor={isFree ? Colors.primary : Colors.gray400}
+            />
+          </View>
 
-      {!isFree && (
+          {/* Ticket Types Section */}
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionIconContainer}>
+              <Ionicons name="ticket-outline" size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.sectionHeaderTitle}>Types de billets</Text>
+          </View>
+
+          {ticketTypes.length === 0 ? (
+            <View style={styles.emptySessionsContainer}>
+              <View style={styles.emptySessionsIcon}>
+                <Ionicons name="ticket-outline" size={40} color={Colors.gray400} />
+              </View>
+              <Text style={styles.emptySessionsTitle}>Aucun type de billet</Text>
+              <Text style={styles.emptySessionsText}>
+                Créez au moins un type de billet pour votre événement
+              </Text>
+              <TouchableOpacity style={styles.addSessionButton} onPress={addTicketType}>
+                <Ionicons name="add" size={20} color={Colors.white} />
+                <Text style={styles.addSessionButtonText}>Ajouter un billet</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <>
+              {ticketTypes.map((ticket, index) => (
+                <View key={index} style={styles.sessionCard}>
+                  <View style={styles.sessionCardHeader}>
+                    <Text style={styles.sessionCardTitle}>Billet {index + 1}</Text>
+                    <TouchableOpacity onPress={() => removeTicketType(index)}>
+                      <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Nom du billet *</Text>
+                    <TextInput
+                      style={styles.input}
+                      value={ticket.name}
+                      onChangeText={(value) => updateTicketType(index, 'name', value)}
+                      placeholder="Ex: Standard, VIP, Early Bird"
+                      placeholderTextColor={Colors.gray400}
+                    />
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Description</Text>
+                    <TextInput
+                      style={[styles.input, styles.textAreaSmall]}
+                      value={ticket.description}
+                      onChangeText={(value) => updateTicketType(index, 'description', value)}
+                      placeholder="Décrivez ce que ce billet inclut"
+                      placeholderTextColor={Colors.gray400}
+                      multiline
+                      numberOfLines={2}
+                      textAlignVertical="top"
+                    />
+                  </View>
+
+                  <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.label}>Prix (FCFA) *</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={ticket.price}
+                        onChangeText={(value) => updateTicketType(index, 'price', value)}
+                        placeholder="0"
+                        placeholderTextColor={Colors.gray400}
+                        keyboardType="numeric"
+                        editable={!isFree}
+                      />
+                    </View>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.label}>Quantité *</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={ticket.quantity_total}
+                        onChangeText={(value) => updateTicketType(index, 'quantity_total', value)}
+                        placeholder="100"
+                        placeholderTextColor={Colors.gray400}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.label}>Min/commande</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={ticket.min_per_order}
+                        onChangeText={(value) => updateTicketType(index, 'min_per_order', value)}
+                        placeholder="1"
+                        placeholderTextColor={Colors.gray400}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={[styles.inputGroup, { flex: 1 }]}>
+                      <Text style={styles.label}>Max/commande</Text>
+                      <TextInput
+                        style={styles.input}
+                        value={ticket.max_per_order}
+                        onChangeText={(value) => updateTicketType(index, 'max_per_order', value)}
+                        placeholder="10"
+                        placeholderTextColor={Colors.gray400}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Début des ventes</Text>
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => {
+                        setTicketPickerMode('date');
+                        setShowTicketStartPicker(index);
+                      }}
+                    >
+                      <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+                      <Text style={styles.dateButtonText}>
+                        {formatDate(ticket.sales_start)} - {formatTime(ticket.sales_start)}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>Fin des ventes</Text>
+                    <TouchableOpacity
+                      style={styles.dateButton}
+                      onPress={() => {
+                        setTicketPickerMode('date');
+                        setShowTicketEndPicker(index);
+                      }}
+                    >
+                      <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+                      <Text style={styles.dateButtonText}>
+                        {formatDate(ticket.sales_end)} - {formatTime(ticket.sales_end)}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <View style={styles.switchRow}>
+                    <View style={styles.switchContent}>
+                      <Text style={styles.switchLabel}>Visible</Text>
+                      <Text style={styles.switchDescription}>Afficher ce billet publiquement</Text>
+                    </View>
+                    <Switch
+                      value={ticket.is_visible}
+                      onValueChange={(value) => updateTicketType(index, 'is_visible', value)}
+                      trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
+                      thumbColor={ticket.is_visible ? Colors.primary : Colors.gray400}
+                    />
+                  </View>
+                </View>
+              ))}
+
+              <TouchableOpacity style={styles.addAnotherSessionButton} onPress={addTicketType}>
+                <Ionicons name="add" size={20} color={Colors.primary} />
+                <Text style={styles.addAnotherSessionText}>Ajouter un autre billet</Text>
+              </TouchableOpacity>
+            </>
+          )}
+
+          {/* Optional Form Fields Section for Billetterie */}
+          <View style={[styles.sectionDivider, { marginTop: Spacing.xl }]}>
+            <View style={styles.sectionHeader}>
+              <View style={[styles.sectionIconContainer, { backgroundColor: Colors.secondaryBg || '#FEF3C7' }]}>
+                <Ionicons name="document-text-outline" size={20} color={Colors.secondary || '#D97706'} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionHeaderTitle}>Formulaire d'inscription (optionnel)</Text>
+                <Text style={styles.sectionHeaderDescription}>
+                  Collectez des informations supplémentaires lors de l'achat
+                </Text>
+              </View>
+              <Switch
+                value={showFormFieldsForBilletterie}
+                onValueChange={(value) => {
+                  setShowFormFieldsForBilletterie(value);
+                  if (!value) {
+                    // Clear form fields when disabled
+                    setFormFields([]);
+                  }
+                }}
+                trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
+                thumbColor={showFormFieldsForBilletterie ? Colors.primary : Colors.gray400}
+              />
+            </View>
+
+            {showFormFieldsForBilletterie && (
+              <View style={{ marginTop: Spacing.md }}>
+                <View style={styles.infoBox}>
+                  <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.infoBoxText}>
+                    Ces champs seront affichés lors de l'achat de billets pour collecter des informations sur les participants (allergies, taille de t-shirt, etc.)
+                  </Text>
+                </View>
+                {renderFormFieldsSection(true)}
+              </View>
+            )}
+          </View>
+        </>
+      ) : (
+        // INSCRIPTION - Form Fields Only
+        <>
+          {renderFormFieldsSection(false)}
+        </>
+      )}
+
+      {/* Common settings */}
+      <View style={{ marginTop: Spacing.lg, paddingTop: Spacing.lg, borderTopWidth: 1, borderTopColor: Colors.gray100 }}>
+        <Text style={styles.subSectionTitle}>Paramètres généraux</Text>
+
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Prix de base (FCFA) *</Text>
+          <Text style={styles.label}>Nombre maximum de participants</Text>
           <TextInput
             style={styles.input}
-            value={basePrice}
-            onChangeText={setBasePrice}
-            placeholder="Ex: 5000"
+            value={maxParticipants}
+            onChangeText={setMaxParticipants}
+            placeholder="Laisser vide pour illimité"
             placeholderTextColor={Colors.gray400}
             keyboardType="numeric"
           />
-          <Text style={styles.inputHint}>
-            Vous pourrez créer plusieurs types de billets après la création
-          </Text>
         </View>
-      )}
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Nombre maximum de participants</Text>
-        <TextInput
-          style={styles.input}
-          value={maxParticipants}
-          onChangeText={setMaxParticipants}
-          placeholder="Laisser vide pour illimité (0 = illimité)"
-          placeholderTextColor={Colors.gray400}
-          keyboardType="numeric"
-        />
-      </View>
-
-      <View style={styles.switchRow}>
-        <View style={styles.switchContent}>
-          <Text style={styles.switchLabel}>Approbation automatique</Text>
-          <Text style={styles.switchDescription}>Les inscriptions sont confirmées automatiquement</Text>
+        <View style={styles.switchRow}>
+          <View style={styles.switchContent}>
+            <Text style={styles.switchLabel}>Approbation automatique</Text>
+            <Text style={styles.switchDescription}>Les inscriptions sont confirmées automatiquement</Text>
+          </View>
+          <Switch
+            value={autoApproveRegistrations}
+            onValueChange={setAutoApproveRegistrations}
+            trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
+            thumbColor={autoApproveRegistrations ? Colors.primary : Colors.gray400}
+          />
         </View>
-        <Switch
-          value={autoApproveRegistrations}
-          onValueChange={setAutoApproveRegistrations}
-          trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-          thumbColor={autoApproveRegistrations ? Colors.primary : Colors.gray400}
-        />
       </View>
 
       {/* Summary */}
@@ -781,11 +1413,23 @@ export default function EventCreateScreen() {
           </Text>
         </View>
         <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Prix</Text>
+          <Text style={styles.summaryLabel}>
+            {eventType === 'billetterie' ? 'Billets' : 'Champs'}
+          </Text>
           <Text style={[styles.summaryValue, { color: Colors.primary }]}>
-            {isFree ? 'Gratuit' : `${basePrice || '0'} FCFA`}
+            {eventType === 'billetterie'
+              ? (isFree ? 'Gratuit' : `${ticketTypes.length} type(s)`)
+              : `${formFields.length} champ(s)`}
           </Text>
         </View>
+        {eventType === 'billetterie' && showFormFieldsForBilletterie && formFields.length > 0 && (
+          <View style={styles.summaryRow}>
+            <Text style={styles.summaryLabel}>Champs d'inscription</Text>
+            <Text style={[styles.summaryValue, { color: Colors.secondary || '#D97706' }]}>
+              {formFields.length} champ(s)
+            </Text>
+          </View>
+        )}
       </View>
     </View>
   );
@@ -1053,6 +1697,67 @@ export default function EventCreateScreen() {
           }}
         />
       )}
+
+      {/* Ticket Sales Start Date Pickers */}
+      {showTicketStartPicker !== null && (
+        <DateTimePicker
+          value={ticketTypes[showTicketStartPicker]?.sales_start || new Date()}
+          mode={ticketPickerMode}
+          display="spinner"
+          onChange={(_, date) => {
+            if (ticketPickerMode === 'date' && date) {
+              // Keep the time but update the date
+              const currentTime = ticketTypes[showTicketStartPicker]?.sales_start || new Date();
+              date.setHours(currentTime.getHours(), currentTime.getMinutes());
+              updateTicketType(showTicketStartPicker, 'sales_start', date);
+              setTicketPickerMode('time');
+            } else if (ticketPickerMode === 'time' && date) {
+              updateTicketType(showTicketStartPicker, 'sales_start', date);
+              setShowTicketStartPicker(null);
+              setTicketPickerMode('date');
+            } else {
+              setShowTicketStartPicker(null);
+              setTicketPickerMode('date');
+            }
+          }}
+        />
+      )}
+
+      {/* Ticket Sales End Date Pickers */}
+      {showTicketEndPicker !== null && (
+        <DateTimePicker
+          value={ticketTypes[showTicketEndPicker]?.sales_end || new Date()}
+          mode={ticketPickerMode}
+          display="spinner"
+          minimumDate={ticketTypes[showTicketEndPicker]?.sales_start}
+          maximumDate={startDate}
+          onChange={(_, date) => {
+            if (ticketPickerMode === 'date' && date) {
+              // Keep the time but update the date
+              const currentTime = ticketTypes[showTicketEndPicker]?.sales_end || new Date();
+              date.setHours(currentTime.getHours(), currentTime.getMinutes());
+              updateTicketType(showTicketEndPicker, 'sales_end', date);
+              setTicketPickerMode('time');
+            } else if (ticketPickerMode === 'time' && date) {
+              updateTicketType(showTicketEndPicker, 'sales_end', date);
+              setShowTicketEndPicker(null);
+              setTicketPickerMode('date');
+            } else {
+              setShowTicketEndPicker(null);
+              setTicketPickerMode('date');
+            }
+          }}
+        />
+      )}
+
+      {/* Map Picker Modal */}
+      <MapPickerModal
+        visible={showMapPicker}
+        onClose={() => setShowMapPicker(false)}
+        onLocationSelect={handleMapLocationSelect}
+        initialLat={locationLatitude ? parseFloat(locationLatitude) : undefined}
+        initialLng={locationLongitude ? parseFloat(locationLongitude) : undefined}
+      />
     </SafeAreaView>
   );
 }
@@ -1441,6 +2146,21 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     lineHeight: 20,
   },
+  warningInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: Colors.warningLight,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  warningInfoBoxText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    color: Colors.warningDark,
+    lineHeight: 20,
+  },
   emptySessionsContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -1548,5 +2268,66 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
     color: Colors.primary,
+  },
+  mapPickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    gap: Spacing.sm,
+  },
+  mapPickerButtonText: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.base,
+    color: Colors.primary,
+  },
+  selectedCoordsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.successLight,
+    borderRadius: BorderRadius.md,
+  },
+  selectedCoordsText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: Colors.successDark,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  sectionIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionHeaderTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
+  },
+  sectionHeaderDescription: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  sectionDivider: {
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray200,
   },
 });

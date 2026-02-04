@@ -22,6 +22,7 @@ module.exports = {
     '^expo-camera$': '<rootDir>/src/__tests__/mocks/expoCameraMock.js',
     '^expo-secure-store$': '<rootDir>/src/__tests__/mocks/expoSecureStoreMock.js',
     '^expo-image-picker$': '<rootDir>/src/__tests__/mocks/expoImagePickerMock.js',
+    '^react-native-maps$': '<rootDir>/src/__tests__/mocks/reactNativeMapsMock.js',
     '.*constants/theme.*': '<rootDir>/src/__tests__/mocks/themeMock.js',
   },
   collectCoverageFrom: [

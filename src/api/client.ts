@@ -72,6 +72,9 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+// Nombre maximum de retries pour les timeouts
+const MAX_TIMEOUT_RETRIES = 3;
+
 // Intercepteur pour gérer le refresh token et logger les erreurs
 api.interceptors.response.use(
   (response) => {
@@ -81,12 +84,32 @@ api.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _timeoutRetryCount?: number };
 
     // Log de l'erreur pour debug
-    console.error(`[API] Error ${error.response?.status} from ${originalRequest?.url}`);
+    console.error(`[API] Error ${error.response?.status || error.code} from ${originalRequest?.url}`);
     if (error.response?.data && __DEV__) {
       console.error('[API] Error data:', JSON.stringify(error.response.data));
+    }
+
+    // Gestion des timeouts et erreurs réseau avec retry automatique
+    const isTimeoutError = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+    const isNetworkError = error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
+
+    if (isTimeoutError || isNetworkError) {
+      const retryCount = originalRequest._timeoutRetryCount || 0;
+
+      if (retryCount < MAX_TIMEOUT_RETRIES) {
+        originalRequest._timeoutRetryCount = retryCount + 1;
+        const errorType = isTimeoutError ? 'Timeout' : 'Network Error';
+        console.log(`[API] ${errorType} - Retry ${originalRequest._timeoutRetryCount}/${MAX_TIMEOUT_RETRIES} for ${originalRequest.url}`);
+
+        // Attendre un peu avant de réessayer (backoff exponentiel)
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+
+        return api(originalRequest);
+      }
+      console.error(`[API] Max retries reached for ${originalRequest.url}`);
     }
 
     // Si l'erreur est 401 et qu'on n'a pas déjà réessayé
@@ -198,6 +221,21 @@ export const authAPI = {
       await clearTokens();
     }
   },
+
+  // Authentification sociale
+  googleSignIn: (token: string) =>
+    api.post('/auth/google/', { token }),
+
+  appleSignIn: (data: {
+    identity_token: string;
+    user?: {
+      email?: string;
+      name?: {
+        firstName?: string;
+        lastName?: string;
+      };
+    };
+  }) => api.post('/auth/apple/', data),
 };
 
 // ============================================
@@ -336,8 +374,14 @@ export const eventsAPI = {
   getEvent: (id: string) =>
     api.get(`/events/${id}/`),
 
-  createEvent: (data: any) =>
-    api.post('/events/', data),
+  createEvent: (data: any) => {
+    if (data instanceof FormData) {
+      return api.post('/events/', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    }
+    return api.post('/events/', data);
+  },
 
   updateEvent: (id: string, data: any) => {
     if (data instanceof FormData) {

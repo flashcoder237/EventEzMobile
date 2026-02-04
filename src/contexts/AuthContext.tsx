@@ -16,6 +16,7 @@ interface AuthContextType extends AuthState {
   }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
+  setUser: (user: User) => void;  // Pour l'authentification sociale
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -124,6 +125,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Pour l'authentification sociale - met à jour l'utilisateur après connexion
+  const setUser = (user: User) => {
+    setState({
+      user,
+      isAuthenticated: true,
+      isLoading: false,
+    });
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -132,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         updateUser,
+        setUser,
       }}
     >
       {children}

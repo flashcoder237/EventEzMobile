@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "eventez",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -13,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.eventez.mobile"
+      "bundleIdentifier": "com.eventez.mobile",
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -27,6 +29,7 @@
     },
     "plugins": [
       "expo-secure-store",
+      "expo-apple-authentication",
       [
         "expo-location",
         {
@@ -44,7 +47,8 @@
         {
           "color": "#7c3aed"
         }
-      ]
+      ],
+      "expo-web-browser"
     ]
   }
 }
