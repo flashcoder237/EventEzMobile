@@ -76,6 +76,32 @@ export default function QRScannerScreen() {
     fetchEvent();
   }, [eventId]);
 
+  // Extraire l'ID de registration depuis l'URL ou les données JSON
+  const extractRegistrationId = (data: string): string | null => {
+    // Format URL: http://localhost:3000/verify/{registrationId}
+    // ou https://eventez.com/verify/{registrationId}
+    const urlMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
+    if (urlMatch) {
+      return urlMatch[1];
+    }
+
+    // Format JSON legacy (ancien format)
+    try {
+      const jsonData = JSON.parse(data);
+      return jsonData.registration_id || null;
+    } catch {
+      // Ce n'est ni une URL ni du JSON valide
+    }
+
+    // Si c'est un UUID direct
+    const uuidMatch = data.match(/^[a-f0-9-]{36}$/i);
+    if (uuidMatch) {
+      return data;
+    }
+
+    return null;
+  };
+
   const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
     if (scanned || processing) return;
 
@@ -84,8 +110,15 @@ export default function QRScannerScreen() {
     Vibration.vibrate(100);
 
     try {
-      // Try to verify and check-in the ticket
-      const response = await registrationsAPI.verifyAndCheckIn(data, autoCheckIn);
+      // Extraire l'ID de registration depuis le QR code
+      const registrationId = extractRegistrationId(data);
+
+      if (!registrationId) {
+        throw new Error('Format de QR code non reconnu');
+      }
+
+      // Vérifier et faire le check-in via l'ID
+      const response = await registrationsAPI.verifyAndCheckIn(registrationId, autoCheckIn);
       const registration = response.data;
 
       setScanResult({
@@ -103,7 +136,9 @@ export default function QRScannerScreen() {
       console.error('Scan error:', error);
 
       let message = 'Code QR invalide ou non reconnu';
-      if (error.response?.status === 404) {
+      if (error.message === 'Format de QR code non reconnu') {
+        message = error.message;
+      } else if (error.response?.status === 404) {
         message = 'Aucun billet trouvé pour ce code';
       } else if (error.response?.status === 400) {
         message = error.response.data?.detail || error.response.data?.message || 'Billet déjà utilisé ou invalide';

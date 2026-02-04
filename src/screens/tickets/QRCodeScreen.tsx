@@ -122,6 +122,21 @@ export default function QRCodeScreen() {
     );
   }
 
+  // URL de vérification (format unifié mobile + web)
+  const getVerificationUrl = (): string => {
+    const registrationId = ticket?.registration_id || ticket?.registration;
+    // URL frontend pour la vérification
+    const frontendUrl = 'http://localhost:3000'; // TODO: configurer via env
+    return `${frontendUrl}/verify/${registrationId}`;
+  };
+
+  // Génère l'URL du QR code via l'API externe (même rendu que le web)
+  const getQRCodeImageUrl = (): string => {
+    const verificationUrl = getVerificationUrl();
+    const size = 200;
+    return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=${size}x${size}&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
+  };
+
   if (!ticket) {
     return (
       <SafeAreaView style={styles.container}>
@@ -220,19 +235,11 @@ export default function QRCodeScreen() {
           {/* QR Code Section */}
           <View style={styles.qrSection}>
             <View style={styles.qrContainer}>
-              {ticket?.qr_code ? (
-                <Image
-                  source={{ uri: ticket.qr_code }}
-                  style={styles.qrImage}
-                  resizeMode="contain"
-                />
-              ) : (
-                <View style={styles.qrPlaceholder}>
-                  <View style={styles.qrPlaceholderInner}>
-                    <Ionicons name="qr-code" size={80} color={Colors.primary} />
-                  </View>
-                </View>
-              )}
+              <Image
+                source={{ uri: getQRCodeImageUrl() }}
+                style={styles.qrImage}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.qrHint}>
               Présentez ce QR code à l'entrée de l'événement

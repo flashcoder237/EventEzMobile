@@ -145,7 +145,9 @@ export default function PaymentScreen() {
   const calculateTotal = () => {
     if (!registration?.tickets) return 0;
     return registration.tickets.reduce((total, ticket) => {
-      return total + (ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1));
+      // Convert to number to avoid string concatenation (backend may return Decimal as string)
+      const ticketPrice = Number(ticket.total_price) || (Number(ticket.unit_price) || 0) * (Number(ticket.quantity) || 1);
+      return total + ticketPrice;
     }, 0);
   };
 
