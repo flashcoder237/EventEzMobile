@@ -438,9 +438,9 @@ export default function TicketPurchaseScreen() {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {isEditMode
-            ? 'Modifier mes billets'
+            ? event?.event_type === 'inscription' ? 'Modifier mon inscription' : 'Modifier mes billets'
             : isAdditionalMode
-              ? 'Billets supplémentaires'
+              ? event?.event_type === 'inscription' ? 'Inscription supplémentaire' : 'Billets supplémentaires'
               : event?.event_type === 'inscription'
                 ? 'Inscription'
                 : 'Sélectionner les billets'}
@@ -782,9 +782,9 @@ export default function TicketPurchaseScreen() {
             submitting
               ? 'Traitement...'
               : isEditMode
-                ? 'Mettre à jour les billets'
+                ? event?.event_type === 'inscription' ? 'Mettre à jour l\'inscription' : 'Mettre à jour les billets'
                 : isAdditionalMode
-                  ? 'Acheter des billets supplémentaires'
+                  ? event?.event_type === 'inscription' ? 'Ajouter une inscription' : 'Acheter des billets supplémentaires'
                   : event?.event_type === 'inscription'
                     ? "S'inscrire"
                     : 'Continuer'

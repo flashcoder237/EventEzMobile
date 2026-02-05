@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -16,7 +15,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 
-import { registrationsAPI } from '../../api/client';
+// registrationsAPI import removed - no longer needed
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -50,7 +49,6 @@ export default function PaymentSuccessScreen() {
   const route = useRoute<PaymentSuccessRouteProp>();
   const { eventType, approvalStatus, eventTitle, registrationId } = route.params;
 
-  const [loadingTicket, setLoadingTicket] = useState(false);
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
 
@@ -59,7 +57,7 @@ export default function PaymentSuccessScreen() {
     opacity.value = withDelay(300, withSpring(1));
   }, []);
 
-  // Fonction pour voir le billet directement
+  // Fonction pour voir les billets - navigue vers RegistrationDetails pour voir tous les billets
   const handleViewTicket = async () => {
     if (!registrationId) {
       // Fallback vers la liste des billets
@@ -67,27 +65,8 @@ export default function PaymentSuccessScreen() {
       return;
     }
 
-    setLoadingTicket(true);
-    try {
-      const response = await registrationsAPI.getRegistration(registrationId);
-      const registration = response.data;
-
-      // Récupérer le premier ticket de la registration
-      const tickets = registration.tickets || [];
-      if (tickets.length > 0) {
-        const firstTicketId = tickets[0].id;
-        navigation.replace('QRCode', { ticketId: firstTicketId });
-      } else {
-        // Pas de tickets, aller vers MyTickets
-        navigation.replace('Main', { screen: 'MyTickets' } as any);
-      }
-    } catch (error) {
-      console.error('Error fetching registration:', error);
-      // En cas d'erreur, aller vers MyTickets
-      navigation.replace('Main', { screen: 'MyTickets' } as any);
-    } finally {
-      setLoadingTicket(false);
-    }
+    // Naviguer vers RegistrationDetails pour voir tous les billets de cette registration
+    navigation.replace('RegistrationDetails', { registrationId });
   };
 
   const iconStyle = useAnimatedStyle(() => ({
@@ -211,14 +190,10 @@ export default function PaymentSuccessScreen() {
       {/* Bottom Buttons */}
       <View style={styles.bottomButtons}>
         <GradientButton
-          title={loadingTicket ? 'Chargement...' : content.primaryButtonText}
+          title={content.primaryButtonText}
           onPress={handleViewTicket}
-          icon={loadingTicket
-            ? <ActivityIndicator size="small" color={Colors.white} />
-            : <Ionicons name={content.primaryButtonIcon} size={20} color={Colors.white} />
-          }
+          icon={<Ionicons name={content.primaryButtonIcon} size={20} color={Colors.white} />}
           fullWidth
-          disabled={loadingTicket}
         />
         <View style={{ height: Spacing.md }} />
         <GradientButton
@@ -226,7 +201,6 @@ export default function PaymentSuccessScreen() {
           onPress={() => navigation.replace('Main', { screen: 'Home' } as any)}
           variant="outline"
           fullWidth
-          disabled={loadingTicket}
         />
       </View>
     </SafeAreaView>

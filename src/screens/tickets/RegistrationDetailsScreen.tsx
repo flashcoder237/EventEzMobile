@@ -158,6 +158,10 @@ export default function RegistrationDetailsScreen() {
   const event = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
   const statusConfig = getStatusConfig(registration.status, registration.approval_status);
   const isActive = registration.status !== 'cancelled' && registration.status !== 'rejected';
+  const isBilletterie = registration.tickets && registration.tickets.length > 0;
+  const totalTicketQuantity = isBilletterie
+    ? registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)
+    : 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -166,7 +170,11 @@ export default function RegistrationDetailsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon Inscription</Text>
+        <Text style={styles.headerTitle}>
+          {isBilletterie
+            ? `Mes Billets (${totalTicketQuantity})`
+            : 'Mon Inscription'}
+        </Text>
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Ionicons name="share-outline" size={24} color={Colors.gray900} />
         </TouchableOpacity>
@@ -177,9 +185,11 @@ export default function RegistrationDetailsScreen() {
         <View style={styles.card}>
           {/* Event Info */}
           <View style={styles.eventInfo}>
-            <View style={[styles.typeBadge, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="document-text" size={14} color="#8B5CF6" />
-              <Text style={[styles.typeBadgeText, { color: '#8B5CF6' }]}>Inscription</Text>
+            <View style={[styles.typeBadge, { backgroundColor: isBilletterie ? 'rgba(99, 102, 241, 0.1)' : 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={isBilletterie ? Colors.primary : "#8B5CF6"} />
+              <Text style={[styles.typeBadgeText, { color: isBilletterie ? Colors.primary : '#8B5CF6' }]}>
+                {isBilletterie ? `${totalTicketQuantity} Billet${totalTicketQuantity > 1 ? 's' : ''}` : 'Inscription'}
+              </Text>
             </View>
 
             <Text style={styles.eventTitle} numberOfLines={2}>
@@ -359,6 +369,66 @@ export default function RegistrationDetailsScreen() {
           </View>
         </View>
 
+        {/* Tickets List - For billetterie type */}
+        {registration.tickets && registration.tickets.length > 0 && (
+          <View style={styles.ticketsCard}>
+            <Text style={styles.sectionTitle}>Mes billets</Text>
+            {registration.tickets.map((ticket: any, index: number) => {
+              const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
+              const ticketStatus = ticket.status || 'confirmed';
+              const ticketStatusConfig = getStatusConfig(ticketStatus);
+
+              return (
+                <TouchableOpacity
+                  key={ticket.id || index}
+                  style={styles.ticketItem}
+                  onPress={() => {
+                    if (ticket.id) {
+                      navigation.navigate('QRCode', { ticketId: ticket.id });
+                    }
+                  }}
+                >
+                  <View style={styles.ticketItemLeft}>
+                    <View style={styles.ticketIconContainer}>
+                      <Ionicons name="ticket" size={20} color={Colors.primary} />
+                    </View>
+                    <View style={styles.ticketItemInfo}>
+                      <Text style={styles.ticketItemName}>
+                        {ticketType?.name || ticket.ticket_type_name || 'Billet'}
+                      </Text>
+                      <View style={styles.ticketItemMeta}>
+                        <Text style={styles.ticketItemQuantity}>
+                          Qté: {ticket.quantity || 1}
+                        </Text>
+                        <View style={[styles.ticketItemStatusBadge, { backgroundColor: ticketStatusConfig.bg }]}>
+                          <Text style={[styles.ticketItemStatusText, { color: ticketStatusConfig.color }]}>
+                            {ticketStatusConfig.label}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                  <View style={styles.ticketItemRight}>
+                    <Text style={styles.ticketItemPrice}>
+                      {ticket.total_price ? `${Number(ticket.total_price).toLocaleString()} FCFA` : 'Gratuit'}
+                    </Text>
+                    <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+            {/* Total des billets */}
+            <View style={styles.ticketsTotalRow}>
+              <Text style={styles.ticketsTotalLabel}>
+                Total ({registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)} billet{registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0) > 1 ? 's' : ''})
+              </Text>
+              <Text style={styles.ticketsTotalValue}>
+                {registration.tickets.reduce((sum: number, t: any) => sum + (Number(t.total_price) || 0), 0).toLocaleString()} FCFA
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Form Data */}
         {registration.form_data && Object.keys(registration.form_data).length > 0 && (
           <View style={styles.formDataCard}>
@@ -403,6 +473,22 @@ export default function RegistrationDetailsScreen() {
         {/* Actions */}
         {isActive && (
           <View style={styles.actionsSection}>
+            {/* Buy more tickets - for confirmed billetterie registrations */}
+            {(registration.status === 'confirmed' || registration.status === 'completed') &&
+              registration.tickets && registration.tickets.length > 0 && (
+              <TouchableOpacity
+                style={styles.buyMoreButton}
+                onPress={() => {
+                  const eventId = registration.event_id || (typeof registration.event === 'string' ? registration.event : event?.id);
+                  if (eventId) {
+                    navigation.navigate('TicketPurchase', { eventId, additionalTickets: true });
+                  }
+                }}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
+                <Text style={styles.buyMoreButtonText}>Acheter plus de billets</Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={handleCancelRegistration}
@@ -639,6 +725,93 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
   },
 
+  // Tickets List
+  ticketsCard: {
+    backgroundColor: Colors.white,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  ticketItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  ticketItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  ticketIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ticketItemInfo: {
+    marginLeft: Spacing.md,
+    flex: 1,
+  },
+  ticketItemName: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  ticketItemMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: 4,
+  },
+  ticketItemQuantity: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+  },
+  ticketItemStatusBadge: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  ticketItemStatusText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+  },
+  ticketItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  ticketItemPrice: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+  },
+  ticketsTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing.md,
+    marginTop: Spacing.sm,
+  },
+  ticketsTotalLabel: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray700,
+  },
+  ticketsTotalValue: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.primary,
+  },
+
   // Form Data
   formDataCard: {
     backgroundColor: Colors.white,
@@ -705,6 +878,24 @@ const styles = StyleSheet.create({
   actionsSection: {
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  buyMoreButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    backgroundColor: Colors.white,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  buyMoreButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
   },
   cancelButton: {
     flexDirection: 'row',

@@ -308,13 +308,8 @@ export default function MyTicketsScreen() {
       <TouchableOpacity
         style={styles.card}
         onPress={() => {
-          // For billetterie with tickets, go to QRCode screen
-          if (item.tickets && item.tickets.length > 0) {
-            navigation.navigate('QRCode', { ticketId: item.tickets[0].id });
-          } else {
-            // For inscriptions, go to RegistrationDetails screen
-            navigation.navigate('RegistrationDetails', { registrationId: item.id });
-          }
+          // Navigate to RegistrationDetails to see all tickets/inscription details
+          navigation.navigate('RegistrationDetails', { registrationId: item.id });
         }}
         activeOpacity={0.7}
       >
@@ -345,7 +340,9 @@ export default function MyTicketsScreen() {
                   styles.typeBadgeText,
                   isInscription ? styles.typeBadgeTextInscription : styles.typeBadgeTextBillet,
                 ]}>
-                  {isInscription ? 'Inscription' : 'Billet'}
+                  {isInscription
+                    ? 'Inscription'
+                    : `${ticketInfo.quantity} Billet${ticketInfo.quantity > 1 ? 's' : ''}`}
                 </Text>
               </View>
               <View style={[styles.statusBadge, { backgroundColor: displayStatus.bg }]}>
@@ -393,21 +390,18 @@ export default function MyTicketsScreen() {
             )}
           </View>
 
-          {/* QR Button à droite */}
+          {/* QR/View Button à droite */}
           <TouchableOpacity
             style={[
               styles.qrButton,
               isInscription && styles.qrButtonInscription,
             ]}
             onPress={() => {
-              if (item.tickets && item.tickets.length > 0) {
-                navigation.navigate('QRCode', { ticketId: item.tickets[0].id });
-              } else {
-                navigation.navigate('RegistrationDetails', { registrationId: item.id });
-              }
+              // Navigate to RegistrationDetails to see all tickets/details
+              navigation.navigate('RegistrationDetails', { registrationId: item.id });
             }}
           >
-            <Ionicons name="qr-code" size={20} color={Colors.white} />
+            <Ionicons name={isInscription ? "document-text" : "ticket"} size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>

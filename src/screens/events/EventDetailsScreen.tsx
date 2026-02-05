@@ -13,6 +13,7 @@ import {
   TextInput,
   Linking,
   Platform,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
@@ -67,6 +68,8 @@ export default function EventDetailsScreen() {
   // Sessions state
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
+  // Image viewer state
+  const [showImageViewer, setShowImageViewer] = useState(false);
 
   useEffect(() => {
     fetchEvent();
@@ -370,10 +373,19 @@ export default function EventDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
         {/* Banner Image */}
         <View style={styles.bannerContainer}>
-          <Image
-            source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
-            style={styles.bannerImage}
-          />
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setShowImageViewer(true)}
+          >
+            <Image
+              source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
+              style={styles.bannerImage}
+            />
+            {/* Image zoom hint */}
+            <View style={styles.imageZoomHint}>
+              <Ionicons name="expand-outline" size={16} color={Colors.white} />
+            </View>
+          </TouchableOpacity>
 
           {/* Header Overlay */}
           <SafeAreaView style={styles.headerOverlay} edges={['top']}>
@@ -1019,32 +1031,49 @@ export default function EventDetailsScreen() {
                 <Ionicons name="create-outline" size={22} color={Colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.ctaButton, { backgroundColor: Colors.warning, flex: 1 }]}
+                style={[styles.ctaButton, styles.ctaButtonCompact, { backgroundColor: Colors.warning }]}
                 onPress={() => navigation.navigate('Payment', { registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
                 <Ionicons name="card-outline" size={18} color={Colors.white} />
-                <Text style={styles.ctaButtonText} numberOfLines={1}>Payer</Text>
+                <Text style={styles.ctaButtonText}>Payer</Text>
               </TouchableOpacity>
             </View>
           ) : userRegistration.status === 'confirmed' ? (
-            <View style={styles.ctaButtonsRow}>
+            event.event_type === 'billetterie' ? (
+              // Billetterie: bouton "+" pour acheter des billets supplémentaires
+              <View style={styles.ctaButtonsRow}>
+                <TouchableOpacity
+                  style={styles.ctaButtonIcon}
+                  onPress={() => navigation.navigate('TicketPurchase', {
+                    eventId,
+                    additionalTickets: true,
+                    registrationId: userRegistration.id
+                  })}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add" size={22} color={Colors.primary} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.ctaButton, styles.ctaButtonCompact, { backgroundColor: Colors.success }]}
+                  onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+                  <Text style={styles.ctaButtonText}>Mon Billet</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // Inscription: pas de bouton "+" supplémentaire
               <TouchableOpacity
-                style={styles.ctaButtonIcon}
-                onPress={() => navigation.navigate('TicketPurchase', { eventId, additionalTickets: true })}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="add" size={22} color={Colors.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.ctaButton, { backgroundColor: Colors.success, flex: 1 }]}
+                style={[styles.ctaButton, { backgroundColor: Colors.success }]}
                 onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
-                <Ionicons name="ticket-outline" size={18} color={Colors.white} />
-                <Text style={styles.ctaButtonText} numberOfLines={1}>Mon billet</Text>
+                <Ionicons name="document-text-outline" size={18} color={Colors.white} />
+                <Text style={styles.ctaButtonText}>Mon Inscription</Text>
               </TouchableOpacity>
-            </View>
+            )
           ) : (
             <TouchableOpacity
               style={[styles.ctaButton, { backgroundColor: Colors.success }]}
@@ -1067,6 +1096,29 @@ export default function EventDetailsScreen() {
             <Ionicons name="arrow-forward" size={18} color={Colors.white} />
           </TouchableOpacity>
         )}
+
+      {/* Image Viewer Modal */}
+      <Modal
+        visible={showImageViewer}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImageViewer(false)}
+      >
+        <View style={styles.imageViewerContainer}>
+          <TouchableOpacity
+            style={styles.imageViewerClose}
+            onPress={() => setShowImageViewer(false)}
+          >
+            <Ionicons name="close" size={28} color={Colors.white} />
+          </TouchableOpacity>
+          <Image
+            source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
+            style={styles.imageViewerImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.imageViewerTitle} numberOfLines={2}>{event.title}</Text>
+        </View>
+      </Modal>
       </View>
     </View>
   );
@@ -1431,6 +1483,9 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+  ctaButtonCompact: {
+    paddingHorizontal: Spacing.lg,
   },
   ctaButtonIcon: {
     alignItems: 'center',
@@ -1983,5 +2038,50 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+  // Image Zoom Hint
+  imageZoomHint: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Image Viewer Modal
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageViewerClose: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  imageViewerImage: {
+    width: width,
+    height: width * 0.75,
+  },
+  imageViewerTitle: {
+    position: 'absolute',
+    bottom: 60,
+    left: 20,
+    right: 20,
+    color: Colors.white,
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    textAlign: 'center',
   },
 });
