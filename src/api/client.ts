@@ -331,13 +331,13 @@ export const usersAPI = {
   updateCurrentUser: (data: any) =>
     api.patch('/users/me/', data),
 
+  // Backend n'accepte que PUT pour update_profile
   updateProfile: (data: any) =>
-    api.patch('/users/update_profile/', data),
+    api.put('/users/update_profile/', data),
 
+  // Axios gère automatiquement le Content-Type pour FormData
   updateProfileImage: (formData: FormData) =>
-    api.patch('/users/me/upload_profile_image/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.put('/users/me/upload_profile_image/', formData),
 
   getUserSettings: () =>
     api.get('/users/me/settings/'),
@@ -415,14 +415,10 @@ export const categoriesAPI = {
     api.post(`/categories/${id}/toggle_active/`),
 
   uploadImage: (id: number, formData: FormData) =>
-    api.post(`/categories/${id}/upload_image/`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.post(`/categories/${id}/upload_image/`, formData),
 
   uploadDefaultEventImage: (id: number, formData: FormData) =>
-    api.post(`/categories/${id}/upload_default_event_image/`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.post(`/categories/${id}/upload_default_event_image/`, formData),
 };
 
 // ============================================
@@ -449,19 +445,14 @@ export const eventsAPI = {
     api.get(`/events/${id}/`),
 
   createEvent: (data: any) => {
-    if (data instanceof FormData) {
-      return api.post('/events/', data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-    }
+    // Axios gère automatiquement le Content-Type pour FormData
     return api.post('/events/', data);
   },
 
   updateEvent: (id: string, data: any) => {
     if (data instanceof FormData) {
-      return api.patch(`/events/${id}/`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // Axios gère automatiquement le Content-Type pour FormData
+      return api.patch(`/events/${id}/`, data);
     }
     return api.put(`/events/${id}/`, data);
   },
@@ -479,9 +470,7 @@ export const eventsAPI = {
     api.get('/events/my_events/'),
 
   uploadImages: (id: string, formData: FormData) =>
-    api.post(`/events/${id}/upload_images/`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.post(`/events/${id}/upload_images/`, formData),
 
   publishEvent: (id: string) =>
     api.post(`/events/${id}/publish/`),
@@ -1049,11 +1038,9 @@ export const speakersAPI = {
   getSpeakerSessions: (id: string) =>
     api.get(`/speakers/${id}/sessions/`),
 
-  // Upload photo
+  // Upload photo - Axios gère automatiquement le Content-Type pour FormData
   uploadPhoto: (id: string, formData: FormData) =>
-    api.patch(`/speakers/${id}/`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.patch(`/speakers/${id}/`, formData),
 };
 
 // ============================================
@@ -1383,7 +1370,7 @@ export const messagesAPI = {
   getConversation: (id: string) =>
     api.get(`/conversations/${id}/`),
 
-  createConversation: (data: { participants?: string[]; participant_ids?: string[] }) =>
+  createConversation: (data: { participants?: number[]; participant_ids?: number[] }) =>
     api.post('/conversations/', data),
 
   updateConversation: (id: string, data: { is_archived?: boolean; is_starred?: boolean }) =>
@@ -1422,15 +1409,12 @@ export const messagesAPI = {
   starMessage: (id: string) =>
     api.post(`/messages/${id}/star/`),
 
+  // Axios gère automatiquement le Content-Type pour FormData
   uploadAttachment: (formData: FormData) =>
-    api.post('/messages/upload_attachment/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.post('/messages/upload_attachment/', formData),
 
   uploadVoiceMessage: (formData: FormData) =>
-    api.post('/messages/upload_voice_message/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.post('/messages/upload_voice_message/', formData),
 
   addReaction: (messageId: string, emoji: string) =>
     api.post(`/messages/${messageId}/add_reaction/`, { emoji }),

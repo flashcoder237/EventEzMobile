@@ -23,6 +23,7 @@ export interface User {
   first_name?: string;
   last_name?: string;
   phone_number?: string;
+  phone?: string; // Alias pour compatibilité backend
   role?: UserRole;
   organizer_type?: OrganizerType;
   // Alias pour compatibilité
@@ -490,35 +491,41 @@ export interface Invoice {
 
 // ============================================
 // MESSAGING TYPES
+// Synchronisé avec EventEzBackend/apps/user_messages/models.py
 // ============================================
 
 export interface Conversation {
   id: string;
   participants: User[];
+  participant_ids?: number[];
   conversation_type: 'direct' | 'group' | 'event';
   name?: string;
-  title?: string;
+  title?: string; // Alias pour compatibilité
   avatar?: string;
   last_message?: Message;
   last_message_at?: string;
-  event?: string;
+  event?: string | Event;
+  is_archived: boolean;
+  is_starred: boolean;
   unread_count: number;
+  user_messages?: Message[];
   created_at: string;
   updated_at: string;
 }
 
 export interface Message {
   id: string;
-  conversation: string;
-  sender: User;
+  conversation: string | number;
+  sender: number; // ID utilisateur
+  sender_name: string;
+  sender_avatar?: string;
   content: string;
-  message_type: 'text' | 'image' | 'file' | 'voice';
   attachments?: MessageAttachment[];
-  is_read: boolean;
-  read_by?: string[];
+  read_by: number[]; // Liste des IDs des utilisateurs qui ont lu
+  reply_to?: string | Message;
+  is_starred: boolean;
   reactions?: MessageReaction[];
   created_at: string;
-  updated_at: string;
 }
 
 export interface MessageAttachment {
@@ -529,11 +536,17 @@ export interface MessageAttachment {
   mime_type: string;
   attachment_type: 'image' | 'document' | 'voice' | 'video' | 'other';
   thumbnail?: string;
+  width?: number;
+  height?: number;
+  duration_seconds?: number;
+  waveform_data?: number[];
+  uploaded_at: string;
 }
 
 export interface MessageReaction {
   id: string;
-  user: string;
+  user: number;
+  user_name: string;
   emoji: string;
   created_at: string;
 }
@@ -1211,11 +1224,13 @@ export type RootStackParamList = {
   Moderation: undefined;
   MyPayments: undefined;
   RefundRequest: { paymentId: string };
+  BecomeOrganizer: undefined;
 };
 
 export type AuthStackParamList = {
   Login: undefined;
   Register: undefined;
+  RegisterOrganizer: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token: string };
   VerifyEmail: { email: string };

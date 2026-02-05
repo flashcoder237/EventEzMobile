@@ -9,11 +9,13 @@ import {
   ActivityIndicator,
   Image,
   ImageSourcePropType,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 
 import { registrationsAPI, paymentsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
@@ -120,8 +122,21 @@ export default function PaymentScreen() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [verifyingManually, setVerifyingManually] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState('');
+  // Préremplir avec le numéro de téléphone de l'utilisateur (sans le préfixe 237)
+  const [phoneNumber, setPhoneNumber] = useState(() => {
+    const userPhone = user?.phone || user?.phone_number || '';
+    // Retirer le préfixe 237 s'il est présent et les caractères spéciaux
+    const cleanPhone = userPhone.replace(/[\s\-\.\(\)\+]/g, '');
+    const phoneWithoutPrefix = cleanPhone.startsWith('237') ? cleanPhone.slice(3) : cleanPhone;
+    // Formater pour l'affichage (XXX XXX XXX)
+    const match = phoneWithoutPrefix.match(/^(\d{0,3})(\d{0,3})(\d{0,3})$/);
+    if (match) {
+      return [match[1], match[2], match[3]].filter(Boolean).join(' ');
+    }
+    return phoneWithoutPrefix;
+  });
   const [paymentId, setPaymentId] = useState<string | null>(null);
 
   // Ref pour arrêter le polling
@@ -288,9 +303,25 @@ export default function PaymentScreen() {
         console.log('[Payment] Card initialization response:', response.data);
 
         // Si on reçoit une URL d'autorisation, ouvrir dans le navigateur
-        if (response.data?.authorization_url) {
-          // TODO: Ouvrir l'URL dans un WebView ou navigateur
-          console.log('[Payment] Authorization URL:', response.data.authorization_url);
+        const authUrl = response.data?.authorization_url || response.data?.checkout_url || response.data?.payment_url;
+        if (authUrl) {
+          console.log('[Payment] Opening authorization URL:', authUrl);
+
+          // Ouvrir la page de paiement dans le navigateur in-app
+          const result = await WebBrowser.openBrowserAsync(authUrl, {
+            dismissButtonStyle: 'close',
+            presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+            toolbarColor: Colors.primary,
+            controlsColor: Colors.white,
+          });
+
+          console.log('[Payment] WebBrowser result:', result.type);
+
+          // Après fermeture du navigateur, vérifier le statut du paiement
+          // Que l'utilisateur ait annulé ou terminé, on vérifie le statut
+        } else {
+          console.warn('[Payment] No authorization URL received');
+          throw new Error('URL de paiement non reçue. Veuillez réessayer.');
         }
       }
 
@@ -351,9 +382,113 @@ export default function PaymentScreen() {
     }
   };
 
+  /**
+   * Vérification manuelle du paiement - appelée quand l'utilisateur indique "J'ai déjà payé"
+   * Effectue plusieurs tentatives de vérification auprès de NotchPay
+   */
+  const handleAlreadyPaid = async () => {
+    if (!paymentId) {
+      showError('Erreur', 'Aucun paiement en cours à vérifier');
+      return;
+    }
+
+    setVerifyingManually(true);
+    pollingRef.current.stop = true; // Arrêter le polling automatique
+
+    console.log('[Payment] Manual verification requested for payment:', paymentId);
+
+    // Effectuer plusieurs tentatives de vérification
+    const maxAttempts = 5;
+    const delayBetweenAttempts = 3000; // 3 secondes
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        console.log(`[Payment] Manual verification attempt ${attempt}/${maxAttempts}`);
+
+        const response = await paymentsAPI.verifyPayment(paymentId);
+        const data = response.data;
+        const status = (data.status || data.payment_status || data.payment?.status || '').toLowerCase();
+
+        console.log(`[Payment] Manual verification status: ${status}`);
+
+        if (isPaymentSuccess(status)) {
+          setVerifyingManually(false);
+          setProcessing(false);
+          navigation.replace('PaymentSuccess', {
+            paymentId: paymentId,
+            registrationId: registrationId,
+            eventType: registration?.event?.event_type || registration?.registration_type,
+            registrationStatus: registration?.status,
+            approvalStatus: registration?.approval_status,
+            eventTitle: registration?.event?.title,
+          });
+          return;
+        }
+
+        if (isPaymentFailed(status) && ['failed', 'cancelled', 'rejected', 'declined'].includes(status)) {
+          // Paiement définitivement échoué
+          setVerifyingManually(false);
+          setProcessing(false);
+          const errorMessage = data.message || data.error || 'Le paiement a échoué';
+          navigation.replace('PaymentFailed', { paymentId: paymentId, error: errorMessage });
+          return;
+        }
+
+        // Si encore en pending et pas la dernière tentative, attendre
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, delayBetweenAttempts));
+        }
+      } catch (error: any) {
+        console.error(`[Payment] Manual verification error (attempt ${attempt}):`, error);
+
+        // Si erreur sur dernière tentative, afficher message
+        if (attempt === maxAttempts) {
+          setVerifyingManually(false);
+
+          showAlert(
+            'Vérification en cours',
+            'Le statut de votre paiement n\'a pas pu être confirmé immédiatement. Si vous avez reçu un SMS de confirmation de paiement, votre réservation sera validée automatiquement.\n\nConsultez vos billets dans quelques minutes.',
+            [
+              { text: 'Réessayer', onPress: () => handleAlreadyPaid() },
+              { text: 'Voir mes billets', onPress: () => {
+                setProcessing(false);
+                navigation.navigate('Main', { screen: 'MyTickets' } as any);
+              }},
+            ]
+          );
+          return;
+        }
+
+        // Sinon attendre avant prochaine tentative
+        await new Promise(resolve => setTimeout(resolve, delayBetweenAttempts));
+      }
+    }
+
+    // Si on arrive ici, le paiement est toujours en pending après toutes les tentatives
+    setVerifyingManually(false);
+
+    showAlert(
+      'Paiement en attente',
+      'Votre paiement est encore en cours de traitement. Si vous avez validé la transaction sur votre téléphone, elle sera confirmée automatiquement.\n\nVérifiez vos billets dans quelques minutes.',
+      [
+        { text: 'Continuer à attendre', onPress: () => {
+          setVerifyingManually(false);
+          pollingRef.current.stop = false;
+          pollPaymentStatus(paymentId);
+        }},
+        { text: 'Voir mes billets', onPress: () => {
+          setProcessing(false);
+          navigation.navigate('Main', { screen: 'MyTickets' } as any);
+        }},
+      ]
+    );
+  };
+
   const pollPaymentStatus = async (pId: string) => {
     let attempts = 0;
-    const maxAttempts = 60; // 5 minutes max (5s interval)
+    let consecutiveErrors = 0;
+    const maxAttempts = 90; // 7.5 minutes max (5s interval)
+    const maxConsecutiveErrors = 10; // Arrêter après 10 erreurs consécutives
 
     // Réinitialiser le flag de stop
     pollingRef.current.stop = false;
@@ -372,6 +507,9 @@ export default function PaymentScreen() {
         const errorMessage = data.message || data.error || data.detail || 'Le paiement a échoué';
 
         console.log(`[Payment] Poll #${attempts + 1}: status = ${status}`);
+
+        // Réinitialiser le compteur d'erreurs consécutives car la requête a réussi
+        consecutiveErrors = 0;
 
         // Vérifier encore si on doit arrêter
         if (pollingRef.current.stop) {
@@ -403,9 +541,16 @@ export default function PaymentScreen() {
           setProcessing(false);
           showAlert(
             'Délai dépassé',
-            'Le paiement prend plus de temps que prévu. Vérifiez votre téléphone pour confirmer la transaction.',
+            'Le paiement prend plus de temps que prévu. Si vous avez déjà confirmé la transaction sur votre téléphone, cliquez sur "J\'ai déjà payé".',
             [
-              { text: 'Réessayer', onPress: () => pollPaymentStatus(pId) },
+              { text: 'J\'ai déjà payé', onPress: () => {
+                setProcessing(true);
+                handleAlreadyPaid();
+              }},
+              { text: 'Réessayer', onPress: () => {
+                setProcessing(true);
+                pollPaymentStatus(pId);
+              }},
               { text: 'Annuler', onPress: cancelPayment },
             ]
           );
@@ -422,19 +567,64 @@ export default function PaymentScreen() {
         // Vérifier si l'erreur contient un statut d'échec
         const errorData = error.response?.data;
         const errorStatus = (errorData?.status || errorData?.payment_status || '').toLowerCase();
+        const errorMessage = (errorData?.message || errorData?.error || error.message || '').toLowerCase();
 
-        if (isPaymentFailed(errorStatus)) {
+        // Détecter les erreurs temporaires (réseau, SSL, timeout)
+        const isTemporaryError =
+          errorMessage.includes('timed out') ||
+          errorMessage.includes('timeout') ||
+          errorMessage.includes('ssl') ||
+          errorMessage.includes('handshake') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('econnrefused') ||
+          errorMessage.includes('enotfound') ||
+          errorMessage.includes('socket') ||
+          error.code === 'ECONNABORTED' ||
+          error.code === 'ERR_NETWORK' ||
+          errorStatus === 'error'; // Le status "error" de NotchPay est souvent temporaire
+
+        // Seuls les vrais statuts d'échec de paiement doivent arrêter
+        // (pas les erreurs de vérification/réseau)
+        const isDefiniteFailure = isPaymentFailed(errorStatus) &&
+          !isTemporaryError &&
+          ['failed', 'cancelled', 'rejected', 'declined'].includes(errorStatus);
+
+        if (isDefiniteFailure) {
           setProcessing(false);
           navigation.replace('PaymentFailed', {
             paymentId: pId,
             error: errorData?.message || errorData?.detail || 'Le paiement a échoué'
           });
-        } else if (attempts < maxAttempts) {
-          attempts++;
-          setTimeout(checkStatus, 5000);
         } else {
-          setProcessing(false);
-          showError('Erreur', 'Impossible de vérifier le statut du paiement. Veuillez vérifier dans votre historique.');
+          // Incrémenter le compteur d'erreurs consécutives
+          consecutiveErrors++;
+          attempts++;
+
+          // Continuer tant qu'on n'a pas atteint les limites
+          if (attempts < maxAttempts && consecutiveErrors < maxConsecutiveErrors) {
+            // Délai progressif: 5s normal, 10s après 3 erreurs, 15s après 6 erreurs
+            const delay = consecutiveErrors < 3 ? 5000 : consecutiveErrors < 6 ? 10000 : 15000;
+            console.log(`[Payment] Temporary error (${consecutiveErrors} consecutive), retrying in ${delay/1000}s... (${attempts}/${maxAttempts})`);
+            setTimeout(checkStatus, delay);
+          } else {
+            setProcessing(false);
+            // Afficher un message informatif - NE PAS dire que le paiement a échoué
+            showAlert(
+              'Vérification interrompue',
+              'Impossible de vérifier le statut du paiement (problème de connexion). Votre paiement a peut-être réussi.\n\nSi vous avez déjà payé, cliquez sur "J\'ai déjà payé" pour vérifier.',
+              [
+                { text: 'J\'ai déjà payé', onPress: () => {
+                  setProcessing(true);
+                  handleAlreadyPaid();
+                }},
+                { text: 'Réessayer', onPress: () => {
+                  setProcessing(true);
+                  pollPaymentStatus(pId);
+                }},
+                { text: 'Voir mes billets', onPress: () => navigation.navigate('Main', { screen: 'MyTickets' } as any) },
+              ]
+            );
+          }
         }
       }
     };
@@ -668,18 +858,69 @@ export default function PaymentScreen() {
               </View>
             )}
 
-            {/* Message pour carte bancaire */}
+            {/* Instructions pour carte bancaire */}
             {selectedMethod === 'credit_card' && (
-              <Text style={styles.processingText}>
-                Veuillez patienter pendant le traitement sécurisé de votre paiement...
-              </Text>
+              <View style={styles.instructionsContainer}>
+                <Text style={styles.instructionsTitle}>Paiement sécurisé :</Text>
+
+                <View style={styles.instructionStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>1</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Une page de paiement sécurisée va s'ouvrir
+                  </Text>
+                </View>
+
+                <View style={styles.instructionStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>2</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Entrez les informations de votre carte bancaire
+                  </Text>
+                </View>
+
+                <View style={styles.instructionStep}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>3</Text>
+                  </View>
+                  <Text style={styles.stepText}>
+                    Validez le paiement et revenez sur l'application
+                  </Text>
+                </View>
+
+                <View style={styles.securityNote}>
+                  <Ionicons name="shield-checkmark" size={16} color={Colors.success} />
+                  <Text style={styles.securityNoteText}>
+                    Paiement sécurisé par NotchPay
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Bouton J'ai déjà payé */}
+            {verifyingManually ? (
+              <View style={styles.alreadyPaidButton}>
+                <ActivityIndicator size="small" color={Colors.primary} />
+                <Text style={styles.alreadyPaidButtonTextActive}>Vérification en cours...</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                style={styles.alreadyPaidButton}
+                onPress={handleAlreadyPaid}
+                disabled={cancelling || verifyingManually}
+              >
+                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.primary} />
+                <Text style={styles.alreadyPaidButtonText}>J'ai déjà payé</Text>
+              </TouchableOpacity>
             )}
 
             {/* Bouton Annuler */}
             <TouchableOpacity
-              style={[styles.cancelButton, cancelling && styles.cancelButtonDisabled]}
+              style={[styles.cancelButton, (cancelling || verifyingManually) && styles.cancelButtonDisabled]}
               onPress={cancelPayment}
-              disabled={cancelling}
+              disabled={cancelling || verifyingManually}
             >
               {cancelling ? (
                 <View style={styles.cancellingContainer}>
@@ -1051,6 +1292,21 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginLeft: Spacing.xs,
   },
+  securityNote: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray200,
+  },
+  securityNoteText: {
+    fontSize: FontSizes.sm,
+    color: Colors.success,
+    fontFamily: FontFamily.medium,
+    marginLeft: Spacing.xs,
+  },
   cancelButton: {
     marginTop: Spacing.lg,
     paddingVertical: Spacing.md,
@@ -1080,5 +1336,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+
+  // Bouton "J'ai déjà payé"
+  alreadyPaidButton: {
+    marginTop: Spacing.lg,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryBg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  alreadyPaidButtonText: {
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
+    textAlign: 'center',
+  },
+  alreadyPaidButtonTextActive: {
+    fontSize: FontSizes.md,
+    color: Colors.primary,
+    fontFamily: FontFamily.medium,
+    marginLeft: Spacing.sm,
   },
 });

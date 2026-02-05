@@ -354,17 +354,33 @@ export default function ConversationScreen() {
   };
 
   const isMyMessage = (message: Message) => {
-    const senderId = typeof message.sender === 'string' ? message.sender : message.sender?.id;
-    return senderId === user?.id;
+    // sender est maintenant un ID (number) depuis le backend
+    const senderId = typeof message.sender === 'number'
+      ? message.sender
+      : typeof message.sender === 'string'
+        ? message.sender
+        : (message.sender as any)?.id;
+    return String(senderId) === String(user?.id);
   };
 
   const getInitials = (message: Message) => {
-    if (typeof message.sender === 'string') return 'U';
-    const sender = message.sender;
-    if (sender.first_name && sender.last_name) {
-      return `${sender.first_name[0]}${sender.last_name[0]}`.toUpperCase();
+    // Utiliser sender_name depuis le backend
+    if (message.sender_name) {
+      const parts = message.sender_name.split(' ');
+      if (parts.length >= 2) {
+        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+      }
+      return message.sender_name[0].toUpperCase();
     }
-    return (sender.email?.[0] || 'U').toUpperCase();
+    // Fallback pour compatibilité avec l'ancien format (sender comme objet)
+    if (typeof message.sender === 'object' && message.sender !== null) {
+      const sender = message.sender as any;
+      if (sender.first_name && sender.last_name) {
+        return `${sender.first_name[0]}${sender.last_name[0]}`.toUpperCase();
+      }
+      return (sender.email?.[0] || 'U').toUpperCase();
+    }
+    return 'U';
   };
 
   const renderAttachment = (attachment: any, isMine: boolean) => {
@@ -412,9 +428,11 @@ export default function ConversationScreen() {
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item);
     const showDate = shouldShowDate(index);
-    const sender = typeof item.sender === 'object' ? item.sender : null;
-    const avatar = sender?.profile_picture || sender?.image;
+    // sender_avatar vient du backend, fallback vers l'ancien format si nécessaire
+    const avatar = item.sender_avatar || (typeof item.sender === 'object' ? (item.sender as any)?.profile_picture || (item.sender as any)?.image : null);
     const hasAttachments = item.attachments && item.attachments.length > 0;
+    // is_read est remplacé par read_by (array d'IDs)
+    const isRead = item.read_by && item.read_by.length > 0;
 
     return (
       <View>
@@ -473,9 +491,9 @@ export default function ConversationScreen() {
               <Text style={styles.messageTime}>{formatTime(item.created_at)}</Text>
               {isMine && (
                 <Ionicons
-                  name={item.is_read ? 'checkmark-done' : 'checkmark'}
+                  name={isRead ? 'checkmark-done' : 'checkmark'}
                   size={14}
-                  color={item.is_read ? Colors.primary : Colors.gray400}
+                  color={isRead ? Colors.primary : Colors.gray400}
                   style={{ marginLeft: 4 }}
                 />
               )}

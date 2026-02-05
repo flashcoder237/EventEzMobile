@@ -511,7 +511,7 @@ export default function EventDetailsScreen() {
                       {event.online_instructions}
                     </Text>
                   )}
-                  {(event.online_meeting_id || event.online_passcode) && (
+                  {!!(event.online_meeting_id || event.online_passcode) && (
                     <View style={styles.onlineMeetingInfo}>
                       {event.online_meeting_id && (
                         <View style={styles.meetingInfoRow}>
@@ -820,7 +820,7 @@ export default function EventDetailsScreen() {
                           <Text style={styles.sessionTypeText}>{session.session_type}</Text>
                         </View>
                       )}
-                      {(session.location || session.room) && (
+                      {!!(session.location || session.room) && (
                         <View style={styles.sessionLocation}>
                           <Ionicons name="location-outline" size={12} color={Colors.gray500} />
                           <Text style={styles.sessionLocationText}>
@@ -1012,38 +1012,37 @@ export default function EventDetailsScreen() {
           userRegistration.status === 'pending' && isPaymentRequired(userRegistration) ? (
             <View style={styles.ctaButtonsRow}>
               <TouchableOpacity
-                style={[styles.ctaButtonSecondary]}
+                style={styles.ctaButtonIcon}
                 onPress={() => navigation.navigate('TicketPurchase', { eventId, registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
-                <Ionicons name="create-outline" size={18} color={Colors.primary} />
+                <Ionicons name="create-outline" size={22} color={Colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.ctaButton, { backgroundColor: Colors.warning, flex: 1 }]}
                 onPress={() => navigation.navigate('Payment', { registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
-                <Text style={styles.ctaButtonText}>Finaliser le paiement</Text>
                 <Ionicons name="card-outline" size={18} color={Colors.white} />
+                <Text style={styles.ctaButtonText} numberOfLines={1}>Payer</Text>
               </TouchableOpacity>
             </View>
           ) : userRegistration.status === 'confirmed' ? (
             <View style={styles.ctaButtonsRow}>
               <TouchableOpacity
-                style={[styles.ctaButtonSecondary]}
+                style={styles.ctaButtonIcon}
                 onPress={() => navigation.navigate('TicketPurchase', { eventId, additionalTickets: true })}
                 activeOpacity={0.8}
               >
-                <Ionicons name="add-circle-outline" size={18} color={Colors.primary} />
-                <Text style={styles.ctaButtonSecondaryText}>Plus</Text>
+                <Ionicons name="add" size={22} color={Colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.ctaButton, { backgroundColor: Colors.success, flex: 1 }]}
                 onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
-                <Text style={styles.ctaButtonText}>Voir mon inscription</Text>
                 <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+                <Text style={styles.ctaButtonText} numberOfLines={1}>Mon billet</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -1432,6 +1431,16 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+  ctaButtonIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+    width: 48,
+    height: 48,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.primary,
   },
   ctaButtonSecondary: {
     flexDirection: 'row',

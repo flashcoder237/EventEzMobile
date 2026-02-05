@@ -199,7 +199,7 @@ export default function QRCodeScreen() {
                   <Text style={styles.eventMetaText}>{formatTime(event.start_date)}</Text>
                 </View>
               )}
-              {(event?.location_name || event?.location_city) && (
+              {!!(event?.location_name || event?.location_city) && (
                 <View style={styles.eventMetaItem}>
                   <Ionicons name="location-outline" size={16} color={Colors.primary} />
                   <Text style={styles.eventMetaText}>
@@ -273,7 +273,7 @@ export default function QRCodeScreen() {
                 {ticket.unit_price ? `${ticket.unit_price.toLocaleString()} FCFA` : 'Gratuit'}
               </Text>
             </View>
-            {ticket.discount_amount && ticket.discount_amount > 0 && (
+            {ticket.discount_amount > 0 && (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Réduction</Text>
                 <Text style={[styles.detailValue, { color: Colors.success }]}>
@@ -295,7 +295,7 @@ export default function QRCodeScreen() {
         </View>
 
         {/* Attendee Info if available */}
-        {(ticket.attendee_name || ticket.attendee_email) && (
+        {!!(ticket.attendee_name || ticket.attendee_email) && (
           <View style={styles.attendeeCard}>
             <Text style={styles.sectionTitle}>Participant</Text>
             {ticket.attendee_name && (

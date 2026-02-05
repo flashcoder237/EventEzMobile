@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useGoogleAuth, useAppleAuth } from '../../hooks/useSocialAuth';
@@ -30,6 +31,8 @@ import {
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 
+const REMEMBER_ME_KEY = 'eventez_remember_me';
+
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export default function LoginScreen() {
@@ -39,8 +42,24 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+
+  // Charger la préférence "Se souvenir de moi" au démarrage
+  useEffect(() => {
+    const loadRememberMe = async () => {
+      try {
+        const saved = await SecureStore.getItemAsync(REMEMBER_ME_KEY);
+        if (saved !== null) {
+          setRememberMe(saved === 'true');
+        }
+      } catch (error) {
+        console.warn('Erreur lors du chargement de la préférence:', error);
+      }
+    };
+    loadRememberMe();
+  }, []);
 
   // Hooks d'authentification sociale
   const {
@@ -60,7 +79,7 @@ export default function LoginScreen() {
     const result = await googleSignIn();
     if (result.success && result.user) {
       // L'utilisateur est connecté, mettre à jour le contexte
-      setUser(result.user);
+      await setUser(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Google', result.error);
     }
@@ -71,7 +90,7 @@ export default function LoginScreen() {
     const result = await appleSignIn();
     if (result.success && result.user) {
       // L'utilisateur est connecté, mettre à jour le contexte
-      setUser(result.user);
+      await setUser(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Apple', result.error);
     }
@@ -100,7 +119,9 @@ export default function LoginScreen() {
     if (!validate()) return;
 
     try {
-      await login(email.trim().toLowerCase(), password);
+      // Sauvegarder la préférence "Se souvenir de moi"
+      await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
+      await login(email.trim().toLowerCase(), password, rememberMe);
     } catch (error: any) {
       console.log('[Login] Error:', error.response?.status, error.response?.data);
 
@@ -276,6 +297,21 @@ export default function LoginScreen() {
                   </View>
                 )}
               </View>
+
+              {/* Remember Me Checkbox */}
+              <AnimatedPressable
+                onPress={() => setRememberMe(!rememberMe)}
+                style={styles.rememberMeContainer}
+                animationType="scale"
+                scaleValue={0.98}
+              >
+                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                  {rememberMe && (
+                    <Ionicons name="checkmark" size={14} color={Colors.white} />
+                  )}
+                </View>
+                <Text style={styles.rememberMeText}>Se souvenir de moi</Text>
+              </AnimatedPressable>
 
               {/* Login Button */}
               <GradientButton
@@ -491,6 +527,31 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
+  },
+  rememberMeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 2,
+    borderColor: Colors.gray300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  rememberMeText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray600,
   },
   loginButton: {
     marginTop: Spacing.md,

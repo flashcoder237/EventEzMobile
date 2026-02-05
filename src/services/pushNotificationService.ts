@@ -205,14 +205,22 @@ class PushNotificationService {
 
   /**
    * Unregister device (on logout)
+   * Note: This may fail if called after logout (401), which is fine
    */
   async unregisterDevice(): Promise<void> {
     try {
       const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
       if (token) {
-        await notificationsAPI.unregisterDevice(token);
+        // Try to unregister from backend (may fail if already logged out)
+        try {
+          await notificationsAPI.unregisterDevice(token);
+        } catch (apiError) {
+          // Ignore API errors (401 is expected if called after logout)
+          console.log('[Push] Backend unregister skipped (user may be logged out)');
+        }
+        // Always clear local token
         await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
-        console.log('[Push] Device unregistered');
+        console.log('[Push] Device unregistered locally');
       }
     } catch (error) {
       console.error('[Push] Error unregistering device:', error);
@@ -323,11 +331,11 @@ class PushNotificationService {
    */
   cleanup(): void {
     if (this.notificationListener) {
-      Notifications.removeNotificationSubscription(this.notificationListener);
+      this.notificationListener.remove();
       this.notificationListener = null;
     }
     if (this.responseListener) {
-      Notifications.removeNotificationSubscription(this.responseListener);
+      this.responseListener.remove();
       this.responseListener = null;
     }
   }

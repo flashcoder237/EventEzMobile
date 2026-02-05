@@ -188,6 +188,26 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Become Organizer CTA - Only for regular users */}
+        {!isOrganizer && !isModerator && (
+          <TouchableOpacity
+            style={styles.becomeOrganizerCard}
+            onPress={() => navigation.navigate('BecomeOrganizer')}
+            activeOpacity={0.8}
+          >
+            <View style={styles.becomeOrganizerIcon}>
+              <Ionicons name="megaphone" size={28} color={Colors.white} />
+            </View>
+            <View style={styles.becomeOrganizerText}>
+              <Text style={styles.becomeOrganizerTitle}>Devenir Organisateur</Text>
+              <Text style={styles.becomeOrganizerSubtitle}>
+                Créez et gérez vos propres événements
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color={Colors.secondary} />
+          </TouchableOpacity>
+        )}
+
         {/* Moderator Section */}
         {isModerator && (
           <View style={styles.menuSection}>
@@ -418,6 +438,40 @@ const styles = StyleSheet.create({
   statDivider: {
     width: 1,
     backgroundColor: Colors.gray200,
+  },
+  becomeOrganizerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.xl,
+    padding: Spacing.md,
+    backgroundColor: Colors.secondaryLight,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: Colors.secondary + '30',
+  },
+  becomeOrganizerIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Colors.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  becomeOrganizerText: {
+    flex: 1,
+  },
+  becomeOrganizerTitle: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray800,
+  },
+  becomeOrganizerSubtitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray600,
+    marginTop: 2,
   },
   menuSection: {
     marginTop: Spacing.xl,

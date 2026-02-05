@@ -217,7 +217,7 @@ export default function RegistrationDetailsScreen() {
                     <Text style={styles.eventMetaText}>+ Option en ligne</Text>
                   </View>
                 </>
-              ) : (event?.location_name || event?.location_city) && (
+              ) : !!(event?.location_name || event?.location_city) && (
                 <View style={styles.eventMetaItem}>
                   <Ionicons name="location-outline" size={16} color={Colors.primary} />
                   <Text style={styles.eventMetaText}>
@@ -255,7 +255,7 @@ export default function RegistrationDetailsScreen() {
                 {event.online_instructions && (
                   <Text style={styles.onlineInstructions}>{event.online_instructions}</Text>
                 )}
-                {(event.online_meeting_id || event.online_passcode) && (
+                {!!(event.online_meeting_id || event.online_passcode) && (
                   <View style={styles.onlineMeetingDetails}>
                     {event.online_meeting_id && (
                       <View style={styles.meetingDetailRow}>

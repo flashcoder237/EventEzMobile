@@ -3,8 +3,10 @@ import * as SecureStore from 'expo-secure-store';
 import { authAPI, usersAPI, setTokens, clearTokens } from '../api/client';
 import { User, AuthState } from '../types';
 
+const REMEMBER_ME_KEY = 'eventez_remember_me';
+
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (data: {
     email: string;
     username: string;
@@ -16,7 +18,7 @@ interface AuthContextType extends AuthState {
   }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
-  setUser: (user: User) => void;  // Pour l'authentification sociale
+  setUser: (user: User) => Promise<void>;  // Pour l'authentification sociale
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +37,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
+      // Vérifier si "Se souvenir de moi" était activé
+      const rememberMe = await SecureStore.getItemAsync(REMEMBER_ME_KEY);
       const token = await SecureStore.getItemAsync('eventez_access_token');
+
+      // Si "Se souvenir de moi" n'est pas activé et qu'on démarre l'app, effacer les tokens
+      if (rememberMe === 'false' && token) {
+        console.log('[Auth] Remember me disabled, clearing tokens');
+        await clearTokens();
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        return;
+      }
+
       if (token) {
         const response = await usersAPI.getCurrentUser();
         setState({
@@ -61,12 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe: boolean = true) => {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
       const response = await authAPI.login(email, password);
       const { access, refresh } = response.data;
       await setTokens(access, refresh);
+
+      // Sauvegarder la préférence "Se souvenir de moi"
+      await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
 
       const userResponse = await usersAPI.getCurrentUser();
       setState({
@@ -92,8 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
       await authAPI.register(data);
-      // Connecter automatiquement après inscription
-      await login(data.email, data.password);
+      // Connecter automatiquement après inscription avec "Se souvenir de moi" activé
+      await login(data.email, data.password, true);
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
@@ -106,6 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.warn('Logout API call failed:', error);
     }
+    // Réinitialiser la préférence "Se souvenir de moi" à false lors de la déconnexion
+    await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'false');
     setState({
       user: null,
       isAuthenticated: false,
@@ -126,7 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // Pour l'authentification sociale - met à jour l'utilisateur après connexion
-  const setUser = (user: User) => {
+  const setUser = async (user: User) => {
+    // Activer "Se souvenir de moi" par défaut pour l'authentification sociale
+    await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'true');
     setState({
       user,
       isAuthenticated: true,

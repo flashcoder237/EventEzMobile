@@ -365,6 +365,25 @@ export default function RegisterScreen() {
               />
             </View>
 
+            {/* Organizer Registration Link */}
+            <View style={styles.organizerContainer}>
+              <AnimatedPressable
+                onPress={() => navigation.navigate('RegisterOrganizer')}
+                style={styles.organizerButton}
+                animationType="lift"
+                scaleValue={0.98}
+              >
+                <View style={styles.organizerIconContainer}>
+                  <Ionicons name="megaphone" size={24} color={Colors.secondary} />
+                </View>
+                <View style={styles.organizerTextContainer}>
+                  <Text style={styles.organizerTitle}>Vous êtes organisateur ?</Text>
+                  <Text style={styles.organizerSubtitle}>Créez et gérez vos événements</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+              </AnimatedPressable>
+            </View>
+
             {/* Login Link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Déjà un compte ?</Text>
@@ -521,6 +540,41 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     marginTop: Spacing.lg,
+  },
+  organizerContainer: {
+    marginTop: Spacing['2xl'],
+  },
+  organizerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: Colors.secondaryLight,
+    borderWidth: 1,
+    borderColor: Colors.secondary + '30',
+  },
+  organizerIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  organizerTextContainer: {
+    flex: 1,
+  },
+  organizerTitle: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray800,
+  },
+  organizerSubtitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+    marginTop: 2,
   },
   loginContainer: {
     flexDirection: 'row',

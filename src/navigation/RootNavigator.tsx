@@ -29,6 +29,7 @@ import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import TermsScreen from '../screens/profile/TermsScreen';
+import BecomeOrganizerScreen from '../screens/profile/BecomeOrganizerScreen';
 
 // Messages Screens
 import MessagesScreen from '../screens/messages/MessagesScreen';
@@ -184,6 +185,13 @@ export default function RootNavigator() {
           <Stack.Screen
             name="Terms"
             component={TermsScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="BecomeOrganizer"
+            component={BecomeOrganizerScreen}
             options={{
               headerShown: false,
             }}
