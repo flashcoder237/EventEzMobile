@@ -13,17 +13,21 @@ import {
   StatusBar,
   Modal,
   Pressable,
+  Alert,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { Audio } from 'expo-av';
 
 import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
-import { Message, RootStackParamList } from '../../types';
+import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
+import { Message, RootStackParamList, User } from '../../types';
 import {
   Colors,
   FontFamily,
@@ -40,31 +44,148 @@ interface AttachedFile {
   id?: string;
   uri: string;
   name: string;
-  type: 'image' | 'document';
+  type: 'image' | 'document' | 'voice';
+  duration?: number;
 }
 
 const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
+
+// Types d'actions possibles sur un message
+type MessageAction = 'reply' | 'edit' | 'delete' | 'forward' | 'react';
 
 export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConversationRouteProp>();
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
-  const { showError } = useAlert();
+  const { showError, showSuccess } = useAlert();
 
+  // States principaux
   const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(initialConversationId);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(!!initialConversationId); // Ne pas charger si nouvelle conversation
+  const [loading, setLoading] = useState(!!initialConversationId);
   const [sending, setSending] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [conversationTitle, setConversationTitle] = useState(userName || '');
   const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
+  const [otherUserId, setOtherUserId] = useState<string | null>(userId || null);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [showReactionPicker, setShowReactionPicker] = useState(false);
   const [isNewConversation, setIsNewConversation] = useState(!initialConversationId && !!userId);
+  const [typingIndicator, setTypingIndicator] = useState<string | null>(null);
+
+  // States pour les nouvelles fonctionnalites
+  const [showActionMenu, setShowActionMenu] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardTargets, setForwardTargets] = useState<User[]>([]);
+  const [loadingForwardTargets, setLoadingForwardTargets] = useState(false);
+
+  // States pour messages vocaux
+  const [isRecording, setIsRecording] = useState(false);
+  const [recording, setRecording] = useState<Audio.Recording | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const [sound, setSound] = useState<Audio.Sound | null>(null);
+
+  // Animation
+  const recordingAnim = useRef(new Animated.Value(1)).current;
 
   const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastTypingSentRef = useRef<number>(0);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // WebSocket hook pour temps reel
+  const {
+    isConnected,
+    sendMessage: wsSendMessage,
+    startTyping,
+    stopTyping,
+    addReaction: wsAddReaction,
+    removeReaction: wsRemoveReaction,
+    getTypingUsersForConversation,
+  } = useMessagingWebSocket({
+    onNewMessage: (newMessage) => {
+      if (String(newMessage.conversation) === String(currentConversationId)) {
+        setMessages(prev => {
+          if (prev.some(m => m.id === newMessage.id)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
+        setTimeout(() => {
+          flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+      }
+    },
+    onTypingIndicator: (data) => {
+      if (String(data.conversationId) === String(currentConversationId)) {
+        if (data.isTyping) {
+          setTypingIndicator(`${data.userName} ecrit...`);
+        } else {
+          setTypingIndicator(null);
+        }
+      }
+    },
+    onMessageRead: (data) => {
+      setMessages(prev => prev.map(msg => {
+        if (String(msg.id) === String(data.messageId)) {
+          const readBy = msg.read_by || [];
+          if (!readBy.includes(data.userId)) {
+            return { ...msg, read_by: [...readBy, data.userId] };
+          }
+        }
+        return msg;
+      }));
+    },
+    onReactionAdded: (data) => {
+      setMessages(prev => prev.map(msg => {
+        if (String(msg.id) === String(data.messageId)) {
+          const reactions = msg.reactions || [];
+          return {
+            ...msg,
+            reactions: [...reactions, { id: `ws-${Date.now()}`, user: data.userId, emoji: data.emoji, user_name: '', created_at: new Date().toISOString() }],
+          };
+        }
+        return msg;
+      }));
+    },
+    onReactionRemoved: (data) => {
+      setMessages(prev => prev.map(msg => {
+        if (String(msg.id) === String(data.messageId)) {
+          return {
+            ...msg,
+            reactions: (msg.reactions || []).filter(r => !(r.user === data.userId && r.emoji === data.emoji)),
+          };
+        }
+        return msg;
+      }));
+    },
+  });
+
+  // Gerer l'indicateur de frappe
+  const handleTyping = useCallback(() => {
+    if (!currentConversationId) return;
+
+    const now = Date.now();
+    if (now - lastTypingSentRef.current > 2000) {
+      startTyping(currentConversationId);
+      lastTypingSentRef.current = now;
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      if (currentConversationId) {
+        stopTyping(currentConversationId);
+      }
+    }, 3000);
+  }, [currentConversationId, startTyping, stopTyping]);
 
   useEffect(() => {
     if (currentConversationId) {
@@ -72,11 +193,22 @@ export default function ConversationScreen() {
       fetchConversationDetails();
       markAsRead();
 
-      // Polling for new messages (every 3 seconds for better real-time feel)
-      const interval = setInterval(fetchMessages, 3000);
-      return () => clearInterval(interval);
+      const interval = setInterval(() => {
+        if (!isConnected) {
+          fetchMessages();
+        }
+      }, 10000);
+
+      return () => {
+        clearInterval(interval);
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        if (currentConversationId) {
+          stopTyping(currentConversationId);
+        }
+      };
     } else if (userName) {
-      // Nouvelle conversation - afficher juste le titre
       setConversationTitle(userName);
       navigation.setOptions({
         headerTitle: () => (
@@ -94,13 +226,24 @@ export default function ConversationScreen() {
     }
   }, [currentConversationId]);
 
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (sound) {
+        sound.unloadAsync();
+      }
+      if (recording) {
+        recording.stopAndUnloadAsync();
+      }
+    };
+  }, []);
+
   const fetchConversationDetails = async () => {
     if (!currentConversationId) return;
     try {
       const response = await messagesAPI.getConversation(currentConversationId);
       const conversation = response.data;
 
-      // Get other participant info
       const otherParticipant = conversation.participants?.find(
         (p: any) => p.id !== user?.id
       );
@@ -112,6 +255,7 @@ export default function ConversationScreen() {
 
       setConversationTitle(title);
       setOtherUserAvatar(otherParticipant?.profile_picture || otherParticipant?.image || null);
+      setOtherUserId(otherParticipant?.id || null);
 
       navigation.setOptions({
         headerTitle: () => (
@@ -128,10 +272,62 @@ export default function ConversationScreen() {
             <Text style={styles.headerTitleText} numberOfLines={1}>{title}</Text>
           </View>
         ),
+        headerRight: () => (
+          <TouchableOpacity
+            style={styles.headerMenuButton}
+            onPress={handleShowConversationOptions}
+          >
+            <Ionicons name="ellipsis-vertical" size={20} color={Colors.gray700} />
+          </TouchableOpacity>
+        ),
       });
     } catch (error) {
-      console.error('Erreur chargement détails conversation:', error);
+      console.error('Erreur chargement details conversation:', error);
     }
+  };
+
+  const handleShowConversationOptions = () => {
+    Alert.alert(
+      'Options',
+      undefined,
+      [
+        {
+          text: 'Bloquer cet utilisateur',
+          style: 'destructive',
+          onPress: handleBlockUser,
+        },
+        {
+          text: 'Annuler',
+          style: 'cancel',
+        },
+      ]
+    );
+  };
+
+  const handleBlockUser = async () => {
+    if (!otherUserId) return;
+
+    Alert.alert(
+      'Bloquer utilisateur',
+      `Voulez-vous vraiment bloquer ${conversationTitle} ? Vous ne recevrez plus ses messages.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Bloquer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await messagesAPI.blockUser(otherUserId);
+              showSuccess('Utilisateur bloque', `${conversationTitle} a ete bloque.`);
+              navigation.goBack();
+            } catch (error) {
+              console.error('Erreur blocage:', error);
+              showError('Erreur', 'Impossible de bloquer cet utilisateur');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const fetchMessages = async () => {
@@ -142,7 +338,7 @@ export default function ConversationScreen() {
     try {
       const response = await messagesAPI.getMessages({ conversation: currentConversationId });
       const newMessages = response.data.results || response.data || [];
-      setMessages(newMessages.reverse()); // Messages du plus ancien au plus récent
+      setMessages(newMessages.reverse());
     } catch (error) {
       console.error('Erreur chargement messages:', error);
     } finally {
@@ -163,7 +359,7 @@ export default function ConversationScreen() {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        showError('Permission requise', 'Autorisez l\'accès aux photos pour envoyer des images.');
+        showError('Permission requise', 'Autorisez l\'acces aux photos pour envoyer des images.');
         return;
       }
 
@@ -184,8 +380,8 @@ export default function ConversationScreen() {
         }]);
       }
     } catch (error) {
-      console.error('Erreur sélection image:', error);
-      showError('Erreur', 'Impossible de sélectionner l\'image');
+      console.error('Erreur selection image:', error);
+      showError('Erreur', 'Impossible de selectionner l\'image');
     }
   };
 
@@ -193,29 +389,273 @@ export default function ConversationScreen() {
     setAttachedFiles([]);
   };
 
-  const handleLongPressMessage = (messageId: string) => {
-    setSelectedMessageId(messageId);
-    setShowReactionPicker(true);
+  // ============================================
+  // MESSAGES VOCAUX
+  // ============================================
+
+  const startRecording = async () => {
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) {
+        showError('Permission requise', 'Autorisez l\'acces au microphone pour enregistrer des messages vocaux.');
+        return;
+      }
+
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+      });
+
+      const { recording: newRecording } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+
+      setRecording(newRecording);
+      setIsRecording(true);
+      setRecordingDuration(0);
+
+      // Animation pulsation
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(recordingAnim, { toValue: 1.2, duration: 500, useNativeDriver: true }),
+          Animated.timing(recordingAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+        ])
+      ).start();
+
+      // Timer pour la duree
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (error) {
+      console.error('Erreur demarrage enregistrement:', error);
+      showError('Erreur', 'Impossible de demarrer l\'enregistrement');
+    }
+  };
+
+  const stopRecording = async () => {
+    if (!recording) return;
+
+    try {
+      recordingAnim.stopAnimation();
+      recordingAnim.setValue(1);
+
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+
+      setIsRecording(false);
+      setRecording(null);
+
+      if (uri && recordingDuration >= 1) {
+        setAttachedFiles([{
+          uri,
+          name: `voice_${Date.now()}.m4a`,
+          type: 'voice',
+          duration: recordingDuration,
+        }]);
+      }
+
+      setRecordingDuration(0);
+    } catch (error) {
+      console.error('Erreur arret enregistrement:', error);
+    }
+  };
+
+  const cancelRecording = async () => {
+    if (!recording) return;
+
+    try {
+      recordingAnim.stopAnimation();
+      recordingAnim.setValue(1);
+
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+
+      await recording.stopAndUnloadAsync();
+      setIsRecording(false);
+      setRecording(null);
+      setRecordingDuration(0);
+    } catch (error) {
+      console.error('Erreur annulation enregistrement:', error);
+    }
+  };
+
+  const playVoiceMessage = async (attachmentUri: string, messageId: string) => {
+    try {
+      if (sound) {
+        await sound.unloadAsync();
+      }
+
+      if (playingVoiceId === messageId) {
+        setPlayingVoiceId(null);
+        return;
+      }
+
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { uri: attachmentUri },
+        { shouldPlay: true }
+      );
+
+      setSound(newSound);
+      setPlayingVoiceId(messageId);
+
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          setPlayingVoiceId(null);
+        }
+      });
+    } catch (error) {
+      console.error('Erreur lecture audio:', error);
+      showError('Erreur', 'Impossible de lire le message vocal');
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // ============================================
+  // ACTIONS SUR MESSAGES
+  // ============================================
+
+  const handleLongPressMessage = (message: Message) => {
+    setSelectedMessage(message);
+    setShowActionMenu(true);
+  };
+
+  const handleMessageAction = (action: MessageAction) => {
+    if (!selectedMessage) return;
+
+    setShowActionMenu(false);
+
+    switch (action) {
+      case 'reply':
+        setReplyToMessage(selectedMessage);
+        setEditingMessage(null);
+        break;
+      case 'edit':
+        if (isMyMessage(selectedMessage)) {
+          setEditingMessage(selectedMessage);
+          setNewMessage(selectedMessage.content);
+          setReplyToMessage(null);
+        }
+        break;
+      case 'delete':
+        handleDeleteMessage(selectedMessage.id);
+        break;
+      case 'forward':
+        handleForwardMessage(selectedMessage);
+        break;
+      case 'react':
+        setSelectedMessageId(selectedMessage.id);
+        setShowReactionPicker(true);
+        break;
+    }
+    setSelectedMessage(null);
+  };
+
+  const handleDeleteMessage = (messageId: string) => {
+    Alert.alert(
+      'Supprimer le message',
+      'Voulez-vous vraiment supprimer ce message ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await messagesAPI.deleteMessage(messageId);
+              setMessages(prev => prev.filter(m => m.id !== messageId));
+              showSuccess('Message supprime', '');
+            } catch (error) {
+              console.error('Erreur suppression:', error);
+              showError('Erreur', 'Impossible de supprimer le message');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleForwardMessage = async (message: Message) => {
+    setShowForwardModal(true);
+    setLoadingForwardTargets(true);
+    try {
+      // Charger les conversations pour obtenir les utilisateurs
+      const response = await messagesAPI.getConversations();
+      const conversations = response.data.results || response.data || [];
+
+      const targets: User[] = [];
+      conversations.forEach((conv: any) => {
+        conv.participants?.forEach((p: any) => {
+          if (p.id !== user?.id && !targets.find(t => t.id === p.id)) {
+            targets.push(p);
+          }
+        });
+      });
+
+      setForwardTargets(targets);
+    } catch (error) {
+      console.error('Erreur chargement contacts:', error);
+      showError('Erreur', 'Impossible de charger les contacts');
+    } finally {
+      setLoadingForwardTargets(false);
+    }
+  };
+
+  const handleForwardToUser = async (targetUserId: string) => {
+    if (!selectedMessage) return;
+
+    try {
+      await messagesAPI.forwardMessage({
+        message_id: selectedMessage.id,
+        target_user_id: targetUserId,
+      });
+      showSuccess('Message transfere', '');
+      setShowForwardModal(false);
+      setSelectedMessage(null);
+    } catch (error) {
+      console.error('Erreur transfert:', error);
+      showError('Erreur', 'Impossible de transferer le message');
+    }
+  };
+
+  const handleCancelReply = () => {
+    setReplyToMessage(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessage(null);
+    setNewMessage('');
   };
 
   const handleAddReaction = async (emoji: string) => {
-    if (!selectedMessageId) return;
+    const messageId = selectedMessageId || selectedMessage?.id;
+    if (!messageId) return;
 
     try {
-      await messagesAPI.addReaction(selectedMessageId, emoji);
+      if (isConnected) {
+        wsAddReaction(messageId, emoji);
+      } else {
+        await messagesAPI.addReaction(messageId, emoji);
+      }
 
-      // Optimistic update
       setMessages(prev => prev.map(msg => {
-        if (msg.id === selectedMessageId) {
+        if (msg.id === messageId) {
           const existingReaction = msg.reactions?.find(r => r.emoji === emoji && r.user === user?.id);
           if (existingReaction) {
-            // Remove reaction if already exists
             return {
               ...msg,
               reactions: msg.reactions?.filter(r => !(r.emoji === emoji && r.user === user?.id)) || [],
             };
           } else {
-            // Add reaction
             return {
               ...msg,
               reactions: [...(msg.reactions || []), { id: `temp-${Date.now()}`, emoji, user: user?.id || '', created_at: new Date().toISOString() }],
@@ -225,24 +665,43 @@ export default function ConversationScreen() {
         return msg;
       }));
     } catch (error) {
-      console.error('Erreur ajout réaction:', error);
+      console.error('Erreur ajout reaction:', error);
     } finally {
       setShowReactionPicker(false);
       setSelectedMessageId(null);
     }
   };
 
+  // ============================================
+  // ENVOI DE MESSAGE
+  // ============================================
+
   const handleSend = async () => {
     if ((!newMessage.trim() && attachedFiles.length === 0) || sending) return;
 
     const messageContent = newMessage.trim();
+    const isEditing = !!editingMessage;
+
     setNewMessage('');
     setSending(true);
 
-    let conversationIdToUse = currentConversationId;
-
     try {
-      // Si c'est une nouvelle conversation, créer d'abord la conversation
+      // Mode edition
+      if (isEditing && editingMessage) {
+        await messagesAPI.updateMessage(editingMessage.id, { content: messageContent });
+        setMessages(prev => prev.map(msg =>
+          msg.id === editingMessage.id
+            ? { ...msg, content: messageContent }
+            : msg
+        ));
+        setEditingMessage(null);
+        setSending(false);
+        return;
+      }
+
+      let conversationIdToUse = currentConversationId;
+
+      // Nouvelle conversation
       if (isNewConversation && userId && !currentConversationId) {
         const convResponse = await messagesAPI.createConversation({
           participant_ids: [user?.id, userId],
@@ -260,67 +719,87 @@ export default function ConversationScreen() {
       const tempMessage: Message = {
         id: `temp-${Date.now()}`,
         conversation: conversationIdToUse,
-        sender: user!,
+        sender: user!.id as any,
+        sender_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email || '',
         content: messageContent,
-        message_type: attachedFiles.length > 0 ? 'image' : 'text',
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        is_read: false,
+        is_starred: false,
+        read_by: [],
+        reply_to: replyToMessage?.id,
         attachments: attachedFiles.map(f => ({
           id: `temp-${Date.now()}`,
           file: f.uri,
           attachment_type: f.type,
           file_name: f.name,
           file_size: 0,
-          mime_type: 'image/jpeg',
+          mime_type: f.type === 'image' ? 'image/jpeg' : f.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
+          duration_seconds: f.duration,
+          uploaded_at: new Date().toISOString(),
         })),
       };
       setMessages((prev) => [...prev, tempMessage]);
       setAttachedFiles([]);
+      setReplyToMessage(null);
 
-      // If there are attachments, upload them first
+      // Upload attachments
       let attachmentIds: string[] = [];
 
-      if (tempMessage.attachments && tempMessage.attachments.length > 0) {
-        for (const att of tempMessage.attachments) {
-          const formData = new FormData();
-          formData.append('file', {
-            uri: att.file,
-            name: att.file_name,
-            type: 'image/jpeg',
-          } as any);
-          formData.append('type', att.attachment_type);
+      for (const att of attachedFiles) {
+        const formData = new FormData();
+        formData.append('file', {
+          uri: att.uri,
+          name: att.name,
+          type: att.type === 'image' ? 'image/jpeg' : att.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
+        } as any);
+        formData.append('type', att.type);
 
-          try {
-            const uploadResponse = await messagesAPI.uploadAttachment(formData);
-            if (uploadResponse.data?.id) {
-              attachmentIds.push(uploadResponse.data.id);
-            }
-          } catch (uploadError) {
-            console.error('Erreur upload attachment:', uploadError);
+        try {
+          let uploadResponse;
+          if (att.type === 'voice') {
+            uploadResponse = await messagesAPI.uploadVoiceMessage(formData);
+          } else {
+            uploadResponse = await messagesAPI.uploadAttachment(formData);
           }
+          if (uploadResponse.data?.id) {
+            attachmentIds.push(uploadResponse.data.id);
+          }
+        } catch (uploadError) {
+          console.error('Erreur upload attachment:', uploadError);
         }
       }
 
-      const response = await messagesAPI.sendMessage({
-        conversation: conversationIdToUse,
-        content: messageContent,
-      });
-
-      // Replace temp message with real one
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === tempMessage.id ? response.data : msg))
+      // Envoi via WebSocket ou REST
+      const wsSent = isConnected && wsSendMessage(
+        conversationIdToUse,
+        messageContent,
+        replyToMessage?.id,
+        attachmentIds.length > 0 ? attachmentIds : undefined
       );
+
+      if (!wsSent) {
+        const response = await messagesAPI.sendMessage({
+          conversation: conversationIdToUse,
+          content: messageContent,
+          reply_to: replyToMessage?.id,
+        });
+
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === tempMessage.id ? response.data : msg))
+        );
+      }
     } catch (error) {
       console.error('Erreur envoi message:', error);
-      // Remove temp message on error
-      setMessages((prev) => prev.filter((msg) => msg.id.startsWith('temp-')));
-      setNewMessage(messageContent); // Restore message content
+      setMessages((prev) => prev.filter((msg) => !msg.id.startsWith('temp-')));
+      setNewMessage(messageContent);
       showError('Erreur', 'Impossible d\'envoyer le message');
     } finally {
       setSending(false);
     }
   };
+
+  // ============================================
+  // HELPERS
+  // ============================================
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -354,7 +833,6 @@ export default function ConversationScreen() {
   };
 
   const isMyMessage = (message: Message) => {
-    // sender est maintenant un ID (number) depuis le backend
     const senderId = typeof message.sender === 'number'
       ? message.sender
       : typeof message.sender === 'string'
@@ -364,7 +842,6 @@ export default function ConversationScreen() {
   };
 
   const getInitials = (message: Message) => {
-    // Utiliser sender_name depuis le backend
     if (message.sender_name) {
       const parts = message.sender_name.split(' ');
       if (parts.length >= 2) {
@@ -372,7 +849,6 @@ export default function ConversationScreen() {
       }
       return message.sender_name[0].toUpperCase();
     }
-    // Fallback pour compatibilité avec l'ancien format (sender comme objet)
     if (typeof message.sender === 'object' && message.sender !== null) {
       const sender = message.sender as any;
       if (sender.first_name && sender.last_name) {
@@ -383,7 +859,20 @@ export default function ConversationScreen() {
     return 'U';
   };
 
-  const renderAttachment = (attachment: any, isMine: boolean) => {
+  const getReplyToContent = (replyTo: string | Message | undefined) => {
+    if (!replyTo) return null;
+    if (typeof replyTo === 'string') {
+      const replyMessage = messages.find(m => m.id === replyTo);
+      return replyMessage || null;
+    }
+    return replyTo;
+  };
+
+  // ============================================
+  // RENDER HELPERS
+  // ============================================
+
+  const renderAttachment = (attachment: any, isMine: boolean, messageId: string) => {
     if (attachment.attachment_type === 'image') {
       return (
         <Image
@@ -391,6 +880,37 @@ export default function ConversationScreen() {
           style={styles.attachmentImage}
           resizeMode="cover"
         />
+      );
+    }
+
+    if (attachment.attachment_type === 'voice') {
+      const isPlaying = playingVoiceId === messageId;
+      return (
+        <TouchableOpacity
+          style={[styles.voiceAttachment, isMine && styles.voiceAttachmentMine]}
+          onPress={() => playVoiceMessage(attachment.file, messageId)}
+        >
+          <Ionicons
+            name={isPlaying ? 'pause' : 'play'}
+            size={24}
+            color={isMine ? Colors.white : Colors.primary}
+          />
+          <View style={styles.voiceWaveform}>
+            {[...Array(20)].map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.waveformBar,
+                  { height: Math.random() * 16 + 4 },
+                  isMine && styles.waveformBarMine,
+                ]}
+              />
+            ))}
+          </View>
+          <Text style={[styles.voiceDuration, isMine && styles.voiceDurationMine]}>
+            {formatDuration(attachment.duration_seconds || 0)}
+          </Text>
+        </TouchableOpacity>
       );
     }
 
@@ -407,7 +927,6 @@ export default function ConversationScreen() {
   const renderReactions = (reactions: any[] | undefined, isMine: boolean) => {
     if (!reactions || reactions.length === 0) return null;
 
-    // Group reactions by emoji
     const grouped = reactions.reduce((acc, r) => {
       acc[r.emoji] = (acc[r.emoji] || 0) + 1;
       return acc;
@@ -425,14 +944,31 @@ export default function ConversationScreen() {
     );
   };
 
+  const renderReplyPreview = (replyTo: Message | null, isMine: boolean) => {
+    if (!replyTo) return null;
+
+    return (
+      <View style={[styles.replyPreviewInMessage, isMine && styles.replyPreviewInMessageMine]}>
+        <View style={[styles.replyPreviewBar, isMine && styles.replyPreviewBarMine]} />
+        <View style={styles.replyPreviewContent}>
+          <Text style={[styles.replyPreviewName, isMine && styles.replyPreviewNameMine]} numberOfLines={1}>
+            {replyTo.sender_name || 'Utilisateur'}
+          </Text>
+          <Text style={[styles.replyPreviewText, isMine && styles.replyPreviewTextMine]} numberOfLines={1}>
+            {replyTo.content}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item);
     const showDate = shouldShowDate(index);
-    // sender_avatar vient du backend, fallback vers l'ancien format si nécessaire
     const avatar = item.sender_avatar || (typeof item.sender === 'object' ? (item.sender as any)?.profile_picture || (item.sender as any)?.image : null);
     const hasAttachments = item.attachments && item.attachments.length > 0;
-    // is_read est remplacé par read_by (array d'IDs)
     const isRead = item.read_by && item.read_by.length > 0;
+    const replyToContent = getReplyToContent(item.reply_to);
 
     return (
       <View>
@@ -443,7 +979,7 @@ export default function ConversationScreen() {
         )}
         <TouchableOpacity
           style={[styles.messageRow, isMine && styles.messageRowMine]}
-          onLongPress={() => handleLongPressMessage(item.id)}
+          onLongPress={() => handleLongPressMessage(item)}
           delayLongPress={300}
           activeOpacity={0.8}
         >
@@ -457,12 +993,15 @@ export default function ConversationScreen() {
             )
           )}
           <View style={styles.messageBubbleContainer}>
+            {/* Reply Preview */}
+            {replyToContent && renderReplyPreview(replyToContent as Message, isMine)}
+
             {/* Attachments */}
             {hasAttachments && (
               <View style={styles.attachmentsContainer}>
                 {item.attachments?.map((att, i) => (
                   <View key={att.id || i}>
-                    {renderAttachment(att, isMine)}
+                    {renderAttachment(att, isMine, item.id)}
                   </View>
                 ))}
               </View>
@@ -502,7 +1041,7 @@ export default function ConversationScreen() {
         </TouchableOpacity>
       </View>
     );
-  }, [messages, user]);
+  }, [messages, user, playingVoiceId]);
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -514,7 +1053,7 @@ export default function ConversationScreen() {
       </Text>
       <Text style={styles.emptySubtext}>
         {isNewConversation
-          ? `Envoyez un message à ${conversationTitle}`
+          ? `Envoyez un message a ${conversationTitle}`
           : 'Commencez la conversation !'}
       </Text>
     </View>
@@ -534,6 +1073,14 @@ export default function ConversationScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
+      {/* Connection Status Warning */}
+      {!isConnected && currentConversationId && (
+        <View style={styles.connectionStatus}>
+          <Text style={styles.connectionStatusText}>Mode hors-ligne - Rafraichissement automatique</Text>
+        </View>
+      )}
+
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -554,6 +1101,50 @@ export default function ConversationScreen() {
           }}
         />
 
+        {/* Typing Indicator */}
+        {typingIndicator && (
+          <View style={styles.typingIndicatorContainer}>
+            <View style={styles.typingDots}>
+              <View style={[styles.typingDot, styles.typingDot1]} />
+              <View style={[styles.typingDot, styles.typingDot2]} />
+              <View style={[styles.typingDot, styles.typingDot3]} />
+            </View>
+            <Text style={styles.typingText}>{typingIndicator}</Text>
+          </View>
+        )}
+
+        {/* Reply Preview */}
+        {replyToMessage && (
+          <View style={styles.replyPreviewContainer}>
+            <View style={styles.replyPreviewLeft}>
+              <View style={styles.replyPreviewBar} />
+              <View style={styles.replyPreviewContent}>
+                <Text style={styles.replyPreviewLabel}>Repondre a {replyToMessage.sender_name}</Text>
+                <Text style={styles.replyPreviewMessage} numberOfLines={1}>{replyToMessage.content}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleCancelReply} style={styles.replyPreviewClose}>
+              <Ionicons name="close" size={20} color={Colors.gray500} />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Edit Preview */}
+        {editingMessage && (
+          <View style={styles.editPreviewContainer}>
+            <View style={styles.editPreviewLeft}>
+              <Ionicons name="create-outline" size={20} color={Colors.primary} />
+              <View style={styles.editPreviewContent}>
+                <Text style={styles.editPreviewLabel}>Modifier le message</Text>
+                <Text style={styles.editPreviewMessage} numberOfLines={1}>{editingMessage.content}</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={handleCancelEdit} style={styles.editPreviewClose}>
+              <Ionicons name="close" size={20} color={Colors.gray500} />
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Attachment Preview */}
         {attachedFiles.length > 0 && (
           <View style={styles.attachmentPreview}>
@@ -561,6 +1152,14 @@ export default function ConversationScreen() {
               <View key={index} style={styles.attachmentPreviewItem}>
                 {file.type === 'image' && (
                   <Image source={{ uri: file.uri }} style={styles.attachmentPreviewImage} />
+                )}
+                {file.type === 'voice' && (
+                  <View style={styles.attachmentPreviewVoice}>
+                    <Ionicons name="mic" size={24} color={Colors.primary} />
+                    <Text style={styles.attachmentPreviewVoiceDuration}>
+                      {formatDuration(file.duration || 0)}
+                    </Text>
+                  </View>
                 )}
                 <TouchableOpacity
                   style={styles.attachmentRemoveButton}
@@ -573,40 +1172,128 @@ export default function ConversationScreen() {
           </View>
         )}
 
-        {/* Input Area */}
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
-            <TouchableOpacity style={styles.attachButton} onPress={handlePickImage}>
-              <Ionicons name="image-outline" size={22} color={Colors.primary} />
+        {/* Recording UI */}
+        {isRecording && (
+          <View style={styles.recordingContainer}>
+            <TouchableOpacity onPress={cancelRecording} style={styles.recordingCancelButton}>
+              <Ionicons name="trash-outline" size={24} color={Colors.error} />
             </TouchableOpacity>
-
-            <TextInput
-              style={styles.input}
-              value={newMessage}
-              onChangeText={setNewMessage}
-              placeholder="Écrivez votre message..."
-              placeholderTextColor={Colors.gray400}
-              multiline
-              maxLength={1000}
-            />
-
-            <TouchableOpacity
-              style={[
-                styles.sendButton,
-                ((!newMessage.trim() && attachedFiles.length === 0) || sending) && styles.sendButtonDisabled,
-              ]}
-              onPress={handleSend}
-              disabled={(!newMessage.trim() && attachedFiles.length === 0) || sending}
-            >
-              {sending ? (
-                <ActivityIndicator size="small" color={Colors.white} />
-              ) : (
-                <Ionicons name="send" size={18} color={Colors.white} />
-              )}
+            <View style={styles.recordingInfo}>
+              <Animated.View style={[styles.recordingDot, { transform: [{ scale: recordingAnim }] }]} />
+              <Text style={styles.recordingDuration}>{formatDuration(recordingDuration)}</Text>
+            </View>
+            <TouchableOpacity onPress={stopRecording} style={styles.recordingStopButton}>
+              <Ionicons name="send" size={24} color={Colors.white} />
             </TouchableOpacity>
           </View>
-        </View>
+        )}
+
+        {/* Input Area */}
+        {!isRecording && (
+          <View style={styles.inputContainer}>
+            <View style={styles.inputWrapper}>
+              <TouchableOpacity style={styles.attachButton} onPress={handlePickImage}>
+                <Ionicons name="image-outline" size={22} color={Colors.primary} />
+              </TouchableOpacity>
+
+              <TextInput
+                style={styles.input}
+                value={newMessage}
+                onChangeText={(text) => {
+                  setNewMessage(text);
+                  handleTyping();
+                }}
+                placeholder={editingMessage ? 'Modifier le message...' : 'Ecrivez votre message...'}
+                placeholderTextColor={Colors.gray400}
+                multiline
+                maxLength={1000}
+              />
+
+              {newMessage.trim() || attachedFiles.length > 0 ? (
+                <TouchableOpacity
+                  style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+                  onPress={handleSend}
+                  disabled={sending}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Ionicons name="send" size={18} color={Colors.white} />
+                  )}
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={styles.micButton}
+                  onPress={startRecording}
+                >
+                  <Ionicons name="mic" size={22} color={Colors.primary} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
       </KeyboardAvoidingView>
+
+      {/* Action Menu Modal */}
+      <Modal
+        visible={showActionMenu}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowActionMenu(false)}
+      >
+        <Pressable
+          style={styles.actionModalOverlay}
+          onPress={() => setShowActionMenu(false)}
+        >
+          <View style={styles.actionMenuContainer}>
+            <Text style={styles.actionMenuTitle}>Actions</Text>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => handleMessageAction('reply')}
+            >
+              <Ionicons name="arrow-undo-outline" size={22} color={Colors.gray700} />
+              <Text style={styles.actionMenuItemText}>Repondre</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => handleMessageAction('react')}
+            >
+              <Ionicons name="happy-outline" size={22} color={Colors.gray700} />
+              <Text style={styles.actionMenuItemText}>Reagir</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionMenuItem}
+              onPress={() => handleMessageAction('forward')}
+            >
+              <Ionicons name="arrow-redo-outline" size={22} color={Colors.gray700} />
+              <Text style={styles.actionMenuItemText}>Transferer</Text>
+            </TouchableOpacity>
+
+            {selectedMessage && isMyMessage(selectedMessage) && (
+              <>
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={() => handleMessageAction('edit')}
+                >
+                  <Ionicons name="create-outline" size={22} color={Colors.gray700} />
+                  <Text style={styles.actionMenuItemText}>Modifier</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.actionMenuItem}
+                  onPress={() => handleMessageAction('delete')}
+                >
+                  <Ionicons name="trash-outline" size={22} color={Colors.error} />
+                  <Text style={[styles.actionMenuItemText, { color: Colors.error }]}>Supprimer</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Reaction Picker Modal */}
       <Modal
@@ -626,7 +1313,7 @@ export default function ConversationScreen() {
           }}
         >
           <View style={styles.reactionPickerContainer}>
-            <Text style={styles.reactionPickerTitle}>Réagir au message</Text>
+            <Text style={styles.reactionPickerTitle}>Reagir au message</Text>
             <View style={styles.reactionPickerRow}>
               {REACTION_EMOJIS.map((emoji) => (
                 <TouchableOpacity
@@ -640,6 +1327,68 @@ export default function ConversationScreen() {
             </View>
           </View>
         </Pressable>
+      </Modal>
+
+      {/* Forward Modal */}
+      <Modal
+        visible={showForwardModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => {
+          setShowForwardModal(false);
+          setSelectedMessage(null);
+        }}
+      >
+        <View style={styles.forwardModalContainer}>
+          <View style={styles.forwardModalContent}>
+            <View style={styles.forwardModalHeader}>
+              <Text style={styles.forwardModalTitle}>Transferer a</Text>
+              <TouchableOpacity onPress={() => {
+                setShowForwardModal(false);
+                setSelectedMessage(null);
+              }}>
+                <Ionicons name="close" size={24} color={Colors.gray700} />
+              </TouchableOpacity>
+            </View>
+
+            {loadingForwardTargets ? (
+              <View style={styles.forwardModalLoading}>
+                <ActivityIndicator size="large" color={Colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={forwardTargets}
+                keyExtractor={(item) => String(item.id)}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.forwardTargetItem}
+                    onPress={() => handleForwardToUser(String(item.id))}
+                  >
+                    {item.profile_picture ? (
+                      <Image source={{ uri: item.profile_picture }} style={styles.forwardTargetAvatar} />
+                    ) : (
+                      <View style={styles.forwardTargetAvatarPlaceholder}>
+                        <Text style={styles.forwardTargetAvatarText}>
+                          {(item.first_name?.[0] || item.email?.[0] || 'U').toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={styles.forwardTargetName}>
+                      {item.first_name && item.last_name
+                        ? `${item.first_name} ${item.last_name}`
+                        : item.email?.split('@')[0] || 'Utilisateur'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                ListEmptyComponent={() => (
+                  <View style={styles.forwardEmptyContainer}>
+                    <Text style={styles.forwardEmptyText}>Aucun contact disponible</Text>
+                  </View>
+                )}
+              />
+            )}
+          </View>
+        </View>
       </Modal>
     </SafeAreaView>
   );
@@ -687,6 +1436,9 @@ const styles = StyleSheet.create({
   headerTitleText: {
     ...TextStyles.bodyBold,
     maxWidth: 180,
+  },
+  headerMenuButton: {
+    padding: Spacing.sm,
   },
 
   // Messages List
@@ -814,6 +1566,83 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
+  // Voice Attachment
+  voiceAttachment: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray100,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+    minWidth: 180,
+  },
+  voiceAttachmentMine: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  voiceWaveform: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    height: 24,
+    gap: 2,
+  },
+  waveformBar: {
+    width: 3,
+    backgroundColor: Colors.primary,
+    borderRadius: 1.5,
+  },
+  waveformBarMine: {
+    backgroundColor: Colors.white,
+  },
+  voiceDuration: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray600,
+    fontFamily: FontFamily.medium,
+  },
+  voiceDurationMine: {
+    color: Colors.white,
+  },
+
+  // Reply Preview in Message
+  replyPreviewInMessage: {
+    flexDirection: 'row',
+    backgroundColor: Colors.gray100,
+    borderRadius: BorderRadius.md,
+    padding: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  replyPreviewInMessageMine: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  replyPreviewBar: {
+    width: 3,
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+    marginRight: Spacing.sm,
+  },
+  replyPreviewBarMine: {
+    backgroundColor: Colors.white,
+  },
+  replyPreviewContent: {
+    flex: 1,
+  },
+  replyPreviewName: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+    marginBottom: 2,
+  },
+  replyPreviewNameMine: {
+    color: Colors.white,
+  },
+  replyPreviewText: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray600,
+  },
+  replyPreviewTextMine: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+
   // Empty
   emptyContainer: {
     flex: 1,
@@ -841,6 +1670,68 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 
+  // Reply Preview Container
+  replyPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  replyPreviewLeft: {
+    flexDirection: 'row',
+    flex: 1,
+    alignItems: 'center',
+  },
+  replyPreviewLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+    marginBottom: 2,
+  },
+  replyPreviewMessage: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+  },
+  replyPreviewClose: {
+    padding: Spacing.xs,
+  },
+
+  // Edit Preview Container
+  editPreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary + '10',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  editPreviewLeft: {
+    flexDirection: 'row',
+    flex: 1,
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  editPreviewContent: {
+    flex: 1,
+  },
+  editPreviewLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+    marginBottom: 2,
+  },
+  editPreviewMessage: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+  },
+  editPreviewClose: {
+    padding: Spacing.xs,
+  },
+
   // Attachment Preview
   attachmentPreview: {
     flexDirection: 'row',
@@ -858,12 +1749,69 @@ const styles = StyleSheet.create({
     height: 60,
     borderRadius: BorderRadius.md,
   },
+  attachmentPreviewVoice: {
+    width: 80,
+    height: 60,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attachmentPreviewVoiceDuration: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray600,
+    marginTop: 4,
+  },
   attachmentRemoveButton: {
     position: 'absolute',
     top: -8,
     right: -8,
     backgroundColor: Colors.white,
     borderRadius: 10,
+  },
+
+  // Recording
+  recordingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  recordingCancelButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.error + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recordingInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  recordingDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.error,
+  },
+  recordingDuration: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  recordingStopButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // Input
@@ -908,6 +1856,14 @@ const styles = StyleSheet.create({
   sendButtonDisabled: {
     backgroundColor: Colors.gray300,
   },
+  micButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
   // Reactions
   reactionsContainer: {
@@ -937,6 +1893,39 @@ const styles = StyleSheet.create({
     color: Colors.gray600,
     marginLeft: 2,
     fontFamily: FontFamily.medium,
+  },
+
+  // Action Menu Modal
+  actionModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionMenuContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    marginHorizontal: Spacing.xl,
+    width: '80%',
+    maxWidth: 300,
+  },
+  actionMenuTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.md,
+    textAlign: 'center',
+  },
+  actionMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    gap: Spacing.md,
+  },
+  actionMenuItemText: {
+    fontSize: FontSizes.base,
+    color: Colors.gray700,
   },
 
   // Reaction Picker Modal
@@ -973,5 +1962,129 @@ const styles = StyleSheet.create({
   },
   reactionPickerEmoji: {
     fontSize: 24,
+  },
+
+  // Forward Modal
+  forwardModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  forwardModalContent: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    maxHeight: '70%',
+  },
+  forwardModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: Spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  forwardModalTitle: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  forwardModalLoading: {
+    padding: Spacing['3xl'],
+    alignItems: 'center',
+  },
+  forwardTargetItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray50,
+  },
+  forwardTargetAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: Spacing.md,
+  },
+  forwardTargetAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.gray200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  forwardTargetAvatarText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.bold,
+    color: Colors.gray600,
+  },
+  forwardTargetName: {
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
+  },
+  forwardEmptyContainer: {
+    padding: Spacing['3xl'],
+    alignItems: 'center',
+  },
+  forwardEmptyText: {
+    fontSize: FontSizes.base,
+    color: Colors.gray500,
+  },
+
+  // Typing Indicator
+  typingIndicatorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.white,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  typingDots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: Spacing.sm,
+  },
+  typingDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.gray400,
+    marginHorizontal: 2,
+  },
+  typingDot1: {
+    opacity: 0.4,
+  },
+  typingDot2: {
+    opacity: 0.6,
+  },
+  typingDot3: {
+    opacity: 0.8,
+  },
+  typingText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+    fontStyle: 'italic',
+  },
+
+  // Connection Status
+  connectionStatus: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.warning,
+    paddingVertical: 4,
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  connectionStatusText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: Colors.white,
   },
 });

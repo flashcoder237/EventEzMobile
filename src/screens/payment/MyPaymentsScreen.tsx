@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   StatusBar,
   TextInput,
+  SectionList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -23,7 +24,7 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
-  TextStyles,
+  Shadows,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -38,13 +39,18 @@ interface PaymentWithEvent extends Payment {
   };
 }
 
+interface PaymentSection {
+  title: string;
+  data: PaymentWithEvent[];
+}
+
 const statusConfig: Record<string, { color: string; bg: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  pending: { color: Colors.warning, bg: Colors.warningLight, label: 'En attente', icon: 'time' },
+  pending: { color: '#F59E0B', bg: '#FEF3C7', label: 'En attente', icon: 'time' },
   processing: { color: '#3B82F6', bg: '#DBEAFE', label: 'En cours', icon: 'sync' },
-  completed: { color: Colors.success, bg: Colors.successLight, label: 'Complété', icon: 'checkmark-circle' },
-  failed: { color: Colors.error, bg: Colors.errorLight, label: 'Échoué', icon: 'close-circle' },
-  refunded: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Remboursé', icon: 'refresh-circle' },
-  cancelled: { color: Colors.gray500, bg: Colors.gray100, label: 'Annulé', icon: 'ban' },
+  completed: { color: '#10B981', bg: '#D1FAE5', label: 'Complete', icon: 'checkmark-circle' },
+  failed: { color: '#EF4444', bg: '#FEE2E2', label: 'Echoue', icon: 'close-circle' },
+  refunded: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Rembourse', icon: 'refresh-circle' },
+  cancelled: { color: '#6B7280', bg: '#F3F4F6', label: 'Annule', icon: 'ban' },
 };
 
 const methodConfig: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap; color: string }> = {
@@ -54,6 +60,14 @@ const methodConfig: Record<string, { label: string; icon: keyof typeof Ionicons.
   card: { label: 'Carte bancaire', icon: 'card', color: '#3B82F6' },
   bank_transfer: { label: 'Virement', icon: 'business', color: '#10B981' },
 };
+
+const FILTER_TABS: { key: StatusFilter; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'all', label: 'Tous', icon: 'grid-outline' },
+  { key: 'completed', label: 'Completes', icon: 'checkmark-circle-outline' },
+  { key: 'pending', label: 'En attente', icon: 'time-outline' },
+  { key: 'failed', label: 'Echoues', icon: 'close-circle-outline' },
+  { key: 'refunded', label: 'Rembourses', icon: 'refresh-circle-outline' },
+];
 
 export default function MyPaymentsScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -94,13 +108,27 @@ export default function MyPaymentsScreen() {
     const completed = payments.filter(p => p.status === 'completed').length;
     const pending = payments.filter(p => p.status === 'pending' || p.status === 'processing').length;
     const failed = payments.filter(p => p.status === 'failed').length;
-    return { total, completed, pending, failed };
+    const refunded = payments.filter(p => p.status === 'refunded').length;
+
+    // This month total
+    const now = new Date();
+    const thisMonthTotal = payments
+      .filter(p => {
+        const pDate = new Date(p.created_at);
+        return p.status === 'completed' &&
+          pDate.getMonth() === now.getMonth() &&
+          pDate.getFullYear() === now.getFullYear();
+      })
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    return { total, completed, pending, failed, refunded, thisMonthTotal };
   }, [payments]);
 
-  // Filtered payments
-  const filteredPayments = useMemo(() => {
+  // Filtered and grouped payments
+  const sections = useMemo(() => {
     let result = [...payments];
 
+    // Status filter
     if (statusFilter !== 'all') {
       if (statusFilter === 'pending') {
         result = result.filter(p => p.status === 'pending' || p.status === 'processing');
@@ -109,6 +137,7 @@ export default function MyPaymentsScreen() {
       }
     }
 
+    // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(p => {
@@ -119,29 +148,41 @@ export default function MyPaymentsScreen() {
       });
     }
 
-    // Sort by date (most recent first)
+    // Sort by date
     result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    return result;
+    // Group by month
+    const grouped: Record<string, PaymentWithEvent[]> = {};
+    result.forEach(payment => {
+      const date = new Date(payment.created_at);
+      const monthKey = date.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+      const capitalizedKey = monthKey.charAt(0).toUpperCase() + monthKey.slice(1);
+
+      if (!grouped[capitalizedKey]) {
+        grouped[capitalizedKey] = [];
+      }
+      grouped[capitalizedKey].push(payment);
+    });
+
+    return Object.entries(grouped).map(([title, data]) => ({ title, data }));
   }, [payments, statusFilter, searchQuery]);
+
+  const formatAmount = (amount: number | string) => {
+    return Number(amount).toLocaleString('fr-FR');
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
     });
-  };
-
-  const formatAmount = (amount: number | string) => {
-    return Number(amount).toLocaleString('fr-FR');
   };
 
   const getEventTitle = (payment: PaymentWithEvent) => {
     return payment.event_title ||
-           payment.registration_details?.event_detail?.title ||
-           'Paiement';
+      payment.registration_details?.event_detail?.title ||
+      'Paiement';
   };
 
   const getStatusConfig = (status: string) => {
@@ -150,73 +191,78 @@ export default function MyPaymentsScreen() {
 
   const getMethodConfig = (method: string) => {
     const key = method?.toLowerCase().replace(/\s+/g, '_');
-    return methodConfig[key] || { label: method, icon: 'cash', color: Colors.gray500 };
+    return methodConfig[key] || { label: method || 'Paiement', icon: 'cash', color: Colors.gray500 };
   };
 
-  const canRequestRefund = (payment: PaymentWithEvent) => {
-    return payment.status === 'completed';
-  };
+  const renderSectionHeader = ({ section }: { section: PaymentSection }) => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>{section.title}</Text>
+      <Text style={styles.sectionCount}>{section.data.length} paiement{section.data.length > 1 ? 's' : ''}</Text>
+    </View>
+  );
 
   const renderPayment = ({ item }: { item: PaymentWithEvent }) => {
     const status = getStatusConfig(item.status || 'pending');
     const method = getMethodConfig(item.payment_method);
-    const canRefund = canRequestRefund(item);
+    const canRefund = item.status === 'completed';
 
     return (
       <TouchableOpacity
-        style={styles.card}
+        style={styles.paymentCard}
         onPress={() => {
-          // Could navigate to payment details
+          // Navigate to payment details if needed
         }}
         activeOpacity={0.7}
       >
-        <View style={styles.cardHeader}>
-          <View style={[styles.methodIcon, { backgroundColor: `${method.color}20` }]}>
-            <Ionicons name={method.icon} size={20} color={method.color} />
-          </View>
-          <View style={styles.cardHeaderContent}>
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {getEventTitle(item)}
-            </Text>
-            <Text style={styles.cardSubtitle}>{method.label}</Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-            <Ionicons name={status.icon} size={12} color={status.color} />
-            <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-          </View>
+        {/* Method Icon */}
+        <View style={[styles.methodIcon, { backgroundColor: `${method.color}20` }]}>
+          <Ionicons name={method.icon} size={20} color={method.color} />
         </View>
 
-        <View style={styles.cardBody}>
-          <View style={styles.cardInfo}>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={14} color={Colors.gray400} />
-              <Text style={styles.infoText}>{formatDate(item.created_at)}</Text>
+        {/* Content */}
+        <View style={styles.paymentContent}>
+          <View style={styles.paymentHeader}>
+            <Text style={styles.paymentTitle} numberOfLines={1}>{getEventTitle(item)}</Text>
+            <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+              <Ionicons name={status.icon} size={12} color={status.color} />
+              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
             </View>
+          </View>
+
+          <View style={styles.paymentMeta}>
+            <Text style={styles.methodText}>{method.label}</Text>
+            <View style={styles.metaDot} />
+            <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
             {item.transaction_id && (
-              <View style={styles.infoRow}>
-                <Ionicons name="receipt-outline" size={14} color={Colors.gray400} />
-                <Text style={styles.infoText}>#{item.transaction_id.slice(-8)}</Text>
-              </View>
+              <>
+                <View style={styles.metaDot} />
+                <Text style={styles.txnText}>#{item.transaction_id.slice(-6)}</Text>
+              </>
             )}
           </View>
 
-          <View style={styles.amountContainer}>
-            <Text style={styles.amount}>{formatAmount(item.amount)}</Text>
-            <Text style={styles.currency}>{item.currency || 'XAF'}</Text>
+          <View style={styles.paymentFooter}>
+            <View style={styles.amountContainer}>
+              <Text style={styles.amount}>{formatAmount(item.amount)}</Text>
+              <Text style={styles.currency}>{item.currency || 'XAF'}</Text>
+            </View>
+
+            {canRefund && (
+              <TouchableOpacity
+                style={styles.refundButton}
+                onPress={() => navigation.navigate('RefundRequest', { paymentId: item.id })}
+              >
+                <Ionicons name="refresh-circle-outline" size={16} color="#8B5CF6" />
+                <Text style={styles.refundButtonText}>Remboursement</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {canRefund && (
-          <View style={styles.cardActions}>
-            <TouchableOpacity
-              style={styles.refundButton}
-              onPress={() => navigation.navigate('RefundRequest', { paymentId: item.id })}
-            >
-              <Ionicons name="refresh-circle-outline" size={16} color="#8B5CF6" />
-              <Text style={styles.refundButtonText}>Demander un remboursement</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        {/* Arrow */}
+        <View style={styles.arrowContainer}>
+          <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
+        </View>
       </TouchableOpacity>
     );
   };
@@ -224,13 +270,13 @@ export default function MyPaymentsScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="card-outline" size={48} color={Colors.gray300} />
+        <Ionicons name="card-outline" size={48} color={Colors.gray400} />
       </View>
       <Text style={styles.emptyTitle}>Aucun paiement</Text>
       <Text style={styles.emptyText}>
         {searchQuery || statusFilter !== 'all'
-          ? 'Aucun paiement ne correspond à vos critères.'
-          : 'Vous n\'avez pas encore effectué de paiement.'}
+          ? 'Aucun paiement ne correspond a vos criteres.'
+          : 'Vous n\'avez pas encore effectue de paiement.'}
       </Text>
     </View>
   );
@@ -238,7 +284,7 @@ export default function MyPaymentsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
         </View>
@@ -248,44 +294,86 @@ export default function MyPaymentsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.headerBackButton}
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Mes Paiements</Text>
-          <Text style={styles.headerSubtitle}>Gérez et suivez vos paiements</Text>
+        <Text style={styles.headerTitle}>Mes Paiements</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Main Stats Card */}
+      <View style={styles.mainStatsCard}>
+        <View style={styles.mainStatRow}>
+          <View style={styles.mainStatIcon}>
+            <Ionicons name="wallet" size={28} color={Colors.primary} />
+          </View>
+          <View style={styles.mainStatContent}>
+            <Text style={styles.mainStatLabel}>Total depense</Text>
+            <View style={styles.mainStatValueRow}>
+              <Text style={styles.mainStatValue}>{formatAmount(stats.total)}</Text>
+              <Text style={styles.mainStatCurrency}>XAF</Text>
+            </View>
+          </View>
+        </View>
+        <View style={styles.mainStatDivider} />
+        <View style={styles.monthlyStatRow}>
+          <Ionicons name="trending-up" size={16} color={Colors.success} />
+          <Text style={styles.monthlyStatText}>Ce mois: {formatAmount(stats.thisMonthTotal)} XAF</Text>
         </View>
       </View>
 
-      {/* Stats */}
-      <View style={styles.statsContainer}>
-        <View style={styles.statItem}>
-          <Text style={styles.statValue}>{formatAmount(stats.total)}</Text>
-          <Text style={styles.statLabel}>Total XAF</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <View style={styles.statRow}>
-            <Ionicons name="checkmark-circle" size={14} color={Colors.success} />
-            <Text style={styles.statValue}>{stats.completed}</Text>
+      {/* Quick Stats */}
+      <View style={styles.quickStats}>
+        <TouchableOpacity
+          style={[styles.quickStatItem, statusFilter === 'completed' && styles.quickStatItemActive]}
+          onPress={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
+        >
+          <View style={[styles.quickStatIcon, { backgroundColor: '#D1FAE5' }]}>
+            <Ionicons name="checkmark-circle" size={16} color="#10B981" />
           </View>
-          <Text style={styles.statLabel}>Complétés</Text>
-        </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statItem}>
-          <View style={styles.statRow}>
-            <Ionicons name="time" size={14} color={Colors.warning} />
-            <Text style={styles.statValue}>{stats.pending}</Text>
+          <Text style={styles.quickStatValue}>{stats.completed}</Text>
+          <Text style={styles.quickStatLabel}>Completes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.quickStatItem, statusFilter === 'pending' && styles.quickStatItemActive]}
+          onPress={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+        >
+          <View style={[styles.quickStatIcon, { backgroundColor: '#FEF3C7' }]}>
+            <Ionicons name="time" size={16} color="#F59E0B" />
           </View>
-          <Text style={styles.statLabel}>En attente</Text>
-        </View>
+          <Text style={styles.quickStatValue}>{stats.pending}</Text>
+          <Text style={styles.quickStatLabel}>En attente</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.quickStatItem, statusFilter === 'failed' && styles.quickStatItemActive]}
+          onPress={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
+        >
+          <View style={[styles.quickStatIcon, { backgroundColor: '#FEE2E2' }]}>
+            <Ionicons name="close-circle" size={16} color="#EF4444" />
+          </View>
+          <Text style={styles.quickStatValue}>{stats.failed}</Text>
+          <Text style={styles.quickStatLabel}>Echoues</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.quickStatItem, statusFilter === 'refunded' && styles.quickStatItemActive]}
+          onPress={() => setStatusFilter(statusFilter === 'refunded' ? 'all' : 'refunded')}
+        >
+          <View style={[styles.quickStatIcon, { backgroundColor: '#EDE9FE' }]}>
+            <Ionicons name="refresh-circle" size={16} color="#8B5CF6" />
+          </View>
+          <Text style={styles.quickStatValue}>{stats.refunded}</Text>
+          <Text style={styles.quickStatLabel}>Rembourses</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search */}
@@ -294,7 +382,7 @@ export default function MyPaymentsScreen() {
           <Ionicons name="search" size={18} color={Colors.gray400} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher par événement, transaction..."
+            placeholder="Rechercher par evenement, transaction..."
             placeholderTextColor={Colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -307,53 +395,58 @@ export default function MyPaymentsScreen() {
         </View>
       </View>
 
-      {/* Status Filter */}
-      <View style={styles.filterContainer}>
-        {(['all', 'completed', 'pending', 'failed', 'refunded'] as StatusFilter[]).map((status) => (
-          <TouchableOpacity
-            key={status}
-            style={[
-              styles.filterChip,
-              statusFilter === status && styles.filterChipActive
-            ]}
-            onPress={() => setStatusFilter(status)}
-          >
-            <Text style={[
-              styles.filterChipText,
-              statusFilter === status && styles.filterChipTextActive
-            ]}>
-              {status === 'all' ? 'Tous' :
-               status === 'completed' ? 'Complétés' :
-               status === 'pending' ? 'En attente' :
-               status === 'failed' ? 'Échoués' : 'Remboursés'}
-            </Text>
+      {/* Active Filter Indicator */}
+      {statusFilter !== 'all' && (
+        <View style={styles.filterIndicator}>
+          <Text style={styles.filterIndicatorText}>
+            Filtre: {FILTER_TABS.find(t => t.key === statusFilter)?.label}
+          </Text>
+          <TouchableOpacity onPress={() => setStatusFilter('all')}>
+            <Ionicons name="close" size={18} color={Colors.primary} />
           </TouchableOpacity>
-        ))}
-      </View>
+        </View>
+      )}
 
-      {/* Results info */}
+      {/* Results count */}
       <View style={styles.resultsInfo}>
         <Text style={styles.resultsText}>
-          {filteredPayments.length} paiement{filteredPayments.length !== 1 ? 's' : ''}
+          {sections.reduce((sum, s) => sum + s.data.length, 0)} paiement{sections.reduce((sum, s) => sum + s.data.length, 0) !== 1 ? 's' : ''}
         </Text>
       </View>
 
       {/* Payments List */}
-      <FlatList
-        data={filteredPayments}
-        renderItem={renderPayment}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmpty}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.primary}
-          />
-        }
-      />
+      {sections.length > 0 ? (
+        <SectionList
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPayment}
+          renderSectionHeader={renderSectionHeader}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+            />
+          }
+        />
+      ) : (
+        <FlatList
+          data={[]}
+          renderItem={() => null}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+            />
+          }
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -371,81 +464,132 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    backgroundColor: '#7C3AED',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
   },
-  headerBackButton: {
+  backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerContent: {
-    flex: 1,
-  },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.white,
-  },
-  headerSubtitle: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: 'rgba(255,255,255,0.7)',
-  },
-
-  // Stats
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    marginTop: -Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
-  statLabel: {
-    fontSize: FontSizes.xs,
+
+  // Main Stats Card
+  mainStatsCard: {
+    backgroundColor: Colors.white,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    ...Shadows.md,
+  },
+  mainStatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  mainStatIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  mainStatContent: {
+    flex: 1,
+  },
+  mainStatLabel: {
+    fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
     color: Colors.gray500,
-    marginTop: 2,
+    marginBottom: 2,
   },
-  statDivider: {
-    width: 1,
-    backgroundColor: Colors.gray200,
-    marginVertical: Spacing.xs,
+  mainStatValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: Spacing.xs,
+  },
+  mainStatValue: {
+    fontSize: FontSizes['3xl'],
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
+  },
+  mainStatCurrency: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+  },
+  mainStatDivider: {
+    height: 1,
+    backgroundColor: Colors.gray100,
+    marginVertical: Spacing.md,
+  },
+  monthlyStatRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  monthlyStatText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray600,
+  },
+
+  // Quick Stats
+  quickStats: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  quickStatItem: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.sm,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+  },
+  quickStatItemActive: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+  },
+  quickStatIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  quickStatValue: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
+  },
+  quickStatLabel: {
+    fontSize: 10,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
   },
 
   // Search
   searchContainer: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.md,
   },
   searchInputWrapper: {
     flexDirection: 'row',
@@ -466,42 +610,51 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
-  // Filter
-  filterContainer: {
+  // Filter Indicator
+  filterIndicator: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    backgroundColor: Colors.primaryLight,
+    borderRadius: BorderRadius.md,
   },
-  filterChip: {
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  filterChipActive: {
-    backgroundColor: '#7C3AED',
-    borderColor: '#7C3AED',
-  },
-  filterChipText: {
-    fontSize: FontSizes.xs,
+  filterIndicatorText: {
+    fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
-    color: Colors.gray600,
-  },
-  filterChipTextActive: {
-    color: Colors.white,
+    color: Colors.primary,
   },
 
   // Results
   resultsInfo: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xs,
   },
   resultsText: {
     fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+  },
+
+  // Section Header
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  sectionTitle: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  sectionCount: {
+    fontSize: FontSizes.xs,
     fontFamily: FontFamily.regular,
     color: Colors.gray500,
   },
@@ -513,78 +666,92 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
   },
 
-  // Card
-  card: {
+  // Payment Card
+  paymentCard: {
+    flexDirection: 'row',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+    padding: Spacing.md,
     borderWidth: 1,
     borderColor: Colors.gray100,
-    overflow: 'hidden',
-  },
-  cardHeader: {
-    flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    gap: Spacing.sm,
   },
   methodIcon: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: Spacing.md,
   },
-  cardHeaderContent: {
+  paymentContent: {
     flex: 1,
   },
-  cardTitle: {
+  paymentHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  paymentTitle: {
+    flex: 1,
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
-  },
-  cardSubtitle: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    marginRight: Spacing.sm,
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
+    gap: 3,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
     borderRadius: BorderRadius.full,
   },
   statusText: {
     fontSize: 10,
     fontFamily: FontFamily.semiBold,
   },
-  cardBody: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  cardInfo: {
-    gap: 4,
-  },
-  infoRow: {
+  paymentMeta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    marginBottom: Spacing.sm,
   },
-  infoText: {
+  methodText: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.regular,
     color: Colors.gray500,
   },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: Colors.gray300,
+    marginHorizontal: 6,
+  },
+  dateText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+  },
+  txnText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray400,
+  },
+  paymentFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   amountContainer: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
   },
   amount: {
-    fontSize: FontSizes.xl,
+    fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
   },
@@ -593,26 +760,22 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     color: Colors.gray500,
   },
-  cardActions: {
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    padding: Spacing.md,
-    backgroundColor: Colors.gray50,
-  },
   refundButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    gap: 4,
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.md,
     backgroundColor: '#EDE9FE',
   },
   refundButtonText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
     color: '#8B5CF6',
+  },
+  arrowContainer: {
+    paddingLeft: Spacing.sm,
   },
 
   // Empty
@@ -631,12 +794,14 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    ...TextStyles.h4,
-    color: Colors.gray700,
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
   emptyText: {
-    ...TextStyles.body,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
     textAlign: 'center',
   },

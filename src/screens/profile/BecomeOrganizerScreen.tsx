@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   StatusBar,
   KeyboardAvoidingView,
   Platform,
+  Animated,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -23,12 +25,14 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../constants/theme';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 
+const { width } = Dimensions.get('window');
+
 type OrganizerType = 'individual' | 'organization';
+type Step = 1 | 2 | 3 | 4;
 
 interface FormData {
   organizer_type: OrganizerType;
@@ -43,13 +47,35 @@ interface FormErrors {
   phone?: string;
 }
 
+const STEPS = [
+  { number: 1, label: 'Bienvenue' },
+  { number: 2, label: 'Type' },
+  { number: 3, label: 'Details' },
+  { number: 4, label: 'Confirmer' },
+];
+
+const STATS = [
+  { icon: 'people-outline' as const, value: '2,500+', label: 'Organisateurs actifs' },
+  { icon: 'ticket-outline' as const, value: '50,000+', label: 'Billets vendus' },
+  { icon: 'star-outline' as const, value: '4.8/5', label: 'Satisfaction' },
+];
+
+const BENEFITS = [
+  { icon: 'calendar-outline' as const, title: 'Creez vos evenements', desc: 'Publiez et gerez facilement' },
+  { icon: 'ticket-outline' as const, title: 'Vendez des billets', desc: 'Billetterie avec QR codes' },
+  { icon: 'analytics-outline' as const, title: 'Suivez les performances', desc: 'Analytics detailles' },
+  { icon: 'wallet-outline' as const, title: 'Recevez vos revenus', desc: 'Paiements securises' },
+];
+
 export default function BecomeOrganizerScreen() {
   const navigation = useNavigation();
   const { user, updateUser } = useAuth();
   const { showError, showSuccess } = useAlert();
   const [isLoading, setIsLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
+  const [currentStep, setCurrentStep] = useState<Step>(1);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const progressAnim = useRef(new Animated.Value(1)).current;
+
   const [formData, setFormData] = useState<FormData>({
     organizer_type: 'individual',
     company_name: '',
@@ -58,6 +84,20 @@ export default function BecomeOrganizerScreen() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const animateProgress = (toStep: Step) => {
+    Animated.spring(progressAnim, {
+      toValue: toStep,
+      useNativeDriver: false,
+      tension: 50,
+      friction: 8,
+    }).start();
+  };
+
+  const goToStep = (step: Step) => {
+    animateProgress(step);
+    setCurrentStep(step);
+  };
+
   const updateField = (field: keyof FormData, value: string) => {
     setFormData({ ...formData, [field]: value });
     if (errors[field as keyof FormErrors]) {
@@ -65,29 +105,45 @@ export default function BecomeOrganizerScreen() {
     }
   };
 
-  const validate = () => {
+  const validateStep3 = () => {
     const newErrors: FormErrors = {};
 
     if (formData.organizer_type === 'organization') {
       if (!formData.company_name.trim()) {
-        newErrors.company_name = 'Le nom de l\'entreprise est requis';
+        newErrors.company_name = "Le nom de l'entreprise est requis";
       }
       if (!formData.registration_number.trim()) {
-        newErrors.registration_number = 'Le numéro SIRET/RC est requis';
+        newErrors.registration_number = 'Le numero SIRET/RC est requis';
       }
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Le téléphone est requis';
+      newErrors.phone = 'Le telephone est requis';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleBecomeOrganizer = async () => {
-    if (!validate()) return;
+  const handleNext = () => {
+    if (currentStep === 3) {
+      if (!validateStep3()) return;
+    }
 
+    if (currentStep < 4) {
+      goToStep((currentStep + 1) as Step);
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 1) {
+      goToStep((currentStep - 1) as Step);
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  const handleSubmit = async () => {
     setIsLoading(true);
     try {
       const data: any = {
@@ -102,13 +158,12 @@ export default function BecomeOrganizerScreen() {
 
       await usersAPI.becomeOrganizer(data);
 
-      // Mettre à jour l'utilisateur local
       const userResponse = await usersAPI.getCurrentUser();
       await updateUser(userResponse.data);
 
       showSuccess(
-        'Félicitations !',
-        'Vous êtes maintenant organisateur. Créez votre premier événement !'
+        'Felicitations !',
+        'Vous etes maintenant organisateur. Creez votre premier evenement !'
       );
       navigation.goBack();
     } catch (error: any) {
@@ -133,64 +188,61 @@ export default function BecomeOrganizerScreen() {
     return null;
   };
 
-  const benefits = [
-    {
-      icon: 'calendar' as const,
-      title: 'Créez vos événements',
-      description: 'Publiez et gérez vos événements facilement',
-    },
-    {
-      icon: 'ticket' as const,
-      title: 'Vendez des billets',
-      description: 'Système de billetterie intégré avec QR codes',
-    },
-    {
-      icon: 'analytics' as const,
-      title: 'Suivez vos performances',
-      description: 'Tableaux de bord et analytics détaillés',
-    },
-    {
-      icon: 'wallet' as const,
-      title: 'Recevez vos revenus',
-      description: 'Paiements sécurisés et retraits rapides',
-    },
-  ];
+  // Step 1: Welcome
+  const renderStep1 = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.heroIcon}>
+        <Ionicons name="megaphone" size={48} color={Colors.white} />
+      </View>
+      <Text style={styles.heroTitle}>Devenez Organisateur</Text>
+      <Text style={styles.heroSubtitle}>
+        Partagez vos evenements avec des milliers de participants
+      </Text>
 
-  const renderBenefits = () => (
-    <View style={styles.benefitsContainer}>
-      <Text style={styles.sectionTitle}>Pourquoi devenir organisateur ?</Text>
-      {benefits.map((benefit, index) => (
-        <View key={index} style={styles.benefitItem}>
-          <View style={styles.benefitIcon}>
-            <Ionicons name={benefit.icon} size={24} color={Colors.primary} />
+      {/* Stats */}
+      <View style={styles.statsRow}>
+        {STATS.map((stat, index) => (
+          <View key={index} style={styles.statItem}>
+            <View style={styles.statIcon}>
+              <Ionicons name={stat.icon} size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.statValue}>{stat.value}</Text>
+            <Text style={styles.statLabel}>{stat.label}</Text>
           </View>
-          <View style={styles.benefitText}>
-            <Text style={styles.benefitTitle}>{benefit.title}</Text>
-            <Text style={styles.benefitDescription}>{benefit.description}</Text>
-          </View>
-        </View>
-      ))}
+        ))}
+      </View>
 
-      <GradientButton
-        onPress={() => setShowForm(true)}
-        title="Commencer"
-        icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
-        size="xl"
-        fullWidth
-        style={styles.startButton}
-      />
+      {/* Benefits */}
+      <View style={styles.benefitsContainer}>
+        {BENEFITS.map((benefit, index) => (
+          <View key={index} style={styles.benefitItem}>
+            <View style={styles.benefitIcon}>
+              <Ionicons name={benefit.icon} size={20} color={Colors.primary} />
+            </View>
+            <View style={styles.benefitText}>
+              <Text style={styles.benefitTitle}>{benefit.title}</Text>
+              <Text style={styles.benefitDesc}>{benefit.desc}</Text>
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 
-  const renderTypeSelector = () => (
-    <View style={styles.typeSelectorContainer}>
-      <Text style={styles.sectionLabel}>Quel type d'organisateur êtes-vous ?</Text>
+  // Step 2: Type Selection
+  const renderStep2 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Quel type d'organisateur etes-vous ?</Text>
+      <Text style={styles.stepSubtitle}>
+        Choisissez le profil qui vous correspond le mieux
+      </Text>
+
       <View style={styles.typeOptions}>
         <AnimatedPressable
           onPress={() => updateField('organizer_type', 'individual')}
           style={[
-            styles.typeOption,
-            formData.organizer_type === 'individual' && styles.typeOptionSelected,
+            styles.typeCard,
+            formData.organizer_type === 'individual' && styles.typeCardSelected,
           ]}
           animationType="scale"
           scaleValue={0.98}
@@ -201,26 +253,31 @@ export default function BecomeOrganizerScreen() {
           ]}>
             <Ionicons
               name="person"
-              size={24}
+              size={32}
               color={formData.organizer_type === 'individual' ? Colors.white : Colors.gray500}
             />
           </View>
           <Text style={[
-            styles.typeOptionTitle,
-            formData.organizer_type === 'individual' && styles.typeOptionTitleSelected,
+            styles.typeTitle,
+            formData.organizer_type === 'individual' && styles.typeTitleSelected,
           ]}>
             Particulier
           </Text>
-          <Text style={styles.typeOptionDescription}>
-            Organisateur indépendant
+          <Text style={styles.typeDesc}>
+            Organisateur independant, freelance ou passione
           </Text>
+          {formData.organizer_type === 'individual' && (
+            <View style={styles.typeCheck}>
+              <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+            </View>
+          )}
         </AnimatedPressable>
 
         <AnimatedPressable
           onPress={() => updateField('organizer_type', 'organization')}
           style={[
-            styles.typeOption,
-            formData.organizer_type === 'organization' && styles.typeOptionSelected,
+            styles.typeCard,
+            formData.organizer_type === 'organization' && styles.typeCardSelected,
           ]}
           animationType="scale"
           scaleValue={0.98}
@@ -231,136 +288,222 @@ export default function BecomeOrganizerScreen() {
           ]}>
             <Ionicons
               name="business"
-              size={24}
+              size={32}
               color={formData.organizer_type === 'organization' ? Colors.white : Colors.gray500}
             />
           </View>
           <Text style={[
-            styles.typeOptionTitle,
-            formData.organizer_type === 'organization' && styles.typeOptionTitleSelected,
+            styles.typeTitle,
+            formData.organizer_type === 'organization' && styles.typeTitleSelected,
           ]}>
             Organisation
           </Text>
-          <Text style={styles.typeOptionDescription}>
-            Entreprise / Association
+          <Text style={styles.typeDesc}>
+            Entreprise, association ou structure officielle
           </Text>
+          {formData.organizer_type === 'organization' && (
+            <View style={styles.typeCheck}>
+              <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+            </View>
+          )}
         </AnimatedPressable>
       </View>
     </View>
   );
 
-  const renderForm = () => (
-    <View style={styles.formContainer}>
-      <Text style={styles.sectionTitle}>Informations</Text>
+  // Step 3: Details Form
+  const renderStep3 = () => (
+    <View style={styles.stepContent}>
+      <Text style={styles.stepTitle}>Vos informations</Text>
+      <Text style={styles.stepSubtitle}>
+        {formData.organizer_type === 'organization'
+          ? 'Renseignez les informations de votre organisation'
+          : 'Renseignez vos coordonnees de contact'}
+      </Text>
 
-      {renderTypeSelector()}
-
-      {formData.organizer_type === 'organization' && (
-        <>
-          {/* Company Name */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Nom de l'entreprise</Text>
-            <View style={[styles.inputWrapper, getInputStyle('company_name', !!errors.company_name)]}>
-              <View style={styles.inputIconContainer}>
+      <View style={styles.formContainer}>
+        {formData.organizer_type === 'organization' && (
+          <>
+            {/* Company Name */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Nom de l'entreprise</Text>
+              <View style={[styles.inputWrapper, getInputStyle('company_name', !!errors.company_name)]}>
                 <Ionicons
                   name="business-outline"
                   size={20}
                   color={focusedField === 'company_name' ? Colors.primary : Colors.gray400}
                 />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nom de votre entreprise"
+                  placeholderTextColor={Colors.gray400}
+                  value={formData.company_name}
+                  onChangeText={(text) => updateField('company_name', text)}
+                  onFocus={() => setFocusedField('company_name')}
+                  onBlur={() => setFocusedField(null)}
+                  autoCapitalize="words"
+                />
               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Nom de votre entreprise"
-                placeholderTextColor={Colors.gray400}
-                value={formData.company_name}
-                onChangeText={(text) => updateField('company_name', text)}
-                onFocus={() => setFocusedField('company_name')}
-                onBlur={() => setFocusedField(null)}
-                autoCapitalize="words"
-              />
+              {errors.company_name && (
+                <View style={styles.errorRow}>
+                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
+                  <Text style={styles.errorText}>{errors.company_name}</Text>
+                </View>
+              )}
             </View>
-            {errors.company_name && (
-              <Text style={styles.errorText}>{errors.company_name}</Text>
-            )}
-          </View>
 
-          {/* Registration Number */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Numéro SIRET / RC</Text>
-            <View style={[styles.inputWrapper, getInputStyle('registration_number', !!errors.registration_number)]}>
-              <View style={styles.inputIconContainer}>
+            {/* Registration Number */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Numero SIRET / RC</Text>
+              <View style={[styles.inputWrapper, getInputStyle('registration_number', !!errors.registration_number)]}>
                 <Ionicons
                   name="document-text-outline"
                   size={20}
                   color={focusedField === 'registration_number' ? Colors.primary : Colors.gray400}
                 />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Numero d'enregistrement"
+                  placeholderTextColor={Colors.gray400}
+                  value={formData.registration_number}
+                  onChangeText={(text) => updateField('registration_number', text)}
+                  onFocus={() => setFocusedField('registration_number')}
+                  onBlur={() => setFocusedField(null)}
+                />
               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Numéro d'enregistrement"
-                placeholderTextColor={Colors.gray400}
-                value={formData.registration_number}
-                onChangeText={(text) => updateField('registration_number', text)}
-                onFocus={() => setFocusedField('registration_number')}
-                onBlur={() => setFocusedField(null)}
-              />
+              {errors.registration_number && (
+                <View style={styles.errorRow}>
+                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
+                  <Text style={styles.errorText}>{errors.registration_number}</Text>
+                </View>
+              )}
             </View>
-            {errors.registration_number && (
-              <Text style={styles.errorText}>{errors.registration_number}</Text>
-            )}
-          </View>
-        </>
-      )}
+          </>
+        )}
 
-      {/* Phone */}
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Téléphone</Text>
-        <View style={[styles.inputWrapper, getInputStyle('phone', !!errors.phone)]}>
-          <View style={styles.inputIconContainer}>
+        {/* Phone */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Telephone</Text>
+          <View style={[styles.inputWrapper, getInputStyle('phone', !!errors.phone)]}>
             <Ionicons
               name="call-outline"
               size={20}
               color={focusedField === 'phone' ? Colors.primary : Colors.gray400}
             />
+            <TextInput
+              style={styles.input}
+              placeholder="Votre numero de telephone"
+              placeholderTextColor={Colors.gray400}
+              value={formData.phone}
+              onChangeText={(text) => updateField('phone', text)}
+              onFocus={() => setFocusedField('phone')}
+              onBlur={() => setFocusedField(null)}
+              keyboardType="phone-pad"
+            />
           </View>
-          <TextInput
-            style={styles.input}
-            placeholder="Votre numéro de téléphone"
-            placeholderTextColor={Colors.gray400}
-            value={formData.phone}
-            onChangeText={(text) => updateField('phone', text)}
-            onFocus={() => setFocusedField('phone')}
-            onBlur={() => setFocusedField(null)}
-            keyboardType="phone-pad"
-          />
+          {errors.phone && (
+            <View style={styles.errorRow}>
+              <Ionicons name="alert-circle" size={14} color={Colors.error} />
+              <Text style={styles.errorText}>{errors.phone}</Text>
+            </View>
+          )}
         </View>
-        {errors.phone && (
-          <Text style={styles.errorText}>{errors.phone}</Text>
-        )}
-      </View>
-
-      <View style={styles.buttonRow}>
-        <AnimatedPressable
-          onPress={() => setShowForm(false)}
-          style={styles.backButton}
-          animationType="scale"
-          scaleValue={0.95}
-        >
-          <Ionicons name="arrow-back" size={20} color={Colors.gray600} />
-          <Text style={styles.backButtonText}>Retour</Text>
-        </AnimatedPressable>
-
-        <GradientButton
-          onPress={handleBecomeOrganizer}
-          title="Confirmer"
-          loading={isLoading}
-          icon={<Ionicons name="checkmark" size={20} color={Colors.white} />}
-          size="lg"
-          style={styles.confirmButton}
-        />
       </View>
     </View>
   );
+
+  // Step 4: Confirmation
+  const renderStep4 = () => (
+    <View style={styles.stepContent}>
+      <View style={styles.confirmIcon}>
+        <Ionicons name="checkmark-circle" size={64} color={Colors.success} />
+      </View>
+      <Text style={styles.stepTitle}>Pret a commencer !</Text>
+      <Text style={styles.stepSubtitle}>
+        Verifiez vos informations avant de confirmer
+      </Text>
+
+      {/* Summary */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryIcon}>
+            <Ionicons name={formData.organizer_type === 'organization' ? 'business' : 'person'} size={20} color={Colors.primary} />
+          </View>
+          <View style={styles.summaryContent}>
+            <Text style={styles.summaryLabel}>Type</Text>
+            <Text style={styles.summaryValue}>
+              {formData.organizer_type === 'organization' ? 'Organisation' : 'Particulier'}
+            </Text>
+          </View>
+        </View>
+
+        {formData.organizer_type === 'organization' && (
+          <>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryIcon}>
+                <Ionicons name="business-outline" size={20} color={Colors.primary} />
+              </View>
+              <View style={styles.summaryContent}>
+                <Text style={styles.summaryLabel}>Entreprise</Text>
+                <Text style={styles.summaryValue}>{formData.company_name}</Text>
+              </View>
+            </View>
+
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryRow}>
+              <View style={styles.summaryIcon}>
+                <Ionicons name="document-text-outline" size={20} color={Colors.primary} />
+              </View>
+              <View style={styles.summaryContent}>
+                <Text style={styles.summaryLabel}>SIRET/RC</Text>
+                <Text style={styles.summaryValue}>{formData.registration_number}</Text>
+              </View>
+            </View>
+          </>
+        )}
+
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryRow}>
+          <View style={styles.summaryIcon}>
+            <Ionicons name="call-outline" size={20} color={Colors.primary} />
+          </View>
+          <View style={styles.summaryContent}>
+            <Text style={styles.summaryLabel}>Telephone</Text>
+            <Text style={styles.summaryValue}>{formData.phone}</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Testimonial */}
+      <View style={styles.testimonialCard}>
+        <View style={styles.testimonialStars}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Ionicons key={star} name="star" size={16} color="#FBBF24" />
+          ))}
+        </View>
+        <Text style={styles.testimonialText}>
+          "EventEz m'a permis de gerer mes evenements facilement et d'atteindre plus de participants."
+        </Text>
+        <Text style={styles.testimonialAuthor}>- Marie D., Organisatrice</Text>
+      </View>
+    </View>
+  );
+
+  const renderCurrentStep = () => {
+    switch (currentStep) {
+      case 1: return renderStep1();
+      case 2: return renderStep2();
+      case 3: return renderStep3();
+      case 4: return renderStep4();
+      default: return null;
+    }
+  };
+
+  const progressWidth = progressAnim.interpolate({
+    inputRange: [1, 4],
+    outputRange: ['25%', '100%'],
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -369,7 +512,7 @@ export default function BecomeOrganizerScreen() {
       {/* Header */}
       <View style={styles.header}>
         <AnimatedPressable
-          onPress={() => navigation.goBack()}
+          onPress={handleBack}
           style={styles.headerBackButton}
           animationType="scale"
           scaleValue={0.9}
@@ -378,6 +521,41 @@ export default function BecomeOrganizerScreen() {
         </AnimatedPressable>
         <Text style={styles.headerTitle}>Devenir Organisateur</Text>
         <View style={{ width: 44 }} />
+      </View>
+
+      {/* Progress Bar */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressBar}>
+          <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+        </View>
+        <View style={styles.stepsRow}>
+          {STEPS.map((step) => (
+            <View key={step.number} style={styles.stepIndicator}>
+              <View style={[
+                styles.stepDot,
+                currentStep >= step.number && styles.stepDotActive,
+                currentStep === step.number && styles.stepDotCurrent,
+              ]}>
+                {currentStep > step.number ? (
+                  <Ionicons name="checkmark" size={12} color={Colors.white} />
+                ) : (
+                  <Text style={[
+                    styles.stepNumber,
+                    currentStep >= step.number && styles.stepNumberActive,
+                  ]}>
+                    {step.number}
+                  </Text>
+                )}
+              </View>
+              <Text style={[
+                styles.stepLabel,
+                currentStep >= step.number && styles.stepLabelActive,
+              ]}>
+                {step.label}
+              </Text>
+            </View>
+          ))}
+        </View>
       </View>
 
       <KeyboardAvoidingView
@@ -389,22 +567,37 @@ export default function BecomeOrganizerScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Hero */}
-          <View style={styles.heroContainer}>
-            <View style={styles.heroIconContainer}>
-              <Ionicons name="megaphone" size={48} color={Colors.white} />
-            </View>
-            <Text style={styles.heroTitle}>
-              Partagez vos événements avec le monde
-            </Text>
-            <Text style={styles.heroSubtitle}>
-              Rejoignez des milliers d'organisateurs qui font confiance à EventEz
-            </Text>
-          </View>
-
-          {showForm ? renderForm() : renderBenefits()}
+          {renderCurrentStep()}
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Footer Buttons */}
+      <View style={styles.footer}>
+        {currentStep > 1 && (
+          <AnimatedPressable
+            onPress={handleBack}
+            style={styles.backButton}
+            animationType="scale"
+            scaleValue={0.95}
+          >
+            <Ionicons name="arrow-back" size={20} color={Colors.gray600} />
+            <Text style={styles.backButtonText}>Retour</Text>
+          </AnimatedPressable>
+        )}
+
+        <GradientButton
+          onPress={currentStep === 4 ? handleSubmit : handleNext}
+          title={currentStep === 4 ? 'Confirmer' : 'Continuer'}
+          loading={isLoading}
+          icon={
+            currentStep === 4
+              ? <Ionicons name="checkmark" size={20} color={Colors.white} />
+              : <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+          }
+          size="lg"
+          style={[styles.nextButton, currentStep === 1 && { flex: 1 }]}
+        />
+      </View>
     </SafeAreaView>
   );
 }
@@ -414,6 +607,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
+
+  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -431,130 +626,239 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    ...TextStyles.h4,
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
   },
+
+  // Progress
+  progressContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.gray50,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: Colors.gray200,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: Colors.primary,
+    borderRadius: 2,
+  },
+  stepsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  stepIndicator: {
+    alignItems: 'center',
+  },
+  stepDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.gray200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  stepDotActive: {
+    backgroundColor: Colors.primary,
+  },
+  stepDotCurrent: {
+    borderWidth: 2,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.white,
+  },
+  stepNumber: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray500,
+  },
+  stepNumberActive: {
+    color: Colors.primary,
+  },
+  stepLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray400,
+  },
+  stepLabelActive: {
+    color: Colors.gray700,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Content
   scrollContent: {
     paddingBottom: Spacing['3xl'],
   },
-  heroContainer: {
-    alignItems: 'center',
-    paddingVertical: Spacing['2xl'],
-    paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.primaryLight,
+  stepContent: {
+    padding: Spacing.xl,
   },
-  heroIconContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
+
+  // Step 1 - Hero
+  heroIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'center',
     marginBottom: Spacing.lg,
     ...Shadows.lg,
   },
   heroTitle: {
-    ...TextStyles.h2,
+    fontSize: FontSizes['2xl'],
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   heroSubtitle: {
-    ...TextStyles.body,
-    color: Colors.gray600,
-    textAlign: 'center',
-  },
-  benefitsContainer: {
-    padding: Spacing.xl,
-  },
-  sectionTitle: {
-    ...TextStyles.h3,
-    marginBottom: Spacing.lg,
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: Spacing.lg,
-  },
-  benefitIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  benefitText: {
-    flex: 1,
-  },
-  benefitTitle: {
-    ...TextStyles.bodyBold,
-    marginBottom: Spacing.xs,
-  },
-  benefitDescription: {
-    ...TextStyles.small,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
-  },
-  startButton: {
-    marginTop: Spacing.lg,
-  },
-  formContainer: {
-    padding: Spacing.xl,
-  },
-  typeSelectorContainer: {
+    textAlign: 'center',
     marginBottom: Spacing.xl,
   },
-  sectionLabel: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
-    marginBottom: Spacing.sm,
-  },
-  typeOptions: {
+  statsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xl,
   },
-  typeOption: {
+  statItem: {
     flex: 1,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 2,
-    borderColor: Colors.gray200,
-    backgroundColor: Colors.white,
     alignItems: 'center',
+    paddingHorizontal: Spacing.xs,
   },
-  typeOptionSelected: {
-    borderColor: Colors.primary,
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.primaryLight,
-  },
-  typeIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  typeIconContainerSelected: {
-    backgroundColor: Colors.primary,
-  },
-  typeOptionTitle: {
-    fontSize: FontSizes.md,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
     marginBottom: Spacing.xs,
   },
-  typeOptionTitleSelected: {
-    color: Colors.primary,
+  statValue: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
   },
-  typeOptionDescription: {
+  statLabel: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.regular,
     color: Colors.gray500,
     textAlign: 'center',
   },
-  inputContainer: {
+  benefitsContainer: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: Spacing.md,
+  },
+  benefitIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+    ...Shadows.sm,
+  },
+  benefitText: {
+    flex: 1,
+  },
+  benefitTitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  benefitDesc: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+  },
+
+  // Step 2 - Type Selection
+  stepTitle: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  stepSubtitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+    textAlign: 'center',
+    marginBottom: Spacing.xl,
+  },
+  typeOptions: {
+    gap: Spacing.md,
+  },
+  typeCard: {
+    padding: Spacing.xl,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 2,
+    borderColor: Colors.gray200,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  typeCardSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+  },
+  typeIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  typeIconContainerSelected: {
+    backgroundColor: Colors.primary,
+  },
+  typeTitle: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray700,
+    marginBottom: Spacing.xs,
+  },
+  typeTitleSelected: {
+    color: Colors.primary,
+  },
+  typeDesc: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+    textAlign: 'center',
+  },
+  typeCheck: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
+  },
+
+  // Step 3 - Form
+  formContainer: {
+    gap: Spacing.md,
+  },
+  inputContainer: {
+    marginBottom: Spacing.sm,
   },
   inputLabel: {
     fontSize: FontSizes.sm,
@@ -569,7 +873,8 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     borderWidth: 1.5,
     borderColor: Colors.gray200,
-    overflow: 'hidden',
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.sm,
   },
   inputFocused: {
     borderColor: Colors.primary,
@@ -580,28 +885,99 @@ const styles = StyleSheet.create({
     borderColor: Colors.error,
     backgroundColor: Colors.errorLight,
   },
-  inputIconContainer: {
-    paddingLeft: Spacing.md,
-  },
   input: {
     flex: 1,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.sm,
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
     color: Colors.gray900,
   },
-  errorText: {
-    fontSize: FontSizes.xs,
-    color: Colors.error,
-    marginTop: Spacing.xs,
-    marginLeft: Spacing.xs,
-  },
-  buttonRow: {
+  errorRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: Spacing.xs,
+    gap: 4,
+  },
+  errorText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.error,
+  },
+
+  // Step 4 - Confirmation
+  confirmIcon: {
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+  },
+  summaryCard: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  summaryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.md,
+  },
+  summaryContent: {
+    flex: 1,
+  },
+  summaryLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+  },
+  summaryValue: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: Colors.gray200,
+    marginVertical: Spacing.md,
+  },
+  testimonialCard: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    alignItems: 'center',
+  },
+  testimonialStars: {
+    flexDirection: 'row',
+    marginBottom: Spacing.sm,
+  },
+  testimonialText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray700,
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginBottom: Spacing.sm,
+  },
+  testimonialAuthor: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+  },
+
+  // Footer
+  footer: {
+    flexDirection: 'row',
+    padding: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+    backgroundColor: Colors.white,
     gap: Spacing.md,
-    marginTop: Spacing.xl,
   },
   backButton: {
     flexDirection: 'row',
@@ -613,11 +989,11 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray100,
   },
   backButtonText: {
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.base,
     fontFamily: FontFamily.medium,
     color: Colors.gray600,
   },
-  confirmButton: {
+  nextButton: {
     flex: 1,
   },
 });

@@ -10,12 +10,12 @@ import {
   RefreshControl,
   StatusBar,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -28,9 +28,13 @@ import {
   BorderRadius,
   Spacing,
   TextStyles,
+  Shadows,
 } from '../../constants/theme';
 
+const { width } = Dimensions.get('window');
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type TabFilter = 'upcoming' | 'past' | 'all';
 
 interface FollowData {
   id: string;
@@ -43,28 +47,15 @@ interface FollowData {
   created_at: string;
 }
 
-interface NotificationBadgeConfig {
-  text: string;
-  color: string;
-  bgColor: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}
-
-const notificationBadges: Record<string, NotificationBadgeConfig> = {
-  all: { text: 'Toutes', color: '#059669', bgColor: '#D1FAE5', icon: 'notifications' },
-  important: { text: 'Importantes', color: '#D97706', bgColor: '#FEF3C7', icon: 'notifications-outline' },
-  none: { text: 'Aucune', color: '#6B7280', bgColor: '#F3F4F6', icon: 'notifications-off-outline' },
-};
-
 export default function FollowingEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
-  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { showError, showConfirm } = useAlert();
   const [follows, setFollows] = useState<FollowData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterNotification, setFilterNotification] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<TabFilter>('upcoming');
 
   useFocusEffect(
     useCallback(() => {
@@ -94,68 +85,39 @@ export default function FollowingEventsScreen() {
   const handleUnfollow = async (eventId: string) => {
     showConfirm(
       'Ne plus suivre',
-      'Voulez-vous vraiment ne plus suivre cet événement ?',
+      'Voulez-vous vraiment ne plus suivre cet evenement ?',
       async () => {
         try {
           await eventsAPI.unfollowEvent(eventId);
           setFollows(prev => prev.filter(f => f.event !== eventId && f.event_details?.id !== eventId));
         } catch (error) {
           console.error('Error unfollowing:', error);
-          showError('Erreur', 'Impossible de ne plus suivre cet événement');
+          showError('Erreur', 'Impossible de ne plus suivre cet evenement');
         }
       }
     );
   };
 
-  const handleUpdatePreferences = (follow: FollowData) => {
-    showAlert(
-      'Préférences de notification',
-      'Choisissez le niveau de notifications pour cet événement',
-      [
-        {
-          text: 'Toutes les notifications',
-          onPress: () => updatePreference(follow.event_details?.id || follow.event, 'all'),
-        },
-        {
-          text: 'Importantes seulement',
-          onPress: () => updatePreference(follow.event_details?.id || follow.event, 'important'),
-        },
-        {
-          text: 'Aucune notification',
-          onPress: () => updatePreference(follow.event_details?.id || follow.event, 'none'),
-        },
-        { text: 'Annuler', style: 'cancel' },
-      ]
-    );
-  };
+  const toggleNotification = async (follow: FollowData) => {
+    const eventId = follow.event_details?.id || follow.event;
+    const newPreference = follow.notification_preference === 'none' ? 'all' : 'none';
 
-  const updatePreference = async (eventId: string, preference: 'all' | 'important' | 'none') => {
     try {
-      await eventsAPI.updateFollowPreferences(eventId, { notification_preference: preference });
+      await eventsAPI.updateFollowPreferences(eventId, { notification_preference: newPreference });
       setFollows(prev =>
         prev.map(f =>
           (f.event === eventId || f.event_details?.id === eventId)
-            ? { ...f, notification_preference: preference }
+            ? { ...f, notification_preference: newPreference }
             : f
         )
       );
     } catch (error) {
       console.error('Error updating preferences:', error);
-      showError('Erreur', 'Impossible de mettre à jour les préférences');
+      showError('Erreur', 'Impossible de mettre a jour les preferences');
     }
   };
 
-  const filteredFollows = follows.filter(follow => {
-    const event = follow.event_details;
-    if (!event) return false;
-
-    const matchesSearch =
-      event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.location_city?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesFilter = !filterNotification || follow.notification_preference === filterNotification;
-    return matchesSearch && matchesFilter;
-  });
-
+  // Stats
   const stats = {
     total: follows.length,
     upcoming: follows.filter(f => {
@@ -165,12 +127,35 @@ export default function FollowingEventsScreen() {
     withNotifications: follows.filter(f => f.notification_preference !== 'none').length,
   };
 
+  // Filtered follows
+  const filteredFollows = follows.filter(follow => {
+    const event = follow.event_details;
+    if (!event) return false;
+
+    // Tab filter
+    const eventDate = event.start_date ? new Date(event.start_date) : null;
+    const now = new Date();
+
+    if (activeTab === 'upcoming' && eventDate && eventDate <= now) return false;
+    if (activeTab === 'past' && eventDate && eventDate > now) return false;
+
+    // Search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        event.title?.toLowerCase().includes(query) ||
+        event.location_city?.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
+
+    return true;
+  });
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-    });
+    const day = date.getDate();
+    const month = date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
+    return { day, month };
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -179,7 +164,7 @@ export default function FollowingEventsScreen() {
     const diff = date.getTime() - now.getTime();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
 
-    if (days < 0) return 'Passé';
+    if (days < 0) return 'Termine';
     if (days === 0) return "Aujourd'hui";
     if (days === 1) return 'Demain';
     if (days < 7) return `Dans ${days} jours`;
@@ -187,96 +172,49 @@ export default function FollowingEventsScreen() {
     return `Dans ${Math.ceil(days / 30)} mois`;
   };
 
-  const showFilterOptions = () => {
-    showAlert(
-      'Filtrer par notifications',
-      '',
-      [
-        { text: 'Toutes', onPress: () => setFilterNotification('') },
-        { text: 'Toutes activées', onPress: () => setFilterNotification('all') },
-        { text: 'Importantes', onPress: () => setFilterNotification('important') },
-        { text: 'Désactivées', onPress: () => setFilterNotification('none') },
-        { text: 'Annuler', style: 'cancel' },
-      ]
-    );
-  };
-
   const renderEventCard = ({ item }: { item: FollowData }) => {
     const event = item.event_details;
     if (!event) return null;
 
-    const badge = notificationBadges[item.notification_preference] || notificationBadges.important;
-    const isUpcoming = event.start_date && new Date(event.start_date) > new Date();
+    const dateInfo = event.start_date ? formatDate(event.start_date) : null;
+    const isNotified = item.notification_preference !== 'none';
+    const isPast = event.start_date && new Date(event.start_date) < new Date();
 
     return (
       <TouchableOpacity
-        style={styles.eventCard}
+        style={[styles.eventCard, isPast && styles.eventCardPast]}
         onPress={() => navigation.navigate('EventDetails', { eventId: event.id })}
         activeOpacity={0.7}
       >
+        {/* Date Badge */}
+        {dateInfo && (
+          <View style={[styles.dateBadge, isPast && styles.dateBadgePast]}>
+            <Text style={[styles.dateDay, isPast && styles.dateDayPast]}>{dateInfo.day}</Text>
+            <Text style={[styles.dateMonth, isPast && styles.dateMonthPast]}>{dateInfo.month}</Text>
+          </View>
+        )}
+
         {/* Event Image */}
         <Image
           source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
           style={styles.eventImage}
         />
 
-        {/* Badges */}
-        <View style={styles.badgesRow}>
-          <View style={[styles.badge, { backgroundColor: badge.bgColor }]}>
-            <Ionicons name={badge.icon} size={12} color={badge.color} />
-            <Text style={[styles.badgeText, { color: badge.color }]}>{badge.text}</Text>
-          </View>
-          {isUpcoming && (
-            <View style={[styles.badge, { backgroundColor: '#D1FAE5' }]}>
-              <Text style={[styles.badgeText, { color: '#059669' }]}>À venir</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Date Badge */}
-        {event.start_date && (
-          <View style={styles.dateBadge}>
-            <Text style={styles.dateText}>{formatDate(event.start_date)}</Text>
-          </View>
-        )}
-
         {/* Content */}
         <View style={styles.eventContent}>
           <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
 
           <View style={styles.eventMeta}>
-            {event.start_date && (
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={14} color={Colors.gray500} />
-                <Text style={styles.metaText}>{formatTimeAgo(event.start_date)}</Text>
-              </View>
-            )}
             {event.location_city && (
               <View style={styles.metaItem}>
                 <Ionicons name="location-outline" size={14} color={Colors.gray500} />
                 <Text style={styles.metaText} numberOfLines={1}>{event.location_city}</Text>
               </View>
             )}
-          </View>
-
-          {/* Notification Channels */}
-          <View style={styles.channelsRow}>
-            {item.notify_email && (
-              <View style={styles.channelBadge}>
-                <Ionicons name="mail-outline" size={12} color="#3B82F6" />
-                <Text style={styles.channelText}>Email</Text>
-              </View>
-            )}
-            {item.notify_push && (
-              <View style={styles.channelBadge}>
-                <Ionicons name="phone-portrait-outline" size={12} color="#8B5CF6" />
-                <Text style={styles.channelText}>Push</Text>
-              </View>
-            )}
-            {item.notify_reminders && (
-              <View style={styles.channelBadge}>
-                <Ionicons name="alarm-outline" size={12} color="#F59E0B" />
-                <Text style={styles.channelText}>Rappels</Text>
+            {event.start_date && (
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={14} color={Colors.gray500} />
+                <Text style={styles.metaText}>{formatTimeAgo(event.start_date)}</Text>
               </View>
             )}
           </View>
@@ -284,21 +222,31 @@ export default function FollowingEventsScreen() {
           {/* Actions */}
           <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={styles.preferencesButton}
-              onPress={() => handleUpdatePreferences(item)}
+              style={[styles.notifButton, isNotified && styles.notifButtonActive]}
+              onPress={() => toggleNotification(item)}
             >
-              <Ionicons name="settings-outline" size={16} color={Colors.gray600} />
-              <Text style={styles.preferencesText}>Préférences</Text>
+              <Ionicons
+                name={isNotified ? 'notifications' : 'notifications-off-outline'}
+                size={16}
+                color={isNotified ? Colors.primary : Colors.gray500}
+              />
+              <Text style={[styles.notifButtonText, isNotified && styles.notifButtonTextActive]}>
+                {isNotified ? 'Notifs ON' : 'Notifs OFF'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.unfollowButton}
               onPress={() => handleUnfollow(event.id)}
             >
-              <Ionicons name="heart" size={16} color="#EF4444" />
-              <Text style={styles.unfollowText}>Suivi</Text>
+              <Ionicons name="heart-dislike-outline" size={16} color={Colors.error} />
             </TouchableOpacity>
           </View>
+        </View>
+
+        {/* Arrow */}
+        <View style={styles.arrowContainer}>
+          <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
         </View>
       </TouchableOpacity>
     );
@@ -307,160 +255,147 @@ export default function FollowingEventsScreen() {
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIcon}>
-        <Ionicons name="heart-outline" size={48} color="#8B5CF6" />
+        <Ionicons name="heart-outline" size={48} color={Colors.gray400} />
       </View>
       <Text style={styles.emptyTitle}>
-        {follows.length === 0 ? 'Aucun événement suivi' : 'Aucun résultat'}
+        {follows.length === 0 ? 'Aucun evenement suivi' : 'Aucun resultat'}
       </Text>
       <Text style={styles.emptySubtitle}>
         {follows.length === 0
-          ? 'Commencez à suivre des événements pour recevoir des notifications et mises à jour.'
-          : 'Essayez de modifier vos critères de recherche'}
+          ? 'Commencez a suivre des evenements pour recevoir des notifications.'
+          : 'Essayez de modifier vos criteres de recherche.'}
       </Text>
       {follows.length === 0 && (
         <TouchableOpacity
           style={styles.discoverButton}
           onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
         >
-          <Ionicons name="sparkles" size={18} color={Colors.white} />
-          <Text style={styles.discoverButtonText}>Découvrir des événements</Text>
+          <Ionicons name="compass-outline" size={18} color={Colors.white} />
+          <Text style={styles.discoverButtonText}>Decouvrir des evenements</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 
+  const renderAuthRequired = () => (
+    <View style={styles.authContainer}>
+      <View style={styles.authIcon}>
+        <Ionicons name="heart-outline" size={48} color={Colors.primary} />
+      </View>
+      <Text style={styles.authTitle}>Connectez-vous</Text>
+      <Text style={styles.authSubtitle}>
+        Vous devez etre connecte pour voir vos evenements suivis
+      </Text>
+      <TouchableOpacity
+        style={styles.loginButton}
+        onPress={() => navigation.navigate('Login' as never)}
+      >
+        <Text style={styles.loginButtonText}>Se connecter</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
   if (!user) {
     return (
-      <View style={styles.rootContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={styles.container}>
-            <View style={styles.authRequired}>
-              <View style={styles.authIcon}>
-                <Ionicons name="heart-outline" size={48} color="#8B5CF6" />
-              </View>
-              <Text style={styles.authTitle}>Connectez-vous</Text>
-              <Text style={styles.authSubtitle}>
-                Vous devez être connecté pour voir vos événements suivis
-              </Text>
-              <TouchableOpacity
-                style={styles.loginButton}
-                onPress={() => navigation.navigate('Login' as never)}
-              >
-                <Text style={styles.loginButtonText}>Se connecter</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </SafeAreaView>
-      </View>
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        {renderAuthRequired()}
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#8B5CF6" />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.container}>
-          {/* Header with gradient */}
-          <LinearGradient
-            colors={['#8B5CF6', '#A855F7', '#C084FC']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.header}
-          >
-            <View style={styles.headerContent}>
-              <View style={styles.headerTitleRow}>
-                <Ionicons name="heart" size={20} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.headerSubtitle}>Vos favoris</Text>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Mes Favoris</Text>
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+        >
+          <Ionicons name="compass-outline" size={24} color={Colors.gray600} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Summary Card */}
+      <View style={styles.summaryCard}>
+        <View style={styles.summaryMain}>
+          <View style={styles.summaryIconContainer}>
+            <Ionicons name="heart" size={24} color={Colors.primary} />
           </View>
-          <Text style={styles.headerTitle}>Événements Suivis</Text>
-          <Text style={styles.headerDescription}>
-            Restez informé des mises à jour de vos événements préférés.
-          </Text>
-
-          <TouchableOpacity
-            style={styles.discoverLink}
-            onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
-          >
-            <Ionicons name="sparkles" size={16} color="#8B5CF6" />
-            <Text style={styles.discoverLinkText}>Découvrir plus</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons name="heart" size={18} color={Colors.white} />
-            </View>
-            <View>
-              <Text style={styles.statLabel}>Total</Text>
-              <Text style={styles.statValue}>{stats.total}</Text>
-            </View>
-          </View>
-
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(251, 191, 36, 0.3)' }]}>
-              <Ionicons name="calendar" size={18} color={Colors.white} />
-            </View>
-            <View>
-              <Text style={styles.statLabel}>À venir</Text>
-              <Text style={styles.statValue}>{stats.upcoming}</Text>
-            </View>
-          </View>
-
-          <View style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: 'rgba(52, 211, 153, 0.3)' }]}>
-              <Ionicons name="notifications" size={18} color={Colors.white} />
-            </View>
-            <View>
-              <Text style={styles.statLabel}>Notifiés</Text>
-              <Text style={styles.statValue}>{stats.withNotifications}</Text>
-            </View>
+          <View>
+            <Text style={styles.summaryValue}>{stats.total}</Text>
+            <Text style={styles.summaryLabel}>evenements suivis</Text>
           </View>
         </View>
-      </LinearGradient>
+        <View style={styles.summaryDivider} />
+        <View style={styles.summaryStats}>
+          <View style={styles.summaryStatItem}>
+            <Ionicons name="calendar-outline" size={16} color={Colors.success} />
+            <Text style={styles.summaryStatText}>{stats.upcoming} a venir</Text>
+          </View>
+          <View style={styles.summaryStatItem}>
+            <Ionicons name="notifications-outline" size={16} color={Colors.primary} />
+            <Text style={styles.summaryStatText}>{stats.withNotifications} notifies</Text>
+          </View>
+        </View>
+      </View>
 
-      {/* Search and filters */}
+      {/* Search */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color={Colors.gray400} />
+          <Ionicons name="search" size={18} color={Colors.gray400} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un événement..."
+            placeholder="Rechercher..."
             placeholderTextColor={Colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.gray400} />
+              <Ionicons name="close-circle" size={18} color={Colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
-
-        <TouchableOpacity style={styles.filterButton} onPress={showFilterOptions}>
-          <Ionicons name="filter" size={20} color={filterNotification ? Colors.primary : Colors.gray600} />
-        </TouchableOpacity>
       </View>
 
-      {/* Filter indicator */}
-      {filterNotification && (
-        <View style={styles.filterIndicator}>
-          <Text style={styles.filterIndicatorText}>
-            Filtre: {notificationBadges[filterNotification]?.text || filterNotification}
-          </Text>
-          <TouchableOpacity onPress={() => setFilterNotification('')}>
-            <Ionicons name="close" size={18} color={Colors.primary} />
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        {([
+          { key: 'upcoming', label: 'A venir', count: stats.upcoming },
+          { key: 'past', label: 'Passes', count: stats.total - stats.upcoming },
+          { key: 'all', label: 'Tous', count: stats.total },
+        ] as { key: TabFilter; label: string; count: number }[]).map((tab) => (
+          <TouchableOpacity
+            key={tab.key}
+            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            onPress={() => setActiveTab(tab.key)}
+          >
+            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+              {tab.label}
+            </Text>
+            <View style={[styles.tabBadge, activeTab === tab.key && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, activeTab === tab.key && styles.tabBadgeTextActive]}>
+                {tab.count}
+              </Text>
+            </View>
           </TouchableOpacity>
-        </View>
-      )}
+        ))}
+      </View>
 
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Chargement...</Text>
         </View>
       ) : (
         <FlatList
@@ -480,200 +415,231 @@ export default function FollowingEventsScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
-        </View>
-      </SafeAreaView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  rootContainer: {
-    flex: 1,
-    backgroundColor: '#8B5CF6',
-  },
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.background,
   },
+
+  // Header
   header: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
-  headerContent: {
-    marginBottom: Spacing.lg,
-  },
-  headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.xs,
-  },
-  headerSubtitle: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  headerTitle: {
-    ...TextStyles.h2,
-    color: Colors.white,
-    marginBottom: Spacing.xs,
-  },
-  headerDescription: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: Spacing.md,
-  },
-  discoverLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.xs,
-  },
-  discoverLinkText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    color: '#8B5CF6',
-  },
-  statsRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
-  },
-  statItem: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginHorizontal: Spacing.xs,
-    gap: Spacing.sm,
-  },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  statLabel: {
-    fontSize: FontSizes.xs,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  statValue: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    color: Colors.white,
-  },
-  searchContainer: {
-    flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    gap: Spacing.sm,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
   },
-  searchInputContainer: {
-    flex: 1,
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
+  },
+  settingsButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Summary Card
+  summaryCard: {
+    backgroundColor: Colors.white,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    ...Shadows.md,
+  },
+  summaryMain: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
+    gap: Spacing.md,
+  },
+  summaryIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryValue: {
+    fontSize: FontSizes['2xl'],
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
+  },
+  summaryLabel: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: Colors.gray100,
+    marginVertical: Spacing.md,
+  },
+  summaryStats: {
+    flexDirection: 'row',
+    gap: Spacing.xl,
+  },
+  summaryStatItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  summaryStatText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray600,
+  },
+
+  // Search
+  searchContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
     gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: Spacing.sm,
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray900,
+    paddingVertical: 0,
   },
-  filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.gray50,
-    alignItems: 'center',
-    justifyContent: 'center',
+
+  // Tabs
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
   },
-  filterIndicator: {
+  tab: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
+    justifyContent: 'center',
     paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primaryBg,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    gap: Spacing.xs,
   },
-  filterIndicatorText: {
-    fontFamily: FontFamily.medium,
+  tabActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  tabText: {
     fontSize: FontSizes.sm,
-    color: Colors.primary,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray600,
   },
+  tabTextActive: {
+    color: Colors.white,
+  },
+  tabBadge: {
+    backgroundColor: Colors.gray100,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  tabBadgeText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray600,
+  },
+  tabBadgeTextActive: {
+    color: Colors.white,
+  },
+
+  // List
   listContent: {
     padding: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
+    paddingBottom: 100,
   },
+
+  // Event Card
   eventCard: {
+    flexDirection: 'row',
     backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.gray100,
   },
-  eventImage: {
-    width: '100%',
-    height: 140,
-    backgroundColor: Colors.gray200,
-  },
-  badgesRow: {
-    position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
-    right: Spacing.sm,
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    gap: 4,
-  },
-  badgeText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.xs,
+  eventCardPast: {
+    opacity: 0.7,
   },
   dateBadge: {
-    position: 'absolute',
-    top: 100,
-    left: Spacing.sm,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.md,
+    width: 56,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
   },
-  dateText: {
-    fontFamily: FontFamily.bold,
+  dateBadgePast: {
+    backgroundColor: Colors.gray400,
+  },
+  dateDay: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.white,
+  },
+  dateDayPast: {
+    color: Colors.white,
+  },
+  dateMonth: {
     fontSize: FontSizes.xs,
-    color: Colors.gray900,
+    fontFamily: FontFamily.semiBold,
+    color: 'rgba(255,255,255,0.8)',
+  },
+  dateMonthPast: {
+    color: 'rgba(255,255,255,0.8)',
+  },
+  eventImage: {
+    width: 80,
+    height: '100%',
+    backgroundColor: Colors.gray200,
   },
   eventContent: {
+    flex: 1,
     padding: Spacing.md,
+    justifyContent: 'space-between',
   },
   eventTitle: {
-    ...TextStyles.bodyBold,
-    marginBottom: Spacing.sm,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+    marginBottom: Spacing.xs,
   },
   eventMeta: {
     flexDirection: 'row',
@@ -687,60 +653,49 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   metaText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-  },
-  channelsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  channelBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.gray50,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.sm,
-    gap: 4,
-  },
-  channelText: {
     fontSize: FontSizes.xs,
-    color: Colors.gray600,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
   },
   actionsRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
-  preferencesButton: {
+  notifButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
+    paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
-    gap: Spacing.xs,
+    borderRadius: BorderRadius.md,
+    backgroundColor: Colors.gray100,
+    gap: 4,
   },
-  preferencesText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray600,
+  notifButtonActive: {
+    backgroundColor: Colors.primaryLight,
+  },
+  notifButtonText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+  },
+  notifButtonTextActive: {
+    color: Colors.primary,
   },
   unfollowButton: {
-    flexDirection: 'row',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.errorLight,
     alignItems: 'center',
-    backgroundColor: '#FEF2F2',
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
+    justifyContent: 'center',
   },
-  unfollowText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    color: '#EF4444',
+  arrowContainer: {
+    justifyContent: 'center',
+    paddingRight: Spacing.sm,
   },
+
+  // Empty
   emptyContainer: {
     alignItems: 'center',
     paddingVertical: Spacing['3xl'],
@@ -748,18 +703,21 @@ const styles = StyleSheet.create({
   emptyIcon: {
     width: 80,
     height: 80,
-    borderRadius: 20,
-    backgroundColor: '#F3E8FF',
+    borderRadius: 40,
+    backgroundColor: Colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
-    ...TextStyles.h4,
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
   emptySubtitle: {
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
     textAlign: 'center',
     paddingHorizontal: Spacing.xl,
@@ -768,26 +726,27 @@ const styles = StyleSheet.create({
   discoverButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
   },
   discoverButtonText: {
-    ...TextStyles.button,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
+
+  // Loading
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: FontSizes.base,
-    color: Colors.gray500,
-  },
-  authRequired: {
+
+  // Auth
+  authContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
@@ -796,29 +755,34 @@ const styles = StyleSheet.create({
   authIcon: {
     width: 80,
     height: 80,
-    borderRadius: 20,
-    backgroundColor: '#F3E8FF',
+    borderRadius: 40,
+    backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
   authTitle: {
-    ...TextStyles.h3,
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
   authSubtitle: {
     fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
     color: Colors.gray500,
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
   loginButton: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
   },
   loginButtonText: {
-    ...TextStyles.button,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
 });
