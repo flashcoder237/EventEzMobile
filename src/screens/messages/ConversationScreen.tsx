@@ -1,20 +1,29 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+/**
+ * ConversationScreen - Écran de conversation refactorisé
+ *
+ * Améliorations:
+ * - Utilise useMessageState pour centraliser l'état
+ * - Composants mémorisés pour performance
+ * - Pagination des messages
+ * - Meilleure gestion des attachments (upload AVANT optimistic update)
+ * - Typing indicator multi-utilisateurs animé
+ * - Statut des messages à 3 états
+ */
+
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   FlatList,
-  TextInput,
-  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Image,
   StatusBar,
-  Modal,
-  Pressable,
   Alert,
-  Animated,
+  TouchableOpacity,
+  Clipboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -27,6 +36,7 @@ import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
+import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { Message, RootStackParamList, User } from '../../types';
 import {
   Colors,
@@ -35,23 +45,31 @@ import {
   BorderRadius,
   Spacing,
   TextStyles,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
+import {
+  MESSAGE_AVATAR_SIZE,
+  formatMessageDate,
+  shouldShowDateSeparator,
+  isMyMessage,
+  getReplyToContent,
+  TYPING_SEND_INTERVAL,
+  MESSAGES_PER_PAGE,
+} from '../../lib/utils/messagingHelpers';
+
+// Composants
+import {
+  MessageBubble,
+  TypingIndicator,
+  MessageActionModal,
+  ReactionPickerModal,
+  ForwardModal,
+  InputToolbar,
+  MessageActionType,
+} from '../../components/messages';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ConversationRouteProp = RouteProp<RootStackParamList, 'Conversation'>;
-
-interface AttachedFile {
-  id?: string;
-  uri: string;
-  name: string;
-  type: 'image' | 'document' | 'voice';
-  duration?: number;
-}
-
-const REACTION_EMOJIS = ['👍', '❤️', '😂', '😮', '😢', '🎉'];
-
-// Types d'actions possibles sur un message
-type MessageAction = 'reply' | 'edit' | 'delete' | 'forward' | 'react';
 
 export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -60,48 +78,22 @@ export default function ConversationScreen() {
   const { user } = useAuth();
   const { showError, showSuccess } = useAlert();
 
-  // States principaux
-  const [currentConversationId, setCurrentConversationId] = useState<string | undefined>(initialConversationId);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(!!initialConversationId);
-  const [sending, setSending] = useState(false);
-  const [newMessage, setNewMessage] = useState('');
-  const [conversationTitle, setConversationTitle] = useState(userName || '');
-  const [otherUserAvatar, setOtherUserAvatar] = useState<string | null>(null);
-  const [otherUserId, setOtherUserId] = useState<string | null>(userId || null);
-  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
-  const [showReactionPicker, setShowReactionPicker] = useState(false);
-  const [isNewConversation, setIsNewConversation] = useState(!initialConversationId && !!userId);
-  const [typingIndicator, setTypingIndicator] = useState<string | null>(null);
+  // State centralisé
+  const { state, actions } = useMessageState(initialConversationId, userName);
 
-  // States pour les nouvelles fonctionnalites
-  const [showActionMenu, setShowActionMenu] = useState(false);
-  const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
-  const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
-  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
-  const [showForwardModal, setShowForwardModal] = useState(false);
-  const [forwardTargets, setForwardTargets] = useState<User[]>([]);
-  const [loadingForwardTargets, setLoadingForwardTargets] = useState(false);
-
-  // States pour messages vocaux
-  const [isRecording, setIsRecording] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-
-  // Animation
-  const recordingAnim = useRef(new Animated.Value(1)).current;
-
+  // Refs
   const flatListRef = useRef<FlatList>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTypingSentRef = useRef<number>(0);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
 
-  // WebSocket hook pour temps reel
+  // WebSocket
   const {
     isConnected,
+    isAuthenticated,
     sendMessage: wsSendMessage,
     startTyping,
     stopTyping,
@@ -110,89 +102,51 @@ export default function ConversationScreen() {
     getTypingUsersForConversation,
   } = useMessagingWebSocket({
     onNewMessage: (newMessage) => {
-      if (String(newMessage.conversation) === String(currentConversationId)) {
-        setMessages(prev => {
-          if (prev.some(m => m.id === newMessage.id)) {
-            return prev;
-          }
-          return [...prev, newMessage];
-        });
+      if (String(newMessage.conversation) === String(state.conversationId)) {
+        actions.addMessage(newMessage);
         setTimeout(() => {
           flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
       }
     },
     onTypingIndicator: (data) => {
-      if (String(data.conversationId) === String(currentConversationId)) {
+      if (String(data.conversationId) === String(state.conversationId)) {
         if (data.isTyping) {
-          setTypingIndicator(`${data.userName} ecrit...`);
+          actions.addTypingUser(data.userName);
         } else {
-          setTypingIndicator(null);
+          actions.removeTypingUser(data.userName);
         }
       }
     },
     onMessageRead: (data) => {
-      setMessages(prev => prev.map(msg => {
-        if (String(msg.id) === String(data.messageId)) {
-          const readBy = msg.read_by || [];
-          if (!readBy.includes(data.userId)) {
-            return { ...msg, read_by: [...readBy, data.userId] };
-          }
-        }
-        return msg;
-      }));
+      actions.markMessageRead(String(data.messageId), String(data.userId));
     },
     onReactionAdded: (data) => {
-      setMessages(prev => prev.map(msg => {
-        if (String(msg.id) === String(data.messageId)) {
-          const reactions = msg.reactions || [];
-          return {
-            ...msg,
-            reactions: [...reactions, { id: `ws-${Date.now()}`, user: data.userId, emoji: data.emoji, user_name: '', created_at: new Date().toISOString() }],
-          };
-        }
-        return msg;
-      }));
+      actions.addReaction(String(data.messageId), data.emoji, String(data.userId));
     },
     onReactionRemoved: (data) => {
-      setMessages(prev => prev.map(msg => {
-        if (String(msg.id) === String(data.messageId)) {
-          return {
-            ...msg,
-            reactions: (msg.reactions || []).filter(r => !(r.user === data.userId && r.emoji === data.emoji)),
-          };
-        }
-        return msg;
-      }));
+      actions.removeReaction(String(data.messageId), data.emoji, String(data.userId));
     },
   });
 
-  // Gerer l'indicateur de frappe
-  const handleTyping = useCallback(() => {
-    if (!currentConversationId) return;
+  // Typing users for current conversation
+  const typingUsers = useMemo(() => {
+    if (!state.conversationId) return [];
+    const users = getTypingUsersForConversation(state.conversationId);
+    return users.map(u => u.userName);
+  }, [state.conversationId, getTypingUsersForConversation]);
 
-    const now = Date.now();
-    if (now - lastTypingSentRef.current > 2000) {
-      startTyping(currentConversationId);
-      lastTypingSentRef.current = now;
-    }
-
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-    typingTimeoutRef.current = setTimeout(() => {
-      if (currentConversationId) {
-        stopTyping(currentConversationId);
-      }
-    }, 3000);
-  }, [currentConversationId, startTyping, stopTyping]);
+  // ============================================
+  // EFFECTS
+  // ============================================
 
   useEffect(() => {
-    if (currentConversationId) {
+    if (state.conversationId) {
       fetchMessages();
       fetchConversationDetails();
       markAsRead();
 
+      // Polling fallback si WebSocket déconnecté
       const interval = setInterval(() => {
         if (!isConnected) {
           fetchMessages();
@@ -204,44 +158,84 @@ export default function ConversationScreen() {
         if (typingTimeoutRef.current) {
           clearTimeout(typingTimeoutRef.current);
         }
-        if (currentConversationId) {
-          stopTyping(currentConversationId);
+        if (state.conversationId) {
+          stopTyping(state.conversationId);
         }
       };
     } else if (userName) {
-      setConversationTitle(userName);
-      navigation.setOptions({
-        headerTitle: () => (
-          <View style={styles.headerTitleContainer}>
-            <View style={styles.headerAvatarPlaceholder}>
-              <Text style={styles.headerAvatarText}>
-                {userName.substring(0, 2).toUpperCase()}
-              </Text>
-            </View>
-            <Text style={styles.headerTitleText} numberOfLines={1}>{userName}</Text>
-          </View>
-        ),
-      });
-      setLoading(false);
+      actions.setConversationTitle(userName);
+      setupNewConversationHeader();
+      actions.setLoading(false);
     }
-  }, [currentConversationId]);
+  }, [state.conversationId]);
 
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      if (sound) {
-        sound.unloadAsync();
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
       }
-      if (recording) {
-        recording.stopAndUnloadAsync();
+      if (recordingRef.current) {
+        recordingRef.current.stopAndUnloadAsync();
+      }
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
       }
     };
   }, []);
 
-  const fetchConversationDetails = async () => {
-    if (!currentConversationId) return;
+  // ============================================
+  // DATA FETCHING
+  // ============================================
+
+  const fetchMessages = async (loadMore = false) => {
+    if (!state.conversationId) {
+      actions.setLoading(false);
+      return;
+    }
+
+    if (loadMore) {
+      if (!state.hasMore || state.loadingMore) return;
+      actions.setLoadingMore(true);
+    }
+
     try {
-      const response = await messagesAPI.getConversation(currentConversationId);
+      const params: any = {
+        conversation: state.conversationId,
+        limit: MESSAGES_PER_PAGE,
+      };
+
+      if (loadMore && state.nextPageUrl) {
+        // Extraire l'offset de l'URL
+        const url = new URL(state.nextPageUrl, 'http://localhost');
+        params.offset = url.searchParams.get('offset');
+      }
+
+      const response = await messagesAPI.getMessages(params);
+      const data = response.data;
+      const newMessages = (data.results || data || []).reverse();
+
+      if (loadMore) {
+        actions.addMessagesBefore(newMessages);
+      } else {
+        actions.setMessages(newMessages);
+      }
+
+      actions.setHasMore(!!data.next);
+      actions.setNextPageUrl(data.next || null);
+    } catch (error) {
+      console.error('Erreur chargement messages:', error);
+    } finally {
+      actions.setLoading(false);
+      actions.setLoadingMore(false);
+    }
+  };
+
+  const fetchConversationDetails = async () => {
+    if (!state.conversationId) return;
+
+    try {
+      const response = await messagesAPI.getConversation(state.conversationId);
       const conversation = response.data;
 
       const otherParticipant = conversation.participants?.find(
@@ -253,38 +247,75 @@ export default function ConversationScreen() {
           ? `${otherParticipant.first_name} ${otherParticipant.last_name}`
           : otherParticipant?.email?.split('@')[0] || 'Conversation');
 
-      setConversationTitle(title);
-      setOtherUserAvatar(otherParticipant?.profile_picture || otherParticipant?.image || null);
-      setOtherUserId(otherParticipant?.id || null);
+      const avatar = otherParticipant?.profile_picture || otherParticipant?.image || null;
 
-      navigation.setOptions({
-        headerTitle: () => (
-          <View style={styles.headerTitleContainer}>
-            {otherUserAvatar ? (
-              <Image source={{ uri: otherUserAvatar }} style={styles.headerAvatar} />
-            ) : (
-              <View style={styles.headerAvatarPlaceholder}>
-                <Text style={styles.headerAvatarText}>
-                  {title.substring(0, 2).toUpperCase()}
-                </Text>
-              </View>
-            )}
-            <Text style={styles.headerTitleText} numberOfLines={1}>{title}</Text>
-          </View>
-        ),
-        headerRight: () => (
-          <TouchableOpacity
-            style={styles.headerMenuButton}
-            onPress={handleShowConversationOptions}
-          >
-            <Ionicons name="ellipsis-vertical" size={20} color={Colors.gray700} />
-          </TouchableOpacity>
-        ),
-      });
+      actions.setConversationTitle(title);
+      actions.setOtherUser(avatar, otherParticipant?.id || null);
+
+      setupHeader(title, avatar);
     } catch (error) {
       console.error('Erreur chargement details conversation:', error);
     }
   };
+
+  const markAsRead = async () => {
+    if (!state.conversationId) return;
+    try {
+      await messagesAPI.markConversationAsRead(state.conversationId);
+    } catch (error) {
+      console.error('Erreur marquage lu:', error);
+    }
+  };
+
+  // ============================================
+  // HEADER SETUP
+  // ============================================
+
+  const setupHeader = (title: string, avatar: string | null) => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <View style={styles.headerTitleContainer}>
+          {avatar ? (
+            <Image source={{ uri: avatar }} style={styles.headerAvatar} />
+          ) : (
+            <View style={styles.headerAvatarPlaceholder}>
+              <Text style={styles.headerAvatarText}>
+                {title.substring(0, 2).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <Text style={styles.headerTitleText} numberOfLines={1}>{title}</Text>
+        </View>
+      ),
+      headerRight: () => (
+        <TouchableOpacity
+          style={styles.headerMenuButton}
+          onPress={handleShowConversationOptions}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color={Colors.gray700} />
+        </TouchableOpacity>
+      ),
+    });
+  };
+
+  const setupNewConversationHeader = () => {
+    navigation.setOptions({
+      headerTitle: () => (
+        <View style={styles.headerTitleContainer}>
+          <View style={styles.headerAvatarPlaceholder}>
+            <Text style={styles.headerAvatarText}>
+              {(userName || '').substring(0, 2).toUpperCase()}
+            </Text>
+          </View>
+          <Text style={styles.headerTitleText} numberOfLines={1}>{userName}</Text>
+        </View>
+      ),
+    });
+  };
+
+  // ============================================
+  // CONVERSATION OPTIONS
+  // ============================================
 
   const handleShowConversationOptions = () => {
     Alert.alert(
@@ -296,20 +327,17 @@ export default function ConversationScreen() {
           style: 'destructive',
           onPress: handleBlockUser,
         },
-        {
-          text: 'Annuler',
-          style: 'cancel',
-        },
+        { text: 'Annuler', style: 'cancel' },
       ]
     );
   };
 
   const handleBlockUser = async () => {
-    if (!otherUserId) return;
+    if (!state.otherUserId) return;
 
     Alert.alert(
       'Bloquer utilisateur',
-      `Voulez-vous vraiment bloquer ${conversationTitle} ? Vous ne recevrez plus ses messages.`,
+      `Voulez-vous vraiment bloquer ${state.conversationTitle} ?`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -317,11 +345,10 @@ export default function ConversationScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await messagesAPI.blockUser(otherUserId);
-              showSuccess('Utilisateur bloque', `${conversationTitle} a ete bloque.`);
+              await messagesAPI.blockUser(state.otherUserId!);
+              showSuccess('Utilisateur bloqué', '');
               navigation.goBack();
             } catch (error) {
-              console.error('Erreur blocage:', error);
               showError('Erreur', 'Impossible de bloquer cet utilisateur');
             }
           },
@@ -330,36 +357,38 @@ export default function ConversationScreen() {
     );
   };
 
-  const fetchMessages = async () => {
-    if (!currentConversationId) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const response = await messagesAPI.getMessages({ conversation: currentConversationId });
-      const newMessages = response.data.results || response.data || [];
-      setMessages(newMessages.reverse());
-    } catch (error) {
-      console.error('Erreur chargement messages:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ============================================
+  // TYPING INDICATOR
+  // ============================================
 
-  const markAsRead = async () => {
-    if (!currentConversationId) return;
-    try {
-      await messagesAPI.markConversationAsRead(currentConversationId);
-    } catch (error) {
-      console.error('Erreur marquage lu:', error);
+  const handleTyping = useCallback(() => {
+    if (!state.conversationId) return;
+
+    const now = Date.now();
+    if (now - lastTypingSentRef.current > TYPING_SEND_INTERVAL) {
+      startTyping(state.conversationId);
+      lastTypingSentRef.current = now;
     }
-  };
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      if (state.conversationId) {
+        stopTyping(state.conversationId);
+      }
+    }, 3000);
+  }, [state.conversationId, startTyping, stopTyping]);
+
+  // ============================================
+  // ATTACHMENTS
+  // ============================================
 
   const handlePickImage = async () => {
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        showError('Permission requise', 'Autorisez l\'acces aux photos pour envoyer des images.');
+        showError('Permission requise', 'Autorisez l\'accès aux photos.');
         return;
       }
 
@@ -373,31 +402,30 @@ export default function ConversationScreen() {
         const asset = result.assets[0];
         const filename = asset.uri.split('/').pop() || 'image.jpg';
 
-        setAttachedFiles([{
+        actions.setAttachedFiles([{
           uri: asset.uri,
           name: filename,
           type: 'image',
         }]);
       }
     } catch (error) {
-      console.error('Erreur selection image:', error);
-      showError('Erreur', 'Impossible de selectionner l\'image');
+      showError('Erreur', 'Impossible de sélectionner l\'image');
     }
   };
 
   const handleRemoveAttachment = () => {
-    setAttachedFiles([]);
+    actions.clearAttachedFiles();
   };
 
   // ============================================
-  // MESSAGES VOCAUX
+  // VOICE RECORDING
   // ============================================
 
   const startRecording = async () => {
     try {
       const { granted } = await Audio.requestPermissionsAsync();
       if (!granted) {
-        showError('Permission requise', 'Autorisez l\'acces au microphone pour enregistrer des messages vocaux.');
+        showError('Permission requise', 'Autorisez l\'accès au microphone.');
         return;
       }
 
@@ -406,159 +434,140 @@ export default function ConversationScreen() {
         playsInSilentModeIOS: true,
       });
 
-      const { recording: newRecording } = await Audio.Recording.createAsync(
+      const { recording } = await Audio.Recording.createAsync(
         Audio.RecordingOptionsPresets.HIGH_QUALITY
       );
 
-      setRecording(newRecording);
-      setIsRecording(true);
-      setRecordingDuration(0);
+      recordingRef.current = recording;
+      actions.setRecording(true);
+      actions.setRecordingDuration(0);
 
-      // Animation pulsation
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(recordingAnim, { toValue: 1.2, duration: 500, useNativeDriver: true }),
-          Animated.timing(recordingAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
-        ])
-      ).start();
-
-      // Timer pour la duree
       recordingIntervalRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
+        actions.incrementRecordingDuration();
       }, 1000);
     } catch (error) {
-      console.error('Erreur demarrage enregistrement:', error);
-      showError('Erreur', 'Impossible de demarrer l\'enregistrement');
+      showError('Erreur', 'Impossible de démarrer l\'enregistrement');
     }
   };
 
   const stopRecording = async () => {
-    if (!recording) return;
+    if (!recordingRef.current) return;
 
     try {
-      recordingAnim.stopAnimation();
-      recordingAnim.setValue(1);
-
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
       }
 
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI();
 
-      setIsRecording(false);
-      setRecording(null);
+      actions.setRecording(false);
 
-      if (uri && recordingDuration >= 1) {
-        setAttachedFiles([{
+      if (uri && state.recordingDuration >= 1) {
+        actions.setAttachedFiles([{
           uri,
           name: `voice_${Date.now()}.m4a`,
           type: 'voice',
-          duration: recordingDuration,
+          duration: state.recordingDuration,
         }]);
       }
 
-      setRecordingDuration(0);
+      recordingRef.current = null;
     } catch (error) {
-      console.error('Erreur arret enregistrement:', error);
+      console.error('Erreur arrêt enregistrement:', error);
     }
   };
 
   const cancelRecording = async () => {
-    if (!recording) return;
+    if (!recordingRef.current) return;
 
     try {
-      recordingAnim.stopAnimation();
-      recordingAnim.setValue(1);
-
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
       }
 
-      await recording.stopAndUnloadAsync();
-      setIsRecording(false);
-      setRecording(null);
-      setRecordingDuration(0);
+      await recordingRef.current.stopAndUnloadAsync();
+      recordingRef.current = null;
+      actions.setRecording(false);
     } catch (error) {
       console.error('Erreur annulation enregistrement:', error);
     }
   };
 
-  const playVoiceMessage = async (attachmentUri: string, messageId: string) => {
+  const playVoiceMessage = async (uri: string, messageId: string) => {
     try {
-      if (sound) {
-        await sound.unloadAsync();
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
       }
 
-      if (playingVoiceId === messageId) {
-        setPlayingVoiceId(null);
+      if (state.playingVoiceId === messageId) {
+        actions.setPlayingVoice(null);
         return;
       }
 
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { uri: attachmentUri },
+      const { sound } = await Audio.Sound.createAsync(
+        { uri },
         { shouldPlay: true }
       );
 
-      setSound(newSound);
-      setPlayingVoiceId(messageId);
+      soundRef.current = sound;
+      actions.setPlayingVoice(messageId);
 
-      newSound.setOnPlaybackStatusUpdate((status) => {
+      sound.setOnPlaybackStatusUpdate((status) => {
         if (status.isLoaded && status.didJustFinish) {
-          setPlayingVoiceId(null);
+          actions.setPlayingVoice(null);
         }
       });
     } catch (error) {
-      console.error('Erreur lecture audio:', error);
       showError('Erreur', 'Impossible de lire le message vocal');
     }
   };
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   // ============================================
-  // ACTIONS SUR MESSAGES
+  // MESSAGE ACTIONS
   // ============================================
 
-  const handleLongPressMessage = (message: Message) => {
-    setSelectedMessage(message);
-    setShowActionMenu(true);
-  };
+  const handleMessageLongPress = useCallback((message: Message) => {
+    actions.showActionMenu(message);
+  }, [actions]);
 
-  const handleMessageAction = (action: MessageAction) => {
-    if (!selectedMessage) return;
+  const handleMessageAction = useCallback(async (action: MessageActionType) => {
+    const message = state.selectedMessage;
+    if (!message) return;
 
-    setShowActionMenu(false);
+    actions.hideActionMenu();
 
     switch (action) {
       case 'reply':
-        setReplyToMessage(selectedMessage);
-        setEditingMessage(null);
+        actions.startReply(message);
         break;
+
       case 'edit':
-        if (isMyMessage(selectedMessage)) {
-          setEditingMessage(selectedMessage);
-          setNewMessage(selectedMessage.content);
-          setReplyToMessage(null);
+        if (isMyMessage(message, user?.id)) {
+          actions.startEdit(message);
         }
         break;
+
       case 'delete':
-        handleDeleteMessage(selectedMessage.id);
+        handleDeleteMessage(message.id);
         break;
+
       case 'forward':
-        handleForwardMessage(selectedMessage);
+        handleForwardMessage(message);
         break;
+
       case 'react':
-        setSelectedMessageId(selectedMessage.id);
-        setShowReactionPicker(true);
+        actions.showReactionPicker();
+        break;
+
+      case 'copy':
+        if (message.content) {
+          Clipboard.setString(message.content);
+          showSuccess('Copié', 'Message copié dans le presse-papiers');
+        }
         break;
     }
-    setSelectedMessage(null);
-  };
+  }, [state.selectedMessage, user?.id, actions]);
 
   const handleDeleteMessage = (messageId: string) => {
     Alert.alert(
@@ -572,10 +581,9 @@ export default function ConversationScreen() {
           onPress: async () => {
             try {
               await messagesAPI.deleteMessage(messageId);
-              setMessages(prev => prev.filter(m => m.id !== messageId));
-              showSuccess('Message supprime', '');
+              actions.removeMessage(messageId);
+              showSuccess('Message supprimé', '');
             } catch (error) {
-              console.error('Erreur suppression:', error);
               showError('Erreur', 'Impossible de supprimer le message');
             }
           },
@@ -585,10 +593,10 @@ export default function ConversationScreen() {
   };
 
   const handleForwardMessage = async (message: Message) => {
-    setShowForwardModal(true);
-    setLoadingForwardTargets(true);
+    actions.showForwardModal();
+    actions.setLoadingForwardTargets(true);
+
     try {
-      // Charger les conversations pour obtenir les utilisateurs
       const response = await messagesAPI.getConversations();
       const conversations = response.data.results || response.data || [];
 
@@ -601,150 +609,93 @@ export default function ConversationScreen() {
         });
       });
 
-      setForwardTargets(targets);
+      actions.setForwardTargets(targets);
     } catch (error) {
-      console.error('Erreur chargement contacts:', error);
       showError('Erreur', 'Impossible de charger les contacts');
     } finally {
-      setLoadingForwardTargets(false);
+      actions.setLoadingForwardTargets(false);
     }
   };
 
   const handleForwardToUser = async (targetUserId: string) => {
-    if (!selectedMessage) return;
+    if (!state.selectedMessage) return;
 
     try {
       await messagesAPI.forwardMessage({
-        message_id: selectedMessage.id,
+        message_id: state.selectedMessage.id,
         target_user_id: targetUserId,
       });
-      showSuccess('Message transfere', '');
-      setShowForwardModal(false);
-      setSelectedMessage(null);
+      showSuccess('Message transféré', '');
+      actions.hideForwardModal();
     } catch (error) {
-      console.error('Erreur transfert:', error);
-      showError('Erreur', 'Impossible de transferer le message');
+      showError('Erreur', 'Impossible de transférer le message');
     }
   };
 
-  const handleCancelReply = () => {
-    setReplyToMessage(null);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingMessage(null);
-    setNewMessage('');
-  };
-
-  const handleAddReaction = async (emoji: string) => {
-    const messageId = selectedMessageId || selectedMessage?.id;
+  const handleSelectReaction = async (emoji: string) => {
+    const messageId = state.selectedMessage?.id;
     if (!messageId) return;
 
+    actions.hideReactionPicker();
+
     try {
-      if (isConnected) {
+      if (isConnected && isAuthenticated) {
         wsAddReaction(messageId, emoji);
       } else {
         await messagesAPI.addReaction(messageId, emoji);
       }
-
-      setMessages(prev => prev.map(msg => {
-        if (msg.id === messageId) {
-          const existingReaction = msg.reactions?.find(r => r.emoji === emoji && r.user === user?.id);
-          if (existingReaction) {
-            return {
-              ...msg,
-              reactions: msg.reactions?.filter(r => !(r.emoji === emoji && r.user === user?.id)) || [],
-            };
-          } else {
-            return {
-              ...msg,
-              reactions: [...(msg.reactions || []), { id: `temp-${Date.now()}`, emoji, user: user?.id || '', created_at: new Date().toISOString() }],
-            };
-          }
-        }
-        return msg;
-      }));
+      actions.addReaction(messageId, emoji, String(user?.id));
     } catch (error) {
-      console.error('Erreur ajout reaction:', error);
-    } finally {
-      setShowReactionPicker(false);
-      setSelectedMessageId(null);
+      console.error('Erreur ajout réaction:', error);
     }
   };
 
   // ============================================
-  // ENVOI DE MESSAGE
+  // SEND MESSAGE
   // ============================================
 
   const handleSend = async () => {
-    if ((!newMessage.trim() && attachedFiles.length === 0) || sending) return;
+    if (state.sending) return;
 
-    const messageContent = newMessage.trim();
-    const isEditing = !!editingMessage;
+    const messageContent = state.newMessage.trim();
+    const hasContent = messageContent.length > 0 || state.attachedFiles.length > 0;
+    if (!hasContent) return;
 
-    setNewMessage('');
-    setSending(true);
+    const isEditing = !!state.editingMessage;
+
+    actions.setNewMessage('');
+    actions.setSending(true);
 
     try {
-      // Mode edition
-      if (isEditing && editingMessage) {
-        await messagesAPI.updateMessage(editingMessage.id, { content: messageContent });
-        setMessages(prev => prev.map(msg =>
-          msg.id === editingMessage.id
-            ? { ...msg, content: messageContent }
-            : msg
-        ));
-        setEditingMessage(null);
-        setSending(false);
+      // Mode édition
+      if (isEditing && state.editingMessage) {
+        await messagesAPI.updateMessage(state.editingMessage.id, { content: messageContent });
+        actions.updateMessage(state.editingMessage.id, { content: messageContent });
+        actions.cancelEdit();
+        actions.setSending(false);
         return;
       }
 
-      let conversationIdToUse = currentConversationId;
+      let conversationIdToUse = state.conversationId;
 
       // Nouvelle conversation
-      if (isNewConversation && userId && !currentConversationId) {
+      if (state.isNewConversation && userId && !state.conversationId) {
         const convResponse = await messagesAPI.createConversation({
           participant_ids: [user?.id, userId],
         });
         conversationIdToUse = convResponse.data.id;
-        setCurrentConversationId(conversationIdToUse);
-        setIsNewConversation(false);
+        actions.setConversationId(conversationIdToUse);
+        actions.setIsNewConversation(false);
       }
 
       if (!conversationIdToUse) {
         throw new Error('Pas de conversation disponible');
       }
 
-      // Optimistic update
-      const tempMessage: Message = {
-        id: `temp-${Date.now()}`,
-        conversation: conversationIdToUse,
-        sender: user!.id as any,
-        sender_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email || '',
-        content: messageContent,
-        created_at: new Date().toISOString(),
-        is_starred: false,
-        read_by: [],
-        reply_to: replyToMessage?.id,
-        attachments: attachedFiles.map(f => ({
-          id: `temp-${Date.now()}`,
-          file: f.uri,
-          attachment_type: f.type,
-          file_name: f.name,
-          file_size: 0,
-          mime_type: f.type === 'image' ? 'image/jpeg' : f.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
-          duration_seconds: f.duration,
-          uploaded_at: new Date().toISOString(),
-        })),
-      };
-      setMessages((prev) => [...prev, tempMessage]);
-      setAttachedFiles([]);
-      setReplyToMessage(null);
-
-      // Upload attachments
+      // IMPORTANT: Upload attachments AVANT l'optimistic update
       let attachmentIds: string[] = [];
 
-      for (const att of attachedFiles) {
+      for (const att of state.attachedFiles) {
         const formData = new FormData();
         formData.append('file', {
           uri: att.uri,
@@ -768,11 +719,38 @@ export default function ConversationScreen() {
         }
       }
 
+      // Maintenant faire l'optimistic update avec les vrais attachment IDs
+      const tempMessage: Message = {
+        id: `temp-${Date.now()}`,
+        conversation: conversationIdToUse,
+        sender: user!.id as any,
+        sender_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email || '',
+        content: messageContent,
+        created_at: new Date().toISOString(),
+        is_starred: false,
+        read_by: [],
+        reply_to: state.replyToMessage?.id,
+        attachments: state.attachedFiles.map((f, i) => ({
+          id: attachmentIds[i] || `temp-${Date.now()}-${i}`,
+          file: f.uri,
+          attachment_type: f.type,
+          file_name: f.name,
+          file_size: 0,
+          mime_type: f.type === 'image' ? 'image/jpeg' : f.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
+          duration_seconds: f.duration,
+          uploaded_at: new Date().toISOString(),
+        })),
+      };
+
+      actions.addMessage(tempMessage);
+      actions.clearAttachedFiles();
+      actions.cancelReply();
+
       // Envoi via WebSocket ou REST
-      const wsSent = isConnected && wsSendMessage(
+      const wsSent = isConnected && isAuthenticated && wsSendMessage(
         conversationIdToUse,
         messageContent,
-        replyToMessage?.id,
+        state.replyToMessage?.id,
         attachmentIds.length > 0 ? attachmentIds : undefined
       );
 
@@ -780,268 +758,53 @@ export default function ConversationScreen() {
         const response = await messagesAPI.sendMessage({
           conversation: conversationIdToUse,
           content: messageContent,
-          reply_to: replyToMessage?.id,
+          reply_to: state.replyToMessage?.id,
         });
 
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === tempMessage.id ? response.data : msg))
-        );
+        actions.updateMessage(tempMessage.id, response.data);
       }
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     } catch (error) {
       console.error('Erreur envoi message:', error);
-      setMessages((prev) => prev.filter((msg) => !msg.id.startsWith('temp-')));
-      setNewMessage(messageContent);
+      actions.removeTempMessages();
+      actions.setNewMessage(messageContent);
       showError('Erreur', 'Impossible d\'envoyer le message');
     } finally {
-      setSending(false);
+      actions.setSending(false);
     }
   };
 
   // ============================================
-  // HELPERS
+  // RENDER
   // ============================================
-
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'Aujourd\'hui';
-    }
-    if (date.toDateString() === yesterday.toDateString()) {
-      return 'Hier';
-    }
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined,
-    });
-  };
-
-  const shouldShowDate = (index: number) => {
-    if (index === 0) return true;
-    const currentDate = new Date(messages[index].created_at).toDateString();
-    const previousDate = new Date(messages[index - 1].created_at).toDateString();
-    return currentDate !== previousDate;
-  };
-
-  const isMyMessage = (message: Message) => {
-    const senderId = typeof message.sender === 'number'
-      ? message.sender
-      : typeof message.sender === 'string'
-        ? message.sender
-        : (message.sender as any)?.id;
-    return String(senderId) === String(user?.id);
-  };
-
-  const getInitials = (message: Message) => {
-    if (message.sender_name) {
-      const parts = message.sender_name.split(' ');
-      if (parts.length >= 2) {
-        return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-      }
-      return message.sender_name[0].toUpperCase();
-    }
-    if (typeof message.sender === 'object' && message.sender !== null) {
-      const sender = message.sender as any;
-      if (sender.first_name && sender.last_name) {
-        return `${sender.first_name[0]}${sender.last_name[0]}`.toUpperCase();
-      }
-      return (sender.email?.[0] || 'U').toUpperCase();
-    }
-    return 'U';
-  };
-
-  const getReplyToContent = (replyTo: string | Message | undefined) => {
-    if (!replyTo) return null;
-    if (typeof replyTo === 'string') {
-      const replyMessage = messages.find(m => m.id === replyTo);
-      return replyMessage || null;
-    }
-    return replyTo;
-  };
-
-  // ============================================
-  // RENDER HELPERS
-  // ============================================
-
-  const renderAttachment = (attachment: any, isMine: boolean, messageId: string) => {
-    if (attachment.attachment_type === 'image') {
-      return (
-        <Image
-          source={{ uri: attachment.file }}
-          style={styles.attachmentImage}
-          resizeMode="cover"
-        />
-      );
-    }
-
-    if (attachment.attachment_type === 'voice') {
-      const isPlaying = playingVoiceId === messageId;
-      return (
-        <TouchableOpacity
-          style={[styles.voiceAttachment, isMine && styles.voiceAttachmentMine]}
-          onPress={() => playVoiceMessage(attachment.file, messageId)}
-        >
-          <Ionicons
-            name={isPlaying ? 'pause' : 'play'}
-            size={24}
-            color={isMine ? Colors.white : Colors.primary}
-          />
-          <View style={styles.voiceWaveform}>
-            {[...Array(20)].map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.waveformBar,
-                  { height: Math.random() * 16 + 4 },
-                  isMine && styles.waveformBarMine,
-                ]}
-              />
-            ))}
-          </View>
-          <Text style={[styles.voiceDuration, isMine && styles.voiceDurationMine]}>
-            {formatDuration(attachment.duration_seconds || 0)}
-          </Text>
-        </TouchableOpacity>
-      );
-    }
-
-    return (
-      <TouchableOpacity style={[styles.attachmentFile, isMine && styles.attachmentFileMine]}>
-        <Ionicons name="document-outline" size={20} color={isMine ? Colors.white : Colors.gray600} />
-        <Text style={[styles.attachmentFileName, isMine && styles.attachmentFileNameMine]} numberOfLines={1}>
-          {attachment.file_name || 'Document'}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderReactions = (reactions: any[] | undefined, isMine: boolean) => {
-    if (!reactions || reactions.length === 0) return null;
-
-    const grouped = reactions.reduce((acc, r) => {
-      acc[r.emoji] = (acc[r.emoji] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return (
-      <View style={[styles.reactionsContainer, isMine && styles.reactionsContainerMine]}>
-        {Object.entries(grouped).map(([emoji, count]) => (
-          <View key={emoji} style={styles.reactionBadge}>
-            <Text style={styles.reactionEmoji}>{emoji}</Text>
-            {(count as number) > 1 && <Text style={styles.reactionCount}>{count}</Text>}
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  const renderReplyPreview = (replyTo: Message | null, isMine: boolean) => {
-    if (!replyTo) return null;
-
-    return (
-      <View style={[styles.replyPreviewInMessage, isMine && styles.replyPreviewInMessageMine]}>
-        <View style={[styles.replyPreviewBar, isMine && styles.replyPreviewBarMine]} />
-        <View style={styles.replyPreviewContent}>
-          <Text style={[styles.replyPreviewName, isMine && styles.replyPreviewNameMine]} numberOfLines={1}>
-            {replyTo.sender_name || 'Utilisateur'}
-          </Text>
-          <Text style={[styles.replyPreviewText, isMine && styles.replyPreviewTextMine]} numberOfLines={1}>
-            {replyTo.content}
-          </Text>
-        </View>
-      </View>
-    );
-  };
 
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
-    const isMine = isMyMessage(item);
-    const showDate = shouldShowDate(index);
-    const avatar = item.sender_avatar || (typeof item.sender === 'object' ? (item.sender as any)?.profile_picture || (item.sender as any)?.image : null);
-    const hasAttachments = item.attachments && item.attachments.length > 0;
-    const isRead = item.read_by && item.read_by.length > 0;
-    const replyToContent = getReplyToContent(item.reply_to);
+    const isMine = isMyMessage(item, user?.id);
+    const showDate = shouldShowDateSeparator(state.messages, index);
+    const replyToContent = getReplyToContent(item.reply_to, state.messages);
 
     return (
       <View>
         {showDate && (
           <View style={styles.dateContainer}>
-            <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
+            <Text style={styles.dateText}>{formatMessageDate(item.created_at)}</Text>
           </View>
         )}
-        <TouchableOpacity
-          style={[styles.messageRow, isMine && styles.messageRowMine]}
-          onLongPress={() => handleLongPressMessage(item)}
-          delayLongPress={300}
-          activeOpacity={0.8}
-        >
-          {!isMine && (
-            avatar ? (
-              <Image source={{ uri: avatar }} style={styles.messageAvatar} />
-            ) : (
-              <View style={styles.messageAvatarPlaceholder}>
-                <Text style={styles.messageAvatarInitials}>{getInitials(item)}</Text>
-              </View>
-            )
-          )}
-          <View style={styles.messageBubbleContainer}>
-            {/* Reply Preview */}
-            {replyToContent && renderReplyPreview(replyToContent as Message, isMine)}
-
-            {/* Attachments */}
-            {hasAttachments && (
-              <View style={styles.attachmentsContainer}>
-                {item.attachments?.map((att, i) => (
-                  <View key={att.id || i}>
-                    {renderAttachment(att, isMine, item.id)}
-                  </View>
-                ))}
-              </View>
-            )}
-
-            {/* Text content */}
-            {item.content && (
-              <View
-                style={[
-                  styles.messageBubble,
-                  isMine ? styles.messageBubbleMine : styles.messageBubbleOther,
-                  hasAttachments && styles.messageBubbleWithAttachment,
-                ]}
-              >
-                <Text style={[styles.messageText, isMine && styles.messageTextMine]}>
-                  {item.content}
-                </Text>
-              </View>
-            )}
-
-            {/* Reactions */}
-            {renderReactions(item.reactions, isMine)}
-
-            {/* Time */}
-            <View style={[styles.messageTimeRow, isMine && styles.messageTimeRowMine]}>
-              <Text style={styles.messageTime}>{formatTime(item.created_at)}</Text>
-              {isMine && (
-                <Ionicons
-                  name={isRead ? 'checkmark-done' : 'checkmark'}
-                  size={14}
-                  color={isRead ? Colors.primary : Colors.gray400}
-                  style={{ marginLeft: 4 }}
-                />
-              )}
-            </View>
-          </View>
-        </TouchableOpacity>
+        <MessageBubble
+          message={item}
+          isMine={isMine}
+          replyToMessage={replyToContent}
+          otherUserId={state.otherUserId}
+          playingVoiceId={state.playingVoiceId}
+          onLongPress={handleMessageLongPress}
+          onPlayVoice={playVoiceMessage}
+        />
       </View>
     );
-  }, [messages, user, playingVoiceId]);
+  }, [state.messages, state.otherUserId, state.playingVoiceId, user?.id, handleMessageLongPress]);
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -1049,17 +812,32 @@ export default function ConversationScreen() {
         <Ionicons name="chatbubble-ellipses-outline" size={48} color={Colors.gray300} />
       </View>
       <Text style={styles.emptyText}>
-        {isNewConversation ? 'Nouvelle conversation' : 'Aucun message'}
+        {state.isNewConversation ? 'Nouvelle conversation' : 'Aucun message'}
       </Text>
       <Text style={styles.emptySubtext}>
-        {isNewConversation
-          ? `Envoyez un message a ${conversationTitle}`
+        {state.isNewConversation
+          ? `Envoyez un message à ${state.conversationTitle}`
           : 'Commencez la conversation !'}
       </Text>
     </View>
   );
 
-  if (loading) {
+  const renderLoadingMore = () => {
+    if (!state.loadingMore) return null;
+    return (
+      <View style={styles.loadingMore}>
+        <ActivityIndicator size="small" color={Colors.primary} />
+      </View>
+    );
+  };
+
+  const handleLoadMore = () => {
+    if (state.hasMore && !state.loadingMore) {
+      fetchMessages(true);
+    }
+  };
+
+  if (state.loading) {
     return (
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
@@ -1075,9 +853,11 @@ export default function ConversationScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
       {/* Connection Status Warning */}
-      {!isConnected && currentConversationId && (
+      {!isConnected && state.conversationId && (
         <View style={styles.connectionStatus}>
-          <Text style={styles.connectionStatusText}>Mode hors-ligne - Rafraichissement automatique</Text>
+          <Text style={styles.connectionStatusText}>
+            Mode hors-ligne - Rafraîchissement automatique
+          </Text>
         </View>
       )}
 
@@ -1088,308 +868,76 @@ export default function ConversationScreen() {
       >
         <FlatList
           ref={flatListRef}
-          data={messages}
+          data={state.messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={renderEmpty}
+          ListHeaderComponent={renderLoadingMore}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.1}
+          inverted={false}
           onContentSizeChange={() => {
-            if (messages.length > 0) {
+            if (state.messages.length > 0 && !state.loadingMore) {
               flatListRef.current?.scrollToEnd({ animated: false });
             }
           }}
         />
 
         {/* Typing Indicator */}
-        {typingIndicator && (
-          <View style={styles.typingIndicatorContainer}>
-            <View style={styles.typingDots}>
-              <View style={[styles.typingDot, styles.typingDot1]} />
-              <View style={[styles.typingDot, styles.typingDot2]} />
-              <View style={[styles.typingDot, styles.typingDot3]} />
-            </View>
-            <Text style={styles.typingText}>{typingIndicator}</Text>
-          </View>
+        {typingUsers.length > 0 && (
+          <TypingIndicator typingUsers={typingUsers} />
         )}
 
-        {/* Reply Preview */}
-        {replyToMessage && (
-          <View style={styles.replyPreviewContainer}>
-            <View style={styles.replyPreviewLeft}>
-              <View style={styles.replyPreviewBar} />
-              <View style={styles.replyPreviewContent}>
-                <Text style={styles.replyPreviewLabel}>Repondre a {replyToMessage.sender_name}</Text>
-                <Text style={styles.replyPreviewMessage} numberOfLines={1}>{replyToMessage.content}</Text>
-              </View>
-            </View>
-            <TouchableOpacity onPress={handleCancelReply} style={styles.replyPreviewClose}>
-              <Ionicons name="close" size={20} color={Colors.gray500} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Edit Preview */}
-        {editingMessage && (
-          <View style={styles.editPreviewContainer}>
-            <View style={styles.editPreviewLeft}>
-              <Ionicons name="create-outline" size={20} color={Colors.primary} />
-              <View style={styles.editPreviewContent}>
-                <Text style={styles.editPreviewLabel}>Modifier le message</Text>
-                <Text style={styles.editPreviewMessage} numberOfLines={1}>{editingMessage.content}</Text>
-              </View>
-            </View>
-            <TouchableOpacity onPress={handleCancelEdit} style={styles.editPreviewClose}>
-              <Ionicons name="close" size={20} color={Colors.gray500} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Attachment Preview */}
-        {attachedFiles.length > 0 && (
-          <View style={styles.attachmentPreview}>
-            {attachedFiles.map((file, index) => (
-              <View key={index} style={styles.attachmentPreviewItem}>
-                {file.type === 'image' && (
-                  <Image source={{ uri: file.uri }} style={styles.attachmentPreviewImage} />
-                )}
-                {file.type === 'voice' && (
-                  <View style={styles.attachmentPreviewVoice}>
-                    <Ionicons name="mic" size={24} color={Colors.primary} />
-                    <Text style={styles.attachmentPreviewVoiceDuration}>
-                      {formatDuration(file.duration || 0)}
-                    </Text>
-                  </View>
-                )}
-                <TouchableOpacity
-                  style={styles.attachmentRemoveButton}
-                  onPress={handleRemoveAttachment}
-                >
-                  <Ionicons name="close-circle" size={20} color={Colors.error} />
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {/* Recording UI */}
-        {isRecording && (
-          <View style={styles.recordingContainer}>
-            <TouchableOpacity onPress={cancelRecording} style={styles.recordingCancelButton}>
-              <Ionicons name="trash-outline" size={24} color={Colors.error} />
-            </TouchableOpacity>
-            <View style={styles.recordingInfo}>
-              <Animated.View style={[styles.recordingDot, { transform: [{ scale: recordingAnim }] }]} />
-              <Text style={styles.recordingDuration}>{formatDuration(recordingDuration)}</Text>
-            </View>
-            <TouchableOpacity onPress={stopRecording} style={styles.recordingStopButton}>
-              <Ionicons name="send" size={24} color={Colors.white} />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Input Area */}
-        {!isRecording && (
-          <View style={styles.inputContainer}>
-            <View style={styles.inputWrapper}>
-              <TouchableOpacity style={styles.attachButton} onPress={handlePickImage}>
-                <Ionicons name="image-outline" size={22} color={Colors.primary} />
-              </TouchableOpacity>
-
-              <TextInput
-                style={styles.input}
-                value={newMessage}
-                onChangeText={(text) => {
-                  setNewMessage(text);
-                  handleTyping();
-                }}
-                placeholder={editingMessage ? 'Modifier le message...' : 'Ecrivez votre message...'}
-                placeholderTextColor={Colors.gray400}
-                multiline
-                maxLength={1000}
-              />
-
-              {newMessage.trim() || attachedFiles.length > 0 ? (
-                <TouchableOpacity
-                  style={[styles.sendButton, sending && styles.sendButtonDisabled]}
-                  onPress={handleSend}
-                  disabled={sending}
-                >
-                  {sending ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <Ionicons name="send" size={18} color={Colors.white} />
-                  )}
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={styles.micButton}
-                  onPress={startRecording}
-                >
-                  <Ionicons name="mic" size={22} color={Colors.primary} />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
+        {/* Input Toolbar */}
+        <InputToolbar
+          value={state.newMessage}
+          onChangeText={(text) => {
+            actions.setNewMessage(text);
+            handleTyping();
+          }}
+          onSend={handleSend}
+          sending={state.sending}
+          attachedFiles={state.attachedFiles}
+          onPickImage={handlePickImage}
+          onRemoveAttachment={handleRemoveAttachment}
+          isRecording={state.isRecording}
+          recordingDuration={state.recordingDuration}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
+          onCancelRecording={cancelRecording}
+          replyToMessage={state.replyToMessage}
+          editingMessage={state.editingMessage}
+          onCancelReply={actions.cancelReply}
+          onCancelEdit={actions.cancelEdit}
+        />
       </KeyboardAvoidingView>
 
-      {/* Action Menu Modal */}
-      <Modal
-        visible={showActionMenu}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowActionMenu(false)}
-      >
-        <Pressable
-          style={styles.actionModalOverlay}
-          onPress={() => setShowActionMenu(false)}
-        >
-          <View style={styles.actionMenuContainer}>
-            <Text style={styles.actionMenuTitle}>Actions</Text>
+      {/* Modals */}
+      <MessageActionModal
+        visible={state.showActionMenu}
+        message={state.selectedMessage}
+        userId={user?.id}
+        onClose={actions.hideActionMenu}
+        onAction={handleMessageAction}
+      />
 
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={() => handleMessageAction('reply')}
-            >
-              <Ionicons name="arrow-undo-outline" size={22} color={Colors.gray700} />
-              <Text style={styles.actionMenuItemText}>Repondre</Text>
-            </TouchableOpacity>
+      <ReactionPickerModal
+        visible={state.showReactionPicker}
+        onClose={actions.hideReactionPicker}
+        onSelectReaction={handleSelectReaction}
+      />
 
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={() => handleMessageAction('react')}
-            >
-              <Ionicons name="happy-outline" size={22} color={Colors.gray700} />
-              <Text style={styles.actionMenuItemText}>Reagir</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionMenuItem}
-              onPress={() => handleMessageAction('forward')}
-            >
-              <Ionicons name="arrow-redo-outline" size={22} color={Colors.gray700} />
-              <Text style={styles.actionMenuItemText}>Transferer</Text>
-            </TouchableOpacity>
-
-            {selectedMessage && isMyMessage(selectedMessage) && (
-              <>
-                <TouchableOpacity
-                  style={styles.actionMenuItem}
-                  onPress={() => handleMessageAction('edit')}
-                >
-                  <Ionicons name="create-outline" size={22} color={Colors.gray700} />
-                  <Text style={styles.actionMenuItemText}>Modifier</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.actionMenuItem}
-                  onPress={() => handleMessageAction('delete')}
-                >
-                  <Ionicons name="trash-outline" size={22} color={Colors.error} />
-                  <Text style={[styles.actionMenuItemText, { color: Colors.error }]}>Supprimer</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Reaction Picker Modal */}
-      <Modal
-        visible={showReactionPicker}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          setShowReactionPicker(false);
-          setSelectedMessageId(null);
-        }}
-      >
-        <Pressable
-          style={styles.reactionModalOverlay}
-          onPress={() => {
-            setShowReactionPicker(false);
-            setSelectedMessageId(null);
-          }}
-        >
-          <View style={styles.reactionPickerContainer}>
-            <Text style={styles.reactionPickerTitle}>Reagir au message</Text>
-            <View style={styles.reactionPickerRow}>
-              {REACTION_EMOJIS.map((emoji) => (
-                <TouchableOpacity
-                  key={emoji}
-                  style={styles.reactionPickerItem}
-                  onPress={() => handleAddReaction(emoji)}
-                >
-                  <Text style={styles.reactionPickerEmoji}>{emoji}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </Pressable>
-      </Modal>
-
-      {/* Forward Modal */}
-      <Modal
-        visible={showForwardModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {
-          setShowForwardModal(false);
-          setSelectedMessage(null);
-        }}
-      >
-        <View style={styles.forwardModalContainer}>
-          <View style={styles.forwardModalContent}>
-            <View style={styles.forwardModalHeader}>
-              <Text style={styles.forwardModalTitle}>Transferer a</Text>
-              <TouchableOpacity onPress={() => {
-                setShowForwardModal(false);
-                setSelectedMessage(null);
-              }}>
-                <Ionicons name="close" size={24} color={Colors.gray700} />
-              </TouchableOpacity>
-            </View>
-
-            {loadingForwardTargets ? (
-              <View style={styles.forwardModalLoading}>
-                <ActivityIndicator size="large" color={Colors.primary} />
-              </View>
-            ) : (
-              <FlatList
-                data={forwardTargets}
-                keyExtractor={(item) => String(item.id)}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={styles.forwardTargetItem}
-                    onPress={() => handleForwardToUser(String(item.id))}
-                  >
-                    {item.profile_picture ? (
-                      <Image source={{ uri: item.profile_picture }} style={styles.forwardTargetAvatar} />
-                    ) : (
-                      <View style={styles.forwardTargetAvatarPlaceholder}>
-                        <Text style={styles.forwardTargetAvatarText}>
-                          {(item.first_name?.[0] || item.email?.[0] || 'U').toUpperCase()}
-                        </Text>
-                      </View>
-                    )}
-                    <Text style={styles.forwardTargetName}>
-                      {item.first_name && item.last_name
-                        ? `${item.first_name} ${item.last_name}`
-                        : item.email?.split('@')[0] || 'Utilisateur'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                ListEmptyComponent={() => (
-                  <View style={styles.forwardEmptyContainer}>
-                    <Text style={styles.forwardEmptyText}>Aucun contact disponible</Text>
-                  </View>
-                )}
-              />
-            )}
-          </View>
-        </View>
-      </Modal>
+      <ForwardModal
+        visible={state.showForwardModal}
+        targets={state.forwardTargets}
+        loading={state.loadingForwardTargets}
+        searchQuery={forwardSearchQuery}
+        onSearchChange={setForwardSearchQuery}
+        onClose={actions.hideForwardModal}
+        onSelectTarget={handleForwardToUser}
+      />
     </SafeAreaView>
   );
 }
@@ -1414,15 +962,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: MESSAGE_AVATAR_SIZE,
+    height: MESSAGE_AVATAR_SIZE,
+    borderRadius: MESSAGE_AVATAR_SIZE / 2,
     marginRight: Spacing.sm,
   },
   headerAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: MESSAGE_AVATAR_SIZE,
+    height: MESSAGE_AVATAR_SIZE,
+    borderRadius: MESSAGE_AVATAR_SIZE / 2,
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1430,7 +978,7 @@ const styles = StyleSheet.create({
   },
   headerAvatarText: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSizes.xs,
+    fontSize: FontSizes.sm,
     color: Colors.white,
   },
   headerTitleText: {
@@ -1462,187 +1010,6 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
 
-  // Message Row
-  messageRow: {
-    flexDirection: 'row',
-    marginBottom: Spacing.sm,
-    alignItems: 'flex-end',
-  },
-  messageRowMine: {
-    flexDirection: 'row-reverse',
-  },
-
-  // Avatar
-  messageAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: Spacing.sm,
-  },
-  messageAvatarPlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    marginRight: Spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.gray200,
-  },
-  messageAvatarInitials: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSizes.xs,
-    color: Colors.gray600,
-  },
-
-  // Bubble
-  messageBubbleContainer: {
-    maxWidth: '75%',
-  },
-  messageBubble: {
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-  },
-  messageBubbleOther: {
-    backgroundColor: Colors.white,
-    borderBottomLeftRadius: 4,
-  },
-  messageBubbleMine: {
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: 4,
-  },
-  messageBubbleWithAttachment: {
-    marginTop: Spacing.xs,
-  },
-  messageText: {
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
-    lineHeight: 22,
-  },
-  messageTextMine: {
-    color: Colors.white,
-  },
-
-  // Time
-  messageTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 4,
-  },
-  messageTimeRowMine: {
-    justifyContent: 'flex-end',
-  },
-  messageTime: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray400,
-  },
-
-  // Attachments
-  attachmentsContainer: {
-    marginBottom: Spacing.xs,
-  },
-  attachmentImage: {
-    width: 200,
-    height: 150,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.gray100,
-  },
-  attachmentFile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.gray100,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.sm,
-  },
-  attachmentFileMine: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  attachmentFileName: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray700,
-    flex: 1,
-  },
-  attachmentFileNameMine: {
-    color: Colors.white,
-  },
-
-  // Voice Attachment
-  voiceAttachment: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.gray100,
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
-    minWidth: 180,
-  },
-  voiceAttachmentMine: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  voiceWaveform: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    height: 24,
-    gap: 2,
-  },
-  waveformBar: {
-    width: 3,
-    backgroundColor: Colors.primary,
-    borderRadius: 1.5,
-  },
-  waveformBarMine: {
-    backgroundColor: Colors.white,
-  },
-  voiceDuration: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray600,
-    fontFamily: FontFamily.medium,
-  },
-  voiceDurationMine: {
-    color: Colors.white,
-  },
-
-  // Reply Preview in Message
-  replyPreviewInMessage: {
-    flexDirection: 'row',
-    backgroundColor: Colors.gray100,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.sm,
-    marginBottom: Spacing.xs,
-  },
-  replyPreviewInMessageMine: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  replyPreviewBar: {
-    width: 3,
-    backgroundColor: Colors.primary,
-    borderRadius: 2,
-    marginRight: Spacing.sm,
-  },
-  replyPreviewBarMine: {
-    backgroundColor: Colors.white,
-  },
-  replyPreviewContent: {
-    flex: 1,
-  },
-  replyPreviewName: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
-    marginBottom: 2,
-  },
-  replyPreviewNameMine: {
-    color: Colors.white,
-  },
-  replyPreviewText: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray600,
-  },
-  replyPreviewTextMine: {
-    color: 'rgba(255,255,255,0.8)',
-  },
-
   // Empty
   emptyContainer: {
     flex: 1,
@@ -1670,417 +1037,17 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
 
-  // Reply Preview Container
-  replyPreviewContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  replyPreviewLeft: {
-    flexDirection: 'row',
-    flex: 1,
-    alignItems: 'center',
-  },
-  replyPreviewLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
-    marginBottom: 2,
-  },
-  replyPreviewMessage: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray600,
-  },
-  replyPreviewClose: {
-    padding: Spacing.xs,
-  },
-
-  // Edit Preview Container
-  editPreviewContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary + '10',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  editPreviewLeft: {
-    flexDirection: 'row',
-    flex: 1,
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  editPreviewContent: {
-    flex: 1,
-  },
-  editPreviewLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
-    marginBottom: 2,
-  },
-  editPreviewMessage: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray600,
-  },
-  editPreviewClose: {
-    padding: Spacing.xs,
-  },
-
-  // Attachment Preview
-  attachmentPreview: {
-    flexDirection: 'row',
-    padding: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  attachmentPreviewItem: {
-    position: 'relative',
-    marginRight: Spacing.sm,
-  },
-  attachmentPreviewImage: {
-    width: 60,
-    height: 60,
-    borderRadius: BorderRadius.md,
-  },
-  attachmentPreviewVoice: {
-    width: 80,
-    height: 60,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.gray100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  attachmentPreviewVoiceDuration: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray600,
-    marginTop: 4,
-  },
-  attachmentRemoveButton: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: Colors.white,
-    borderRadius: 10,
-  },
-
-  // Recording
-  recordingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  recordingCancelButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.error + '15',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  recordingInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  recordingDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.error,
-  },
-  recordingDuration: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
-  },
-  recordingStopButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Input
-  inputContainer: {
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.xl,
-    paddingLeft: Spacing.xs,
-    paddingRight: Spacing.xs,
-    paddingVertical: Spacing.xs,
-  },
-  attachButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  input: {
-    flex: 1,
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
-    maxHeight: 100,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sendButtonDisabled: {
-    backgroundColor: Colors.gray300,
-  },
-  micButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.gray100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Reactions
-  reactionsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 4,
-    gap: 4,
-  },
-  reactionsContainerMine: {
-    justifyContent: 'flex-end',
-  },
-  reactionBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  reactionEmoji: {
-    fontSize: 14,
-  },
-  reactionCount: {
-    fontSize: 11,
-    color: Colors.gray600,
-    marginLeft: 2,
-    fontFamily: FontFamily.medium,
-  },
-
-  // Action Menu Modal
-  actionModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  actionMenuContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+  // Loading More
+  loadingMore: {
     padding: Spacing.md,
-    marginHorizontal: Spacing.xl,
-    width: '80%',
-    maxWidth: 300,
-  },
-  actionMenuTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  actionMenuItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-  },
-  actionMenuItemText: {
-    fontSize: FontSizes.base,
-    color: Colors.gray700,
-  },
-
-  // Reaction Picker Modal
-  reactionModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  reactionPickerContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.xl,
-    alignItems: 'center',
-  },
-  reactionPickerTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray500,
-    marginBottom: Spacing.md,
-  },
-  reactionPickerRow: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  reactionPickerItem: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.gray50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  reactionPickerEmoji: {
-    fontSize: 24,
-  },
-
-  // Forward Modal
-  forwardModalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  forwardModalContent: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '70%',
-  },
-  forwardModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-  },
-  forwardModalTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
-  },
-  forwardModalLoading: {
-    padding: Spacing['3xl'],
-    alignItems: 'center',
-  },
-  forwardTargetItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray50,
-  },
-  forwardTargetAvatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    marginRight: Spacing.md,
-  },
-  forwardTargetAvatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.gray200,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  forwardTargetAvatarText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.bold,
-    color: Colors.gray600,
-  },
-  forwardTargetName: {
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
-  },
-  forwardEmptyContainer: {
-    padding: Spacing['3xl'],
-    alignItems: 'center',
-  },
-  forwardEmptyText: {
-    fontSize: FontSizes.base,
-    color: Colors.gray500,
-  },
-
-  // Typing Indicator
-  typingIndicatorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.xs,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  typingDots: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: Spacing.sm,
-  },
-  typingDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: Colors.gray400,
-    marginHorizontal: 2,
-  },
-  typingDot1: {
-    opacity: 0.4,
-  },
-  typingDot2: {
-    opacity: 0.6,
-  },
-  typingDot3: {
-    opacity: 0.8,
-  },
-  typingText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-    fontStyle: 'italic',
   },
 
   // Connection Status
   connectionStatus: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
     backgroundColor: Colors.warning,
     paddingVertical: 4,
     alignItems: 'center',
-    zIndex: 100,
   },
   connectionStatusText: {
     fontSize: FontSizes.xs,

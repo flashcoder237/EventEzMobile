@@ -5,6 +5,7 @@
 // Utils
 export * from './utils/errorHandling';
 export * from './utils/apiHelpers';
+export * from './utils/messagingHelpers';
 
 // Validation
 export * from './validation';

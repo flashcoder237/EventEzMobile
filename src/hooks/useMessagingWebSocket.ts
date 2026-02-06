@@ -1,5 +1,10 @@
-// hooks/useMessagingWebSocket.ts
-// WebSocket hook pour la messagerie en temps reel
+/**
+ * hooks/useMessagingWebSocket.ts
+ * WebSocket hook pour la messagerie en temps réel
+ *
+ * SÉCURITÉ: Le token est envoyé via le premier message WebSocket,
+ * pas dans l'URL (évite l'exposition dans les logs serveur)
+ */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
@@ -9,7 +14,7 @@ import { Message } from '../types';
 // Configuration
 const WS_BASE_URL = Platform.select({
   ios: 'ws://localhost:8000',
-  android: 'ws://10.0.2.2:8000', // Android emulator
+  android: 'ws://10.0.2.2:8000',
   default: 'ws://localhost:8000',
 });
 
@@ -27,6 +32,7 @@ interface WebSocketMessage {
   is_typing?: boolean;
   read_at?: string;
   reaction_id?: string | number;
+  error?: string;
 }
 
 interface TypingUser {
@@ -43,7 +49,13 @@ interface UseMessagingWebSocketOptions {
   onReactionAdded?: (data: { messageId: string | number; userId: number; emoji: string }) => void;
   onReactionRemoved?: (data: { messageId: string | number; userId: number; emoji: string }) => void;
   onConnectionChange?: (isConnected: boolean) => void;
+  onMessageDeleted?: (data: { messageId: string | number }) => void;
+  onMessageUpdated?: (data: { messageId: string | number; content: string }) => void;
 }
+
+// Configuration reconnexion
+const MAX_RECONNECT_ATTEMPTS = 5;
+const TYPING_TIMEOUT_MS = 5000;
 
 export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}) {
   const {
@@ -53,19 +65,22 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onReactionAdded,
     onReactionRemoved,
     onConnectionChange,
+    onMessageDeleted,
+    onMessageUpdated,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [typingUsers, setTypingUsers] = useState<Map<string, TypingUser[]>>(new Map());
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const maxReconnectAttempts = 5;
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const pendingMessagesRef = useRef<any[]>([]);
 
-  // Nettoyer les indicateurs de frappe apres 5 secondes
+  // Cleanup typing timeout
   const clearTypingTimeout = useCallback((key: string) => {
     const existingTimeout = typingTimeoutsRef.current.get(key);
     if (existingTimeout) {
@@ -74,34 +89,70 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     }
   }, []);
 
+  // Clear all typing timeouts
+  const clearAllTypingTimeouts = useCallback(() => {
+    typingTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+    typingTimeoutsRef.current.clear();
+  }, []);
+
+  // Handle incoming WebSocket messages
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const data: WebSocketMessage = JSON.parse(event.data);
 
       switch (data.type) {
+        case 'auth.success':
+          setIsAuthenticated(true);
+          setConnectionError(null);
+          // Envoyer les messages en attente
+          pendingMessagesRef.current.forEach(msg => {
+            wsRef.current?.send(JSON.stringify(msg));
+          });
+          pendingMessagesRef.current = [];
+          break;
+
+        case 'auth.error':
+          setConnectionError(data.error || 'Erreur d\'authentification');
+          setIsAuthenticated(false);
+          break;
+
         case 'message.new':
           if (data.message && onNewMessage) {
             onNewMessage(data.message);
           }
           break;
 
-        case 'typing.indicator':
+        case 'message.deleted':
+          if (data.message_id && onMessageDeleted) {
+            onMessageDeleted({ messageId: data.message_id });
+          }
+          break;
+
+        case 'message.updated':
+          if (data.message_id && onMessageUpdated) {
+            onMessageUpdated({
+              messageId: data.message_id,
+              content: (data as any).content || '',
+            });
+          }
+          break;
+
+        case 'typing.indicator': {
           if (data.conversation_id !== undefined && data.user_name) {
             const conversationKey = String(data.conversation_id);
             const isTyping = data.is_typing ?? true;
 
-            if (isTyping) {
-              // Ajouter l'utilisateur qui tape
+            if (isTyping && data.user_id) {
               setTypingUsers(prev => {
                 const newMap = new Map(prev);
                 const currentTyping = newMap.get(conversationKey) || [];
                 const userExists = currentTyping.some(u => u.userId === data.user_id);
 
-                if (!userExists && data.user_id) {
+                if (!userExists) {
                   newMap.set(conversationKey, [
                     ...currentTyping,
                     {
-                      userId: data.user_id,
+                      userId: data.user_id!,
                       userName: data.user_name!,
                       conversationId: data.conversation_id!,
                       startedAt: new Date(),
@@ -111,7 +162,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
                 return newMap;
               });
 
-              // Auto-clear apres 5 secondes
+              // Auto-clear après timeout
               const timeoutKey = `${conversationKey}-${data.user_id}`;
               clearTypingTimeout(timeoutKey);
               const timeout = setTimeout(() => {
@@ -124,10 +175,9 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
                   );
                   return newMap;
                 });
-              }, 5000);
+              }, TYPING_TIMEOUT_MS);
               typingTimeoutsRef.current.set(timeoutKey, timeout);
             } else {
-              // Retirer l'utilisateur
               setTypingUsers(prev => {
                 const newMap = new Map(prev);
                 const currentTyping = newMap.get(conversationKey) || [];
@@ -149,6 +199,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
             }
           }
           break;
+        }
 
         case 'message.read':
           if (onMessageRead && data.message_id && data.user_id && data.read_at) {
@@ -185,45 +236,64 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         default:
-          console.log('Unknown WebSocket message type:', data.type);
+          if (__DEV__) {
+            console.log('Unknown WebSocket message type:', data.type);
+          }
       }
     } catch (error) {
       console.error('Error parsing WebSocket message:', error);
     }
-  }, [onNewMessage, onTypingIndicator, onMessageRead, onReactionAdded, onReactionRemoved, clearTypingTimeout]);
+  }, [
+    onNewMessage,
+    onTypingIndicator,
+    onMessageRead,
+    onReactionAdded,
+    onReactionRemoved,
+    onMessageDeleted,
+    onMessageUpdated,
+    clearTypingTimeout,
+  ]);
 
+  // Connect to WebSocket
   const connect = useCallback(async () => {
     try {
-      // Recuperer le token d'acces
+      // Récupérer le token d'accès
       const accessToken = await SecureStore.getItemAsync('accessToken');
       if (!accessToken) {
-        setConnectionError('Non authentifie');
+        setConnectionError('Non authentifié');
         return;
       }
 
-      // Fermer l'ancienne connexion si elle existe
+      // Fermer l'ancienne connexion
       if (wsRef.current) {
         wsRef.current.close();
       }
 
-      const wsUrl = `${WS_BASE_URL}/ws/messages/?token=${accessToken}`;
+      // SÉCURITÉ: Ne pas inclure le token dans l'URL
+      const wsUrl = `${WS_BASE_URL}/ws/messages/`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected, authenticating...');
         setIsConnected(true);
-        setConnectionError(null);
         reconnectAttemptsRef.current = 0;
         onConnectionChange?.(true);
+
+        // Envoyer l'authentification via le premier message
+        ws.send(JSON.stringify({
+          type: 'auth',
+          token: accessToken,
+        }));
       };
 
       ws.onclose = (event) => {
         console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
+        setIsAuthenticated(false);
         onConnectionChange?.(false);
 
         // Reconnexion automatique avec backoff exponentiel
-        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+        if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           reconnectAttemptsRef.current++;
           console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
@@ -232,7 +302,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
             connect();
           }, delay);
         } else {
-          setConnectionError('Connexion perdue. Veuillez rafraichir.');
+          setConnectionError('Connexion perdue. Veuillez rafraîchir.');
         }
       };
 
@@ -250,9 +320,11 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     }
   }, [handleMessage, onConnectionChange]);
 
+  // Disconnect
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
 
     if (wsRef.current) {
@@ -260,83 +332,85 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
       wsRef.current = null;
     }
 
-    // Clear all typing timeouts
-    typingTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
-    typingTimeoutsRef.current.clear();
-
+    clearAllTypingTimeouts();
     setIsConnected(false);
-  }, []);
+    setIsAuthenticated(false);
+  }, [clearAllTypingTimeouts]);
 
+  // Manual reconnect
   const reconnect = useCallback(() => {
     reconnectAttemptsRef.current = 0;
     disconnect();
     connect();
   }, [connect, disconnect]);
 
-  // Actions WebSocket
-
-  const sendMessage = useCallback((conversationId: string | number, content: string, replyTo?: string | number, attachmentIds?: string[]) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'message.send',
-        conversation_id: conversationId,
-        content,
-        reply_to: replyTo,
-        attachments: attachmentIds,
-      }));
+  // Send a message (with queueing if not authenticated)
+  const sendWsMessage = useCallback((data: any) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN && isAuthenticated) {
+      wsRef.current.send(JSON.stringify(data));
+      return true;
+    } else if (wsRef.current?.readyState === WebSocket.OPEN) {
+      // Queued for after authentication
+      pendingMessagesRef.current.push(data);
       return true;
     }
     return false;
-  }, []);
+  }, [isAuthenticated]);
+
+  // Actions WebSocket
+  const sendMessage = useCallback((
+    conversationId: string | number,
+    content: string,
+    replyTo?: string | number,
+    attachmentIds?: string[]
+  ) => {
+    return sendWsMessage({
+      type: 'message.send',
+      conversation_id: conversationId,
+      content,
+      reply_to: replyTo,
+      attachments: attachmentIds,
+    });
+  }, [sendWsMessage]);
 
   const startTyping = useCallback((conversationId: string | number) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'typing.start',
-        conversation_id: conversationId,
-      }));
-    }
-  }, []);
+    sendWsMessage({
+      type: 'typing.start',
+      conversation_id: conversationId,
+    });
+  }, [sendWsMessage]);
 
   const stopTyping = useCallback((conversationId: string | number) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'typing.stop',
-        conversation_id: conversationId,
-      }));
-    }
-  }, []);
+    sendWsMessage({
+      type: 'typing.stop',
+      conversation_id: conversationId,
+    });
+  }, [sendWsMessage]);
 
   const markMessagesAsRead = useCallback((messageIds: (string | number)[]) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'message.read',
-        message_ids: messageIds,
-      }));
-    }
-  }, []);
+    sendWsMessage({
+      type: 'message.read',
+      message_ids: messageIds,
+    });
+  }, [sendWsMessage]);
 
   const addReaction = useCallback((messageId: string | number, emoji: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'reaction.add',
-        message_id: messageId,
-        emoji,
-      }));
-    }
-  }, []);
+    sendWsMessage({
+      type: 'reaction.add',
+      message_id: messageId,
+      emoji,
+    });
+  }, [sendWsMessage]);
 
   const removeReaction = useCallback((messageId: string | number, emoji: string) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({
-        type: 'reaction.remove',
-        message_id: messageId,
-        emoji,
-      }));
-    }
-  }, []);
+    sendWsMessage({
+      type: 'reaction.remove',
+      message_id: messageId,
+      emoji,
+    });
+  }, [sendWsMessage]);
 
-  // Connexion automatique au montage
+  // Auto-connect on mount
   useEffect(() => {
     connect();
 
@@ -345,13 +419,14 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     };
   }, []);
 
-  // Recuperer les utilisateurs qui tapent pour une conversation
+  // Get typing users for a specific conversation
   const getTypingUsersForConversation = useCallback((conversationId: string | number) => {
     return typingUsers.get(String(conversationId)) || [];
   }, [typingUsers]);
 
   return {
     isConnected,
+    isAuthenticated,
     connectionError,
     typingUsers,
     getTypingUsersForConversation,
