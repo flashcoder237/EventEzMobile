@@ -312,6 +312,64 @@ export const TextStyles = {
   },
 };
 
+// ===== STANDARDIZED UI CONSTANTS =====
+// Valeurs coherentes pour toute l'application
+
+/** Opacite standard pour les TouchableOpacity */
+export const TOUCH_OPACITY = 0.7;
+
+/** Opacite pour les elements desactives */
+export const DISABLED_OPACITY = 0.5;
+
+/** Espacements de section standards */
+export const SECTION_MARGIN_TOP = Spacing.xl;
+export const CARD_MARGIN_BOTTOM = Spacing.md;
+export const LIST_ITEM_MARGIN_BOTTOM = Spacing.sm;
+
+/** Border radius standards par type de composant */
+export const CARD_BORDER_RADIUS = BorderRadius.lg;
+export const INPUT_BORDER_RADIUS = BorderRadius.xl;
+export const BADGE_BORDER_RADIUS = BorderRadius.full;
+export const BUTTON_BORDER_RADIUS = BorderRadius.lg;
+
+/** Tailles d'icones standards */
+export const IconSizes = {
+  xs: 14,
+  sm: 18,
+  md: 24,
+  lg: 32,
+  xl: 48,
+  '2xl': 64,
+};
+
+/** Durees d'animation standards */
+export const ANIMATION_DURATION = {
+  fast: 150,
+  normal: 300,
+  slow: 500,
+};
+
+/** Hauteurs de composants standards */
+export const ComponentHeights = {
+  buttonSm: 36,
+  buttonMd: 44,
+  buttonLg: 52,
+  input: 48,
+  header: 56,
+  tabBar: 60,
+  listItem: 64,
+};
+
+/** Tailles d'avatar standards */
+export const AvatarSizes = {
+  xs: 24,
+  sm: 32,
+  md: 40,
+  lg: 56,
+  xl: 80,
+  '2xl': 100,
+};
+
 const theme = {
   colors: Colors,
   fontFamily: FontFamily,
@@ -323,6 +381,13 @@ const theme = {
   gradients: Gradients,
   safeArea: SafeArea,
   textStyles: TextStyles,
+  // Nouvelles constantes
+  touchOpacity: TOUCH_OPACITY,
+  disabledOpacity: DISABLED_OPACITY,
+  iconSizes: IconSizes,
+  animationDuration: ANIMATION_DURATION,
+  componentHeights: ComponentHeights,
+  avatarSizes: AvatarSizes,
 };
 
 export default theme;

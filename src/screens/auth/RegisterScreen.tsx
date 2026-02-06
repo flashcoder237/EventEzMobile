@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { AuthStackParamList } from '../../types';
@@ -25,7 +26,10 @@ import {
   Spacing,
   Shadows,
   TextStyles,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
+import { extractErrorMessage } from '../../lib/utils/errorHandling';
+import { validators, FormErrors as ValidationErrors } from '../../lib/validation';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 
@@ -87,37 +91,24 @@ export default function RegisterScreen() {
   const validate = () => {
     const newErrors: FormErrors = {};
 
-    if (!formData.first_name.trim()) {
-      newErrors.first_name = 'Le prénom est requis';
-    }
+    // Validation avec les fonctions utilitaires
+    const firstNameError = validators.required(formData.first_name, 'Le prenom');
+    if (firstNameError) newErrors.first_name = firstNameError;
 
-    if (!formData.last_name.trim()) {
-      newErrors.last_name = 'Le nom est requis';
-    }
+    const lastNameError = validators.required(formData.last_name, 'Le nom');
+    if (lastNameError) newErrors.last_name = lastNameError;
 
-    if (!formData.username.trim()) {
-      newErrors.username = 'Le nom d\'utilisateur est requis';
-    } else if (formData.username.length < 3) {
-      newErrors.username = 'Minimum 3 caractères';
-    } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username = 'Lettres, chiffres et _ uniquement';
-    }
+    const usernameError = validators.username(formData.username, 3);
+    if (usernameError) newErrors.username = usernameError;
 
-    if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email invalide';
-    }
+    const emailError = validators.email(formData.email);
+    if (emailError) newErrors.email = emailError;
 
-    if (!formData.password) {
-      newErrors.password = 'Le mot de passe est requis';
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Minimum 8 caractères';
-    }
+    const passwordError = validators.password(formData.password, 8);
+    if (passwordError) newErrors.password = passwordError;
 
-    if (formData.password !== formData.confirm_password) {
-      newErrors.confirm_password = 'Les mots de passe ne correspondent pas';
-    }
+    const confirmError = validators.confirmPassword(formData.confirm_password, formData.password);
+    if (confirmError) newErrors.confirm_password = confirmError;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -137,27 +128,7 @@ export default function RegisterScreen() {
         confirm_password: formData.confirm_password,
       });
     } catch (error: any) {
-      const errorData = error.response?.data;
-      let message = 'Une erreur est survenue lors de l\'inscription';
-
-      if (errorData) {
-        if (errorData.email) {
-          message = Array.isArray(errorData.email) ? errorData.email[0] : 'Cet email est déjà utilisé';
-        } else if (errorData.username) {
-          message = Array.isArray(errorData.username) ? errorData.username[0] : 'Ce nom d\'utilisateur est déjà pris';
-        } else if (errorData.password) {
-          message = Array.isArray(errorData.password)
-            ? errorData.password.join('\n')
-            : errorData.password;
-        } else if (errorData.detail) {
-          message = errorData.detail;
-        } else if (errorData.non_field_errors) {
-          message = Array.isArray(errorData.non_field_errors)
-            ? errorData.non_field_errors[0]
-            : errorData.non_field_errors;
-        }
-      }
-
+      const message = extractErrorMessage(error);
       showError('Erreur d\'inscription', message);
     }
   };

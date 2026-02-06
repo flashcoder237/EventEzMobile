@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
   gridFreeText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.bold,
-    color: '#059669',
+    color: Colors.success,
   },
   gridDetailsLink: {
     flexDirection: 'row',

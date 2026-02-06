@@ -1,4 +1,9 @@
-import React from 'react';
+/**
+ * Composant GradientButton
+ * Bouton stylise avec plusieurs variantes
+ */
+
+import React, { memo } from 'react';
 import {
   Text,
   StyleSheet,
@@ -8,35 +13,55 @@ import {
   View,
   TouchableOpacity,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
-  Shadows,
+  TOUCH_OPACITY,
+  DISABLED_OPACITY,
+  BUTTON_BORDER_RADIUS,
 } from '../../constants/theme';
 
 interface GradientButtonProps {
+  /** Callback appele lors du clic */
   onPress: () => void;
+  /** Texte du bouton */
   title: string;
+  /** Afficher un indicateur de chargement */
   loading?: boolean;
+  /** Desactiver le bouton */
   disabled?: boolean;
+  /** Icone React Node personnalisee */
   icon?: React.ReactNode;
+  /** Nom de l'icone Ionicons a gauche */
+  iconLeft?: keyof typeof Ionicons.glyphMap;
+  /** Nom de l'icone Ionicons a droite */
+  iconRight?: keyof typeof Ionicons.glyphMap;
+  /** Position de l'icone (si icon est utilise) */
   iconPosition?: 'left' | 'right';
+  /** Style personnalise du container */
   style?: ViewStyle;
+  /** Style personnalise du texte */
   textStyle?: TextStyle;
+  /** Variante du bouton */
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  /** Taille du bouton */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  /** Prendre toute la largeur disponible */
   fullWidth?: boolean;
 }
 
-export default function GradientButton({
+function GradientButtonComponent({
   onPress,
   title,
   loading = false,
   disabled = false,
   icon,
+  iconLeft,
+  iconRight,
   iconPosition = 'right',
   style,
   textStyle,
@@ -76,6 +101,21 @@ export default function GradientButton({
     }
   };
 
+  const getIconSize = () => {
+    switch (size) {
+      case 'xs':
+        return 14;
+      case 'sm':
+        return 16;
+      case 'lg':
+        return 20;
+      case 'xl':
+        return 22;
+      default:
+        return 18;
+    }
+  };
+
   const getBorderRadius = () => {
     switch (size) {
       case 'xs':
@@ -86,140 +126,87 @@ export default function GradientButton({
       case 'xl':
         return BorderRadius.xl;
       default:
-        return BorderRadius.lg;
+        return BUTTON_BORDER_RADIUS;
     }
   };
 
-  // Ghost variant
-  if (variant === 'ghost') {
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={isDisabled}
-        activeOpacity={0.7}
-        style={[
-          styles.ghostButton,
-          getSizeStyle(),
-          fullWidth && styles.fullWidth,
-          isDisabled && styles.buttonDisabled,
-          style,
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator color={Colors.primary} size="small" />
-        ) : (
-          <>
-            {icon && iconPosition === 'left' && (
-              <View style={styles.iconLeft}>{icon}</View>
-            )}
-            <Text
-              style={[
-                styles.ghostText,
-                { fontSize: getFontSize() },
-                textStyle,
-              ]}
-            >
-              {title}
-            </Text>
-            {icon && iconPosition === 'right' && (
-              <View style={styles.iconRight}>{icon}</View>
-            )}
-          </>
-        )}
-      </TouchableOpacity>
-    );
-  }
+  const getTextColor = () => {
+    switch (variant) {
+      case 'primary':
+        return Colors.white;
+      case 'secondary':
+        return Colors.gray700;
+      case 'outline':
+      case 'ghost':
+        return Colors.primary;
+      default:
+        return Colors.white;
+    }
+  };
 
-  // Outline variant
-  if (variant === 'outline') {
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={isDisabled}
-        activeOpacity={0.7}
-        style={[
-          styles.outlineButton,
-          getSizeStyle(),
-          { borderRadius: getBorderRadius() },
-          fullWidth && styles.fullWidth,
-          isDisabled && styles.buttonDisabled,
-          style,
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator color={Colors.primary} size="small" />
-        ) : (
-          <>
-            {icon && iconPosition === 'left' && (
-              <View style={styles.iconLeft}>{icon}</View>
-            )}
-            <Text
-              style={[
-                styles.outlineText,
-                { fontSize: getFontSize() },
-                textStyle,
-              ]}
-            >
-              {title}
-            </Text>
-            {icon && iconPosition === 'right' && (
-              <View style={styles.iconRight}>{icon}</View>
-            )}
-          </>
-        )}
-      </TouchableOpacity>
-    );
-  }
+  const getLoaderColor = () => {
+    return variant === 'primary' ? Colors.white : Colors.primary;
+  };
 
-  // Secondary variant
-  if (variant === 'secondary') {
-    return (
-      <TouchableOpacity
-        onPress={onPress}
-        disabled={isDisabled}
-        activeOpacity={0.7}
-        style={[
-          styles.secondaryButton,
-          getSizeStyle(),
-          { borderRadius: getBorderRadius() },
-          fullWidth && styles.fullWidth,
-          isDisabled && styles.buttonDisabled,
-          style,
-        ]}
-      >
-        {loading ? (
-          <ActivityIndicator color={Colors.primary} size="small" />
-        ) : (
-          <>
-            {icon && iconPosition === 'left' && (
-              <View style={styles.iconLeft}>{icon}</View>
-            )}
-            <Text
-              style={[
-                styles.secondaryText,
-                { fontSize: getFontSize() },
-                textStyle,
-              ]}
-            >
-              {title}
-            </Text>
-            {icon && iconPosition === 'right' && (
-              <View style={styles.iconRight}>{icon}</View>
-            )}
-          </>
-        )}
-      </TouchableOpacity>
-    );
-  }
+  const renderIcon = (position: 'left' | 'right') => {
+    const iconName = position === 'left' ? iconLeft : iconRight;
+    const hasCustomIcon = icon && iconPosition === position;
 
-  // Primary variant (solid color)
+    if (!iconName && !hasCustomIcon) return null;
+
+    const iconStyle = position === 'left' ? styles.iconLeft : styles.iconRight;
+
+    if (hasCustomIcon) {
+      return <View style={iconStyle}>{icon}</View>;
+    }
+
+    if (iconName) {
+      return (
+        <Ionicons
+          name={iconName}
+          size={getIconSize()}
+          color={getTextColor()}
+          style={iconStyle}
+        />
+      );
+    }
+
+    return null;
+  };
+
+  const buttonStyle = (() => {
+    switch (variant) {
+      case 'ghost':
+        return styles.ghostButton;
+      case 'outline':
+        return styles.outlineButton;
+      case 'secondary':
+        return styles.secondaryButton;
+      default:
+        return styles.primaryButton;
+    }
+  })();
+
+  const textStyleVariant = (() => {
+    switch (variant) {
+      case 'ghost':
+        return styles.ghostText;
+      case 'outline':
+        return styles.outlineText;
+      case 'secondary':
+        return styles.secondaryText;
+      default:
+        return styles.text;
+    }
+  })();
+
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={isDisabled}
-      activeOpacity={0.8}
+      activeOpacity={TOUCH_OPACITY}
       style={[
-        styles.primaryButton,
+        buttonStyle,
         getSizeStyle(),
         { borderRadius: getBorderRadius() },
         fullWidth && styles.fullWidth,
@@ -228,24 +215,20 @@ export default function GradientButton({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={Colors.white} size="small" />
+        <ActivityIndicator color={getLoaderColor()} size="small" />
       ) : (
         <>
-          {icon && iconPosition === 'left' && (
-            <View style={styles.iconLeft}>{icon}</View>
-          )}
+          {renderIcon('left')}
           <Text
             style={[
-              styles.text,
+              textStyleVariant,
               { fontSize: getFontSize() },
               textStyle,
             ]}
           >
             {title}
           </Text>
-          {icon && iconPosition === 'right' && (
-            <View style={styles.iconRight}>{icon}</View>
-          )}
+          {renderIcon('right')}
         </>
       )}
     </TouchableOpacity>
@@ -266,10 +249,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   iconLeft: {
-    marginRight: Spacing.sm,
+    marginRight: Spacing.xs,
   },
   iconRight: {
-    marginLeft: Spacing.sm,
+    marginLeft: Spacing.xs,
   },
   // ===== OUTLINE BUTTON =====
   outlineButton: {
@@ -310,9 +293,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   buttonDisabled: {
-    opacity: 0.5,
+    opacity: DISABLED_OPACITY,
   },
   fullWidth: {
     width: '100%',
   },
 });
+
+export const GradientButton = memo(GradientButtonComponent);
+export default GradientButton;

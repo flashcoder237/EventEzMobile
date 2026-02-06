@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useGoogleAuth, useAppleAuth } from '../../hooks/useSocialAuth';
@@ -27,7 +28,10 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
+import { extractErrorMessage } from '../../lib/utils/errorHandling';
+import { validators, FormErrors } from '../../lib/validation';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 
@@ -44,7 +48,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<FormErrors<'email' | 'password'>>({});
 
   // Charger la préférence "Se souvenir de moi" au démarrage
   useEffect(() => {
@@ -97,19 +101,13 @@ export default function LoginScreen() {
   };
 
   const validate = () => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: FormErrors<'email' | 'password'> = {};
 
-    if (!email.trim()) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email invalide';
-    }
+    const emailError = validators.email(email);
+    if (emailError) newErrors.email = emailError;
 
-    if (!password) {
-      newErrors.password = 'Le mot de passe est requis';
-    } else if (password.length < 6) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 6 caractères';
-    }
+    const passwordError = validators.password(password, 6);
+    if (passwordError) newErrors.password = passwordError;
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -124,30 +122,7 @@ export default function LoginScreen() {
       await login(email.trim().toLowerCase(), password, rememberMe);
     } catch (error: any) {
       console.log('[Login] Error:', error.response?.status, error.response?.data);
-
-      let message = 'Email ou mot de passe incorrect';
-      const errorData = error.response?.data;
-
-      if (errorData) {
-        if (errorData.detail) {
-          message = errorData.detail;
-        } else if (errorData.email) {
-          message = Array.isArray(errorData.email) ? errorData.email[0] : errorData.email;
-        } else if (errorData.password) {
-          message = Array.isArray(errorData.password) ? errorData.password[0] : errorData.password;
-        } else if (errorData.non_field_errors) {
-          message = Array.isArray(errorData.non_field_errors)
-            ? errorData.non_field_errors[0]
-            : errorData.non_field_errors;
-        } else if (error.response?.status === 400) {
-          message = 'Données de connexion invalides. Vérifiez votre email et mot de passe.';
-        } else if (error.response?.status === 401) {
-          message = 'Email ou mot de passe incorrect';
-        }
-      } else if (error.message?.includes('Network Error')) {
-        message = 'Erreur de connexion au serveur. Vérifiez votre connexion internet.';
-      }
-
+      const message = extractErrorMessage(error);
       showError('Erreur de connexion', message);
     }
   };

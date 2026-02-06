@@ -28,8 +28,11 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
+  TOUCH_OPACITY,
+  SECTION_MARGIN_TOP,
 } from '../../constants/theme';
-
+import { getApiResults } from '../../lib/utils/apiHelpers';
+import { EmptyState } from '../../components/ui';
 import EventCard from '../../components/events/EventCard';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -106,11 +109,11 @@ export default function HomeScreen() {
         eventsAPI.getEvents({ ordering: 'start_date', limit: 10 }),
       ]);
 
-      const featuredData = (featuredRes.data?.results || featuredRes.data || []).filter(isEventInFuture);
-      const upcomingData = (upcomingRes.data?.results || upcomingRes.data || []).filter(isEventInFuture);
+      const featuredData = getApiResults<Event>(featuredRes).filter(isEventInFuture);
+      const upcomingData = getApiResults<Event>(upcomingRes).filter(isEventInFuture);
 
       setFeaturedEvents(featuredData);
-      setCategories(categoriesRes.data?.results || categoriesRes.data || []);
+      setCategories(getApiResults<Category>(categoriesRes));
       setUpcomingEvents(upcomingData);
     } catch (error) {
       console.error('Erreur de chargement:', error);
@@ -127,7 +130,7 @@ export default function HomeScreen() {
     if (!location) return;
     try {
       const response = await eventsAPI.getNearbyEvents(location.lat, location.lng, 50, 10);
-      const nearbyData = (response.data?.results || []).filter(isEventInFuture);
+      const nearbyData = getApiResults<Event>(response).filter(isEventInFuture);
       setNearbyEvents(nearbyData);
     } catch (error) {
       console.error('Erreur événements proches:', error);
