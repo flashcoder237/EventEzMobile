@@ -23,6 +23,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.eventez.mobile",
+      "softwareKeyboardLayoutMode": "adjustResize",
       "googleServicesFile": "./google-services.json",
       "useNextNotificationsApi": true,
       "permissions": [

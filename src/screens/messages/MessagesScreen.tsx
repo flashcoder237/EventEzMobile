@@ -267,14 +267,24 @@ export default function MessagesScreen() {
     );
   };
 
-  // Filter conversations
-  const filteredConversations = conversations.filter(conv => {
-    const matchesTab = activeTab === 'all' ? !conv.is_archived : conv.is_archived;
-    const otherUser = conv.participants?.find(p => p.id !== user?.id);
-    const name = conv.title || getDisplayName(otherUser || null);
-    const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
+  // Filter and sort conversations (most recent first)
+  const filteredConversations = conversations
+    .filter(conv => {
+      const matchesTab = activeTab === 'all' ? !conv.is_archived : conv.is_archived;
+      const otherUser = conv.participants?.find(p => p.id !== user?.id);
+      const name = conv.title || getDisplayName(otherUser || null);
+      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesTab && matchesSearch;
+    })
+    .sort((a, b) => {
+      // Starred first
+      if (a.is_starred && !b.is_starred) return -1;
+      if (!a.is_starred && b.is_starred) return 1;
+      // Then by most recent
+      const aTime = new Date(a.last_message_at || a.updated_at || a.created_at).getTime();
+      const bTime = new Date(b.last_message_at || b.updated_at || b.created_at).getTime();
+      return bTime - aTime;
+    });
 
   // Stats
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived).length;
