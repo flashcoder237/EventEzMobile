@@ -559,8 +559,9 @@ export default function BecomeOrganizerScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior="padding"
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 100}
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
