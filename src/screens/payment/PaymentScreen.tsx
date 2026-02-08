@@ -21,6 +21,7 @@ import { registrationsAPI, paymentsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSavedPaymentMethods, SavedPaymentMethod, maskPhoneNumber } from '../../hooks';
 import {
   Colors,
   FontSizes,
@@ -138,6 +139,16 @@ export default function PaymentScreen() {
     return phoneWithoutPrefix;
   });
   const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [selectedSavedMethod, setSelectedSavedMethod] = useState<SavedPaymentMethod | null>(null);
+
+  // Hook for saved payment methods
+  const {
+    savedMethods,
+    hasSavedMethods,
+    savePaymentMethod,
+    getMethodsByType,
+    markAsUsed,
+  } = useSavedPaymentMethods();
 
   // Ref pour arrêter le polling
   const pollingRef = useRef<{ stop: boolean }>({ stop: false });
@@ -147,6 +158,32 @@ export default function PaymentScreen() {
   useEffect(() => {
     fetchRegistration();
   }, [registrationId]);
+
+  // Auto-select last used payment method for the selected type
+  useEffect(() => {
+    if (selectedMethod && selectedMethod !== 'credit_card') {
+      const methodsOfType = getMethodsByType(selectedMethod);
+      if (methodsOfType.length > 0 && !selectedSavedMethod) {
+        // Don't auto-select, but keep for display
+      }
+    }
+    // Reset saved method selection when changing payment type
+    setSelectedSavedMethod(null);
+  }, [selectedMethod]);
+
+  // Fill phone number when selecting a saved method
+  useEffect(() => {
+    if (selectedSavedMethod) {
+      // Format the phone number for display
+      const num = selectedSavedMethod.phoneNumber;
+      const match = num.match(/^(\d{0,3})(\d{0,3})(\d{0,3})$/);
+      if (match) {
+        setPhoneNumber([match[1], match[2], match[3]].filter(Boolean).join(' '));
+      } else {
+        setPhoneNumber(num);
+      }
+    }
+  }, [selectedSavedMethod]);
 
   const fetchRegistration = async () => {
     try {
@@ -414,6 +451,16 @@ export default function PaymentScreen() {
         if (isPaymentSuccess(status)) {
           setVerifyingManually(false);
           setProcessing(false);
+
+          // Save the payment method for future use
+          if (selectedMethod && selectedMethod !== 'credit_card' && phoneNumber) {
+            const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
+            savePaymentMethod(cleanNumber, selectedMethod);
+            if (selectedSavedMethod) {
+              markAsUsed(selectedSavedMethod.id);
+            }
+          }
+
           navigation.replace('PaymentSuccess', {
             paymentId: paymentId,
             registrationId: registrationId,
@@ -520,6 +567,16 @@ export default function PaymentScreen() {
         // Utiliser les constantes centralisées pour vérifier le status
         if (isPaymentSuccess(status)) {
           setProcessing(false);
+
+          // Save the payment method for future use
+          if (selectedMethod && selectedMethod !== 'credit_card' && phoneNumber) {
+            const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
+            savePaymentMethod(cleanNumber, selectedMethod);
+            if (selectedSavedMethod) {
+              markAsUsed(selectedSavedMethod.id);
+            }
+          }
+
           navigation.replace('PaymentSuccess', {
             paymentId: pId,
             registrationId: registrationId,
@@ -750,6 +807,75 @@ export default function PaymentScreen() {
         {selectedMethod && selectedMethod !== 'credit_card' && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Numéro de téléphone</Text>
+
+            {/* Saved Payment Methods */}
+            {getMethodsByType(selectedMethod).length > 0 && (
+              <View style={styles.savedMethodsContainer}>
+                <Text style={styles.savedMethodsLabel}>Numéros enregistrés</Text>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.savedMethodsList}
+                >
+                  {getMethodsByType(selectedMethod).map((method) => (
+                    <TouchableOpacity
+                      key={method.id}
+                      style={[
+                        styles.savedMethodChip,
+                        selectedSavedMethod?.id === method.id && styles.savedMethodChipSelected,
+                      ]}
+                      onPress={() => {
+                        if (selectedSavedMethod?.id === method.id) {
+                          setSelectedSavedMethod(null);
+                        } else {
+                          setSelectedSavedMethod(method);
+                        }
+                      }}
+                    >
+                      <Ionicons
+                        name="phone-portrait-outline"
+                        size={16}
+                        color={selectedSavedMethod?.id === method.id ? Colors.primary : Colors.gray600}
+                      />
+                      <Text
+                        style={[
+                          styles.savedMethodChipText,
+                          selectedSavedMethod?.id === method.id && styles.savedMethodChipTextSelected,
+                        ]}
+                      >
+                        {method.displayName}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity
+                    style={[
+                      styles.savedMethodChip,
+                      styles.newMethodChip,
+                      !selectedSavedMethod && styles.savedMethodChipSelected,
+                    ]}
+                    onPress={() => {
+                      setSelectedSavedMethod(null);
+                      setPhoneNumber('');
+                    }}
+                  >
+                    <Ionicons
+                      name="add"
+                      size={16}
+                      color={!selectedSavedMethod ? Colors.primary : Colors.gray600}
+                    />
+                    <Text
+                      style={[
+                        styles.savedMethodChipText,
+                        !selectedSavedMethod && styles.savedMethodChipTextSelected,
+                      ]}
+                    >
+                      Nouveau
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+            )}
+
             <View style={styles.phoneInputContainer}>
               <View style={styles.phonePrefix}>
                 <Text style={styles.phonePrefixText}>+237</Text>
@@ -759,7 +885,13 @@ export default function PaymentScreen() {
                 placeholder="6XX XXX XXX"
                 placeholderTextColor={Colors.gray400}
                 value={phoneNumber}
-                onChangeText={(text) => setPhoneNumber(formatPhoneNumber(text))}
+                onChangeText={(text) => {
+                  setPhoneNumber(formatPhoneNumber(text));
+                  // Deselect saved method if user types
+                  if (selectedSavedMethod) {
+                    setSelectedSavedMethod(null);
+                  }
+                }}
                 keyboardType="phone-pad"
                 maxLength={11}
               />
@@ -1157,6 +1289,43 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginTop: Spacing.sm,
     marginLeft: Spacing.sm,
+  },
+  savedMethodsContainer: {
+    marginBottom: Spacing.md,
+  },
+  savedMethodsLabel: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    marginBottom: Spacing.sm,
+  },
+  savedMethodsList: {
+    gap: Spacing.sm,
+  },
+  savedMethodChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    backgroundColor: Colors.white,
+    gap: Spacing.xs,
+  },
+  savedMethodChipSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryLight,
+  },
+  savedMethodChipText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray700,
+    fontFamily: FontFamily.medium,
+  },
+  savedMethodChipTextSelected: {
+    color: Colors.primary,
+  },
+  newMethodChip: {
+    borderStyle: 'dashed',
   },
 
   // Bottom Bar

@@ -476,16 +476,32 @@ export default function MyTicketsScreen() {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mes Billets & Inscriptions</Text>
-        <TouchableOpacity
-          style={styles.filterToggleButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Ionicons
-            name={showFilters ? 'options' : 'options-outline'}
-            size={22}
-            color={showFilters ? Colors.primary : Colors.gray600}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {/* Offline Tickets Button */}
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate('OfflineTickets')}
+          >
+            <Ionicons name="cloud-offline-outline" size={22} color={Colors.gray600} />
+          </TouchableOpacity>
+          {/* Pending Transfers Button */}
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => navigation.navigate('PendingTransfers')}
+          >
+            <Ionicons name="gift-outline" size={22} color={Colors.gray600} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.filterToggleButton}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons
+              name={showFilters ? 'options' : 'options-outline'}
+              size={22}
+              color={showFilters ? Colors.primary : Colors.gray600}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Barre de recherche */}
@@ -724,6 +740,18 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -638,6 +638,62 @@ export const discountsAPI = {
 };
 
 // ============================================
+// TICKET TRANSFERS API
+// ============================================
+
+export const ticketTransfersAPI = {
+  // Liste des transferts de l'utilisateur
+  getTransfers: (params?: any) =>
+    api.get('/ticket-transfers/', { params }),
+
+  // Transferts envoyés
+  getSentTransfers: () =>
+    api.get('/ticket-transfers/sent/'),
+
+  // Transferts reçus
+  getReceivedTransfers: () =>
+    api.get('/ticket-transfers/received/'),
+
+  // Transferts en attente
+  getPendingTransfers: () =>
+    api.get('/ticket-transfers/pending/'),
+
+  // Créer un transfert
+  createTransfer: (data: {
+    ticket_purchase: number;
+    recipient_email: string;
+    recipient_name?: string;
+    quantity?: number;
+    message?: string;
+  }) =>
+    api.post('/ticket-transfers/', data),
+
+  // Accepter un transfert
+  acceptTransfer: (id: string) =>
+    api.post(`/ticket-transfers/${id}/accept/`),
+
+  // Refuser un transfert
+  declineTransfer: (id: string) =>
+    api.post(`/ticket-transfers/${id}/decline/`),
+
+  // Annuler un transfert (par l'expéditeur)
+  cancelTransfer: (id: string) =>
+    api.post(`/ticket-transfers/${id}/cancel/`),
+
+  // Accepter via token (sans auth)
+  acceptByToken: (token: string) =>
+    api.post('/ticket-transfers/accept_by_token/', { token }),
+
+  // Refuser via token (sans auth)
+  declineByToken: (token: string) =>
+    api.post('/ticket-transfers/decline_by_token/', { token }),
+
+  // Récupérer un transfert par token
+  getByToken: (token: string) =>
+    api.get('/ticket-transfers/by_token/', { params: { token } }),
+};
+
+// ============================================
 // REGISTRATIONS API
 // ============================================
 

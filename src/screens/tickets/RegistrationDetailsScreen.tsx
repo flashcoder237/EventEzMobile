@@ -16,8 +16,10 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { registrationsAPI } from '../../api/client';
+import { registrationsAPI, ticketTransfersAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
+import { TransferTicketModal } from '../../components/tickets';
+import { useOfflineTickets, useEventReminders } from '../../hooks';
 import {
   Colors,
   FontSizes,
@@ -42,15 +44,60 @@ export default function RegistrationDetailsScreen() {
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [transferModalVisible, setTransferModalVisible] = useState(false);
+  const [selectedTicketForTransfer, setSelectedTicketForTransfer] = useState<{
+    id: number;
+    ticket_type_name: string;
+    quantity: number;
+  } | null>(null);
+  const { cacheTicket, isOnline } = useOfflineTickets();
+  const { hasReminder, toggleReminder, permissionGranted } = useEventReminders();
+  const [reminderEnabled, setReminderEnabled] = useState(false);
 
   useEffect(() => {
     fetchRegistration();
   }, [registrationId]);
 
+  // Check if reminder is enabled for this event
+  useEffect(() => {
+    if (registration) {
+      const event = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
+      if (event?.id) {
+        setReminderEnabled(hasReminder(event.id));
+      }
+    }
+  }, [registration, hasReminder]);
+
   const fetchRegistration = async () => {
     try {
       const response = await registrationsAPI.getRegistration(registrationId);
-      setRegistration(response.data);
+      const reg = response.data;
+      setRegistration(reg);
+
+      // Cache tickets for offline access
+      if (reg.tickets && reg.tickets.length > 0) {
+        const event = reg.event_detail || (typeof reg.event === 'object' ? reg.event : null);
+        for (const ticket of reg.tickets) {
+          if (ticket.qr_code && ticket.is_paid) {
+            const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
+            cacheTicket({
+              id: ticket.id,
+              registration: {
+                id: reg.id,
+                reference_code: reg.reference_code,
+                event: {
+                  id: event?.id || reg.event_id || '',
+                  title: event?.title || 'Événement',
+                  start_date: event?.start_date || '',
+                },
+              },
+              ticket_type_name: ticketType?.name || ticket.ticket_type_name || 'Billet',
+              quantity: ticket.quantity || 1,
+              qr_code: ticket.qr_code,
+            });
+          }
+        }
+      }
     } catch (error) {
       console.error('Error fetching registration:', error);
       showError('Erreur', 'Impossible de charger les détails de l\'inscription');
@@ -70,6 +117,29 @@ export default function RegistrationDetailsScreen() {
       });
     } catch (error) {
       console.error('Error sharing:', error);
+    }
+  };
+
+  const handleToggleReminder = async () => {
+    if (!registration) return;
+
+    const event = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
+    if (!event?.id) return;
+
+    const isNowEnabled = await toggleReminder({
+      id: event.id,
+      title: event.title || 'Événement',
+      start_date: event.start_date || '',
+      location_name: event.location_name,
+      location_city: event.location_city,
+    }, registrationId);
+
+    setReminderEnabled(isNowEnabled);
+
+    if (isNowEnabled) {
+      showSuccess('Rappel activé', 'Vous recevrez une notification 24h et 1h avant l\'événement');
+    } else {
+      showSuccess('Rappel désactivé', 'Vous ne recevrez plus de notification pour cet événement');
     }
   };
 
@@ -175,9 +245,24 @@ export default function RegistrationDetailsScreen() {
             ? `Mes Billets (${totalTicketQuantity})`
             : 'Mon Inscription'}
         </Text>
-        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Ionicons name="share-outline" size={24} color={Colors.gray900} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          {/* Reminder Button */}
+          {isActive && permissionGranted && (
+            <TouchableOpacity
+              style={[styles.reminderButton, reminderEnabled && styles.reminderButtonActive]}
+              onPress={handleToggleReminder}
+            >
+              <Ionicons
+                name={reminderEnabled ? 'notifications' : 'notifications-outline'}
+                size={22}
+                color={reminderEnabled ? Colors.primary : Colors.gray600}
+              />
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+            <Ionicons name="share-outline" size={24} color={Colors.gray900} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -412,6 +497,24 @@ export default function RegistrationDetailsScreen() {
                     <Text style={styles.ticketItemPrice}>
                       {ticket.total_price ? `${Number(ticket.total_price).toLocaleString()} FCFA` : 'Gratuit'}
                     </Text>
+                    {/* Transfer button */}
+                    {ticket.is_paid && !ticket.is_checked_in && (
+                      <TouchableOpacity
+                        style={styles.transferButton}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
+                          setSelectedTicketForTransfer({
+                            id: ticket.id,
+                            ticket_type_name: ticketType?.name || ticket.ticket_type_name || 'Billet',
+                            quantity: ticket.quantity || 1,
+                          });
+                          setTransferModalVisible(true);
+                        }}
+                      >
+                        <Ionicons name="gift-outline" size={18} color={Colors.primary} />
+                      </TouchableOpacity>
+                    )}
                     <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
                   </View>
                 </TouchableOpacity>
@@ -501,6 +604,19 @@ export default function RegistrationDetailsScreen() {
 
         <View style={{ height: Spacing.xl * 2 }} />
       </ScrollView>
+
+      {/* Transfer Ticket Modal */}
+      <TransferTicketModal
+        visible={transferModalVisible}
+        onClose={() => {
+          setTransferModalVisible(false);
+          setSelectedTicketForTransfer(null);
+        }}
+        ticket={selectedTicketForTransfer}
+        onTransferComplete={() => {
+          fetchRegistration();
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -556,6 +672,21 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  reminderButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reminderButtonActive: {
+    backgroundColor: Colors.primaryLight,
   },
 
   scrollView: {
@@ -793,6 +924,14 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
     color: Colors.primary,
+  },
+  transferButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   ticketsTotalRow: {
     flexDirection: 'row',
