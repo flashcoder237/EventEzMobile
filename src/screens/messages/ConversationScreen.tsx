@@ -54,7 +54,6 @@ import {
   isMyMessage,
   getReplyToContent,
   TYPING_SEND_INTERVAL,
-  MESSAGES_PER_PAGE,
 } from '../../lib/utils/messagingHelpers';
 
 // Composants
@@ -89,12 +88,15 @@ export default function ConversationScreen() {
   const soundRef = useRef<Audio.Sound | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
+  const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
 
   // WebSocket
   const {
     isConnected,
     isAuthenticated,
     sendMessage: wsSendMessage,
+    editMessage: wsEditMessage,
+    deleteMessage: wsDeleteMessage,
     startTyping,
     stopTyping,
     addReaction: wsAddReaction,
@@ -104,9 +106,7 @@ export default function ConversationScreen() {
     onNewMessage: (newMessage) => {
       if (String(newMessage.conversation) === String(state.conversationId)) {
         actions.addMessage(newMessage);
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
+        // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
       }
     },
     onTypingIndicator: (data) => {
@@ -126,6 +126,20 @@ export default function ConversationScreen() {
     },
     onReactionRemoved: (data) => {
       actions.removeReaction(String(data.messageId), data.emoji, String(data.userId));
+    },
+    onMessageUpdated: (data) => {
+      actions.updateMessage(String(data.messageId), {
+        content: data.content,
+        is_edited: true,
+        edited_at: data.editedAt,
+      });
+    },
+    onMessageDeleted: (data) => {
+      actions.updateMessage(String(data.messageId), {
+        is_deleted: true,
+        content: '',
+        attachments: [],
+      });
     },
   });
 
@@ -202,18 +216,20 @@ export default function ConversationScreen() {
     try {
       const params: any = {
         conversation: state.conversationId,
-        limit: MESSAGES_PER_PAGE,
       };
 
       if (loadMore && state.nextPageUrl) {
-        // Extraire l'offset de l'URL
+        // Extraire le numéro de page de l'URL (PageNumberPagination)
         const url = new URL(state.nextPageUrl, 'http://localhost');
-        params.offset = url.searchParams.get('offset');
+        const page = url.searchParams.get('page');
+        if (page) params.page = page;
       }
 
       const response = await messagesAPI.getMessages(params);
       const data = response.data;
-      const newMessages = (data.results || data || []).reverse();
+      // API retourne les messages du plus récent au plus ancien (-created_at)
+      // On les utilise directement pour le FlatList inversé (index 0 = plus récent = bas)
+      const newMessages = data.results || data || [];
 
       if (loadMore) {
         actions.addMessagesBefore(newMessages);
@@ -580,9 +596,17 @@ export default function ConversationScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await messagesAPI.deleteMessage(messageId);
-              actions.removeMessage(messageId);
-              showSuccess('Message supprimé', '');
+              if (isConnected && isAuthenticated) {
+                wsDeleteMessage(messageId);
+              } else {
+                await messagesAPI.deleteMessage(messageId);
+              }
+              // Soft delete: update message in place
+              actions.updateMessage(messageId, {
+                is_deleted: true,
+                content: '',
+                attachments: [],
+              });
             } catch (error) {
               showError('Erreur', 'Impossible de supprimer le message');
             }
@@ -669,8 +693,16 @@ export default function ConversationScreen() {
     try {
       // Mode édition
       if (isEditing && state.editingMessage) {
-        await messagesAPI.updateMessage(state.editingMessage.id, { content: messageContent });
-        actions.updateMessage(state.editingMessage.id, { content: messageContent });
+        if (isConnected && isAuthenticated) {
+          wsEditMessage(state.editingMessage.id, messageContent);
+        } else {
+          await messagesAPI.updateMessage(state.editingMessage.id, { content: messageContent });
+        }
+        actions.updateMessage(state.editingMessage.id, {
+          content: messageContent,
+          is_edited: true,
+          edited_at: new Date().toISOString(),
+        });
         actions.cancelEdit();
         actions.setSending(false);
         return;
@@ -726,8 +758,11 @@ export default function ConversationScreen() {
         sender: user!.id as any,
         sender_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email || '',
         content: messageContent,
+        message_type: 'text',
         created_at: new Date().toISOString(),
         is_starred: false,
+        is_edited: false,
+        is_deleted: false,
         read_by: [],
         reply_to: state.replyToMessage?.id,
         attachments: state.attachedFiles.map((f, i) => ({
@@ -764,9 +799,7 @@ export default function ConversationScreen() {
         actions.updateMessage(tempMessage.id, response.data);
       }
 
-      setTimeout(() => {
-        flatListRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
     } catch (error) {
       console.error('Erreur envoi message:', error);
       actions.removeTempMessages();
@@ -781,10 +814,43 @@ export default function ConversationScreen() {
   // RENDER
   // ============================================
 
+  const handleScroll = useCallback((event: any) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    // In inverted FlatList, scrolling "up" (to older messages) increases offsetY
+    setShowScrollToBottom(offsetY > 300);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+  }, []);
+
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item, user?.id);
     const showDate = shouldShowDateSeparator(state.messages, index);
     const replyToContent = getReplyToContent(item.reply_to, state.messages);
+
+    // System messages rendered as centered pills
+    if (item.message_type === 'system') {
+      return (
+        <View>
+          {showDate && (
+            <View style={styles.dateContainer}>
+              <Text style={styles.dateText}>{formatMessageDate(item.created_at)}</Text>
+            </View>
+          )}
+          <View style={styles.systemMessageContainer}>
+            <Text style={styles.systemMessageText}>{item.content}</Text>
+          </View>
+        </View>
+      );
+    }
+
+    // Message grouping: in inverted FlatList, index+1 is the visually previous (above) message
+    const nextItem = index < state.messages.length - 1 ? state.messages[index + 1] : null;
+    const isGrouped = nextItem &&
+      nextItem.message_type !== 'system' &&
+      Number(nextItem.sender) === Number(item.sender) &&
+      (new Date(item.created_at).getTime() - new Date(nextItem.created_at).getTime()) < 120000;
 
     return (
       <View>
@@ -796,6 +862,7 @@ export default function ConversationScreen() {
         <MessageBubble
           message={item}
           isMine={isMine}
+          isGrouped={!!isGrouped}
           replyToMessage={replyToContent}
           otherUserId={state.otherUserId}
           playingVoiceId={state.playingVoiceId}
@@ -866,24 +933,34 @@ export default function ConversationScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <FlatList
-          ref={flatListRef}
-          data={state.messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.messagesList}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={renderEmpty}
-          ListHeaderComponent={renderLoadingMore}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.1}
-          inverted={false}
-          onContentSizeChange={() => {
-            if (state.messages.length > 0 && !state.loadingMore) {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }
-          }}
-        />
+        <View style={{ flex: 1 }}>
+          <FlatList
+            ref={flatListRef}
+            data={state.messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.messagesList}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={renderEmpty}
+            ListFooterComponent={renderLoadingMore}
+            onEndReached={handleLoadMore}
+            onEndReachedThreshold={0.3}
+            onScroll={handleScroll}
+            scrollEventThrottle={100}
+            inverted={true}
+          />
+
+          {/* Scroll to bottom button */}
+          {showScrollToBottom && (
+            <TouchableOpacity
+              style={styles.scrollToBottomButton}
+              onPress={scrollToBottom}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chevron-down" size={22} color={Colors.gray700} />
+            </TouchableOpacity>
+          )}
+        </View>
 
         {/* Typing Indicator */}
         {typingUsers.length > 0 && (
@@ -1053,5 +1130,41 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
     color: Colors.white,
+  },
+
+  // System messages
+  systemMessageContainer: {
+    alignItems: 'center',
+    marginVertical: Spacing.sm,
+  },
+  systemMessageText: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+    backgroundColor: Colors.gray100,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    fontStyle: 'italic',
+    overflow: 'hidden',
+  },
+
+  // Scroll to bottom
+  scrollToBottomButton: {
+    position: 'absolute',
+    right: Spacing.md,
+    bottom: Spacing.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
   },
 });

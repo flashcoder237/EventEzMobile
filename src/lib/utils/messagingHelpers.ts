@@ -115,13 +115,15 @@ export function isMyMessage(message: Message, userId: string | number | undefine
 }
 
 /**
- * Vérifie si on doit afficher la date avant ce message
+ * Vérifie si on doit afficher la date avant ce message.
+ * Les messages sont ordonnés du plus récent (index 0, bas) au plus ancien (index N, haut)
+ * pour un FlatList inversé.
  */
 export function shouldShowDateSeparator(messages: Message[], index: number): boolean {
-  if (index === 0) return true;
+  if (index === messages.length - 1) return true;
   const currentDate = new Date(messages[index].created_at).toDateString();
-  const previousDate = new Date(messages[index - 1].created_at).toDateString();
-  return currentDate !== previousDate;
+  const nextDate = new Date(messages[index + 1].created_at).toDateString();
+  return currentDate !== nextDate;
 }
 
 /**

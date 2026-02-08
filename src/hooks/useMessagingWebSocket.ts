@@ -11,15 +11,31 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { Message } from '../types';
 
-// Configuration
-const WS_BASE_URL = Platform.select({
-  ios: 'ws://localhost:8000',
-  android: 'ws://10.0.2.2:8000',
-  default: 'ws://localhost:8000',
-});
+// Dériver l'URL WebSocket à partir de EXPO_PUBLIC_API_URL
+// pour que le WS pointe toujours vers le même serveur que l'API REST
+function getWebSocketBaseUrl(): string {
+  const apiUrl = process.env.EXPO_PUBLIC_API_URL || '';
 
-// Pour production, utiliser wss:// avec le vrai domaine
-// const WS_BASE_URL = 'wss://api.eventez.com';
+  if (apiUrl) {
+    try {
+      const url = new URL(apiUrl);
+      // http -> ws, https -> wss
+      const wsProtocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${wsProtocol}//${url.host}`;
+    } catch {
+      // URL invalide, fallback
+    }
+  }
+
+  // Fallback pour développement local
+  return Platform.select({
+    ios: 'ws://localhost:8000',
+    android: 'ws://10.0.2.2:8000',
+    default: 'ws://localhost:8000',
+  }) as string;
+}
+
+const WS_BASE_URL = getWebSocketBaseUrl();
 
 interface WebSocketMessage {
   type: string;
@@ -49,8 +65,9 @@ interface UseMessagingWebSocketOptions {
   onReactionAdded?: (data: { messageId: string | number; userId: number; emoji: string }) => void;
   onReactionRemoved?: (data: { messageId: string | number; userId: number; emoji: string }) => void;
   onConnectionChange?: (isConnected: boolean) => void;
-  onMessageDeleted?: (data: { messageId: string | number }) => void;
-  onMessageUpdated?: (data: { messageId: string | number; content: string }) => void;
+  onMessageDeleted?: (data: { messageId: string | number; userId: number }) => void;
+  onMessageUpdated?: (data: { messageId: string | number; content: string; editedAt: string; userId: number }) => void;
+  onPresenceChanged?: (data: { userId: number; status: string; lastSeen: string }) => void;
 }
 
 // Configuration reconnexion
@@ -67,6 +84,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onConnectionChange,
     onMessageDeleted,
     onMessageUpdated,
+    onPresenceChanged,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -124,15 +142,17 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
         case 'message.deleted':
           if (data.message_id && onMessageDeleted) {
-            onMessageDeleted({ messageId: data.message_id });
+            onMessageDeleted({ messageId: data.message_id, userId: data.user_id || 0 });
           }
           break;
 
-        case 'message.updated':
+        case 'message.edited':
           if (data.message_id && onMessageUpdated) {
             onMessageUpdated({
               messageId: data.message_id,
               content: (data as any).content || '',
+              editedAt: (data as any).edited_at || new Date().toISOString(),
+              userId: data.user_id || 0,
             });
           }
           break;
@@ -231,6 +251,16 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           }
           break;
 
+        case 'presence.changed':
+          if (onPresenceChanged && data.user_id) {
+            onPresenceChanged({
+              userId: data.user_id,
+              status: (data as any).status || 'offline',
+              lastSeen: (data as any).last_seen || new Date().toISOString(),
+            });
+          }
+          break;
+
         case 'error':
           console.error('WebSocket error from server:', data);
           break;
@@ -251,6 +281,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onReactionRemoved,
     onMessageDeleted,
     onMessageUpdated,
+    onPresenceChanged,
     clearTypingTimeout,
   ]);
 
@@ -258,7 +289,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   const connect = useCallback(async () => {
     try {
       // Récupérer le token d'accès
-      const accessToken = await SecureStore.getItemAsync('accessToken');
+      const accessToken = await SecureStore.getItemAsync('eventez_access_token');
       if (!accessToken) {
         setConnectionError('Non authentifié');
         return;
@@ -410,6 +441,21 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     });
   }, [sendWsMessage]);
 
+  const editMessage = useCallback((messageId: string | number, content: string) => {
+    sendWsMessage({
+      type: 'message.edit',
+      message_id: messageId,
+      content,
+    });
+  }, [sendWsMessage]);
+
+  const deleteMessage = useCallback((messageId: string | number) => {
+    sendWsMessage({
+      type: 'message.delete',
+      message_id: messageId,
+    });
+  }, [sendWsMessage]);
+
   // Auto-connect on mount
   useEffect(() => {
     connect();
@@ -434,6 +480,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     disconnect,
     reconnect,
     sendMessage,
+    editMessage,
+    deleteMessage,
     startTyping,
     stopTyping,
     markMessagesAsRead,

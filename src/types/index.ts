@@ -520,10 +520,14 @@ export interface Message {
   sender_name: string;
   sender_avatar?: string;
   content: string;
+  message_type: 'text' | 'system' | 'image' | 'voice' | 'document' | 'event_share';
   attachments?: MessageAttachment[];
   read_by: number[]; // Liste des IDs des utilisateurs qui ont lu
   reply_to?: string | Message;
   is_starred: boolean;
+  is_edited: boolean;
+  edited_at?: string;
+  is_deleted: boolean;
   reactions?: MessageReaction[];
   created_at: string;
 }

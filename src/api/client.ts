@@ -337,7 +337,7 @@ export const usersAPI = {
 
   // Axios gère automatiquement le Content-Type pour FormData
   updateProfileImage: (formData: FormData) =>
-    api.put('/users/me/upload_profile_image/', formData),
+    api.patch('/users/me/upload_profile_image/', formData),
 
   getUserSettings: () =>
     api.get('/users/me/settings/'),
@@ -1444,7 +1444,7 @@ export const messagesAPI = {
   addParticipant: (conversationId: string, userId: string) =>
     api.post(`/conversations/${conversationId}/add_participant/`, { user_id: userId }),
 
-  getMessages: (params?: { conversation?: string }) =>
+  getMessages: (params?: { conversation?: string; page?: string }) =>
     api.get('/messages/', { params }),
 
   sendMessage: (data: { content: string; conversation?: string; reply_to?: string }) =>
@@ -1496,6 +1496,18 @@ export const messagesAPI = {
 
   getBlockedUsers: () =>
     api.get('/user-messaging-settings/blocked_list/'),
+
+  searchMessages: (query: string, conversationId?: string) => {
+    const params: any = { q: query };
+    if (conversationId) params.conversation = conversationId;
+    return api.get('/messages/search/', { params });
+  },
+
+  removeParticipant: (conversationId: string, userId: string) =>
+    api.post(`/conversations/${conversationId}/remove_participant/`, { user_id: userId }),
+
+  getPresence: () =>
+    api.get('/conversations/presence/'),
 };
 
 // ============================================

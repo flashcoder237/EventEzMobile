@@ -22,6 +22,8 @@ import PaymentFailedScreen from '../screens/payment/PaymentFailedScreen';
 import QRCodeScreen from '../screens/tickets/QRCodeScreen';
 import TicketPurchaseScreen from '../screens/tickets/TicketPurchaseScreen';
 import RegistrationDetailsScreen from '../screens/tickets/RegistrationDetailsScreen';
+import PendingTransfersScreen from '../screens/tickets/PendingTransfersScreen';
+import OfflineTicketsScreen from '../screens/tickets/OfflineTicketsScreen';
 
 // Dashboard & Profile Screens
 import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
@@ -145,6 +147,20 @@ export default function RootNavigator() {
             options={{
               headerShown: false,
               presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="PendingTransfers"
+            component={PendingTransfersScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="OfflineTickets"
+            component={OfflineTicketsScreen}
+            options={{
+              headerShown: false,
             }}
           />
 

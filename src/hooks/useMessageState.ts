@@ -149,16 +149,17 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
       return { ...state, messages: action.payload };
 
     case 'ADD_MESSAGE': {
-      // Éviter les doublons
+      // Éviter les doublons — prepend pour FlatList inversé (index 0 = bas = plus récent)
       const exists = state.messages.some(m => m.id === action.payload.id);
       if (exists) return state;
-      return { ...state, messages: [...state.messages, action.payload] };
+      return { ...state, messages: [action.payload, ...state.messages] };
     }
 
     case 'ADD_MESSAGES_BEFORE':
+      // Append pour FlatList inversé — les messages plus anciens vont à la fin (haut de la liste)
       return {
         ...state,
-        messages: [...action.payload, ...state.messages],
+        messages: [...state.messages, ...action.payload],
       };
 
     case 'UPDATE_MESSAGE':

@@ -34,6 +34,7 @@ import MessageStatusIcon from './MessageStatusIcon';
 interface MessageBubbleProps {
   message: Message;
   isMine: boolean;
+  isGrouped?: boolean;
   replyToMessage?: Message | null;
   otherUserId?: string | null;
   playingVoiceId?: string | null;
@@ -44,6 +45,7 @@ interface MessageBubbleProps {
 function MessageBubble({
   message,
   isMine,
+  isGrouped = false,
   replyToMessage,
   otherUserId,
   playingVoiceId,
@@ -168,16 +170,45 @@ function MessageBubble({
     );
   };
 
+  // Deleted message placeholder
+  if (message.is_deleted) {
+    return (
+      <TouchableOpacity
+        style={[styles.messageRow, isMine && styles.messageRowMine, isGrouped && styles.messageRowGrouped]}
+        activeOpacity={1}
+      >
+        {!isMine && (
+          <View style={styles.avatarPlaceholder}>
+            {!isGrouped && <Text style={styles.avatarInitials}>{initials}</Text>}
+          </View>
+        )}
+        <View style={styles.bubbleContainer}>
+          <View style={[styles.bubble, styles.deletedBubble]}>
+            <View style={styles.deletedContent}>
+              <Ionicons name="trash-outline" size={14} color={Colors.gray400} />
+              <Text style={styles.deletedText}>Ce message a ete supprime</Text>
+            </View>
+          </View>
+          <View style={[styles.timeRow, isMine && styles.timeRowMine]}>
+            <Text style={styles.timeText}>{formatMessageTime(message.created_at)}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <TouchableOpacity
-      style={[styles.messageRow, isMine && styles.messageRowMine]}
+      style={[styles.messageRow, isMine && styles.messageRowMine, isGrouped && styles.messageRowGrouped]}
       onLongPress={handleLongPress}
       delayLongPress={300}
       activeOpacity={0.8}
     >
-      {/* Avatar (only for other user's messages) */}
+      {/* Avatar (only for other user's messages, hidden when grouped) */}
       {!isMine && (
-        avatar ? (
+        isGrouped ? (
+          <View style={styles.avatarSpacer} />
+        ) : avatar ? (
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
@@ -217,6 +248,9 @@ function MessageBubble({
 
         {/* Time and Status */}
         <View style={[styles.timeRow, isMine && styles.timeRowMine]}>
+          {message.is_edited && (
+            <Text style={styles.editedLabel}>modifie</Text>
+          )}
           <Text style={styles.timeText}>{formatMessageTime(message.created_at)}</Text>
           {status && (
             <View style={styles.statusIcon}>
@@ -234,9 +268,12 @@ function arePropsEqual(prevProps: MessageBubbleProps, nextProps: MessageBubblePr
   return (
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
+    prevProps.message.is_edited === nextProps.message.is_edited &&
+    prevProps.message.is_deleted === nextProps.message.is_deleted &&
     prevProps.message.read_by?.length === nextProps.message.read_by?.length &&
     prevProps.message.reactions?.length === nextProps.message.reactions?.length &&
     prevProps.isMine === nextProps.isMine &&
+    prevProps.isGrouped === nextProps.isGrouped &&
     prevProps.playingVoiceId === nextProps.playingVoiceId &&
     prevProps.replyToMessage?.id === nextProps.replyToMessage?.id
   );
@@ -252,6 +289,9 @@ const styles = StyleSheet.create({
   },
   messageRowMine: {
     flexDirection: 'row-reverse',
+  },
+  messageRowGrouped: {
+    marginBottom: 2,
   },
 
   // Avatar
@@ -462,5 +502,35 @@ const styles = StyleSheet.create({
   },
   statusIcon: {
     marginLeft: 4,
+  },
+
+  // Avatar spacer for grouped messages
+  avatarSpacer: {
+    width: MESSAGE_AVATAR_SIZE,
+    marginRight: Spacing.sm,
+  },
+
+  // Deleted message
+  deletedBubble: {
+    backgroundColor: Colors.gray100,
+    opacity: 0.8,
+  },
+  deletedContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  deletedText: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray400,
+    fontStyle: 'italic',
+  },
+
+  // Edited label
+  editedLabel: {
+    fontSize: 10,
+    color: Colors.gray400,
+    fontStyle: 'italic',
+    marginRight: 4,
   },
 });
