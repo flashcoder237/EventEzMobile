@@ -8,12 +8,12 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   Dimensions,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as Location from 'expo-location';
 import {
   Colors,
@@ -287,7 +287,6 @@ export default function MapPickerModal({
       <KeyboardAvoidingView
         behavior="padding"
         style={styles.container}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         {/* Header */}
         <View style={styles.header}>

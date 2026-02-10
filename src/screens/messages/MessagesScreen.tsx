@@ -180,6 +180,7 @@ export default function MessagesScreen() {
 
   useEffect(() => {
     fetchConversations();
+    fetchUsers();
   }, []);
 
   const fetchConversations = async () => {
@@ -196,7 +197,7 @@ export default function MessagesScreen() {
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await usersAPI.getUsers();
+      const response = await usersAPI.getUsers({ page_size: 1000 });
       const users = (response.data.results || response.data || [])
         .filter((u: User) => u.id !== user?.id);
       setAvailableUsers(users);
@@ -215,7 +216,6 @@ export default function MessagesScreen() {
 
   const handleOpenNewModal = () => {
     setShowNewModal(true);
-    fetchUsers();
   };
 
   const handleStartConversation = async (targetUser: User) => {

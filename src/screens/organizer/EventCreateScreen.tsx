@@ -7,13 +7,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   Switch,
   Image,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -1561,11 +1560,7 @@ export default function EventCreateScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 100}
-      >
+      <View style={styles.keyboardView}>
         {/* Header with back button */}
         <View style={styles.headerBar}>
           <TouchableOpacity
@@ -1607,17 +1602,18 @@ export default function EventCreateScreen() {
           ))}
         </View>
 
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bottomOffset={80}
         >
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
           {currentStep === 4 && renderStep4()}
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Navigation Buttons */}
         <View style={styles.navigationButtons}>
@@ -1653,7 +1649,7 @@ export default function EventCreateScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       {/* Date Pickers */}
       {showStartPicker && (

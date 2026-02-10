@@ -8,11 +8,10 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -152,13 +151,13 @@ export default function EditProfileScreen() {
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-      formData.append('profile_image', {
+      formData.append('profile_picture', {
         uri: imageUri,
         name: filename,
         type,
       } as any);
 
-      const response = await usersAPI.updateProfile(formData);
+      const response = await usersAPI.updateProfileImage(formData);
       if (response.data) {
         updateUser(response.data);
       }
@@ -249,17 +248,13 @@ export default function EditProfileScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={styles.keyboardView}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 100}
+      <KeyboardAwareScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={80}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* Profile Image Header */}
           <View style={styles.imageSection}>
             <TouchableOpacity
@@ -516,8 +511,7 @@ export default function EditProfileScreen() {
               icon={<Ionicons name="checkmark" size={20} color={Colors.white} />}
             />
           </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
 
       {saving && (
         <View style={styles.loadingOverlay}>

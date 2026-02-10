@@ -21,6 +21,7 @@ import {
   FunnelDisplay_800ExtraBold,
 } from '@expo-google-fonts/funnel-display';
 
+import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
@@ -53,18 +54,20 @@ export default function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <NavigationContainer>
-          <AuthProvider>
-            <NotificationProvider>
-              <AlertProvider>
-                <StatusBar style="dark" />
-                <RootNavigator />
-              </AlertProvider>
-            </NotificationProvider>
-          </AuthProvider>
-        </NavigationContainer>
-      </SafeAreaProvider>
+      <KeyboardProvider>
+        <SafeAreaProvider>
+          <NavigationContainer>
+            <AuthProvider>
+              <NotificationProvider>
+                <AlertProvider>
+                  <StatusBar style="dark" />
+                  <RootNavigator />
+                </AlertProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </NavigationContainer>
+        </SafeAreaProvider>
+      </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }

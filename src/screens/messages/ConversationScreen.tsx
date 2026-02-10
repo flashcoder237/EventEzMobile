@@ -16,7 +16,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Image,
@@ -29,8 +28,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
+import {
+  useAudioPlayer,
+  useAudioRecorder,
+  AudioPlayer,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  RecordingPresets,
+} from 'expo-audio';
 
 import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
@@ -84,8 +91,8 @@ export default function ConversationScreen() {
   const flatListRef = useRef<FlatList>(null);
   const lastTypingSentRef = useRef<number>(0);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const playerRef = useRef<AudioPlayer | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
@@ -186,11 +193,8 @@ export default function ConversationScreen() {
   // Cleanup audio on unmount
   useEffect(() => {
     return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
-      if (recordingRef.current) {
-        recordingRef.current.stopAndUnloadAsync();
+      if (playerRef.current) {
+        playerRef.current.remove();
       }
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
@@ -439,22 +443,20 @@ export default function ConversationScreen() {
 
   const startRecording = async () => {
     try {
-      const { granted } = await Audio.requestPermissionsAsync();
+      const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
         showError('Permission requise', 'Autorisez l\'accès au microphone.');
         return;
       }
 
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
+      await recorder.prepareToRecordAsync();
+      recorder.record();
 
-      recordingRef.current = recording;
       actions.setRecording(true);
       actions.setRecordingDuration(0);
 
@@ -467,15 +469,13 @@ export default function ConversationScreen() {
   };
 
   const stopRecording = async () => {
-    if (!recordingRef.current) return;
-
     try {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
       }
 
-      await recordingRef.current.stopAndUnloadAsync();
-      const uri = recordingRef.current.getURI();
+      await recorder.stop();
+      const uri = recorder.uri;
 
       actions.setRecording(false);
 
@@ -487,23 +487,18 @@ export default function ConversationScreen() {
           duration: state.recordingDuration,
         }]);
       }
-
-      recordingRef.current = null;
     } catch (error) {
       console.error('Erreur arrêt enregistrement:', error);
     }
   };
 
   const cancelRecording = async () => {
-    if (!recordingRef.current) return;
-
     try {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
       }
 
-      await recordingRef.current.stopAndUnloadAsync();
-      recordingRef.current = null;
+      await recorder.stop();
       actions.setRecording(false);
     } catch (error) {
       console.error('Erreur annulation enregistrement:', error);
@@ -512,8 +507,10 @@ export default function ConversationScreen() {
 
   const playVoiceMessage = async (uri: string, messageId: string) => {
     try {
-      if (soundRef.current) {
-        await soundRef.current.unloadAsync();
+      // Stop current playback
+      if (playerRef.current) {
+        playerRef.current.remove();
+        playerRef.current = null;
       }
 
       if (state.playingVoiceId === messageId) {
@@ -521,17 +518,17 @@ export default function ConversationScreen() {
         return;
       }
 
-      const { sound } = await Audio.Sound.createAsync(
-        { uri },
-        { shouldPlay: true }
-      );
-
-      soundRef.current = sound;
+      const player = new AudioPlayer(uri);
+      playerRef.current = player;
       actions.setPlayingVoice(messageId);
 
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
+      player.play();
+
+      // Listen for playback end
+      const subscription = player.addListener('playbackStatusUpdate', (status: any) => {
+        if (status.didJustFinish) {
           actions.setPlayingVoice(null);
+          subscription.remove();
         }
       });
     } catch (error) {
@@ -710,14 +707,22 @@ export default function ConversationScreen() {
 
       let conversationIdToUse = state.conversationId;
 
-      // Nouvelle conversation
+      // Nouvelle conversation : créer avec le premier message atomiquement
       if (state.isNewConversation && userId && !state.conversationId) {
         const convResponse = await messagesAPI.createConversation({
           participant_ids: [user?.id, userId],
+          message: messageContent,
         });
         conversationIdToUse = convResponse.data.id;
         actions.setConversationId(conversationIdToUse);
         actions.setIsNewConversation(false);
+        // Charger les messages depuis le backend (inclut le premier message)
+        const msgsResponse = await messagesAPI.getMessages({ conversation: conversationIdToUse });
+        const msgs = msgsResponse.data?.results || [];
+        msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        msgs.forEach((m: any) => actions.addMessage(m));
+        actions.setSending(false);
+        return;
       }
 
       if (!conversationIdToUse) {
@@ -931,7 +936,6 @@ export default function ConversationScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior="padding"
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 100}
       >
         <View style={{ flex: 1 }}>
           <FlatList

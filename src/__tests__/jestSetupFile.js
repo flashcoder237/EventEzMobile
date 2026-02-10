@@ -363,6 +363,20 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
+// Mock react-native-keyboard-controller
+jest.mock('react-native-keyboard-controller', () => {
+  const React = require('react');
+  const { View, ScrollView } = require('react-native');
+  return {
+    KeyboardProvider: ({ children }) => children,
+    KeyboardAvoidingView: View,
+    KeyboardAwareScrollView: ScrollView,
+    KeyboardToolbar: View,
+    useKeyboardHandler: jest.fn(),
+    useKeyboardAnimation: jest.fn(() => ({ height: { value: 0 }, progress: { value: 0 } })),
+  };
+});
+
 // Note: The following expo modules are handled by moduleNameMapper in jest.config.js:
 // - expo-asset
 // - expo-font

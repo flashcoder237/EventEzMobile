@@ -6,12 +6,11 @@ import {
   StyleSheet,
   ScrollView,
   StatusBar,
-  KeyboardAvoidingView,
-  Platform,
   Animated,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -558,19 +557,15 @@ export default function BecomeOrganizerScreen() {
         </View>
       </View>
 
-      <KeyboardAvoidingView
-        behavior="padding"
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 100}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={80}
       >
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
-          {renderCurrentStep()}
-        </ScrollView>
-      </KeyboardAvoidingView>
+        {renderCurrentStep()}
+      </KeyboardAwareScrollView>
 
       {/* Footer Buttons */}
       <View style={styles.footer}>

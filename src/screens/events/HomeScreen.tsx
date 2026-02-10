@@ -34,6 +34,7 @@ import {
 import { getApiResults } from '../../lib/utils/apiHelpers';
 import { EmptyState } from '../../components/ui';
 import EventCard from '../../components/events/EventCard';
+import CategoryCard from '../../components/events/CategoryCard';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -225,18 +226,19 @@ export default function HomeScreen() {
 
   const renderCategory = useCallback(
     ({ item, index }: { item: Category; index: number }) => (
-      <TouchableOpacity
-        style={[styles.categoryItem, index === 0 && { marginLeft: Spacing.lg }]}
-        onPress={() => {
-          navigation.navigate('Main', { screen: 'Explore', params: { category: item.id } } as any);
-        }}
-        activeOpacity={0.7}
-      >
-        <View style={styles.categoryIcon}>
-          <Ionicons name={getCategoryIcon(item.name)} size={24} color={Colors.primary} />
-        </View>
-        <Text style={styles.categoryName} numberOfLines={1}>{item.name}</Text>
-      </TouchableOpacity>
+      <View style={[styles.categoryCardWrapper, index === 0 && { marginLeft: Spacing.lg }]}>
+        <CategoryCard
+          id={item.id.toString()}
+          name={item.name}
+          icon={getCategoryIcon(item.name)}
+          image={item.image}
+          eventCount={item.event_count || item.events_count}
+          variant="large"
+          onPress={() => {
+            navigation.navigate('Main', { screen: 'Explore', params: { category: item.id } } as any);
+          }}
+        />
+      </View>
     ),
     [navigation]
   );
@@ -529,25 +531,8 @@ const styles = StyleSheet.create({
   categoriesList: {
     paddingRight: Spacing.lg,
   },
-  categoryItem: {
-    alignItems: 'center',
-    marginRight: Spacing.lg,
-    width: 72,
-  },
-  categoryIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.gray50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
-  },
-  categoryName: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray700,
-    textAlign: 'center',
+  categoryCardWrapper: {
+    marginRight: Spacing.md,
   },
   // ===== EVENTS LIST =====
   eventsList: {

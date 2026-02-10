@@ -7,11 +7,10 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { ticketTransfersAPI } from '../../api/client';
 import { useAlert } from '../../contexts/AlertContext';
 import GradientButton from '../ui/GradientButton';
@@ -143,7 +142,6 @@ export default function TransferTicketModal({
       <KeyboardAvoidingView
         behavior="padding"
         style={styles.overlay}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
         <View style={styles.container}>
           {/* Header */}

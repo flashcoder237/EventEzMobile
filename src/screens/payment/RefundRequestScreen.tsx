@@ -8,9 +8,8 @@ import {
   ScrollView,
   ActivityIndicator,
   StatusBar,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -174,11 +173,6 @@ export default function RefundRequestScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={{ flex: 1 }}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 100}
-      >
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -191,10 +185,11 @@ export default function RefundRequestScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView
+        <KeyboardAwareScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          bottomOffset={80}
         >
           {/* Payment Summary */}
           <View style={styles.paymentSummary}>
@@ -303,7 +298,7 @@ export default function RefundRequestScreen() {
           </View>
 
           <View style={{ height: 100 }} />
-        </ScrollView>
+        </KeyboardAwareScrollView>
 
         {/* Submit Button */}
         <View style={styles.footer}>
@@ -327,7 +322,6 @@ export default function RefundRequestScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
