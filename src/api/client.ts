@@ -531,6 +531,18 @@ export const eventsAPI = {
   searchEvents: (query: string) =>
     api.get('/events/', { params: { search: query } }),
 
+  // Calendrier
+  exportIcal: (id: string) =>
+    api.get(`/events/${id}/export-ical/`, { responseType: 'blob' }),
+  getGoogleCalendarLink: (id: string) =>
+    api.get(`/events/${id}/google-calendar-link/`),
+
+  // Récurrence
+  createRecurrence: (id: string, data: any) =>
+    api.post(`/events/${id}/create_recurrence/`, data),
+  getInstances: (id: string, params?: any) =>
+    api.get(`/events/${id}/instances/`, { params }),
+
   // Form Fields
   getFormFields: (eventId: string) =>
     api.get('/form-fields/', { params: { event: eventId } }),
@@ -1528,4 +1540,358 @@ export const auditAPI = {
 
   getRecentLogs: (params?: { limit?: number }) =>
     api.get('/audit/logs/recent/', { params }),
+};
+
+// ============================================
+// NEWSLETTERS API
+// ============================================
+
+export const newslettersAPI = {
+  getAll: (params?: any) =>
+    api.get('/newsletters/', { params }),
+
+  getById: (id: string) =>
+    api.get(`/newsletters/${id}/`),
+
+  create: (data: any) =>
+    api.post('/newsletters/', data),
+
+  update: (id: string, data: any) =>
+    api.patch(`/newsletters/${id}/`, data),
+
+  delete: (id: string) =>
+    api.delete(`/newsletters/${id}/`),
+
+  sendNow: (id: string) =>
+    api.post(`/newsletters/${id}/send_now/`),
+
+  schedule: (id: string, scheduledAt: string) =>
+    api.post(`/newsletters/${id}/schedule/`, { scheduled_at: scheduledAt }),
+
+  getSubscribers: (params?: any) =>
+    api.get('/subscribers/', { params }),
+
+  subscribe: (data: { email: string; name?: string }) =>
+    api.post('/subscribers/', data),
+
+  unsubscribe: (token: string) =>
+    api.post('/subscribers/unsubscribe/', { token }),
+};
+
+// ============================================
+// RECOMMENDATIONS API
+// ============================================
+
+export const recommendationsAPI = {
+  getRecommendations: (params?: { limit?: number }) =>
+    api.get('/recommendations/', { params }),
+
+  recordInteraction: (data: { event?: string; category?: number; interaction_type: string }) =>
+    api.post('/recommendations/record_interaction/', data),
+};
+
+// ============================================
+// INVITATIONS API
+// ============================================
+
+export const invitationsAPI = {
+  getAll: (params?: any) =>
+    api.get('/invitations/', { params }),
+
+  getById: (id: string) =>
+    api.get(`/invitations/${id}/`),
+
+  create: (data: { event: string; invitee_email: string; invitee_name?: string; message?: string }) =>
+    api.post('/invitations/', data),
+
+  bulkInvite: (data: { event: string; invitees: Array<{ email: string; name?: string }>; message?: string }) =>
+    api.post('/invitations/bulk_invite/', data),
+
+  accept: (id: string) =>
+    api.post(`/invitations/${id}/accept/`),
+
+  decline: (id: string) =>
+    api.post(`/invitations/${id}/decline/`),
+
+  cancel: (id: string) =>
+    api.post(`/invitations/${id}/cancel/`),
+
+  getMyInvitations: () =>
+    api.get('/invitations/my_invitations/'),
+
+  respondByToken: (token: string, action: 'accept' | 'decline') =>
+    api.post('/invitations/respond_by_token/', { token, action }),
+};
+
+// ============================================
+// REFERRALS API
+// ============================================
+
+export const referralsAPI = {
+  getCodes: (params?: any) =>
+    api.get('/referrals/codes/', { params }),
+
+  getCode: (id: string) =>
+    api.get(`/referrals/codes/${id}/`),
+
+  createCode: (data: { code_type?: string; event?: string; commission_percentage?: number; usage_limit?: number; valid_until?: string }) =>
+    api.post('/referrals/codes/', data),
+
+  updateCode: (id: string, data: any) =>
+    api.patch(`/referrals/codes/${id}/`, data),
+
+  deleteCode: (id: string) =>
+    api.delete(`/referrals/codes/${id}/`),
+
+  getStats: (id: string) =>
+    api.get(`/referrals/codes/${id}/stats/`),
+
+  trackClick: (code: string) =>
+    api.post('/referrals/track/', { code }),
+};
+
+// ============================================
+// SOCIAL / ACTIVITY FEED API
+// ============================================
+
+export const socialAPI = {
+  getFeed: (params?: any) =>
+    api.get('/social/feed/', { params }),
+
+  getMyFeed: () =>
+    api.get('/social/feed/my_feed/'),
+
+  getEventFeed: (eventId: string) =>
+    api.get('/social/feed/event_feed/', { params: { event_id: eventId } }),
+
+  getConnections: (params?: any) =>
+    api.get('/social/connections/', { params }),
+
+  getMyConnections: () =>
+    api.get('/social/connections/my_connections/'),
+
+  getEventAttendees: (eventId: string) =>
+    api.get('/social/connections/event_attendees/', { params: { event_id: eventId } }),
+
+  sendConnectionRequest: (data: { receiver: string; event?: string; message?: string }) =>
+    api.post('/social/connections/', data),
+
+  acceptConnection: (id: string) =>
+    api.post(`/social/connections/${id}/accept/`),
+
+  declineConnection: (id: string) =>
+    api.post(`/social/connections/${id}/decline/`),
+
+  cancelConnection: (id: string) =>
+    api.post(`/social/connections/${id}/cancel/`),
+};
+
+// ============================================
+// SPONSORS API
+// ============================================
+
+export const sponsorsAPI = {
+  getPackages: (params?: any) =>
+    api.get('/sponsor-packages/', { params }),
+
+  getSponsors: (params?: any) =>
+    api.get('/event-sponsors/', { params }),
+
+  getSponsor: (id: string) =>
+    api.get(`/event-sponsors/${id}/`),
+
+  getByEvent: (eventId: string) =>
+    api.get('/event-sponsors/by_event/', { params: { event_id: eventId } }),
+
+  trackClick: (id: string) =>
+    api.post(`/event-sponsors/${id}/track_click/`),
+};
+
+// ============================================
+// LIVE Q&A / POLLS API
+// ============================================
+
+export const liveAPI = {
+  getQuestionsByEvent: (eventId: string) =>
+    api.get('/live-questions/by_event/', { params: { event_id: eventId } }),
+
+  createQuestion: (data: { event: string; content: string; is_anonymous?: boolean }) =>
+    api.post('/live-questions/', data),
+
+  upvoteQuestion: (id: string) =>
+    api.post(`/live-questions/${id}/upvote/`),
+
+  getPollsByEvent: (eventId: string) =>
+    api.get('/live-polls/by_event/', { params: { event_id: eventId } }),
+
+  getPollResults: (id: string) =>
+    api.get(`/live-polls/${id}/results/`),
+
+  vote: (data: { poll: string; option: string }) =>
+    api.post('/poll-votes/', data),
+};
+
+// ============================================
+// CALL FOR PAPERS API
+// ============================================
+
+export const cfpAPI = {
+  getAll: (params?: any) =>
+    api.get('/call-for-papers/', { params }),
+
+  getById: (id: string) =>
+    api.get(`/call-for-papers/${id}/`),
+
+  submitProposal: (data: any) =>
+    api.post('/talk-proposals/', data),
+
+  getMyProposals: () =>
+    api.get('/talk-proposals/my_proposals/'),
+
+  getProposal: (id: string) =>
+    api.get(`/talk-proposals/${id}/`),
+};
+
+// ============================================
+// SEATING API
+// ============================================
+
+export const seatingAPI = {
+  getPlans: (params?: { event?: string }) =>
+    api.get('/seating-plans/', { params }),
+
+  getPlan: (id: string) =>
+    api.get(`/seating-plans/${id}/`),
+
+  getAvailableSeats: (id: string) =>
+    api.get(`/seating-plans/${id}/available_seats/`),
+
+  createReservation: (data: { seating_plan: string; zone: string; seat_label: string }) =>
+    api.post('/seat-reservations/', data),
+
+  confirmReservation: (id: string) =>
+    api.post(`/seat-reservations/${id}/confirm/`),
+
+  cancelReservation: (id: string) =>
+    api.post(`/seat-reservations/${id}/cancel/`),
+
+  getMyReservations: () =>
+    api.get('/seat-reservations/my_reservations/'),
+};
+
+// ============================================
+// FLOOR PLANS API
+// ============================================
+
+export const floorPlansAPI = {
+  getByEvent: (eventId: string) =>
+    api.get('/floor-plans/by_event/', { params: { event_id: eventId } }),
+
+  getById: (id: string) =>
+    api.get(`/floor-plans/${id}/`),
+};
+
+// ============================================
+// VOLUNTEERS API
+// ============================================
+
+export const volunteersAPI = {
+  getRoles: (params?: { event?: string }) =>
+    api.get('/volunteer-roles/', { params }),
+
+  apply: (data: { role: string; motivation?: string; availability?: string; experience?: string }) =>
+    api.post('/volunteer-applications/', data),
+
+  getMyApplications: () =>
+    api.get('/volunteer-applications/my_applications/'),
+
+  withdrawApplication: (id: string) =>
+    api.post(`/volunteer-applications/${id}/withdraw/`),
+
+  getMyTasks: () =>
+    api.get('/volunteer-tasks/my_tasks/'),
+
+  completeTask: (id: string) =>
+    api.post(`/volunteer-tasks/${id}/complete/`),
+};
+
+// ============================================
+// VIRTUAL ROOMS API
+// ============================================
+
+export const virtualRoomsAPI = {
+  getByEvent: (eventId: string) =>
+    api.get('/virtual-rooms/by_event/', { params: { event_id: eventId } }),
+
+  getById: (id: string) =>
+    api.get(`/virtual-rooms/${id}/`),
+
+  join: (id: string) =>
+    api.post(`/virtual-rooms/${id}/join/`),
+
+  leave: (id: string) =>
+    api.post(`/virtual-rooms/${id}/leave/`),
+
+  getParticipants: (id: string) =>
+    api.get(`/virtual-rooms/${id}/participants/`),
+};
+
+// ============================================
+// RECORDINGS API
+// ============================================
+
+export const recordingsAPI = {
+  getByEvent: (eventId: string) =>
+    api.get('/recordings/by_event/', { params: { event_id: eventId } }),
+
+  getById: (id: string) =>
+    api.get(`/recordings/${id}/`),
+
+  incrementView: (id: string) =>
+    api.post(`/recordings/${id}/increment_view/`),
+};
+
+// ============================================
+// CURRENCY API
+// ============================================
+
+export const currencyAPI = {
+  getAll: () =>
+    api.get('/currencies/'),
+
+  convert: (amount: number, from: string, to: string) =>
+    api.get('/currencies/convert/', { params: { amount, from, to } }),
+};
+
+// ============================================
+// GAMIFICATION API
+// ============================================
+
+export const gamificationAPI = {
+  getBadges: () =>
+    api.get('/gamification/badges/'),
+
+  getMyBadges: () =>
+    api.get('/gamification/user-badges/my_badges/'),
+
+  getPointsBalance: () =>
+    api.get('/gamification/points/balance/'),
+
+  getPointsSummary: () =>
+    api.get('/gamification/points/summary/'),
+
+  getLeaderboard: (params?: { event?: string; period?: string }) =>
+    api.get('/gamification/leaderboard/', { params }),
+
+  getMyRank: (params?: { event?: string; period?: string }) =>
+    api.get('/gamification/leaderboard/my_rank/', { params }),
+};
+
+// ============================================
+// EVENT COMPARISON API
+// ============================================
+
+export const comparisonAPI = {
+  compare: (eventIds: string[]) =>
+    api.get('/events/compare/', { params: { ids: eventIds.join(',') } }),
 };

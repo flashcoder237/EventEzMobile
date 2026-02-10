@@ -1231,6 +1231,11 @@ export type RootStackParamList = {
   MyPayments: undefined;
   RefundRequest: { paymentId: string };
   BecomeOrganizer: undefined;
+  Invitations: undefined;
+  Referrals: undefined;
+  Gamification: undefined;
+  LiveEvent: { eventId: string };
+  Volunteers: { eventId?: string };
 };
 
 export type AuthStackParamList = {

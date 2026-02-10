@@ -52,6 +52,13 @@ import ModerationScreen from '../screens/moderation/ModerationScreen';
 import MyPaymentsScreen from '../screens/payment/MyPaymentsScreen';
 import RefundRequestScreen from '../screens/payment/RefundRequestScreen';
 
+// New Feature Screens
+import GamificationScreen from '../screens/profile/GamificationScreen';
+import InvitationsScreen from '../screens/dashboard/InvitationsScreen';
+import LiveEventScreen from '../screens/events/LiveEventScreen';
+import ReferralScreen from '../screens/dashboard/ReferralScreen';
+import VolunteerScreen from '../screens/organizer/VolunteerScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
@@ -303,6 +310,33 @@ export default function RootNavigator() {
               headerShown: false,
               presentation: 'modal',
             }}
+          />
+
+          {/* New Feature Screens */}
+          <Stack.Screen
+            name="Gamification"
+            component={GamificationScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Invitations"
+            component={InvitationsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="LiveEvent"
+            component={LiveEventScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Referrals"
+            component={ReferralScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Volunteers"
+            component={VolunteerScreen}
+            options={{ headerShown: false }}
           />
         </>
       )}
