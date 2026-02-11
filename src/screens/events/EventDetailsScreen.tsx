@@ -31,13 +31,14 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width } = Dimensions.get('window');
 
-type TabType = 'about' | 'tickets' | 'agenda' | 'reviews';
+type TabType = 'about' | 'tickets' | 'agenda' | 'reviews' | 'live';
 
 const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'about', label: 'À propos', icon: 'information-circle-outline' },
   { id: 'tickets', label: 'Billets', icon: 'ticket-outline' },
   { id: 'agenda', label: 'Agenda', icon: 'calendar-outline' },
   { id: 'reviews', label: 'Avis', icon: 'star-outline' },
+  { id: 'live', label: 'Direct', icon: 'videocam-outline' },
 ];
 
 export default function EventDetailsScreen() {
@@ -715,6 +716,24 @@ export default function EventDetailsScreen() {
                   </View>
                 </View>
               )}
+
+              {/* Volunteers Section */}
+              <View style={styles.section}>
+                <TouchableOpacity
+                  style={styles.volunteerButton}
+                  onPress={() => navigation.navigate('Volunteers', { eventId: event.id })}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.volunteerIconContainer}>
+                    <Ionicons name="people-outline" size={22} color={Colors.primary} />
+                  </View>
+                  <View style={styles.volunteerTextContainer}>
+                    <Text style={styles.volunteerTitle}>Bénévoles</Text>
+                    <Text style={styles.volunteerSubtitle}>Voir ou rejoindre l'équipe de bénévoles</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                </TouchableOpacity>
+              </View>
             </>
           )}
 
@@ -993,6 +1012,28 @@ export default function EventDetailsScreen() {
                   )}
                 </View>
               ) : null}
+            </View>
+          )}
+
+          {activeTab === 'live' && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Événement en direct</Text>
+              <View style={styles.liveSection}>
+                <View style={styles.liveIconContainer}>
+                  <Ionicons name="videocam" size={40} color={Colors.primary} />
+                </View>
+                <Text style={styles.liveDescription}>
+                  Rejoignez l'événement en direct pour suivre les présentations, interagir avec les participants et ne rien manquer.
+                </Text>
+                <TouchableOpacity
+                  style={styles.liveButton}
+                  onPress={() => navigation.navigate('LiveEvent', { eventId: event.id })}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="videocam" size={18} color={Colors.white} />
+                  <Text style={styles.liveButtonText}>Rejoindre le live</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -1994,6 +2035,74 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.sm,
     color: '#1D4ED8',
+  },
+  // Volunteer Button
+  volunteerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+  },
+  volunteerIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  volunteerTextContainer: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+  volunteerTitle: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
+  },
+  volunteerSubtitle: {
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  // Live Section
+  liveSection: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+  },
+  liveIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primaryBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  liveDescription: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray600,
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.md,
+  },
+  liveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xl,
+    borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  liveButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.white,
   },
   // Pending Payment Banner
   pendingPaymentBanner: {

@@ -272,6 +272,11 @@ export default function ProfileScreen() {
               title="Messages"
               onPress={() => navigation.navigate('Messages')}
             />
+            <MenuItem
+              icon="mail-outline"
+              title="Invitations"
+              onPress={() => navigation.navigate('Invitations')}
+            />
           </View>
         </View>
 
@@ -287,6 +292,16 @@ export default function ProfileScreen() {
               icon="grid-outline"
               title="Tableau de bord"
               onPress={() => navigation.navigate('UserDashboard')}
+            />
+            <MenuItem
+              icon="trophy-outline"
+              title="Badges & Points"
+              onPress={() => navigation.navigate('Gamification')}
+            />
+            <MenuItem
+              icon="gift-outline"
+              title="Parrainage"
+              onPress={() => navigation.navigate('Referrals')}
             />
             <MenuItem
               icon="language-outline"

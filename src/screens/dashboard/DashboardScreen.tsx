@@ -227,6 +227,16 @@ export default function DashboardScreen() {
               title="Messages"
               onPress={() => navigation.navigate('Messages')}
             />
+            <QuickAction
+              icon="mail-outline"
+              title="Invitations"
+              onPress={() => navigation.navigate('Invitations')}
+            />
+            <QuickAction
+              icon="gift-outline"
+              title="Parrainage"
+              onPress={() => navigation.navigate('Referrals')}
+            />
           </View>
         </View>
 

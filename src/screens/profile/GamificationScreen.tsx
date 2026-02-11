@@ -95,6 +95,7 @@ export default function GamificationScreen() {
 
       {activeTab === 'badges' ? (
         <FlatList
+          key="badges-grid"
           data={badges}
           numColumns={3}
           contentContainerStyle={styles.badgesGrid}
@@ -122,6 +123,7 @@ export default function GamificationScreen() {
         />
       ) : (
         <FlatList
+          key="leaderboard-list"
           data={leaderboard}
           contentContainerStyle={styles.leaderboardList}
           keyExtractor={(item, index) => item.id || String(index)}

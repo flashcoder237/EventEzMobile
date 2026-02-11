@@ -15,14 +15,14 @@ import {
   NativeSyntheticEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import Slider from '@react-native-community/slider';
 
 import { eventsAPI, categoriesAPI } from '../../api/client';
-import { Event, MapMarker, Category, RootStackParamList } from '../../types';
+import { Event, MapMarker, Category, RootStackParamList, MainTabParamList } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
 import EventCard from '../../components/events/EventCard';
 import {
@@ -72,6 +72,7 @@ const defaultFilters: Filters = {
 
 export default function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteProp<MainTabParamList, 'Explore'>>();
   const flatListRef = useRef<FlatList>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -226,6 +227,13 @@ export default function ExploreScreen() {
 
     return result;
   }, [markers, userLocation, mapRadius, filters, calculateDistance]);
+
+  // Pre-select category from navigation params
+  useEffect(() => {
+    if (route.params?.category) {
+      setSelectedCategory(route.params.category);
+    }
+  }, [route.params?.category]);
 
   useEffect(() => {
     requestLocationAndFetch();

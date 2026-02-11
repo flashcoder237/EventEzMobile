@@ -180,6 +180,10 @@ export default function MyEventsScreen() {
         text: 'Gérer les inscriptions',
         onPress: () => navigation.navigate('EventRegistrations', { eventId: event.id }),
       });
+      actions.push({
+        text: 'Bénévoles',
+        onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
+      });
     }
 
     if (event.status === 'draft' || event.status === 'rejected') {
@@ -298,6 +302,13 @@ export default function MyEventsScreen() {
                   onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
                 >
                   <Ionicons name="stats-chart" size={16} color={Colors.gray600} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={() => navigation.navigate('Volunteers', { eventId: item.id })}
+                >
+                  <Ionicons name="people-outline" size={16} color={Colors.gray600} />
+                  <Text style={styles.actionText}>Bénévoles</Text>
                 </TouchableOpacity>
               </>
             )}
