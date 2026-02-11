@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const CACHE_KEY_PREFIX = 'eventez_ticket_';
 const CACHE_INDEX_KEY = 'eventez_cached_tickets_index';

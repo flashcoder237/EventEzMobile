@@ -215,7 +215,7 @@ export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed'
 /**
  * Détermine le statut d'envoi d'un message
  */
-export function getMessageStatus(message: Message, otherUserId?: string | null): MessageStatus {
+export function getMessageStatus(message: Message, otherUserId?: string | number | null): MessageStatus {
   // Message en cours d'envoi
   if (isTemporaryMessage(message)) {
     return 'sending';
@@ -227,7 +227,7 @@ export function getMessageStatus(message: Message, otherUserId?: string | null):
   }
 
   // Message lu par l'autre utilisateur
-  if (otherUserId && message.read_by?.includes(otherUserId)) {
+  if (otherUserId && message.read_by?.includes(Number(otherUserId))) {
     return 'read';
   }
 

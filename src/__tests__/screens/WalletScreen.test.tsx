@@ -13,6 +13,7 @@ import { mockWallet, mockOrganizer, mockPayment } from '../mocks/mockData';
 // Mock API client
 jest.mock('../../api/client', () => ({
   walletAPI: {
+    getMyWallet: jest.fn(),
     getWallet: jest.fn(),
     getTransactions: jest.fn(),
     requestWithdrawal: jest.fn(),
@@ -79,12 +80,12 @@ const mockTransactions = [
 describe('WalletScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockWalletAPI.getWallet.mockResolvedValue({
+    (mockWalletAPI as any).getWallet.mockResolvedValue({
       data: mockWallet,
-    });
+    } as any);
     mockWalletAPI.getTransactions.mockResolvedValue({
       data: { results: mockTransactions, count: mockTransactions.length },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -295,7 +296,7 @@ describe('WalletScreen', () => {
     });
 
     it('should submit withdrawal request', async () => {
-      mockWalletAPI.requestWithdrawal.mockResolvedValue({
+      (mockWalletAPI as any).requestWithdrawal.mockResolvedValue({
         data: { id: 'withdrawal-1', status: 'pending', amount: 50000 },
       });
 
@@ -317,12 +318,12 @@ describe('WalletScreen', () => {
       fireEvent.press(getByText('Confirmer'));
 
       await waitFor(() => {
-        expect(mockWalletAPI.requestWithdrawal).toHaveBeenCalledWith(50000);
+        expect((mockWalletAPI as any).requestWithdrawal).toHaveBeenCalledWith(50000);
       });
     });
 
     it('should show success message after withdrawal', async () => {
-      mockWalletAPI.requestWithdrawal.mockResolvedValue({
+      (mockWalletAPI as any).requestWithdrawal.mockResolvedValue({
         data: { id: 'withdrawal-1', status: 'pending', amount: 50000 },
       });
 
@@ -372,7 +373,7 @@ describe('WalletScreen', () => {
     });
 
     it('should show warning if no bank details', async () => {
-      mockWalletAPI.getWallet.mockResolvedValue({
+      (mockWalletAPI as any).getWallet.mockResolvedValue({
         data: { ...mockWallet, bank_name: null, bank_account_number: null },
       });
 
@@ -406,7 +407,7 @@ describe('WalletScreen', () => {
     it('should show empty state when no transactions', async () => {
       mockWalletAPI.getTransactions.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<WalletScreen />);
 
@@ -421,7 +422,7 @@ describe('WalletScreen', () => {
       const { UNSAFE_queryByType } = render(<WalletScreen />);
 
       await waitFor(() => {
-        expect(mockWalletAPI.getWallet).toHaveBeenCalledTimes(1);
+        expect((mockWalletAPI as any).getWallet).toHaveBeenCalledTimes(1);
       });
 
       // Simulate pull to refresh
@@ -430,7 +431,7 @@ describe('WalletScreen', () => {
 
   describe('Error Handling', () => {
     it('should handle API errors gracefully', async () => {
-      mockWalletAPI.getWallet.mockRejectedValue(new Error('Network error'));
+      (mockWalletAPI as any).getWallet.mockRejectedValue(new Error('Network error'));
 
       const { getByText } = render(<WalletScreen />);
 
@@ -440,7 +441,7 @@ describe('WalletScreen', () => {
     });
 
     it('should handle withdrawal error', async () => {
-      mockWalletAPI.requestWithdrawal.mockRejectedValue({
+      (mockWalletAPI as any).requestWithdrawal.mockRejectedValue({
         response: { data: { error: 'Withdrawal failed' } },
       });
 
@@ -469,7 +470,7 @@ describe('WalletScreen', () => {
 
   describe('Withdrawal Disabled', () => {
     it('should disable withdrawal when balance is too low', async () => {
-      mockWalletAPI.getWallet.mockResolvedValue({
+      (mockWalletAPI as any).getWallet.mockResolvedValue({
         data: { ...mockWallet, available_balance: 5000, can_withdraw: false },
       });
 
@@ -487,7 +488,7 @@ describe('WalletScreen', () => {
       render(<WalletScreen />);
 
       await waitFor(() => {
-        expect(mockWalletAPI.getWallet).toHaveBeenCalled();
+        expect((mockWalletAPI as any).getWallet).toHaveBeenCalled();
       });
     });
 

@@ -100,8 +100,6 @@ export default function PendingTransfersScreen() {
           setActionLoading(null);
         }
       },
-      'Accepter',
-      'Annuler'
     );
   };
 
@@ -121,8 +119,6 @@ export default function PendingTransfersScreen() {
           setActionLoading(null);
         }
       },
-      'Refuser',
-      'Annuler'
     );
   };
 

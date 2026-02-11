@@ -46,13 +46,13 @@ describe('ExploreScreen', () => {
     jest.clearAllMocks();
     mockEventsAPI.getEvents.mockResolvedValue({
       data: { results: mockEvents, count: mockEvents.length },
-    });
+    } as any);
     mockEventsAPI.searchEvents.mockResolvedValue({
       data: { results: mockEvents, count: mockEvents.length },
-    });
+    } as any);
     mockCategoriesAPI.getCategories.mockResolvedValue({
       data: { results: mockCategories },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -234,7 +234,7 @@ describe('ExploreScreen', () => {
     it('should load more events on scroll to end', async () => {
       mockEventsAPI.getEvents.mockResolvedValueOnce({
         data: { results: mockEvents, count: 20, next: 'page=2' },
-      });
+      } as any);
 
       const { UNSAFE_queryByType } = render(<ExploreScreen />);
 
@@ -250,7 +250,7 @@ describe('ExploreScreen', () => {
     it('should show empty state when no events found', async () => {
       mockEventsAPI.getEvents.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<ExploreScreen />);
 
@@ -262,7 +262,7 @@ describe('ExploreScreen', () => {
     it('should show search empty state when search returns no results', async () => {
       mockEventsAPI.searchEvents.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByPlaceholderText, getByText } = render(<ExploreScreen />);
 
@@ -339,7 +339,7 @@ describe('ExploreScreen', () => {
     it('should allow retry on error', async () => {
       mockEventsAPI.getEvents
         .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({ data: { results: mockEvents, count: mockEvents.length } });
+        .mockResolvedValueOnce({ data: { results: mockEvents, count: mockEvents.length } } as any);
 
       const { getByText } = render(<ExploreScreen />);
 

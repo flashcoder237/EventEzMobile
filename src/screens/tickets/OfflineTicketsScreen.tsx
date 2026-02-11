@@ -68,9 +68,7 @@ export default function OfflineTicketsScreen() {
         await clearCache();
         setTickets([]);
         showSuccess('Cache vidé', 'Tous les billets hors-ligne ont été supprimés');
-      },
-      'Supprimer',
-      'Annuler'
+      }
     );
   };
 
@@ -81,9 +79,7 @@ export default function OfflineTicketsScreen() {
       async () => {
         await removeCachedTicket(ticketId);
         setTickets(tickets.filter(t => t.ticketId !== ticketId));
-      },
-      'Supprimer',
-      'Annuler'
+      }
     );
   };
 
@@ -400,7 +396,7 @@ const styles = StyleSheet.create({
   },
   referenceCode: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.mono || FontFamily.semiBold,
+    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     letterSpacing: 2,
   },

@@ -70,7 +70,7 @@ export default function DashboardScreen() {
   const fetchStats = async () => {
     try {
       const promises: Promise<any>[] = [
-        ticketPurchasesAPI.getMyTickets({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
+        ticketPurchasesAPI.getMyTickets().catch(() => ({ data: { count: 0 } })),
         notificationsAPI.getNotifications({ is_read: false, page_size: 1 }).catch(() => ({ data: { count: 0 } })),
       ];
 

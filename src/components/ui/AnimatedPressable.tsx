@@ -13,8 +13,6 @@ import Animated, {
   withTiming,
   interpolate,
 } from 'react-native-reanimated';
-import { Animations } from '../../constants/theme';
-
 const AnimatedPressableComponent = Animated.createAnimatedComponent(Pressable);
 
 interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {

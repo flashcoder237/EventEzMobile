@@ -186,13 +186,13 @@ export default function EventAnalyticsScreen() {
                     style={[
                       styles.progressBar,
                       {
-                        width: `${Math.min(100, (registrations / (event?.max_capacity || 100)) * 100)}%`,
+                        width: `${Math.min(100, (registrations / (event?.max_participants || 100)) * 100)}%`,
                       },
                     ]}
                   />
                 </View>
                 <Text style={styles.performanceValue}>
-                  {registrations} / {event?.max_capacity || '∞'}
+                  {registrations} / {event?.max_participants || '∞'}
                 </Text>
               </View>
             </View>

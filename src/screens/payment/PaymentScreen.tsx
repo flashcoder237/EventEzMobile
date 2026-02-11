@@ -462,13 +462,14 @@ export default function PaymentScreen() {
             }
           }
 
+          const eventObj = typeof registration?.event === 'object' ? registration.event : null;
           navigation.replace('PaymentSuccess', {
             paymentId: paymentId,
             registrationId: registrationId,
-            eventType: registration?.event?.event_type || registration?.registration_type,
+            eventType: eventObj?.event_type || registration?.registration_type,
             registrationStatus: registration?.status,
             approvalStatus: registration?.approval_status,
-            eventTitle: registration?.event?.title,
+            eventTitle: eventObj?.title,
           });
           return;
         }
@@ -578,13 +579,14 @@ export default function PaymentScreen() {
             }
           }
 
+          const eventObj2 = typeof registration?.event === 'object' ? registration.event : null;
           navigation.replace('PaymentSuccess', {
             paymentId: pId,
             registrationId: registrationId,
-            eventType: registration?.event?.event_type || registration?.registration_type,
+            eventType: eventObj2?.event_type || registration?.registration_type,
             registrationStatus: registration?.status,
             approvalStatus: registration?.approval_status,
-            eventTitle: registration?.event?.title,
+            eventTitle: eventObj2?.title,
           });
         } else if (isPaymentFailed(status)) {
           // Paiement échoué

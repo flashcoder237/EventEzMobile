@@ -69,7 +69,7 @@ const mockUsersAPI = usersAPI as jest.Mocked<typeof usersAPI>;
 describe('SettingsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockUsersAPI.updateNotificationSettings.mockResolvedValue({ data: mockUser });
+    mockUsersAPI.updateNotificationSettings.mockResolvedValue({ data: mockUser } as any);
   });
 
   describe('Rendering', () => {
@@ -328,7 +328,7 @@ describe('SettingsScreen', () => {
     });
 
     it('should call delete API when confirmed', async () => {
-      mockUsersAPI.deleteAccount.mockResolvedValue({ data: { success: true } });
+      mockUsersAPI.deleteAccount.mockResolvedValue({ data: { success: true } } as any);
       mockAlert.mockImplementation((title, message, buttons) => {
         const confirmButton = buttons.find((b: any) => b.style === 'destructive');
         confirmButton?.onPress?.();

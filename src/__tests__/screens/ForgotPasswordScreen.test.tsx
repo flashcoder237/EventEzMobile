@@ -40,13 +40,13 @@ describe('ForgotPasswordScreen', () => {
     jest.clearAllMocks();
     mockAuthAPI.requestPasswordReset.mockResolvedValue({
       data: { message: 'Email sent' },
-    });
-    mockAuthAPI.verifyResetCode.mockResolvedValue({
+    } as any);
+    (mockAuthAPI as any).verifyResetCode = jest.fn().mockResolvedValue({
       data: { valid: true },
-    });
+    } as any);
     mockAuthAPI.resetPassword.mockResolvedValue({
       data: { message: 'Password reset successful' },
-    });
+    } as any);
   });
 
   describe('Step 1 - Email Input', () => {
@@ -271,12 +271,12 @@ describe('ForgotPasswordScreen', () => {
       fireEvent.press(getByText(/Vérifier|Continuer/i));
 
       await waitFor(() => {
-        expect(mockAuthAPI.verifyResetCode).toHaveBeenCalledWith('test@eventez.com', '123456');
+        expect((mockAuthAPI as any).verifyResetCode).toHaveBeenCalledWith('test@eventez.com', '123456');
       });
     });
 
     it('should handle invalid code error', async () => {
-      mockAuthAPI.verifyResetCode.mockRejectedValue({
+      (mockAuthAPI as any).verifyResetCode.mockRejectedValue({
         response: { data: { error: 'Invalid code' } },
       });
 

@@ -36,6 +36,13 @@ export interface User {
   image?: string; // Alias
   logo_url?: string; // Alias
   verification_documents?: string;
+  // Informations personnelles supplémentaires
+  date_of_birth?: string;
+  bio?: string;
+  // Adresse
+  address?: string;
+  city?: string;
+  country?: string;
   // Facturation
   billing_address?: string;
   tax_id?: string;

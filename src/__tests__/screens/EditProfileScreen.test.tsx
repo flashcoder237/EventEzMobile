@@ -62,10 +62,10 @@ describe('EditProfileScreen', () => {
     jest.clearAllMocks();
     mockUsersAPI.updateProfile.mockResolvedValue({
       data: mockUser,
-    });
-    mockUsersAPI.uploadProfilePicture.mockResolvedValue({
+    } as any);
+    (mockUsersAPI as any).uploadProfilePicture = jest.fn().mockResolvedValue({
       data: { ...mockUser, profile_picture: 'https://example.com/new-avatar.jpg' },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -81,7 +81,7 @@ describe('EditProfileScreen', () => {
       const { UNSAFE_queryAllByType } = render(<EditProfileScreen />);
 
       await waitFor(() => {
-        expect(UNSAFE_queryAllByType('Image').length).toBeGreaterThan(0);
+        expect(UNSAFE_queryAllByType('Image' as any).length).toBeGreaterThan(0);
       });
     });
 
@@ -160,7 +160,7 @@ describe('EditProfileScreen', () => {
       fireEvent.press(getByText(/Changer.*photo/i));
 
       await waitFor(() => {
-        expect(mockUsersAPI.uploadProfilePicture).toHaveBeenCalled();
+        expect((mockUsersAPI as any).uploadProfilePicture).toHaveBeenCalled();
       });
     });
 
@@ -177,7 +177,7 @@ describe('EditProfileScreen', () => {
       fireEvent.press(getByText(/Changer.*photo/i));
 
       await waitFor(() => {
-        expect(mockUsersAPI.uploadProfilePicture).not.toHaveBeenCalled();
+        expect((mockUsersAPI as any).uploadProfilePicture).not.toHaveBeenCalled();
       });
     });
   });
@@ -398,7 +398,7 @@ describe('EditProfileScreen', () => {
     });
 
     it('should handle photo upload error', async () => {
-      mockUsersAPI.uploadProfilePicture.mockRejectedValue({
+      (mockUsersAPI as any).uploadProfilePicture.mockRejectedValue({
         response: { data: { error: 'Upload failed' } },
       });
 

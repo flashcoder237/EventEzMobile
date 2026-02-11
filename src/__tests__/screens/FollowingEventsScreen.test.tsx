@@ -50,7 +50,7 @@ describe('FollowingEventsScreen', () => {
     jest.clearAllMocks();
     mockEventsAPI.getFollowingEvents.mockResolvedValue({
       data: { results: followingEvents, count: followingEvents.length },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -151,7 +151,7 @@ describe('FollowingEventsScreen', () => {
     });
 
     it('should unfollow event and remove from list', async () => {
-      mockEventsAPI.unfollowEvent.mockResolvedValue({ data: { success: true } });
+      mockEventsAPI.unfollowEvent.mockResolvedValue({ data: { success: true } } as any);
 
       const { getByText, queryByText } = render(<FollowingEventsScreen />);
 
@@ -178,7 +178,7 @@ describe('FollowingEventsScreen', () => {
     it('should show empty state when no following events', async () => {
       mockEventsAPI.getFollowingEvents.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<FollowingEventsScreen />);
 
@@ -190,7 +190,7 @@ describe('FollowingEventsScreen', () => {
     it('should show explore button in empty state', async () => {
       mockEventsAPI.getFollowingEvents.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<FollowingEventsScreen />);
 
@@ -202,7 +202,7 @@ describe('FollowingEventsScreen', () => {
     it('should navigate to explore on button press', async () => {
       mockEventsAPI.getFollowingEvents.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<FollowingEventsScreen />);
 
@@ -294,7 +294,7 @@ describe('FollowingEventsScreen', () => {
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           data: { results: followingEvents, count: followingEvents.length },
-        });
+        } as any);
 
       const { getByText } = render(<FollowingEventsScreen />);
 
@@ -356,7 +356,7 @@ describe('FollowingEventsScreen', () => {
     it('should load more events on scroll', async () => {
       mockEventsAPI.getFollowingEvents.mockResolvedValueOnce({
         data: { results: followingEvents, count: 20, next: 'page=2' },
-      });
+      } as any);
 
       const { UNSAFE_queryByType } = render(<FollowingEventsScreen />);
 

@@ -104,10 +104,10 @@ describe('EventAnalyticsScreen', () => {
     jest.clearAllMocks();
     mockEventsAPI.getEvent.mockResolvedValue({
       data: mockEvent,
-    });
+    } as any);
     mockAnalyticsAPI.getEventAnalytics.mockResolvedValue({
       data: mockAnalyticsData,
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -298,7 +298,7 @@ describe('EventAnalyticsScreen', () => {
 
   describe('Export', () => {
     it('should export analytics as CSV', async () => {
-      mockAnalyticsAPI.exportAnalytics.mockResolvedValue({
+      (mockAnalyticsAPI as any).exportAnalytics.mockResolvedValue({
         data: { url: 'https://example.com/export.csv' },
       });
 
@@ -317,7 +317,7 @@ describe('EventAnalyticsScreen', () => {
       fireEvent.press(getByText('CSV'));
 
       await waitFor(() => {
-        expect(mockAnalyticsAPI.exportAnalytics).toHaveBeenCalledWith(
+        expect((mockAnalyticsAPI as any).exportAnalytics).toHaveBeenCalledWith(
           'event-1',
           expect.objectContaining({ format: 'csv' })
         );
@@ -325,7 +325,7 @@ describe('EventAnalyticsScreen', () => {
     });
 
     it('should export analytics as PDF', async () => {
-      mockAnalyticsAPI.exportAnalytics.mockResolvedValue({
+      (mockAnalyticsAPI as any).exportAnalytics.mockResolvedValue({
         data: { url: 'https://example.com/export.pdf' },
       });
 
@@ -344,7 +344,7 @@ describe('EventAnalyticsScreen', () => {
       fireEvent.press(getByText('PDF'));
 
       await waitFor(() => {
-        expect(mockAnalyticsAPI.exportAnalytics).toHaveBeenCalledWith(
+        expect((mockAnalyticsAPI as any).exportAnalytics).toHaveBeenCalledWith(
           'event-1',
           expect.objectContaining({ format: 'pdf' })
         );
@@ -389,7 +389,7 @@ describe('EventAnalyticsScreen', () => {
     it('should allow retry on error', async () => {
       mockAnalyticsAPI.getEventAnalytics
         .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({ data: mockAnalyticsData });
+        .mockResolvedValueOnce({ data: mockAnalyticsData } as any);
 
       const { getByText } = render(<EventAnalyticsScreen />);
 
@@ -422,7 +422,7 @@ describe('EventAnalyticsScreen', () => {
           traffic_sources: [],
           demographics: { gender: [], age_groups: [] },
         },
-      });
+      } as any);
 
       const { getByText } = render(<EventAnalyticsScreen />);
 

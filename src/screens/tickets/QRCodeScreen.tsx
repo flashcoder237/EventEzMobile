@@ -273,11 +273,11 @@ export default function QRCodeScreen() {
                 {ticket.unit_price ? `${ticket.unit_price.toLocaleString()} FCFA` : 'Gratuit'}
               </Text>
             </View>
-            {ticket.discount_amount > 0 && (
+            {(ticket.discount_amount ?? 0) > 0 && (
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Réduction</Text>
                 <Text style={[styles.detailValue, { color: Colors.success }]}>
-                  -{ticket.discount_amount.toLocaleString()} FCFA
+                  -{ticket.discount_amount!.toLocaleString()} FCFA
                 </Text>
               </View>
             )}

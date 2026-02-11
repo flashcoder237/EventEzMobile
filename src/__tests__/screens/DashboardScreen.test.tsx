@@ -58,16 +58,16 @@ describe('DashboardScreen', () => {
     jest.clearAllMocks();
     mockEventsAPI.getFollowingEvents.mockResolvedValue({
       data: { results: mockEvents },
-    });
+    } as any);
     mockEventsAPI.getMyEvents.mockResolvedValue({
       data: { results: mockEvents },
-    });
+    } as any);
     mockTicketPurchasesAPI.getMyTickets.mockResolvedValue({
       data: [mockTicketPurchase],
-    });
+    } as any);
     mockNotificationsAPI.getNotifications.mockResolvedValue({
       data: { results: [] },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -157,7 +157,7 @@ describe('DashboardScreen', () => {
     });
 
     it('should show empty state when no events', async () => {
-      mockTicketPurchasesAPI.getMyTickets.mockResolvedValue({ data: [] });
+      mockTicketPurchasesAPI.getMyTickets.mockResolvedValue({ data: [] } as any);
 
       const { getByText } = render(<DashboardScreen />);
 
@@ -281,7 +281,7 @@ describe('DashboardScreen', () => {
     it('should show notification count', async () => {
       mockNotificationsAPI.getNotifications.mockResolvedValue({
         data: { results: [{ id: '1', is_read: false }], count: 1 },
-      });
+      } as any);
 
       const { getByText } = render(<DashboardScreen />);
 

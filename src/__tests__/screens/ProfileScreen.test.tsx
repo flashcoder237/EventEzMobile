@@ -63,7 +63,7 @@ describe('ProfileScreen', () => {
     it('should render profile picture', () => {
       const { UNSAFE_queryAllByType } = render(<ProfileScreen />);
       // Image should be present
-      expect(UNSAFE_queryAllByType('Image')).toBeDefined();
+      expect(UNSAFE_queryAllByType('Image' as any)).toBeDefined();
     });
 
     it('should render menu options', () => {

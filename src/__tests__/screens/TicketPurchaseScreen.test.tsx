@@ -56,11 +56,11 @@ const mockRegistrationsAPI = registrationsAPI as jest.Mocked<typeof registration
 describe('TicketPurchaseScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockEventsAPI.getEvent.mockResolvedValue({ data: mockEvent });
-    mockDiscountsAPI.validateDiscount.mockResolvedValue({ data: mockDiscount });
+    mockEventsAPI.getEvent.mockResolvedValue({ data: mockEvent } as any);
+    mockDiscountsAPI.validateDiscount.mockResolvedValue({ data: mockDiscount } as any);
     mockRegistrationsAPI.createRegistration.mockResolvedValue({
       data: { id: 'reg-1', reference_code: 'REG123' },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -327,7 +327,7 @@ describe('TicketPurchaseScreen', () => {
             { id: 1, field_name: 'company', field_type: 'text', label: 'Entreprise', required: true },
           ],
         },
-      });
+      } as any);
 
       const { getByPlaceholderText } = render(<TicketPurchaseScreen />);
 
@@ -346,7 +346,7 @@ describe('TicketPurchaseScreen', () => {
             { id: 1, field_name: 'company', field_type: 'text', label: 'Entreprise', required: true },
           ],
         },
-      });
+      } as any);
 
       const { getByText } = render(<TicketPurchaseScreen />);
 
@@ -393,7 +393,7 @@ describe('TicketPurchaseScreen', () => {
           is_free: true,
           ticket_types: [{ ...mockTicketTypes[0], price: 0 }],
         },
-      });
+      } as any);
 
       const { getByText } = render(<TicketPurchaseScreen />);
 
@@ -452,7 +452,7 @@ describe('TicketPurchaseScreen', () => {
             { ...mockTicketTypes[0], quantity_sold: 100, quantity_available: 0 },
           ],
         },
-      });
+      } as any);
 
       const { getByText } = render(<TicketPurchaseScreen />);
 

@@ -72,7 +72,7 @@ describe('MyEventsScreen', () => {
     jest.clearAllMocks();
     mockEventsAPI.getMyEvents.mockResolvedValue({
       data: { results: [...organizerEvents, draftEvent, pendingEvent], count: organizerEvents.length + 2 },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -265,7 +265,7 @@ describe('MyEventsScreen', () => {
     it('should duplicate event', async () => {
       mockEventsAPI.duplicateEvent.mockResolvedValue({
         data: { ...mockEvents[0], id: 'event-copy-1', title: 'Concert de Jazz (copie)' },
-      });
+      } as any);
 
       const { getByText } = render(<MyEventsScreen />);
 
@@ -289,7 +289,7 @@ describe('MyEventsScreen', () => {
     it('should cancel event with confirmation', async () => {
       mockEventsAPI.cancelEvent.mockResolvedValue({
         data: { ...mockEvents[0], status: 'cancelled' },
-      });
+      } as any);
 
       const { getByText } = render(<MyEventsScreen />);
 
@@ -311,7 +311,7 @@ describe('MyEventsScreen', () => {
     it('should delete draft event', async () => {
       mockEventsAPI.deleteEvent.mockResolvedValue({
         data: { success: true },
-      });
+      } as any);
 
       const { getByText } = render(<MyEventsScreen />);
 
@@ -353,7 +353,7 @@ describe('MyEventsScreen', () => {
     it('should show empty state when no events', async () => {
       mockEventsAPI.getMyEvents.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<MyEventsScreen />);
 
@@ -365,7 +365,7 @@ describe('MyEventsScreen', () => {
     it('should show create button in empty state', async () => {
       mockEventsAPI.getMyEvents.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<MyEventsScreen />);
 
@@ -467,7 +467,7 @@ describe('MyEventsScreen', () => {
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           data: { results: organizerEvents, count: organizerEvents.length },
-        });
+        } as any);
 
       const { getByText } = render(<MyEventsScreen />);
 

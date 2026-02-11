@@ -59,10 +59,10 @@ const mockWaitlistAPI = waitlistAPI as jest.Mocked<typeof waitlistAPI>;
 describe('EventDetailsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockEventsAPI.getEvent.mockResolvedValue({ data: mockEvent });
-    mockEventsAPI.isFollowing.mockResolvedValue({ data: { is_following: false } });
-    mockFeedbacksAPI.getEventFeedbacks.mockResolvedValue({ data: { results: mockFeedbacks } });
-    mockWaitlistAPI.getMyWaitlist.mockResolvedValue({ data: { results: [] } });
+    mockEventsAPI.getEvent.mockResolvedValue({ data: mockEvent } as any);
+    mockEventsAPI.isFollowing.mockResolvedValue({ data: { is_following: false } } as any);
+    mockFeedbacksAPI.getEventFeedbacks.mockResolvedValue({ data: { results: mockFeedbacks } } as any);
+    mockWaitlistAPI.getMyWaitlist.mockResolvedValue({ data: { results: [] } } as any);
   });
 
   describe('Loading State', () => {
@@ -247,7 +247,7 @@ describe('EventDetailsScreen', () => {
           quantity_available: 0,
         })),
       };
-      mockEventsAPI.getEvent.mockResolvedValue({ data: soldOutEvent });
+      mockEventsAPI.getEvent.mockResolvedValue({ data: soldOutEvent } as any);
 
       const { getByText } = render(<EventDetailsScreen />);
 
@@ -271,10 +271,10 @@ describe('EventDetailsScreen', () => {
           quantity_available: 0,
         })),
       };
-      mockEventsAPI.getEvent.mockResolvedValue({ data: soldOutEvent });
+      mockEventsAPI.getEvent.mockResolvedValue({ data: soldOutEvent } as any);
       mockWaitlistAPI.joinWaitlist.mockResolvedValue({
         data: { id: 'waitlist-1', position: 1 },
-      });
+      } as any);
 
       const { getByText } = render(<EventDetailsScreen />);
 
@@ -364,7 +364,7 @@ describe('EventDetailsScreen', () => {
     it('should display "Gratuit" for free events', async () => {
       mockEventsAPI.getEvent.mockResolvedValue({
         data: { ...mockEvent, is_free: true, ticket_types: [] },
-      });
+      } as any);
 
       const { getByText } = render(<EventDetailsScreen />);
 
@@ -378,7 +378,7 @@ describe('EventDetailsScreen', () => {
     it('should show registration form for inscription type', async () => {
       mockEventsAPI.getEvent.mockResolvedValue({
         data: { ...mockEvent, event_type: 'inscription', ticket_types: [] },
-      });
+      } as any);
 
       const { getByText } = render(<EventDetailsScreen />);
 
@@ -392,7 +392,7 @@ describe('EventDetailsScreen', () => {
     it('should show online location type', async () => {
       mockEventsAPI.getEvent.mockResolvedValue({
         data: { ...mockEvent, location_type: 'online', online_url: 'https://meet.example.com' },
-      });
+      } as any);
 
       const { getByText } = render(<EventDetailsScreen />);
 

@@ -283,13 +283,15 @@ class PushNotificationService {
     data?: PushNotificationData,
     triggerSeconds?: number
   ): Promise<string> {
-    const trigger = triggerSeconds ? { seconds: triggerSeconds } : null;
+    const trigger: Notifications.NotificationTriggerInput = triggerSeconds
+      ? { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: triggerSeconds }
+      : null;
 
     const notificationId = await Notifications.scheduleNotificationAsync({
       content: {
         title,
         body,
-        data: data || {},
+        data: (data || {}) as Record<string, unknown>,
         sound: 'default',
       },
       trigger,

@@ -1317,7 +1317,7 @@ export default function EventCreateScreen() {
           {/* Optional Form Fields Section for Billetterie */}
           <View style={[styles.sectionDivider, { marginTop: Spacing.xl }]}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIconContainer, { backgroundColor: Colors.secondaryBg || '#FEF3C7' }]}>
+              <View style={[styles.sectionIconContainer, { backgroundColor: Colors.warningLight }]}>
                 <Ionicons name="document-text-outline" size={20} color={Colors.secondary || '#D97706'} />
               </View>
               <View style={{ flex: 1 }}>

@@ -267,7 +267,7 @@ export const mockNotification: Notification = {
   user: 'user-1',
   title: 'Inscription confirmée',
   message: 'Votre inscription au Concert de Jazz a été confirmée.',
-  notification_type: 'success',
+  notification_type: 'registration_confirmation',
   is_read: false,
   created_at: '2024-01-10T00:00:00Z',
   link: '/events/event-1',
@@ -280,7 +280,7 @@ export const mockNotifications: Notification[] = [
     user: 'user-1',
     title: 'Rappel événement',
     message: 'Le Concert de Jazz commence dans 24h.',
-    notification_type: 'info',
+    notification_type: 'general',
     is_read: true,
     created_at: '2024-01-09T00:00:00Z',
   },
@@ -296,6 +296,8 @@ export const mockConversation: Conversation = {
   conversation_type: 'direct',
   title: 'Discussion avec l\'organisateur',
   unread_count: 2,
+  is_archived: false,
+  is_starred: false,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-10T00:00:00Z',
 };
@@ -303,14 +305,17 @@ export const mockConversation: Conversation = {
 export const mockMessage: Message = {
   id: 'msg-1',
   conversation: 'conv-1',
-  sender: mockOrganizer,
+  sender: 2 as any,
+  sender_name: 'Marie Martin',
   content: 'Bonjour ! Comment puis-je vous aider ?',
   message_type: 'text',
-  is_read: true,
+  read_by: [1, 2],
+  is_starred: false,
+  is_edited: false,
+  is_deleted: false,
   created_at: '2024-01-10T10:00:00Z',
-  updated_at: '2024-01-10T10:00:00Z',
   reactions: [
-    { id: 'reaction-1', user: 'user-1', emoji: '👍', created_at: '2024-01-10T10:01:00Z' },
+    { id: 'reaction-1', user: 1, user_name: 'Jean Dupont', emoji: '👍', created_at: '2024-01-10T10:01:00Z' },
   ],
 };
 
@@ -319,12 +324,15 @@ export const mockMessages: Message[] = [
   {
     id: 'msg-2',
     conversation: 'conv-1',
-    sender: mockUser,
+    sender: 1 as any,
+    sender_name: 'Jean Dupont',
     content: 'Bonjour ! J\'ai une question sur l\'événement.',
     message_type: 'text',
-    is_read: true,
+    read_by: [1, 2],
+    is_starred: false,
+    is_edited: false,
+    is_deleted: false,
     created_at: '2024-01-10T10:05:00Z',
-    updated_at: '2024-01-10T10:05:00Z',
   },
 ];
 

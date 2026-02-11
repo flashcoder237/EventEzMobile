@@ -241,7 +241,7 @@ export default function EventDetailsScreen() {
     try {
       // Create or get existing conversation with organizer
       const response = await messagesAPI.createConversation({
-        participant_ids: [event.organizer.id],
+        participant_ids: [Number(event.organizer.id)],
       });
 
       navigation.navigate('Conversation', { conversationId: response.data.id });
@@ -1087,7 +1087,7 @@ export default function EventDetailsScreen() {
         ) : (
           <TouchableOpacity
             style={styles.ctaButton}
-            onPress={() => navigation.navigate('TicketPurchase' as never, { eventId } as never)}
+            onPress={() => navigation.navigate('TicketPurchase', { eventId })}
             activeOpacity={0.8}
           >
             <Text style={styles.ctaButtonText}>

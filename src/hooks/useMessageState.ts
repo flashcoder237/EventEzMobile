@@ -326,13 +326,14 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
       return { ...state, inputFocused: action.payload };
 
     case 'ADD_REACTION': {
+      const reactionUserId = Number(action.payload.userId);
       return {
         ...state,
         messages: state.messages.map(msg => {
           if (msg.id !== action.payload.messageId) return msg;
           const reactions = msg.reactions || [];
           const existingIndex = reactions.findIndex(
-            r => r.emoji === action.payload.emoji && r.user === action.payload.userId
+            r => r.emoji === action.payload.emoji && r.user === reactionUserId
           );
           if (existingIndex >= 0) return msg;
           return {
@@ -342,7 +343,8 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
               {
                 id: `temp-${Date.now()}`,
                 emoji: action.payload.emoji,
-                user: action.payload.userId,
+                user: reactionUserId,
+                user_name: '',
                 created_at: new Date().toISOString(),
               },
             ],
@@ -352,6 +354,7 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
     }
 
     case 'REMOVE_REACTION': {
+      const removeUserId = Number(action.payload.userId);
       return {
         ...state,
         messages: state.messages.map(msg => {
@@ -359,7 +362,7 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
           return {
             ...msg,
             reactions: (msg.reactions || []).filter(
-              r => !(r.emoji === action.payload.emoji && r.user === action.payload.userId)
+              r => !(r.emoji === action.payload.emoji && r.user === removeUserId)
             ),
           };
         }),
@@ -367,13 +370,14 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
     }
 
     case 'MARK_MESSAGE_READ': {
+      const readUserId = Number(action.payload.userId);
       return {
         ...state,
         messages: state.messages.map(msg => {
           if (msg.id !== action.payload.messageId) return msg;
           const readBy = msg.read_by || [];
-          if (readBy.includes(action.payload.userId)) return msg;
-          return { ...msg, read_by: [...readBy, action.payload.userId] };
+          if (readBy.includes(readUserId)) return msg;
+          return { ...msg, read_by: [...readBy, readUserId] };
         }),
       };
     }

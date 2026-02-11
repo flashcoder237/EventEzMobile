@@ -79,8 +79,8 @@ export default function ProfileScreen() {
     try {
       // Fetch all stats in parallel
       const [ticketsRes, registrationsRes, followingRes, feedbacksRes] = await Promise.all([
-        ticketPurchasesAPI.getMyTickets({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
-        registrationsAPI.getMyRegistrations({ page_size: 1 }).catch(() => ({ data: { count: 0 } })),
+        ticketPurchasesAPI.getMyTickets().catch(() => ({ data: { count: 0 } })),
+        registrationsAPI.getMyRegistrations().catch(() => ({ data: { count: 0 } })),
         eventsAPI.getFollowingEvents().catch(() => ({ data: [] })),
         feedbacksAPI.getFeedbacks({ user: 'me', page_size: 1 }).catch(() => ({ data: { count: 0 } })),
       ]);
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.xl,
     padding: Spacing.md,
-    backgroundColor: Colors.secondaryLight,
+    backgroundColor: Colors.secondary + '15',
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
     borderColor: Colors.secondary + '30',

@@ -33,11 +33,14 @@ import * as ImagePicker from 'expo-image-picker';
 import {
   useAudioPlayer,
   useAudioRecorder,
-  AudioPlayer,
+  type AudioPlayer,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   RecordingPresets,
 } from 'expo-audio';
+
+// AudioPlayer is exported as a type-only from expo-audio, need runtime reference
+const AudioPlayerClass = require('expo-audio').AudioPlayer;
 
 import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
@@ -518,7 +521,7 @@ export default function ConversationScreen() {
         return;
       }
 
-      const player = new AudioPlayer(uri);
+      const player = new AudioPlayerClass(uri);
       playerRef.current = player;
       actions.setPlayingVoice(messageId);
 
@@ -710,14 +713,14 @@ export default function ConversationScreen() {
       // Nouvelle conversation : créer avec le premier message atomiquement
       if (state.isNewConversation && userId && !state.conversationId) {
         const convResponse = await messagesAPI.createConversation({
-          participant_ids: [user?.id, userId],
+          participant_ids: [Number(user?.id), Number(userId)],
           message: messageContent,
-        });
+        } as any);
         conversationIdToUse = convResponse.data.id;
         actions.setConversationId(conversationIdToUse);
         actions.setIsNewConversation(false);
         // Charger les messages depuis le backend (inclut le premier message)
-        const msgsResponse = await messagesAPI.getMessages({ conversation: conversationIdToUse });
+        const msgsResponse = await messagesAPI.getMessages({ conversation: conversationIdToUse ?? undefined });
         const msgs = msgsResponse.data?.results || [];
         msgs.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         msgs.forEach((m: any) => actions.addMessage(m));

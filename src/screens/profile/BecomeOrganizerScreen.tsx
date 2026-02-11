@@ -8,6 +8,7 @@ import {
   StatusBar,
   Animated,
   Dimensions,
+  ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -591,7 +592,7 @@ export default function BecomeOrganizerScreen() {
               : <Ionicons name="arrow-forward" size={20} color={Colors.white} />
           }
           size="lg"
-          style={[styles.nextButton, currentStep === 1 && { flex: 1 }]}
+          style={StyleSheet.flatten([styles.nextButton, currentStep === 1 && { flex: 1 }]) as ViewStyle}
         />
       </View>
     </SafeAreaView>

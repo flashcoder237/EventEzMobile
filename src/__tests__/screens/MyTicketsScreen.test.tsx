@@ -67,10 +67,10 @@ describe('MyTicketsScreen', () => {
     jest.clearAllMocks();
     mockTicketPurchasesAPI.getMyTickets.mockResolvedValue({
       data: mockTickets,
-    });
+    } as any);
     mockRegistrationsAPI.getMyRegistrations.mockResolvedValue({
       data: { results: mockRegistrations },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -141,8 +141,8 @@ describe('MyTicketsScreen', () => {
     });
 
     it('should show empty state when no tickets', async () => {
-      mockTicketPurchasesAPI.getMyTickets.mockResolvedValue({ data: [] });
-      mockRegistrationsAPI.getMyRegistrations.mockResolvedValue({ data: { results: [] } });
+      mockTicketPurchasesAPI.getMyTickets.mockResolvedValue({ data: [] } as any);
+      mockRegistrationsAPI.getMyRegistrations.mockResolvedValue({ data: { results: [] } } as any);
 
       const { getByText } = render(<MyTicketsScreen />);
 
@@ -224,7 +224,7 @@ describe('MyTicketsScreen', () => {
     it('should show checked in badge', async () => {
       mockTicketPurchasesAPI.getMyTickets.mockResolvedValue({
         data: [{ ...mockTicketPurchase, is_checked_in: true, event: mockEvent }],
-      });
+      } as any);
 
       const { getByText } = render(<MyTicketsScreen />);
 
@@ -306,7 +306,7 @@ describe('MyTicketsScreen', () => {
           { ...mockTicketPurchase, event: futureEvent },
           { ...mockTicketPurchase, id: 'p2', event: pastEvent },
         ],
-      });
+      } as any);
 
       const { getByText } = render(<MyTicketsScreen />);
 

@@ -230,7 +230,7 @@ export default function RegistrationDetailsScreen() {
   const isActive = registration.status !== 'cancelled' && registration.status !== 'rejected';
   const isBilletterie = registration.tickets && registration.tickets.length > 0;
   const totalTicketQuantity = isBilletterie
-    ? registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)
+    ? registration.tickets!.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)
     : 0;
 
   return (
@@ -326,7 +326,7 @@ export default function RegistrationDetailsScreen() {
             <TouchableOpacity
               style={styles.viewEventButton}
               onPress={() => {
-                const eventId = registration.event_id || (typeof registration.event === 'string' ? registration.event : event?.id);
+                const eventId = (typeof registration.event === 'string' ? registration.event : event?.id);
                 if (eventId) {
                   navigation.navigate('EventDetails', { eventId });
                 }
@@ -582,7 +582,7 @@ export default function RegistrationDetailsScreen() {
               <TouchableOpacity
                 style={styles.buyMoreButton}
                 onPress={() => {
-                  const eventId = registration.event_id || (typeof registration.event === 'string' ? registration.event : event?.id);
+                  const eventId = (typeof registration.event === 'string' ? registration.event : event?.id);
                   if (eventId) {
                     navigation.navigate('TicketPurchase', { eventId, additionalTickets: true });
                   }

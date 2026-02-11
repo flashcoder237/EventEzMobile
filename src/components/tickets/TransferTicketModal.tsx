@@ -116,8 +116,6 @@ export default function TransferTicketModal({
           setLoading(false);
         }
       },
-      'Confirmer',
-      'Annuler'
     );
   };
 

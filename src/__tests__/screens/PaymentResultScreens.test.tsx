@@ -57,7 +57,7 @@ describe('PaymentSuccessScreen', () => {
 
       await waitFor(() => {
         // Success checkmark icon
-        expect(UNSAFE_queryAllByType('View').length).toBeGreaterThan(0);
+        expect(UNSAFE_queryAllByType('View' as any).length).toBeGreaterThan(0);
       });
     });
 
@@ -188,7 +188,7 @@ describe('PaymentSuccessScreen', () => {
 
       await waitFor(() => {
         // Confetti or animation components
-        expect(UNSAFE_queryAllByType('View').length).toBeGreaterThan(0);
+        expect(UNSAFE_queryAllByType('View' as any).length).toBeGreaterThan(0);
       });
     });
   });
@@ -204,7 +204,7 @@ describe('PaymentFailedScreen', () => {
       const { UNSAFE_queryAllByType } = render(<PaymentFailedScreen />);
 
       await waitFor(() => {
-        expect(UNSAFE_queryAllByType('View').length).toBeGreaterThan(0);
+        expect(UNSAFE_queryAllByType('View' as any).length).toBeGreaterThan(0);
       });
     });
 

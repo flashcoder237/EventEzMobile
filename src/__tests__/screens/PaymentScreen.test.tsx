@@ -70,10 +70,10 @@ describe('PaymentScreen', () => {
         total_amount: 10000,
         status: 'pending',
       },
-    });
+    } as any);
     mockPaymentsAPI.createPayment.mockResolvedValue({
       data: { ...mockPayment, payment_url: 'https://pay.notchpay.co/xxx' },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -185,7 +185,7 @@ describe('PaymentScreen', () => {
     it('should apply valid promo code', async () => {
       mockDiscountsAPI.validateDiscount.mockResolvedValue({
         data: { ...mockDiscount, discount_amount: 2000 },
-      });
+      } as any);
 
       const { getByPlaceholderText, getByText } = render(<PaymentScreen />);
 
@@ -208,7 +208,7 @@ describe('PaymentScreen', () => {
     it('should show discount applied', async () => {
       mockDiscountsAPI.validateDiscount.mockResolvedValue({
         data: { ...mockDiscount, discount_amount: 2000 },
-      });
+      } as any);
 
       const { getByPlaceholderText, getByText } = render(<PaymentScreen />);
 
@@ -248,7 +248,7 @@ describe('PaymentScreen', () => {
     it('should update total after discount', async () => {
       mockDiscountsAPI.validateDiscount.mockResolvedValue({
         data: { ...mockDiscount, discount_amount: 2000 },
-      });
+      } as any);
 
       const { getByPlaceholderText, getByText } = render(<PaymentScreen />);
 
@@ -312,7 +312,7 @@ describe('PaymentScreen', () => {
     it('should navigate to success on payment success', async () => {
       mockPaymentsAPI.createPayment.mockResolvedValue({
         data: { ...mockPayment, status: 'completed' },
-      });
+      } as any);
 
       const { getByText } = render(<PaymentScreen />);
 

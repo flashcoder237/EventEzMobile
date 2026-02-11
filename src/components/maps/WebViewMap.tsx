@@ -2,15 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Colors } from '../../constants/theme';
-
-interface MapMarker {
-  id: string;
-  lat: number;
-  lng: number;
-  title: string;
-  location_city?: string;
-  start_date?: string;
-}
+import { MapMarker } from '../../types';
 
 interface WebViewMapProps {
   markers: MapMarker[];

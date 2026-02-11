@@ -51,7 +51,7 @@ jest.mock('expo-camera', () => {
   const React = require('react');
   const { View } = require('react-native');
 
-  const CameraView = React.forwardRef((props, ref) => {
+  const CameraView = React.forwardRef((props: any, ref: any) => {
     // Store the callback for testing
     mockOnBarCodeScanned.mockImplementation(props.onBarcodeScanned);
     return React.createElement(View, { ...props, ref, testID: 'camera-view' });
@@ -83,10 +83,10 @@ describe('QRScannerScreen', () => {
     jest.clearAllMocks();
     mockRegistrationsAPI.checkIn.mockResolvedValue({
       data: { ...mockRegistration, status: 'checked_in' },
-    });
-    mockTicketPurchasesAPI.checkInTicket.mockResolvedValue({
+    } as any);
+    (mockTicketPurchasesAPI as any).checkInTicket = jest.fn().mockResolvedValue({
       data: { ...mockTicketPurchase, is_checked_in: true },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -366,10 +366,10 @@ describe('QRCodeScreen', () => {
     jest.clearAllMocks();
     mockTicketPurchasesAPI.getTicketPurchase.mockResolvedValue({
       data: mockTicketPurchase,
-    });
+    } as any);
     mockRegistrationsAPI.getRegistration.mockResolvedValue({
       data: mockRegistration,
-    });
+    } as any);
   });
 
   // Reset AuthContext mock for user tests
@@ -486,7 +486,7 @@ describe('QRCodeScreen', () => {
     it('should show checked in status', async () => {
       mockTicketPurchasesAPI.getTicketPurchase.mockResolvedValue({
         data: { ...mockTicketPurchase, is_checked_in: true },
-      });
+      } as any);
 
       const { getByText } = render(<QRCodeScreen />);
 
@@ -498,7 +498,7 @@ describe('QRCodeScreen', () => {
     it('should show cancelled status', async () => {
       mockTicketPurchasesAPI.getTicketPurchase.mockResolvedValue({
         data: { ...mockTicketPurchase, status: 'cancelled' },
-      });
+      } as any);
 
       const { getByText } = render(<QRCodeScreen />);
 
@@ -548,7 +548,7 @@ describe('QRCodeScreen', () => {
     it('should show ticket count when multiple', async () => {
       mockTicketPurchasesAPI.getTicketPurchase.mockResolvedValue({
         data: { ...mockTicketPurchase, quantity: 3 },
-      });
+      } as any);
 
       const { getByText } = render(<QRCodeScreen />);
 
@@ -560,7 +560,7 @@ describe('QRCodeScreen', () => {
     it('should paginate through multiple tickets', async () => {
       mockTicketPurchasesAPI.getTicketPurchase.mockResolvedValue({
         data: { ...mockTicketPurchase, quantity: 3 },
-      });
+      } as any);
 
       const { getByText } = render(<QRCodeScreen />);
 

@@ -51,12 +51,12 @@ const mockMessagesAPI = messagesAPI as jest.Mocked<typeof messagesAPI>;
 describe('ConversationScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockMessagesAPI.getConversation.mockResolvedValue({ data: mockConversation });
+    mockMessagesAPI.getConversation.mockResolvedValue({ data: mockConversation } as any);
     mockMessagesAPI.getMessages.mockResolvedValue({
       data: { results: mockMessages },
-    });
-    mockMessagesAPI.sendMessage.mockResolvedValue({ data: mockMessages[0] });
-    mockMessagesAPI.markConversationAsRead.mockResolvedValue({ data: {} });
+    } as any);
+    mockMessagesAPI.sendMessage.mockResolvedValue({ data: mockMessages[0] } as any);
+    mockMessagesAPI.markConversationAsRead.mockResolvedValue({ data: {} } as any);
   });
 
   describe('Rendering', () => {
@@ -81,7 +81,7 @@ describe('ConversationScreen', () => {
 
       await waitFor(() => {
         // Send button should be present
-        expect(UNSAFE_queryAllByType('TouchableOpacity').length).toBeGreaterThan(0);
+        expect(UNSAFE_queryAllByType('TouchableOpacity' as any).length).toBeGreaterThan(0);
       });
     });
   });
@@ -126,7 +126,7 @@ describe('ConversationScreen', () => {
       fireEvent.changeText(input, 'Test message');
 
       // Find and press send button
-      const touchables = UNSAFE_queryAllByType('TouchableOpacity');
+      const touchables = UNSAFE_queryAllByType('TouchableOpacity' as any);
       const sendButton = touchables[touchables.length - 1];
       fireEvent.press(sendButton);
 
@@ -148,7 +148,7 @@ describe('ConversationScreen', () => {
       const input = getByPlaceholderText(/Écrire un message/i);
       fireEvent.changeText(input, 'Test message');
 
-      const touchables = UNSAFE_queryAllByType('TouchableOpacity');
+      const touchables = UNSAFE_queryAllByType('TouchableOpacity' as any);
       const sendButton = touchables[touchables.length - 1];
       fireEvent.press(sendButton);
 
@@ -167,7 +167,7 @@ describe('ConversationScreen', () => {
       const input = getByPlaceholderText(/Écrire un message/i);
       fireEvent.changeText(input, '   ');
 
-      const touchables = UNSAFE_queryAllByType('TouchableOpacity');
+      const touchables = UNSAFE_queryAllByType('TouchableOpacity' as any);
       const sendButton = touchables[touchables.length - 1];
       fireEvent.press(sendButton);
 
@@ -193,7 +193,7 @@ describe('ConversationScreen', () => {
     });
 
     it('should add reaction on emoji press', async () => {
-      mockMessagesAPI.addReaction.mockResolvedValue({ data: {} });
+      mockMessagesAPI.addReaction.mockResolvedValue({ data: {} } as any);
       const { getByText } = render(<ConversationScreen />);
 
       await waitFor(() => {
@@ -262,7 +262,7 @@ describe('ConversationScreen', () => {
       const input = getByPlaceholderText(/Écrire un message/i);
       fireEvent.changeText(input, 'Test message');
 
-      const touchables = UNSAFE_queryAllByType('TouchableOpacity');
+      const touchables = UNSAFE_queryAllByType('TouchableOpacity' as any);
       const sendButton = touchables[touchables.length - 1];
       fireEvent.press(sendButton);
 
@@ -313,7 +313,7 @@ describe('ConversationScreen', () => {
       const input = getByPlaceholderText(/Écrire un message/i);
       fireEvent.changeText(input, 'Optimistic message');
 
-      const touchables = UNSAFE_queryAllByType('TouchableOpacity');
+      const touchables = UNSAFE_queryAllByType('TouchableOpacity' as any);
       const sendButton = touchables[touchables.length - 1];
       fireEvent.press(sendButton);
 
@@ -342,7 +342,7 @@ describe('ConversationScreen', () => {
 
       await waitFor(() => {
         // Attachment button should be visible
-        expect(UNSAFE_queryAllByType('TouchableOpacity').length).toBeGreaterThan(0);
+        expect(UNSAFE_queryAllByType('TouchableOpacity' as any).length).toBeGreaterThan(0);
       });
     });
   });

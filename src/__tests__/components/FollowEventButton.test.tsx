@@ -43,10 +43,10 @@ describe('FollowEventButton', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseAuth.mockReturnValue({ user: mockUser });
-    mockEventsAPI.isFollowing.mockResolvedValue({ data: { is_following: false } });
-    mockEventsAPI.getFollowersCount.mockResolvedValue({ data: { followers_count: 42 } });
-    mockEventsAPI.followEvent.mockResolvedValue({ data: { success: true } });
-    mockEventsAPI.unfollowEvent.mockResolvedValue({ data: { success: true } });
+    mockEventsAPI.isFollowing.mockResolvedValue({ data: { is_following: false } } as any);
+    mockEventsAPI.getFollowersCount.mockResolvedValue({ data: { followers_count: 42 } } as any);
+    mockEventsAPI.followEvent.mockResolvedValue({ data: { success: true } } as any);
+    mockEventsAPI.unfollowEvent.mockResolvedValue({ data: { success: true } } as any);
   });
 
   describe('Default Variant', () => {
@@ -61,7 +61,7 @@ describe('FollowEventButton', () => {
     it('should render following state when already following', async () => {
       mockEventsAPI.isFollowing.mockResolvedValueOnce({
         data: { is_following: true, follow: {} },
-      });
+      } as any);
 
       const { getByText } = render(<FollowEventButton {...defaultProps} />);
 
@@ -92,7 +92,7 @@ describe('FollowEventButton', () => {
       const onFollowChange = jest.fn();
       mockEventsAPI.isFollowing.mockResolvedValueOnce({
         data: { is_following: true, follow: {} },
-      });
+      } as any);
 
       const { getByText } = render(
         <FollowEventButton {...defaultProps} onFollowChange={onFollowChange} />
@@ -117,7 +117,7 @@ describe('FollowEventButton', () => {
         <FollowEventButton {...defaultProps} variant="icon-only" />
       );
       // Icon should be rendered
-      expect(UNSAFE_queryAllByType('Text')).toBeDefined();
+      expect(UNSAFE_queryAllByType('Text' as any)).toBeDefined();
     });
 
     it('should toggle on press', async () => {
@@ -148,7 +148,7 @@ describe('FollowEventButton', () => {
     it('should show "Suivi" when following', async () => {
       mockEventsAPI.isFollowing.mockResolvedValueOnce({
         data: { is_following: true, follow: {} },
-      });
+      } as any);
 
       const { getByText } = render(
         <FollowEventButton {...defaultProps} variant="compact" />
@@ -191,7 +191,7 @@ describe('FollowEventButton', () => {
     it('should decrement count on unfollow', async () => {
       mockEventsAPI.isFollowing.mockResolvedValueOnce({
         data: { is_following: true, follow: {} },
-      });
+      } as any);
 
       const { getByText } = render(
         <FollowEventButton {...defaultProps} showFollowerCount={true} />
@@ -267,7 +267,7 @@ describe('FollowEventButton', () => {
     it('should show preferences button when following', async () => {
       mockEventsAPI.isFollowing.mockResolvedValueOnce({
         data: { is_following: true, follow: {} },
-      });
+      } as any);
 
       const { getByText, UNSAFE_queryAllByType } = render(
         <FollowEventButton {...defaultProps} variant="default" />
@@ -278,7 +278,7 @@ describe('FollowEventButton', () => {
       });
 
       // Preferences button should be visible
-      expect(UNSAFE_queryAllByType('TouchableOpacity').length).toBeGreaterThan(1);
+      expect(UNSAFE_queryAllByType('TouchableOpacity' as any).length).toBeGreaterThan(1);
     });
 
     it('should load follow preferences on mount', async () => {
@@ -291,7 +291,7 @@ describe('FollowEventButton', () => {
             notify_push: false,
           },
         },
-      });
+      } as any);
 
       render(<FollowEventButton {...defaultProps} />);
 
@@ -318,7 +318,7 @@ describe('FollowEventButton', () => {
       mockEventsAPI.followEvent.mockImplementation(
         () =>
           new Promise((resolve) => {
-            resolveFollow = () => resolve({ data: { success: true } });
+            resolveFollow = () => resolve({ data: { success: true } } as any);
           })
       );
 

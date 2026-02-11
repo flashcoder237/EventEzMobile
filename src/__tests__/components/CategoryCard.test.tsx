@@ -10,11 +10,12 @@ import { renderWithMinimalProviders as render } from '../mocks/testUtils';
 import { mockCategory } from '../mocks/mockData';
 
 describe('CategoryCard', () => {
-  const defaultProps = {
-    id: 1,
+  const defaultProps: any = {
+    id: '1',
     name: 'Musique',
     description: 'Concerts et festivals',
     image: 'https://example.com/music.jpg',
+    icon: 'musical-notes' as any,
     eventCount: 25,
     onPress: jest.fn(),
   };
@@ -54,7 +55,7 @@ describe('CategoryCard', () => {
     it('should display category image', () => {
       const { UNSAFE_queryAllByType } = render(<CategoryCard {...defaultProps} />);
       // Image component should exist
-      expect(UNSAFE_queryAllByType('Image')).toBeDefined();
+      expect(UNSAFE_queryAllByType('Image' as any)).toBeDefined();
     });
 
     it('should use fallback when no image provided', () => {
@@ -62,7 +63,7 @@ describe('CategoryCard', () => {
         <CategoryCard {...defaultProps} image={undefined} />
       );
       // Should still render without crashing
-      expect(UNSAFE_queryAllByType('Image')).toBeDefined();
+      expect(UNSAFE_queryAllByType('Image' as any)).toBeDefined();
     });
   });
 
@@ -104,7 +105,7 @@ describe('CategoryCard', () => {
         <CategoryCard {...defaultProps} description={longDescription} />
       );
       // Component should render without crashing
-      expect(UNSAFE_queryAllByType('Text')).toBeDefined();
+      expect(UNSAFE_queryAllByType('Text' as any)).toBeDefined();
     });
   });
 
@@ -118,7 +119,7 @@ describe('CategoryCard', () => {
 
     it('should render grid variant', () => {
       const { getByText } = render(
-        <CategoryCard {...defaultProps} variant="grid" />
+        <CategoryCard {...defaultProps} variant={"grid" as any} />
       );
       expect(getByText('Musique')).toBeTruthy();
     });

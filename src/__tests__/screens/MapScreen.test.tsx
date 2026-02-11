@@ -51,15 +51,15 @@ jest.mock('react-native-maps', () => {
   const React = require('react');
   const { View, Text } = require('react-native');
 
-  const MockMapView = React.forwardRef((props, ref) => {
+  const MockMapView = React.forwardRef((props: any, ref: any) => {
     return React.createElement(View, { ...props, ref, testID: 'map-view' }, props.children);
   });
 
-  const MockMarker = (props) => {
+  const MockMarker = (props: any) => {
     return React.createElement(View, { ...props, testID: `marker-${props.identifier}` });
   };
 
-  const MockCallout = (props) => {
+  const MockCallout = (props: any) => {
     return React.createElement(View, props, props.children);
   };
 
@@ -80,10 +80,10 @@ describe('MapScreen', () => {
     jest.clearAllMocks();
     mockEventsAPI.getNearbyEvents.mockResolvedValue({
       data: { results: mockEvents },
-    });
+    } as any);
     mockEventsAPI.getEvents.mockResolvedValue({
       data: { results: mockEvents },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -382,7 +382,7 @@ describe('MapScreen', () => {
     it('should show empty state when no events nearby', async () => {
       mockEventsAPI.getNearbyEvents.mockResolvedValue({
         data: { results: [] },
-      });
+      } as any);
 
       const { getByText } = render(<MapScreen />);
 

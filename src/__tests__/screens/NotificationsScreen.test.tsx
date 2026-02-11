@@ -46,10 +46,10 @@ describe('NotificationsScreen', () => {
     jest.clearAllMocks();
     mockNotificationsAPI.getNotifications.mockResolvedValue({
       data: { results: mockNotifications },
-    });
-    mockNotificationsAPI.markAsRead.mockResolvedValue({ data: {} });
-    mockNotificationsAPI.markAllAsRead.mockResolvedValue({ data: {} });
-    mockNotificationsAPI.deleteNotification.mockResolvedValue({ data: {} });
+    } as any);
+    mockNotificationsAPI.markAsRead.mockResolvedValue({ data: {} } as any);
+    mockNotificationsAPI.markAllAsRead.mockResolvedValue({ data: {} } as any);
+    mockNotificationsAPI.deleteNotification.mockResolvedValue({ data: {} } as any);
   });
 
   describe('Rendering', () => {
@@ -103,7 +103,7 @@ describe('NotificationsScreen', () => {
 
       await waitFor(() => {
         // Unread notification should have indicator
-        expect(UNSAFE_queryAllByType('View').length).toBeGreaterThan(0);
+        expect(UNSAFE_queryAllByType('View' as any).length).toBeGreaterThan(0);
       });
     });
 
@@ -152,7 +152,7 @@ describe('NotificationsScreen', () => {
     it('should show empty state when no notifications', async () => {
       mockNotificationsAPI.getNotifications.mockResolvedValue({
         data: { results: [] },
-      });
+      } as any);
 
       const { getByText } = render(<NotificationsScreen />);
 
@@ -249,7 +249,7 @@ describe('NotificationsScreen', () => {
         .map((n, i) => ({ ...n, id: `notif-${i}` }));
       mockNotificationsAPI.getNotifications.mockResolvedValue({
         data: { results: manyNotifications, next: 'page2' },
-      });
+      } as any);
 
       render(<NotificationsScreen />);
 

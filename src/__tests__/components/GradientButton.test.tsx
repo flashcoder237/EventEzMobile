@@ -100,21 +100,21 @@ describe('GradientButton', () => {
   describe('Sizes', () => {
     it('should render small size', () => {
       const { getByText } = render(
-        <GradientButton {...defaultProps} size="small" />
+        <GradientButton {...defaultProps} size="sm" />
       );
       expect(getByText('Confirmer')).toBeTruthy();
     });
 
     it('should render medium size', () => {
       const { getByText } = render(
-        <GradientButton {...defaultProps} size="medium" />
+        <GradientButton {...defaultProps} size="md" />
       );
       expect(getByText('Confirmer')).toBeTruthy();
     });
 
     it('should render large size', () => {
       const { getByText } = render(
-        <GradientButton {...defaultProps} size="large" />
+        <GradientButton {...defaultProps} size="lg" />
       );
       expect(getByText('Confirmer')).toBeTruthy();
     });
@@ -148,7 +148,7 @@ describe('GradientButton', () => {
   describe('Accessibility', () => {
     it('should support accessibilityLabel', () => {
       const { getByLabelText } = render(
-        <GradientButton {...defaultProps} accessibilityLabel="Confirm button" />
+        <GradientButton {...(defaultProps as any)} accessibilityLabel="Confirm button" />
       );
       expect(getByLabelText('Confirm button')).toBeTruthy();
     });

@@ -80,7 +80,7 @@ describe('AuthContext', () => {
 
     it('should check for existing token on mount', async () => {
       mockSecureStore.getItemAsync.mockResolvedValueOnce('existing-token');
-      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
+      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -129,8 +129,8 @@ describe('AuthContext', () => {
           access: 'new-access-token',
           refresh: 'new-refresh-token',
         },
-      });
-      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
+      } as any);
+      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -208,14 +208,14 @@ describe('AuthContext', () => {
     };
 
     it('should register and auto-login successfully', async () => {
-      mockAuthAPI.register.mockResolvedValueOnce({ data: mockUser });
+      mockAuthAPI.register.mockResolvedValueOnce({ data: mockUser } as any);
       mockAuthAPI.login.mockResolvedValueOnce({
         data: {
           access: 'new-access-token',
           refresh: 'new-refresh-token',
         },
-      });
-      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
+      } as any);
+      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -256,7 +256,7 @@ describe('AuthContext', () => {
     it('should logout successfully', async () => {
       // Setup authenticated state
       mockSecureStore.getItemAsync.mockResolvedValueOnce('existing-token');
-      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
+      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
       mockAuthAPI.logout.mockResolvedValueOnce(undefined);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -276,7 +276,7 @@ describe('AuthContext', () => {
 
     it('should handle logout API failure gracefully', async () => {
       mockSecureStore.getItemAsync.mockResolvedValueOnce('existing-token');
-      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
+      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
       mockAuthAPI.logout.mockRejectedValueOnce(new Error('Network error'));
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -299,8 +299,8 @@ describe('AuthContext', () => {
     it('should update user data successfully', async () => {
       const updatedUser = { ...mockUser, first_name: 'Pierre' };
       mockSecureStore.getItemAsync.mockResolvedValueOnce('existing-token');
-      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
-      mockUsersAPI.updateCurrentUser.mockResolvedValueOnce({ data: updatedUser });
+      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
+      mockUsersAPI.updateCurrentUser.mockResolvedValueOnce({ data: updatedUser } as any);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
 
@@ -319,7 +319,7 @@ describe('AuthContext', () => {
     it('should handle update failure', async () => {
       const error = new Error('Update failed');
       mockSecureStore.getItemAsync.mockResolvedValueOnce('existing-token');
-      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
+      mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
       mockUsersAPI.updateCurrentUser.mockRejectedValueOnce(error);
 
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -348,7 +348,7 @@ describe('AuthContext State Management', () => {
 
   it('should maintain user state across re-renders', async () => {
     mockSecureStore.getItemAsync.mockResolvedValueOnce('existing-token');
-    mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser });
+    mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: mockUser } as any);
 
     const { result, rerender } = renderHook(() => useAuth(), { wrapper });
 
@@ -366,7 +366,7 @@ describe('AuthContext State Management', () => {
   it('should provide correct role-based information', async () => {
     const organizerUser = { ...mockUser, role: 'organizer' };
     mockSecureStore.getItemAsync.mockResolvedValueOnce('existing-token');
-    mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: organizerUser });
+    mockUsersAPI.getCurrentUser.mockResolvedValueOnce({ data: organizerUser } as any);
 
     const { result } = renderHook(() => useAuth(), { wrapper });
 

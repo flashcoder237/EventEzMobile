@@ -208,7 +208,7 @@ describe('LoginScreen', () => {
   describe('Loading State', () => {
     it('should disable button during loading', async () => {
       // Create a promise that we can control
-      let resolveLogin: () => void;
+      let resolveLogin: (value?: unknown) => void;
       mockLogin.mockImplementation(
         () =>
           new Promise((resolve) => {

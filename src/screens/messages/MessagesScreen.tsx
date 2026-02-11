@@ -106,7 +106,7 @@ const ConversationCard = memo(function ConversationCard({
             style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]}
             numberOfLines={1}
           >
-            {conversation.last_message || 'Aucun message'}
+            {(typeof conversation.last_message === 'object' ? conversation.last_message?.content : conversation.last_message) || 'Aucun message'}
           </Text>
           {hasUnread && (
             <View style={styles.unreadBadge}>
@@ -260,10 +260,7 @@ export default function MessagesScreen() {
         } catch (error) {
           console.error('Erreur suppression:', error);
         }
-      },
-      undefined,
-      'Supprimer',
-      'Annuler'
+      }
     );
   };
 
@@ -309,11 +306,9 @@ export default function MessagesScreen() {
         onLongPress={() => {
           showConfirm(
             'Options',
-            displayName,
+            `${displayName}\n\nQue souhaitez-vous faire ?`,
             () => handleArchive(item.id),
-            () => handleDelete(item.id),
-            item.is_archived ? 'Désarchiver' : 'Archiver',
-            'Supprimer'
+            () => handleDelete(item.id)
           );
         }}
       />

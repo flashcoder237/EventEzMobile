@@ -97,7 +97,7 @@ describe('EventCard', () => {
         <EventCard {...defaultProps} variant="horizontal" onLikePress={onLikePress} />
       );
       // Bookmark button should be present in horizontal variant
-      expect(UNSAFE_queryAllByType('Text')).toBeDefined();
+      expect(UNSAFE_queryAllByType('Text' as any)).toBeDefined();
     });
   });
 
@@ -245,7 +245,7 @@ describe('EventCard', () => {
         <EventCard {...defaultProps} imageUrl={undefined} />
       );
       // Image component should exist
-      expect(UNSAFE_queryAllByType('Image')).toBeDefined();
+      expect(UNSAFE_queryAllByType('Image' as any)).toBeDefined();
     });
   });
 

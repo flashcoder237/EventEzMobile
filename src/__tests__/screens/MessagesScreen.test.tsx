@@ -74,7 +74,7 @@ describe('MessagesScreen', () => {
     jest.clearAllMocks();
     mockMessagesAPI.getConversations.mockResolvedValue({
       data: { results: mockConversations, count: mockConversations.length },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -139,7 +139,7 @@ describe('MessagesScreen', () => {
       });
 
       // Check for Image components
-      expect(UNSAFE_queryAllByType('Image').length).toBeGreaterThan(0);
+      expect(UNSAFE_queryAllByType('Image' as any).length).toBeGreaterThan(0);
     });
 
     it('should format time correctly', async () => {
@@ -223,7 +223,7 @@ describe('MessagesScreen', () => {
     it('should show empty state when no conversations', async () => {
       mockMessagesAPI.getConversations.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<MessagesScreen />);
 
@@ -235,7 +235,7 @@ describe('MessagesScreen', () => {
     it('should show start conversation button in empty state', async () => {
       mockMessagesAPI.getConversations.mockResolvedValue({
         data: { results: [], count: 0 },
-      });
+      } as any);
 
       const { getByText } = render(<MessagesScreen />);
 
@@ -295,7 +295,7 @@ describe('MessagesScreen', () => {
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValueOnce({
           data: { results: mockConversations, count: mockConversations.length },
-        });
+        } as any);
 
       const { getByText } = render(<MessagesScreen />);
 

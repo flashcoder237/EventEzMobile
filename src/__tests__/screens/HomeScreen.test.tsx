@@ -62,16 +62,16 @@ describe('HomeScreen', () => {
     jest.clearAllMocks();
     mockEventsAPI.getFeaturedEvents.mockResolvedValue({
       data: { results: mockEvents.filter((e) => e.is_featured) },
-    });
+    } as any);
     mockEventsAPI.getEvents.mockResolvedValue({
       data: { results: mockEvents },
-    });
+    } as any);
     mockEventsAPI.getNearbyEvents.mockResolvedValue({
       data: { results: mockEvents },
-    });
+    } as any);
     mockCategoriesAPI.getCategories.mockResolvedValue({
       data: { results: mockCategories },
-    });
+    } as any);
   });
 
   describe('Rendering', () => {
@@ -126,7 +126,7 @@ describe('HomeScreen', () => {
     it('should render free events section when free events exist', async () => {
       mockEventsAPI.getEvents.mockResolvedValue({
         data: { results: [...mockEvents, { ...mockEvents[0], is_free: true }] },
-      });
+      } as any);
 
       const { getByText } = render(<HomeScreen />);
 
@@ -298,7 +298,7 @@ describe('HomeScreen', () => {
     it('should display free event correctly', async () => {
       mockEventsAPI.getEvents.mockResolvedValue({
         data: { results: [{ ...mockEvents[0], is_free: true, base_price: 0 }] },
-      });
+      } as any);
 
       const { getByText } = render(<HomeScreen />);
 
@@ -310,7 +310,7 @@ describe('HomeScreen', () => {
     it('should display inscription type events as free', async () => {
       mockEventsAPI.getEvents.mockResolvedValue({
         data: { results: [{ ...mockEvents[0], event_type: 'inscription' }] },
-      });
+      } as any);
 
       const { getByText } = render(<HomeScreen />);
 
@@ -337,7 +337,7 @@ describe('HomeScreen', () => {
         .map((c, i) => ({ ...c, id: i, name: `Category ${i}` }));
       mockCategoriesAPI.getCategories.mockResolvedValue({
         data: { results: manyCategories },
-      });
+      } as any);
 
       const { queryByText } = render(<HomeScreen />);
 

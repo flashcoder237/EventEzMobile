@@ -299,20 +299,19 @@ export default function NotificationsScreen() {
 
     // Fallback based on notification type
     switch (notification_type) {
-      case 'event':
       case 'event_update':
+      case 'event_revalidation':
       case 'event_reminder':
         // No specific event to navigate to
         break;
-      case 'registration':
       case 'registration_confirmation':
         navigation.navigate('Main', { screen: 'MyTickets' } as any);
         break;
-      case 'payment':
       case 'payment_confirmation':
         navigation.navigate('Main', { screen: 'MyTickets' } as any);
         break;
-      case 'message':
+      case 'system_message':
+      case 'custom_message':
         navigation.navigate('Messages');
         break;
       default:

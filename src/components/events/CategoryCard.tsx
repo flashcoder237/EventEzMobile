@@ -61,7 +61,7 @@ function CategoryCard({
   onPress,
   variant = 'default',
 }: CategoryCardProps) {
-  const gradientColors = color
+  const gradientColors: [string, string] = color
     ? [color, color]
     : categoryColors[id.toLowerCase()] || categoryColors.default;
 

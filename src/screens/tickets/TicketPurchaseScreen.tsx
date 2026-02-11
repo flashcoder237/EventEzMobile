@@ -374,7 +374,7 @@ export default function TicketPurchaseScreen() {
           paymentId: finalRegistrationId,
           eventType: event?.event_type,
           registrationStatus: 'confirmed',
-          approvalStatus: event?.require_approval ? 'pending' : 'approved',
+          approvalStatus: event?.auto_approve_registrations === false ? 'pending' : 'approved',
           eventTitle: event?.title,
         });
       }
@@ -394,9 +394,7 @@ export default function TicketPurchaseScreen() {
               eventId,
               additionalTickets: true,
             });
-          },
-          'Acheter plus de billets',
-          'Fermer'
+          }
         );
       } else {
         showError(
