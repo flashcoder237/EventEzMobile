@@ -37,6 +37,11 @@ api.interceptors.request.use(
     } catch (error) {
       console.warn('Erreur lors de la récupération du token:', error);
     }
+    // Supprimer Content-Type pour FormData afin qu'Axios définisse multipart/form-data avec boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     // Log de la requête pour debug
     console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
     if (config.data && __DEV__) {

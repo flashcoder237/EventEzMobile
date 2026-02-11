@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,10 @@ import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, se
 import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
+import SponsorsTab from '../../components/events/SponsorsTab';
+import CfpTab from '../../components/events/CfpTab';
+import VirtualTab from '../../components/events/VirtualTab';
+import SocialTab from '../../components/events/SocialTab';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 
@@ -31,14 +35,18 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width } = Dimensions.get('window');
 
-type TabType = 'about' | 'tickets' | 'agenda' | 'reviews' | 'live';
+type TabType = 'about' | 'tickets' | 'agenda' | 'reviews' | 'live' | 'sponsors' | 'cfp' | 'virtual' | 'social';
 
 const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'about', label: 'À propos', icon: 'information-circle-outline' },
+  { id: 'about', label: 'A propos', icon: 'information-circle-outline' },
   { id: 'tickets', label: 'Billets', icon: 'ticket-outline' },
   { id: 'agenda', label: 'Agenda', icon: 'calendar-outline' },
   { id: 'reviews', label: 'Avis', icon: 'star-outline' },
   { id: 'live', label: 'Direct', icon: 'videocam-outline' },
+  { id: 'sponsors', label: 'Sponsors', icon: 'ribbon-outline' },
+  { id: 'cfp', label: 'Talks', icon: 'mic-outline' },
+  { id: 'virtual', label: 'Virtuel', icon: 'videocam-outline' },
+  { id: 'social', label: 'Activite', icon: 'pulse-outline' },
 ];
 
 export default function EventDetailsScreen() {
@@ -71,6 +79,9 @@ export default function EventDetailsScreen() {
   const [loadingSessions, setLoadingSessions] = useState(false);
   // Image viewer state
   const [showImageViewer, setShowImageViewer] = useState(false);
+  // Scroll refs
+  const scrollViewRef = useRef<ScrollView>(null);
+  const tabsOffsetY = useRef(0);
 
   useEffect(() => {
     fetchEvent();
@@ -371,7 +382,7 @@ export default function EventDetailsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
+      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} bounces={false}>
         {/* Banner Image */}
         <View style={styles.bannerContainer}>
           <TouchableOpacity
@@ -651,14 +662,22 @@ export default function EventDetailsScreen() {
           </View>
 
           {/* Tabs */}
-          <View style={styles.tabsContainer}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View
+            style={styles.tabsContainer}
+            onLayout={(e) => { tabsOffsetY.current = e.nativeEvent.layout.y; }}
+          >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled>
               <View style={styles.tabsList}>
                 {tabs.map((tab) => (
                   <TouchableOpacity
                     key={tab.id}
+                    activeOpacity={0.7}
                     style={[styles.tab, activeTab === tab.id && styles.tabActive]}
-                    onPress={() => setActiveTab(tab.id)}
+                    onPress={() => {
+                      setActiveTab(tab.id);
+                      // Scroll to tabs position so content stays visible
+                      scrollViewRef.current?.scrollTo({ y: tabsOffsetY.current, animated: true });
+                    }}
                   >
                     <Ionicons
                       name={tab.icon}
@@ -675,6 +694,7 @@ export default function EventDetailsScreen() {
           </View>
 
           {/* Tab Content */}
+          <View style={{ minHeight: 400 }}>
           {activeTab === 'about' && (
             <>
               {/* About Section */}
@@ -1036,6 +1056,23 @@ export default function EventDetailsScreen() {
               </View>
             </View>
           )}
+
+          {activeTab === 'sponsors' && (
+            <SponsorsTab eventId={eventId} />
+          )}
+
+          {activeTab === 'cfp' && (
+            <CfpTab eventId={eventId} />
+          )}
+
+          {activeTab === 'virtual' && (
+            <VirtualTab eventId={eventId} />
+          )}
+
+          {activeTab === 'social' && (
+            <SocialTab eventId={eventId} />
+          )}
+          </View>
 
           {/* Spacer for bottom bar */}
           <View style={{ height: 120 }} />

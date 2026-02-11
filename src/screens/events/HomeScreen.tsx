@@ -17,7 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 
-import { eventsAPI, categoriesAPI } from '../../api/client';
+import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
 import { Event, Category, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
@@ -79,11 +79,13 @@ export default function HomeScreen() {
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [recommendations, setRecommendations] = useState<Event[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
 
   useEffect(() => {
     fetchData();
+    fetchRecommendations();
     requestLocation();
   }, []);
 
@@ -121,6 +123,16 @@ export default function HomeScreen() {
     }
   };
 
+  const fetchRecommendations = async () => {
+    try {
+      const response = await recommendationsAPI.getRecommendations({ limit: 10 });
+      const data = getApiResults<Event>(response).filter(isEventInFuture);
+      setRecommendations(data);
+    } catch (error) {
+      console.log('Recommendations non disponibles:', error);
+    }
+  };
+
   useEffect(() => {
     if (location) {
       fetchNearbyEvents();
@@ -140,7 +152,7 @@ export default function HomeScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchData(), location && fetchNearbyEvents()]);
+    await Promise.all([fetchData(), fetchRecommendations(), location && fetchNearbyEvents()]);
     setRefreshing(false);
   };
 
@@ -357,6 +369,24 @@ export default function HomeScreen() {
               contentContainerStyle={styles.eventsList}
               snapToInterval={SCREEN_WIDTH * 0.85 + Spacing.md}
               decelerationRate="fast"
+            />
+          </View>
+        )}
+
+        {/* Recommendations */}
+        {recommendations.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader
+              title="Recommande pour vous"
+              onSeeAll={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+            />
+            <FlatList
+              horizontal
+              data={recommendations}
+              renderItem={renderEvent}
+              keyExtractor={(item) => `rec-${item.id}`}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.eventsList}
             />
           </View>
         )}
