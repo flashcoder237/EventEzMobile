@@ -1282,6 +1282,19 @@ export const subscriptionsAPI = {
   upgrade: (planId: string, billingCycle: 'monthly' | 'yearly') =>
     api.post('/subscriptions/upgrade/', { plan_id: planId, billing_cycle: billingCycle }),
 
+  processPayment: (paymentId: string, paymentMethod: string, phone?: string) =>
+    api.post('/subscriptions/process-payment/', {
+      payment_id: paymentId,
+      payment_method: paymentMethod,
+      phone: phone || '',
+    }),
+
+  verifyPayment: (paymentId: string) =>
+    api.get(`/subscriptions/verify-payment/${paymentId}/`),
+
+  paymentHistory: () =>
+    api.get('/subscriptions/payment-history/'),
+
   cancel: () =>
     api.post('/subscriptions/cancel/'),
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,9 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Modal,
+  TextInput,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -109,6 +112,31 @@ const formatPrice = (price: number): string => {
   return `${price.toLocaleString('fr-FR')} XAF`;
 };
 
+type PaymentStep = 'select-method' | 'enter-phone' | 'processing' | 'success' | 'failed';
+type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card';
+
+interface PaymentModalState {
+  visible: boolean;
+  step: PaymentStep;
+  plan: SubscriptionPlan | null;
+  paymentId: string | null;
+  method: PaymentMethod | null;
+  phone: string;
+  amount: number;
+  errorMessage: string;
+}
+
+const INITIAL_PAYMENT_STATE: PaymentModalState = {
+  visible: false,
+  step: 'select-method',
+  plan: null,
+  paymentId: null,
+  method: null,
+  phone: '',
+  amount: 0,
+  errorMessage: '',
+};
+
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -116,6 +144,9 @@ export default function SubscriptionScreen() {
   const [loading, setLoading] = useState(true);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  const [payment, setPayment] = useState<PaymentModalState>(INITIAL_PAYMENT_STATE);
+  const verifyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const verifyCountRef = useRef(0);
 
   // Animated underline for toggle
   const toggleAnim = useRef(new Animated.Value(0)).current;
@@ -166,6 +197,24 @@ export default function SubscriptionScreen() {
     return targetIdx > currentIdx;
   };
 
+  // Cleanup verification polling on unmount
+  useEffect(() => {
+    return () => {
+      if (verifyIntervalRef.current) {
+        clearInterval(verifyIntervalRef.current);
+      }
+    };
+  }, []);
+
+  const closePaymentModal = useCallback(() => {
+    if (verifyIntervalRef.current) {
+      clearInterval(verifyIntervalRef.current);
+      verifyIntervalRef.current = null;
+    }
+    verifyCountRef.current = 0;
+    setPayment(INITIAL_PAYMENT_STATE);
+  }, []);
+
   const handleUpgrade = async (plan: SubscriptionPlan) => {
     const actionLabel = isUpgrade(plan.name) ? 'passer' : 'changer';
     const price = billingCycle === 'monthly' ? plan.monthly_price : plan.yearly_price;
@@ -180,13 +229,30 @@ export default function SubscriptionScreen() {
           onPress: async () => {
             setUpgrading(plan.id);
             try {
-              await subscriptionsAPI.upgrade(plan.id, billingCycle);
-              Alert.alert(
-                'Abonnement mis a jour',
-                `Vous etes maintenant sur le plan ${plan.display_name}.`,
-                [{ text: 'OK' }]
-              );
-              await loadData();
+              const res = await subscriptionsAPI.upgrade(plan.id, billingCycle);
+              const data = res.data;
+
+              if (data.requires_payment) {
+                // Paid plan -> show payment modal
+                setPayment({
+                  visible: true,
+                  step: 'select-method',
+                  plan,
+                  paymentId: data.payment_id,
+                  method: null,
+                  phone: '',
+                  amount: data.amount || price,
+                  errorMessage: '',
+                });
+              } else {
+                // Free plan -> directly applied
+                Alert.alert(
+                  'Abonnement mis a jour',
+                  `Vous etes maintenant sur le plan ${plan.display_name}.`,
+                  [{ text: 'OK' }]
+                );
+                await loadData();
+              }
             } catch (err: any) {
               const errorMessage =
                 err?.response?.data?.detail ||
@@ -200,6 +266,102 @@ export default function SubscriptionScreen() {
         },
       ]
     );
+  };
+
+  const handleSelectPaymentMethod = (method: PaymentMethod) => {
+    if (method === 'credit_card') {
+      // Process card payment immediately (redirects to NotchPay)
+      setPayment((prev) => ({ ...prev, method, step: 'processing' }));
+      processPayment(method, '');
+    } else {
+      // Mobile Money -> need phone number
+      setPayment((prev) => ({ ...prev, method, step: 'enter-phone' }));
+    }
+  };
+
+  const handleSubmitPhone = () => {
+    const cleanPhone = payment.phone.replace(/\s/g, '');
+    if (cleanPhone.length < 9) {
+      Alert.alert('Numero invalide', 'Veuillez entrer un numero de telephone valide (9 chiffres).');
+      return;
+    }
+    setPayment((prev) => ({ ...prev, step: 'processing' }));
+    processPayment(payment.method!, cleanPhone);
+  };
+
+  const processPayment = async (method: PaymentMethod, phone: string) => {
+    const currentPaymentId = payment.paymentId!;
+    try {
+      const fullPhone = phone ? `+237${phone.replace(/^\+237/, '')}` : '';
+      const res = await subscriptionsAPI.processPayment(currentPaymentId, method, fullPhone);
+      const data = res.data;
+
+      if (data.status === 'processing' || data.status === 'pending') {
+        startVerificationPolling(currentPaymentId);
+      } else if (data.authorization_url) {
+        Linking.openURL(data.authorization_url);
+        startVerificationPolling(currentPaymentId);
+      } else if (data.status === 'completed') {
+        setPayment((prev) => ({ ...prev, step: 'success' }));
+        loadData();
+      } else {
+        setPayment((prev) => ({
+          ...prev,
+          step: 'failed',
+          errorMessage: data.message || 'Le paiement a echoue.',
+        }));
+      }
+    } catch (err: any) {
+      const errorMessage =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        'Erreur lors du traitement du paiement.';
+      setPayment((prev) => ({
+        ...prev,
+        step: 'failed',
+        errorMessage,
+      }));
+    }
+  };
+
+  const startVerificationPolling = (paymentId: string) => {
+    verifyCountRef.current = 0;
+    if (verifyIntervalRef.current) {
+      clearInterval(verifyIntervalRef.current);
+    }
+    verifyIntervalRef.current = setInterval(async () => {
+      verifyCountRef.current += 1;
+      if (verifyCountRef.current > 60) {
+        clearInterval(verifyIntervalRef.current!);
+        verifyIntervalRef.current = null;
+        setPayment((prev) => ({
+          ...prev,
+          step: 'failed',
+          errorMessage: 'Le delai de paiement a expire. Veuillez reessayer.',
+        }));
+        return;
+      }
+      try {
+        const res = await subscriptionsAPI.verifyPayment(paymentId);
+        const status = res.data?.status;
+        if (status === 'completed') {
+          clearInterval(verifyIntervalRef.current!);
+          verifyIntervalRef.current = null;
+          setPayment((prev) => ({ ...prev, step: 'success' }));
+          loadData();
+        } else if (status === 'failed' || status === 'cancelled') {
+          clearInterval(verifyIntervalRef.current!);
+          verifyIntervalRef.current = null;
+          setPayment((prev) => ({
+            ...prev,
+            step: 'failed',
+            errorMessage: res.data?.message || 'Le paiement a echoue.',
+          }));
+        }
+      } catch {
+        // Network error, continue polling
+      }
+    }, 5000);
   };
 
   const handleCancel = () => {
@@ -234,8 +396,7 @@ export default function SubscriptionScreen() {
 
   // Calculate usage
   const maxEvents = currentPlan?.max_active_events || 30;
-  const usedEvents = subscription ? 0 : 0; // Will be populated from actual data
-  // If subscription has usage data, use it; otherwise default to 0
+  const usedEvents = (subscription as any)?.active_events_count ?? 0;
   const usageRatio = maxEvents > 0 ? Math.min(usedEvents / maxEvents, 1) : 0;
 
   const translateX = toggleAnim.interpolate({
@@ -573,6 +734,251 @@ export default function SubscriptionScreen() {
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
+
+      {/* Payment Modal */}
+      <Modal
+        visible={payment.visible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          if (payment.step !== 'processing') closePaymentModal();
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {payment.step === 'select-method' && 'Methode de paiement'}
+                {payment.step === 'enter-phone' && 'Numero de telephone'}
+                {payment.step === 'processing' && 'Paiement en cours'}
+                {payment.step === 'success' && 'Paiement reussi'}
+                {payment.step === 'failed' && 'Paiement echoue'}
+              </Text>
+              {payment.step !== 'processing' && (
+                <TouchableOpacity
+                  onPress={closePaymentModal}
+                  style={styles.modalCloseButton}
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <Ionicons name="close" size={24} color={Colors.gray600} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Amount display */}
+            {payment.step !== 'success' && payment.step !== 'failed' && (
+              <View style={styles.modalAmountRow}>
+                <Text style={styles.modalAmountLabel}>
+                  {payment.plan?.display_name} - {billingCycle === 'monthly' ? 'Mensuel' : 'Annuel'}
+                </Text>
+                <Text style={styles.modalAmountValue}>
+                  {formatPrice(payment.amount)}
+                </Text>
+              </View>
+            )}
+
+            {/* Step: Select Method */}
+            {payment.step === 'select-method' && (
+              <View style={styles.methodsContainer}>
+                {/* MTN Mobile Money */}
+                <TouchableOpacity
+                  style={styles.methodCard}
+                  onPress={() => handleSelectPaymentMethod('mtn_money')}
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <View style={[styles.methodIconCircle, { backgroundColor: '#FFCC00' + '20' }]}>
+                    <MaterialCommunityIcons name="cellphone" size={24} color="#FFCC00" />
+                  </View>
+                  <View style={styles.methodInfo}>
+                    <Text style={styles.methodName}>MTN Mobile Money</Text>
+                    <Text style={styles.methodDescription}>Payer avec votre compte MTN MoMo</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                </TouchableOpacity>
+
+                {/* Orange Money */}
+                <TouchableOpacity
+                  style={styles.methodCard}
+                  onPress={() => handleSelectPaymentMethod('orange_money')}
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <View style={[styles.methodIconCircle, { backgroundColor: '#FF6600' + '20' }]}>
+                    <MaterialCommunityIcons name="cellphone" size={24} color="#FF6600" />
+                  </View>
+                  <View style={styles.methodInfo}>
+                    <Text style={styles.methodName}>Orange Money</Text>
+                    <Text style={styles.methodDescription}>Payer avec votre compte Orange Money</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                </TouchableOpacity>
+
+                {/* Credit Card */}
+                <TouchableOpacity
+                  style={styles.methodCard}
+                  onPress={() => handleSelectPaymentMethod('credit_card')}
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <View style={[styles.methodIconCircle, { backgroundColor: '#3B82F6' + '20' }]}>
+                    <Ionicons name="card-outline" size={24} color="#3B82F6" />
+                  </View>
+                  <View style={styles.methodInfo}>
+                    <Text style={styles.methodName}>Carte bancaire</Text>
+                    <Text style={styles.methodDescription}>Visa, Mastercard</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Step: Enter Phone */}
+            {payment.step === 'enter-phone' && (
+              <View style={styles.phoneContainer}>
+                <Text style={styles.phoneLabel}>
+                  Numero {payment.method === 'mtn_money' ? 'MTN' : 'Orange'}
+                </Text>
+                <View style={styles.phoneInputRow}>
+                  <View style={styles.phonePrefix}>
+                    <Text style={styles.phonePrefixText}>+237</Text>
+                  </View>
+                  <TextInput
+                    style={styles.phoneInput}
+                    value={payment.phone}
+                    onChangeText={(text) =>
+                      setPayment((prev) => ({ ...prev, phone: text.replace(/[^0-9]/g, '') }))
+                    }
+                    placeholder="6XX XXX XXX"
+                    placeholderTextColor={Colors.gray400}
+                    keyboardType="phone-pad"
+                    maxLength={9}
+                    autoFocus
+                  />
+                </View>
+                <TouchableOpacity
+                  onPress={handleSubmitPhone}
+                  activeOpacity={TOUCH_OPACITY}
+                  disabled={payment.phone.replace(/\s/g, '').length < 9}
+                >
+                  <LinearGradient
+                    colors={[VIOLET, ROSE]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.payButton,
+                      payment.phone.replace(/\s/g, '').length < 9 && { opacity: 0.5 },
+                    ]}
+                  >
+                    <Text style={styles.payButtonText}>
+                      Payer {formatPrice(payment.amount)}
+                    </Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.backToMethodsButton}
+                  onPress={() => setPayment((prev) => ({ ...prev, step: 'select-method', method: null }))}
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <Ionicons name="arrow-back" size={16} color={Colors.gray600} />
+                  <Text style={styles.backToMethodsText}>Changer de methode</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Step: Processing */}
+            {payment.step === 'processing' && (
+              <View style={styles.processingContainer}>
+                <ActivityIndicator size="large" color={VIOLET} />
+                <Text style={styles.processingTitle}>Traitement en cours...</Text>
+                <Text style={styles.processingDescription}>
+                  {payment.method === 'credit_card'
+                    ? 'Redirection vers la page de paiement securisee...'
+                    : 'Veuillez valider le paiement sur votre telephone.'}
+                </Text>
+                {payment.method && payment.method !== 'credit_card' && (
+                  <View style={styles.processingHint}>
+                    <Ionicons name="information-circle-outline" size={18} color={VIOLET} />
+                    <Text style={styles.processingHintText}>
+                      {payment.method === 'mtn_money'
+                        ? 'Composez *126# si vous ne recevez pas la notification.'
+                        : 'Composez #150*50# si vous ne recevez pas la notification.'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Step: Success */}
+            {payment.step === 'success' && (
+              <View style={styles.resultContainer}>
+                <View style={styles.successIconCircle}>
+                  <Ionicons name="checkmark-circle" size={56} color={Colors.success} />
+                </View>
+                <Text style={styles.resultTitle}>Paiement reussi !</Text>
+                <Text style={styles.resultDescription}>
+                  Votre abonnement {payment.plan?.display_name} est maintenant actif.
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    closePaymentModal();
+                    loadData();
+                  }}
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <LinearGradient
+                    colors={[VIOLET, ROSE]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.payButton}
+                  >
+                    <Text style={styles.payButtonText}>Fermer</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Step: Failed */}
+            {payment.step === 'failed' && (
+              <View style={styles.resultContainer}>
+                <View style={styles.failedIconCircle}>
+                  <Ionicons name="close-circle" size={56} color={Colors.error} />
+                </View>
+                <Text style={styles.resultTitle}>Paiement echoue</Text>
+                <Text style={styles.resultDescription}>
+                  {payment.errorMessage || 'Une erreur est survenue lors du paiement.'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    setPayment((prev) => ({
+                      ...prev,
+                      step: 'select-method',
+                      method: null,
+                      phone: '',
+                      errorMessage: '',
+                    }))
+                  }
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <LinearGradient
+                    colors={[VIOLET, ROSE]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.payButton}
+                  >
+                    <Text style={styles.payButtonText}>Reessayer</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.backToMethodsButton}
+                  onPress={closePaymentModal}
+                  activeOpacity={TOUCH_OPACITY}
+                >
+                  <Text style={styles.backToMethodsText}>Annuler</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -998,5 +1404,236 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
     flex: 1,
     lineHeight: 20,
+  },
+
+  // ===== Payment Modal =====
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing['3xl'],
+    maxHeight: '85%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_COLOR,
+  },
+  modalTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    color: INK,
+  },
+  modalCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: SURFACE,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalAmountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER_COLOR,
+  },
+  modalAmountLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+  },
+  modalAmountValue: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.lg,
+    color: INK,
+  },
+
+  // Payment methods
+  methodsContainer: {
+    paddingTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+  methodCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    backgroundColor: '#FFFFFF',
+    gap: Spacing.md,
+  },
+  methodIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  methodInfo: {
+    flex: 1,
+  },
+  methodName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: INK,
+  },
+  methodDescription: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+
+  // Phone input
+  phoneContainer: {
+    paddingTop: Spacing.lg,
+    gap: Spacing.lg,
+  },
+  phoneLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: INK,
+  },
+  phoneInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: BORDER_COLOR,
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+  },
+  phonePrefix: {
+    backgroundColor: SURFACE,
+    paddingHorizontal: Spacing.md,
+    height: 52,
+    justifyContent: 'center',
+    borderRightWidth: 1,
+    borderRightColor: BORDER_COLOR,
+  },
+  phonePrefixText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.gray600,
+  },
+  phoneInput: {
+    flex: 1,
+    height: 52,
+    paddingHorizontal: Spacing.md,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.lg,
+    color: INK,
+    letterSpacing: 1,
+  },
+  payButton: {
+    height: 52,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.buttonPrimary,
+  },
+  payButtonText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: '#FFFFFF',
+  },
+  backToMethodsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+  },
+  backToMethodsText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+  },
+
+  // Processing
+  processingContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing['2xl'],
+    gap: Spacing.md,
+  },
+  processingTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    color: INK,
+    marginTop: Spacing.md,
+  },
+  processingDescription: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  processingHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: VIOLET + '10',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  processingHintText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+    color: VIOLET,
+    flex: 1,
+    lineHeight: 16,
+  },
+
+  // Result (success/failed)
+  resultContainer: {
+    alignItems: 'center',
+    paddingVertical: Spacing['2xl'],
+    gap: Spacing.md,
+  },
+  successIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.successLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  failedIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.errorLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resultTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    color: INK,
+  },
+  resultDescription: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    color: Colors.gray600,
+    textAlign: 'center',
+    lineHeight: 20,
+    paddingHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
   },
 });
