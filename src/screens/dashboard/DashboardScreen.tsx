@@ -296,6 +296,33 @@ export default function DashboardScreen() {
                 <Text style={styles.organizerActionSubtitle}>Voir les stats</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Subscription Action */}
+            <View style={[styles.organizerActions, { marginTop: Spacing.md }]}>
+              <TouchableOpacity
+                style={styles.organizerActionCard}
+                onPress={() => navigation.navigate('Subscription')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.organizerActionIcon, { backgroundColor: '#EDE9FE' }]}>
+                  <Ionicons name="diamond-outline" size={24} color="#7C3AED" />
+                </View>
+                <Text style={styles.organizerActionTitle}>Abonnement</Text>
+                <Text style={styles.organizerActionSubtitle}>Gerer mon plan</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.organizerActionCard}
+                onPress={() => navigation.navigate('Volunteers')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.organizerActionIcon, { backgroundColor: '#FEF2F2' }]}>
+                  <Ionicons name="people-outline" size={24} color="#EF4444" />
+                </View>
+                <Text style={styles.organizerActionTitle}>Benevoles</Text>
+                <Text style={styles.organizerActionSubtitle}>Gerer l&apos;equipe</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 

@@ -58,6 +58,7 @@ import InvitationsScreen from '../screens/dashboard/InvitationsScreen';
 import LiveEventScreen from '../screens/events/LiveEventScreen';
 import ReferralScreen from '../screens/dashboard/ReferralScreen';
 import VolunteerScreen from '../screens/organizer/VolunteerScreen';
+import SubscriptionScreen from '../screens/dashboard/SubscriptionScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -336,6 +337,11 @@ export default function RootNavigator() {
           <Stack.Screen
             name="Volunteers"
             component={VolunteerScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Subscription"
+            component={SubscriptionScreen}
             options={{ headerShown: false }}
           />
         </>

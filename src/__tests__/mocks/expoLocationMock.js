@@ -35,7 +35,7 @@ module.exports = {
     longitude: 11.5167,
   }])),
   reverseGeocodeAsync: jest.fn(() => Promise.resolve([{
-    city: 'Yaoundé',
+    city: 'Douala',
     country: 'Cameroon',
     district: null,
     isoCountryCode: 'CM',

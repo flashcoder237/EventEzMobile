@@ -713,6 +713,7 @@ export interface SubscriptionPlan {
   currency: string;
   max_participants_per_event: number;
   max_active_events: number;
+  visibility_boost: number;
   features: string[];
   is_active: boolean;
   is_popular?: boolean;
