@@ -1590,7 +1590,7 @@ export const newslettersAPI = {
     api.get('/subscribers/', { params }),
 
   subscribe: (data: { email: string; name?: string }) =>
-    api.post('/subscribers/', data),
+    api.post('/subscribers/subscribe/', data),
 
   unsubscribe: (token: string) =>
     api.post('/subscribers/unsubscribe/', { token }),

@@ -24,6 +24,9 @@ import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Sessi
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import SponsorsTab from '../../components/events/SponsorsTab';
+import VenueTab from '../../components/events/VenueTab';
+import VolunteersTab from '../../components/events/VolunteersTab';
+import NewsletterTab from '../../components/events/NewsletterTab';
 import CfpTab from '../../components/events/CfpTab';
 import VirtualTab from '../../components/events/VirtualTab';
 import SocialTab from '../../components/events/SocialTab';
@@ -35,15 +38,18 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width } = Dimensions.get('window');
 
-type TabType = 'about' | 'tickets' | 'agenda' | 'reviews' | 'live' | 'sponsors' | 'cfp' | 'virtual' | 'social';
+type TabType = 'about' | 'tickets' | 'agenda' | 'reviews' | 'live' | 'sponsors' | 'venue' | 'volunteers' | 'newsletter' | 'cfp' | 'virtual' | 'social';
 
 const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'about', label: 'A propos', icon: 'information-circle-outline' },
   { id: 'tickets', label: 'Billets', icon: 'ticket-outline' },
   { id: 'agenda', label: 'Agenda', icon: 'calendar-outline' },
   { id: 'reviews', label: 'Avis', icon: 'star-outline' },
-  { id: 'live', label: 'Direct', icon: 'videocam-outline' },
   { id: 'sponsors', label: 'Sponsors', icon: 'ribbon-outline' },
+  { id: 'venue', label: 'Placement', icon: 'map-outline' },
+  { id: 'volunteers', label: 'Benevoles', icon: 'people-outline' },
+  { id: 'newsletter', label: 'Newsletter', icon: 'mail-outline' },
+  { id: 'live', label: 'Direct', icon: 'videocam-outline' },
   { id: 'cfp', label: 'Talks', icon: 'mic-outline' },
   { id: 'virtual', label: 'Virtuel', icon: 'videocam-outline' },
   { id: 'social', label: 'Activite', icon: 'pulse-outline' },
@@ -1059,6 +1065,18 @@ export default function EventDetailsScreen() {
 
           {activeTab === 'sponsors' && (
             <SponsorsTab eventId={eventId} />
+          )}
+
+          {activeTab === 'venue' && (
+            <VenueTab eventId={eventId} />
+          )}
+
+          {activeTab === 'volunteers' && (
+            <VolunteersTab eventId={eventId} />
+          )}
+
+          {activeTab === 'newsletter' && (
+            <NewsletterTab eventId={eventId} categoryName={event.category?.name} />
           )}
 
           {activeTab === 'cfp' && (
