@@ -1180,6 +1180,7 @@ export interface AuditLog {
 export type RootStackParamList = {
   Main: undefined;
   Auth: undefined;
+  Onboarding: undefined;
   EventDetails: { eventId: string };
   TicketPurchase: {
     eventId: string;

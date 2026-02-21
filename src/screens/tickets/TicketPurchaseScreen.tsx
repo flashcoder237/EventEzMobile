@@ -188,6 +188,18 @@ export default function TicketPurchaseScreen() {
     return Math.max(0, getSubtotal() - getDiscountAmount());
   };
 
+  // Frais de service alignés avec le web (5% + 100 XAF fixe)
+  const COMMISSION_RATE = 0.05;
+  const FIXED_FEE = 100; // XAF
+  const getServiceFee = () => {
+    const total = getTotalPrice();
+    return total > 0 ? Math.round(total * COMMISSION_RATE) + FIXED_FEE : 0;
+  };
+
+  const getGrandTotal = () => {
+    return getTotalPrice() + getServiceFee();
+  };
+
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
       setDiscountError('Veuillez entrer un code promo');
@@ -742,10 +754,27 @@ export default function TicketPurchaseScreen() {
                 </>
               )}
               <View style={styles.summaryDivider} />
+              {getTotalPrice() > 0 && (
+                <>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Sous-total</Text>
+                    <Text style={styles.summaryValue}>
+                      {getTotalPrice().toLocaleString()} FCFA
+                    </Text>
+                  </View>
+                  <View style={styles.summaryRow}>
+                    <Text style={styles.summaryLabel}>Frais de service (5%)</Text>
+                    <Text style={styles.summaryValue}>
+                      {getServiceFee().toLocaleString()} FCFA
+                    </Text>
+                  </View>
+                  <View style={styles.summaryDivider} />
+                </>
+              )}
               <View style={styles.summaryRow}>
                 <Text style={styles.totalLabel}>Total</Text>
                 <Text style={styles.totalValue}>
-                  {getTotalPrice().toLocaleString()} FCFA
+                  {getGrandTotal().toLocaleString()} FCFA
                 </Text>
               </View>
             </View>
@@ -760,10 +789,11 @@ export default function TicketPurchaseScreen() {
             <>
               <Text style={styles.totalLabelBottom}>Total</Text>
               <Text style={styles.totalValueBottom}>
-                {getTotalPrice().toLocaleString()} FCFA
+                {getGrandTotal().toLocaleString()} FCFA
               </Text>
               <Text style={styles.totalQuantityBottom}>
                 {getTotalQuantity()} billet{getTotalQuantity() > 1 ? 's' : ''}
+                {getServiceFee() > 0 ? ` · Frais inclus` : ''}
               </Text>
             </>
           ) : (

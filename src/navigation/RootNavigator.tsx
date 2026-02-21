@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { Colors } from '../constants/theme';
+import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 
 // Navigators
 import AuthNavigator from './AuthNavigator';
@@ -61,17 +63,52 @@ import ReferralScreen from '../screens/dashboard/ReferralScreen';
 import VolunteerScreen from '../screens/organizer/VolunteerScreen';
 import SubscriptionScreen from '../screens/dashboard/SubscriptionScreen';
 
+// Onboarding Screen
+import OnboardingScreen from '../screens/auth/OnboardingScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
-  if (isLoading) {
+  useEffect(() => {
+    checkOnboardingStatus();
+  }, [isAuthenticated]);
+
+  const checkOnboardingStatus = async () => {
+    if (!isAuthenticated) {
+      setCheckingOnboarding(false);
+      setShowOnboarding(false);
+      return;
+    }
+    try {
+      const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+      setShowOnboarding(completed !== 'true');
+    } catch (error) {
+      console.error('[RootNavigator] Error checking onboarding status:', error);
+      setShowOnboarding(false);
+    } finally {
+      setCheckingOnboarding(false);
+    }
+  };
+
+  const handleOnboardingComplete = useCallback(() => {
+    setShowOnboarding(false);
+  }, []);
+
+  if (isLoading || checkingOnboarding) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.white }}>
         <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
+  }
+
+  // Show onboarding as a full-screen overlay for first-time users
+  if (isAuthenticated && showOnboarding) {
+    return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 
   return (

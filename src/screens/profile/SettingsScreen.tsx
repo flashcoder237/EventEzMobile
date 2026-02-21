@@ -38,22 +38,27 @@ interface ToggleItemProps {
   subtitle: string;
   value: boolean;
   onToggle: (value: boolean) => void;
+  disabled?: boolean;
 }
 
-const ToggleItem = ({ icon, title, subtitle, value, onToggle }: ToggleItemProps) => (
-  <View style={styles.settingItem}>
+const ToggleItem = ({ icon, title, subtitle, value, onToggle, disabled = false }: ToggleItemProps) => (
+  <View style={[styles.settingItem, disabled && styles.settingItemDisabled]}>
     <View style={styles.settingIcon}>
-      <Ionicons name={icon} size={20} color={Colors.gray600} />
+      <Ionicons name={icon} size={20} color={disabled ? Colors.gray400 : Colors.gray600} />
     </View>
     <View style={styles.settingContent}>
-      <Text style={styles.settingTitle}>{title}</Text>
+      <Text style={[styles.settingTitle, disabled && styles.settingTitleDisabled]}>{title}</Text>
       <Text style={styles.settingSubtitle}>{subtitle}</Text>
+      {disabled && (
+        <Text style={styles.unavailableLabel}>(Indisponible pour le moment)</Text>
+      )}
     </View>
     <Switch
       value={value}
       onValueChange={onToggle}
       trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
       thumbColor={value ? Colors.primary : Colors.gray400}
+      disabled={disabled}
     />
   </View>
 );
@@ -63,16 +68,25 @@ interface SelectItemProps {
   title: string;
   value: string;
   onPress: () => void;
+  disabled?: boolean;
 }
 
-const SelectItem = ({ icon, title, value, onPress }: SelectItemProps) => (
-  <TouchableOpacity style={styles.settingItem} onPress={onPress} activeOpacity={0.7}>
+const SelectItem = ({ icon, title, value, onPress, disabled = false }: SelectItemProps) => (
+  <TouchableOpacity
+    style={[styles.settingItem, disabled && styles.settingItemDisabled]}
+    onPress={onPress}
+    activeOpacity={0.7}
+    disabled={disabled}
+  >
     <View style={styles.settingIcon}>
-      <Ionicons name={icon} size={20} color={Colors.gray600} />
+      <Ionicons name={icon} size={20} color={disabled ? Colors.gray400 : Colors.gray600} />
     </View>
     <View style={styles.settingContent}>
-      <Text style={styles.settingTitle}>{title}</Text>
+      <Text style={[styles.settingTitle, disabled && styles.settingTitleDisabled]}>{title}</Text>
       <Text style={styles.settingSubtitle}>{value}</Text>
+      {disabled && (
+        <Text style={styles.unavailableLabel}>(Indisponible pour le moment)</Text>
+      )}
     </View>
     <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
   </TouchableOpacity>
@@ -332,6 +346,7 @@ export default function SettingsScreen() {
               subtitle="Notifications sur votre appareil"
               value={pushNotifications}
               onToggle={(v) => handleToggle('push_notifications', v, setPushNotifications)}
+              disabled
             />
             <ToggleItem
               icon="chatbubble-outline"
@@ -339,6 +354,7 @@ export default function SettingsScreen() {
               subtitle="Recevez des SMS importants"
               value={smsNotifications}
               onToggle={(v) => handleToggle('sms_notifications', v, setSmsNotifications)}
+              disabled
             />
             <ToggleItem
               icon="time-outline"
@@ -375,6 +391,7 @@ export default function SettingsScreen() {
               title="Langue"
               value={getLanguageLabel()}
               onPress={showLanguagePicker}
+              disabled
             />
             <SelectItem
               icon={theme === 'dark' ? 'moon-outline' : 'sunny-outline'}
@@ -387,6 +404,7 @@ export default function SettingsScreen() {
               title="Fuseau horaire"
               value={getTimezoneLabel()}
               onPress={showTimezonePicker}
+              disabled
             />
           </View>
         </View>
@@ -410,6 +428,7 @@ export default function SettingsScreen() {
               subtitle="Couche de sécurité supplémentaire"
               value={twoFactorAuth}
               onToggle={(v) => handleToggle('two_factor_auth', v, setTwoFactorAuth)}
+              disabled
             />
             <ToggleItem
               icon="notifications-outline"
@@ -417,6 +436,7 @@ export default function SettingsScreen() {
               subtitle="Alertes lors de nouvelles connexions"
               value={loginNotifications}
               onToggle={(v) => handleToggle('login_notifications', v, setLoginNotifications)}
+              disabled
             />
             <ToggleItem
               icon="eye-outline"
@@ -736,13 +756,26 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: Spacing.md,
   },
+  settingItemDisabled: {
+    opacity: 0.5,
+  },
   settingTitle: {
     ...TextStyles.bodyBold,
     fontFamily: FontFamily.medium,
   },
+  settingTitleDisabled: {
+    color: Colors.gray500,
+  },
   settingSubtitle: {
     ...TextStyles.small,
     color: Colors.gray500,
+    marginTop: 2,
+  },
+  unavailableLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray400,
+    fontStyle: 'italic',
     marginTop: 2,
   },
 

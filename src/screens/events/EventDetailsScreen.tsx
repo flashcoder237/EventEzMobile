@@ -30,6 +30,7 @@ import NewsletterTab from '../../components/events/NewsletterTab';
 import CfpTab from '../../components/events/CfpTab';
 import VirtualTab from '../../components/events/VirtualTab';
 import SocialTab from '../../components/events/SocialTab';
+import LocationTab from '../../components/events/LocationTab';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 
@@ -38,12 +39,13 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width } = Dimensions.get('window');
 
-type TabType = 'about' | 'tickets' | 'agenda' | 'reviews' | 'live' | 'sponsors' | 'venue' | 'volunteers' | 'newsletter' | 'cfp' | 'virtual' | 'social';
+type TabType = 'about' | 'tickets' | 'agenda' | 'location' | 'reviews' | 'live' | 'sponsors' | 'venue' | 'volunteers' | 'newsletter' | 'cfp' | 'virtual' | 'social';
 
 const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'about', label: 'A propos', icon: 'information-circle-outline' },
   { id: 'tickets', label: 'Billets', icon: 'ticket-outline' },
   { id: 'agenda', label: 'Agenda', icon: 'calendar-outline' },
+  { id: 'location', label: 'Lieu', icon: 'location-outline' },
   { id: 'reviews', label: 'Avis', icon: 'star-outline' },
   { id: 'sponsors', label: 'Sponsors', icon: 'ribbon-outline' },
   { id: 'venue', label: 'Placement', icon: 'map-outline' },
@@ -1061,6 +1063,10 @@ export default function EventDetailsScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+          )}
+
+          {activeTab === 'location' && event && (
+            <LocationTab event={event} />
           )}
 
           {activeTab === 'sponsors' && (
