@@ -243,6 +243,12 @@ export default function ProfileScreen() {
                 title="Mon portefeuille"
                 onPress={() => navigation.navigate('Wallet')}
               />
+              <MenuItem
+                icon={user?.is_verified ? "checkmark-circle" : "shield-outline"}
+                title="Vérification du compte"
+                subtitle={user?.is_verified ? "Compte vérifié" : "Vérifier votre identité"}
+                onPress={() => navigation.navigate('Verification')}
+              />
             </View>
           </View>
         )}

@@ -32,6 +32,7 @@ import SettingsScreen from '../screens/profile/SettingsScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import TermsScreen from '../screens/profile/TermsScreen';
 import BecomeOrganizerScreen from '../screens/profile/BecomeOrganizerScreen';
+import VerificationScreen from '../screens/profile/VerificationScreen';
 
 // Messages Screens
 import MessagesScreen from '../screens/messages/MessagesScreen';
@@ -218,6 +219,18 @@ export default function RootNavigator() {
             component={BecomeOrganizerScreen}
             options={{
               headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="Verification"
+            component={VerificationScreen}
+            options={{
+              headerShown: true,
+              headerTitle: 'Vérification',
+              headerBackTitle: 'Retour',
+              headerTintColor: Colors.primary,
+              headerStyle: { backgroundColor: Colors.white },
+              headerShadowVisible: false,
             }}
           />
 

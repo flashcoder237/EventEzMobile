@@ -439,6 +439,29 @@ export const tagsAPI = {
 };
 
 // ============================================
+// VERIFICATION API
+// ============================================
+
+export const verificationAPI = {
+  submit: (formData: FormData) =>
+    api.post('/verifications/submit/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }),
+
+  getMyRequest: () =>
+    api.get('/verifications/my_request/'),
+
+  getPending: () =>
+    api.get('/verifications/pending/'),
+
+  approve: (id: number) =>
+    api.post(`/verifications/${id}/approve/`),
+
+  reject: (id: number, reason: string) =>
+    api.post(`/verifications/${id}/reject/`, { reason }),
+};
+
+// ============================================
 // EVENTS API
 // ============================================
 

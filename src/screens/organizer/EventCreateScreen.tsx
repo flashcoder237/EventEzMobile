@@ -20,7 +20,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAlert } from '../../contexts/AlertContext';
-import { eventsAPI, categoriesAPI, ticketTypesAPI, tagsAPI } from '../../api/client';
+import { eventsAPI, categoriesAPI, ticketTypesAPI, tagsAPI, sessionsAPI } from '../../api/client';
 import { Category, RootStackParamList, LocationType, Tag } from '../../types';
 import TagInput from '../../components/common/TagInput';
 import MapPickerModal from '../../components/common/MapPickerModal';
@@ -431,6 +431,22 @@ export default function EventCreateScreen() {
             help_text: field.help_text,
             options: field.options,
             order: index,
+          })
+        ));
+      }
+
+      // Create sessions if present
+      if (sessions.length > 0) {
+        await Promise.all(sessions.map(session =>
+          sessionsAPI.createSession({
+            event: eventId,
+            title: session.title,
+            description: session.description,
+            session_type: session.session_type,
+            start_time: session.start_time ? session.start_time.toISOString() : null,
+            end_time: session.end_time ? session.end_time.toISOString() : null,
+            location: session.location,
+            max_capacity: session.max_capacity ? parseInt(session.max_capacity) : null,
           })
         ));
       }
