@@ -24,6 +24,7 @@
       },
       "package": "com.eventez.mobile",
       "softwareKeyboardLayoutMode": "adjustResize",
+      "navigationBarColor": "#FFFFFF",
       "googleServicesFile": "./google-services.json",
       "useNextNotificationsApi": true,
       "permissions": [
@@ -58,7 +59,8 @@
         }
       ],
       "expo-web-browser",
-      "expo-audio"
+      "expo-audio",
+      "@react-native-community/datetimepicker"
     ],
     "extra": {
       "eas": {

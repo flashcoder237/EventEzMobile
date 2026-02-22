@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet } from 'react-native';
+import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as NavigationBar from 'expo-navigation-bar';
 import { MainTabParamList } from '../types';
 import { Colors, Spacing } from '../constants/theme';
 
@@ -12,14 +13,31 @@ import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
 import FollowingEventsScreen from '../screens/dashboard/FollowingEventsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
+// Hauteur standard de la barre de navigation 3 boutons Android
+const ANDROID_3_BUTTON_NAV_HEIGHT = 48;
+
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 export default function MainTabNavigator() {
   const insets = useSafeAreaInsets();
 
-  // Add extra padding to ensure it's above the navigation bar
-  const bottomPadding = Math.max(insets.bottom, 20) + 16;
-  const tabBarHeight = 60 + bottomPadding;
+  // Sur Android, forcer la barre de navigation système en mode opaque
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      NavigationBar.setBackgroundColorAsync('#FFFFFF');
+      NavigationBar.setButtonStyleAsync('dark');
+    }
+  }, []);
+
+  // Calcul du padding bottom :
+  // - iOS : insets.bottom suffit (home indicator ou 0 sur anciens iPhones)
+  // - Android gesture nav : insets.bottom ~ 24-34
+  // - Android 3 boutons : insets.bottom peut être 0 si edge-to-edge mal configuré
+  //   → fallback sur la hauteur standard de la nav bar 3 boutons
+  const bottomPadding = Platform.OS === 'android'
+    ? Math.max(insets.bottom, ANDROID_3_BUTTON_NAV_HEIGHT)
+    : insets.bottom;
+  const tabBarHeight = 56 + bottomPadding;
 
   return (
     <Tab.Navigator

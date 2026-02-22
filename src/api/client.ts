@@ -1390,25 +1390,25 @@ export const commissionsAPI = {
 export const analyticsAPI = {
   // AnalyticsViewSet actions
   getDashboardSummary: (params?: any) =>
-    api.get('/analytics/analytics/dashboard_summary/', { params }),
+    api.get('/analytics/dashboard_summary/', { params }),
 
   getEventAnalytics: (params?: any) =>
-    api.get('/analytics/analytics/events/', { params }),
+    api.get('/analytics/events/', { params }),
 
   getEventRegistrations: (params?: any) =>
-    api.get('/analytics/analytics/event_registrations/', { params }),
+    api.get('/analytics/event_registrations/', { params }),
 
   predictAttendance: (params?: { event_id: string }) =>
-    api.get('/analytics/analytics/predict_attendance/', { params }),
+    api.get('/analytics/predict_attendance/', { params }),
 
   getRegistrationAnalytics: (params?: any) =>
-    api.get('/analytics/analytics/registrations/', { params }),
+    api.get('/analytics/registrations/', { params }),
 
   getRevenueAnalytics: (params?: any) =>
-    api.get('/analytics/analytics/revenue/', { params }),
+    api.get('/analytics/revenue/', { params }),
 
   getUserAnalytics: (params?: any) =>
-    api.get('/analytics/analytics/users/', { params }),
+    api.get('/analytics/users/', { params }),
 
   // Dashboards
   getDashboards: (params?: any) =>
