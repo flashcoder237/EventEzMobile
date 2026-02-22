@@ -16,10 +16,11 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImagePicker from 'expo-image-picker';
 
 import { useAlert } from '../../contexts/AlertContext';
+import DateTimePickerField from '../../components/ui/DateTimePickerField';
+import DatePickerField from '../../components/ui/DatePickerField';
 import { eventsAPI, categoriesAPI, ticketTypesAPI, tagsAPI, sessionsAPI } from '../../api/client';
 import { Category, RootStackParamList, LocationType, Tag } from '../../types';
 import TagInput from '../../components/common/TagInput';
@@ -56,9 +57,6 @@ export default function EventCreateScreen() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'date' | 'time'>('date');
   const [showMapPicker, setShowMapPicker] = useState(false);
 
   // Form state
@@ -73,7 +71,6 @@ export default function EventCreateScreen() {
   const [endDate, setEndDate] = useState(new Date(Date.now() + 3600000));
   const [registrationDeadline, setRegistrationDeadline] = useState<Date | null>(null);
   const [hasRegistrationDeadline, setHasRegistrationDeadline] = useState(false);
-  const [showRegistrationDeadlinePicker, setShowRegistrationDeadlinePicker] = useState(false);
 
   // Location
   const [locationType, setLocationType] = useState<LocationType>('in_person');
@@ -122,10 +119,6 @@ export default function EventCreateScreen() {
     order: number;
   }>>([]);
 
-  // Pickers for ticket dates
-  const [showTicketStartPicker, setShowTicketStartPicker] = useState<number | null>(null);
-  const [showTicketEndPicker, setShowTicketEndPicker] = useState<number | null>(null);
-  const [ticketPickerMode, setTicketPickerMode] = useState<'date' | 'time'>('date');
 
   // Form fields for billetterie (optional)
   const [showFormFieldsForBilletterie, setShowFormFieldsForBilletterie] = useState(false);
@@ -140,9 +133,6 @@ export default function EventCreateScreen() {
     location: string;
     max_capacity: string;
   }>>([]);
-  const [showSessionStartPicker, setShowSessionStartPicker] = useState<number | null>(null);
-  const [showSessionEndPicker, setShowSessionEndPicker] = useState<number | null>(null);
-  const [sessionPickerMode, setSessionPickerMode] = useState<'date' | 'time'>('date');
 
   // Banner Image
   const [bannerImage, setBannerImage] = useState<string | null>(null);
@@ -517,13 +507,6 @@ export default function EventCreateScreen() {
     });
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   // Session helpers
   const addSession = () => {
     setSessions([...sessions, {
@@ -768,45 +751,23 @@ export default function EventCreateScreen() {
       <Text style={styles.stepDescription}>Quand et où se déroulera votre événement ?</Text>
 
       {/* Dates */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Date de début *</Text>
-        <View style={styles.dateTimeRow}>
-          <TouchableOpacity
-            style={[styles.dateButton, { flex: 2 }]}
-            onPress={() => { setPickerMode('date'); setShowStartPicker(true); }}
-          >
-            <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-            <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.dateButton, { flex: 1 }]}
-            onPress={() => { setPickerMode('time'); setShowStartPicker(true); }}
-          >
-            <Ionicons name="time-outline" size={18} color={Colors.primary} />
-            <Text style={styles.dateButtonText}>{formatTime(startDate)}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <DateTimePickerField
+        label="Date de début *"
+        value={startDate}
+        onChange={(date) => {
+          setStartDate(date);
+          if (date > endDate) {
+            setEndDate(new Date(date.getTime() + 3600000));
+          }
+        }}
+      />
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Date de fin *</Text>
-        <View style={styles.dateTimeRow}>
-          <TouchableOpacity
-            style={[styles.dateButton, { flex: 2 }]}
-            onPress={() => { setPickerMode('date'); setShowEndPicker(true); }}
-          >
-            <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-            <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.dateButton, { flex: 1 }]}
-            onPress={() => { setPickerMode('time'); setShowEndPicker(true); }}
-          >
-            <Ionicons name="time-outline" size={18} color={Colors.primary} />
-            <Text style={styles.dateButtonText}>{formatTime(endDate)}</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      <DateTimePickerField
+        label="Date de fin *"
+        value={endDate}
+        onChange={(date) => setEndDate(date)}
+        minimumDate={startDate}
+      />
 
       {/* Registration Deadline */}
       <View style={styles.switchRow}>
@@ -831,18 +792,13 @@ export default function EventCreateScreen() {
       </View>
 
       {hasRegistrationDeadline && (
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Date limite</Text>
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowRegistrationDeadlinePicker(true)}
-          >
-            <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-            <Text style={styles.dateButtonText}>
-              {registrationDeadline ? formatDate(registrationDeadline) : 'Selectionner une date'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <DatePickerField
+          label="Date limite"
+          value={registrationDeadline || undefined}
+          onChange={(date) => setRegistrationDeadline(date)}
+          maximumDate={startDate}
+          placeholder="Sélectionner une date"
+        />
       )}
 
       {/* Location Type */}
@@ -1276,37 +1232,19 @@ export default function EventCreateScreen() {
                     </View>
                   </View>
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Début des ventes</Text>
-                    <TouchableOpacity
-                      style={styles.dateButton}
-                      onPress={() => {
-                        setTicketPickerMode('date');
-                        setShowTicketStartPicker(index);
-                      }}
-                    >
-                      <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-                      <Text style={styles.dateButtonText}>
-                        {formatDate(ticket.sales_start)} - {formatTime(ticket.sales_start)}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                  <DateTimePickerField
+                    label="Début des ventes"
+                    value={ticket.sales_start}
+                    onChange={(date) => updateTicketType(index, 'sales_start', date)}
+                  />
 
-                  <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Fin des ventes</Text>
-                    <TouchableOpacity
-                      style={styles.dateButton}
-                      onPress={() => {
-                        setTicketPickerMode('date');
-                        setShowTicketEndPicker(index);
-                      }}
-                    >
-                      <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-                      <Text style={styles.dateButtonText}>
-                        {formatDate(ticket.sales_end)} - {formatTime(ticket.sales_end)}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                  <DateTimePickerField
+                    label="Fin des ventes"
+                    value={ticket.sales_end}
+                    onChange={(date) => updateTicketType(index, 'sales_end', date)}
+                    minimumDate={ticket.sales_start}
+                    maximumDate={startDate}
+                  />
 
                   <View style={styles.switchRow}>
                     <View style={styles.switchContent}>
@@ -1666,102 +1604,6 @@ export default function EventCreateScreen() {
           )}
         </View>
       </View>
-
-      {/* Date Pickers */}
-      {showStartPicker && (
-        <DateTimePicker
-          value={startDate}
-          mode={pickerMode}
-          display="spinner"
-          onChange={(_, date) => {
-            setShowStartPicker(false);
-            if (date) {
-              setStartDate(date);
-              if (date > endDate) {
-                setEndDate(new Date(date.getTime() + 3600000));
-              }
-            }
-          }}
-        />
-      )}
-
-      {showEndPicker && (
-        <DateTimePicker
-          value={endDate}
-          mode={pickerMode}
-          display="spinner"
-          minimumDate={startDate}
-          onChange={(_, date) => {
-            setShowEndPicker(false);
-            if (date) setEndDate(date);
-          }}
-        />
-      )}
-
-      {showRegistrationDeadlinePicker && (
-        <DateTimePicker
-          value={registrationDeadline || new Date()}
-          mode="date"
-          display="spinner"
-          maximumDate={startDate}
-          onChange={(_, date) => {
-            setShowRegistrationDeadlinePicker(false);
-            if (date) setRegistrationDeadline(date);
-          }}
-        />
-      )}
-
-      {/* Ticket Sales Start Date Pickers */}
-      {showTicketStartPicker !== null && (
-        <DateTimePicker
-          value={ticketTypes[showTicketStartPicker]?.sales_start || new Date()}
-          mode={ticketPickerMode}
-          display="spinner"
-          onChange={(_, date) => {
-            if (ticketPickerMode === 'date' && date) {
-              // Keep the time but update the date
-              const currentTime = ticketTypes[showTicketStartPicker]?.sales_start || new Date();
-              date.setHours(currentTime.getHours(), currentTime.getMinutes());
-              updateTicketType(showTicketStartPicker, 'sales_start', date);
-              setTicketPickerMode('time');
-            } else if (ticketPickerMode === 'time' && date) {
-              updateTicketType(showTicketStartPicker, 'sales_start', date);
-              setShowTicketStartPicker(null);
-              setTicketPickerMode('date');
-            } else {
-              setShowTicketStartPicker(null);
-              setTicketPickerMode('date');
-            }
-          }}
-        />
-      )}
-
-      {/* Ticket Sales End Date Pickers */}
-      {showTicketEndPicker !== null && (
-        <DateTimePicker
-          value={ticketTypes[showTicketEndPicker]?.sales_end || new Date()}
-          mode={ticketPickerMode}
-          display="spinner"
-          minimumDate={ticketTypes[showTicketEndPicker]?.sales_start}
-          maximumDate={startDate}
-          onChange={(_, date) => {
-            if (ticketPickerMode === 'date' && date) {
-              // Keep the time but update the date
-              const currentTime = ticketTypes[showTicketEndPicker]?.sales_end || new Date();
-              date.setHours(currentTime.getHours(), currentTime.getMinutes());
-              updateTicketType(showTicketEndPicker, 'sales_end', date);
-              setTicketPickerMode('time');
-            } else if (ticketPickerMode === 'time' && date) {
-              updateTicketType(showTicketEndPicker, 'sales_end', date);
-              setShowTicketEndPicker(null);
-              setTicketPickerMode('date');
-            } else {
-              setShowTicketEndPicker(null);
-              setTicketPickerMode('date');
-            }
-          }}
-        />
-      )}
 
       {/* Map Picker Modal */}
       <MapPickerModal

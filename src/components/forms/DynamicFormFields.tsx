@@ -10,9 +10,10 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { FormField } from '../../types';
+import DatePickerField from '../ui/DatePickerField';
+import TimePickerField from '../ui/TimePickerField';
 import {
   Colors,
   FontSizes,
@@ -40,8 +41,6 @@ export default function DynamicFormFields({
   errors = {},
 }: DynamicFormFieldsProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [showDatePicker, setShowDatePicker] = useState<string | null>(null);
-  const [showTimePicker, setShowTimePicker] = useState<string | null>(null);
 
   // Group fields by step
   const stepGroups = useMemo(() => {
@@ -96,21 +95,6 @@ export default function DynamicFormFields({
     if (currentIndex > 0) {
       setCurrentStep(steps[currentIndex - 1]);
     }
-  };
-
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-    });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
   };
 
   const renderField = (field: FormField, index: number) => {
@@ -221,28 +205,26 @@ export default function DynamicFormFields({
 
         {/* Date */}
         {field.field_type === 'date' && (
-          <TouchableOpacity
-            style={[styles.input, styles.dateInput, error && styles.inputError]}
-            onPress={() => setShowDatePicker(field.label)}
-          >
-            <Text style={value ? styles.dateText : styles.datePlaceholder}>
-              {value ? formatDate(new Date(value)) : 'Sélectionner une date'}
-            </Text>
-            <Ionicons name="calendar-outline" size={20} color={Colors.gray400} />
-          </TouchableOpacity>
+          <DatePickerField
+            value={value ? new Date(value) : undefined}
+            onChange={(date) => onFieldChange(field.label, date.toISOString().split('T')[0])}
+            error={error}
+            placeholder={field.placeholder || 'Sélectionner une date'}
+          />
         )}
 
         {/* Time */}
         {field.field_type === 'time' && (
-          <TouchableOpacity
-            style={[styles.input, styles.dateInput, error && styles.inputError]}
-            onPress={() => setShowTimePicker(field.label)}
-          >
-            <Text style={value ? styles.dateText : styles.datePlaceholder}>
-              {value || 'Sélectionner une heure'}
-            </Text>
-            <Ionicons name="time-outline" size={20} color={Colors.gray400} />
-          </TouchableOpacity>
+          <TimePickerField
+            value={value ? new Date(`2000-01-01T${value}`) : undefined}
+            onChange={(date) => {
+              const h = date.getHours().toString().padStart(2, '0');
+              const m = date.getMinutes().toString().padStart(2, '0');
+              onFieldChange(field.label, `${h}:${m}`);
+            }}
+            error={error}
+            placeholder={field.placeholder || 'Sélectionner une heure'}
+          />
         )}
 
         {/* Help Text */}
@@ -252,36 +234,6 @@ export default function DynamicFormFields({
 
         {/* Error Message */}
         {error && <Text style={styles.errorText}>{error}</Text>}
-
-        {/* Date Picker Modal */}
-        {showDatePicker === field.label && (
-          <DateTimePicker
-            value={value ? new Date(value) : new Date()}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, selectedDate) => {
-              setShowDatePicker(null);
-              if (selectedDate && event.type !== 'dismissed') {
-                onFieldChange(field.label, selectedDate.toISOString().split('T')[0]);
-              }
-            }}
-          />
-        )}
-
-        {/* Time Picker Modal */}
-        {showTimePicker === field.label && (
-          <DateTimePicker
-            value={value ? new Date(`2000-01-01T${value}`) : new Date()}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={(event, selectedDate) => {
-              setShowTimePicker(null);
-              if (selectedDate && event.type !== 'dismissed') {
-                onFieldChange(field.label, formatTime(selectedDate));
-              }
-            }}
-          />
-        )}
       </View>
     );
   };
@@ -504,19 +456,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.base,
     color: Colors.gray700,
-  },
-  dateInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateText: {
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
-  },
-  datePlaceholder: {
-    fontSize: FontSizes.base,
-    color: Colors.gray400,
   },
   helpText: {
     fontSize: FontSizes.sm,
