@@ -25,6 +25,8 @@ import { eventsAPI, categoriesAPI } from '../../api/client';
 import { Event, MapMarker, Category, RootStackParamList, MainTabParamList } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
 import EventCard from '../../components/events/EventCard';
+import { getEventPrice } from '../../lib/utils/priceFormatters';
+import { formatDate } from '../../lib/utils/dateFormatters';
 import {
   Colors,
   FontFamily,
@@ -490,37 +492,6 @@ export default function ExploreScreen() {
       latitudeDelta: 0.05,
       longitudeDelta: 0.05,
     });
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-    });
-  };
-
-  // Calculate event price from various sources
-  const getEventPrice = (event: Event): number | undefined => {
-    // If explicitly free
-    if (event.is_free) return 0;
-
-    // Try direct price fields
-    if (typeof event.base_price === 'number' && event.base_price > 0) return event.base_price;
-    if (typeof event.min_price === 'number' && event.min_price > 0) return event.min_price;
-
-    // Calculate from ticket_types if available
-    if (event.ticket_types && event.ticket_types.length > 0) {
-      const prices = event.ticket_types.map(t => t.price).filter(p => typeof p === 'number');
-      if (prices.length > 0) {
-        return Math.min(...prices);
-      }
-    }
-
-    // For inscription type without price, consider free
-    if (event.event_type === 'inscription') return 0;
-
-    return undefined;
   };
 
   const openFilters = () => {

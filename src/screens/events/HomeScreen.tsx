@@ -32,6 +32,8 @@ import {
   SECTION_MARGIN_TOP,
 } from '../../constants/theme';
 import { getApiResults } from '../../lib/utils/apiHelpers';
+import { getEventPrice } from '../../lib/utils/priceFormatters';
+import { isEventInFuture } from '../../lib/utils/dateFormatters';
 import { EmptyState } from '../../components/ui';
 import EventCard from '../../components/events/EventCard';
 import CategoryCard from '../../components/events/CategoryCard';
@@ -39,15 +41,6 @@ import CategoryCard from '../../components/events/CategoryCard';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-// Helper function to check if event is in the future
-const isEventInFuture = (event: Event): boolean => {
-  if (!event.start_date) return true; // If no date, show it
-  const eventDate = new Date(event.start_date);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of today
-  return eventDate >= today;
-};
 
 // Map category names to icons
 const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -112,8 +105,8 @@ export default function HomeScreen() {
         eventsAPI.getEvents({ ordering: 'start_date', limit: 10 }),
       ]);
 
-      const featuredData = getApiResults<Event>(featuredRes).filter(isEventInFuture);
-      const upcomingData = getApiResults<Event>(upcomingRes).filter(isEventInFuture);
+      const featuredData = getApiResults<Event>(featuredRes).filter(e => isEventInFuture(e.start_date));
+      const upcomingData = getApiResults<Event>(upcomingRes).filter(e => isEventInFuture(e.start_date));
 
       setFeaturedEvents(featuredData);
       setCategories(getApiResults<Category>(categoriesRes));
@@ -126,7 +119,7 @@ export default function HomeScreen() {
   const fetchRecommendations = async () => {
     try {
       const response = await recommendationsAPI.getRecommendations({ limit: 10 });
-      const data = getApiResults<Event>(response).filter(isEventInFuture);
+      const data = getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date));
       setRecommendations(data);
     } catch (error) {
       console.log('Recommendations non disponibles:', error);
@@ -143,7 +136,7 @@ export default function HomeScreen() {
     if (!location) return;
     try {
       const response = await eventsAPI.getNearbyEvents(location.lat, location.lng, 50, 10);
-      const nearbyData = getApiResults<Event>(response).filter(isEventInFuture);
+      const nearbyData = getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date));
       setNearbyEvents(nearbyData);
     } catch (error) {
       console.error('Erreur événements proches:', error);
@@ -159,29 +152,6 @@ export default function HomeScreen() {
   const getCategoryIcon = (name: string): keyof typeof Ionicons.glyphMap => {
     const key = name.toLowerCase();
     return categoryIcons[key] || categoryIcons.default;
-  };
-
-  // Calculate event price from various sources
-  const getEventPrice = (event: Event): number | undefined => {
-    // If explicitly free
-    if (event.is_free) return 0;
-
-    // Try direct price fields
-    if (typeof event.base_price === 'number' && event.base_price > 0) return event.base_price;
-    if (typeof event.min_price === 'number' && event.min_price > 0) return event.min_price;
-
-    // Calculate from ticket_types if available
-    if (event.ticket_types && event.ticket_types.length > 0) {
-      const prices = event.ticket_types.map(t => t.price).filter(p => typeof p === 'number');
-      if (prices.length > 0) {
-        return Math.min(...prices);
-      }
-    }
-
-    // For inscription type without price, consider free
-    if (event.event_type === 'inscription') return 0;
-
-    return undefined;
   };
 
   const renderFeaturedEvent = useCallback(

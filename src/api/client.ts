@@ -1947,6 +1947,15 @@ export const siteSettingsAPI = {
 };
 
 // ============================================
+// EXPORT API
+// ============================================
+
+export const exportAPI = {
+  download: (endpoint: string, params: Record<string, string> = {}) =>
+    api.get(endpoint, { params, responseType: 'arraybuffer' }),
+};
+
+// ============================================
 // AI ASSIST API
 // ============================================
 

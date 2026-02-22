@@ -28,6 +28,10 @@ interface LocationTabProps {
     online_instructions?: string;
     online_meeting_id?: string;
     online_passcode?: string;
+    start_date?: string;
+    category?: { name?: string } | null;
+    banner_image?: string | null;
+    registration_count?: number;
   };
 }
 
@@ -82,6 +86,12 @@ export default function LocationTab({ event }: LocationTabProps) {
         lat: event.location_latitude!,
         lng: event.location_longitude!,
         title: event.location_name || 'Lieu',
+        location_name: event.location_name || 'Lieu',
+        location_city: event.location_city || '',
+        start_date: event.start_date || '',
+        category: event.category?.name || null,
+        banner_image: event.banner_image || null,
+        registration_count: event.registration_count || 0,
       }]
     : [];
 
@@ -384,7 +394,7 @@ const styles = StyleSheet.create({
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingVertical: Spacing['2xl'],
   },
   emptyText: {
     fontFamily: FontFamily.medium,

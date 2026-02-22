@@ -20,6 +20,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { subscriptionsAPI } from '../../api/client';
+import { usePaymentVerification } from '../../hooks/usePaymentVerification';
 import {
   RootStackParamList,
   SubscriptionPlan,
@@ -145,8 +146,6 @@ export default function SubscriptionScreen() {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentModalState>(INITIAL_PAYMENT_STATE);
-  const verifyIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const verifyCountRef = useRef(0);
 
   // Animated underline for toggle
   const toggleAnim = useRef(new Animated.Value(0)).current;
@@ -197,23 +196,50 @@ export default function SubscriptionScreen() {
     return targetIdx > currentIdx;
   };
 
-  // Cleanup verification polling on unmount
-  useEffect(() => {
-    return () => {
-      if (verifyIntervalRef.current) {
-        clearInterval(verifyIntervalRef.current);
-      }
-    };
-  }, []);
+  // Shared payment verification hook for subscription payments
+  const {
+    startVerification: startSubscriptionVerification,
+    stopVerification: stopSubscriptionVerification,
+  } = usePaymentVerification({
+    pollInterval: 5000,
+    maxAttempts: 60,
+    maxConsecutiveErrors: 10,
+    // Use the subscription-specific verify endpoint
+    verifyFn: (paymentId: string) => subscriptionsAPI.verifyPayment(paymentId),
+    // Subscription verify returns status directly in data.status
+    extractStatus: (data: any) => (data?.status || '').toLowerCase(),
+    extractErrorMessage: (data: any) => data?.message || 'Le paiement a echoue.',
+    onSuccess: (_data) => {
+      setPayment((prev) => ({ ...prev, step: 'success' }));
+      loadData();
+    },
+    onFailure: (errorMessage, _data) => {
+      setPayment((prev) => ({
+        ...prev,
+        step: 'failed',
+        errorMessage,
+      }));
+    },
+    onTimeout: (_lastStatus) => {
+      setPayment((prev) => ({
+        ...prev,
+        step: 'failed',
+        errorMessage: 'Le delai de paiement a expire. Veuillez reessayer.',
+      }));
+    },
+    onMaxErrors: (_lastError) => {
+      setPayment((prev) => ({
+        ...prev,
+        step: 'failed',
+        errorMessage: 'Le delai de paiement a expire. Veuillez reessayer.',
+      }));
+    },
+  });
 
   const closePaymentModal = useCallback(() => {
-    if (verifyIntervalRef.current) {
-      clearInterval(verifyIntervalRef.current);
-      verifyIntervalRef.current = null;
-    }
-    verifyCountRef.current = 0;
+    stopSubscriptionVerification();
     setPayment(INITIAL_PAYMENT_STATE);
-  }, []);
+  }, [stopSubscriptionVerification]);
 
   const handleUpgrade = async (plan: SubscriptionPlan) => {
     const actionLabel = isUpgrade(plan.name) ? 'passer' : 'changer';
@@ -297,10 +323,10 @@ export default function SubscriptionScreen() {
       const data = res.data;
 
       if (data.status === 'processing' || data.status === 'pending') {
-        startVerificationPolling(currentPaymentId);
+        startSubscriptionVerification(currentPaymentId);
       } else if (data.authorization_url) {
         Linking.openURL(data.authorization_url);
-        startVerificationPolling(currentPaymentId);
+        startSubscriptionVerification(currentPaymentId);
       } else if (data.status === 'completed') {
         setPayment((prev) => ({ ...prev, step: 'success' }));
         loadData();
@@ -322,46 +348,6 @@ export default function SubscriptionScreen() {
         errorMessage,
       }));
     }
-  };
-
-  const startVerificationPolling = (paymentId: string) => {
-    verifyCountRef.current = 0;
-    if (verifyIntervalRef.current) {
-      clearInterval(verifyIntervalRef.current);
-    }
-    verifyIntervalRef.current = setInterval(async () => {
-      verifyCountRef.current += 1;
-      if (verifyCountRef.current > 60) {
-        clearInterval(verifyIntervalRef.current!);
-        verifyIntervalRef.current = null;
-        setPayment((prev) => ({
-          ...prev,
-          step: 'failed',
-          errorMessage: 'Le delai de paiement a expire. Veuillez reessayer.',
-        }));
-        return;
-      }
-      try {
-        const res = await subscriptionsAPI.verifyPayment(paymentId);
-        const status = res.data?.status;
-        if (status === 'completed') {
-          clearInterval(verifyIntervalRef.current!);
-          verifyIntervalRef.current = null;
-          setPayment((prev) => ({ ...prev, step: 'success' }));
-          loadData();
-        } else if (status === 'failed' || status === 'cancelled') {
-          clearInterval(verifyIntervalRef.current!);
-          verifyIntervalRef.current = null;
-          setPayment((prev) => ({
-            ...prev,
-            step: 'failed',
-            errorMessage: res.data?.message || 'Le paiement a echoue.',
-          }));
-        }
-      } catch {
-        // Network error, continue polling
-      }
-    }, 5000);
   };
 
   const handleCancel = () => {

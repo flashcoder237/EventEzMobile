@@ -14,6 +14,9 @@ import MainTabNavigator from './MainTabNavigator';
 // Event Screens
 import EventDetailsScreen from '../screens/events/EventDetailsScreen';
 import MapScreen from '../screens/events/MapScreen';
+import SessionDetailsScreen from '../screens/events/SessionDetailsScreen';
+import SpeakerDetailsScreen from '../screens/events/SpeakerDetailsScreen';
+import OrganizerProfileScreen from '../screens/events/OrganizerProfileScreen';
 
 // Payment Screens
 import PaymentScreen from '../screens/payment/PaymentScreen';
@@ -33,6 +36,7 @@ import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import TermsScreen from '../screens/profile/TermsScreen';
+import PrivacyScreen from '../screens/profile/PrivacyScreen';
 import BecomeOrganizerScreen from '../screens/profile/BecomeOrganizerScreen';
 import VerificationScreen from '../screens/profile/VerificationScreen';
 
@@ -145,6 +149,21 @@ export default function RootNavigator() {
               headerShadowVisible: false,
             }}
           />
+          <Stack.Screen
+            name="SessionDetails"
+            component={SessionDetailsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SpeakerDetails"
+            component={SpeakerDetailsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="OrganizerProfile"
+            component={OrganizerProfileScreen}
+            options={{ headerShown: false }}
+          />
 
           {/* Payment Screens */}
           <Stack.Screen
@@ -247,6 +266,13 @@ export default function RootNavigator() {
           <Stack.Screen
             name="Terms"
             component={TermsScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="Privacy"
+            component={PrivacyScreen}
             options={{
               headerShown: false,
             }}

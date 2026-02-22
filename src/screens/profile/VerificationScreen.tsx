@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   title: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes['2xl'],
     fontFamily: FontFamily.bold,
     color: Colors.gray900,
     marginBottom: Spacing.xs,

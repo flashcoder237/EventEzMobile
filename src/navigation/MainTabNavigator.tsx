@@ -37,7 +37,7 @@ export default function MainTabNavigator() {
             case 'MyTickets':
               iconName = focused ? 'calendar' : 'calendar-outline';
               break;
-            case 'Dashboard':
+            case 'Following':
               iconName = focused ? 'heart' : 'heart-outline';
               break;
             case 'Profile':
@@ -90,7 +90,7 @@ export default function MainTabNavigator() {
         options={{ tabBarLabel: 'Réservations' }}
       />
       <Tab.Screen
-        name="Dashboard"
+        name="Following"
         component={FollowingEventsScreen}
         options={{ tabBarLabel: 'Favoris' }}
       />

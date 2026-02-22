@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import ExportButton from '../../components/common/ExportButton';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api/client';
@@ -214,7 +215,7 @@ export default function DashboardScreen() {
             <QuickAction
               icon="heart-outline"
               title="Favoris"
-              onPress={() => { }}
+              onPress={() => navigation.navigate('Main', { screen: 'Following' } as any)}
             />
             <QuickAction
               icon="notifications-outline"
@@ -311,17 +312,17 @@ export default function DashboardScreen() {
                 <Text style={styles.organizerActionSubtitle}>Gerer mon plan</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.organizerActionCard}
-                onPress={() => navigation.navigate('Volunteers')}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.organizerActionIcon, { backgroundColor: '#FEF2F2' }]}>
-                  <Ionicons name="people-outline" size={24} color="#EF4444" />
+              <View style={styles.organizerActionCard}>
+                <View style={[styles.organizerActionIcon, { backgroundColor: '#E0E7FF' }]}>
+                  <Ionicons name="download-outline" size={24} color="#6366F1" />
                 </View>
-                <Text style={styles.organizerActionTitle}>Benevoles</Text>
-                <Text style={styles.organizerActionSubtitle}>Gerer l&apos;equipe</Text>
-              </TouchableOpacity>
+                <Text style={styles.organizerActionTitle}>Exporter</Text>
+                <Text style={styles.organizerActionSubtitle}>Vos donnees</Text>
+                <ExportButton
+                  endpoint="/events/export/"
+                  filename="evenements"
+                />
+              </View>
             </View>
           </View>
         )}

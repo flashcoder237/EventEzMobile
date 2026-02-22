@@ -13,6 +13,7 @@ import {
   TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ExportButton from '../../components/common/ExportButton';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -477,6 +478,12 @@ export default function MyTicketsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mes Billets & Inscriptions</Text>
         <View style={styles.headerActions}>
+          {/* Export Button */}
+          <ExportButton
+            endpoint="/registrations/export/"
+            filename="mes-billets"
+            compact
+          />
           {/* Offline Tickets Button */}
           <TouchableOpacity
             style={styles.headerButton}

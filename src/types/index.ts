@@ -1261,7 +1261,7 @@ export type MainTabParamList = {
   Home: undefined;
   Explore: { category?: number } | undefined;
   MyTickets: undefined;
-  Dashboard: undefined;
+  Following: undefined;
   Profile: undefined;
 };
 
