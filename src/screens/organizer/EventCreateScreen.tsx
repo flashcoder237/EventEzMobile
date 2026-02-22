@@ -21,10 +21,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAlert } from '../../contexts/AlertContext';
 import DateTimePickerField from '../../components/ui/DateTimePickerField';
 import DatePickerField from '../../components/ui/DatePickerField';
-import { eventsAPI, categoriesAPI, ticketTypesAPI, tagsAPI, sessionsAPI } from '../../api/client';
-import { Category, RootStackParamList, LocationType, Tag } from '../../types';
+import { eventsAPI, categoriesAPI, ticketTypesAPI, tagsAPI, sessionsAPI, aiAssistAPI, siteSettingsAPI } from '../../api/client';
+import { Category, RootStackParamList, LocationType, Tag, AIUsage, AIGeneratedEvent } from '../../types';
 import TagInput from '../../components/common/TagInput';
 import MapPickerModal from '../../components/common/MapPickerModal';
+import AIQuickCreatePanel from '../../components/events/AIQuickCreatePanel';
+import AIAssistButton from '../../components/events/AIAssistButton';
+import AIUsageBadge from '../../components/events/AIUsageBadge';
 import {
   Colors,
   FontFamily,
@@ -137,9 +140,21 @@ export default function EventCreateScreen() {
   // Banner Image
   const [bannerImage, setBannerImage] = useState<string | null>(null);
 
+  // AI Assist
+  const [aiEnabled, setAiEnabled] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState<AIGeneratedEvent | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiUsage, setAiUsage] = useState<AIUsage | null>(null);
+  const [aiTitleLoading, setAiTitleLoading] = useState(false);
+  const [aiDescLoading, setAiDescLoading] = useState(false);
+  const [aiPricingLoading, setAiPricingLoading] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
+
   useEffect(() => {
     fetchCategories();
     fetchTags();
+    fetchAIStatus();
   }, []);
 
   const fetchCategories = async () => {
@@ -157,6 +172,160 @@ export default function EventCreateScreen() {
       setAvailableTags(response.data.results || response.data || []);
     } catch (error) {
       console.error('Erreur chargement tags:', error);
+    }
+  };
+
+  const fetchAIStatus = async () => {
+    try {
+      const res = await siteSettingsAPI.get();
+      setAiEnabled(res.data.ai_assist_enabled ?? false);
+      if (res.data.ai_assist_enabled) {
+        const usageRes = await aiAssistAPI.usage(sessionId);
+        setAiUsage(usageRes.data);
+      }
+    } catch {
+      setAiEnabled(false);
+    }
+  };
+
+  const refreshAIUsage = async () => {
+    try {
+      const res = await aiAssistAPI.usage(sessionId);
+      setAiUsage(res.data);
+    } catch {}
+  };
+
+  const handleAIGenerate = async (prompt: string) => {
+    setAiLoading(true);
+    setAiError(null);
+    setAiResult(null);
+    try {
+      const res = await aiAssistAPI.generate(prompt, sessionId);
+      const data = res.data;
+      // Parse the response - backend returns streaming text, but mobile gets full JSON
+      if (data.result) {
+        setAiResult(typeof data.result === 'string' ? JSON.parse(data.result) : data.result);
+      } else if (data.text) {
+        try {
+          setAiResult(JSON.parse(data.text));
+        } catch {
+          setAiError('Format de réponse inattendu');
+        }
+      } else {
+        setAiResult(data);
+      }
+      refreshAIUsage();
+    } catch (err: any) {
+      setAiError(err.response?.data?.detail || err.response?.data?.message || 'Erreur lors de la génération');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAIApply = (data: AIGeneratedEvent) => {
+    if (data.title) setTitle(data.title);
+    if (data.short_description) setShortDescription(data.short_description);
+    if (data.description) setDescription(data.description);
+    if (data.event_type === 'billetterie' || data.event_type === 'inscription') setEventType(data.event_type);
+    if (data.category_id) setCategoryId(parseInt(data.category_id));
+    if (data.tag_ids) setSelectedTagIds(data.tag_ids);
+    if (data.location_type === 'in_person' || data.location_type === 'online' || data.location_type === 'hybrid') {
+      setLocationType(data.location_type);
+    }
+    if (data.suggested_location_name) setLocationName(data.suggested_location_name);
+    if (data.suggested_city) setLocationCity(data.suggested_city);
+    setAiResult(null);
+    showSuccess('Succès', 'Les données IA ont été appliquées au formulaire');
+  };
+
+  const handleOptimizeTitle = async () => {
+    if (!title.trim() || title.length < 5) return;
+    setAiTitleLoading(true);
+    try {
+      const categoryName = categories.find(c => c.id === categoryId)?.name || '';
+      const res = await aiAssistAPI.optimizeTitle(title, eventType, categoryName, sessionId);
+      const suggestions = res.data.suggestions || res.data;
+      if (Array.isArray(suggestions) && suggestions.length > 0) {
+        showAlert(
+          'Suggestions de titre',
+          suggestions.map((s: any, i: number) => `${i + 1}. ${s.title}\n   → ${s.reason}`).join('\n\n'),
+          [
+            { text: 'Annuler', style: 'cancel' },
+            ...suggestions.slice(0, 3).map((s: any) => ({
+              text: s.title.substring(0, 20) + '...',
+              onPress: () => setTitle(s.title),
+            })),
+          ]
+        );
+      }
+      refreshAIUsage();
+    } catch (err: any) {
+      showError('Erreur', err.response?.data?.detail || 'Impossible d\'optimiser le titre');
+    } finally {
+      setAiTitleLoading(false);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!title.trim()) {
+      showError('Erreur', 'Veuillez d\'abord entrer un titre');
+      return;
+    }
+    setAiDescLoading(true);
+    try {
+      const categoryName = categories.find(c => c.id === categoryId)?.name || '';
+      const res = await aiAssistAPI.description(title, '', eventType, categoryName, sessionId);
+      const text = res.data.text || res.data.description || '';
+      if (text) {
+        setDescription(text);
+        showSuccess('Succès', 'Description générée par l\'IA');
+      }
+      refreshAIUsage();
+    } catch (err: any) {
+      showError('Erreur', err.response?.data?.detail || 'Impossible de générer la description');
+    } finally {
+      setAiDescLoading(false);
+    }
+  };
+
+  const handleSuggestPricing = async () => {
+    setAiPricingLoading(true);
+    try {
+      const categoryName = categories.find(c => c.id === categoryId)?.name || '';
+      const res = await aiAssistAPI.pricing(eventType, categoryName, locationCity, maxParticipants, description, sessionId);
+      const suggestions = res.data.suggestions || res.data;
+      if (Array.isArray(suggestions) && suggestions.length > 0) {
+        showAlert(
+          'Suggestions de prix IA',
+          suggestions.map((s: any) => `${s.name}: ${s.price} FCFA\n→ ${s.reasoning}`).join('\n\n'),
+          [
+            { text: 'Annuler', style: 'cancel' },
+            {
+              text: 'Appliquer',
+              onPress: () => {
+                const newTickets = suggestions.map((s: any) => ({
+                  name: s.name,
+                  description: s.reasoning || '',
+                  price: String(s.price),
+                  quantity_total: '100',
+                  sales_start: startDate,
+                  sales_end: new Date(startDate.getTime() - 86400000),
+                  is_visible: true,
+                  max_per_order: '10',
+                  min_per_order: '1',
+                }));
+                setTicketTypes(newTickets);
+                showSuccess('Succès', 'Tickets créés à partir des suggestions IA');
+              },
+            },
+          ]
+        );
+      }
+      refreshAIUsage();
+    } catch (err: any) {
+      showError('Erreur', err.response?.data?.detail || 'Impossible de suggérer les prix');
+    } finally {
+      setAiPricingLoading(false);
     }
   };
 
@@ -606,6 +775,17 @@ export default function EventCreateScreen() {
       <Text style={styles.stepTitle}>Informations de base</Text>
       <Text style={styles.stepDescription}>Décrivez votre événement pour attirer les participants</Text>
 
+      {/* AI Quick Create */}
+      <AIQuickCreatePanel
+        onGenerate={handleAIGenerate}
+        onApply={handleAIApply}
+        isLoading={aiLoading}
+        result={aiResult}
+        error={aiError}
+        disabled={!aiUsage || (aiUsage.daily_limit > 0 && aiUsage.daily_count >= aiUsage.daily_limit)}
+        aiEnabled={aiEnabled}
+      />
+
       {/* Banner Image */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Image de couverture</Text>
@@ -630,7 +810,17 @@ export default function EventCreateScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Titre de l'événement *</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.label}>Titre de l'événement *</Text>
+          {aiEnabled && (
+            <AIAssistButton
+              label="Optimiser"
+              onPress={handleOptimizeTitle}
+              isLoading={aiTitleLoading}
+              disabled={!title.trim() || title.length < 5}
+            />
+          )}
+        </View>
         <TextInput
           style={styles.input}
           value={title}
@@ -654,7 +844,17 @@ export default function EventCreateScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Description complète *</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={styles.label}>Description complète *</Text>
+          {aiEnabled && (
+            <AIAssistButton
+              label="Générer"
+              onPress={handleGenerateDescription}
+              isLoading={aiDescLoading}
+              disabled={!title.trim()}
+            />
+          )}
+        </View>
         <TextInput
           style={[styles.input, styles.textArea]}
           value={description}
@@ -1097,6 +1297,15 @@ export default function EventCreateScreen() {
           : 'Définissez les champs du formulaire d\'inscription'}
       </Text>
 
+      {aiEnabled && eventType === 'billetterie' && (
+        <AIAssistButton
+          label="Suggérer des prix avec l'IA"
+          onPress={handleSuggestPricing}
+          isLoading={aiPricingLoading}
+          variant="full"
+        />
+      )}
+
       {eventType === 'billetterie' ? (
         // BILLETTERIE - Ticket Types + Optional Form Fields
         <>
@@ -1524,7 +1733,7 @@ export default function EventCreateScreen() {
             <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
           </TouchableOpacity>
           <Text style={styles.headerBarTitle}>Créer un événement</Text>
-          <View style={{ width: 40 }} />
+          {aiEnabled ? <AIUsageBadge usage={aiUsage} /> : <View style={{ width: 40 }} />}
         </View>
 
         {/* Progress Steps */}

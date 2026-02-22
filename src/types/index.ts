@@ -1323,3 +1323,44 @@ export interface ActionSheetOption {
   destructive?: boolean;
   onPress: () => void;
 }
+
+// ============================================
+// AI ASSIST TYPES
+// ============================================
+
+export interface AIUsage {
+  daily_count: number;
+  daily_limit: number;
+  session_count: number;
+  session_limit: number;
+}
+
+export interface AIGeneratedEvent {
+  title?: string;
+  short_description?: string;
+  description?: string;
+  event_type?: string;
+  category_id?: string;
+  tag_ids?: number[];
+  location_type?: string;
+  suggested_location_name?: string;
+  suggested_city?: string;
+  seo_title?: string;
+  seo_description?: string;
+}
+
+export interface AITitleSuggestion {
+  title: string;
+  reason: string;
+}
+
+export interface AIPricingSuggestion {
+  name: string;
+  price: number;
+  reasoning: string;
+}
+
+export interface AICategorySuggestion {
+  category_id: number;
+  tag_ids: number[];
+}

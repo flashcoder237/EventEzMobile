@@ -1936,3 +1936,39 @@ export const comparisonAPI = {
   compare: (eventIds: string[]) =>
     api.get('/events/compare/', { params: { ids: eventIds.join(',') } }),
 };
+
+// ============================================
+// SITE SETTINGS API
+// ============================================
+
+export const siteSettingsAPI = {
+  get: () =>
+    api.get('/site-settings/'),
+};
+
+// ============================================
+// AI ASSIST API
+// ============================================
+
+export const aiAssistAPI = {
+  generate: (prompt: string, sessionId: string) =>
+    api.post('/ai-assist/generate/', { prompt, session_id: sessionId }),
+
+  description: (title: string, keywords: string, eventType: string, category: string, sessionId: string) =>
+    api.post('/ai-assist/description/', { title, keywords, event_type: eventType, category, session_id: sessionId }),
+
+  suggestCategory: (title: string, description: string, categories: any[], tags: any[], sessionId: string) =>
+    api.post('/ai-assist/suggest-category/', { title, description, categories, tags, session_id: sessionId }),
+
+  optimizeTitle: (title: string, eventType: string, category: string, sessionId: string) =>
+    api.post('/ai-assist/optimize-title/', { title, event_type: eventType, category, session_id: sessionId }),
+
+  seo: (title: string, description: string, category: string, location: string, sessionId: string) =>
+    api.post('/ai-assist/seo/', { title, description, category, location, session_id: sessionId }),
+
+  pricing: (eventType: string, category: string, city: string, capacity: string, description: string, sessionId: string) =>
+    api.post('/ai-assist/pricing/', { event_type: eventType, category, city, capacity, description, session_id: sessionId }),
+
+  usage: (sessionId: string) =>
+    api.get('/ai-assist/usage/', { params: { session_id: sessionId } }),
+};
