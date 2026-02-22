@@ -1926,6 +1926,9 @@ export const gamificationAPI = {
 
   getMyRank: (params?: { event?: string; period?: string }) =>
     api.get('/gamification/leaderboard/my_rank/', { params }),
+
+  getPointsHistory: () =>
+    api.get('/gamification/points/'),
 };
 
 // ============================================
@@ -1980,4 +1983,28 @@ export const aiAssistAPI = {
 
   usage: (sessionId: string) =>
     api.get('/ai-assist/usage/', { params: { session_id: sessionId } }),
+};
+
+// ============================================
+// UTM TRACKING API
+// ============================================
+
+export const utmAPI = {
+  getAll: (params?: { event?: string }) =>
+    api.get('/utm/', { params }),
+
+  create: (data: {
+    event: string;
+    utm_source?: string;
+    utm_medium?: string;
+    utm_campaign?: string;
+    utm_term?: string;
+    utm_content?: string;
+    referrer_url?: string;
+    landing_page?: string;
+  }) =>
+    api.post('/utm/', data),
+
+  getStats: (eventId: string) =>
+    api.get('/utm/stats/', { params: { event_id: eventId } }),
 };

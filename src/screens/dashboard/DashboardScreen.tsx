@@ -238,6 +238,11 @@ export default function DashboardScreen() {
               title="Parrainage"
               onPress={() => navigation.navigate('Referrals')}
             />
+            <QuickAction
+              icon="trophy-outline"
+              title="Badges"
+              onPress={() => navigation.navigate('Gamification')}
+            />
           </View>
         </View>
 
