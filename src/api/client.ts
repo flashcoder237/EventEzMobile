@@ -389,6 +389,29 @@ export const usersAPI = {
 
   rejectProfile: (id: string, data: { reason: string }) =>
     api.post(`/users/${id}/reject_profile/`, data),
+
+  // User Following
+  followUser: (id: number, preferences?: {
+    notification_preference?: 'all' | 'important' | 'none';
+    notify_email?: boolean;
+    notify_push?: boolean;
+    notify_new_event?: boolean;
+  }) => api.post(`/users/${id}/follow/`, preferences || {}),
+
+  unfollowUser: (id: number) =>
+    api.post(`/users/${id}/unfollow/`),
+
+  isFollowingUser: (id: number) =>
+    api.get(`/users/${id}/is_following/`),
+
+  getUserFollowersCount: (id: number) =>
+    api.get(`/users/${id}/followers_count/`),
+
+  updateUserFollowPreferences: (id: number, preferences: any) =>
+    api.patch(`/users/${id}/update_follow_preferences/`, preferences),
+
+  getFollowingUsers: () =>
+    api.get('/users/following_users/'),
 };
 
 // ============================================

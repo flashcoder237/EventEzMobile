@@ -14,6 +14,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { ticketPurchasesAPI, registrationsAPI } from '../../api/client';
@@ -54,6 +56,136 @@ export default function QRCodeScreen() {
       showError('Erreur', 'Impossible de charger les détails du billet');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateTicketHTML = (): string => {
+    const eventTitle = event?.title || (ticket as any)?.event_title || 'Événement';
+    const qrUrl = getQRCodeImageUrl();
+    const ticketTypeName = ticketType?.name || (ticket as any)?.ticket_type_name || 'Standard';
+    const reference = String(ticketId).slice(0, 8).toUpperCase();
+    const statusLabel = getStatusConfig(ticket?.status).label;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+          .ticket { background: white; max-width: 500px; margin: 0 auto; border-radius: 16px; overflow: hidden; border: 1px solid #e5e7eb; }
+          .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 24px; text-align: center; color: white; }
+          .header h1 { font-size: 22px; margin-bottom: 4px; }
+          .header p { font-size: 13px; opacity: 0.9; }
+          .event-section { padding: 20px 24px; border-bottom: 1px dashed #e5e7eb; }
+          .event-title { font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 12px; }
+          .meta-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; color: #6b7280; font-size: 14px; }
+          .meta-icon { width: 18px; text-align: center; }
+          .qr-section { padding: 24px; text-align: center; border-bottom: 1px dashed #e5e7eb; }
+          .qr-container { display: inline-block; padding: 12px; border: 2px solid #6366f1; border-radius: 12px; }
+          .qr-container img { width: 180px; height: 180px; }
+          .qr-hint { font-size: 12px; color: #9ca3af; margin-top: 12px; }
+          .details-section { padding: 20px 24px; background: #f9fafb; }
+          .detail-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+          .detail-label { color: #6b7280; font-size: 14px; }
+          .detail-value { font-weight: 600; color: #111827; font-size: 14px; }
+          .status-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; background: #d1fae5; color: #059669; }
+          .total { color: #6366f1; font-size: 16px; }
+          .attendee-section { padding: 20px 24px; border-top: 1px solid #e5e7eb; }
+          .attendee-section h3 { font-size: 15px; font-weight: 600; color: #111827; margin-bottom: 10px; }
+          .attendee-row { display: flex; align-items: center; gap: 8px; color: #6b7280; font-size: 14px; padding: 4px 0; }
+          .footer { padding: 16px 24px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
+        </style>
+      </head>
+      <body>
+        <div class="ticket">
+          <div class="header">
+            <h1>EventEz</h1>
+            <p>Billet électronique</p>
+          </div>
+          <div class="event-section">
+            <div class="event-title">${eventTitle}</div>
+            ${event?.start_date ? `<div class="meta-item"><span class="meta-icon">📅</span> ${formatDate(event.start_date)}</div>` : ''}
+            ${event?.start_date ? `<div class="meta-item"><span class="meta-icon">🕐</span> ${formatTime(event.start_date)}</div>` : ''}
+            ${event?.location_name || event?.location_city ? `<div class="meta-item"><span class="meta-icon">📍</span> ${event.location_name || event.location_city}</div>` : ''}
+          </div>
+          <div class="qr-section">
+            <div class="qr-container">
+              <img src="${qrUrl}" alt="QR Code" />
+            </div>
+            <p class="qr-hint">Présentez ce QR code à l'entrée de l'événement</p>
+          </div>
+          <div class="details-section">
+            <div class="detail-row">
+              <span class="detail-label">Statut</span>
+              <span class="status-badge">${statusLabel}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Type de billet</span>
+              <span class="detail-value">${ticketTypeName}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Quantité</span>
+              <span class="detail-value">${ticket?.quantity || 1}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Prix unitaire</span>
+              <span class="detail-value">${ticket?.unit_price ? `${ticket.unit_price.toLocaleString()} FCFA` : 'Gratuit'}</span>
+            </div>
+            ${(ticket?.discount_amount ?? 0) > 0 ? `
+            <div class="detail-row">
+              <span class="detail-label">Réduction</span>
+              <span class="detail-value" style="color: #059669;">-${ticket!.discount_amount!.toLocaleString()} FCFA</span>
+            </div>` : ''}
+            <div class="detail-row">
+              <span class="detail-label">Total payé</span>
+              <span class="detail-value total">${ticket?.total_price ? `${ticket.total_price.toLocaleString()} FCFA` : 'Gratuit'}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Référence</span>
+              <span class="detail-value">${reference}</span>
+            </div>
+          </div>
+          ${ticket?.attendee_name || ticket?.attendee_email ? `
+          <div class="attendee-section">
+            <h3>Participant</h3>
+            ${ticket?.attendee_name ? `<div class="attendee-row">👤 ${ticket.attendee_name}</div>` : ''}
+            ${ticket?.attendee_email ? `<div class="attendee-row">✉️ ${ticket.attendee_email}</div>` : ''}
+          </div>` : ''}
+          <div class="footer">
+            Généré par EventEz — ${new Date().toLocaleDateString('fr-FR')}
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!ticket) return;
+    try {
+      const html = generateTicketHTML();
+      const { uri } = await Print.printToFileAsync({ html });
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Sauvegarder le billet PDF',
+        UTI: 'com.adobe.pdf',
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      showError('Erreur', 'Impossible de générer le PDF');
+    }
+  };
+
+  const handlePrint = async () => {
+    if (!ticket) return;
+    try {
+      const html = generateTicketHTML();
+      await Print.printAsync({ html });
+    } catch (error) {
+      console.error('Error printing:', error);
+      showError('Erreur', 'Impossible d\'imprimer le billet');
     }
   };
 
@@ -167,9 +299,17 @@ export default function QRCodeScreen() {
           <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Mon Billet</Text>
-        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-          <Ionicons name="share-outline" size={24} color={Colors.gray900} />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handlePrint}>
+            <Ionicons name="print-outline" size={22} color={Colors.gray900} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handleDownloadPDF}>
+            <Ionicons name="download-outline" size={22} color={Colors.gray900} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handleShare}>
+            <Ionicons name="share-outline" size={22} color={Colors.gray900} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
@@ -452,10 +592,15 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
-  shareButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  headerActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },

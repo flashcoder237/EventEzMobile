@@ -24,6 +24,7 @@ import {
 } from '../../constants/theme';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import DotPattern from '../../components/ui/DotPattern';
 
 type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ResetPassword'>;
 type RouteProps = RouteProp<AuthStackParamList, 'ResetPassword'>;
@@ -185,11 +186,11 @@ export default function ResetPasswordScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
-      {/* Background decoration */}
-      <View style={styles.backgroundDecoration}>
-        <View style={styles.decorativeCircle1} />
-        <View style={styles.decorativeCircle2} />
-      </View>
+      {/* Dot pattern background */}
+      <DotPattern />
+
+      {/* Top accent bar */}
+      <View style={styles.accentBar} />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -380,32 +381,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  backgroundDecoration: {
+  accentBar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 400,
-  },
-  decorativeCircle1: {
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
+    height: 4,
     backgroundColor: Colors.primary,
-    opacity: 0.05,
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    top: 50,
-    left: -80,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: Colors.secondary,
-    opacity: 0.04,
   },
   safeArea: {
     flex: 1,

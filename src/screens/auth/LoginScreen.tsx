@@ -4,7 +4,6 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  ScrollView,
   Image,
   StatusBar,
   ActivityIndicator,
@@ -27,12 +26,12 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
-  TOUCH_OPACITY,
 } from '../../constants/theme';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import DotPattern from '../../components/ui/DotPattern';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
 
@@ -49,7 +48,6 @@ export default function LoginScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors<'email' | 'password'>>({});
 
-  // Charger la préférence "Se souvenir de moi" au démarrage
   useEffect(() => {
     const loadRememberMe = async () => {
       try {
@@ -64,7 +62,6 @@ export default function LoginScreen() {
     loadRememberMe();
   }, []);
 
-  // Hooks d'authentification sociale
   const {
     signIn: googleSignIn,
     isLoading: googleLoading,
@@ -77,22 +74,18 @@ export default function LoginScreen() {
     isAvailable: appleAvailable,
   } = useAppleAuth();
 
-  // Handler pour Google Sign-In
   const handleGoogleSignIn = async () => {
     const result = await googleSignIn();
     if (result.success && result.user) {
-      // L'utilisateur est connecté, mettre à jour le contexte
       await setUser(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Google', result.error);
     }
   };
 
-  // Handler pour Apple Sign-In
   const handleAppleSignIn = async () => {
     const result = await appleSignIn();
     if (result.success && result.user) {
-      // L'utilisateur est connecté, mettre à jour le contexte
       await setUser(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Apple', result.error);
@@ -101,22 +94,17 @@ export default function LoginScreen() {
 
   const validate = () => {
     const newErrors: FormErrors<'email' | 'password'> = {};
-
     const emailError = validators.email(email);
     if (emailError) newErrors.email = emailError;
-
     const passwordError = validators.password(password, 6);
     if (passwordError) newErrors.password = passwordError;
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleLogin = async () => {
     if (!validate()) return;
-
     try {
-      // Sauvegarder la préférence "Se souvenir de moi"
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await login(email.trim().toLowerCase(), password, rememberMe);
     } catch (error: any) {
@@ -136,11 +124,11 @@ export default function LoginScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
-      {/* Background decoration */}
-      <View style={styles.backgroundDecoration}>
-        <View style={styles.decorativeCircle1} />
-        <View style={styles.decorativeCircle2} />
-      </View>
+      {/* Dot pattern background */}
+      <DotPattern />
+
+      {/* Top accent bar */}
+      <View style={styles.accentBar} />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -150,216 +138,206 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           bottomOffset={20}
         >
-            {/* Logo */}
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../../assets/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
+          {/* Logo */}
+          <View style={styles.logoContainer}>
+            <Image
+              source={require('../../../assets/logo.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
 
-            {/* Welcome Text */}
-            <View style={styles.welcomeContainer}>
-              <Text style={styles.title}>Bon retour !</Text>
-              <Text style={styles.subtitle}>
-                Connectez-vous pour découvrir les meilleurs événements
-              </Text>
-            </View>
+          {/* Header */}
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>Bon retour !</Text>
+            <Text style={styles.subtitle}>
+              Connectez-vous pour découvrir les meilleurs événements
+            </Text>
+          </View>
 
-            {/* Form */}
-            <View style={styles.form}>
-              {/* Email Input */}
-              <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    getInputStyle('email', !!errors.email),
-                  ]}
-                >
-                  <View style={styles.inputIconContainer}>
-                    <Ionicons
-                      name="mail-outline"
-                      size={20}
-                      color={focusedField === 'email' ? Colors.primary : Colors.gray400}
-                    />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="votre@email.com"
-                    placeholderTextColor={Colors.gray400}
-                    value={email}
-                    onChangeText={(text) => {
-                      setEmail(text);
-                      if (errors.email) setErrors({ ...errors, email: undefined });
-                    }}
-                    onFocus={() => setFocusedField('email')}
-                    onBlur={() => setFocusedField(null)}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    autoComplete="email"
+          {/* Form */}
+          <View style={styles.form}>
+            {/* Email */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <View style={[styles.inputWrapper, getInputStyle('email', !!errors.email)]}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons
+                    name="mail-outline"
+                    size={20}
+                    color={focusedField === 'email' ? Colors.primary : Colors.gray400}
                   />
                 </View>
-                {errors.email && (
-                  <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle" size={14} color={Colors.error} />
-                    <Text style={styles.errorText}>{errors.email}</Text>
-                  </View>
-                )}
+                <TextInput
+                  style={styles.input}
+                  placeholder="votre@email.com"
+                  placeholderTextColor={Colors.gray400}
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (errors.email) setErrors({ ...errors, email: undefined });
+                  }}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  autoComplete="email"
+                />
               </View>
-
-              {/* Password Input */}
-              <View style={styles.inputContainer}>
-                <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Mot de passe</Text>
-                  <AnimatedPressable
-                    onPress={() => navigation.navigate('ForgotPassword')}
-                    animationType="scale"
-                    scaleValue={0.95}
-                  >
-                    <Text style={styles.forgotPasswordText}>Oublié ?</Text>
-                  </AnimatedPressable>
+              {errors.email && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
+                  <Text style={styles.errorText}>{errors.email}</Text>
                 </View>
-                <View
-                  style={[
-                    styles.inputWrapper,
-                    getInputStyle('password', !!errors.password),
-                  ]}
-                >
-                  <View style={styles.inputIconContainer}>
-                    <Ionicons
-                      name="lock-closed-outline"
-                      size={20}
-                      color={focusedField === 'password' ? Colors.primary : Colors.gray400}
-                    />
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="••••••••"
-                    placeholderTextColor={Colors.gray400}
-                    value={password}
-                    onChangeText={(text) => {
-                      setPassword(text);
-                      if (errors.password) setErrors({ ...errors, password: undefined });
-                    }}
-                    onFocus={() => setFocusedField('password')}
-                    onBlur={() => setFocusedField(null)}
-                    secureTextEntry={!showPassword}
-                    autoComplete="password"
-                  />
-                  <AnimatedPressable
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={styles.eyeButton}
-                    animationType="scale"
-                    scaleValue={0.9}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={Colors.gray400}
-                    />
-                  </AnimatedPressable>
-                </View>
-                {errors.password && (
-                  <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle" size={14} color={Colors.error} />
-                    <Text style={styles.errorText}>{errors.password}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Remember Me Checkbox */}
-              <AnimatedPressable
-                onPress={() => setRememberMe(!rememberMe)}
-                style={styles.rememberMeContainer}
-                animationType="scale"
-                scaleValue={0.98}
-              >
-                <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
-                  {rememberMe && (
-                    <Ionicons name="checkmark" size={14} color={Colors.white} />
-                  )}
-                </View>
-                <Text style={styles.rememberMeText}>Se souvenir de moi</Text>
-              </AnimatedPressable>
-
-              {/* Login Button */}
-              <GradientButton
-                onPress={handleLogin}
-                title="Se connecter"
-                loading={isLoading}
-                icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
-                size="xl"
-                fullWidth
-                style={styles.loginButton}
-              />
-            </View>
-
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou continuer avec</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Social Login */}
-            <View style={styles.socialButtons}>
-              <AnimatedPressable
-                style={[
-                  styles.socialButton,
-                  (!googleReady || googleLoading) && styles.socialButtonDisabled,
-                ]}
-                onPress={handleGoogleSignIn}
-                disabled={!googleReady || googleLoading || isLoading}
-                animationType="lift"
-                scaleValue={0.98}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator size="small" color="#DB4437" />
-                ) : (
-                  <>
-                    <Ionicons name="logo-google" size={22} color="#DB4437" />
-                    <Text style={styles.socialButtonText}>Google</Text>
-                  </>
-                )}
-              </AnimatedPressable>
-
-              {appleAvailable && (
-                <AnimatedPressable
-                  style={[
-                    styles.socialButton,
-                    appleLoading && styles.socialButtonDisabled,
-                  ]}
-                  onPress={handleAppleSignIn}
-                  disabled={appleLoading || isLoading}
-                  animationType="lift"
-                  scaleValue={0.98}
-                >
-                  {appleLoading ? (
-                    <ActivityIndicator size="small" color={Colors.gray900} />
-                  ) : (
-                    <>
-                      <Ionicons name="logo-apple" size={22} color={Colors.gray900} />
-                      <Text style={styles.socialButtonText}>Apple</Text>
-                    </>
-                  )}
-                </AnimatedPressable>
               )}
             </View>
 
-            {/* Register Link */}
-            <View style={styles.registerContainer}>
-              <Text style={styles.registerText}>Pas encore de compte ?</Text>
-              <AnimatedPressable
-                onPress={() => navigation.navigate('Register')}
-                animationType="scale"
-                scaleValue={0.95}
-              >
-                <Text style={styles.registerLink}> Créer un compte</Text>
-              </AnimatedPressable>
+            {/* Password */}
+            <View style={styles.inputContainer}>
+              <View style={styles.labelRow}>
+                <Text style={styles.inputLabel}>Mot de passe</Text>
+                <AnimatedPressable
+                  onPress={() => navigation.navigate('ForgotPassword')}
+                  animationType="scale"
+                  scaleValue={0.95}
+                >
+                  <Text style={styles.forgotPasswordText}>Oublié ?</Text>
+                </AnimatedPressable>
+              </View>
+              <View style={[styles.inputWrapper, getInputStyle('password', !!errors.password)]}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons
+                    name="lock-closed-outline"
+                    size={20}
+                    color={focusedField === 'password' ? Colors.primary : Colors.gray400}
+                  />
+                </View>
+                <TextInput
+                  style={styles.input}
+                  placeholder="••••••••"
+                  placeholderTextColor={Colors.gray400}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (errors.password) setErrors({ ...errors, password: undefined });
+                  }}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                />
+                <AnimatedPressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                  animationType="scale"
+                  scaleValue={0.9}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={Colors.gray400}
+                  />
+                </AnimatedPressable>
+              </View>
+              {errors.password && (
+                <View style={styles.errorContainer}>
+                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
+                  <Text style={styles.errorText}>{errors.password}</Text>
+                </View>
+              )}
             </View>
+
+            {/* Remember Me */}
+            <AnimatedPressable
+              onPress={() => setRememberMe(!rememberMe)}
+              style={styles.rememberMeContainer}
+              animationType="scale"
+              scaleValue={0.98}
+            >
+              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+                {rememberMe && (
+                  <Ionicons name="checkmark" size={14} color={Colors.white} />
+                )}
+              </View>
+              <Text style={styles.rememberMeText}>Se souvenir de moi</Text>
+            </AnimatedPressable>
+
+            {/* Login Button */}
+            <GradientButton
+              onPress={handleLogin}
+              title="Se connecter"
+              loading={isLoading}
+              icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
+              size="xl"
+              fullWidth
+              style={styles.loginButton}
+            />
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>ou continuer avec</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Social Login */}
+          <View style={styles.socialButtons}>
+            <AnimatedPressable
+              style={[
+                styles.socialButton,
+                (!googleReady || googleLoading) && styles.socialButtonDisabled,
+              ]}
+              onPress={handleGoogleSignIn}
+              disabled={!googleReady || googleLoading || isLoading}
+              animationType="lift"
+              scaleValue={0.98}
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color="#DB4437" />
+              ) : (
+                <>
+                  <Ionicons name="logo-google" size={22} color="#DB4437" />
+                  <Text style={styles.socialButtonText}>Google</Text>
+                </>
+              )}
+            </AnimatedPressable>
+
+            {appleAvailable && (
+              <AnimatedPressable
+                style={[
+                  styles.socialButton,
+                  appleLoading && styles.socialButtonDisabled,
+                ]}
+                onPress={handleAppleSignIn}
+                disabled={appleLoading || isLoading}
+                animationType="lift"
+                scaleValue={0.98}
+              >
+                {appleLoading ? (
+                  <ActivityIndicator size="small" color={Colors.gray900} />
+                ) : (
+                  <>
+                    <Ionicons name="logo-apple" size={22} color={Colors.gray900} />
+                    <Text style={styles.socialButtonText}>Apple</Text>
+                  </>
+                )}
+              </AnimatedPressable>
+            )}
+          </View>
+
+          {/* Register Link */}
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>Pas encore de compte ?</Text>
+            <AnimatedPressable
+              onPress={() => navigation.navigate('Register')}
+              animationType="scale"
+              scaleValue={0.95}
+            >
+              <Text style={styles.registerLink}> Créer un compte</Text>
+            </AnimatedPressable>
+          </View>
         </KeyboardAwareScrollView>
       </SafeAreaView>
     </View>
@@ -371,32 +349,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
   },
-  backgroundDecoration: {
+  accentBar: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    height: 400,
-  },
-  decorativeCircle1: {
-    position: 'absolute',
-    top: -100,
-    right: -100,
-    width: 250,
-    height: 250,
-    borderRadius: 125,
+    height: 4,
     backgroundColor: Colors.primary,
-    opacity: 0.05,
-  },
-  decorativeCircle2: {
-    position: 'absolute',
-    top: 50,
-    left: -80,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: Colors.secondary,
-    opacity: 0.04,
   },
   safeArea: {
     flex: 1,
@@ -407,26 +366,26 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.xl,
+    paddingTop: Spacing['2xl'],
     paddingBottom: Spacing['2xl'],
     justifyContent: 'center',
   },
   logoContainer: {
     alignItems: 'center',
-    marginBottom: Spacing['2xl'],
+    marginBottom: Spacing.xl,
   },
   logo: {
-    width: 200,
-    height: 65,
+    width: 180,
+    height: 58,
   },
-  welcomeContainer: {
-    marginBottom: Spacing['2xl'],
+  headerContainer: {
+    marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: FontSizes['4xl'],
+    fontSize: FontSizes['3xl'],
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
     letterSpacing: -0.5,
   },
   subtitle: {
@@ -525,12 +484,12 @@ const styles = StyleSheet.create({
     color: Colors.gray600,
   },
   loginButton: {
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Spacing['2xl'],
+    marginVertical: Spacing.xl,
   },
   dividerLine: {
     flex: 1,
@@ -558,7 +517,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.gray200,
     backgroundColor: Colors.white,
-    ...Shadows.sm,
   },
   socialButtonText: {
     fontSize: FontSizes.md,
