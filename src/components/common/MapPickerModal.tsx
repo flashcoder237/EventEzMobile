@@ -21,6 +21,8 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -264,6 +266,7 @@ export default function MapPickerModal({
     <TouchableOpacity
       style={styles.searchResultItem}
       onPress={() => selectSearchResult(item)}
+      activeOpacity={TOUCH_OPACITY}
     >
       <Ionicons name="location-outline" size={18} color={Colors.primary} />
       <View style={styles.searchResultText}>
@@ -290,7 +293,7 @@ export default function MapPickerModal({
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <TouchableOpacity onPress={onClose} activeOpacity={TOUCH_OPACITY} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={Colors.white} />
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
@@ -323,6 +326,7 @@ export default function MapPickerModal({
             style={styles.searchButton}
             onPress={handleSearch}
             disabled={searching || !searchQuery.trim()}
+            activeOpacity={TOUCH_OPACITY}
           >
             {searching ? (
               <ActivityIndicator size="small" color={Colors.white} />
@@ -334,6 +338,7 @@ export default function MapPickerModal({
             style={styles.locationButton}
             onPress={getUserLocation}
             disabled={loadingLocation}
+            activeOpacity={TOUCH_OPACITY}
           >
             {loadingLocation ? (
               <ActivityIndicator size="small" color={Colors.white} />
@@ -402,6 +407,7 @@ export default function MapPickerModal({
             <TouchableOpacity
               style={styles.confirmButton}
               onPress={confirmSelection}
+              activeOpacity={TOUCH_OPACITY}
             >
               <Ionicons name="checkmark" size={20} color={Colors.white} />
               <Text style={styles.confirmButtonText}>Confirmer</Text>
@@ -503,11 +509,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
     maxHeight: 200,
     zIndex: 1000,
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    ...Shadows.xl,
   },
   searchResultItem: {
     flexDirection: 'row',

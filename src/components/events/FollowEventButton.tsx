@@ -18,6 +18,7 @@ import {
   FontFamily,
   BorderRadius,
   Spacing,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
 
 interface FollowEventButtonProps {
@@ -179,18 +180,19 @@ export default function FollowEventButton({
       <TouchableOpacity
         onPress={handleToggleFollow}
         disabled={isLoading}
+        activeOpacity={TOUCH_OPACITY}
         style={[
           styles.iconButton,
           isFollowing && styles.iconButtonActive,
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? '#EF4444' : Colors.gray500} />
+          <ActivityIndicator size="small" color={isFollowing ? Colors.error : Colors.gray500} />
         ) : (
           <Ionicons
             name={isFollowing ? 'heart' : 'heart-outline'}
             size={22}
-            color={isFollowing ? '#EF4444' : Colors.gray600}
+            color={isFollowing ? Colors.error : Colors.gray600}
           />
         )}
       </TouchableOpacity>
@@ -203,19 +205,20 @@ export default function FollowEventButton({
       <TouchableOpacity
         onPress={handleToggleFollow}
         disabled={isLoading}
+        activeOpacity={TOUCH_OPACITY}
         style={[
           styles.compactButton,
           isFollowing && styles.compactButtonActive,
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? '#EF4444' : Colors.gray600} />
+          <ActivityIndicator size="small" color={isFollowing ? Colors.error : Colors.gray600} />
         ) : (
           <>
             <Ionicons
               name={isFollowing ? 'heart' : 'heart-outline'}
               size={16}
-              color={isFollowing ? '#EF4444' : Colors.gray600}
+              color={isFollowing ? Colors.error : Colors.gray600}
             />
             <Text style={[styles.compactText, isFollowing && styles.compactTextActive]}>
               {isFollowing ? 'Suivi' : 'Suivre'}
@@ -233,19 +236,20 @@ export default function FollowEventButton({
         <TouchableOpacity
           onPress={handleToggleFollow}
           disabled={isLoading}
+          activeOpacity={TOUCH_OPACITY}
           style={[
             styles.mainButton,
             isFollowing ? styles.mainButtonFollowing : styles.mainButtonDefault,
           ]}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={isFollowing ? '#EF4444' : Colors.white} />
+            <ActivityIndicator size="small" color={isFollowing ? Colors.error : Colors.white} />
           ) : (
             <>
               <Ionicons
                 name={isFollowing ? 'heart' : 'heart-outline'}
                 size={20}
-                color={isFollowing ? '#EF4444' : Colors.white}
+                color={isFollowing ? Colors.error : Colors.white}
               />
               <Text style={[styles.mainButtonText, isFollowing && styles.mainButtonTextFollowing]}>
                 {isFollowing ? 'Vous suivez cet événement' : 'Suivre cet événement'}
@@ -264,6 +268,7 @@ export default function FollowEventButton({
         {isFollowing && (
           <TouchableOpacity
             onPress={() => setShowPreferences(true)}
+            activeOpacity={TOUCH_OPACITY}
             style={styles.preferencesButton}
           >
             <Ionicons name="notifications-outline" size={20} color={Colors.gray600} />
@@ -382,9 +387,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   mainButtonFollowing: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: Colors.errorBg,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: Colors.errorBorder,
   },
   mainButtonText: {
     fontSize: FontSizes.base,
@@ -392,7 +397,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   mainButtonTextFollowing: {
-    color: '#EF4444',
+    color: Colors.error,
   },
   badge: {
     paddingHorizontal: Spacing.sm,
@@ -401,7 +406,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   badgeFollowing: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: Colors.errorLight,
   },
   badgeText: {
     fontSize: FontSizes.xs,
@@ -409,7 +414,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   badgeTextFollowing: {
-    color: '#EF4444',
+    color: Colors.error,
   },
   preferencesButton: {
     width: 48,
@@ -428,7 +433,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconButtonActive: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: Colors.errorBg,
   },
   compactButton: {
     flexDirection: 'row',
@@ -440,7 +445,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   compactButtonActive: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: Colors.errorBg,
   },
   compactText: {
     fontSize: FontSizes.sm,
@@ -448,7 +453,7 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
   },
   compactTextActive: {
-    color: '#EF4444',
+    color: Colors.error,
   },
   modalContainer: {
     flex: 1,

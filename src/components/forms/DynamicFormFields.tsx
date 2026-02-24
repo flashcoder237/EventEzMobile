@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
   },
   required: {
-    color: '#EF4444',
+    color: Colors.error,
     marginLeft: 4,
   },
   input: {
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
   },
   inputError: {
-    borderColor: '#EF4444',
+    borderColor: Colors.error,
   },
   textArea: {
     minHeight: 100,
@@ -394,7 +394,7 @@ const styles = StyleSheet.create({
   },
   selectOptionActive: {
     borderColor: Colors.primary,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: Colors.primaryBg,
   },
   selectOptionText: {
     fontSize: FontSizes.base,
@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FontSizes.sm,
-    color: '#EF4444',
+    color: Colors.error,
     marginTop: 4,
   },
   stepIndicator: {
@@ -485,12 +485,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   stepCircleCompleted: {
-    backgroundColor: '#10B981',
+    backgroundColor: Colors.success,
   },
   stepCircleCurrent: {
     backgroundColor: Colors.primary,
     borderWidth: 3,
-    borderColor: '#E9D5FF',
+    borderColor: Colors.primaryLight,
   },
   stepNumber: {
     fontSize: FontSizes.sm,
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.xs,
   },
   stepLineCompleted: {
-    backgroundColor: '#10B981',
+    backgroundColor: Colors.success,
   },
   stepTitle: {
     fontSize: FontSizes.lg,

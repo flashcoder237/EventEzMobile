@@ -431,7 +431,7 @@ export default function MyTicketsScreen() {
       {activeTab === 'upcoming' && (
         <TouchableOpacity
           style={styles.emptyButton}
-          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+          onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
           activeOpacity={0.8}
         >
           <Text style={styles.emptyButtonText}>Explorer les événements</Text>

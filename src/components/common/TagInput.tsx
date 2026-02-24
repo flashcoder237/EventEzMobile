@@ -86,7 +86,7 @@ export default function TagInput({
                 onPress={() => onCustomTagRemove(tag)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={16} color="#2563EB" />
+                <Ionicons name="close" size={16} color={Colors.blue} />
               </TouchableOpacity>
             </View>
           ))}
@@ -184,7 +184,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: Colors.blueBg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   customTagText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    color: '#1E40AF',
+    color: Colors.blueDark,
   },
   inputContainer: {
     flexDirection: 'row',

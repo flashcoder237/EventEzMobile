@@ -10,6 +10,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExport, ExportFormat } from '../../hooks/useExport';
+import {
+  Colors,
+  FontFamily,
+  FontSizes,
+  BorderRadius,
+  Spacing,
+  Shadows,
+  TOUCH_OPACITY,
+} from '../../constants/theme';
 
 interface ExportButtonProps {
   endpoint: string;
@@ -49,12 +58,12 @@ export default function ExportButton({
         style={[styles.button, compact && styles.buttonCompact]}
         onPress={() => setVisible(true)}
         disabled={loading}
-        activeOpacity={0.7}
+        activeOpacity={TOUCH_OPACITY}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#7C3AED" />
+          <ActivityIndicator size="small" color={Colors.primary} />
         ) : (
-          <Ionicons name="download-outline" size={20} color="#7C3AED" />
+          <Ionicons name="download-outline" size={20} color={Colors.primary} />
         )}
         {!compact && <Text style={styles.buttonText}>Exporter</Text>}
       </TouchableOpacity>
@@ -73,16 +82,16 @@ export default function ExportButton({
                 key={option.format}
                 style={styles.option}
                 onPress={() => handleSelect(option.format)}
-                activeOpacity={0.7}
+                activeOpacity={TOUCH_OPACITY}
               >
-                <Ionicons name={option.icon} size={22} color="#6B7280" />
+                <Ionicons name={option.icon} size={22} color={Colors.gray500} />
                 <Text style={styles.optionText}>{option.label}</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setVisible(false)}
-              activeOpacity={0.7}
+              activeOpacity={TOUCH_OPACITY}
             >
               <Text style={styles.cancelText}>Annuler</Text>
             </TouchableOpacity>
@@ -97,64 +106,65 @@ const styles = StyleSheet.create({
   button: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderColor: Colors.gray200,
+    backgroundColor: Colors.white,
   },
   buttonCompact: {
-    paddingHorizontal: 10,
+    paddingHorizontal: Spacing.sm + 2,
   },
   buttonText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#7C3AED',
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.medium,
+    color: Colors.primary,
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: Colors.overlayLight,
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    paddingBottom: 34,
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+    paddingBottom: Spacing['2xl'] + 2,
   },
   title: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#111827',
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray900,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: Spacing.base,
   },
   option: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
+    gap: Spacing.md + 2,
+    paddingVertical: Spacing.md + 2,
+    paddingHorizontal: Spacing.sm,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: Colors.gray100,
   },
   optionText: {
-    fontSize: 16,
-    color: '#374151',
+    fontSize: FontSizes.base + 1,
+    fontFamily: FontFamily.regular,
+    color: Colors.gray700,
   },
   cancelButton: {
-    marginTop: 12,
+    marginTop: Spacing.md,
     alignItems: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.gray100,
   },
   cancelText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#6B7280',
+    fontSize: FontSizes.base + 1,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
   },
 });

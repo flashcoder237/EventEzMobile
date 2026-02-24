@@ -6,7 +6,15 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import {
+  Colors,
+  FontFamily,
+  FontSizes,
+  BorderRadius,
+  Spacing,
+  TOUCH_OPACITY,
+  DISABLED_OPACITY,
+} from '../../constants/theme';
 
 interface AIAssistButtonProps {
   label: string;
@@ -29,12 +37,12 @@ export default function AIAssistButton({
         style={[styles.compactButton, disabled && styles.disabled]}
         onPress={onPress}
         disabled={disabled || isLoading}
-        activeOpacity={0.7}
+        activeOpacity={TOUCH_OPACITY}
       >
         {isLoading ? (
-          <ActivityIndicator size={12} color="#8B5CF6" />
+          <ActivityIndicator size={12} color={Colors.primaryLight} />
         ) : (
-          <Ionicons name="sparkles" size={12} color="#8B5CF6" />
+          <Ionicons name="sparkles" size={12} color={Colors.primaryLight} />
         )}
         <Text style={styles.compactText}>{label}</Text>
       </TouchableOpacity>
@@ -46,12 +54,12 @@ export default function AIAssistButton({
       style={[styles.fullButton, disabled && styles.disabled]}
       onPress={onPress}
       disabled={disabled || isLoading}
-      activeOpacity={0.7}
+      activeOpacity={TOUCH_OPACITY}
     >
       {isLoading ? (
-        <ActivityIndicator size={16} color="#fff" />
+        <ActivityIndicator size={16} color={Colors.white} />
       ) : (
-        <Ionicons name="sparkles" size={16} color="#fff" />
+        <Ionicons name="sparkles" size={16} color={Colors.white} />
       )}
       <Text style={styles.fullText}>{label}</Text>
     </TouchableOpacity>
@@ -62,17 +70,17 @@ const styles = StyleSheet.create({
   compactButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: Colors.primaryBg,
     alignSelf: 'flex-start',
   },
   compactText: {
-    fontSize: 11,
+    fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
-    color: '#8B5CF6',
+    color: Colors.primaryLight,
   },
   fullButton: {
     flexDirection: 'row',
@@ -82,14 +90,14 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.md,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: Colors.primaryLight,
   },
   fullText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: '#fff',
+    color: Colors.white,
   },
   disabled: {
-    opacity: 0.5,
+    opacity: DISABLED_OPACITY,
   },
 });

@@ -195,7 +195,7 @@ export default function DashboardScreen() {
 
           <TouchableOpacity
             style={styles.statCard}
-            onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+            onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
             activeOpacity={0.7}
           >
             <Ionicons name="compass-outline" size={24} color={Colors.primary} />
@@ -215,7 +215,7 @@ export default function DashboardScreen() {
             <QuickAction
               icon="heart-outline"
               title="Favoris"
-              onPress={() => navigation.navigate('Main', { screen: 'Following' } as any)}
+              onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
             />
             <QuickAction
               icon="notifications-outline"

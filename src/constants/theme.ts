@@ -1,30 +1,41 @@
-// EventEz Design System - Clean & Minimal
+// EventEz Design System - Vibrant & Discovery-First
+// Inspired by Eventbrite 2025 rebrand
 // Typography: Funnel Display (titles), Montserrat (body)
 
 export const Colors = {
-  // Primary - Clean violet accent (used sparingly)
+  // Primary - Violet identity (EventEz signature)
   primary: '#7C3AED',
   primaryDark: '#6D28D9',
   primaryLight: '#A78BFA',
 
-  // Secondary - Subtle accent
+  // Accent - Warm orange for energy & CTAs
+  accent: '#FF6B35',
+  accentDark: '#E85D2C',
+  accentLight: '#FF8F66',
+
+  // Lime - Energy highlights, badges
+  lime: '#BEFF5A',
+  limeDark: '#9ED63E',
+  limeLight: '#D4FF8A',
+
+  // Secondary - Pink (kept for compatibility)
   secondary: '#EC4899',
 
-  // Neutrals - White focused
+  // Neutrals - Warm white focused
   white: '#FFFFFF',
   black: '#000000',
 
-  // Grays - Soft palette
-  gray50: '#FAFAFA',
-  gray100: '#F5F5F5',
-  gray200: '#EEEEEE',
-  gray300: '#E0E0E0',
-  gray400: '#BDBDBD',
-  gray500: '#9E9E9E',
-  gray600: '#757575',
-  gray700: '#616161',
-  gray800: '#424242',
-  gray900: '#212121',
+  // Grays - Soft warm palette
+  gray50: '#FAFAF8',
+  gray100: '#F5F5F3',
+  gray200: '#EEEEEC',
+  gray300: '#E0E0DE',
+  gray400: '#BDBDBB',
+  gray500: '#9E9E9C',
+  gray600: '#757573',
+  gray700: '#616160',
+  gray800: '#424241',
+  gray900: '#1A1A2E',
 
   // Semantic Colors
   success: '#22C55E',
@@ -43,22 +54,39 @@ export const Colors = {
   infoLight: '#DBEAFE',
   infoDark: '#2563EB',
 
-  // Background - Clean white
-  background: '#FFFFFF',
-  backgroundSecondary: '#FAFAFA',
+  // Background - Warm white
+  background: '#FAFAF8',
+  backgroundSecondary: '#F5F5F3',
   surface: '#FFFFFF',
   card: '#FFFFFF',
   border: '#F0F0F0',
 
-  // Text
-  text: '#212121',
-  textSecondary: '#757575',
-  textLight: '#9E9E9E',
+  // Text - Deep contrast
+  text: '#1A1A2E',
+  textSecondary: '#6B7280',
+  textTertiary: '#9CA3AF',
+  textLight: '#9CA3AF',
   textInverse: '#FFFFFF',
 
   // Primary tints (very subtle)
   primaryBg: '#F5F3FF',
   primaryBgLight: '#FAFAFE',
+
+  // Accent tints
+  accentBg: '#FFF5F0',
+  limeBg: '#F8FFE8',
+
+  // Semantic backgrounds (for follow states, tags, alerts)
+  errorBg: '#FEF2F2',
+  errorBorder: '#FECACA',
+  warningBg: '#FEF3C7',
+  infoBg: '#DBEAFE',
+  infoBorder: '#BFDBFE',
+
+  // Blue accent (custom tags, info actions)
+  blue: '#2563EB',
+  blueBg: '#DBEAFE',
+  blueDark: '#1E40AF',
 
   // Overlay
   overlay: 'rgba(0, 0, 0, 0.5)',
@@ -234,12 +262,17 @@ export const Shadows = {
   },
 };
 
-// Gradients (use very sparingly)
+// Gradients
 export const Gradients = {
   primary: [Colors.primary, Colors.primaryDark] as const,
   subtle: ['rgba(124, 58, 237, 0.03)', 'rgba(124, 58, 237, 0.01)'] as const,
   dark: ['transparent', 'rgba(0,0,0,0.7)'] as const,
   light: ['rgba(255,255,255,0)', 'rgba(255,255,255,1)'] as const,
+  // Energy Auras — vibrant overlays for featured events
+  auraViolet: [Colors.primary, Colors.secondary] as const,
+  auraSunset: [Colors.accent, Colors.primary] as const,
+  auraNature: [Colors.lime, Colors.primary] as const,
+  auraNight: [Colors.gray900, Colors.primary] as const,
 };
 
 // Safe area padding for Android
@@ -252,16 +285,18 @@ export const SafeArea = {
 // Styles prêts à l'emploi pour les textes
 // Règle: Funnel Display pour titres (h1, h2), Montserrat pour le reste
 export const TextStyles = {
-  // Headings - Funnel Display
+  // Headings - Funnel Display (bolder, larger — Eventbrite style)
   h1: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes['4xl'],
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 40,
     color: Colors.gray900,
+    lineHeight: 46,
   },
   h2: {
     fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes['2xl'],
+    fontSize: 28,
     color: Colors.gray900,
+    lineHeight: 34,
   },
   h3: {
     fontFamily: FontFamily.displaySemiBold,
@@ -270,6 +305,22 @@ export const TextStyles = {
   },
   h4: {
     fontFamily: FontFamily.displaySemiBold,
+    fontSize: FontSizes.lg,
+    color: Colors.gray900,
+  },
+
+  // Date accent — orange, uppercase, prominent (Eventbrite pattern)
+  dateAccent: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+    color: Colors.accent,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+  },
+
+  // Price — bold, visible
+  price: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.lg,
     color: Colors.gray900,
   },

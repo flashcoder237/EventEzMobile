@@ -15,6 +15,7 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
 
 export type AlertType = 'success' | 'error' | 'warning' | 'info' | 'confirm';
@@ -37,7 +38,7 @@ interface CustomAlertProps {
 const alertConfig: Record<AlertType, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
   success: { icon: 'checkmark-circle', color: Colors.success },
   error: { icon: 'close-circle', color: Colors.error },
-  warning: { icon: 'warning', color: '#F59E0B' },
+  warning: { icon: 'warning', color: Colors.warning },
   info: { icon: 'information-circle', color: Colors.primary },
   confirm: { icon: 'help-circle', color: Colors.primary },
 };
@@ -115,6 +116,7 @@ export default function CustomAlert({
                       buttons.length === 2 && styles.doubleButton,
                     ]}
                     onPress={() => handleButtonPress(button)}
+                    activeOpacity={TOUCH_OPACITY}
                   >
                     <Text style={[styles.buttonText, getButtonTextStyle(button.style)]}>
                       {button.text}
@@ -217,7 +219,7 @@ export function useCustomAlert() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: Colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,

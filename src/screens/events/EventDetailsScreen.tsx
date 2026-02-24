@@ -30,27 +30,11 @@ import AboutTab from '../../components/events/AboutTab';
 import TicketsTab from '../../components/events/TicketsTab';
 import AgendaTab from '../../components/events/AgendaTab';
 import ReviewsTab from '../../components/events/ReviewsTab';
-import { useEventDetails, TabType } from '../../hooks/useEventDetails';
+import { useEventDetails } from '../../hooks/useEventDetails';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
 const { width } = Dimensions.get('window');
-
-const tabs: { id: TabType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'about', label: 'A propos', icon: 'information-circle-outline' },
-  { id: 'tickets', label: 'Billets', icon: 'ticket-outline' },
-  { id: 'agenda', label: 'Agenda', icon: 'calendar-outline' },
-  { id: 'location', label: 'Lieu', icon: 'location-outline' },
-  { id: 'reviews', label: 'Avis', icon: 'star-outline' },
-  { id: 'sponsors', label: 'Sponsors', icon: 'ribbon-outline' },
-  { id: 'venue', label: 'Placement', icon: 'map-outline' },
-  { id: 'volunteers', label: 'Benevoles', icon: 'people-outline' },
-  { id: 'newsletter', label: 'Newsletter', icon: 'mail-outline' },
-  { id: 'live', label: 'Direct', icon: 'videocam-outline' },
-  { id: 'cfp', label: 'Talks', icon: 'mic-outline' },
-  { id: 'virtual', label: 'Virtuel', icon: 'videocam-outline' },
-  { id: 'social', label: 'Activite', icon: 'pulse-outline' },
-];
 
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
@@ -63,8 +47,7 @@ export default function EventDetailsScreen() {
     setIsFollowing,
     followersCount,
     setFollowersCount,
-    activeTab,
-    setActiveTab,
+    // activeTab and setActiveTab no longer used (sections replace tabs)
     showReviewForm,
     setShowReviewForm,
     reviewRating,
@@ -82,7 +65,7 @@ export default function EventDetailsScreen() {
     showImageViewer,
     setShowImageViewer,
     scrollViewRef,
-    tabsOffsetY,
+    // tabsOffsetY no longer used
     handleShare,
     handleShareToWhatsApp,
     handleContactOrganizer,
@@ -200,19 +183,12 @@ export default function EventDetailsScreen() {
             </View>
           )}
 
-          {/* Date Badge */}
-          <View style={styles.dateRow}>
-            <View style={styles.dateBadge}>
-              <Text style={styles.dateDay}>{dateInfo.dayNum}</Text>
-              <Text style={styles.dateMonth}>{dateInfo.month}</Text>
-            </View>
-            <View style={styles.dateInfo}>
-              <Text style={styles.dateText}>{formatDate(event.start_date)}</Text>
-              <Text style={styles.timeText}>{formatTime(event.start_date)}</Text>
-            </View>
-          </View>
+          {/* Date — Accent orange (Eventbrite pattern) */}
+          <Text style={styles.dateAccent}>
+            {formatDate(event.start_date)} · {formatTime(event.start_date)}
+          </Text>
 
-          {/* Title */}
+          {/* Title — Large & bold */}
           <Text style={styles.title}>{event.title}</Text>
 
           {/* Category Badge */}
@@ -413,139 +389,120 @@ export default function EventDetailsScreen() {
             </View>
           </View>
 
-          {/* Tabs */}
-          <View
-            style={styles.tabsContainer}
-            onLayout={(e) => { tabsOffsetY.current = e.nativeEvent.layout.y; }}
-          >
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} nestedScrollEnabled>
-              <View style={styles.tabsList}>
-                {tabs.map((tab) => (
-                  <TouchableOpacity
-                    key={tab.id}
-                    activeOpacity={0.7}
-                    style={[styles.tab, activeTab === tab.id && styles.tabActive]}
-                    onPress={() => {
-                      setActiveTab(tab.id);
-                      // Scroll to tabs position so content stays visible
-                      scrollViewRef.current?.scrollTo({ y: tabsOffsetY.current, animated: true });
-                    }}
-                  >
-                    <Ionicons
-                      name={tab.icon}
-                      size={18}
-                      color={activeTab === tab.id ? Colors.primary : Colors.gray500}
-                    />
-                    <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
-                      {tab.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
+          {/* ===== ALL SECTIONS (scrollable, no tabs) ===== */}
+
+          {/* Section: About */}
+          <AboutTab
+            event={event}
+            eventId={eventId}
+            isFollowing={isFollowing}
+            onFollowChange={handleFollowChange}
+            onNavigateVolunteers={() => navigation.navigate('Volunteers', { eventId: event.id })}
+          />
+
+          {/* Section: Good to Know */}
+          <View style={styles.goodToKnowSection}>
+            <Text style={styles.sectionTitle}>Bon à savoir</Text>
+            <View style={styles.goodToKnowGrid}>
+              {event.start_date && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="time-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.goodToKnowText}>Check-in dès {formatTime(event.start_date)}</Text>
+                </View>
+              )}
+              {event.location_type === 'in_person' && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="navigate-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.goodToKnowText}>Événement présentiel</Text>
+                </View>
+              )}
+              {event.location_type === 'online' && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="videocam-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.goodToKnowText}>Événement en ligne</Text>
+                </View>
+              )}
+              {event.location_type === 'hybrid' && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="globe-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.goodToKnowText}>Hybride (présentiel + en ligne)</Text>
+                </View>
+              )}
+              {(event as any).max_attendees && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="people-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.goodToKnowText}>{(event as any).max_attendees} places max</Text>
+                </View>
+              )}
+              {event.is_free && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="pricetag-outline" size={20} color={Colors.success} />
+                  <Text style={styles.goodToKnowText}>Événement gratuit</Text>
+                </View>
+              )}
+            </View>
           </View>
 
-          {/* Tab Content */}
-          <View style={{ minHeight: 400 }}>
-          {activeTab === 'about' && (
-            <AboutTab
-              event={event}
-              eventId={eventId}
-              isFollowing={isFollowing}
-              onFollowChange={handleFollowChange}
-              onNavigateVolunteers={() => navigation.navigate('Volunteers', { eventId: event.id })}
-            />
+          {/* Section: Who's Going */}
+          {(event.registration_count || 0) > 0 && (
+            <View style={styles.whoIsGoingSection}>
+              <Text style={styles.sectionTitle}>Qui y va ?</Text>
+              <View style={styles.whoIsGoingRow}>
+                <View style={styles.avatarStack}>
+                  {[0, 1, 2].map(i => (
+                    <View key={i} style={[styles.avatarCircle, { marginLeft: i > 0 ? -10 : 0, zIndex: 3 - i }]}>
+                      <Ionicons name="person" size={16} color={Colors.gray400} />
+                    </View>
+                  ))}
+                </View>
+                <Text style={styles.whoIsGoingText}>
+                  +{event.registration_count} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
           )}
 
-          {activeTab === 'tickets' && (
-            <TicketsTab
-              event={event}
-              waitlistEntry={waitlistEntry}
-              joiningWaitlist={joiningWaitlist}
-              getTicketAvailability={getTicketAvailability}
-              areAllTicketsSoldOut={areAllTicketsSoldOut}
-              onJoinWaitlist={handleJoinWaitlist}
-              onLeaveWaitlist={handleLeaveWaitlist}
-            />
-          )}
+          {/* Section: Tickets */}
+          <TicketsTab
+            event={event}
+            waitlistEntry={waitlistEntry}
+            joiningWaitlist={joiningWaitlist}
+            getTicketAvailability={getTicketAvailability}
+            areAllTicketsSoldOut={areAllTicketsSoldOut}
+            onJoinWaitlist={handleJoinWaitlist}
+            onLeaveWaitlist={handleLeaveWaitlist}
+          />
 
-          {activeTab === 'agenda' && (
+          {/* Section: Agenda */}
+          {sessions && sessions.length > 0 && (
             <AgendaTab
               sessions={sessions}
               loadingSessions={loadingSessions}
             />
           )}
 
-          {activeTab === 'reviews' && (
-            <ReviewsTab
-              feedbacks={feedbacks}
-              loadingFeedbacks={loadingFeedbacks}
-              user={user}
-              showReviewForm={showReviewForm}
-              setShowReviewForm={setShowReviewForm}
-              reviewRating={reviewRating}
-              setReviewRating={setReviewRating}
-              reviewComment={reviewComment}
-              setReviewComment={setReviewComment}
-              submittingReview={submittingReview}
-              onSubmitReview={handleSubmitReview}
-            />
-          )}
-
-          {activeTab === 'live' && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Evenement en direct</Text>
-              <View style={styles.liveSection}>
-                <View style={styles.liveIconContainer}>
-                  <Ionicons name="videocam" size={40} color={Colors.primary} />
-                </View>
-                <Text style={styles.liveDescription}>
-                  Rejoignez l'evenement en direct pour suivre les presentations, interagir avec les participants et ne rien manquer.
-                </Text>
-                <TouchableOpacity
-                  style={styles.liveButton}
-                  onPress={() => navigation.navigate('LiveEvent', { eventId: event.id })}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="videocam" size={18} color={Colors.white} />
-                  <Text style={styles.liveButtonText}>Rejoindre le live</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-
-          {activeTab === 'location' && event && (
+          {/* Section: Location */}
+          {event && (
             <LocationTab event={event} />
           )}
 
-          {activeTab === 'sponsors' && (
-            <SponsorsTab eventId={eventId} />
-          )}
+          {/* Section: Reviews */}
+          <ReviewsTab
+            feedbacks={feedbacks}
+            loadingFeedbacks={loadingFeedbacks}
+            user={user}
+            showReviewForm={showReviewForm}
+            setShowReviewForm={setShowReviewForm}
+            reviewRating={reviewRating}
+            setReviewRating={setReviewRating}
+            reviewComment={reviewComment}
+            setReviewComment={setReviewComment}
+            submittingReview={submittingReview}
+            onSubmitReview={handleSubmitReview}
+          />
 
-          {activeTab === 'venue' && (
-            <VenueTab eventId={eventId} />
-          )}
-
-          {activeTab === 'volunteers' && (
-            <VolunteersTab eventId={eventId} />
-          )}
-
-          {activeTab === 'newsletter' && (
-            <NewsletterTab eventId={eventId} categoryName={event.category?.name} />
-          )}
-
-          {activeTab === 'cfp' && (
-            <CfpTab eventId={eventId} />
-          )}
-
-          {activeTab === 'virtual' && (
-            <VirtualTab eventId={eventId} />
-          )}
-
-          {activeTab === 'social' && (
-            <SocialTab eventId={eventId} />
-          )}
-          </View>
+          {/* Section: Sponsors */}
+          <SponsorsTab eventId={eventId} />
 
           {/* Spacer for bottom bar */}
           <View style={{ height: 120 }} />
@@ -757,52 +714,21 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius['2xl'],
     borderTopRightRadius: BorderRadius['2xl'],
   },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  dateBadge: {
-    width: 56,
-    height: 56,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  dateDay: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.white,
-    lineHeight: 24,
-  },
-  dateMonth: {
-    fontSize: FontSizes.xs,
+  // Date accent — orange, uppercase (Eventbrite pattern)
+  dateAccent: {
     fontFamily: FontFamily.semiBold,
-    color: 'rgba(255,255,255,0.9)',
-    textTransform: 'uppercase',
-  },
-  dateInfo: {
-    flex: 1,
-  },
-  dateText: {
     fontSize: FontSizes.base,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray900,
-    textTransform: 'capitalize',
-  },
-  timeText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginTop: 2,
+    color: Colors.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: Spacing.sm,
   },
   title: {
-    fontSize: FontSizes['2xl'],
+    fontSize: 28,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
-    lineHeight: 32,
+    lineHeight: 34,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
@@ -964,7 +890,7 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
-  // ===== BOTTOM BAR =====
+  // ===== STICKY BOTTOM CTA =====
   bottomBar: {
     position: 'absolute',
     bottom: 0,
@@ -973,12 +899,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing['2xl'],
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
   },
   priceContainer: {},
   priceLabel: {
@@ -1304,5 +1235,61 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.semiBold,
     textAlign: 'center',
+  },
+  // ===== BON À SAVOIR =====
+  goodToKnowSection: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  goodToKnowGrid: {
+    gap: Spacing.md,
+  },
+  goodToKnowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    backgroundColor: Colors.gray50,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.base,
+    borderRadius: BorderRadius.lg,
+  },
+  goodToKnowText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: Colors.gray700,
+    flex: 1,
+  },
+  // ===== QUI Y VA =====
+  whoIsGoingSection: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+  },
+  whoIsGoingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  avatarStack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.gray200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.white,
+  },
+  whoIsGoingText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.base,
+    color: Colors.gray700,
   },
 });

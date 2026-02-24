@@ -1258,11 +1258,14 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
+  Discover: { category?: number } | undefined;
+  Saved: undefined;
+  MyTickets: undefined;
+  Profile: undefined;
+  // Legacy aliases (kept for backward compatibility in navigation params)
   Home: undefined;
   Explore: { category?: number } | undefined;
-  MyTickets: undefined;
   Following: undefined;
-  Profile: undefined;
 };
 
 export type DashboardStackParamList = {

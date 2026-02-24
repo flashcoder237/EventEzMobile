@@ -268,7 +268,7 @@ export default function FollowingEventsScreen() {
       {follows.length === 0 && (
         <TouchableOpacity
           style={styles.discoverButton}
-          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+          onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
         >
           <Ionicons name="compass-outline" size={18} color={Colors.white} />
           <Text style={styles.discoverButtonText}>Decouvrir des evenements</Text>
@@ -319,7 +319,7 @@ export default function FollowingEventsScreen() {
         <Text style={styles.headerTitle}>Mes Favoris</Text>
         <TouchableOpacity
           style={styles.settingsButton}
-          onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
+          onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
         >
           <Ionicons name="compass-outline" size={24} color={Colors.gray600} />
         </TouchableOpacity>

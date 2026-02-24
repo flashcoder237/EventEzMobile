@@ -65,7 +65,7 @@ export default function PaymentFailedScreen() {
         <View style={{ height: Spacing.md }} />
         <GradientButton
           title="Retour à l'accueil"
-          onPress={() => navigation.replace('Main', { screen: 'Home' } as any)}
+          onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
           variant="outline"
           fullWidth
         />

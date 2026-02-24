@@ -5,12 +5,12 @@ import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import { MainTabParamList } from '../types';
-import { Colors, Spacing } from '../constants/theme';
+import { Colors, FontFamily, Spacing } from '../constants/theme';
 
-import HomeScreen from '../screens/events/HomeScreen';
-import ExploreScreen from '../screens/events/ExploreScreen';
-import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
+// Screens
+import DiscoverScreen from '../screens/events/DiscoverScreen';
 import FollowingEventsScreen from '../screens/dashboard/FollowingEventsScreen';
+import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
 // Hauteur standard de la barre de navigation 3 boutons Android
@@ -21,7 +21,6 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 export default function MainTabNavigator() {
   const insets = useSafeAreaInsets();
 
-  // Sur Android, forcer la barre de navigation système en mode opaque
   useEffect(() => {
     if (Platform.OS === 'android') {
       NavigationBar.setBackgroundColorAsync('#FFFFFF');
@@ -29,11 +28,6 @@ export default function MainTabNavigator() {
     }
   }, []);
 
-  // Calcul du padding bottom :
-  // - iOS : insets.bottom suffit (home indicator ou 0 sur anciens iPhones)
-  // - Android gesture nav : insets.bottom ~ 24-34
-  // - Android 3 boutons : insets.bottom peut être 0 si edge-to-edge mal configuré
-  //   → fallback sur la hauteur standard de la nav bar 3 boutons
   const bottomPadding = Platform.OS === 'android'
     ? Math.max(insets.bottom, ANDROID_3_BUTTON_NAV_HEIGHT)
     : insets.bottom;
@@ -46,17 +40,14 @@ export default function MainTabNavigator() {
           let iconName: keyof typeof Ionicons.glyphMap;
 
           switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
+            case 'Discover':
+              iconName = focused ? 'compass' : 'compass-outline';
               break;
-            case 'Explore':
-              iconName = focused ? 'search' : 'search-outline';
+            case 'Saved':
+              iconName = focused ? 'bookmark' : 'bookmark-outline';
               break;
             case 'MyTickets':
-              iconName = focused ? 'calendar' : 'calendar-outline';
-              break;
-            case 'Following':
-              iconName = focused ? 'heart' : 'heart-outline';
+              iconName = focused ? 'ticket' : 'ticket-outline';
               break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
@@ -85,32 +76,27 @@ export default function MainTabNavigator() {
           paddingBottom: bottomPadding,
         },
         tabBarLabelStyle: {
+          fontFamily: FontFamily.medium,
           fontSize: 11,
-          fontWeight: '500',
-          marginTop: 4,
+          marginTop: 2,
         },
         tabBarHideOnKeyboard: true,
       })}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ tabBarLabel: 'Accueil' }}
+        name="Discover"
+        component={DiscoverScreen}
+        options={{ tabBarLabel: 'Discover' }}
       />
       <Tab.Screen
-        name="Explore"
-        component={ExploreScreen}
-        options={{ tabBarLabel: 'Recherche' }}
+        name="Saved"
+        component={FollowingEventsScreen}
+        options={{ tabBarLabel: 'Saved' }}
       />
       <Tab.Screen
         name="MyTickets"
         component={MyTicketsScreen}
-        options={{ tabBarLabel: 'Réservations' }}
-      />
-      <Tab.Screen
-        name="Following"
-        component={FollowingEventsScreen}
-        options={{ tabBarLabel: 'Favoris' }}
+        options={{ tabBarLabel: 'Tickets' }}
       />
       <Tab.Screen
         name="Profile"

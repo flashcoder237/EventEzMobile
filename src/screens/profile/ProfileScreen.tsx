@@ -292,7 +292,7 @@ export default function ProfileScreen() {
             <MenuItem
               icon="heart-outline"
               title="Événements favoris"
-              onPress={() => navigation.navigate('Main', { screen: 'Following' } as any)}
+              onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
             />
             <MenuItem
               icon="grid-outline"

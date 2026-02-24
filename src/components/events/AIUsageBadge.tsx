@@ -15,15 +15,15 @@ export default function AIUsageBadge({ usage }: AIUsageBadgeProps) {
   const remaining = isUnlimited ? Infinity : usage.daily_limit - usage.daily_count;
   const ratio = isUnlimited ? 1 : remaining / usage.daily_limit;
 
-  let bgColor = '#DCFCE7';
-  let textColor = '#16A34A';
+  let bgColor = Colors.successLight;
+  let textColor = Colors.successDark;
   if (!isUnlimited) {
     if (ratio <= 0) {
-      bgColor = '#FEE2E2';
-      textColor = '#DC2626';
+      bgColor = Colors.errorLight;
+      textColor = Colors.errorDark;
     } else if (ratio <= 0.25) {
-      bgColor = '#FEF3C7';
-      textColor = '#D97706';
+      bgColor = Colors.warningLight;
+      textColor = Colors.warningDark;
     }
   }
 
@@ -45,13 +45,13 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: BorderRadius.lg,
   },
   text: {
-    fontSize: 11,
+    fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
   },
 });

@@ -18,6 +18,7 @@ import {
   FontFamily,
   BorderRadius,
   Spacing,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
 
 interface FollowUserButtonProps {
@@ -34,12 +35,6 @@ interface FollowPreferences {
   notify_push: boolean;
   notify_new_event: boolean;
 }
-
-// Violet/purple colors for user follow state
-const VIOLET = '#7C3AED';
-const VIOLET_BG = '#F5F3FF';
-const VIOLET_BORDER = '#DDD6FE';
-const VIOLET_LIGHT_BG = '#EDE9FE';
 
 export default function FollowUserButton({
   userId,
@@ -179,18 +174,19 @@ export default function FollowUserButton({
       <TouchableOpacity
         onPress={handleToggleFollow}
         disabled={isLoading}
+        activeOpacity={TOUCH_OPACITY}
         style={[
           styles.iconButton,
           isFollowing && styles.iconButtonActive,
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? VIOLET : Colors.gray500} />
+          <ActivityIndicator size="small" color={isFollowing ? Colors.primary : Colors.gray500} />
         ) : (
           <Ionicons
             name={isFollowing ? 'person' : 'person-add-outline'}
             size={22}
-            color={isFollowing ? VIOLET : Colors.gray600}
+            color={isFollowing ? Colors.primary : Colors.gray600}
           />
         )}
       </TouchableOpacity>
@@ -203,19 +199,20 @@ export default function FollowUserButton({
       <TouchableOpacity
         onPress={handleToggleFollow}
         disabled={isLoading}
+        activeOpacity={TOUCH_OPACITY}
         style={[
           styles.compactButton,
           isFollowing && styles.compactButtonActive,
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? VIOLET : Colors.gray600} />
+          <ActivityIndicator size="small" color={isFollowing ? Colors.primary : Colors.gray600} />
         ) : (
           <>
             <Ionicons
               name={isFollowing ? 'person' : 'person-add-outline'}
               size={16}
-              color={isFollowing ? VIOLET : Colors.gray600}
+              color={isFollowing ? Colors.primary : Colors.gray600}
             />
             <Text style={[styles.compactText, isFollowing && styles.compactTextActive]}>
               {isFollowing ? 'Suivi' : 'Suivre'}
@@ -233,19 +230,20 @@ export default function FollowUserButton({
         <TouchableOpacity
           onPress={handleToggleFollow}
           disabled={isLoading}
+          activeOpacity={TOUCH_OPACITY}
           style={[
             styles.mainButton,
             isFollowing ? styles.mainButtonFollowing : styles.mainButtonDefault,
           ]}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={isFollowing ? VIOLET : Colors.white} />
+            <ActivityIndicator size="small" color={isFollowing ? Colors.primary : Colors.white} />
           ) : (
             <>
               <Ionicons
                 name={isFollowing ? 'person' : 'person-add-outline'}
                 size={20}
-                color={isFollowing ? VIOLET : Colors.white}
+                color={isFollowing ? Colors.primary : Colors.white}
               />
               <Text style={[styles.mainButtonText, isFollowing && styles.mainButtonTextFollowing]}>
                 {isFollowing ? 'Vous suivez cet utilisateur' : 'Suivre cet utilisateur'}
@@ -264,6 +262,7 @@ export default function FollowUserButton({
         {isFollowing && (
           <TouchableOpacity
             onPress={() => setShowPreferences(true)}
+            activeOpacity={TOUCH_OPACITY}
             style={styles.preferencesButton}
           >
             <Ionicons name="notifications-outline" size={20} color={Colors.gray600} />
@@ -362,12 +361,12 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   mainButtonDefault: {
-    backgroundColor: VIOLET,
+    backgroundColor: Colors.primary,
   },
   mainButtonFollowing: {
-    backgroundColor: VIOLET_BG,
+    backgroundColor: Colors.primaryBg,
     borderWidth: 1,
-    borderColor: VIOLET_BORDER,
+    borderColor: Colors.primaryLight,
   },
   mainButtonText: {
     fontSize: FontSizes.base,
@@ -375,7 +374,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   mainButtonTextFollowing: {
-    color: VIOLET,
+    color: Colors.primary,
   },
   badge: {
     paddingHorizontal: Spacing.sm,
@@ -384,7 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   badgeFollowing: {
-    backgroundColor: VIOLET_LIGHT_BG,
+    backgroundColor: Colors.primaryBg,
   },
   badgeText: {
     fontSize: FontSizes.xs,
@@ -392,7 +391,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   badgeTextFollowing: {
-    color: VIOLET,
+    color: Colors.primary,
   },
   preferencesButton: {
     width: 48,
@@ -411,7 +410,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   iconButtonActive: {
-    backgroundColor: VIOLET_BG,
+    backgroundColor: Colors.primaryBg,
   },
   compactButton: {
     flexDirection: 'row',
@@ -423,7 +422,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   compactButtonActive: {
-    backgroundColor: VIOLET_BG,
+    backgroundColor: Colors.primaryBg,
   },
   compactText: {
     fontSize: FontSizes.sm,
@@ -431,7 +430,7 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
   },
   compactTextActive: {
-    color: VIOLET,
+    color: Colors.primary,
   },
   modalContainer: {
     flex: 1,
