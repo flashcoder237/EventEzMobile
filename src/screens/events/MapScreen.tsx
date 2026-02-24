@@ -14,6 +14,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { eventsAPI, categoriesAPI } from '../../api/client';
 import { MapMarker, RootStackParamList, Category } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
@@ -328,9 +329,7 @@ export default function MapScreen() {
 
       {/* Loading Indicator */}
       {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
+        <LoadingSpinner />
       )}
 
       {/* Events Count */}

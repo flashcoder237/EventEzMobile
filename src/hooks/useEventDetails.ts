@@ -6,6 +6,7 @@ import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, se
 import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useAlert } from '../contexts/AlertContext';
+import { getEventUrl } from '../constants/urls';
 
 export type TabType = 'about' | 'tickets' | 'agenda' | 'location' | 'reviews' | 'live' | 'sponsors' | 'venue' | 'volunteers' | 'newsletter' | 'cfp' | 'virtual' | 'social';
 
@@ -230,7 +231,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
   const handleShare = async () => {
     if (!event) return;
 
-    const shareUrl = `https://eventez.com/events/${event.id}`;
+    const shareUrl = getEventUrl(event.id);
     const shareMessage = `${event.title}\n\n${event.short_description || event.description?.slice(0, 100) || ''}\n\n${formatDate(event.start_date)}\n${event.location_city || event.location_name || 'Lieu a confirmer'}\n\nDecouvre cet evenement sur EventEz: ${shareUrl}`;
 
     try {
@@ -246,7 +247,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
 
   const handleShareToWhatsApp = async () => {
     if (!event) return;
-    const shareUrl = `https://eventez.com/events/${event.id}`;
+    const shareUrl = getEventUrl(event.id);
     const message = encodeURIComponent(`${event.title}\n\n${formatDate(event.start_date)}\n${event.location_city || 'En ligne'}\n\nDecouvre cet evenement: ${shareUrl}`);
     const url = `whatsapp://send?text=${message}`;
 

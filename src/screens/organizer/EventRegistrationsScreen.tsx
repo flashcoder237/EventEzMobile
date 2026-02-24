@@ -28,6 +28,7 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
+import { SkeletonList, EventCardHorizontalSkeleton } from '../../components/ui/Skeleton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventRegistrations'>;
@@ -311,7 +312,7 @@ export default function EventRegistrationsScreen() {
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={styles.container}>
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <SkeletonList count={5} Component={EventCardHorizontalSkeleton} />
             </View>
           </View>
         </SafeAreaView>

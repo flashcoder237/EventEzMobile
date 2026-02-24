@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ActivityIndicator,
   FlatList,
   TouchableOpacity,
   Alert,
@@ -17,7 +16,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { referralsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
-import { Colors, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -217,7 +217,7 @@ export default function ReferralScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.primary} style={{ flex: 1 }} />
+        <LoadingSpinner />
       </SafeAreaView>
     );
   }
@@ -281,11 +281,11 @@ const styles = StyleSheet.create({
   descriptionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryBg, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.md, gap: Spacing.sm },
   descriptionText: { flex: 1, fontSize: FontSizes.sm, color: Colors.primary, lineHeight: 18 },
   statsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
-  statCard: { flex: 1, alignItems: 'center', backgroundColor: Colors.white, borderRadius: BorderRadius.xl, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  statCard: { flex: 1, alignItems: 'center', backgroundColor: Colors.white, borderRadius: BorderRadius.xl, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs, ...Shadows.card },
   statValue: { fontSize: FontSizes.lg, fontWeight: '800', color: Colors.text, marginTop: Spacing.xs },
   statLabel: { fontSize: FontSizes.xs, color: Colors.textLight, marginTop: 2 },
   sectionTitle: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.text, marginBottom: Spacing.md },
-  codeCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  codeCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   codeEventName: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.textSecondary, marginBottom: Spacing.sm },
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   codeBox: { flex: 1, backgroundColor: Colors.gray50, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed' },

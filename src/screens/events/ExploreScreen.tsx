@@ -27,6 +27,7 @@ import WebViewMap from '../../components/maps/WebViewMap';
 import EventCard from '../../components/events/EventCard';
 import { getEventPrice } from '../../lib/utils/priceFormatters';
 import { formatDate } from '../../lib/utils/dateFormatters';
+import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
 import {
   Colors,
   FontFamily,
@@ -1042,8 +1043,8 @@ export default function ExploreScreen() {
 
       {/* Content */}
       {loading && viewMode === 'list' ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+        <View style={{ flex: 1, padding: 20 }}>
+          <SkeletonList count={4} Component={EventCardSkeleton} />
         </View>
       ) : viewMode === 'list' ? (
         renderListView()
@@ -1247,8 +1248,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Shadows.md,
-    elevation: 5,
+    ...Shadows.lg,
   },
   // ===== EMPTY STATE =====
   emptyContainer: {

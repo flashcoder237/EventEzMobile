@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Feedback, User } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 export interface ReviewsTabProps {
   feedbacks: Feedback[];
@@ -119,7 +120,7 @@ export default function ReviewsTab({
 
       {loadingFeedbacks ? (
         <View style={styles.emptyTab}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <LoadingSpinner />
           <Text style={styles.emptyTabText}>Chargement des avis...</Text>
         </View>
       ) : feedbacks && feedbacks.length > 0 ? (

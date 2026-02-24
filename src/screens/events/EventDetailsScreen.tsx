@@ -6,7 +6,6 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
   Dimensions,
   StatusBar,
   Linking,
@@ -16,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { RootStackParamList } from '../../types';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import SponsorsTab from '../../components/events/SponsorsTab';
 import VenueTab from '../../components/events/VenueTab';
@@ -31,6 +30,7 @@ import TicketsTab from '../../components/events/TicketsTab';
 import AgendaTab from '../../components/events/AgendaTab';
 import ReviewsTab from '../../components/events/ReviewsTab';
 import { useEventDetails } from '../../hooks/useEventDetails';
+import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -84,11 +84,7 @@ export default function EventDetailsScreen() {
   } = useEventDetails(eventId);
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
+    return <DetailScreenSkeleton />;
   }
 
   if (!event) {
@@ -905,11 +901,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing['2xl'],
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    ...Shadows.bottomBar,
   },
   priceContainer: {},
   priceLabel: {

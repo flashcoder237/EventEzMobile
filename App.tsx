@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import * as Linking from 'expo-linking';
 import * as Font from 'expo-font';
 import {
   useFonts,
@@ -28,6 +29,32 @@ import { AlertProvider } from './src/contexts/AlertContext';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import RootNavigator from './src/navigation/RootNavigator';
 import { Colors } from './src/constants/theme';
+import { LoadingSpinner } from './src/components/ui/LoadingOverlay';
+import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
+import { RootStackParamList } from './src/types';
+
+const linking: LinkingOptions<RootStackParamList> = {
+  prefixes: [
+    Linking.createURL('/'),
+    `${DEEP_LINK_SCHEME}://`,
+    WEB_BASE_URL,
+  ],
+  config: {
+    screens: {
+      EventDetails: 'events/:eventId',
+      OrganizerProfile: 'organizers/:organizerId',
+      SpeakerDetails: 'speakers/:speakerId',
+      Main: {
+        screens: {
+          Discover: 'discover',
+          Saved: 'saved',
+          Tickets: 'tickets',
+          Profile: 'profile',
+        },
+      },
+    },
+  },
+};
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -47,9 +74,7 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+<LoadingSpinner message="Chargement..." />
     );
   }
 
@@ -57,7 +82,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
-          <NavigationContainer>
+          <NavigationContainer linking={linking}>
             <ErrorBoundary>
               <AuthProvider>
                 <NotificationProvider>

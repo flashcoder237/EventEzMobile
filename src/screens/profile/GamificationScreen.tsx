@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   FlatList,
   TouchableOpacity,
 } from 'react-native';
@@ -14,7 +13,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { gamificationAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
-import { Colors, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -50,7 +50,7 @@ export default function GamificationScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.primary} style={{ flex: 1 }} />
+        <LoadingSpinner />
       </SafeAreaView>
     );
   }
@@ -155,12 +155,12 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerTitle: { fontSize: FontSizes.lg, fontWeight: '700', color: Colors.text },
-  pointsCard: { alignItems: 'center', backgroundColor: Colors.white, marginHorizontal: Spacing.md, borderRadius: BorderRadius.xl, padding: Spacing.lg, marginBottom: Spacing.md, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
+  pointsCard: { alignItems: 'center', backgroundColor: Colors.white, marginHorizontal: Spacing.md, borderRadius: BorderRadius.xl, padding: Spacing.lg, marginBottom: Spacing.md, ...Shadows.md },
   pointsValue: { fontSize: 36, fontWeight: '800', color: Colors.primary, marginTop: Spacing.xs },
   pointsLabel: { fontSize: FontSizes.sm, color: Colors.textLight },
   tabs: { flexDirection: 'row', marginHorizontal: Spacing.md, backgroundColor: Colors.gray100, borderRadius: BorderRadius.lg, padding: 4, marginBottom: Spacing.md },
   tab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: BorderRadius.md },
-  activeTab: { backgroundColor: Colors.white, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  activeTab: { backgroundColor: Colors.white, ...Shadows.md },
   tabText: { fontSize: FontSizes.sm, color: Colors.textLight, fontWeight: '600' },
   activeTabText: { color: Colors.primary },
   badgesGrid: { paddingHorizontal: Spacing.md },

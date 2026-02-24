@@ -19,6 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { subscriptionsAPI } from '../../api/client';
 import { usePaymentVerification } from '../../hooks/usePaymentVerification';
 import {
@@ -405,8 +406,7 @@ export default function SubscriptionScreen() {
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={VIOLET} />
-          <Text style={styles.loadingText}>Chargement...</Text>
+          <LoadingSpinner message="Chargement..." />
         </View>
       </SafeAreaView>
     );
@@ -873,7 +873,7 @@ export default function SubscriptionScreen() {
             {/* Step: Processing */}
             {payment.step === 'processing' && (
               <View style={styles.processingContainer}>
-                <ActivityIndicator size="large" color={VIOLET} />
+                <LoadingSpinner />
                 <Text style={styles.processingTitle}>Traitement en cours...</Text>
                 <Text style={styles.processingDescription}>
                   {payment.method === 'credit_card'

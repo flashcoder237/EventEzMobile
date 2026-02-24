@@ -3,6 +3,7 @@
  */
 
 import React, { memo } from 'react';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 import {
   View,
   Text,
@@ -122,7 +123,7 @@ function ForwardModal({
           {/* Content */}
           {loading ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <LoadingSpinner />
             </View>
           ) : (
             <FlatList

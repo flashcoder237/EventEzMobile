@@ -16,6 +16,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { verificationAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 
 type VerificationStatus = 'none' | 'pending' | 'under_review' | 'approved' | 'rejected';
@@ -174,9 +175,7 @@ export default function VerificationScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
+        <LoadingSpinner />
       </SafeAreaView>
     );
   }

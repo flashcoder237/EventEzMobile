@@ -12,7 +12,7 @@ import {
   Modal,
   ViewStyle,
 } from 'react-native';
-import { Colors, FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 interface LoadingOverlayProps {
   /** Afficher l'overlay */
@@ -143,11 +143,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing['2xl'],
     paddingVertical: Spacing.xl,
     alignItems: 'center',
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    ...Shadows.xl,
     minWidth: 120,
   },
   contentSolid: {

@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { socialAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface ActivityItem {
   id: string;
@@ -140,7 +141,7 @@ export default function SocialTab({ eventId }: SocialTabProps) {
   if (loading) {
     return (
       <View style={styles.emptyTab}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LoadingSpinner />
         <Text style={styles.emptyTabText}>Chargement...</Text>
       </View>
     );

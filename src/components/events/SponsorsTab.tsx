@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { sponsorsAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface Sponsor {
   id: string;
@@ -79,7 +80,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   if (loading) {
     return (
       <View style={styles.emptyTab}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LoadingSpinner />
         <Text style={styles.emptyTabText}>Chargement des sponsors...</Text>
       </View>
     );

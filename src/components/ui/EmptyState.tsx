@@ -6,7 +6,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import GradientButton from './GradientButton';
 
 interface EmptyStateProps {
@@ -96,11 +96,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing['2xl'],
     marginHorizontal: Spacing.md,
     marginVertical: Spacing.md,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    ...Shadows.md,
   },
   iconContainer: {
     width: 100,

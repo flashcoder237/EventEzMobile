@@ -28,7 +28,9 @@ import {
   BorderRadius,
   Spacing,
   TextStyles,
+  Shadows,
 } from '../../constants/theme';
+import { SkeletonList, NotificationItemSkeleton } from '../../components/ui/Skeleton';
 
 type FilterType = 'all' | 'unread' | 'read' | 'event' | 'payment' | 'ticket';
 
@@ -395,7 +397,7 @@ export default function NotificationsScreen() {
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={styles.container}>
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
+              <SkeletonList count={6} Component={NotificationItemSkeleton} />
             </View>
           </View>
         </SafeAreaView>
@@ -691,11 +693,7 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.md,
     borderRadius: BorderRadius.lg,
     padding: Spacing.sm,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    ...Shadows.md,
   },
   filtersRow: {
     flexDirection: 'row',

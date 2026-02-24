@@ -1,7 +1,8 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Colors } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { MapMarker } from '../../types';
 
 interface WebViewMapProps {
@@ -26,8 +27,7 @@ export default function WebViewMap({
   onMarkerPress,
   initialRegion,
   radiusKm = 0,
-  showRadius = false,
-}: WebViewMapProps) {
+  showRadius = false }: WebViewMapProps) {
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -227,7 +227,7 @@ export default function WebViewMap({
       />
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <LoadingSpinner />
         </View>
       )}
     </View>
@@ -237,15 +237,11 @@ export default function WebViewMap({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-  },
+    backgroundColor: '#f0f0f0' },
   webView: {
-    flex: 1,
-  },
+    flex: 1 },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
-    alignItems: 'center',
-  },
-});
+    alignItems: 'center' } });

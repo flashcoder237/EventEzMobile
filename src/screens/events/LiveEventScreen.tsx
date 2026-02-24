@@ -16,7 +16,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { liveAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
-import { Colors, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type LiveEventRouteProp = RouteProp<RootStackParamList, 'LiveEvent'>;
@@ -267,7 +268,7 @@ export default function LiveEventScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.primary} style={{ flex: 1 }} />
+        <LoadingSpinner />
       </SafeAreaView>
     );
   }
@@ -404,12 +405,12 @@ const styles = StyleSheet.create({
   liveText: { fontSize: FontSizes.xs, fontWeight: '700', color: Colors.error },
   tabs: { flexDirection: 'row', marginHorizontal: Spacing.md, backgroundColor: Colors.gray100, borderRadius: BorderRadius.lg, padding: 4, marginBottom: Spacing.md },
   tab: { flex: 1, flexDirection: 'row', paddingVertical: Spacing.sm, alignItems: 'center', justifyContent: 'center', borderRadius: BorderRadius.md },
-  activeTab: { backgroundColor: Colors.white, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  activeTab: { backgroundColor: Colors.white, ...Shadows.md },
   tabText: { fontSize: FontSizes.sm, color: Colors.textLight, fontWeight: '600' },
   activeTabText: { color: Colors.primary },
   listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
   // Questions
-  questionCard: { flexDirection: 'row', backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  questionCard: { flexDirection: 'row', backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   answeredCard: { borderLeftWidth: 3, borderLeftColor: Colors.success },
   upvoteButton: { alignItems: 'center', justifyContent: 'center', width: 44, marginRight: Spacing.sm, paddingVertical: Spacing.xs, borderRadius: BorderRadius.md, backgroundColor: Colors.gray50 },
   upvoted: { backgroundColor: Colors.primaryBg },
@@ -423,7 +424,7 @@ const styles = StyleSheet.create({
   answeredBadge: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   answeredText: { fontSize: FontSizes.xs, color: Colors.success, fontWeight: '600' },
   // Polls
-  pollCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  pollCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   pollQuestion: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.text, marginBottom: Spacing.xs },
   pollVoteCount: { fontSize: FontSizes.xs, color: Colors.textLight, marginBottom: Spacing.md },
   pollOption: { borderRadius: BorderRadius.lg, borderWidth: 1.5, borderColor: Colors.border, marginBottom: Spacing.xs, overflow: 'hidden', position: 'relative' },

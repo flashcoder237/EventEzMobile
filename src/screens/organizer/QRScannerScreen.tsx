@@ -17,6 +17,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { registrationsAPI, eventsAPI } from '../../api/client';
 import { RootStackParamList, Registration, Event } from '../../types';
 import {
@@ -189,8 +190,7 @@ export default function QRScannerScreen() {
   if (!permission) {
     return (
       <View style={styles.permissionContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.permissionText}>Chargement...</Text>
+<LoadingSpinner message="Chargement..." />
       </View>
     );
   }

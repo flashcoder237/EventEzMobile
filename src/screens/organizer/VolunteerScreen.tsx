@@ -15,7 +15,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { volunteersAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
-import { Colors, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type VolunteerRouteProp = RouteProp<RootStackParamList, 'Volunteers'>;
@@ -303,7 +304,7 @@ export default function VolunteerScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <ActivityIndicator size="large" color={Colors.primary} style={{ flex: 1 }} />
+        <LoadingSpinner />
       </SafeAreaView>
     );
   }
@@ -404,12 +405,12 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: FontSizes.lg, fontWeight: '700', color: Colors.text },
   tabs: { flexDirection: 'row', marginHorizontal: Spacing.md, backgroundColor: Colors.gray100, borderRadius: BorderRadius.lg, padding: 4, marginBottom: Spacing.md },
   tab: { flex: 1, flexDirection: 'row', paddingVertical: Spacing.sm, alignItems: 'center', justifyContent: 'center', borderRadius: BorderRadius.md },
-  activeTab: { backgroundColor: Colors.white, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
+  activeTab: { backgroundColor: Colors.white, ...Shadows.md },
   tabText: { fontSize: FontSizes.sm, color: Colors.textLight, fontWeight: '600' },
   activeTabText: { color: Colors.primary },
   listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl },
   // Role Card
-  roleCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  roleCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   roleHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
   roleIconContainer: { width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
   roleInfo: { flex: 1 },
@@ -431,7 +432,7 @@ const styles = StyleSheet.create({
   applyButtonDisabled: { backgroundColor: Colors.gray300 },
   applyButtonText: { fontSize: FontSizes.sm, fontWeight: '700', color: Colors.white },
   // Application Card
-  applicationCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, elevation: 1 },
+  applicationCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
   applicationHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm },
   applicationInfo: { flex: 1, marginRight: Spacing.sm },
   applicationRole: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.text },

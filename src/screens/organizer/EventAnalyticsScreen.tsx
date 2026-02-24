@@ -23,6 +23,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { SkeletonList, StatCardSkeleton } from '../../components/ui/Skeleton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'EventAnalytics'>;
@@ -101,7 +102,7 @@ export default function EventAnalyticsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <SkeletonList count={4} Component={StatCardSkeleton} />
       </View>
     );
   }

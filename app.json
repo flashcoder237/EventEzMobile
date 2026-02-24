@@ -15,7 +15,10 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.eventez.mobile",
-      "usesAppleSignIn": true
+      "usesAppleSignIn": true,
+      "associatedDomains": [
+        "applinks:eventez.online"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +35,30 @@
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
+      ],
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/events/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/organizers/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/speakers/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
       ]
     },
     "web": {

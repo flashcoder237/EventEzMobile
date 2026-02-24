@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { volunteersAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface VolunteerRole {
   id: string;
@@ -87,7 +88,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
   if (loading) {
     return (
       <View style={styles.emptyTab}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LoadingSpinner />
         <Text style={styles.emptyTabText}>Chargement...</Text>
       </View>
     );

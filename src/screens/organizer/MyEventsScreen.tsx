@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Image,
   RefreshControl,
-  ActivityIndicator,
   StatusBar,
   TextInput,
 } from 'react-native';
@@ -28,6 +27,8 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
+import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -374,7 +375,7 @@ export default function MyEventsScreen() {
       <View style={styles.mainContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
         <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-          <ActivityIndicator size="large" color={Colors.white} />
+          <LoadingSpinner color={Colors.white} />
         </View>
       </View>
     );

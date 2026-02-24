@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import {
   Colors,
@@ -28,6 +29,7 @@ import {
   BorderRadius,
   Spacing,
   TextStyles,
+  Shadows,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -342,9 +344,7 @@ export default function ModerationScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor="#312E81" />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
+        <LoadingSpinner />
       </SafeAreaView>
     );
   }
@@ -631,11 +631,7 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.lg,
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    ...Shadows.lg,
   },
   statItem: {
     flex: 1,

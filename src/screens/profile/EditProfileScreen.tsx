@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
@@ -514,9 +515,7 @@ export default function EditProfileScreen() {
       </KeyboardAwareScrollView>
 
       {saving && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
+        <LoadingSpinner />
       )}
     </SafeAreaView>
   );

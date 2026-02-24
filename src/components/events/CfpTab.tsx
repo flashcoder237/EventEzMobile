@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { cfpAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface CallForPapers {
   id: string;
@@ -116,7 +117,7 @@ export default function CfpTab({ eventId }: CfpTabProps) {
   if (loading) {
     return (
       <View style={styles.emptyTab}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LoadingSpinner />
         <Text style={styles.emptyTabText}>Chargement...</Text>
       </View>
     );

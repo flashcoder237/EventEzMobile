@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { walletAPI, payoutsAPI } from '../../api/client';
 import {
   OrganizerWallet,
@@ -342,9 +343,7 @@ export default function WalletScreen() {
         <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={styles.container}>
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={Colors.primary} />
-            </View>
+            <LoadingSpinner />
           </View>
         </SafeAreaView>
       </View>

@@ -27,6 +27,7 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
+import { SkeletonList, TicketCardSkeleton } from '../../components/ui/Skeleton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -464,7 +465,7 @@ export default function MyTicketsScreen() {
       <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <SkeletonList count={4} Component={TicketCardSkeleton} />
         </View>
       </SafeAreaView>
     );

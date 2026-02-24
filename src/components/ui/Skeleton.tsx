@@ -208,6 +208,75 @@ export function SkeletonList({
   );
 }
 
+/**
+ * Skeleton pour un item de notification
+ */
+export const NotificationItemSkeleton = memo(function NotificationItemSkeleton() {
+  return (
+    <View style={skeletonStyles.notificationItem}>
+      <Skeleton width={40} height={40} borderRadius={20} />
+      <View style={skeletonStyles.notificationItemContent}>
+        <Skeleton width="85%" height={14} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="60%" height={12} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width={60} height={10} />
+      </View>
+    </View>
+  );
+});
+
+/**
+ * Skeleton pour une carte de statistique (dashboard)
+ */
+export const StatCardSkeleton = memo(function StatCardSkeleton() {
+  return (
+    <View style={skeletonStyles.statCard}>
+      <Skeleton width={36} height={36} borderRadius={BorderRadius.md} style={{ marginBottom: Spacing.sm }} />
+      <Skeleton width="50%" height={20} style={{ marginBottom: Spacing.xs }} />
+      <Skeleton width="70%" height={12} />
+    </View>
+  );
+});
+
+/**
+ * Skeleton pour un formulaire
+ */
+export const FormSkeleton = memo(function FormSkeleton() {
+  return (
+    <View style={skeletonStyles.form}>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <View key={i} style={skeletonStyles.formField}>
+          <Skeleton width="30%" height={12} style={{ marginBottom: Spacing.sm }} />
+          <Skeleton height={44} borderRadius={BorderRadius.md} />
+        </View>
+      ))}
+      <Skeleton height={48} borderRadius={BorderRadius.lg} style={{ marginTop: Spacing.md }} />
+    </View>
+  );
+});
+
+/**
+ * Skeleton pour un ecran de detail (EventDetails, OrganizerProfile, SpeakerDetails)
+ */
+export const DetailScreenSkeleton = memo(function DetailScreenSkeleton() {
+  return (
+    <View style={skeletonStyles.detailScreen}>
+      <Skeleton height={220} borderRadius={0} />
+      <View style={skeletonStyles.detailScreenContent}>
+        <Skeleton width="30%" height={12} style={{ marginBottom: Spacing.sm }} />
+        <Skeleton width="80%" height={22} style={{ marginBottom: Spacing.sm }} />
+        <Skeleton width="50%" height={14} style={{ marginBottom: Spacing.lg }} />
+        <View style={skeletonStyles.detailScreenMeta}>
+          <Skeleton width={100} height={12} />
+          <Skeleton width={80} height={12} />
+        </View>
+        <Skeleton width="100%" height={14} style={{ marginTop: Spacing.lg, marginBottom: Spacing.xs }} />
+        <Skeleton width="100%" height={14} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="70%" height={14} />
+      </View>
+    </View>
+  );
+});
+
 const skeletonStyles = StyleSheet.create({
   // Event Card
   eventCard: {
@@ -289,6 +358,49 @@ const skeletonStyles = StyleSheet.create({
   profile: {
     alignItems: 'center',
     paddingVertical: Spacing.xl,
+  },
+
+  // Notification Item
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    padding: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  notificationItemContent: {
+    flex: 1,
+    marginLeft: Spacing.md,
+  },
+
+  // Stat Card
+  statCard: {
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    flex: 1,
+    minWidth: 140,
+  },
+
+  // Form
+  form: {
+    padding: Spacing.md,
+  },
+  formField: {
+    marginBottom: Spacing.md,
+  },
+
+  // Detail Screen
+  detailScreen: {
+    flex: 1,
+    backgroundColor: Colors.white,
+  },
+  detailScreenContent: {
+    padding: Spacing.md,
+  },
+  detailScreenMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
 

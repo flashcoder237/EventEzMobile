@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsAPI, refundsAPI } from '../../api/client';
 import { Payment, RootStackParamList } from '../../types';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import {
   Colors,
@@ -148,9 +149,7 @@ export default function RefundRequestScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
+        <LoadingSpinner />
       </SafeAreaView>
     );
   }

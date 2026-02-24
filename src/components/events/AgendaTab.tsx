@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Session } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 export interface AgendaTabProps {
   sessions: Session[];
@@ -23,7 +24,7 @@ export default function AgendaTab({
       <Text style={styles.sectionTitle}>Programme</Text>
       {loadingSessions ? (
         <View style={styles.emptyTab}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <LoadingSpinner />
           <Text style={styles.emptyTabText}>Chargement du programme...</Text>
         </View>
       ) : sessions && sessions.length > 0 ? (

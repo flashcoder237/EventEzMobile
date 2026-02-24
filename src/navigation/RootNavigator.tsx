@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { Colors } from '../constants/theme';
+import { LoadingSpinner } from '../components/ui/LoadingOverlay';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 
 // Navigators
@@ -104,9 +105,7 @@ export default function RootNavigator() {
 
   if (isLoading || checkingOnboarding) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.white }}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+<LoadingSpinner />
     );
   }
 

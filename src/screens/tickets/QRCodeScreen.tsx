@@ -18,6 +18,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { ticketPurchasesAPI, registrationsAPI } from '../../api/client';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import {
@@ -248,9 +249,7 @@ export default function QRCodeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <LoadingSpinner />
     );
   }
 

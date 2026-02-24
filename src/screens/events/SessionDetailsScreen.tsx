@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { sessionsAPI } from '../../api/client';
+import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { RootStackParamList, Session, Speaker, SessionResource } from '../../types';
@@ -159,10 +160,7 @@ export default function SessionDetailsScreen() {
           <Text style={styles.headerTitle}>Session</Text>
           <View style={styles.headerRight} />
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Chargement...</Text>
-        </View>
+        <DetailScreenSkeleton />
       </SafeAreaView>
     );
   }

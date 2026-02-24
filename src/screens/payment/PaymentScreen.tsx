@@ -21,6 +21,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { registrationsAPI, paymentsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSavedPaymentMethods, SavedPaymentMethod, maskPhoneNumber } from '../../hooks';
 import {
@@ -587,9 +588,7 @@ export default function PaymentScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <LoadingSpinner />
     );
   }
 

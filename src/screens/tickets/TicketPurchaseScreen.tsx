@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api/client';
 import { Event, TicketType, RootStackParamList, FormField, Discount } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
@@ -430,9 +431,7 @@ export default function TicketPurchaseScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <LoadingSpinner />
     );
   }
 

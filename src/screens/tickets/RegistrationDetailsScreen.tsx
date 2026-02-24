@@ -28,6 +28,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -201,9 +202,7 @@ export default function RegistrationDetailsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
+      <LoadingSpinner />
     );
   }
 

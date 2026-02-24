@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { virtualRoomsAPI, recordingsAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface VirtualRoom {
   id: string;
@@ -102,7 +103,7 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
   if (loading) {
     return (
       <View style={styles.emptyTab}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <LoadingSpinner />
         <Text style={styles.emptyTabText}>Chargement...</Text>
       </View>
     );

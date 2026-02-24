@@ -30,6 +30,7 @@ import {
   TextStyles,
   Shadows,
 } from '../../constants/theme';
+import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
 
 const { width } = Dimensions.get('window');
 
@@ -395,7 +396,7 @@ export default function FollowingEventsScreen() {
       {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <SkeletonList count={4} Component={EventCardSkeleton} />
         </View>
       ) : (
         <FlatList

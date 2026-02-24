@@ -56,7 +56,9 @@ import {
   Spacing,
   TextStyles,
   TOUCH_OPACITY,
+  Shadows,
 } from '../../constants/theme';
+import { SkeletonList, MessageSkeleton } from '../../components/ui/Skeleton';
 import {
   MESSAGE_AVATAR_SIZE,
   formatMessageDate,
@@ -917,7 +919,7 @@ export default function ConversationScreen() {
       <SafeAreaView style={styles.container} edges={['bottom']}>
         <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <SkeletonList count={6} Component={MessageSkeleton} />
         </View>
       </SafeAreaView>
     );
@@ -1100,6 +1102,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing['3xl'],
+    transform: [{ scaleY: -1 }],
   },
   emptyIconContainer: {
     width: 80,
@@ -1166,11 +1169,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 4,
+    ...Shadows.lg,
     borderWidth: 1,
     borderColor: Colors.gray200,
   },

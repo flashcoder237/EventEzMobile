@@ -24,6 +24,7 @@ import Slider from '@react-native-community/slider';
 import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
 import { useNotifications } from '../../contexts/NotificationContext';
 import {
   Colors,
@@ -637,8 +638,8 @@ export default function DiscoverScreen() {
       {renderSearchHeader()}
       {viewMode === 'list' && renderCategoryChips()}
       {searchLoading && viewMode === 'list' ? (
-        <View style={styles.loadingCenter}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+        <View style={{ flex: 1, padding: 20 }}>
+          <SkeletonList count={4} Component={EventCardSkeleton} />
         </View>
       ) : (
         renderSearchContent()
