@@ -1,11 +1,19 @@
 import React, { useEffect } from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { View, StyleSheet, Platform, TouchableOpacity, Text } from 'react-native';
+import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as NavigationBar from 'expo-navigation-bar';
+import Animated, {
+  useAnimatedStyle,
+  withSpring,
+  useSharedValue,
+} from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 import { MainTabParamList } from '../types';
-import { Colors, FontFamily, Spacing } from '../constants/theme';
+import { Colors, FontFamily, Spacing, Shadows, BorderRadius } from '../constants/theme';
 
 // Screens
 import DiscoverScreen from '../screens/events/DiscoverScreen';
@@ -13,75 +21,126 @@ import FollowingEventsScreen from '../screens/dashboard/FollowingEventsScreen';
 import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
-// Hauteur standard de la barre de navigation 3 boutons Android
-const ANDROID_3_BUTTON_NAV_HEIGHT = 48;
-
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-export default function MainTabNavigator() {
+const TAB_BAR_HEIGHT = 68;
+const TAB_BAR_MAX_WIDTH = 360;
+const PILL_HEIGHT = 48;
+const PILL_PADDING_H = 8;
+const FADE_HEIGHT = 80;
+
+type TabName = 'Discover' | 'Saved' | 'MyTickets' | 'Profile';
+
+const tabConfig: Record<TabName, { icon: keyof typeof Ionicons.glyphMap; iconFocused: keyof typeof Ionicons.glyphMap; label: string }> = {
+  Discover: { icon: 'compass-outline', iconFocused: 'compass', label: 'Discover' },
+  Saved: { icon: 'bookmark-outline', iconFocused: 'bookmark', label: 'Saved' },
+  MyTickets: { icon: 'ticket-outline', iconFocused: 'ticket', label: 'Tickets' },
+  Profile: { icon: 'person-outline', iconFocused: 'person', label: 'Profil' },
+};
+
+function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
+  const indicatorPosition = useSharedValue(0);
+  const tabCount = state.routes.length;
 
   useEffect(() => {
+    indicatorPosition.value = withSpring(state.index, {
+      damping: 22,
+      stiffness: 160,
+      mass: 0.9,
+    });
+  }, [state.index]);
+
+  const pillStyle = useAnimatedStyle(() => {
+    const tabWidth = TAB_BAR_MAX_WIDTH / tabCount;
+    const left = indicatorPosition.value * tabWidth + PILL_PADDING_H;
+    return {
+      transform: [{ translateX: left }],
+      width: tabWidth - PILL_PADDING_H * 2,
+    };
+  });
+
+  const bottomPadding = Math.max(insets.bottom, 16);
+
+  return (
+    <View style={[styles.floatingBarOuter, { paddingBottom: bottomPadding }]}>
+      {/* Fade gradient covering from bottom of screen up past the tab bar */}
+      <LinearGradient
+        colors={['transparent', Colors.background]}
+        style={[styles.fadeGradient, { height: FADE_HEIGHT + TAB_BAR_HEIGHT + bottomPadding }]}
+        pointerEvents="none"
+      />
+
+      <BlurView
+        intensity={Platform.OS === 'ios' ? 80 : 0}
+        tint="light"
+        style={styles.floatingBar}
+      >
+        {/* Android fallback bg */}
+        {Platform.OS === 'android' && (
+          <View style={styles.androidBg} />
+        )}
+
+        {/* Active pill background */}
+        <Animated.View style={[styles.pill, pillStyle]} />
+
+        {/* Tab items */}
+        {state.routes.map((route, index) => {
+          const isFocused = state.index === index;
+          const config = tabConfig[route.name as TabName];
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+              navigation.navigate(route.name);
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              onPress={onPress}
+              style={styles.tabItem}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={isFocused ? config.iconFocused : config.icon}
+                size={isFocused ? 24 : 22}
+                color={isFocused ? Colors.primaryDark : Colors.gray400}
+              />
+              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+                {config.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </BlurView>
+    </View>
+  );
+}
+
+export default function MainTabNavigator() {
+  useEffect(() => {
     if (Platform.OS === 'android') {
-      NavigationBar.setBackgroundColorAsync('#FFFFFF');
+      NavigationBar.setBackgroundColorAsync('transparent');
       NavigationBar.setButtonStyleAsync('dark');
     }
   }, []);
 
-  const bottomPadding = Platform.OS === 'android'
-    ? Math.max(insets.bottom, ANDROID_3_BUTTON_NAV_HEIGHT)
-    : insets.bottom;
-  const tabBarHeight = 56 + bottomPadding;
-
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => {
-          let iconName: keyof typeof Ionicons.glyphMap;
-
-          switch (route.name) {
-            case 'Discover':
-              iconName = focused ? 'compass' : 'compass-outline';
-              break;
-            case 'Saved':
-              iconName = focused ? 'bookmark' : 'bookmark-outline';
-              break;
-            case 'MyTickets':
-              iconName = focused ? 'ticket' : 'ticket-outline';
-              break;
-            case 'Profile':
-              iconName = focused ? 'person' : 'person-outline';
-              break;
-            default:
-              iconName = 'ellipse';
-          }
-
-          return (
-            <Ionicons
-              name={iconName}
-              size={24}
-              color={focused ? Colors.primary : Colors.gray400}
-            />
-          );
-        },
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray400,
+      tabBar={(props) => <FloatingTabBar {...props} />}
+      screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: Colors.white,
-          borderTopWidth: 1,
-          borderTopColor: Colors.gray100,
-          height: tabBarHeight,
-          paddingTop: Spacing.sm,
-          paddingBottom: bottomPadding,
-        },
-        tabBarLabelStyle: {
-          fontFamily: FontFamily.medium,
-          fontSize: 11,
-          marginTop: 2,
-        },
-        tabBarHideOnKeyboard: true,
-      })}
+      }}
     >
       <Tab.Screen
         name="Discover"
@@ -106,3 +165,58 @@ export default function MainTabNavigator() {
     </Tab.Navigator>
   );
 }
+
+const styles = StyleSheet.create({
+  floatingBarOuter: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  fadeGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  floatingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: TAB_BAR_MAX_WIDTH,
+    height: TAB_BAR_HEIGHT,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    marginHorizontal: Spacing.lg,
+    ...Shadows.dramatic,
+  },
+  androidBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  pill: {
+    position: 'absolute',
+    top: (TAB_BAR_HEIGHT - PILL_HEIGHT) / 2,
+    height: PILL_HEIGHT,
+    borderRadius: PILL_HEIGHT / 2,
+    backgroundColor: '#EDE9FE',
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: TAB_BAR_HEIGHT,
+    gap: 2,
+  },
+  tabLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    color: Colors.gray400,
+    marginTop: 2,
+  },
+  tabLabelActive: {
+    color: Colors.primaryDark,
+    fontFamily: FontFamily.bold,
+  },
+});

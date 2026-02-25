@@ -884,7 +884,7 @@ export default function ConversationScreen() {
   }, [state.messages, state.otherUserId, state.playingVoiceId, user?.id, handleMessageLongPress]);
 
   const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
+    <View style={[styles.emptyContainer, { transform: [{ scaleY: -1 }] }]}>
       <View style={styles.emptyIconContainer}>
         <Ionicons name="chatbubble-ellipses-outline" size={48} color={Colors.gray300} />
       </View>
@@ -957,6 +957,8 @@ export default function ConversationScreen() {
             onScroll={handleScroll}
             scrollEventThrottle={100}
             inverted={true}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="interactive"
           />
 
           {/* Scroll to bottom button */}

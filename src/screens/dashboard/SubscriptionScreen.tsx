@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -730,6 +731,7 @@ export default function SubscriptionScreen() {
           if (payment.step !== 'processing') closePaymentModal();
         }}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContainer}>
             {/* Modal Header */}
@@ -964,6 +966,7 @@ export default function SubscriptionScreen() {
             )}
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

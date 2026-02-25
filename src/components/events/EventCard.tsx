@@ -7,7 +7,9 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import AnimatedPressable from '../ui/AnimatedPressable';
 import {
   Colors,
   FontFamily,
@@ -15,6 +17,7 @@ import {
   Spacing,
   BorderRadius,
   Shadows,
+  Gradients,
 } from '../../constants/theme';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -108,7 +111,13 @@ function EventCard({
   // ===== HORIZONTAL VARIANT (list item — search results) =====
   if (variant === 'horizontal') {
     return (
-      <TouchableOpacity onPress={onPress} style={styles.horizontalCard} activeOpacity={0.7}>
+      <AnimatedPressable
+        onPress={onPress}
+        style={styles.horizontalCard}
+        animationType="both"
+        scaleValue={0.98}
+        haptic="light"
+      >
         <Image
           source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
           style={styles.horizontalImage}
@@ -136,7 +145,7 @@ function EventCard({
             color={isLiked ? Colors.primary : Colors.gray400}
           />
         </TouchableOpacity>
-      </TouchableOpacity>
+      </AnimatedPressable>
     );
   }
 
@@ -163,7 +172,12 @@ function EventCard({
   // ===== FEATURED VARIANT (hero card — carousel) =====
   if (variant === 'featured') {
     return (
-      <TouchableOpacity onPress={onPress} style={styles.featuredCard} activeOpacity={0.85}>
+      <AnimatedPressable
+        onPress={onPress}
+        style={styles.featuredCard}
+        animationType="editorial"
+        haptic="light"
+      >
         <View style={styles.featuredImageContainer}>
           <Image
             source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
@@ -171,7 +185,10 @@ function EventCard({
             resizeMode="cover"
           />
           {/* Gradient overlay for text legibility */}
-          <View style={styles.featuredGradient} />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.5)']}
+            style={styles.featuredGradient}
+          />
           {/* Date badge on image */}
           <View style={styles.featuredDateBadge}>
             <Text style={styles.featuredDateBadgeText}>{formatDateShort()}</Text>
@@ -212,19 +229,31 @@ function EventCard({
             )}
           </View>
         </View>
-      </TouchableOpacity>
+      </AnimatedPressable>
     );
   }
 
   // ===== GRID VARIANT (full-width card — Explore/search results) =====
   if (variant === 'grid') {
     return (
-      <TouchableOpacity onPress={onPress} style={styles.gridCard} activeOpacity={0.8}>
-        <Image
-          source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
-          style={styles.gridImage}
-          resizeMode="cover"
-        />
+      <AnimatedPressable
+        onPress={onPress}
+        style={styles.gridCard}
+        animationType="both"
+        scaleValue={0.98}
+        haptic="light"
+      >
+        <View style={{ position: 'relative' }}>
+          <Image
+            source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
+            style={styles.gridImage}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.3)']}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
         <View style={styles.gridContent}>
           <Text style={styles.dateAccent}>{formatDateAccent()}</Text>
           <Text style={styles.gridTitle} numberOfLines={2}>{title}</Text>
@@ -248,13 +277,19 @@ function EventCard({
             </TouchableOpacity>
           </View>
         </View>
-      </TouchableOpacity>
+      </AnimatedPressable>
     );
   }
 
   // ===== DEFAULT VARIANT (standard card — horizontal scroll feeds) =====
   return (
-    <TouchableOpacity onPress={onPress} style={styles.defaultCard} activeOpacity={0.8}>
+    <AnimatedPressable
+      onPress={onPress}
+      style={styles.defaultCard}
+      animationType="both"
+      scaleValue={0.97}
+      haptic="light"
+    >
       <Image
         source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
         style={styles.defaultImage}
@@ -271,7 +306,7 @@ function EventCard({
           {isGratuit ? 'Gratuit' : formatPriceShort()}
         </Text>
       </View>
-    </TouchableOpacity>
+    </AnimatedPressable>
   );
 }
 
@@ -340,7 +375,7 @@ const styles = StyleSheet.create({
 
   // ===== DEFAULT CARD =====
   defaultCard: {
-    width: SCREEN_WIDTH * 0.7,
+    width: SCREEN_WIDTH * 0.82,
     backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
@@ -348,7 +383,7 @@ const styles = StyleSheet.create({
   },
   defaultImage: {
     width: '100%',
-    height: 140,
+    height: 200,
     backgroundColor: Colors.gray100,
   },
   defaultContent: {
@@ -372,8 +407,8 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   horizontalImage: {
-    width: 110,
-    height: 120,
+    width: 120,
+    height: 130,
     backgroundColor: Colors.gray100,
   },
   horizontalContent: {
@@ -429,18 +464,18 @@ const styles = StyleSheet.create({
 
   // ===== FEATURED CARD =====
   featuredCard: {
-    width: SCREEN_WIDTH * 0.85,
+    width: SCREEN_WIDTH * 0.88,
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius['2xl'],
+    borderRadius: BorderRadius['3xl'],
     overflow: 'hidden',
-    ...Shadows.sm,
+    ...Shadows.glass,
   },
   featuredImageContainer: {
     position: 'relative',
   },
   featuredImage: {
     width: '100%',
-    height: 200,
+    height: 280,
     backgroundColor: Colors.gray100,
   },
   featuredGradient: {
@@ -448,8 +483,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    height: 80,
-    backgroundColor: 'transparent',
+    height: 120,
   },
   featuredDateBadge: {
     position: 'absolute',
@@ -482,11 +516,12 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   featuredTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: FontSizes['2xl'],
     color: Colors.gray900,
-    lineHeight: 28,
+    lineHeight: 30,
     marginBottom: 8,
+    letterSpacing: -0.5,
   },
   featuredLocation: {
     fontFamily: FontFamily.regular,
@@ -509,14 +544,14 @@ const styles = StyleSheet.create({
   // ===== GRID CARD =====
   gridCard: {
     backgroundColor: Colors.card,
-    borderRadius: BorderRadius['2xl'],
+    borderRadius: BorderRadius['4xl'],
     overflow: 'hidden',
     marginBottom: Spacing.base,
     ...Shadows.card,
   },
   gridImage: {
     width: '100%',
-    height: 180,
+    height: 200,
     backgroundColor: Colors.gray100,
   },
   gridContent: {

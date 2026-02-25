@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as Location from 'expo-location';
 import Slider from '@react-native-community/slider';
 
@@ -580,6 +581,7 @@ export default function ExploreScreen() {
       transparent
       onRequestClose={() => setShowFilters(false)}
     >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           {/* Header */}
@@ -590,7 +592,7 @@ export default function ExploreScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {/* Sort By */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Trier par</Text>
@@ -775,6 +777,7 @@ export default function ExploreScreen() {
           </View>
         </View>
       </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 
@@ -1183,7 +1186,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   eventCardContainer: {
     marginBottom: Spacing.md,

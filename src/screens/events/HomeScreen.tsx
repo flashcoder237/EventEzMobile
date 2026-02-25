@@ -545,6 +545,6 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
   bottomSpacing: {
-    height: 100,
+    height: 130,
   },
 });

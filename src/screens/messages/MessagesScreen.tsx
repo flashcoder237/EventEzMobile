@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { messagesAPI, usersAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
@@ -449,6 +450,7 @@ export default function MessagesScreen() {
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}
+            keyboardShouldPersistTaps="handled"
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}
@@ -465,6 +467,7 @@ export default function MessagesScreen() {
             animationType="slide"
             onRequestClose={() => setShowNewModal(false)}
           >
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
@@ -498,6 +501,7 @@ export default function MessagesScreen() {
                     renderItem={renderUserItem}
                     keyExtractor={(item) => String(item.id)}
                     style={styles.usersList}
+                    keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={
                       <View style={styles.noUsers}>
                         <Ionicons name="people-outline" size={48} color={Colors.gray300} />
@@ -508,6 +512,7 @@ export default function MessagesScreen() {
                 )}
               </View>
             </View>
+            </KeyboardAvoidingView>
           </Modal>
         </View>
       </SafeAreaView>

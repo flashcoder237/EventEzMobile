@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   scrollContent: {
-    paddingBottom: Spacing.xl,
+    paddingBottom: 130,
   },
   header: {
     flexDirection: 'row',

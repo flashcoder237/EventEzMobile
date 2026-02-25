@@ -119,7 +119,7 @@ export default function RootNavigator() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: Colors.white },
-        animation: 'slide_from_right',
+        animation: 'fade_from_bottom',
       }}
     >
       {!isAuthenticated ? (
@@ -134,6 +134,7 @@ export default function RootNavigator() {
             component={EventDetailsScreen}
             options={{
               headerShown: false,
+              animation: 'slide_from_right',
             }}
           />
           <Stack.Screen
@@ -171,6 +172,7 @@ export default function RootNavigator() {
             options={{
               headerShown: false,
               gestureEnabled: false,
+              presentation: 'modal',
             }}
           />
           <Stack.Screen

@@ -170,19 +170,17 @@ export default function ProfileScreen() {
           <Ionicons name="chevron-forward" size={20} color={Colors.gray300} />
         </TouchableOpacity>
 
-        {/* Stats */}
+        {/* Stats — 3 individual cards */}
         <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.tickets}</Text>
             <Text style={styles.statLabel}>Réservations</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.favorites}</Text>
             <Text style={styles.statLabel}>Favoris</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
+          <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.reviews}</Text>
             <Text style={styles.statLabel}>Avis</Text>
           </View>
@@ -350,7 +348,7 @@ export default function ProfileScreen() {
         {/* App Version */}
         <Text style={styles.version}>EventEz v1.0.0</Text>
 
-        <View style={{ height: Spacing['3xl'] }} />
+        <View style={{ height: 130 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -384,9 +382,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
+    padding: Spacing.xl,
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius['4xl'],
+    ...Shadows.glass,
   },
   userCardLeft: {
     flexDirection: 'row',
@@ -394,17 +393,23 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 3,
+    borderColor: Colors.white,
+    ...Shadows.sm,
   },
   avatarPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: Colors.white,
+    ...Shadows.sm,
   },
   avatarText: {
     fontFamily: FontFamily.displayBold,
@@ -440,13 +445,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    gap: Spacing.sm,
   },
-  statItem: {
+  statCard: {
     flex: 1,
     alignItems: 'center',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius['3xl'],
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.sm,
+    ...Shadows.xs,
   },
   statValue: {
     ...TextStyles.h2,
@@ -455,10 +463,6 @@ const styles = StyleSheet.create({
     ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: Colors.gray200,
   },
   becomeOrganizerCard: {
     flexDirection: 'row',
@@ -499,17 +503,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   menuSectionTitle: {
-    ...TextStyles.label,
-    color: Colors.gray500,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: Colors.accent,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
   },
   menuCard: {
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius['3xl'],
     borderWidth: 1,
     borderColor: Colors.gray100,
+    ...Shadows.xs,
   },
   menuItem: {
     flexDirection: 'row',

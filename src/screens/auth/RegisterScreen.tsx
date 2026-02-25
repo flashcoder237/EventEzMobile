@@ -23,6 +23,7 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
+  TextStyles,
 } from '../../constants/theme';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators } from '../../lib/validation';
@@ -186,7 +187,7 @@ export default function RegisterScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
 
       {/* Dot pattern background */}
-      <DotPattern />
+      <DotPattern opacity={0.04} />
 
       {/* Top accent bar */}
       <View style={styles.accentBar} />
@@ -401,11 +402,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   title: {
-    fontSize: FontSizes['3xl'],
-    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['4xl'],
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.gray900,
     marginBottom: Spacing.xs,
-    letterSpacing: -0.5,
+    letterSpacing: -1.5,
+    lineHeight: 42,
   },
   subtitle: {
     fontSize: FontSizes.base,
@@ -430,7 +432,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius['2xl'],
     borderWidth: 1.5,
     borderColor: Colors.gray200,
     overflow: 'hidden',
@@ -477,6 +479,7 @@ const styles = StyleSheet.create({
   },
   registerButton: {
     marginTop: Spacing.md,
+    ...Shadows.coloredPrimary,
   },
   organizerContainer: {
     marginTop: Spacing['2xl'],

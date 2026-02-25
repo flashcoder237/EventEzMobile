@@ -10,12 +10,23 @@ import {
   StatusBar,
   Linking,
   Modal,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { BlurView } from 'expo-blur';
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  interpolate,
+  Extrapolation,
+} from 'react-native-reanimated';
 import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import SponsorsTab from '../../components/events/SponsorsTab';
 import VenueTab from '../../components/events/VenueTab';
@@ -83,6 +94,42 @@ export default function EventDetailsScreen() {
     showError,
   } = useEventDetails(eventId);
 
+  // All hooks must be called before any early returns
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      scrollY.value = e.contentOffset.y;
+    },
+  });
+
+  const bannerAnimatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(
+      scrollY.value,
+      [-100, 0],
+      [1.3, 1],
+      Extrapolation.CLAMP
+    );
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 360],
+      [0, 180],
+      Extrapolation.CLAMP
+    );
+    return {
+      transform: [{ scale }, { translateY }],
+    };
+  });
+
+  // Fade out banner buttons as BlurHeader fades in
+  const bannerOverlayOpacity = useAnimatedStyle(() => ({
+    opacity: interpolate(
+      scrollY.value,
+      [100, 200],
+      [1, 0],
+      Extrapolation.CLAMP
+    ),
+  }));
+
   if (loading) {
     return <DetailScreenSkeleton />;
   }
@@ -116,16 +163,52 @@ export default function EventDetailsScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView ref={scrollViewRef} showsVerticalScrollIndicator={false} bounces={false}>
-        {/* Banner Image */}
+      {/* BlurHeader that appears on scroll */}
+      <BlurHeader
+        scrollY={scrollY}
+        title={event.title}
+        titleShowOffset={280}
+        bgShowOffset={200}
+        leftAction={
+          <TouchableOpacity
+            style={styles.blurHeaderBtn}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={22} color={Colors.gray900} />
+          </TouchableOpacity>
+        }
+        rightActions={
+          <TouchableOpacity
+            style={styles.blurHeaderBtn}
+            onPress={handleShare}
+          >
+            <Ionicons name="share-outline" size={20} color={Colors.gray900} />
+          </TouchableOpacity>
+        }
+      />
+
+      <Animated.ScrollView
+        ref={scrollViewRef as any}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+      >
+        {/* Banner Image with parallax */}
         <View style={styles.bannerContainer}>
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => setShowImageViewer(true)}
           >
-            <Image
+            <Animated.Image
               source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
-              style={styles.bannerImage}
+              style={[styles.bannerImage, bannerAnimatedStyle]}
+            />
+            {/* Triple gradient overlay */}
+            <LinearGradient
+              colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.5)']}
+              locations={[0, 0.4, 1]}
+              style={StyleSheet.absoluteFill}
             />
             {/* Image zoom hint */}
             <View style={styles.imageZoomHint}>
@@ -133,26 +216,28 @@ export default function EventDetailsScreen() {
             </View>
           </TouchableOpacity>
 
-          {/* Header Overlay */}
-          <SafeAreaView style={styles.headerOverlay} edges={['top']}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color={Colors.white} />
-            </TouchableOpacity>
-            <View style={styles.headerActions}>
-              <FollowEventButton
-                eventId={eventId}
-                variant="icon-only"
-                initialFollowing={isFollowing}
-                onFollowChange={handleFollowChange}
-              />
-              <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-                <Ionicons name="share-outline" size={22} color={Colors.white} />
+          {/* Header Overlay — fades out as BlurHeader fades in */}
+          <Animated.View style={[StyleSheet.absoluteFill, bannerOverlayOpacity]}>
+            <SafeAreaView style={styles.headerOverlay} edges={['top']}>
+              <TouchableOpacity
+                style={styles.backButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="arrow-back" size={24} color={Colors.white} />
               </TouchableOpacity>
-            </View>
-          </SafeAreaView>
+              <View style={styles.headerActions}>
+                <FollowEventButton
+                  eventId={eventId}
+                  variant="icon-only"
+                  initialFollowing={isFollowing}
+                  onFollowChange={handleFollowChange}
+                />
+                <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+                  <Ionicons name="share-outline" size={22} color={Colors.white} />
+                </TouchableOpacity>
+              </View>
+            </SafeAreaView>
+          </Animated.View>
         </View>
 
         {/* Content */}
@@ -503,10 +588,18 @@ export default function EventDetailsScreen() {
           {/* Spacer for bottom bar */}
           <View style={{ height: 120 }} />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
-      {/* Bottom CTA */}
-      <View style={styles.bottomBar}>
+      {/* Bottom CTA with glass effect */}
+      <BlurView
+        intensity={Platform.OS === 'ios' ? 80 : 0}
+        tint="light"
+        style={styles.bottomBar}
+      >
+        {Platform.OS === 'android' && (
+          <View style={styles.bottomBarAndroidBg} />
+        )}
+      <View style={styles.bottomBarContent}>
         <View style={styles.priceContainer}>
           {userRegistration ? (
             <>
@@ -600,6 +693,8 @@ export default function EventDetailsScreen() {
             <Ionicons name="arrow-forward" size={18} color={Colors.white} />
           </TouchableOpacity>
         )}
+      </View>
+      </BlurView>
 
       {/* Image Viewer Modal */}
       <Modal
@@ -623,7 +718,6 @@ export default function EventDetailsScreen() {
           <Text style={styles.imageViewerTitle} numberOfLines={2}>{event.title}</Text>
         </View>
       </Modal>
-      </View>
     </View>
   );
 }
@@ -664,7 +758,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   bannerContainer: {
-    height: 280,
+    height: 360,
     position: 'relative',
   },
   bannerImage: {
@@ -705,10 +799,10 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Spacing.lg,
-    marginTop: -Spacing.xl,
+    marginTop: -Spacing['2xl'],
     backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius['2xl'],
-    borderTopRightRadius: BorderRadius['2xl'],
+    borderTopLeftRadius: BorderRadius['4xl'],
+    borderTopRightRadius: BorderRadius['4xl'],
   },
   // Date accent — orange, uppercase (Eventbrite pattern)
   dateAccent: {
@@ -720,11 +814,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   title: {
-    fontSize: 28,
-    fontFamily: FontFamily.displayBold,
+    fontSize: 32,
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
-    lineHeight: 34,
+    lineHeight: 36,
+    letterSpacing: -1,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
@@ -855,8 +950,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-around',
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    borderRadius: BorderRadius['3xl'],
+    padding: Spacing.lg,
     marginBottom: Spacing.lg,
   },
   statItem: {
@@ -886,22 +981,35 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
-  // ===== STICKY BOTTOM CTA =====
+  blurHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // ===== STICKY BOTTOM CTA (glass effect) =====
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    overflow: 'hidden',
+  },
+  bottomBarAndroidBg: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+  },
+  bottomBarContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing['2xl'],
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
-    ...Shadows.bottomBar,
   },
   priceContainer: {},
   priceLabel: {

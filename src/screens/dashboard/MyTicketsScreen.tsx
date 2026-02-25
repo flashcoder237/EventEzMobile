@@ -709,6 +709,7 @@ export default function MyTicketsScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -964,7 +965,7 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.lg,
     paddingTop: Spacing.sm,
-    paddingBottom: 120,
+    paddingBottom: 130,
   },
 
   // Card styles - Simple list design

@@ -1765,10 +1765,10 @@ export const sponsorsAPI = {
     api.get(`/event-sponsors/${id}/`),
 
   getByEvent: (eventId: string) =>
-    api.get('/event-sponsors/by_event/', { params: { event_id: eventId } }),
+    api.get('/event-sponsors/by-event/', { params: { event_id: eventId } }),
 
   trackClick: (id: string) =>
-    api.post(`/event-sponsors/${id}/track_click/`),
+    api.post(`/event-sponsors/${id}/track-click/`),
 };
 
 // ============================================

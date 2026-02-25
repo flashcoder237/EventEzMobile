@@ -4,23 +4,25 @@ import {
   PressableProps,
   StyleProp,
   ViewStyle,
-  StyleSheet,
 } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
   interpolate,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { SpringPresets } from '../../constants/theme';
+
 const AnimatedPressableComponent = Animated.createAnimatedComponent(Pressable);
 
 interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   scaleValue?: number;
-  animationType?: 'scale' | 'opacity' | 'both' | 'lift';
+  animationType?: 'scale' | 'opacity' | 'both' | 'lift' | 'editorial';
   disabled?: boolean;
+  haptic?: boolean | 'light' | 'medium' | 'heavy';
 }
 
 export default function AnimatedPressable({
@@ -29,29 +31,35 @@ export default function AnimatedPressable({
   scaleValue = 0.97,
   animationType = 'both',
   disabled = false,
+  haptic = false,
   onPressIn,
   onPressOut,
   ...props
 }: AnimatedPressableProps) {
   const pressed = useSharedValue(0);
 
+  const triggerHaptic = useCallback(() => {
+    if (!haptic) return;
+    const style = haptic === true || haptic === 'light'
+      ? Haptics.ImpactFeedbackStyle.Light
+      : haptic === 'medium'
+        ? Haptics.ImpactFeedbackStyle.Medium
+        : Haptics.ImpactFeedbackStyle.Heavy;
+    Haptics.impactAsync(style).catch(() => {});
+  }, [haptic]);
+
   const handlePressIn = useCallback(
     (e: any) => {
-      pressed.value = withSpring(1, {
-        damping: 15,
-        stiffness: 400,
-      });
+      pressed.value = withSpring(1, SpringPresets.snappy);
+      triggerHaptic();
       onPressIn?.(e);
     },
-    [onPressIn, pressed]
+    [onPressIn, pressed, triggerHaptic]
   );
 
   const handlePressOut = useCallback(
     (e: any) => {
-      pressed.value = withSpring(0, {
-        damping: 15,
-        stiffness: 400,
-      });
+      pressed.value = withSpring(0, SpringPresets.snappy);
       onPressOut?.(e);
     },
     [onPressOut, pressed]
@@ -72,6 +80,19 @@ export default function AnimatedPressable({
           transform: [{ scale }, { translateY }],
           opacity,
         };
+      case 'editorial': {
+        const editorialScale = interpolate(pressed.value, [0, 1], [1, 0.96]);
+        const editorialTranslateY = interpolate(pressed.value, [0, 1], [0, -3]);
+        const editorialRotate = interpolate(pressed.value, [0, 1], [0, -0.5]);
+        return {
+          transform: [
+            { scale: editorialScale },
+            { translateY: editorialTranslateY },
+            { rotate: `${editorialRotate}deg` },
+          ],
+          opacity: interpolate(pressed.value, [0, 1], [1, 0.95]),
+        };
+      }
       case 'both':
       default:
         return {

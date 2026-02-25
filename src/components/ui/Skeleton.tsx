@@ -1,11 +1,22 @@
 /**
  * Composants Skeleton
- * Placeholders de chargement animes pour differents types de contenu
+ * Placeholders de chargement animes avec shimmer gradient
  */
 
-import React, { useEffect, useRef, memo } from 'react';
-import { View, StyleSheet, Animated, ViewStyle, DimensionValue } from 'react-native';
+import React, { useEffect, memo } from 'react';
+import { View, StyleSheet, ViewStyle, DimensionValue } from 'react-native';
+import ReAnimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  Easing,
+  interpolate,
+} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, BorderRadius, Spacing } from '../../constants/theme';
+
+const AnimatedLinearGradient = ReAnimated.createAnimatedComponent(LinearGradient);
 
 interface SkeletonProps {
   /** Largeur du skeleton */
@@ -19,7 +30,7 @@ interface SkeletonProps {
 }
 
 /**
- * Skeleton de base
+ * Skeleton de base avec shimmer gradient
  */
 function SkeletonComponent({
   width = '100%',
@@ -27,40 +38,52 @@ function SkeletonComponent({
   borderRadius = BorderRadius.sm,
   style,
 }: SkeletonProps) {
-  const opacity = useRef(new Animated.Value(0.3)).current;
+  const translateX = useSharedValue(-1);
 
   useEffect(() => {
-    const animation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(opacity, {
-          toValue: 0.7,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(opacity, {
-          toValue: 0.3,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
+    translateX.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false
     );
-    animation.start();
-    return () => animation.stop();
-  }, [opacity]);
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: interpolate(translateX.value, [-1, 1], [-200, 200]) },
+    ],
+  }));
 
   return (
-    <Animated.View
+    <View
       style={[
         {
           width,
           height,
           borderRadius,
-          backgroundColor: Colors.gray200,
-          opacity,
+          backgroundColor: Colors.gray100,
+          overflow: 'hidden',
         },
         style,
       ]}
-    />
+    >
+      <AnimatedLinearGradient
+        colors={[Colors.gray100, Colors.gray200, Colors.gray100]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={[
+          {
+            position: 'absolute',
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            width: '150%',
+          },
+          animatedStyle,
+        ]}
+      />
+    </View>
   );
 }
 

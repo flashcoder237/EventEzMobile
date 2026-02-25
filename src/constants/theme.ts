@@ -125,6 +125,9 @@ export const FontSizes = {
   '3xl': 30,
   '4xl': 36,
   '5xl': 48,
+  '6xl': 56,
+  '7xl': 64,
+  '8xl': 72,
 };
 
 export const FontWeights = {
@@ -147,6 +150,9 @@ export const Spacing = {
   '3xl': 40,
   '4xl': 48,
   '5xl': 64,
+  '6xl': 80,
+  '7xl': 96,
+  '8xl': 120,
 };
 
 export const BorderRadius = {
@@ -159,6 +165,8 @@ export const BorderRadius = {
   xl: 14,
   '2xl': 16,
   '3xl': 18,
+  '4xl': 24,
+  '5xl': 32,
   full: 9999,
 };
 
@@ -260,6 +268,30 @@ export const Shadows = {
     shadowRadius: 2,
     elevation: 1,
   },
+  // Glass - premium cards with subtle depth
+  glass: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  // Dramatic - floating elements with strong presence
+  dramatic: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 32,
+    elevation: 8,
+  },
+  // Colored primary - for CTA buttons
+  coloredPrimary: {
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 4,
+  },
 };
 
 // Gradients
@@ -273,6 +305,10 @@ export const Gradients = {
   auraSunset: [Colors.accent, Colors.primary] as const,
   auraNature: [Colors.lime, Colors.primary] as const,
   auraNight: [Colors.gray900, Colors.primary] as const,
+  // Image overlays for editorial cards
+  imageOverlay: ['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)'] as const,
+  imageOverlaySubtle: ['transparent', 'rgba(0,0,0,0.3)'] as const,
+  heroFade: ['rgba(0,0,0,0.4)', 'transparent', 'rgba(0,0,0,0.7)'] as const,
 };
 
 // Safe area padding for Android
@@ -285,18 +321,50 @@ export const SafeArea = {
 // Styles prêts à l'emploi pour les textes
 // Règle: Funnel Display pour titres (h1, h2), Montserrat pour le reste
 export const TextStyles = {
+  // Editorial - Hero & Display styles
+  hero: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 56,
+    color: Colors.gray900,
+    lineHeight: 58,
+    letterSpacing: -2,
+  },
+  heroSm: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 40,
+    color: Colors.gray900,
+    lineHeight: 44,
+    letterSpacing: -1.5,
+  },
+  editorial: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 32,
+    color: Colors.gray900,
+    lineHeight: 36,
+    letterSpacing: -1,
+  },
+  eyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: Colors.accent,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1.5,
+  },
+
   // Headings - Funnel Display (bolder, larger — Eventbrite style)
   h1: {
     fontFamily: FontFamily.displayExtraBold,
     fontSize: 40,
     color: Colors.gray900,
     lineHeight: 46,
+    letterSpacing: -1,
   },
   h2: {
     fontFamily: FontFamily.displayBold,
     fontSize: 28,
     color: Colors.gray900,
     lineHeight: 34,
+    letterSpacing: -0.5,
   },
   h3: {
     fontFamily: FontFamily.displaySemiBold,
@@ -372,8 +440,17 @@ export const TOUCH_OPACITY = 0.7;
 /** Opacite pour les elements desactives */
 export const DISABLED_OPACITY = 0.5;
 
+/** Spring animation presets for react-native-reanimated */
+export const SpringPresets = {
+  gentle: { damping: 20, stiffness: 200, mass: 1 },
+  snappy: { damping: 15, stiffness: 400, mass: 0.8 },
+  bouncy: { damping: 10, stiffness: 300, mass: 0.8 },
+  slow: { damping: 25, stiffness: 120, mass: 1.2 },
+  micro: { damping: 18, stiffness: 500, mass: 0.5 },
+};
+
 /** Espacements de section standards */
-export const SECTION_MARGIN_TOP = Spacing.xl;
+export const SECTION_MARGIN_TOP = Spacing['3xl'];
 export const CARD_MARGIN_BOTTOM = Spacing.md;
 export const LIST_ITEM_MARGIN_BOTTOM = Spacing.sm;
 
@@ -432,6 +509,7 @@ const theme = {
   gradients: Gradients,
   safeArea: SafeArea,
   textStyles: TextStyles,
+  springPresets: SpringPresets,
   // Nouvelles constantes
   touchOpacity: TOUCH_OPACITY,
   disabledOpacity: DISABLED_OPACITY,

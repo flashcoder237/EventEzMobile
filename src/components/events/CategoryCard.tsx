@@ -84,7 +84,7 @@ function CategoryCard({
           >
             {/* Dark overlay gradient */}
             <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.8)']}
+              colors={['transparent', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.85)']}
               style={styles.largeOverlay}
             >
               <View style={styles.largeIconContainer}>
@@ -175,7 +175,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.sm,
-    ...Shadows.md,
+    ...Shadows.glass,
   },
   iconContainer: {
     width: '100%',
@@ -197,9 +197,9 @@ const styles = StyleSheet.create({
 
   // Large Card
   largeCard: {
-    width: 150,
-    height: 180,
-    borderRadius: BorderRadius.xl,
+    width: 160,
+    height: 200,
+    borderRadius: BorderRadius['4xl'],
     overflow: 'hidden',
     ...Shadows.lg,
   },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   largeImage: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius['4xl'],
   },
   largeOverlay: {
     flex: 1,
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   largeName: {
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.xl,
     fontFamily: FontFamily.bold,
     color: Colors.white,
     marginBottom: Spacing.xs,

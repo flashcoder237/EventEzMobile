@@ -3,6 +3,10 @@ import { Text, TextProps, TextStyle, StyleSheet } from 'react-native';
 import { Colors, FontFamily, FontSizes } from '../../constants/theme';
 
 type TypographyVariant =
+  | 'hero'
+  | 'heroSm'
+  | 'editorial'
+  | 'eyebrow'
   | 'h1'
   | 'h2'
   | 'h3'
@@ -23,13 +27,15 @@ interface TypographyProps extends TextProps {
 }
 
 /**
- * Composant Typography unifié
+ * Composant Typography unifie
  *
- * Règles de polices (comme sur le web):
- * - Funnel Display: h1, h2, et tout texte "bold" (titres principaux)
+ * Regles de polices (comme sur le web):
+ * - Funnel Display: hero, heroSm, editorial, h1, h2, et tout texte "bold" (titres principaux)
  * - Montserrat: body, small, caption, labels (texte courant)
  *
  * Usage:
+ * <Typography variant="hero">Huge title</Typography>
+ * <Typography variant="eyebrow">SECTION LABEL</Typography>
  * <Typography variant="h1">Titre principal</Typography>
  * <Typography variant="body">Texte normal</Typography>
  * <Typography variant="bodyBold">Texte important</Typography>
@@ -60,18 +66,50 @@ export default function Typography({
 }
 
 const styles = StyleSheet.create({
+  // ===== EDITORIAL - Dramatic display styles =====
+  hero: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 56,
+    color: Colors.gray900,
+    lineHeight: 58,
+    letterSpacing: -2,
+  },
+  heroSm: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 40,
+    color: Colors.gray900,
+    lineHeight: 44,
+    letterSpacing: -1.5,
+  },
+  editorial: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 32,
+    color: Colors.gray900,
+    lineHeight: 36,
+    letterSpacing: -1,
+  },
+  eyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: Colors.accent,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+
   // ===== HEADINGS - Funnel Display =====
   h1: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['4xl'],
     color: Colors.gray900,
     lineHeight: FontSizes['4xl'] * 1.2,
+    letterSpacing: -1,
   },
   h2: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['2xl'],
     color: Colors.gray900,
     lineHeight: FontSizes['2xl'] * 1.2,
+    letterSpacing: -0.5,
   },
   h3: {
     fontFamily: FontFamily.displaySemiBold,

@@ -11,12 +11,14 @@ import {
   Image,
   TextInput,
   Modal,
+  Platform,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -476,6 +478,7 @@ export default function ModerationScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -492,6 +495,7 @@ export default function ModerationScreen() {
         animationType="fade"
         onRequestClose={() => setShowRejectModal(false)}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -564,6 +568,7 @@ export default function ModerationScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

@@ -414,6 +414,7 @@ export default function FollowingEventsScreen() {
           }
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         />
       )}
     </SafeAreaView>
@@ -584,7 +585,7 @@ const styles = StyleSheet.create({
   // List
   listContent: {
     padding: Spacing.lg,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
 
   // Event Card

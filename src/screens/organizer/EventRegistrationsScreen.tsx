@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
@@ -510,6 +511,7 @@ export default function EventRegistrationsScreen() {
               setRejectReason('');
             }}
           >
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
             <View style={styles.modalOverlay}>
               <View style={styles.rejectModalContent}>
                 <View style={styles.rejectModalHeader}>
@@ -555,6 +557,7 @@ export default function EventRegistrationsScreen() {
                 </View>
               </View>
             </View>
+            </KeyboardAvoidingView>
           </Modal>
         </View>
       </SafeAreaView>

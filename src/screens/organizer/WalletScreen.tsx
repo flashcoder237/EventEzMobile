@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
@@ -551,6 +552,7 @@ export default function WalletScreen() {
         transparent
         onRequestClose={() => setShowPayoutModal(false)}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
@@ -650,6 +652,7 @@ export default function WalletScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Bank Details Modal */}
@@ -659,8 +662,9 @@ export default function WalletScreen() {
         transparent
         onRequestClose={() => setShowBankModal(false)}
       >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <ScrollView style={styles.bankModalScroll}>
+          <ScrollView style={styles.bankModalScroll} keyboardShouldPersistTaps="handled">
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Informations de paiement</Text>
@@ -780,6 +784,7 @@ export default function WalletScreen() {
             </View>
           </ScrollView>
         </View>
+        </KeyboardAvoidingView>
           </Modal>
         </View>
       </SafeAreaView>

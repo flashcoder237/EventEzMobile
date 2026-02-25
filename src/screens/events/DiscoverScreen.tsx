@@ -743,7 +743,7 @@ export default function DiscoverScreen() {
       }
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Header */}
+      {/* Header with actions */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="location" size={18} color={Colors.accent} />
@@ -772,7 +772,15 @@ export default function DiscoverScreen() {
         </View>
       </View>
 
-      {/* Search Bar (tap to activate) */}
+      {/* Hero greeting */}
+      <View style={styles.heroSection}>
+        <Text style={styles.heroEyebrow}>
+          {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
+        </Text>
+        <Text style={styles.heroTitle}>Discover{'\n'}Events</Text>
+      </View>
+
+      {/* Search Bar (tap to activate) — pill shape */}
       <TouchableOpacity style={styles.searchBarTrigger} onPress={activateSearch} activeOpacity={0.7}>
         <Ionicons name="search" size={20} color={Colors.gray400} />
         <Text style={styles.searchPlaceholder}>Rechercher un événement</Text>
@@ -816,7 +824,7 @@ export default function DiscoverScreen() {
             keyExtractor={item => item.id}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingRight: Spacing.lg }}
-            snapToInterval={SCREEN_WIDTH * 0.85 + Spacing.md}
+            snapToInterval={SCREEN_WIDTH * 0.88 + Spacing.md}
             decelerationRate="fast"
           />
         </View>
@@ -1004,16 +1012,37 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
-  // === SEARCH BAR (discovery) ===
+  // === HERO SECTION ===
+  heroSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  heroEyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: Colors.accent,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: Spacing.xs,
+  },
+  heroTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 40,
+    color: Colors.gray900,
+    lineHeight: 44,
+    letterSpacing: -1.5,
+  },
+
+  // === SEARCH BAR (discovery) — pill shape ===
   searchBarTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius['2xl'],
+    borderRadius: BorderRadius.full,
     paddingVertical: 14,
     paddingHorizontal: Spacing.lg,
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.lg,
     gap: Spacing.sm,
     ...Shadows.xs,
   },
@@ -1050,7 +1079,7 @@ const styles = StyleSheet.create({
 
   // === SECTIONS ===
   section: {
-    marginTop: Spacing['2xl'],
+    marginTop: Spacing['3xl'],   
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1060,9 +1089,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: FontSizes['2xl'],
     color: Colors.gray900,
+    letterSpacing: -0.5,
   },
   seeAllText: {
     fontFamily: FontFamily.semiBold,
@@ -1073,9 +1103,11 @@ const styles = StyleSheet.create({
   // === CARD WRAPPERS ===
   featuredCardWrap: {
     marginRight: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   cardWrap: {
     marginRight: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   categoryWrap: {
     marginRight: Spacing.md,
@@ -1101,7 +1133,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius['2xl'],
+    borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: 10,
     gap: Spacing.sm,
@@ -1154,7 +1186,7 @@ const styles = StyleSheet.create({
   // === SEARCH RESULTS ===
   searchResultsList: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 100,
+    paddingBottom: 130,
   },
   searchResultItem: {
     marginBottom: Spacing.sm,
