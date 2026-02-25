@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity, Text, Image } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import Animated, {
 import * as Haptics from 'expo-haptics';
 import { MainTabParamList } from '../types';
 import { Colors, FontFamily, Spacing, Shadows, BorderRadius } from '../constants/theme';
+import { useAuth } from '../contexts/AuthContext';
 
 // Screens
 import DiscoverScreen from '../screens/events/DiscoverScreen';
@@ -42,6 +43,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const indicatorPosition = useSharedValue(0);
   const tabCount = state.routes.length;
+  const { user } = useAuth();
 
   useEffect(() => {
     indicatorPosition.value = withSpring(state.index, {
@@ -111,11 +113,34 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               style={styles.tabItem}
               activeOpacity={0.7}
             >
-              <Ionicons
-                name={isFocused ? config.iconFocused : config.icon}
-                size={isFocused ? 24 : 22}
-                color={isFocused ? Colors.primaryDark : Colors.gray400}
-              />
+              {route.name === 'Profile' ? (
+                user?.profile_picture || user?.image ? (
+                  <Image
+                    source={{ uri: user.profile_picture || user.image }}
+                    style={[
+                      styles.tabAvatar,
+                      isFocused && styles.tabAvatarActive,
+                    ]}
+                  />
+                ) : (
+                  <View
+                    style={[
+                      styles.tabAvatarInitial,
+                      isFocused && styles.tabAvatarActive,
+                    ]}
+                  >
+                    <Text style={[styles.tabAvatarInitialText, isFocused && { color: Colors.primaryDark }]}>
+                      {(user?.first_name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
+                    </Text>
+                  </View>
+                )
+              ) : (
+                <Ionicons
+                  name={isFocused ? config.iconFocused : config.icon}
+                  size={isFocused ? 28 : 26}
+                  color={isFocused ? Colors.primaryDark : Colors.gray400}
+                />
+              )}
               <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
                 {config.label}
               </Text>
@@ -207,16 +232,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     height: TAB_BAR_HEIGHT,
-    gap: 2,
+    gap: 1,
   },
   tabLabel: {
     fontFamily: FontFamily.medium,
-    fontSize: 10,
+    fontSize: 11,
     color: Colors.gray400,
-    marginTop: 2,
+    marginTop: 1,
   },
   tabLabelActive: {
     color: Colors.primaryDark,
     fontFamily: FontFamily.bold,
+  },
+  tabAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 2,
+    borderColor: Colors.gray300,
+  },
+  tabAvatarActive: {
+    borderColor: Colors.primaryDark,
+  },
+  tabAvatarInitial: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: Colors.gray200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: Colors.gray300,
+  },
+  tabAvatarInitialText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: Colors.gray600,
   },
 });

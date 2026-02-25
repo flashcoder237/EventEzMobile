@@ -192,65 +192,65 @@ export const Shadows = {
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOpacity: 0.03,
+    shadowRadius: 5,
     elevation: 1,
   },
   // Medium elevation
   md: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
     elevation: 2,
   },
   // Modal, floating elements
   lg: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
     elevation: 4,
   },
   // Prominent floating UI
   xl: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
     elevation: 6,
   },
   // Card shadow - very subtle
   card: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
     elevation: 1,
   },
   // Button shadow
   button: {
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    elevation: 1,
   },
   // Primary button with colored shadow
   buttonPrimary: {
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 2,
   },
   // Floating action button
   fab: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 2,
   },
   // Bottom navigation/sticky footer
   bottomBar: {
@@ -272,25 +272,25 @@ export const Shadows = {
   glass: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 24,
+    shadowOpacity: 0.04,
+    shadowRadius: 28,
     elevation: 4,
   },
   // Dramatic - floating elements with strong presence
   dramatic: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 32,
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 36,
+    elevation: 5,
   },
   // Colored primary - for CTA buttons
   coloredPrimary: {
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 3,
   },
 };
 

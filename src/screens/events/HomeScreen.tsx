@@ -32,7 +32,7 @@ import {
   SECTION_MARGIN_TOP,
 } from '../../constants/theme';
 import { getApiResults } from '../../lib/utils/apiHelpers';
-import { getEventPrice } from '../../lib/utils/priceFormatters';
+import { getEventPrice, getEventPriceRange } from '../../lib/utils/priceFormatters';
 import { isEventInFuture } from '../../lib/utils/dateFormatters';
 import { EmptyState } from '../../components/ui';
 import EventCard from '../../components/events/EventCard';
@@ -156,7 +156,7 @@ export default function HomeScreen() {
 
   const renderFeaturedEvent = useCallback(
     ({ item, index }: { item: Event; index: number }) => {
-      const price = getEventPrice(item);
+      const range = getEventPriceRange(item);
       return (
         <View style={[styles.featuredCardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
           <EventCard
@@ -167,8 +167,9 @@ export default function HomeScreen() {
             location={item.location_city || item.location_address || 'Lieu à confirmer'}
             imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
             category={item.category?.name}
-            price={price}
-            isFree={item.is_free || price === 0}
+            price={range?.min}
+            priceMax={range?.max}
+            isFree={item.is_free || (range?.min === 0 && range?.max === 0)}
             eventType={item.event_type}
             attendees={item.registration_count || item.registrations_count}
             variant="featured"
@@ -182,7 +183,7 @@ export default function HomeScreen() {
 
   const renderEvent = useCallback(
     ({ item, index }: { item: Event; index: number }) => {
-      const price = getEventPrice(item);
+      const range = getEventPriceRange(item);
       return (
         <View style={[styles.cardContainer, index === 0 && { marginLeft: Spacing.lg }]}>
           <EventCard
@@ -193,8 +194,9 @@ export default function HomeScreen() {
             location={item.location_city || 'Lieu à confirmer'}
             imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
             category={item.category?.name}
-            price={price}
-            isFree={item.is_free || price === 0}
+            price={range?.min}
+            priceMax={range?.max}
+            isFree={item.is_free || (range?.min === 0 && range?.max === 0)}
             eventType={item.event_type}
             attendees={item.registration_count || item.registrations_count}
             variant="default"

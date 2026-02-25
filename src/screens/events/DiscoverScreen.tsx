@@ -37,7 +37,7 @@ import {
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { getApiResults } from '../../lib/utils/apiHelpers';
-import { getEventPrice } from '../../lib/utils/priceFormatters';
+import { getEventPrice, getEventPriceRange } from '../../lib/utils/priceFormatters';
 import { isEventInFuture, formatDate } from '../../lib/utils/dateFormatters';
 import { EmptyState } from '../../components/ui';
 import EventCard from '../../components/events/EventCard';
@@ -435,7 +435,7 @@ export default function DiscoverScreen() {
   // === Render helpers ===
 
   const renderEventCard = useCallback((item: Event, variant: 'default' | 'featured' | 'horizontal' | 'grid' = 'default') => {
-    const price = getEventPrice(item);
+    const range = getEventPriceRange(item);
     return (
       <EventCard
         id={item.id}
@@ -445,8 +445,9 @@ export default function DiscoverScreen() {
         location={item.location_city || item.location_address || 'Lieu à confirmer'}
         imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
         category={item.category?.name}
-        price={price}
-        isFree={item.is_free || price === 0}
+        price={range?.min}
+        priceMax={range?.max}
+        isFree={item.is_free || (range?.min === 0 && range?.max === 0)}
         isFeatured={item.is_featured}
         locationType={item.location_type}
         eventType={item.event_type}
@@ -699,6 +700,55 @@ export default function DiscoverScreen() {
                 {renderFilterOption('Payant', 'paid', tempFilters.price, () => setTempFilters({ ...tempFilters, price: 'paid' }))}
               </View>
             </View>
+            {/* Price Range */}
+            {tempFilters.price === 'paid' && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Fourchette de prix</Text>
+                <View style={styles.filterRow}>
+                  {renderFilterOption('Tous', 'all',
+                    tempFilters.priceMin === 0 && tempFilters.priceMax === 0 ? 'all' : '',
+                    () => setTempFilters({ ...tempFilters, priceMin: 0, priceMax: 0 })
+                  )}
+                  {renderFilterOption('< 5 000', 'lt5k',
+                    tempFilters.priceMax === 5000 && tempFilters.priceMin === 0 ? 'lt5k' : '',
+                    () => setTempFilters({ ...tempFilters, priceMin: 0, priceMax: 5000 })
+                  )}
+                  {renderFilterOption('5k - 15k', '5k15k',
+                    tempFilters.priceMin === 5000 && tempFilters.priceMax === 15000 ? '5k15k' : '',
+                    () => setTempFilters({ ...tempFilters, priceMin: 5000, priceMax: 15000 })
+                  )}
+                  {renderFilterOption('15k - 50k', '15k50k',
+                    tempFilters.priceMin === 15000 && tempFilters.priceMax === 50000 ? '15k50k' : '',
+                    () => setTempFilters({ ...tempFilters, priceMin: 15000, priceMax: 50000 })
+                  )}
+                </View>
+                <View style={styles.priceInputRow}>
+                  <View style={styles.priceInputContainer}>
+                    <Text style={styles.priceInputLabel}>Min (FCFA)</Text>
+                    <TextInput
+                      style={styles.priceInput}
+                      value={tempFilters.priceMin > 0 ? String(tempFilters.priceMin) : ''}
+                      onChangeText={(v) => setTempFilters({ ...tempFilters, priceMin: parseInt(v) || 0 })}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor={Colors.gray400}
+                    />
+                  </View>
+                  <Text style={styles.priceInputSeparator}>-</Text>
+                  <View style={styles.priceInputContainer}>
+                    <Text style={styles.priceInputLabel}>Max (FCFA)</Text>
+                    <TextInput
+                      style={styles.priceInput}
+                      value={tempFilters.priceMax > 0 ? String(tempFilters.priceMax) : ''}
+                      onChangeText={(v) => setTempFilters({ ...tempFilters, priceMax: parseInt(v) || 0 })}
+                      keyboardType="numeric"
+                      placeholder="Illimité"
+                      placeholderTextColor={Colors.gray400}
+                    />
+                  </View>
+                </View>
+              </View>
+            )}
             {/* Date */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Date</Text>
@@ -707,8 +757,37 @@ export default function DiscoverScreen() {
                 {renderFilterOption("Aujourd'hui", 'today', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'today' }))}
                 {renderFilterOption('Ce weekend', 'weekend', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'weekend' }))}
                 {renderFilterOption('Cette semaine', 'week', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'week' }))}
+                {renderFilterOption('Ce mois', 'month', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'month' }))}
               </View>
             </View>
+            {/* Distance */}
+            {location && (
+              <View style={styles.filterSection}>
+                <Text style={styles.filterSectionTitle}>Distance</Text>
+                <View style={styles.filterRow}>
+                  {renderFilterOption('Tous', 'all',
+                    tempFilters.distance === 0 ? 'all' : '',
+                    () => setTempFilters({ ...tempFilters, distance: 0 })
+                  )}
+                  {renderFilterOption('5 km', '5km',
+                    tempFilters.distance === 5 ? '5km' : '',
+                    () => setTempFilters({ ...tempFilters, distance: 5 })
+                  )}
+                  {renderFilterOption('10 km', '10km',
+                    tempFilters.distance === 10 ? '10km' : '',
+                    () => setTempFilters({ ...tempFilters, distance: 10 })
+                  )}
+                  {renderFilterOption('25 km', '25km',
+                    tempFilters.distance === 25 ? '25km' : '',
+                    () => setTempFilters({ ...tempFilters, distance: 25 })
+                  )}
+                  {renderFilterOption('50 km', '50km',
+                    tempFilters.distance === 50 ? '50km' : '',
+                    () => setTempFilters({ ...tempFilters, distance: 50 })
+                  )}
+                </View>
+              </View>
+            )}
             {/* Location Type */}
             <View style={styles.filterSection}>
               <Text style={styles.filterSectionTitle}>Lieu</Text>
@@ -1065,7 +1144,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: Colors.surface,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    height: 36,
     borderRadius: BorderRadius.full,
     gap: 6,
     marginRight: Spacing.sm,
@@ -1365,6 +1444,38 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: Colors.white,
+  },
+  priceInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
+  },
+  priceInputContainer: {
+    flex: 1,
+  },
+  priceInputLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+    marginBottom: Spacing.xs,
+  },
+  priceInput: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: Colors.gray900,
+  },
+  priceInputSeparator: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.lg,
+    color: Colors.gray400,
+    marginTop: Spacing.md,
   },
   modalFooter: {
     flexDirection: 'row',

@@ -162,8 +162,17 @@ export default function EditProfileScreen() {
       if (response.data) {
         updateUser(response.data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur upload image:', error);
+      console.error('Upload error details:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        code: error.code,
+        message: error.message,
+      });
+      setProfileImage(user?.profile_picture || user?.image || null);
+      const detail = error.response?.data?.detail || error.message || '';
+      showError('Erreur', `Impossible de mettre à jour la photo de profil. ${detail}`);
     }
   };
 

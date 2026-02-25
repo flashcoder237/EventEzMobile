@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
+import { formatPriceRange } from '../../lib/utils/priceFormatters';
 import {
   Colors,
   FontFamily,
@@ -33,6 +34,7 @@ interface EventCardProps {
   imageUrl?: string;
   category?: string;
   price?: string | number;
+  priceMax?: number;
   attendees?: number;
   isFree?: boolean;
   isLiked?: boolean;
@@ -53,6 +55,7 @@ function EventCard({
   imageUrl,
   category,
   price,
+  priceMax,
   attendees,
   isFree = false,
   isLiked = false,
@@ -65,20 +68,22 @@ function EventCard({
 }: EventCardProps) {
   // === Helpers ===
 
-  const formatPrice = () => {
+  const formatCardPrice = () => {
     if (isFree) return 'Gratuit';
-    if (typeof price === 'number' && price > 0) return `${price.toLocaleString()} FCFA`;
+    if (typeof price === 'number' && typeof priceMax === 'number' && price > 0 && priceMax > price) {
+      return formatPriceRange(price, priceMax);
+    }
+    if (typeof price === 'number' && price > 0) return `Dès ${price.toLocaleString()} FCFA`;
     if (typeof price === 'number' && price === 0) return 'Gratuit';
     if (typeof price === 'string' && price.trim()) return price;
     if (eventType === 'inscription') return 'Gratuit';
-    return 'Voir prix';
+    return 'Prix variable';
   };
 
   const formatPriceShort = () => {
-    const p = formatPrice();
-    if (p === 'Gratuit') return p;
-    if (p === 'Voir prix') return p;
-    return `Dès ${p}`;
+    const p = formatCardPrice();
+    if (p === 'Gratuit' || p === 'Prix variable') return p;
+    return p;
   };
 
   const formatDateAccent = () => {
@@ -106,7 +111,7 @@ function EventCard({
     }
   };
 
-  const isGratuit = isFree || formatPrice() === 'Gratuit';
+  const isGratuit = isFree || formatCardPrice() === 'Gratuit';
 
   // ===== HORIZONTAL VARIANT (list item — search results) =====
   if (variant === 'horizontal') {
@@ -131,7 +136,7 @@ function EventCard({
             <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
           </View>
           <Text style={isGratuit ? styles.priceGratuit : styles.priceText}>
-            {formatPrice()}
+            {formatCardPrice()}
           </Text>
         </View>
         <TouchableOpacity
@@ -162,7 +167,7 @@ function EventCard({
           <Text style={styles.dateAccentSmall}>{formatDateShort()}</Text>
           <Text style={styles.compactTitle} numberOfLines={2}>{title}</Text>
           <Text style={isGratuit ? styles.compactPriceGratuit : styles.compactPrice}>
-            {formatPrice()}
+            {formatCardPrice()}
           </Text>
         </View>
       </TouchableOpacity>

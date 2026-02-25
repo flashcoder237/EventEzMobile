@@ -48,6 +48,35 @@ export function formatPrice(amount: number, currency: string = 'FCFA'): string {
 }
 
 /**
+ * Calcule la fourchette de prix (min et max) d'un evenement.
+ * Retourne undefined si le prix est inconnu.
+ */
+export function getEventPriceRange(event: Event): { min: number; max: number } | undefined {
+  if (event.is_free) return { min: 0, max: 0 };
+
+  if (event.ticket_types && event.ticket_types.length > 0) {
+    const prices = event.ticket_types
+      .map(t => t.price)
+      .filter((p): p is number => typeof p === 'number' && p > 0);
+    if (prices.length > 0) {
+      return { min: Math.min(...prices), max: Math.max(...prices) };
+    }
+  }
+
+  if (typeof event.min_price === 'number' && typeof event.max_price === 'number') {
+    return { min: event.min_price, max: event.max_price };
+  }
+
+  if (typeof event.base_price === 'number' && event.base_price > 0) {
+    return { min: event.base_price, max: event.base_price };
+  }
+
+  if (event.event_type === 'inscription') return { min: 0, max: 0 };
+
+  return undefined;
+}
+
+/**
  * Formate une fourchette de prix.
  * Exemple: formatPriceRange(5000, 10000) => "5 000 - 10 000 FCFA"
  * Si min et max sont egaux: "5 000 FCFA"

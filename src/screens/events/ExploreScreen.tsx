@@ -26,7 +26,7 @@ import { eventsAPI, categoriesAPI } from '../../api/client';
 import { Event, MapMarker, Category, RootStackParamList, MainTabParamList } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
 import EventCard from '../../components/events/EventCard';
-import { getEventPrice } from '../../lib/utils/priceFormatters';
+import { getEventPrice, getEventPriceRange } from '../../lib/utils/priceFormatters';
 import { formatDate } from '../../lib/utils/dateFormatters';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
 import {
@@ -524,7 +524,7 @@ export default function ExploreScreen() {
 
   const renderEvent = useCallback(
     ({ item }: { item: Event }) => {
-      const price = getEventPrice(item);
+      const range = getEventPriceRange(item);
       return (
         <View style={styles.eventCardContainer}>
           <EventCard
@@ -535,8 +535,9 @@ export default function ExploreScreen() {
             location={item.location_city || item.location_address || 'Lieu à confirmer'}
             imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
             category={item.category?.name}
-            price={price}
-            isFree={item.is_free || price === 0}
+            price={range?.min}
+            priceMax={range?.max}
+            isFree={item.is_free || (range?.min === 0 && range?.max === 0)}
             isFeatured={item.is_featured}
             locationType={item.location_type}
             eventType={item.event_type}

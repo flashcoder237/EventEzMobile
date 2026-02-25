@@ -37,9 +37,16 @@ api.interceptors.request.use(
     } catch (error) {
       console.warn('Erreur lors de la récupération du token:', error);
     }
-    // Supprimer Content-Type pour FormData afin qu'Axios définisse multipart/form-data avec boundary
-    if (config.data instanceof FormData) {
+    // En React Native, le FormData est un polyfill — Axios peut ne pas le reconnaître
+    // et tenter de le JSON.stringify (résultat: {"_parts":[...]} au lieu de multipart).
+    // On vérifie instanceof ET _parts, puis on:
+    // 1. Supprime Content-Type pour que XMLHttpRequest ajoute multipart/form-data avec boundary
+    // 2. Bypass transformRequest pour empêcher Axios de sérialiser le FormData
+    const isFormData = config.data instanceof FormData ||
+      (config.data && typeof config.data === 'object' && Array.isArray((config.data as any)._parts));
+    if (isFormData) {
       delete config.headers['Content-Type'];
+      config.transformRequest = [(data: any) => data];
     }
 
     // Log de la requête pour debug
@@ -102,19 +109,27 @@ api.interceptors.response.use(
     const isNetworkError = error.code === 'ERR_NETWORK' || error.message?.includes('Network Error');
 
     if (isTimeoutError || isNetworkError) {
-      const retryCount = originalRequest._timeoutRetryCount || 0;
+      // Ne pas réessayer les uploads de fichiers (FormData) car le stream est consommé
+      const isFormDataRequest = originalRequest.data instanceof FormData ||
+        (originalRequest.data && typeof originalRequest.data === 'object' && Array.isArray((originalRequest.data as any)?._parts));
 
-      if (retryCount < MAX_TIMEOUT_RETRIES) {
-        originalRequest._timeoutRetryCount = retryCount + 1;
-        const errorType = isTimeoutError ? 'Timeout' : 'Network Error';
-        console.log(`[API] ${errorType} - Retry ${originalRequest._timeoutRetryCount}/${MAX_TIMEOUT_RETRIES} for ${originalRequest.url}`);
+      if (!isFormDataRequest) {
+        const retryCount = originalRequest._timeoutRetryCount || 0;
 
-        // Attendre un peu avant de réessayer (backoff exponentiel)
-        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+        if (retryCount < MAX_TIMEOUT_RETRIES) {
+          originalRequest._timeoutRetryCount = retryCount + 1;
+          const errorType = isTimeoutError ? 'Timeout' : 'Network Error';
+          console.log(`[API] ${errorType} - Retry ${originalRequest._timeoutRetryCount}/${MAX_TIMEOUT_RETRIES} for ${originalRequest.url}`);
 
-        return api(originalRequest);
+          // Attendre un peu avant de réessayer (backoff exponentiel)
+          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+
+          return api(originalRequest);
+        }
+        console.error(`[API] Max retries reached for ${originalRequest.url}`);
+      } else {
+        console.error(`[API] File upload failed for ${originalRequest.url} (no retry for FormData)`);
       }
-      console.error(`[API] Max retries reached for ${originalRequest.url}`);
     }
 
     // Si l'erreur est 401 et qu'on n'a pas déjà réessayé
@@ -340,7 +355,6 @@ export const usersAPI = {
   updateProfile: (data: any) =>
     api.put('/users/update_profile/', data),
 
-  // Axios gère automatiquement le Content-Type pour FormData
   updateProfileImage: (formData: FormData) =>
     api.patch('/users/me/upload_profile_image/', formData),
 
@@ -467,9 +481,7 @@ export const tagsAPI = {
 
 export const verificationAPI = {
   submit: (formData: FormData) =>
-    api.post('/verifications/submit/', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    }),
+    api.post('/verifications/submit/', formData),
 
   getMyRequest: () =>
     api.get('/verifications/my_request/'),
