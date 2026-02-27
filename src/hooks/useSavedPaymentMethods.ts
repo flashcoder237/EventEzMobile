@@ -9,7 +9,7 @@ import * as SecureStore from 'expo-secure-store';
 const PAYMENT_METHODS_KEY = 'eventez_saved_payment_methods';
 const MAX_SAVED_METHODS = 5;
 
-export type PaymentMethodType = 'mtn_money' | 'orange_money';
+export type PaymentMethodType = 'mtn_money' | 'orange_money' | 'wave' | 'mpesa' | 'airtel_money';
 
 export interface SavedPaymentMethod {
   id: string;
@@ -56,6 +56,12 @@ export function getPaymentMethodLabel(type: PaymentMethodType): string {
       return 'MTN Mobile Money';
     case 'orange_money':
       return 'Orange Money';
+    case 'wave':
+      return 'Wave';
+    case 'mpesa':
+      return 'M-Pesa';
+    case 'airtel_money':
+      return 'Airtel Money';
     default:
       return 'Mobile Money';
   }

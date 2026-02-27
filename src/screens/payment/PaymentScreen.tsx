@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 
 import { registrationsAPI, paymentsAPI } from '../../api/client';
-import { Registration, RootStackParamList } from '../../types';
+import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
@@ -43,11 +43,40 @@ import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import GradientButton from '../../components/ui/GradientButton';
 
 // Import des icônes de paiement
-const PaymentIcons = {
+const PaymentIcons: Record<string, ImageSourcePropType> = {
   mtn_money: require('../../../assets/payments/momo.png'),
   orange_money: require('../../../assets/payments/om.png'),
   credit_card: require('../../../assets/payments/bank.png'),
+  // Fallback pour les nouvelles méthodes - réutilisent des icônes existantes
+  wave: require('../../../assets/payments/bank.png'),
+  mpesa: require('../../../assets/payments/bank.png'),
+  airtel_money: require('../../../assets/payments/bank.png'),
 };
+
+// Couleurs par méthode de paiement
+const METHOD_COLORS: Record<string, string> = {
+  mtn_money: '#FFCC00',
+  orange_money: '#FF6600',
+  credit_card: '#1A1F71',
+  wave: '#1DA1F2',
+  mpesa: '#4CAF50',
+  airtel_money: '#E53935',
+};
+
+// Descriptions par méthode
+const METHOD_DESCRIPTIONS: Record<string, string> = {
+  mtn_money: 'Payez avec votre compte MTN MoMo',
+  orange_money: 'Payez avec votre compte Orange Money',
+  credit_card: 'Visa, Mastercard, etc.',
+  wave: 'Payez avec votre compte Wave',
+  mpesa: 'Payez avec M-Pesa',
+  airtel_money: 'Payez avec Airtel Money',
+};
+
+// Méthodes de type mobile money
+const MOBILE_MONEY_METHODS = new Set([
+  'mtn_money', 'orange_money', 'wave', 'mpesa', 'airtel_money',
+]);
 
 /**
  * Génère une clé d'idempotence unique pour éviter les doubles paiements
@@ -61,18 +90,21 @@ const generateIdempotencyKey = (registrationId: string): string => {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
 
-// Les valeurs doivent correspondre exactement aux choix backend (PAYMENT_METHOD_CHOICES)
-type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card';
+// Les valeurs doivent correspondre aux choix backend (multi-pays)
+type PaymentMethodId = 'mtn_money' | 'orange_money' | 'credit_card' | 'wave' | 'mpesa' | 'airtel_money';
 
 interface PaymentMethodOption {
-  id: PaymentMethod;
+  id: PaymentMethodId;
   name: string;
   icon: ImageSourcePropType;
   color: string;
   description: string;
+  channel?: string;
+  type?: string;
 }
 
-const paymentMethods: PaymentMethodOption[] = [
+// Fallback Cameroun (utilisé si l'API échoue)
+const FALLBACK_METHODS: PaymentMethodOption[] = [
   {
     id: 'mtn_money',
     name: 'MTN Mobile Money',
@@ -111,7 +143,9 @@ export default function PaymentScreen() {
   const [processing, setProcessing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [verifyingManually, setVerifyingManually] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
+  const [countryConfig, setCountryConfig] = useState<CountryPaymentConfig | null>(null);
+  const [dynamicMethods, setDynamicMethods] = useState<PaymentMethodOption[]>(FALLBACK_METHODS);
   // Préremplir avec le numéro de téléphone de l'utilisateur (sans le préfixe 237)
   const [phoneNumber, setPhoneNumber] = useState(() => {
     const userPhone = user?.phone || user?.phone_number || '';
@@ -241,6 +275,40 @@ export default function PaymentScreen() {
     fetchRegistration();
   }, [registrationId]);
 
+  // Fetch dynamic payment methods based on event country
+  useEffect(() => {
+    const fetchPaymentMethods = async () => {
+      if (!registration) return;
+      const eventObj = typeof registration.event === 'object' ? registration.event : null;
+      const locationCountry = eventObj?.location_country || 'Cameroun';
+
+      try {
+        const response = await paymentsAPI.getPaymentMethods(locationCountry);
+        const config: CountryPaymentConfig = response.data;
+        setCountryConfig(config);
+
+        if (config.methods && config.methods.length > 0) {
+          const methods: PaymentMethodOption[] = config.methods.map((m: APIPaymentMethodOption) => ({
+            id: m.id as PaymentMethodId,
+            name: m.name,
+            icon: PaymentIcons[m.id] || PaymentIcons.credit_card,
+            color: METHOD_COLORS[m.id] || '#666666',
+            description: METHOD_DESCRIPTIONS[m.id] || `Paiement via ${m.name}`,
+            channel: m.channel,
+            type: m.type,
+          }));
+          setDynamicMethods(methods);
+        }
+      } catch (error) {
+        console.error('[Payment] Error fetching payment methods:', error);
+        // Fallback to default methods
+        setDynamicMethods(FALLBACK_METHODS);
+      }
+    };
+
+    fetchPaymentMethods();
+  }, [registration]);
+
   // Auto-select last used payment method for the selected type
   useEffect(() => {
     if (selectedMethod && selectedMethod !== 'credit_card') {
@@ -304,43 +372,48 @@ export default function PaymentScreen() {
     }, 0);
   };
 
-  const validatePhoneNumber = (method: PaymentMethod): { valid: boolean; formatted?: string } => {
+  const validatePhoneNumber = (method: PaymentMethodId): { valid: boolean; formatted?: string } => {
     if (method === 'credit_card') return { valid: true };
+    if (!MOBILE_MONEY_METHODS.has(method)) return { valid: true };
 
     const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
+    const expectedDigits = countryConfig?.phone_digits || 9;
+    const prefixDigits = (countryConfig?.phone_prefix || '+237').replace('+', '');
 
-    // Supprimer le préfixe 237 s'il est présent pour la validation
-    const numberWithoutPrefix = cleanNumber.startsWith('237') ? cleanNumber.slice(3) : cleanNumber;
+    // Supprimer le préfixe pays s'il est présent pour la validation
+    const numberWithoutPrefix = cleanNumber.startsWith(prefixDigits)
+      ? cleanNumber.slice(prefixDigits.length)
+      : cleanNumber;
 
-    if (numberWithoutPrefix.length !== 9) {
-      showError('Numéro invalide', 'Le numéro doit contenir 9 chiffres (ex: 6XX XXX XXX)');
+    if (numberWithoutPrefix.length !== expectedDigits) {
+      showError('Numéro invalide', `Le numéro doit contenir ${expectedDigits} chiffres`);
       return { valid: false };
     }
 
-    // Validation MTN: 67, 68, 77, 78, 650-654
-    if (method === 'mtn_money') {
-      if (!numberWithoutPrefix.match(/^(6[78]\d|7[78]\d|65[0-4])\d{6}$/)) {
-        showError(
-          'Numéro MTN invalide',
-          'Les numéros MTN commencent par 67, 68, 77, 78 ou 650-654.\nExemple: 670 123 456'
-        );
-        return { valid: false };
+    // Validation stricte seulement pour le Cameroun (on a les patterns connus)
+    if (countryConfig?.country_code === 'CM' || !countryConfig) {
+      if (method === 'mtn_money') {
+        if (!numberWithoutPrefix.match(/^(6[78]\d|7[78]\d|65[0-4])\d{6}$/)) {
+          showError(
+            'Numéro MTN invalide',
+            'Les numéros MTN commencent par 67, 68, 77, 78 ou 650-654.\nExemple: 670 123 456'
+          );
+          return { valid: false };
+        }
       }
-    }
-
-    // Validation Orange: 655-659, 69, 55, 59
-    if (method === 'orange_money') {
-      if (!numberWithoutPrefix.match(/^(65[5-9]|69\d|5[59]\d)\d{6}$/)) {
-        showError(
-          'Numéro Orange invalide',
-          'Les numéros Orange commencent par 655-659, 69, 55 ou 59.\nExemple: 655 123 456'
-        );
-        return { valid: false };
+      if (method === 'orange_money') {
+        if (!numberWithoutPrefix.match(/^(65[5-9]|69\d|5[59]\d)\d{6}$/)) {
+          showError(
+            'Numéro Orange invalide',
+            'Les numéros Orange commencent par 655-659, 69, 55 ou 59.\nExemple: 655 123 456'
+          );
+          return { valid: false };
+        }
       }
     }
 
     // Retourner le numéro formaté avec l'indicatif pays
-    return { valid: true, formatted: `237${numberWithoutPrefix}` };
+    return { valid: true, formatted: `${prefixDigits}${numberWithoutPrefix}` };
   };
 
   const handlePayment = async () => {
@@ -378,10 +451,11 @@ export default function PaymentScreen() {
       }
 
       // Create payment avec les bons noms de champs + clé d'idempotence
+      // Le backend déduit la devise depuis le pays de l'événement
       const paymentResponse = await paymentsAPI.createPayment({
         registration: registrationId,
         amount: calculateTotal(),
-        currency: 'XAF',
+        currency: countryConfig?.currency || 'XAF',
         payment_method: selectedMethod,
         billing_phone: formattedPhone,
         billing_email: userEmail,
@@ -410,12 +484,14 @@ export default function PaymentScreen() {
       setPaymentId(newPaymentId);
 
       // Traiter le paiement selon la méthode
-      if (selectedMethod === 'mtn_money') {
-        const response = await paymentsAPI.processMtnMoney(newPaymentId, { phone: formattedPhone });
-        console.log('[Payment] MTN processing response:', response.data);
-      } else if (selectedMethod === 'orange_money') {
-        const response = await paymentsAPI.processOrangeMoney(newPaymentId, { phone: formattedPhone });
-        console.log('[Payment] Orange processing response:', response.data);
+      if (MOBILE_MONEY_METHODS.has(selectedMethod)) {
+        // Trouver le channel pour la méthode sélectionnée
+        const methodConfig = dynamicMethods.find(m => m.id === selectedMethod);
+        const response = await paymentsAPI.processMobileMoney(newPaymentId, {
+          phone: formattedPhone,
+          ...(methodConfig?.channel ? { channel: methodConfig.channel } : {}),
+        });
+        console.log('[Payment] Mobile Money processing response:', response.data);
       } else {
         // Carte bancaire - redirection vers page de paiement
         const response = await paymentsAPI.initializePayment(newPaymentId);
@@ -637,7 +713,7 @@ export default function PaymentScreen() {
                   <Text style={styles.orderItemQty}>x{ticket.quantity || 1}</Text>
                 </View>
                 <Text style={styles.orderItemPrice}>
-                  {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} FCFA
+                  {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} {countryConfig?.currency || 'FCFA'}
                 </Text>
               </View>
             ))}
@@ -645,7 +721,7 @@ export default function PaymentScreen() {
             <View style={styles.orderTotal}>
               <Text style={styles.orderTotalLabel}>Total à payer</Text>
               <Text style={styles.orderTotalValue}>
-                {calculateTotal().toLocaleString()} FCFA
+                {calculateTotal().toLocaleString()} {countryConfig?.currency || 'FCFA'}
               </Text>
             </View>
           </View>
@@ -654,7 +730,7 @@ export default function PaymentScreen() {
         {/* Payment Methods */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Mode de paiement</Text>
-          {paymentMethods.map((method) => (
+          {dynamicMethods.map((method) => (
             <AnimatedPressable
               key={method.id}
               style={[
@@ -692,7 +768,7 @@ export default function PaymentScreen() {
         </View>
 
         {/* Phone Number Input - Afficher pour Mobile Money uniquement */}
-        {selectedMethod && selectedMethod !== 'credit_card' && (
+        {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Numéro de téléphone</Text>
 
@@ -766,11 +842,11 @@ export default function PaymentScreen() {
 
             <View style={styles.phoneInputContainer}>
               <View style={styles.phonePrefix}>
-                <Text style={styles.phonePrefixText}>+237</Text>
+                <Text style={styles.phonePrefixText}>{countryConfig?.phone_prefix || '+237'}</Text>
               </View>
               <TextInput
                 style={styles.phoneInput}
-                placeholder="6XX XXX XXX"
+                placeholder={'X'.repeat(countryConfig?.phone_digits || 9)}
                 placeholderTextColor={Colors.gray400}
                 value={phoneNumber}
                 onChangeText={(text) => {
@@ -781,14 +857,18 @@ export default function PaymentScreen() {
                   }
                 }}
                 keyboardType="phone-pad"
-                maxLength={11}
+                maxLength={(countryConfig?.phone_digits || 9) + 2}
               />
             </View>
-            <Text style={styles.phoneHint}>
-              {selectedMethod === 'mtn_money'
-                ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
-                : 'Numéros Orange valides: 655-659, 69, 55, 59'}
-            </Text>
+            {(!countryConfig || countryConfig.country_code === 'CM') && (
+              <Text style={styles.phoneHint}>
+                {selectedMethod === 'mtn_money'
+                  ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
+                  : selectedMethod === 'orange_money'
+                  ? 'Numéros Orange valides: 655-659, 69, 55, 59'
+                  : `Entrez votre numéro ${dynamicMethods.find(m => m.id === selectedMethod)?.name || ''}`}
+              </Text>
+            )}
           </View>
         )}
       </KeyboardAwareScrollView>
@@ -798,7 +878,7 @@ export default function PaymentScreen() {
         <View style={styles.totalContainer}>
           <Text style={styles.totalLabel}>Total à payer</Text>
           <Text style={styles.totalValue}>
-            {calculateTotal().toLocaleString()} FCFA
+            {calculateTotal().toLocaleString()} {countryConfig?.currency || 'FCFA'}
           </Text>
         </View>
         <GradientButton
@@ -818,10 +898,10 @@ export default function PaymentScreen() {
             {/* Icône animée */}
             <View style={[
               styles.processingIconContainer,
-              { backgroundColor: selectedMethod === 'mtn_money' ? '#FFCC0020' : selectedMethod === 'orange_money' ? '#FF660020' : '#1A1F7120' }
+              { backgroundColor: (selectedMethod ? (METHOD_COLORS[selectedMethod] || '#666666') : '#1A1F71') + '20' }
             ]}>
               <Image
-                source={selectedMethod ? PaymentIcons[selectedMethod] : PaymentIcons.credit_card}
+                source={selectedMethod ? (PaymentIcons[selectedMethod] || PaymentIcons.credit_card) : PaymentIcons.credit_card}
                 style={styles.processingIconImage}
                 resizeMode="contain"
               />
@@ -830,15 +910,13 @@ export default function PaymentScreen() {
             <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: Spacing.md }} />
 
             <Text style={styles.processingTitle}>
-              {selectedMethod === 'mtn_money' ? 'MTN Mobile Money' :
-               selectedMethod === 'orange_money' ? 'Orange Money' :
-               'Paiement par carte'}
+              {selectedMethod ? (dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Paiement') : 'Paiement par carte'}
             </Text>
 
             <Text style={styles.processingSubtitle}>Traitement en cours...</Text>
 
             {/* Instructions détaillées pour Mobile Money */}
-            {selectedMethod !== 'credit_card' && (
+            {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
               <View style={styles.instructionsContainer}>
                 <Text style={styles.instructionsTitle}>Comment valider :</Text>
 
@@ -856,7 +934,7 @@ export default function PaymentScreen() {
                     <Text style={styles.stepNumberText}>2</Text>
                   </View>
                   <Text style={styles.stepText}>
-                    Entrez votre code PIN {selectedMethod === 'mtn_money' ? 'MTN MoMo' : 'Orange Money'}
+                    Entrez votre code PIN {dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money'}
                   </Text>
                 </View>
 

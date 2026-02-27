@@ -46,7 +46,18 @@ export interface SessionForm {
   start_time: Date | null;
   end_time: Date | null;
   location: string;
+  room: string;
   max_capacity: string;
+  is_virtual: boolean;
+  virtual_link: string;
+  requires_registration: boolean;
+  is_featured: boolean;
+  slides_url: string;
+  recording_url: string;
+  resources: string[];
+  tags: string[];
+  level: string;
+  language: string;
 }
 
 export interface EventFormState {
@@ -90,6 +101,10 @@ export interface EventFormState {
   ticketTypes: TicketTypeForm[];
   formFields: FormFieldForm[];
   showFormFieldsForBilletterie: boolean;
+
+  // Visibility
+  visibility: 'public' | 'unlisted' | 'invite_only';
+  accessCode: string;
 
   // Step 4 - Sessions
   sessions: SessionForm[];
@@ -229,11 +244,12 @@ export const FIELD_TYPES = [
 
 export const SESSION_TYPES = [
   { value: 'keynote', label: 'Keynote' },
-  { value: 'talk', label: 'Pr\u00e9sentation' },
+  { value: 'talk', label: 'Présentation' },
   { value: 'panel', label: 'Panel' },
   { value: 'workshop', label: 'Atelier' },
   { value: 'networking', label: 'Networking' },
   { value: 'break', label: 'Pause' },
+  { value: 'lunch', label: 'Déjeuner' },
 ];
 
 // ============================================
@@ -287,6 +303,10 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
   const [ticketTypes, setTicketTypes] = useState<TicketTypeForm[]>([]);
   const [formFields, setFormFields] = useState<FormFieldForm[]>([]);
   const [showFormFieldsForBilletterie, setShowFormFieldsForBilletterie] = useState(false);
+
+  // Visibility
+  const [visibility, setVisibility] = useState<'public' | 'unlisted' | 'invite_only'>('public');
+  const [accessCode, setAccessCode] = useState('');
 
   // Step 4 - Sessions
   const [sessions, setSessions] = useState<SessionForm[]>([]);
@@ -609,7 +629,18 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       start_time: null,
       end_time: null,
       location: '',
+      room: '',
       max_capacity: '',
+      is_virtual: false,
+      virtual_link: '',
+      requires_registration: true,
+      is_featured: false,
+      slides_url: '',
+      recording_url: '',
+      resources: [],
+      tags: [],
+      level: 'all',
+      language: 'fr',
     }]);
   }, []);
 
@@ -839,6 +870,10 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
         formData.append('max_participants', maxParticipants);
       }
       formData.append('auto_approve_registrations', String(autoApproveRegistrations));
+      formData.append('visibility', visibility);
+      if (accessCode) {
+        formData.append('access_code', accessCode);
+      }
       formData.append('status', 'draft');
 
       if (bannerImage) {
@@ -904,7 +939,18 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
             start_time: session.start_time ? session.start_time.toISOString() : null,
             end_time: session.end_time ? session.end_time.toISOString() : null,
             location: session.location,
+            room: session.room || '',
             max_capacity: session.max_capacity ? parseInt(session.max_capacity) : null,
+            is_virtual: session.is_virtual || false,
+            virtual_link: session.virtual_link || '',
+            requires_registration: session.requires_registration ?? true,
+            is_featured: session.is_featured || false,
+            slides_url: session.slides_url || '',
+            recording_url: session.recording_url || '',
+            resources: session.resources || [],
+            tags: session.tags || [],
+            level: session.level || 'all',
+            language: session.language || 'fr',
           })
         ));
       }
@@ -982,6 +1028,8 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     ticketTypes,
     formFields,
     showFormFieldsForBilletterie,
+    visibility,
+    accessCode,
     sessions,
     categories,
     availableTags,
@@ -1047,6 +1095,10 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     setShowFormFieldsForBilletterie,
     setFormFields,
     setTicketTypes,
+
+    // Visibility
+    setVisibility,
+    setAccessCode,
 
     // Step 4
     addSession,

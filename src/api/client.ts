@@ -544,6 +544,9 @@ export const eventsAPI = {
   duplicateEvent: (id: string) =>
     api.post(`/events/${id}/duplicate/`),
 
+  verifyAccessCode: (id: string, code: string) =>
+    api.post(`/events/${id}/verify_access_code/`, { access_code: code }),
+
   submitForValidation: (id: string) =>
     api.post(`/events/${id}/submit_for_validation/`),
 
@@ -1288,6 +1291,12 @@ export const paymentsAPI = {
 
   cancelPayment: (id: string) =>
     api.post(`/payments/${id}/cancel_payment/`),
+
+  getPaymentMethods: (countryCode: string) =>
+    api.get('/payments/methods/', { params: { country: countryCode } }),
+
+  processMobileMoney: (id: string, data: { phone: string; channel?: string }) =>
+    api.post(`/payments/${id}/process_mobile_money/`, data),
 };
 
 // ============================================

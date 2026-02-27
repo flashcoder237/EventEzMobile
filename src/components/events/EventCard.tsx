@@ -10,6 +10,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
+import { AnimatedBookmark } from '../ui/Animations';
 import { formatPriceRange } from '../../lib/utils/priceFormatters';
 import {
   Colors,
@@ -144,11 +145,13 @@ function EventCard({
           style={styles.bookmarkSide}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons
-            name={isLiked ? 'bookmark' : 'bookmark-outline'}
-            size={20}
-            color={isLiked ? Colors.primary : Colors.gray400}
-          />
+          <AnimatedBookmark isActive={isLiked}>
+            <Ionicons
+              name={isLiked ? 'bookmark' : 'bookmark-outline'}
+              size={20}
+              color={isLiked ? Colors.primary : Colors.gray400}
+            />
+          </AnimatedBookmark>
         </TouchableOpacity>
       </AnimatedPressable>
     );
@@ -204,11 +207,13 @@ function EventCard({
             style={styles.featuredBookmark}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons
-              name={isLiked ? 'bookmark' : 'bookmark-outline'}
-              size={20}
-              color={Colors.white}
-            />
+            <AnimatedBookmark isActive={isLiked}>
+              <Ionicons
+                name={isLiked ? 'bookmark' : 'bookmark-outline'}
+                size={20}
+                color={Colors.white}
+              />
+            </AnimatedBookmark>
           </TouchableOpacity>
         </View>
         <View style={styles.featuredContent}>
@@ -274,11 +279,13 @@ function EventCard({
               onPress={onLikePress}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons
-                name={isLiked ? 'bookmark' : 'bookmark-outline'}
-                size={22}
-                color={isLiked ? Colors.primary : Colors.gray400}
-              />
+              <AnimatedBookmark isActive={isLiked}>
+                <Ionicons
+                  name={isLiked ? 'bookmark' : 'bookmark-outline'}
+                  size={22}
+                  color={isLiked ? Colors.primary : Colors.gray400}
+                />
+              </AnimatedBookmark>
             </TouchableOpacity>
           </View>
         </View>

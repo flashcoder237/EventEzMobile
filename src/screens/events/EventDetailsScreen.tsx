@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,8 @@ import {
   Linking,
   Modal,
   Platform,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
@@ -42,6 +44,7 @@ import AgendaTab from '../../components/events/AgendaTab';
 import ReviewsTab from '../../components/events/ReviewsTab';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
+import { eventsAPI } from '../../api/client';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -130,6 +133,26 @@ export default function EventDetailsScreen() {
     ),
   }));
 
+  // Access code state
+  const [accessCodeInput, setAccessCodeInput] = useState('');
+  const [verifyingCode, setVerifyingCode] = useState(false);
+
+  const handleVerifyAccessCode = async () => {
+    if (!accessCodeInput.trim()) return;
+    setVerifyingCode(true);
+    try {
+      const response = await eventsAPI.verifyAccessCode(eventId, accessCodeInput);
+      if (response.data?.valid) {
+        // Reload the page - the event details will now show
+        navigation.replace('EventDetails', { eventId });
+      }
+    } catch {
+      showError('Erreur', "Code d'accès invalide");
+    } finally {
+      setVerifyingCode(false);
+    }
+  };
+
   if (loading) {
     return <DetailScreenSkeleton />;
   }
@@ -146,6 +169,85 @@ export default function EventDetailsScreen() {
           <Text style={styles.backButtonErrorText}>Retour</Text>
         </TouchableOpacity>
       </View>
+    );
+  }
+
+  // Invite-only gate
+  if (event.visibility === 'invite_only' && event.user_has_access === false) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" />
+        <View style={visibilityStyles.gateContainer}>
+          <TouchableOpacity style={visibilityStyles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+          </TouchableOpacity>
+          <View style={visibilityStyles.gateIconWrap}>
+            <Ionicons name="lock-closed" size={48} color={Colors.primary} />
+          </View>
+          <Text style={visibilityStyles.gateTitle}>Événement sur invitation</Text>
+          <Text style={visibilityStyles.gateDesc}>
+            Cet événement est réservé aux personnes invitées.
+            Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.
+          </Text>
+          <TouchableOpacity style={visibilityStyles.gateBtn} onPress={() => navigation.goBack()}>
+            <Text style={visibilityStyles.gateBtnText}>Retour</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Access code gate
+  if (event.requires_access_code) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <StatusBar barStyle="dark-content" />
+        <View style={visibilityStyles.gateContainer}>
+          <TouchableOpacity style={visibilityStyles.backBtn} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+          </TouchableOpacity>
+
+          {event.banner_image && (
+            <Image source={{ uri: event.banner_image }} style={visibilityStyles.gateBanner} />
+          )}
+
+          <Text style={visibilityStyles.gateTitle}>{event.title}</Text>
+          {event.start_date && (
+            <Text style={visibilityStyles.gateDate}>
+              {new Date(event.start_date).toLocaleDateString('fr-FR', {
+                day: 'numeric', month: 'long', year: 'numeric'
+              })}
+            </Text>
+          )}
+
+          <View style={visibilityStyles.codeCard}>
+            <Ionicons name="key-outline" size={28} color={Colors.warning} />
+            <Text style={visibilityStyles.codeTitle}>Code d'accès requis</Text>
+            <Text style={visibilityStyles.codeDesc}>
+              Entrez le code pour voir les détails complets
+            </Text>
+            <TextInput
+              style={visibilityStyles.codeInput}
+              value={accessCodeInput}
+              onChangeText={setAccessCodeInput}
+              placeholder="Entrez le code d'accès"
+              placeholderTextColor={Colors.gray400}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[visibilityStyles.codeBtn, (!accessCodeInput.trim() || verifyingCode) && { opacity: 0.5 }]}
+              onPress={handleVerifyAccessCode}
+              disabled={!accessCodeInput.trim() || verifyingCode}
+            >
+              {verifyingCode ? (
+                <ActivityIndicator color={Colors.white} size="small" />
+              ) : (
+                <Text style={visibilityStyles.codeBtnText}>Accéder</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -519,6 +621,18 @@ export default function EventDetailsScreen() {
                 <View style={styles.goodToKnowItem}>
                   <Ionicons name="pricetag-outline" size={20} color={Colors.success} />
                   <Text style={styles.goodToKnowText}>Événement gratuit</Text>
+                </View>
+              )}
+              {event.visibility === 'unlisted' && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="link-outline" size={20} color="#F97316" />
+                  <Text style={styles.goodToKnowText}>Non listé (accessible via le lien)</Text>
+                </View>
+              )}
+              {event.visibility === 'invite_only' && (
+                <View style={styles.goodToKnowItem}>
+                  <Ionicons name="lock-closed-outline" size={20} color={Colors.primary} />
+                  <Text style={styles.goodToKnowText}>Sur invitation uniquement</Text>
                 </View>
               )}
             </View>
@@ -1391,5 +1505,115 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
     color: Colors.gray700,
+  },
+});
+
+const visibilityStyles = StyleSheet.create({
+  gateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  backBtn: {
+    position: 'absolute',
+    top: Spacing.md,
+    left: Spacing.md,
+    padding: Spacing.sm,
+  },
+  gateIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: `${Colors.primary}15`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  gateTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes['2xl'],
+    color: Colors.gray900,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  gateDate: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.base,
+    color: Colors.gray500,
+    marginBottom: Spacing.md,
+  },
+  gateDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.base,
+    color: Colors.gray500,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: Spacing.xl,
+  },
+  gateBtn: {
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: Spacing.md,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.xl,
+  },
+  gateBtnText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.white,
+  },
+  gateBanner: {
+    width: width - Spacing.xl * 2,
+    height: 160,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.lg,
+  },
+  codeCard: {
+    width: '100%',
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    alignItems: 'center',
+    ...Shadows.md,
+  },
+  codeTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.lg,
+    color: Colors.gray900,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.xs,
+  },
+  codeDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    color: Colors.gray500,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  codeInput: {
+    width: '100%',
+    height: 48,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.base,
+    color: Colors.gray900,
+    backgroundColor: Colors.gray50,
+    marginBottom: Spacing.md,
+  },
+  codeBtn: {
+    width: '100%',
+    height: 48,
+    backgroundColor: Colors.primary,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  codeBtnText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    color: Colors.white,
   },
 });

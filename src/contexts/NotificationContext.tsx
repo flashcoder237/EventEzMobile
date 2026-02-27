@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
-import { useNavigation, NavigationProp } from '@react-navigation/native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import { notificationsAPI, messagesAPI } from '../api/client';
 import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
@@ -42,33 +42,94 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
   const appState = useRef(AppState.currentState);
-  const navigationRef = useRef<any>(null);
+  const navigation = useNavigation();
 
   // Handle notification tap navigation
   const handleNotificationNavigation = useCallback((data: PushNotificationData) => {
     console.log('[Notification] Handling navigation with data:', data);
 
-    // Navigate based on notification type
-    if (data.event_id) {
-      navigationRef.current?.navigate('EventDetails', { eventId: data.event_id });
-    } else if (data.registration_id) {
-      navigationRef.current?.navigate('MyTickets');
-    } else if (data.ticket_id) {
-      navigationRef.current?.navigate('QRCode', { ticketId: data.ticket_id });
-    } else if (data.conversation_id) {
-      navigationRef.current?.navigate('Messages', { conversationId: data.conversation_id });
-    } else if (data.notification_id) {
-      // Mark notification as read and go to notifications screen
-      markNotificationAsRead(data.notification_id);
-      navigationRef.current?.navigate('Notifications');
-    } else {
-      // Default: go to notifications screen
-      navigationRef.current?.navigate('Notifications');
+    if (!navigation) {
+      console.warn('[Notification] Navigation not available yet');
+      return;
+    }
+
+    try {
+      // Priority 1: explicit screen + params from backend
+      if (data.screen && data.params) {
+        navigation.dispatch(
+          CommonActions.navigate({
+            name: data.screen,
+            params: data.params,
+          })
+        );
+      }
+      // Priority 2: navigate based on data fields
+      else if (data.event_id) {
+        navigation.dispatch(
+          CommonActions.navigate({ name: 'EventDetails', params: { eventId: data.event_id } })
+        );
+      } else if (data.registration_id) {
+        navigation.dispatch(
+          CommonActions.navigate({ name: 'MyTickets' })
+        );
+      } else if (data.ticket_id) {
+        navigation.dispatch(
+          CommonActions.navigate({ name: 'QRCode', params: { ticketId: data.ticket_id } })
+        );
+      } else if (data.conversation_id) {
+        navigation.dispatch(
+          CommonActions.navigate({ name: 'Conversation', params: { conversationId: data.conversation_id } })
+        );
+      }
+      // Priority 3: use related_object fields from backend
+      else if (data.related_object_type && data.related_object_id) {
+        switch (data.related_object_type) {
+          case 'event':
+            navigation.dispatch(
+              CommonActions.navigate({ name: 'EventDetails', params: { eventId: data.related_object_id } })
+            );
+            break;
+          case 'registration':
+            navigation.dispatch(
+              CommonActions.navigate({ name: 'MyTickets' })
+            );
+            break;
+          case 'ticket':
+          case 'ticket_purchase':
+            navigation.dispatch(
+              CommonActions.navigate({ name: 'QRCode', params: { ticketId: data.related_object_id } })
+            );
+            break;
+          case 'conversation':
+          case 'message':
+            navigation.dispatch(
+              CommonActions.navigate({ name: 'Conversation', params: { conversationId: data.related_object_id } })
+            );
+            break;
+          default:
+            navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
+        }
+      }
+      // Priority 4: notification_id → mark read and go to notifications
+      else if (data.notification_id) {
+        markNotificationAsRead(data.notification_id);
+        navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
+      }
+      // Fallback: go to notifications screen
+      else {
+        navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
+      }
+    } catch (error) {
+      console.error('[Notification] Navigation error:', error);
+      // Fallback: try simple navigate to Notifications
+      try {
+        navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
+      } catch {}
     }
 
     // Refresh counts after navigation
     fetchUnreadCounts();
-  }, []);
+  }, [navigation]);
 
   // Initialize push notifications
   const initializePushNotifications = useCallback(async () => {
@@ -198,6 +259,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const refreshCounts = useCallback(async () => {
     await fetchUnreadCounts();
   }, [fetchUnreadCounts]);
+
+  // Keep navigation callback in sync with latest handler
+  useEffect(() => {
+    pushNotificationService.setNavigationCallback(handleNotificationNavigation);
+  }, [handleNotificationNavigation]);
 
   // Initialize push notifications when authenticated
   useEffect(() => {

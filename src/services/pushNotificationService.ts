@@ -26,12 +26,20 @@ Notifications.setNotificationHandler({
 
 export interface PushNotificationData {
   type?: string;
+  notification_type?: string;
   notification_id?: string;
   event_id?: string;
   registration_id?: string;
   ticket_id?: string;
   conversation_id?: string;
+  message_id?: string;
   url?: string;
+  // Backend can send explicit screen + params for navigation
+  screen?: string;
+  params?: Record<string, any>;
+  // Related object fields from backend
+  related_object_type?: string;
+  related_object_id?: string;
 }
 
 class PushNotificationService {

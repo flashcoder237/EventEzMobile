@@ -45,6 +45,9 @@ import VerificationScreen from '../screens/profile/VerificationScreen';
 import MessagesScreen from '../screens/messages/MessagesScreen';
 import ConversationScreen from '../screens/messages/ConversationScreen';
 
+// Scan Screen
+import ScanScreen from '../screens/scan/ScanScreen';
+
 // Organizer Screens
 import EventCreateScreen from '../screens/organizer/EventCreateScreen';
 import WalletScreen from '../screens/organizer/WalletScreen';
@@ -227,6 +230,14 @@ export default function RootNavigator() {
             component={OfflineTicketsScreen}
             options={{
               headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="Scan"
+            component={ScanScreen}
+            options={{
+              headerShown: false,
+              presentation: 'fullScreenModal',
             }}
           />
 

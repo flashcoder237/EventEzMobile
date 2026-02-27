@@ -188,6 +188,12 @@ export interface Event {
   // Métadonnées
   created_at: string;
   updated_at: string;
+  // Visibilité
+  visibility?: 'public' | 'unlisted' | 'invite_only';
+  access_code?: string;  // Only visible to organizer
+  has_access_code?: boolean;
+  user_has_access?: boolean;
+  requires_access_code?: boolean;
   // UI helpers (calculés côté frontend/API)
   is_following?: boolean;
   distance_km?: number;
@@ -406,12 +412,30 @@ export interface Discount {
 // ============================================
 
 // Méthodes de paiement (payments.Payment.PAYMENT_METHOD_CHOICES)
-export type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal' | 'bank_transfer';
+export type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal' | 'bank_transfer' | 'wave' | 'mpesa' | 'airtel_money';
 // Alias pour compatibilité UI
 export type PaymentMethodAlias = PaymentMethod | 'momo' | 'om' | 'card' | 'transfer';
 
 // Statuts de paiement (payments.Payment.PAYMENT_STATUS_CHOICES)
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
+
+// Configuration paiement par pays (retournée par GET /payments/methods/?country=XX)
+export interface PaymentMethodOption {
+  id: PaymentMethod;
+  name: string;
+  channel: string;
+  type: 'mobile_money' | 'card' | 'bank_transfer';
+}
+
+export interface CountryPaymentConfig {
+  country_code: string;
+  country_name: string;
+  currency: string;
+  phone_prefix: string;
+  phone_digits: number;
+  methods: PaymentMethodOption[];
+  phone_patterns: Record<string, string>;
+}
 
 export interface Payment {
   id: string;
@@ -422,6 +446,7 @@ export interface Payment {
   currency?: string;
   payment_method: PaymentMethod | PaymentMethodAlias;
   method?: PaymentMethod; // Alias
+  country_code?: string;
   // Statut et suivi
   status: PaymentStatus;
   payment_status?: PaymentStatus; // Alias
@@ -1234,6 +1259,7 @@ export type RootStackParamList = {
   PayoutRequest: undefined;
   Subscription: undefined;
   QRScanner: { eventId: string };
+  Scan: undefined;
   Terms: undefined;
   Privacy: undefined;
   Moderation: undefined;

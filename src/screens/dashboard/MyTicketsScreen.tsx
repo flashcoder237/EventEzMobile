@@ -28,6 +28,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { SkeletonList, TicketCardSkeleton } from '../../components/ui/Skeleton';
+import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -291,7 +292,7 @@ export default function MyTicketsScreen() {
     }
   };
 
-  const renderRegistration = ({ item }: { item: Registration }) => {
+  const renderRegistration = ({ item, index }: { item: Registration; index: number }) => {
     const event = getEventData(item);
     const dateInfo = event?.start_date ? formatDate(event.start_date) : null;
     const statusConfig = getStatusConfig(item.status);
@@ -307,6 +308,7 @@ export default function MyTicketsScreen() {
     const eventId = event?.id || (typeof item.event === 'string' ? item.event : undefined);
 
     return (
+      <StaggeredItem index={index} staggerDelay={50}>
       <TouchableOpacity
         style={styles.card}
         onPress={() => {
@@ -407,6 +409,7 @@ export default function MyTicketsScreen() {
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
+      </StaggeredItem>
     );
   };
 

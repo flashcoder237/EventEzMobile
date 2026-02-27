@@ -439,6 +439,25 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.gray200,
   },
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  advancedToggleText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: Colors.gray700,
+  },
+  advancedContent: {
+    marginTop: Spacing.md,
+  },
 });
 
 export default styles;

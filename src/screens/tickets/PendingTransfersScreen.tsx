@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ticketTransfersAPI } from '../../api/client';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
-import GradientButton from '../../components/ui/GradientButton';
+import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import {
   Colors,
   FontSizes,
@@ -27,11 +27,14 @@ import {
 import { RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type TabType = 'received' | 'sent';
 
 interface Transfer {
   id: string;
   sender_name: string;
   sender_email: string;
+  recipient_email: string;
+  recipient_name: string;
   ticket_info: {
     ticket_type_name: string;
     transfer_quantity: number;
@@ -48,20 +51,30 @@ interface Transfer {
   expires_at: string;
   can_accept: boolean;
   is_expired: boolean;
+  transfer_token_display?: string;
 }
 
 export default function PendingTransfersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const [activeTab, setActiveTab] = useState<TabType>('received');
   const [transfers, setTransfers] = useState<Transfer[]>([]);
+  const [sentTransfers, setSentTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedTransferToken, setSelectedTransferToken] = useState<string | null>(null);
+  const [selectedTransferTitle, setSelectedTransferTitle] = useState('');
 
   const fetchTransfers = async () => {
     try {
-      const response = await ticketTransfersAPI.getPendingTransfers();
-      setTransfers(response.data || []);
+      const [receivedRes, sentRes] = await Promise.all([
+        ticketTransfersAPI.getPendingTransfers(),
+        ticketTransfersAPI.getSentTransfers(),
+      ]);
+      setTransfers(receivedRes.data || []);
+      setSentTransfers(sentRes.data?.results || sentRes.data || []);
     } catch (error) {
       console.error('Erreur chargement transferts:', error);
     } finally {
@@ -123,6 +136,33 @@ export default function PendingTransfersScreen() {
     );
   };
 
+  const handleCancelTransfer = (transfer: Transfer) => {
+    showConfirm(
+      'Annuler le transfert',
+      `Voulez-vous annuler le transfert vers ${transfer.recipient_name || transfer.recipient_email}?`,
+      async () => {
+        setActionLoading(transfer.id);
+        try {
+          await ticketTransfersAPI.cancelTransfer(transfer.id);
+          showSuccess('Transfert annulé', 'Le transfert a été annulé.');
+          fetchTransfers();
+        } catch (error: any) {
+          showError('Erreur', error.response?.data?.detail || 'Impossible d\'annuler le transfert');
+        } finally {
+          setActionLoading(null);
+        }
+      },
+    );
+  };
+
+  const handleShowQR = (transfer: Transfer) => {
+    if (transfer.transfer_token_display) {
+      setSelectedTransferToken(transfer.transfer_token_display);
+      setSelectedTransferTitle(transfer.event_info.title);
+      setShowQRModal(true);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
@@ -151,7 +191,31 @@ export default function PendingTransfersScreen() {
     return `${hours}h ${minutes}min restant`;
   };
 
-  const renderTransferItem = ({ item }: { item: Transfer }) => {
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'En attente';
+      case 'accepted': return 'Accepté';
+      case 'declined': return 'Refusé';
+      case 'cancelled': return 'Annulé';
+      case 'expired': return 'Expiré';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return Colors.warning;
+      case 'accepted': return Colors.success;
+      case 'declined':
+      case 'cancelled':
+      case 'expired': return Colors.error;
+      default: return Colors.gray500;
+    }
+  };
+
+  // ── Received transfer item ──
+
+  const renderReceivedItem = ({ item }: { item: Transfer }) => {
     const isProcessing = actionLoading === item.id;
 
     return (
@@ -235,17 +299,116 @@ export default function PendingTransfersScreen() {
     );
   };
 
-  const renderEmptyState = () => (
+  // ── Sent transfer item ──
+
+  const renderSentItem = ({ item }: { item: Transfer }) => {
+    const isProcessing = actionLoading === item.id;
+    const isPending = item.status === 'pending' && !item.is_expired;
+    const statusColor = getStatusColor(item.is_expired ? 'expired' : item.status);
+
+    return (
+      <View style={styles.transferCard}>
+        {/* Header */}
+        <View style={styles.cardHeader}>
+          <View style={styles.senderInfo}>
+            <View style={styles.avatarContainer}>
+              <Text style={styles.avatarText}>
+                {(item.recipient_name || item.recipient_email).charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.senderName}>
+                {item.recipient_name || 'Destinataire'}
+              </Text>
+              <Text style={styles.senderEmail}>{item.recipient_email}</Text>
+            </View>
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
+            <Text style={[styles.statusText, { color: statusColor }]}>
+              {item.is_expired ? 'Expiré' : getStatusLabel(item.status)}
+            </Text>
+          </View>
+        </View>
+
+        {/* Ticket Info */}
+        <View style={styles.ticketSection}>
+          <Ionicons name="ticket-outline" size={20} color={Colors.primary} />
+          <View style={styles.ticketDetails}>
+            <Text style={styles.ticketName}>
+              {item.ticket_info.transfer_quantity}x {item.ticket_info.ticket_type_name}
+            </Text>
+            <Text style={styles.eventTitle}>{item.event_info.title}</Text>
+            <Text style={styles.eventDate}>
+              {formatDate(item.event_info.start_date)} - {item.event_info.location_city || 'En ligne'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Expiration for pending */}
+        {isPending && (
+          <View style={styles.expirationRow}>
+            <Ionicons name="time-outline" size={14} color={Colors.gray500} />
+            <Text style={styles.expirationText}>{getTimeRemaining(item.expires_at)}</Text>
+          </View>
+        )}
+
+        {/* Actions for pending sent transfers */}
+        {isPending && (
+          <View style={styles.actions}>
+            {item.transfer_token_display && (
+              <TouchableOpacity
+                style={styles.qrButton}
+                onPress={() => handleShowQR(item)}
+              >
+                <Ionicons name="qr-code-outline" size={18} color={Colors.primary} />
+                <Text style={styles.qrButtonText}>Afficher QR</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => handleCancelTransfer(item)}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color={Colors.error} />
+              ) : (
+                <>
+                  <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
+                  <Text style={styles.cancelText}>Annuler</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderEmptyReceived = () => (
     <View style={styles.emptyState}>
       <View style={styles.emptyIconContainer}>
         <Ionicons name="gift-outline" size={48} color={Colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>Aucun transfert en attente</Text>
+      <Text style={styles.emptyTitle}>Aucun transfert reçu</Text>
       <Text style={styles.emptySubtitle}>
         Lorsque quelqu'un vous transfère un billet, il apparaitra ici.
       </Text>
     </View>
   );
+
+  const renderEmptySent = () => (
+    <View style={styles.emptyState}>
+      <View style={styles.emptyIconContainer}>
+        <Ionicons name="send-outline" size={48} color={Colors.gray400} />
+      </View>
+      <Text style={styles.emptyTitle}>Aucun transfert envoyé</Text>
+      <Text style={styles.emptySubtitle}>
+        Vos transferts de billets envoyés apparaîtront ici.
+      </Text>
+    </View>
+  );
+
+  const currentData = activeTab === 'received' ? transfers : sentTransfers;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -257,19 +420,63 @@ export default function PendingTransfersScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transferts reçus</Text>
+        <Text style={styles.headerTitle}>Transferts</Text>
         <View style={{ width: 40 }} />
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'received' && styles.tabActive]}
+          onPress={() => setActiveTab('received')}
+        >
+          <Ionicons
+            name="arrow-down-circle-outline"
+            size={16}
+            color={activeTab === 'received' ? Colors.primary : Colors.gray500}
+          />
+          <Text style={[styles.tabText, activeTab === 'received' && styles.tabTextActive]}>
+            Reçus
+          </Text>
+          {transfers.length > 0 && (
+            <View style={[styles.tabBadge, activeTab === 'received' && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, activeTab === 'received' && styles.tabBadgeTextActive]}>
+                {transfers.length}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'sent' && styles.tabActive]}
+          onPress={() => setActiveTab('sent')}
+        >
+          <Ionicons
+            name="arrow-up-circle-outline"
+            size={16}
+            color={activeTab === 'sent' ? Colors.primary : Colors.gray500}
+          />
+          <Text style={[styles.tabText, activeTab === 'sent' && styles.tabTextActive]}>
+            Envoyés
+          </Text>
+          {sentTransfers.length > 0 && (
+            <View style={[styles.tabBadge, activeTab === 'sent' && styles.tabBadgeActive]}>
+              <Text style={[styles.tabBadgeText, activeTab === 'sent' && styles.tabBadgeTextActive]}>
+                {sentTransfers.length}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {loading ? (
         <LoadingSpinner />
       ) : (
         <FlatList
-          data={transfers}
+          data={currentData}
           keyExtractor={(item) => item.id}
-          renderItem={renderTransferItem}
+          renderItem={activeTab === 'received' ? renderReceivedItem : renderSentItem}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={renderEmptyState}
+          ListEmptyComponent={activeTab === 'received' ? renderEmptyReceived : renderEmptySent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -278,6 +485,20 @@ export default function PendingTransfersScreen() {
               tintColor={Colors.primary}
             />
           }
+        />
+      )}
+
+      {/* QR Code Modal */}
+      {selectedTransferToken && (
+        <QRCodeDisplay
+          visible={showQRModal}
+          onClose={() => {
+            setShowQRModal(false);
+            setSelectedTransferToken(null);
+          }}
+          data={`EVENTEZ-TRANSFER-${selectedTransferToken}`}
+          title="QR du transfert"
+          subtitle={selectedTransferTitle}
         />
       )}
     </SafeAreaView>
@@ -311,6 +532,60 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
+
+  // Tabs
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: Colors.white,
+    gap: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.gray50,
+  },
+  tabActive: {
+    backgroundColor: Colors.primary + '15',
+  },
+  tabText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    color: Colors.gray500,
+  },
+  tabTextActive: {
+    color: Colors.primary,
+    fontFamily: FontFamily.semiBold,
+  },
+  tabBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: Colors.gray200,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  tabBadgeActive: {
+    backgroundColor: Colors.primary,
+  },
+  tabBadgeText: {
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.gray600,
+  },
+  tabBadgeTextActive: {
+    color: Colors.white,
+  },
+
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -337,6 +612,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+    flex: 1,
   },
   avatarContainer: {
     width: 40,
@@ -415,6 +691,16 @@ const styles = StyleSheet.create({
     color: Colors.gray600,
     fontStyle: 'italic',
   },
+  expirationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  expirationText: {
+    fontSize: FontSizes.xs,
+    color: Colors.gray500,
+  },
   actions: {
     flexDirection: 'row',
     gap: Spacing.md,
@@ -453,6 +739,38 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
+  },
+  qrButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  qrButtonText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.primary,
+  },
+  cancelButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
+  cancelText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    color: Colors.error,
   },
   emptyState: {
     flex: 1,

@@ -25,6 +25,7 @@ import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
+import { FadeInView, SectionEntrance, PulsingBadge, ContentTransition, StaggeredItem } from '../../components/ui/Animations';
 import { useNotifications } from '../../contexts/NotificationContext';
 import {
   Colors,
@@ -589,8 +590,10 @@ export default function DiscoverScreen() {
       <FlatList
         ref={flatListRef}
         data={filteredResults}
-        renderItem={({ item }) => (
-          <View style={styles.searchResultItem}>{renderEventCard(item, 'grid')}</View>
+        renderItem={({ item, index }) => (
+          <StaggeredItem index={index} staggerDelay={50}>
+            <View style={styles.searchResultItem}>{renderEventCard(item, 'grid')}</View>
+          </StaggeredItem>
         )}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.searchResultsList}
@@ -638,13 +641,17 @@ export default function DiscoverScreen() {
     <View style={{ flex: 1 }}>
       {renderSearchHeader()}
       {viewMode === 'list' && renderCategoryChips()}
-      {searchLoading && viewMode === 'list' ? (
-        <View style={{ flex: 1, padding: 20 }}>
-          <SkeletonList count={4} Component={EventCardSkeleton} />
-        </View>
-      ) : (
-        renderSearchContent()
-      )}
+      <ContentTransition
+        isLoading={searchLoading && viewMode === 'list'}
+        skeleton={
+          <View style={{ flex: 1, padding: 20 }}>
+            <SkeletonList count={4} Component={EventCardSkeleton} />
+          </View>
+        }
+        style={{ flex: 1 }}
+      >
+        {renderSearchContent()}
+      </ContentTransition>
     </View>
   );
 
@@ -662,7 +669,7 @@ export default function DiscoverScreen() {
   );
 
   const renderFiltersModal = () => (
-    <Modal visible={showFilters} animationType="slide" transparent onRequestClose={() => setShowFilters(false)}>
+    <Modal visible={showFilters} animationType="fade" transparent onRequestClose={() => setShowFilters(false)}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
@@ -835,35 +842,43 @@ export default function DiscoverScreen() {
           <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Messages')}>
             <Ionicons name="chatbubble-outline" size={20} color={Colors.gray800} />
             {unreadMessageCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</Text>
-              </View>
+              <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</Text>
+                </View>
+              </PulsingBadge>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Notifications')}>
             <Ionicons name="notifications-outline" size={22} color={Colors.gray800} />
             {unreadNotificationCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</Text>
-              </View>
+              <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</Text>
+                </View>
+              </PulsingBadge>
             )}
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Hero greeting */}
-      <View style={styles.heroSection}>
-        <Text style={styles.heroEyebrow}>
-          {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
-        </Text>
-        <Text style={styles.heroTitle}>Discover{'\n'}Events</Text>
-      </View>
+      <FadeInView delay={100} translateY={20}>
+        <View style={styles.heroSection}>
+          <Text style={styles.heroEyebrow}>
+            {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
+          </Text>
+          <Text style={styles.heroTitle}>Discover{'\n'}Events</Text>
+        </View>
+      </FadeInView>
 
       {/* Search Bar (tap to activate) — pill shape */}
-      <TouchableOpacity style={styles.searchBarTrigger} onPress={activateSearch} activeOpacity={0.7}>
-        <Ionicons name="search" size={20} color={Colors.gray400} />
-        <Text style={styles.searchPlaceholder}>Rechercher un événement</Text>
-      </TouchableOpacity>
+      <FadeInView delay={200} translateY={12}>
+        <TouchableOpacity style={styles.searchBarTrigger} onPress={activateSearch} activeOpacity={0.7}>
+          <Ionicons name="search" size={20} color={Colors.gray400} />
+          <Text style={styles.searchPlaceholder}>Rechercher un événement</Text>
+        </TouchableOpacity>
+      </FadeInView>
 
       {/* Category Chips */}
       {categories.length > 0 && (
@@ -890,129 +905,141 @@ export default function DiscoverScreen() {
 
       {/* Featured Events — Hero Carousel */}
       {featuredEvents.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="À la une" onSeeAll={activateSearch} />
-          <FlatList
-            horizontal
-            data={featuredEvents}
-            renderItem={({ item, index }) => (
-              <View style={[styles.featuredCardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
-                {renderEventCard(item, 'featured')}
-              </View>
-            )}
-            keyExtractor={item => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: Spacing.lg }}
-            snapToInterval={SCREEN_WIDTH * 0.88 + Spacing.md}
-            decelerationRate="fast"
-          />
-        </View>
+        <SectionEntrance delay={300}>
+          <View style={styles.section}>
+            <SectionHeader title="À la une" onSeeAll={activateSearch} />
+            <FlatList
+              horizontal
+              data={featuredEvents}
+              renderItem={({ item, index }) => (
+                <View style={[styles.featuredCardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+                  {renderEventCard(item, 'featured')}
+                </View>
+              )}
+              keyExtractor={item => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: Spacing.lg }}
+              snapToInterval={SCREEN_WIDTH * 0.88 + Spacing.md}
+              decelerationRate="fast"
+            />
+          </View>
+        </SectionEntrance>
       )}
 
       {/* Nearby Events */}
       {nearbyEvents.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Populaire près de toi" onSeeAll={activateSearch} />
-          <FlatList
-            horizontal
-            data={nearbyEvents}
-            renderItem={({ item, index }) => (
-              <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
-                {renderEventCard(item, 'default')}
-              </View>
-            )}
-            keyExtractor={item => item.id}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: Spacing.lg }}
-          />
-        </View>
+        <SectionEntrance delay={400}>
+          <View style={styles.section}>
+            <SectionHeader title="Populaire près de toi" onSeeAll={activateSearch} />
+            <FlatList
+              horizontal
+              data={nearbyEvents}
+              renderItem={({ item, index }) => (
+                <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+                  {renderEventCard(item, 'default')}
+                </View>
+              )}
+              keyExtractor={item => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: Spacing.lg }}
+            />
+          </View>
+        </SectionEntrance>
       )}
 
       {/* Recommendations */}
       {recommendations.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Recommandé pour toi" onSeeAll={activateSearch} />
-          <FlatList
-            horizontal
-            data={recommendations}
-            renderItem={({ item, index }) => (
-              <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
-                {renderEventCard(item, 'default')}
-              </View>
-            )}
-            keyExtractor={item => `rec-${item.id}`}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: Spacing.lg }}
-          />
-        </View>
+        <SectionEntrance delay={500}>
+          <View style={styles.section}>
+            <SectionHeader title="Recommandé pour toi" onSeeAll={activateSearch} />
+            <FlatList
+              horizontal
+              data={recommendations}
+              renderItem={({ item, index }) => (
+                <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+                  {renderEventCard(item, 'default')}
+                </View>
+              )}
+              keyExtractor={item => `rec-${item.id}`}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: Spacing.lg }}
+            />
+          </View>
+        </SectionEntrance>
       )}
 
       {/* This Weekend */}
       {upcomingEvents.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Ce week-end" onSeeAll={activateSearch} />
-          <FlatList
-            horizontal
-            data={upcomingEvents.slice(0, 6)}
-            renderItem={({ item, index }) => (
-              <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
-                {renderEventCard(item, 'default')}
-              </View>
-            )}
-            keyExtractor={item => `wk-${item.id}`}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: Spacing.lg }}
-          />
-        </View>
+        <SectionEntrance delay={600}>
+          <View style={styles.section}>
+            <SectionHeader title="Ce week-end" onSeeAll={activateSearch} />
+            <FlatList
+              horizontal
+              data={upcomingEvents.slice(0, 6)}
+              renderItem={({ item, index }) => (
+                <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+                  {renderEventCard(item, 'default')}
+                </View>
+              )}
+              keyExtractor={item => `wk-${item.id}`}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: Spacing.lg }}
+            />
+          </View>
+        </SectionEntrance>
       )}
 
       {/* Free Events */}
       {freeEvents.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Gratuit" onSeeAll={activateSearch} />
-          <FlatList
-            horizontal
-            data={freeEvents.slice(0, 6)}
-            renderItem={({ item, index }) => (
-              <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
-                {renderEventCard(item, 'default')}
-              </View>
-            )}
-            keyExtractor={item => `free-${item.id}`}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: Spacing.lg }}
-          />
-        </View>
+        <SectionEntrance delay={700}>
+          <View style={styles.section}>
+            <SectionHeader title="Gratuit" onSeeAll={activateSearch} />
+            <FlatList
+              horizontal
+              data={freeEvents.slice(0, 6)}
+              renderItem={({ item, index }) => (
+                <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+                  {renderEventCard(item, 'default')}
+                </View>
+              )}
+              keyExtractor={item => `free-${item.id}`}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: Spacing.lg }}
+            />
+          </View>
+        </SectionEntrance>
       )}
 
       {/* Categories grid */}
       {categories.length > 0 && (
-        <View style={styles.section}>
-          <SectionHeader title="Explorer par catégorie" />
-          <FlatList
-            horizontal
-            data={categories}
-            renderItem={({ item, index }) => (
-              <View style={[styles.categoryWrap, index === 0 && { marginLeft: Spacing.lg }]}>
-                <CategoryCard
-                  id={item.id.toString()}
-                  name={item.name}
-                  icon={getCategoryIcon(item.name)}
-                  image={item.image}
-                  eventCount={item.event_count || item.events_count}
-                  variant="large"
-                  onPress={() => {
-                    setSelectedCategory(item.id);
-                    activateSearch();
-                  }}
-                />
-              </View>
-            )}
-            keyExtractor={item => item.id.toString()}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingRight: Spacing.lg }}
-          />
-        </View>
+        <SectionEntrance delay={800}>
+          <View style={styles.section}>
+            <SectionHeader title="Explorer par catégorie" />
+            <FlatList
+              horizontal
+              data={categories}
+              renderItem={({ item, index }) => (
+                <View style={[styles.categoryWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+                  <CategoryCard
+                    id={item.id.toString()}
+                    name={item.name}
+                    icon={getCategoryIcon(item.name)}
+                    image={item.image}
+                    eventCount={item.event_count || item.events_count}
+                    variant="large"
+                    onPress={() => {
+                      setSelectedCategory(item.id);
+                      activateSearch();
+                    }}
+                  />
+                </View>
+              )}
+              keyExtractor={item => item.id.toString()}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: Spacing.lg }}
+            />
+          </View>
+        </SectionEntrance>
       )}
 
       <View style={{ height: 120 }} />
@@ -1073,10 +1100,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badge: {
+  badgeWrapper: {
     position: 'absolute',
-    top: 2,
-    right: 2,
+    top: -2,
+    right: -2,
+  },
+  badge: {
     minWidth: 16,
     height: 16,
     borderRadius: 8,
@@ -1135,19 +1164,19 @@ const styles = StyleSheet.create({
   // === DISCOVER CHIPS ===
   discoverChips: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    gap: Spacing.xs,
   },
   discoverChip: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.md,
-    height: 36,
+    paddingHorizontal: Spacing.sm,
+    height: 30,
     borderRadius: BorderRadius.full,
-    gap: 6,
-    marginRight: Spacing.sm,
+    gap: 4,
+    marginRight: Spacing.xs,
     ...Shadows.xs,
   },
   discoverChipText: {

@@ -8,9 +8,35 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { newslettersAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+
+function NewsletterIcon({ size = 28, color = Colors.primary }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* Envelope body */}
+      <Path
+        d="M2 7C2 5.89543 2.89543 5 4 5H20C21.1046 5 22 5.89543 22 7V17C22 18.1046 21.1046 19 20 19H4C2.89543 19 2 18.1046 2 17V7Z"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Envelope flap */}
+      <Path
+        d="M2 7L10.8 12.6C11.5111 13.0741 12.4889 13.0741 13.2 12.6L22 7"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* Notification dot */}
+      <Circle cx="19" cy="5" r="3.5" fill={Colors.accent || '#FF6B35'} />
+    </Svg>
+  );
+}
 
 interface NewsletterTabProps {
   eventId: string;
@@ -68,7 +94,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
       <View style={styles.newsletterCard}>
         <View style={styles.iconRow}>
           <View style={styles.iconContainer}>
-            <Ionicons name="mail-outline" size={28} color={Colors.primary} />
+            <NewsletterIcon size={30} color={Colors.primary} />
           </View>
         </View>
 

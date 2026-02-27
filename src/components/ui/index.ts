@@ -21,3 +21,13 @@ export {
 export { default as AnimatedPressable } from './AnimatedPressable';
 export { default as Typography, TypographyStyles } from './Typography';
 export { default as BlurHeader } from './BlurHeader';
+export {
+  FadeInView,
+  StaggeredItem,
+  ScaleOnMount,
+  PulsingBadge,
+  AnimatedBookmark,
+  ContentTransition,
+  SectionEntrance,
+  SlideIn,
+} from './Animations';

@@ -31,6 +31,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
+import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
 
 const { width } = Dimensions.get('window');
 
@@ -173,7 +174,7 @@ export default function FollowingEventsScreen() {
     return `Dans ${Math.ceil(days / 30)} mois`;
   };
 
-  const renderEventCard = ({ item }: { item: FollowData }) => {
+  const renderEventCard = ({ item, index }: { item: FollowData; index: number }) => {
     const event = item.event_details;
     if (!event) return null;
 
@@ -182,6 +183,7 @@ export default function FollowingEventsScreen() {
     const isPast = event.start_date && new Date(event.start_date) < new Date();
 
     return (
+      <StaggeredItem index={index} staggerDelay={50}>
       <TouchableOpacity
         style={[styles.eventCard, isPast && styles.eventCardPast]}
         onPress={() => navigation.navigate('EventDetails', { eventId: event.id })}
@@ -250,6 +252,7 @@ export default function FollowingEventsScreen() {
           <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
         </View>
       </TouchableOpacity>
+      </StaggeredItem>
     );
   };
 
@@ -394,11 +397,15 @@ export default function FollowingEventsScreen() {
       </View>
 
       {/* Content */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <SkeletonList count={4} Component={EventCardSkeleton} />
-        </View>
-      ) : (
+      <ContentTransition
+        isLoading={loading}
+        skeleton={
+          <View style={styles.loadingContainer}>
+            <SkeletonList count={4} Component={EventCardSkeleton} />
+          </View>
+        }
+        style={{ flex: 1 }}
+      >
         <FlatList
           data={filteredFollows}
           keyExtractor={(item) => item.id || `${item.event}-${item.created_at}`}
@@ -416,7 +423,7 @@ export default function FollowingEventsScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         />
-      )}
+      </ContentTransition>
     </SafeAreaView>
   );
 }

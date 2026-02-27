@@ -58,6 +58,9 @@ export default function EventCreateScreen() {
     handleCustomTagRemove,
     pickImage,
     setBannerImage,
+    // Visibility
+    setVisibility,
+    setAccessCode,
     // Step 2
     setStartDate,
     setEndDate,
@@ -202,6 +205,10 @@ export default function EventCreateScreen() {
               onCustomTagRemove={handleCustomTagRemove}
               onPickImage={pickImage}
               onRemoveImage={() => setBannerImage(null)}
+              visibility={form.visibility}
+              accessCode={form.accessCode}
+              onVisibilityChange={setVisibility}
+              onAccessCodeChange={setAccessCode}
               onAIGenerate={handleAIGenerate}
               onAIApply={handleAIApply}
               onOptimizeTitle={handleOptimizeTitle}

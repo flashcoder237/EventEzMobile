@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
+import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import { ticketPurchasesAPI, eventsAPI, feedbacksAPI, registrationsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
@@ -65,6 +67,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout } = useAuth();
   const { showAlert, showConfirm } = useAlert();
+  const [showMyQR, setShowMyQR] = useState(false);
   const [stats, setStats] = useState({
     tickets: 0,
     favorites: 0,
@@ -129,15 +132,24 @@ export default function ProfileScreen() {
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profil</Text>
-          <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => navigation.navigate('Settings')}
-          >
-            <Ionicons name="settings-outline" size={24} color={Colors.gray700} />
-          </TouchableOpacity>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => setShowMyQR(true)}
+            >
+              <Ionicons name="qr-code-outline" size={22} color={Colors.gray700} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate('Settings')}
+            >
+              <Ionicons name="settings-outline" size={24} color={Colors.gray700} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* User Card */}
+        <FadeInView delay={100} translateY={16}>
         <TouchableOpacity
           style={styles.userCard}
           onPress={() => navigation.navigate('EditProfile')}
@@ -169,8 +181,10 @@ export default function ProfileScreen() {
           </View>
           <Ionicons name="chevron-forward" size={20} color={Colors.gray300} />
         </TouchableOpacity>
+        </FadeInView>
 
         {/* Stats — 3 individual cards */}
+        <FadeInView delay={200} translateY={16}>
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{stats.tickets}</Text>
@@ -185,6 +199,7 @@ export default function ProfileScreen() {
             <Text style={styles.statLabel}>Avis</Text>
           </View>
         </View>
+        </FadeInView>
 
         {/* Become Organizer CTA - Only for regular users */}
         {!isOrganizer && !isModerator && (
@@ -277,6 +292,12 @@ export default function ProfileScreen() {
               onPress={() => navigation.navigate('Messages')}
             />
             <MenuItem
+              icon="scan-outline"
+              title="Scanner un QR"
+              subtitle="Transfert ou profil"
+              onPress={() => navigation.navigate('Scan')}
+            />
+            <MenuItem
               icon="mail-outline"
               title="Invitations"
               onPress={() => navigation.navigate('Invitations')}
@@ -350,6 +371,17 @@ export default function ProfileScreen() {
 
         <View style={{ height: 130 }} />
       </ScrollView>
+
+      {/* My QR Code Modal */}
+      {user && (
+        <QRCodeDisplay
+          visible={showMyQR}
+          onClose={() => setShowMyQR(false)}
+          data={`EVENTEZ-USER-${user.id}`}
+          title="Mon QR Code"
+          subtitle="Faites scanner ce code pour partager votre profil"
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -368,6 +400,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...TextStyles.h2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
   },
   settingsButton: {
     width: 44,

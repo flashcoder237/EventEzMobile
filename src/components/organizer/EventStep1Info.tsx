@@ -56,6 +56,12 @@ interface EventStep1InfoProps {
   onPickImage: () => void;
   onRemoveImage: () => void;
 
+  // Visibility
+  visibility: 'public' | 'unlisted' | 'invite_only';
+  accessCode: string;
+  onVisibilityChange: (value: 'public' | 'unlisted' | 'invite_only') => void;
+  onAccessCodeChange: (value: string) => void;
+
   // AI handlers
   onAIGenerate: (prompt: string) => void;
   onAIApply: (data: AIGeneratedEvent) => void;
@@ -95,6 +101,10 @@ export default function EventStep1Info({
   onCustomTagRemove,
   onPickImage,
   onRemoveImage,
+  visibility,
+  accessCode,
+  onVisibilityChange,
+  onAccessCodeChange,
   onAIGenerate,
   onAIApply,
   onOptimizeTitle,
@@ -271,11 +281,76 @@ export default function EventStep1Info({
         </View>
       </View>
 
+      {/* Visibility */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Visibilité</Text>
+        <Text style={styles.inputHint}>Qui peut voir et accéder à votre événement</Text>
+        <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
+          {([
+            { value: 'public' as const, label: 'Public', icon: 'globe-outline' as const, desc: 'Visible par tous' },
+            { value: 'unlisted' as const, label: 'Non listé', icon: 'link-outline' as const, desc: 'Via le lien' },
+            { value: 'invite_only' as const, label: 'Invitation', icon: 'lock-closed-outline' as const, desc: 'Sur invitation' },
+          ]).map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              onPress={() => onVisibilityChange(opt.value)}
+              style={{
+                flex: 1,
+                padding: Spacing.md,
+                borderRadius: 12,
+                borderWidth: 2,
+                borderColor: visibility === opt.value ? Colors.primary : Colors.gray200,
+                backgroundColor: visibility === opt.value ? `${Colors.primary}10` : Colors.white,
+                alignItems: 'center',
+              }}
+            >
+              <Ionicons
+                name={opt.icon}
+                size={22}
+                color={visibility === opt.value ? Colors.primary : Colors.gray400}
+              />
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: visibility === opt.value ? Colors.primary : Colors.gray700,
+                marginTop: 4,
+              }}>
+                {opt.label}
+              </Text>
+              <Text style={{
+                fontSize: 10,
+                color: Colors.gray500,
+                marginTop: 2,
+                textAlign: 'center',
+              }}>
+                {opt.desc}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Access Code (optional) */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Code d'accès (optionnel)</Text>
+        <Text style={styles.inputHint}>
+          Les visiteurs devront entrer ce code pour voir les détails
+        </Text>
+        <TextInput
+          style={styles.input}
+          value={accessCode}
+          onChangeText={onAccessCodeChange}
+          placeholder="Laisser vide pour pas de code"
+          placeholderTextColor={Colors.gray400}
+          secureTextEntry={false}
+        />
+      </View>
+
       {/* Featured Event Info */}
       <View style={styles.warningInfoBox}>
         <Ionicons name="star-outline" size={20} color={Colors.warningDark} />
         <Text style={styles.warningInfoBoxText}>
-          Vous pourrez demander la mise en avant de votre \u00e9v\u00e9nement apr\u00e8s sa cr\u00e9ation depuis "Mes \u00e9v\u00e9nements".
+          Vous pourrez demander la mise en avant de votre événement après sa création depuis "Mes événements".
         </Text>
       </View>
     </View>
