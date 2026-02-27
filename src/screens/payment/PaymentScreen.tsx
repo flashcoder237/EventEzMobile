@@ -39,8 +39,10 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { extractErrorMessage } from '../../constants/payment';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import GradientButton from '../../components/ui/GradientButton';
+import { formatPhoneInput, formatPhoneForDisplay, preparePhoneForInput } from '../../lib/utils/phoneFormatters';
 
 // Import des icônes de paiement
 const PaymentIcons: Record<string, ImageSourcePropType> = {
@@ -149,15 +151,7 @@ export default function PaymentScreen() {
   // Préremplir avec le numéro de téléphone de l'utilisateur (sans le préfixe 237)
   const [phoneNumber, setPhoneNumber] = useState(() => {
     const userPhone = user?.phone || user?.phone_number || '';
-    // Retirer le préfixe 237 s'il est présent et les caractères spéciaux
-    const cleanPhone = userPhone.replace(/[\s\-\.\(\)\+]/g, '');
-    const phoneWithoutPrefix = cleanPhone.startsWith('237') ? cleanPhone.slice(3) : cleanPhone;
-    // Formater pour l'affichage (XXX XXX XXX)
-    const match = phoneWithoutPrefix.match(/^(\d{0,3})(\d{0,3})(\d{0,3})$/);
-    if (match) {
-      return [match[1], match[2], match[3]].filter(Boolean).join(' ');
-    }
-    return phoneWithoutPrefix;
+    return preparePhoneForInput(userPhone, '237');
   });
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [selectedSavedMethod, setSelectedSavedMethod] = useState<SavedPaymentMethod | null>(null);
@@ -275,6 +269,13 @@ export default function PaymentScreen() {
     fetchRegistration();
   }, [registrationId]);
 
+  // Cleanup: arrêter le polling de vérification si l'utilisateur quitte l'écran
+  useEffect(() => {
+    return () => {
+      stopVerification();
+    };
+  }, []);
+
   // Fetch dynamic payment methods based on event country
   useEffect(() => {
     const fetchPaymentMethods = async () => {
@@ -301,7 +302,11 @@ export default function PaymentScreen() {
         }
       } catch (error) {
         console.error('[Payment] Error fetching payment methods:', error);
-        // Fallback to default methods
+        // Afficher une erreur au lieu d'un fallback silencieux Cameroun
+        showError(
+          'Méthodes de paiement',
+          'Impossible de charger les méthodes de paiement. Veuillez réessayer.'
+        );
         setDynamicMethods(FALLBACK_METHODS);
       }
     };
@@ -324,14 +329,7 @@ export default function PaymentScreen() {
   // Fill phone number when selecting a saved method
   useEffect(() => {
     if (selectedSavedMethod) {
-      // Format the phone number for display
-      const num = selectedSavedMethod.phoneNumber;
-      const match = num.match(/^(\d{0,3})(\d{0,3})(\d{0,3})$/);
-      if (match) {
-        setPhoneNumber([match[1], match[2], match[3]].filter(Boolean).join(' '));
-      } else {
-        setPhoneNumber(num);
-      }
+      setPhoneNumber(formatPhoneForDisplay(selectedSavedMethod.phoneNumber));
     }
   }, [selectedSavedMethod]);
 
@@ -512,8 +510,25 @@ export default function PaymentScreen() {
 
           console.log('[Payment] WebBrowser result:', result.type);
 
-          // Après fermeture du navigateur, vérifier le statut du paiement
-          // Que l'utilisateur ait annulé ou terminé, on vérifie le statut
+          // Vérifier si l'utilisateur a fermé la page de paiement
+          if (result.type === 'dismiss' || result.type === 'cancel') {
+            setProcessing(false);
+            showAlert(
+              'Paiement interrompu',
+              'Vous avez fermé la page de paiement. Si vous avez déjà effectué le paiement, vous pouvez vérifier son statut.',
+              [
+                {
+                  text: 'Vérifier le statut',
+                  onPress: () => {
+                    if (newPaymentId || paymentId) startVerification(newPaymentId || paymentId!);
+                  },
+                },
+                { text: 'Réessayer', onPress: () => handlePayment() },
+                { text: 'Retour', style: 'cancel' },
+              ]
+            );
+            return;
+          }
         } else {
           console.warn('[Payment] No authorization URL received');
           throw new Error('URL de paiement non reçue. Veuillez réessayer.');
@@ -526,19 +541,11 @@ export default function PaymentScreen() {
       setProcessing(false);
       console.error('[Payment] Error:', error.response?.data || error);
 
-      // Extraire le message d'erreur détaillé
-      const errorData = error.response?.data;
-      let errorMessage = 'Une erreur est survenue lors du paiement';
-
-      if (errorData?.detail) {
-        errorMessage = errorData.detail;
-      } else if (errorData?.message) {
-        errorMessage = errorData.message;
-      } else if (errorData?.error) {
-        errorMessage = errorData.error;
-      } else if (typeof errorData === 'string') {
-        errorMessage = errorData;
-      }
+      // Extraire le message d'erreur via utility partagée
+      const errorMessage = extractErrorMessage(
+        error.response?.data,
+        'Une erreur est survenue lors du paiement'
+      );
 
       showError('Erreur de paiement', errorMessage);
     }
@@ -572,7 +579,7 @@ export default function PaymentScreen() {
       // Même si l'annulation échoue côté serveur, on arrête le processing
       setProcessing(false);
 
-      const errorMessage = error.response?.data?.message || 'Impossible d\'annuler le paiement';
+      const errorMessage = extractErrorMessage(error.response?.data, 'Impossible d\'annuler le paiement');
       showError('Erreur', errorMessage);
     }
   };
@@ -611,7 +618,7 @@ export default function PaymentScreen() {
       return;
     }
 
-    if (result.status === 'failed' || result.status === 'cancelled' || result.status === 'rejected' || result.status === 'declined') {
+    if (['failed', 'cancelled', 'rejected', 'declined', 'expired', 'timeout'].includes(result.status || '')) {
       setVerifyingManually(false);
       setProcessing(false);
       navigation.replace('PaymentFailed', { paymentId: paymentId, error: result.error || 'Le paiement a échoué' });
@@ -653,14 +660,8 @@ export default function PaymentScreen() {
     );
   };
 
-  const formatPhoneNumber = (text: string) => {
-    const cleaned = text.replace(/\D/g, '');
-    const match = cleaned.match(/^(\d{0,3})(\d{0,3})(\d{0,3})$/);
-    if (match) {
-      return [match[1], match[2], match[3]].filter(Boolean).join(' ');
-    }
-    return text;
-  };
+  // Utilise la fonction utilitaire centralisée pour le formatage
+  const formatPhoneNumber = formatPhoneInput;
 
   if (loading) {
     return (

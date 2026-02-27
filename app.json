@@ -55,6 +55,16 @@
               "scheme": "https",
               "host": "eventez.online",
               "pathPrefix": "/speakers/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/payment-success/"
+            },
+            {
+              "scheme": "https",
+              "host": "eventez.online",
+              "pathPrefix": "/payment-failed/"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]

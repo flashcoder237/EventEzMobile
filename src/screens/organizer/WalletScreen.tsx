@@ -430,7 +430,7 @@ export default function WalletScreen() {
       <View style={styles.commissionInfo}>
         <Ionicons name="information-circle" size={18} color="#F59E0B" />
         <Text style={styles.commissionText}>
-          Commission EventEz: 5% + 100 FCFA par vente. Fonds libérés 48h après l'événement.
+          Commission EventEz: 5% + 100 XAF par vente. Fonds libérés 48h après l'événement.
         </Text>
       </View>
 

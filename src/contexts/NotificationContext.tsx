@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationsAPI, messagesAPI } from '../api/client';
 import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
+import PushPermissionModal from '../components/common/PushPermissionModal';
+
+const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
 
 interface Notification {
   id: string;
@@ -41,6 +45,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [showPermissionModal, setShowPermissionModal] = useState(false);
   const appState = useRef(AppState.currentState);
   const navigation = useNavigation();
 
@@ -265,10 +270,50 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     pushNotificationService.setNavigationCallback(handleNotificationNavigation);
   }, [handleNotificationNavigation]);
 
+  // Check if we should show push permission prompt
+  const checkPushPermissionPrompt = useCallback(async () => {
+    try {
+      const prompted = await AsyncStorage.getItem(PUSH_PERMISSION_PROMPTED_KEY);
+      if (prompted) return; // Already prompted before
+
+      // Check if already granted
+      const { status } = await (await import('expo-notifications')).getPermissionsAsync();
+      if (status === 'granted') {
+        await AsyncStorage.setItem(PUSH_PERMISSION_PROMPTED_KEY, 'true');
+        return;
+      }
+
+      // Show our custom modal first
+      setShowPermissionModal(true);
+    } catch (error) {
+      console.error('[Notification] Error checking push permission:', error);
+    }
+  }, []);
+
+  const handleAcceptPushPermission = useCallback(async () => {
+    setShowPermissionModal(false);
+    await AsyncStorage.setItem(PUSH_PERMISSION_PROMPTED_KEY, 'true');
+    await initializePushNotifications();
+  }, [initializePushNotifications]);
+
+  const handleDeclinePushPermission = useCallback(async () => {
+    setShowPermissionModal(false);
+    await AsyncStorage.setItem(PUSH_PERMISSION_PROMPTED_KEY, 'true');
+  }, []);
+
   // Initialize push notifications when authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      initializePushNotifications();
+      // Try to initialize silently if permission already granted, otherwise show modal
+      (async () => {
+        const Notif = await import('expo-notifications');
+        const { status } = await Notif.getPermissionsAsync();
+        if (status === 'granted') {
+          initializePushNotifications();
+        } else {
+          checkPushPermissionPrompt();
+        }
+      })();
       fetchUnreadCounts();
     } else {
       // Cleanup on logout
@@ -340,6 +385,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
+      <PushPermissionModal
+        visible={showPermissionModal}
+        onAccept={handleAcceptPushPermission}
+        onDecline={handleDeclinePushPermission}
+      />
     </NotificationContext.Provider>
   );
 }

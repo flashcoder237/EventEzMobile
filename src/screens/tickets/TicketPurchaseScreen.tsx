@@ -28,6 +28,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { calculateServiceFee, SERVICE_FEE_LABEL } from '../../constants/payment';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TicketPurchaseRouteProp = RouteProp<RootStackParamList, 'TicketPurchase'>;
@@ -189,12 +190,9 @@ export default function TicketPurchaseScreen() {
     return Math.max(0, getSubtotal() - getDiscountAmount());
   };
 
-  // Frais de service alignés avec le web (5% + 100 XAF fixe)
-  const COMMISSION_RATE = 0.05;
-  const FIXED_FEE = 100; // XAF
+  // Frais de service via constantes partagées
   const getServiceFee = () => {
-    const total = getTotalPrice();
-    return total > 0 ? Math.round(total * COMMISSION_RATE) + FIXED_FEE : 0;
+    return calculateServiceFee(getTotalPrice());
   };
 
   const getGrandTotal = () => {
@@ -764,7 +762,7 @@ export default function TicketPurchaseScreen() {
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
-                    <Text style={styles.summaryLabel}>Frais de service (5%)</Text>
+                    <Text style={styles.summaryLabel}>Frais de service ({SERVICE_FEE_LABEL})</Text>
                     <Text style={styles.summaryValue}>
                       {getServiceFee().toLocaleString()} FCFA
                     </Text>

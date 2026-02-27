@@ -44,6 +44,8 @@ const linking: LinkingOptions<RootStackParamList> = {
       EventDetails: 'events/:eventId',
       OrganizerProfile: 'organizers/:organizerId',
       SpeakerDetails: 'speakers/:speakerId',
+      PaymentSuccess: 'payment-success/:paymentId',
+      PaymentFailed: 'payment-failed/:paymentId',
       Main: {
         screens: {
           Discover: 'discover',
