@@ -55,6 +55,8 @@ import MyEventsScreen from '../screens/organizer/MyEventsScreen';
 import QRScannerScreen from '../screens/organizer/QRScannerScreen';
 import EventAnalyticsScreen from '../screens/organizer/EventAnalyticsScreen';
 import EventRegistrationsScreen from '../screens/organizer/EventRegistrationsScreen';
+import DiscountManagementScreen from '../screens/organizer/DiscountManagementScreen';
+import DiscountFormScreen from '../screens/organizer/DiscountFormScreen';
 
 // Moderation Screens
 import ModerationScreen from '../screens/moderation/ModerationScreen';
@@ -370,6 +372,20 @@ export default function RootNavigator() {
           <Stack.Screen
             name="EventRegistrations"
             component={EventRegistrationsScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="DiscountManagement"
+            component={DiscountManagementScreen}
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
+            name="DiscountForm"
+            component={DiscountFormScreen}
             options={{
               headerShown: false,
             }}

@@ -187,6 +187,13 @@ export default function MyEventsScreen() {
       });
     }
 
+    if (event.status === 'validated' || event.status === 'draft') {
+      actions.push({
+        text: 'Codes promo',
+        onPress: () => navigation.navigate('DiscountManagement', { eventId: event.id }),
+      });
+    }
+
     if (event.status === 'draft' || event.status === 'rejected') {
       actions.push({
         text: 'Modifier',

@@ -1272,6 +1272,8 @@ export type RootStackParamList = {
   Gamification: undefined;
   LiveEvent: { eventId: string };
   Volunteers: { eventId?: string };
+  DiscountManagement: { eventId: string };
+  DiscountForm: { eventId: string; discountId?: number };
 };
 
 export type AuthStackParamList = {

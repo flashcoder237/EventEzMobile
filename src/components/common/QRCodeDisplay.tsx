@@ -5,10 +5,10 @@ import {
   StyleSheet,
   Modal,
   TouchableOpacity,
-  Image,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import QRCode from 'react-native-qrcode-svg';
 import {
   Colors,
   FontFamily,
@@ -38,8 +38,6 @@ export default function QRCodeDisplay({
   visible,
   onClose,
 }: QRCodeDisplayProps) {
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=${size}x${size}&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
-
   return (
     <Modal
       visible={visible}
@@ -64,11 +62,11 @@ export default function QRCodeDisplay({
           {/* QR Code */}
           <View style={styles.qrWrapper}>
             <View style={[styles.qrCard, { width: size + 32, height: size + 32 }]}>
-              <Image
-                source={{ uri: qrImageUrl }}
-                style={{ width: size, height: size }}
-                resizeMode="contain"
-                defaultSource={undefined}
+              <QRCode
+                value={data}
+                size={size}
+                color="#5B21B6"
+                backgroundColor="#FFFFFF"
               />
             </View>
           </View>

@@ -16,3 +16,7 @@ export function getOrganizerUrl(organizerId: string): string {
 export function getSpeakerUrl(speakerId: string): string {
   return `${WEB_BASE_URL}/speakers/${speakerId}`;
 }
+
+export function getVerificationUrl(registrationId: string): string {
+  return `${WEB_BASE_URL}/verify/${registrationId}`;
+}

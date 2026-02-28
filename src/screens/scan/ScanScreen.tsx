@@ -20,8 +20,8 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { ticketTransfersAPI, usersAPI } from '../../api/client';
-import { RootStackParamList } from '../../types';
+import { ticketTransfersAPI, usersAPI, registrationsAPI } from '../../api/client';
+import { RootStackParamList, Registration } from '../../types';
 import {
   Colors,
   FontFamily,
@@ -41,6 +41,7 @@ const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.7;
 type QRParseResult =
   | { type: 'transfer'; token: string }
   | { type: 'user'; userId: string }
+  | { type: 'ticket'; registrationId: string }
   | { type: 'unknown' };
 
 function parseQRCode(data: string): QRParseResult {
@@ -49,6 +50,14 @@ function parseQRCode(data: string): QRParseResult {
 
   const userMatch = data.match(/^EVENTEZ-USER-(.+)$/);
   if (userMatch) return { type: 'user', userId: userMatch[1] };
+
+  // Format URL de vérification: .../verify/{registrationId}
+  const verifyMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
+  if (verifyMatch) return { type: 'ticket', registrationId: verifyMatch[1] };
+
+  // UUID direct (probablement un ID de registration)
+  const uuidMatch = data.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
+  if (uuidMatch) return { type: 'ticket', registrationId: data };
 
   return { type: 'unknown' };
 }
@@ -90,7 +99,19 @@ interface UserData {
 }
 
 type ScanState = 'scanning' | 'loading' | 'result';
-type ResultType = 'transfer' | 'user' | 'error';
+interface TicketData {
+  registrationId: string;
+  registration: Registration;
+  eventTitle: string;
+  eventId: string;
+  userName: string;
+  userEmail: string;
+  referenceCode: string;
+  status: string;
+  registrationType: string;
+}
+
+type ResultType = 'transfer' | 'user' | 'ticket' | 'error';
 
 interface ScanResult {
   type: ResultType;
@@ -98,6 +119,7 @@ interface ScanResult {
   transferToken?: string;
   user?: UserData;
   isFollowing?: boolean;
+  ticket?: TicketData;
   errorMessage?: string;
 }
 
@@ -145,6 +167,24 @@ export default function ScanScreen() {
           type: 'user',
           user: userRes.data,
           isFollowing: followRes.data?.is_following ?? false,
+        });
+      } else if (parsed.type === 'ticket') {
+        const response = await registrationsAPI.getRegistration(parsed.registrationId);
+        const reg = response.data;
+        const eventDetail = reg.event_detail || {};
+        setResult({
+          type: 'ticket',
+          ticket: {
+            registrationId: parsed.registrationId,
+            registration: reg,
+            eventTitle: eventDetail.title || 'Événement',
+            eventId: eventDetail.id || (typeof reg.event === 'string' ? reg.event : reg.event?.id) || '',
+            userName: reg.user_name || '',
+            userEmail: reg.user_email || '',
+            referenceCode: reg.reference_code || parsed.registrationId.slice(0, 8).toUpperCase(),
+            status: reg.status || 'pending',
+            registrationType: reg.registration_type || 'billetterie',
+          },
         });
       } else {
         setResult({ type: 'error', errorMessage: 'QR code non reconnu' });
@@ -347,12 +387,16 @@ export default function ScanScreen() {
         {/* Bottom hint */}
         <SafeAreaView style={styles.bottomHints}>
           <View style={styles.hintRow}>
+            <Ionicons name="qr-code-outline" size={18} color="rgba(255,255,255,0.8)" />
+            <Text style={styles.hintText}>Billet</Text>
+          </View>
+          <View style={styles.hintRow}>
             <Ionicons name="ticket-outline" size={18} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.hintText}>Transfert de billet</Text>
+            <Text style={styles.hintText}>Transfert</Text>
           </View>
           <View style={styles.hintRow}>
             <Ionicons name="person-outline" size={18} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.hintText}>Profil utilisateur</Text>
+            <Text style={styles.hintText}>Profil</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -377,6 +421,27 @@ export default function ScanScreen() {
                   actionLoading={actionLoading}
                   formatDate={formatDate}
                   getTimeRemaining={getTimeRemaining}
+                />
+              )}
+
+              {/* Ticket result */}
+              {result?.type === 'ticket' && result.ticket && (
+                <TicketResult
+                  ticket={result.ticket}
+                  onViewEvent={(eventId) => {
+                    handleReset();
+                    navigation.navigate('EventDetails', { eventId });
+                  }}
+                  onViewTicket={(registrationId) => {
+                    handleReset();
+                    // Navigate to the ticket's QR code screen if there are ticket purchases
+                    const tickets = result.ticket?.registration?.tickets;
+                    if (tickets && tickets.length > 0) {
+                      navigation.navigate('QRCode', { ticketId: tickets[0].id });
+                    } else {
+                      navigation.navigate('EventDetails', { eventId: result.ticket!.eventId });
+                    }
+                  }}
                 />
               )}
 
@@ -541,6 +606,101 @@ function TransferResult({
           </Text>
         </View>
       )}
+    </>
+  );
+}
+
+// ── Ticket Result Sub-component ──
+
+function TicketResult({
+  ticket,
+  onViewEvent,
+  onViewTicket,
+}: {
+  ticket: TicketData;
+  onViewEvent: (eventId: string) => void;
+  onViewTicket: (registrationId: string) => void;
+}) {
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'confirmed': return { label: 'Confirmé', color: Colors.success, bg: '#D1FAE5' };
+      case 'completed': return { label: 'Terminé', color: Colors.success, bg: '#D1FAE5' };
+      case 'checked_in': return { label: 'Enregistré', color: Colors.success, bg: '#D1FAE5' };
+      case 'pending': return { label: 'En attente', color: Colors.warning, bg: '#FEF3C7' };
+      case 'pending_approval': return { label: 'En approbation', color: Colors.warning, bg: '#FEF3C7' };
+      case 'cancelled': return { label: 'Annulé', color: Colors.error, bg: '#FEE2E2' };
+      case 'rejected': return { label: 'Rejeté', color: Colors.error, bg: '#FEE2E2' };
+      default: return { label: status, color: Colors.gray500, bg: Colors.gray100 };
+    }
+  };
+
+  const statusInfo = getStatusLabel(ticket.status);
+
+  return (
+    <>
+      <View style={styles.resultHeader}>
+        <View style={[styles.resultIconBg, { backgroundColor: '#D1FAE5' }]}>
+          <Ionicons name="qr-code" size={32} color={Colors.success} />
+        </View>
+        <Text style={styles.resultTitle}>Billet vérifié</Text>
+      </View>
+
+      {/* Event info */}
+      <View style={styles.resultCard}>
+        <Text style={styles.cardLabel}>Événement</Text>
+        <Text style={styles.cardTitle}>{ticket.eventTitle}</Text>
+      </View>
+
+      {/* Ticket details */}
+      <View style={styles.resultCard}>
+        <Text style={styles.cardLabel}>Inscription</Text>
+        <View style={styles.cardRow}>
+          <Ionicons name="person-outline" size={16} color={Colors.gray500} />
+          <Text style={styles.cardRowText}>{ticket.userName || ticket.userEmail}</Text>
+        </View>
+        {ticket.userName && ticket.userEmail ? (
+          <View style={styles.cardRow}>
+            <Ionicons name="mail-outline" size={16} color={Colors.gray500} />
+            <Text style={styles.cardRowText}>{ticket.userEmail}</Text>
+          </View>
+        ) : null}
+        <View style={styles.cardRow}>
+          <Ionicons name="document-text-outline" size={16} color={Colors.gray500} />
+          <Text style={styles.cardRowText}>Réf: {ticket.referenceCode}</Text>
+        </View>
+        <View style={styles.cardRow}>
+          <Ionicons name="pricetag-outline" size={16} color={Colors.gray500} />
+          <Text style={styles.cardRowText}>
+            {ticket.registrationType === 'billetterie' ? 'Billetterie' : 'Inscription'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Status */}
+      <View style={[styles.expirationBadge, { backgroundColor: statusInfo.bg }]}>
+        <Ionicons name="checkmark-circle" size={16} color={statusInfo.color} />
+        <Text style={[styles.expirationText, { color: statusInfo.color }]}>
+          {statusInfo.label}
+        </Text>
+      </View>
+
+      {/* Actions */}
+      <View style={styles.transferActions}>
+        <TouchableOpacity
+          style={styles.declineBtn}
+          onPress={() => onViewEvent(ticket.eventId)}
+        >
+          <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
+          <Text style={[styles.declineBtnText, { color: Colors.primary }]}>Voir l'événement</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.acceptBtn}
+          onPress={() => onViewTicket(ticket.registrationId)}
+        >
+          <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+          <Text style={styles.acceptBtnText}>Voir le billet</Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 }

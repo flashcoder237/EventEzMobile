@@ -16,11 +16,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import QRCode from 'react-native-qrcode-svg';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { ticketPurchasesAPI, registrationsAPI } from '../../api/client';
 import { TicketPurchase, RootStackParamList } from '../../types';
+import { getVerificationUrl } from '../../constants/urls';
 import {
   Colors,
   FontSizes,
@@ -44,6 +46,11 @@ export default function QRCodeScreen() {
   const [ticket, setTicket] = useState<TicketPurchase | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // URL de vérification (format unifié mobile + web)
+  const verificationUrl = getVerificationUrl(
+    String(ticket?.registration_id || ticket?.registration || '')
+  );
+
   useEffect(() => {
     fetchTicket();
   }, [ticketId]);
@@ -62,7 +69,8 @@ export default function QRCodeScreen() {
 
   const generateTicketHTML = (): string => {
     const eventTitle = event?.title || (ticket as any)?.event_title || 'Événement';
-    const qrUrl = getQRCodeImageUrl();
+    // Pour le HTML/PDF export, on utilise une API en ligne car le SVG natif n'est pas disponible en HTML
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=200x200&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
     const ticketTypeName = ticketType?.name || (ticket as any)?.ticket_type_name || 'Standard';
     const reference = String(ticketId).slice(0, 8).toUpperCase();
     const statusLabel = getStatusConfig(ticket?.status).label;
@@ -253,21 +261,6 @@ export default function QRCodeScreen() {
     );
   }
 
-  // URL de vérification (format unifié mobile + web)
-  const getVerificationUrl = (): string => {
-    const registrationId = ticket?.registration_id || ticket?.registration;
-    // URL frontend pour la vérification
-    const frontendUrl = 'http://localhost:3000'; // TODO: configurer via env
-    return `${frontendUrl}/verify/${registrationId}`;
-  };
-
-  // Génère l'URL du QR code via l'API externe (même rendu que le web)
-  const getQRCodeImageUrl = (): string => {
-    const verificationUrl = getVerificationUrl();
-    const size = 200;
-    return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=${size}x${size}&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
-  };
-
   if (!ticket) {
     return (
       <SafeAreaView style={styles.container}>
@@ -374,10 +367,11 @@ export default function QRCodeScreen() {
           {/* QR Code Section */}
           <View style={styles.qrSection}>
             <View style={styles.qrContainer}>
-              <Image
-                source={{ uri: getQRCodeImageUrl() }}
-                style={styles.qrImage}
-                resizeMode="contain"
+              <QRCode
+                value={verificationUrl}
+                size={QR_SIZE}
+                color="#5B21B6"
+                backgroundColor="#FFFFFF"
               />
             </View>
             <Text style={styles.qrHint}>
