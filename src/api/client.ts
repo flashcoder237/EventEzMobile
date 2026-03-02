@@ -160,12 +160,18 @@ api.interceptors.response.use(
           processQueue(null, access);
           isRefreshing = false;
           return api(originalRequest);
+        } else {
+          // Pas de refresh token disponible — débloquer la queue et nettoyer
+          const noTokenError = new Error('No refresh token available');
+          processQueue(noTokenError, null);
+          isRefreshing = false;
+          await clearTokens();
+          return Promise.reject(noTokenError);
         }
       } catch (refreshError) {
         processQueue(refreshError, null);
         // Supprimer les tokens si le refresh échoue
-        await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-        await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+        await clearTokens();
         isRefreshing = false;
         return Promise.reject(refreshError);
       }
@@ -308,7 +314,8 @@ export const authAPI = {
 
   logout: async () => {
     try {
-      await api.post('/logout/');
+      const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+      await api.post('/logout/', { refresh: refreshToken });
     } catch (error) {
       console.warn('Logout API call failed:', error);
     } finally {

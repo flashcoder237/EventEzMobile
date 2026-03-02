@@ -110,13 +110,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     phone_number?: string;
   }) => {
     setState((prev) => ({ ...prev, isLoading: true }));
+    // Étape 1 : inscription
     try {
       await authAPI.register(data);
-      // Connecter automatiquement après inscription avec "Se souvenir de moi" activé
-      await login(data.email, data.password, true);
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
-      throw error;
+      throw error; // Échec inscription
+    }
+    // Étape 2 : auto-login (l'inscription a réussi)
+    try {
+      await login(data.email, data.password, true);
+    } catch (loginError) {
+      setState((prev) => ({ ...prev, isLoading: false }));
+      const err = new Error('Compte créé. Veuillez vous connecter manuellement.') as any;
+      err.code = 'AUTO_LOGIN_FAILED';
+      err.isRegistrationSuccess = true;
+      throw err;
     }
   };
 
@@ -126,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.warn('Logout API call failed:', error);
     }
+    // Filet de securite : s'assurer que les tokens sont bien supprimes
+    await clearTokens();
     // Réinitialiser la préférence "Se souvenir de moi" à false lors de la déconnexion
     await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'false');
     setState({
@@ -149,6 +160,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Pour l'authentification sociale - met à jour l'utilisateur après connexion
   const setUser = async (user: User) => {
+    const accessToken = await SecureStore.getItemAsync('eventez_access_token');
+    const refreshToken = await SecureStore.getItemAsync('eventez_refresh_token');
+    if (!accessToken || !refreshToken) {
+      console.warn('[Auth] setUser called but tokens not found');
+      setState({ user: null, isAuthenticated: false, isLoading: false });
+      return;
+    }
     // Activer "Se souvenir de moi" par défaut pour l'authentification sociale
     await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'true');
     setState({
