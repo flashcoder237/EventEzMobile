@@ -304,13 +304,13 @@ export const authAPI = {
     api.post('/token/refresh/', { refresh: refreshToken }),
 
   requestPasswordReset: (email: string) =>
-    api.post('/auth/password-reset/request/', { email }),
+    api.post('/password-reset/request/', { email }),
 
   validateResetToken: (token: string) =>
-    api.get(`/auth/password-reset/validate/${token}/`),
+    api.get(`/password-reset/validate/${token}/`),
 
   resetPassword: (token: string, password: string) =>
-    api.post('/auth/password-reset/confirm/', { token, password }),
+    api.post('/password-reset/confirm/', { token, password }),
 
   logout: async () => {
     try {
@@ -325,7 +325,7 @@ export const authAPI = {
 
   // Authentification sociale
   googleSignIn: (token: string) =>
-    api.post('/auth/google/', { token }),
+    api.post('/social-auth/google/', { token }),
 
   appleSignIn: (data: {
     identity_token: string;
@@ -336,7 +336,7 @@ export const authAPI = {
         lastName?: string;
       };
     };
-  }) => api.post('/auth/apple/', data),
+  }) => api.post('/social-auth/apple/', data),
 };
 
 // ============================================
