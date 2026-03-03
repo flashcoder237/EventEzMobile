@@ -232,7 +232,7 @@ export default function ResetPasswordScreen() {
             {/* Password Field */}
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Nouveau mot de passe</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.password && styles.inputError]}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.password && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
                 </View>
@@ -274,7 +274,7 @@ export default function ResetPasswordScreen() {
             {/* Confirm Password Field */}
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Confirmer le mot de passe</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.confirmPassword && styles.inputError]}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.confirmPassword && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
                 </View>

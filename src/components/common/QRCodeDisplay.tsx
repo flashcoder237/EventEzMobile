@@ -49,7 +49,7 @@ export default function QRCodeDisplay({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={[styles.sheet, { backgroundColor: colors.white }]}>
+        <View style={[styles.sheet, { backgroundColor: colors.card }]}>
           {/* Handle bar */}
           <View style={[styles.handleBar, { backgroundColor: colors.gray300 }]} />
 
@@ -64,7 +64,7 @@ export default function QRCodeDisplay({
 
           {/* QR Code */}
           <View style={styles.qrWrapper}>
-            <View style={[styles.qrCard, { width: size + 32, height: size + 32, borderColor: colors.primary, backgroundColor: colors.white }]}>
+            <View style={[styles.qrCard, { width: size + 32, height: size + 32, borderColor: colors.primary, backgroundColor: colors.card }]}>
               <QRCode
                 value={data}
                 size={size}

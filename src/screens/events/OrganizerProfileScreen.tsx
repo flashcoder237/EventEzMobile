@@ -117,7 +117,7 @@ export default function OrganizerProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -133,7 +133,7 @@ export default function OrganizerProfileScreen() {
 
   if (!organizer) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -160,7 +160,7 @@ export default function OrganizerProfileScreen() {
   const socialLinks = profile?.social_links;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}

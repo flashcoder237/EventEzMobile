@@ -102,7 +102,7 @@ export default function TimePickerField({
       {Platform.OS === 'ios' && showPicker && (
         <Modal transparent animationType="slide">
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
                   <Text style={[styles.modalCancel, { color: colors.gray500 }]}>Annuler</Text>

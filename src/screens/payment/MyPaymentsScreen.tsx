@@ -221,7 +221,7 @@ export default function MyPaymentsScreen() {
     return (
       <StaggeredItem index={index}>
       <TouchableOpacity
-        style={[styles.paymentCard, { backgroundColor: colors.white, borderColor: colors.gray100 }]}
+        style={[styles.paymentCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
         onPress={() => {
           // Navigate to payment details if needed
         }}
@@ -310,7 +310,7 @@ export default function MyPaymentsScreen() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.white, borderBottomColor: colors.gray100 }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -322,7 +322,7 @@ export default function MyPaymentsScreen() {
       </View>
 
       {/* Main Stats Card */}
-      <View style={[styles.mainStatsCard, { backgroundColor: colors.white }]}>
+      <View style={[styles.mainStatsCard, { backgroundColor: colors.card }]}>
         <View style={styles.mainStatRow}>
           <View style={[styles.mainStatIcon, { backgroundColor: colors.primaryLight }]}>
             <Ionicons name="wallet" size={28} color={colors.primary} />
@@ -345,7 +345,7 @@ export default function MyPaymentsScreen() {
       {/* Quick Stats */}
       <View style={styles.quickStats}>
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'completed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'completed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#D1FAE5' }]}>
@@ -356,7 +356,7 @@ export default function MyPaymentsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'pending' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'pending' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEF3C7' }]}>
@@ -367,7 +367,7 @@ export default function MyPaymentsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'failed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'failed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEE2E2' }]}>
@@ -378,7 +378,7 @@ export default function MyPaymentsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'refunded' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'refunded' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'refunded' ? 'all' : 'refunded')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#EDE9FE' }]}>
@@ -391,7 +391,7 @@ export default function MyPaymentsScreen() {
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <View style={[styles.searchInputWrapper, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
           <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
             style={[styles.searchInput, { color: colors.gray900 }]}

@@ -194,7 +194,7 @@ export default function RefundRequestScreen() {
         >
           {/* Payment Summary */}
           <View style={[styles.paymentSummary, { backgroundColor: isDark ? colors.card : '#EDE9FE' }]}>
-            <View style={[styles.summaryIcon, { backgroundColor: colors.white }]}>
+            <View style={[styles.summaryIcon, { backgroundColor: colors.card }]}>
               <Ionicons name="card" size={24} color="#8B5CF6" />
             </View>
             <View style={styles.summaryContent}>
@@ -238,7 +238,7 @@ export default function RefundRequestScreen() {
                 <Text style={[styles.amountOptionTitle, { color: colors.gray900 }]}>Remboursement partiel</Text>
                 {isPartialRefund && (
                   <TextInput
-                    style={[styles.amountInput, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
+                    style={[styles.amountInput, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
                     value={refundAmount}
                     onChangeText={setRefundAmount}
                     keyboardType="numeric"

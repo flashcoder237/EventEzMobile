@@ -107,7 +107,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
         <View key={sponsor.id} style={[styles.sponsorCard, { backgroundColor: colors.gray50 }]}>
           <View style={styles.sponsorHeader}>
             {sponsor.logo ? (
-              <Image source={{ uri: sponsor.logo }} style={styles.sponsorLogo} resizeMode="contain" />
+              <Image source={{ uri: sponsor.logo }} style={[styles.sponsorLogo, { backgroundColor: colors.surface }]} resizeMode="contain" />
             ) : (
               <View style={[styles.sponsorLogoPlaceholder, { backgroundColor: colors.primaryBg }]}>
                 <Ionicons name="ribbon" size={24} color={colors.primary} />

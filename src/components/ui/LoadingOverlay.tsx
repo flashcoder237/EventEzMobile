@@ -47,7 +47,7 @@ function LoadingOverlayComponent({
   if (!visible) return null;
 
   const content = (
-    <View style={[styles.content, { backgroundColor: colors.white }, !transparent && [styles.contentSolid, { backgroundColor: colors.white }]]}>
+    <View style={[styles.content, { backgroundColor: colors.card }, !transparent && [styles.contentSolid, { backgroundColor: colors.card }]]}>
       <ActivityIndicator size={size} color={indicatorColor} />
       {message && <Text style={[styles.message, { color: colors.gray700 }]}>{message}</Text>}
     </View>
@@ -137,7 +137,7 @@ export function useRefreshControl({ refreshing, onRefresh }: RefreshIndicatorPro
     onRefresh,
     tintColor: colors.primary,
     colors: [colors.primary],
-    progressBackgroundColor: colors.white,
+    progressBackgroundColor: colors.card,
   };
 }
 

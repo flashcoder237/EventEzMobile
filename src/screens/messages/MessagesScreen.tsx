@@ -78,7 +78,7 @@ const ConversationCard = memo(function ConversationCard({
 
   return (
     <TouchableOpacity
-      style={[styles.conversationCard, { backgroundColor: colors.white, borderColor: colors.gray100 }, hasUnread && [styles.unreadCard, { borderLeftColor: colors.primary }]]}
+      style={[styles.conversationCard, { backgroundColor: colors.card, borderColor: colors.gray100 }, hasUnread && [styles.unreadCard, { borderLeftColor: colors.primary }]]}
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={TOUCH_OPACITY}
@@ -409,7 +409,7 @@ export default function MessagesScreen() {
             </View>
 
             {/* Search */}
-            <View style={[styles.searchContainer, { backgroundColor: colors.white }]}>
+            <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
               <Ionicons name="search" size={18} color={colors.gray400} style={styles.searchIcon} />
               <TextInput
                 style={[styles.searchInput, { color: colors.gray900 }]}
@@ -473,7 +473,7 @@ export default function MessagesScreen() {
             onRequestClose={() => setShowNewModal(false)}
           >
             <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+              <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
                 <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
                   <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Nouveau message</Text>
                   <TouchableOpacity onPress={() => setShowNewModal(false)}>

@@ -23,7 +23,7 @@ function GradientTextComponent({ colors, children, style, ...props }: GradientTe
       }
     >
       <LinearGradient
-        colors={gradientColors as string[]}
+        colors={gradientColors as [string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
       >

@@ -125,8 +125,8 @@ export default function RegisterScreen() {
   };
 
   const getInputStyle = (field: string, hasError: boolean) => {
-    if (hasError) return styles.inputError;
-    if (focusedField === field) return styles.inputFocused;
+    if (hasError) return [styles.inputError, { backgroundColor: colors.errorLight }];
+    if (focusedField === field) return [styles.inputFocused, { backgroundColor: colors.surface, borderColor: colors.primary }];
     return null;
   };
 

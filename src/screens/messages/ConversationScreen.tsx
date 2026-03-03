@@ -852,7 +852,7 @@ export default function ConversationScreen() {
         <View>
           {showDate && (
             <View style={styles.dateContainer}>
-              <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.white }]}>{formatMessageDate(item.created_at)}</Text>
+              <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.card }]}>{formatMessageDate(item.created_at)}</Text>
             </View>
           )}
           <View style={styles.systemMessageContainer}>
@@ -873,7 +873,7 @@ export default function ConversationScreen() {
       <View>
         {showDate && (
           <View style={styles.dateContainer}>
-            <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.white }]}>{formatMessageDate(item.created_at)}</Text>
+            <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.card }]}>{formatMessageDate(item.created_at)}</Text>
           </View>
         )}
         <MessageBubble
@@ -971,7 +971,7 @@ export default function ConversationScreen() {
           {/* Scroll to bottom button */}
           {showScrollToBottom && (
             <TouchableOpacity
-              style={[styles.scrollToBottomButton, { backgroundColor: colors.white, borderColor: colors.gray200 }]}
+              style={[styles.scrollToBottomButton, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
               onPress={scrollToBottom}
               activeOpacity={0.8}
             >

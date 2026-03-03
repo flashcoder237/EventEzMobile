@@ -141,7 +141,7 @@ export default function OfflineTicketsScreen() {
 
         {isExpanded && (
           <View style={styles.expandedContent}>
-            <View style={[styles.qrContainer, { backgroundColor: Colors.white, borderColor: colors.primary }]}>
+            <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF', borderColor: colors.primary }]}>
               <Image
                 source={{ uri: item.qrCodeBase64 }}
                 style={styles.qrImage}

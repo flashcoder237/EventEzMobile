@@ -218,7 +218,7 @@ export default function BecomeOrganizerScreen() {
       <View style={[styles.benefitsContainer, { backgroundColor: colors.gray50 }]}>
         {BENEFITS.map((benefit, index) => (
           <View key={index} style={styles.benefitItem}>
-            <View style={[styles.benefitIcon, { backgroundColor: colors.white }]}>
+            <View style={[styles.benefitIcon, { backgroundColor: colors.card }]}>
               <Ionicons name={benefit.icon} size={20} color={colors.primary} />
             </View>
             <View style={styles.benefitText}>
@@ -244,7 +244,7 @@ export default function BecomeOrganizerScreen() {
           onPress={() => updateField('organizer_type', 'individual')}
           style={[
             styles.typeCard,
-            { borderColor: colors.gray200, backgroundColor: colors.white },
+            { borderColor: colors.gray200, backgroundColor: colors.card },
             formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
@@ -282,7 +282,7 @@ export default function BecomeOrganizerScreen() {
           onPress={() => updateField('organizer_type', 'organization')}
           style={[
             styles.typeCard,
-            { borderColor: colors.gray200, backgroundColor: colors.white },
+            { borderColor: colors.gray200, backgroundColor: colors.card },
             formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
@@ -514,7 +514,7 @@ export default function BecomeOrganizerScreen() {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}
@@ -543,7 +543,7 @@ export default function BecomeOrganizerScreen() {
                 styles.stepDot,
                 { backgroundColor: colors.gray200 },
                 currentStep >= step.number && { backgroundColor: colors.primary },
-                currentStep === step.number && { borderColor: colors.primary, backgroundColor: colors.white },
+                currentStep === step.number && { borderColor: colors.primary, backgroundColor: colors.card },
               ]}>
                 {currentStep > step.number ? (
                   <Ionicons name="checkmark" size={12} color={colors.white} />
@@ -580,7 +580,7 @@ export default function BecomeOrganizerScreen() {
       </KeyboardAwareScrollView>
 
       {/* Footer Buttons */}
-      <View style={[styles.footer, { borderTopColor: colors.gray100, backgroundColor: colors.white }]}>
+      <View style={[styles.footer, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
         {currentStep > 1 && (
           <AnimatedPressable
             onPress={handleBack}

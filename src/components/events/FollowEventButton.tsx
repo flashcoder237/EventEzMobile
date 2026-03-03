@@ -287,7 +287,7 @@ export default function FollowEventButton({
         presentationStyle="pageSheet"
         onRequestClose={() => setShowPreferences(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.white }]}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
             <TouchableOpacity onPress={() => setShowPreferences(false)}>
               <Text style={[styles.modalCancel, { color: colors.gray600 }]}>Annuler</Text>

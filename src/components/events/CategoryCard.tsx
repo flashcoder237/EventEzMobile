@@ -1,8 +1,8 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, Image, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
+import CategoryIcon from '../icons/CategoryIcons';
 import {
   Colors,
   FontSizes,
@@ -16,7 +16,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 interface CategoryCardProps {
   id: string;
   name: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: string;
   color?: string;
   image?: string;
   eventCount?: number;
@@ -91,7 +91,7 @@ function CategoryCard({
               style={styles.largeOverlay}
             >
               <View style={styles.largeIconContainer}>
-                <Ionicons name={icon} size={32} color={Colors.white} />
+                <CategoryIcon name={name} size={28} color={Colors.white} strokeWidth={1.8} />
               </View>
               <Text style={styles.largeName}>{name}</Text>
               {eventCount !== undefined && eventCount > 0 && (
@@ -107,7 +107,7 @@ function CategoryCard({
             end={{ x: 1, y: 1 }}
           >
             <View style={styles.largeIconContainer}>
-              <Ionicons name={icon} size={32} color={Colors.white} />
+              <CategoryIcon name={name} size={28} color={Colors.white} strokeWidth={1.8} />
             </View>
             <Text style={styles.largeName}>{name}</Text>
             {eventCount !== undefined && eventCount > 0 && (
@@ -123,12 +123,12 @@ function CategoryCard({
     return (
       <AnimatedPressable
         onPress={onPress}
-        style={[styles.compactCard, { backgroundColor: colors.white }]}
+        style={[styles.compactCard, { backgroundColor: colors.card }]}
         animationType="scale"
         scaleValue={0.95}
       >
         <View style={[styles.compactIconBg, { backgroundColor: `${gradientColors[0]}15` }]}>
-          <Ionicons name={icon} size={20} color={gradientColors[0]} />
+          <CategoryIcon name={name} size={18} color={gradientColors[0]} strokeWidth={2} />
         </View>
         <Text style={[styles.compactName, { color: colors.gray700 }]} numberOfLines={1}>
           {name}
@@ -152,7 +152,7 @@ function CategoryCard({
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.iconContainer}>
-          <Ionicons name={icon} size={28} color={Colors.white} />
+          <CategoryIcon name={name} size={26} color={Colors.white} strokeWidth={1.8} />
         </View>
       </LinearGradient>
       <Text style={[styles.name, { color: colors.gray700 }]} numberOfLines={1}>

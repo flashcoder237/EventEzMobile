@@ -222,8 +222,8 @@ export default function RegisterOrganizerScreen() {
   };
 
   const getInputStyle = (field: string, hasError: boolean) => {
-    if (hasError) return styles.inputError;
-    if (focusedField === field) return styles.inputFocused;
+    if (hasError) return [styles.inputError, { backgroundColor: colors.errorLight }];
+    if (focusedField === field) return [styles.inputFocused, { backgroundColor: colors.surface, borderColor: colors.primary }];
     return null;
   };
 
@@ -293,7 +293,7 @@ export default function RegisterOrganizerScreen() {
           onPress={() => updateField('organizer_type', 'individual')}
           style={[
             styles.typeOption,
-            { borderColor: colors.gray200, backgroundColor: colors.white },
+            { borderColor: colors.gray200, backgroundColor: colors.card },
             formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
@@ -326,7 +326,7 @@ export default function RegisterOrganizerScreen() {
           onPress={() => updateField('organizer_type', 'organization')}
           style={[
             styles.typeOption,
-            { borderColor: colors.gray200, backgroundColor: colors.white },
+            { borderColor: colors.gray200, backgroundColor: colors.card },
             formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
@@ -505,8 +505,8 @@ export default function RegisterOrganizerScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.white }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Dot pattern background */}
       <DotPattern />
@@ -525,7 +525,7 @@ export default function RegisterOrganizerScreen() {
             {/* Back Button */}
             <AnimatedPressable
               onPress={() => navigation.goBack()}
-              style={[styles.backButton, { backgroundColor: colors.white }]}
+              style={[styles.backButton, { backgroundColor: colors.surface }]}
               animationType="scale"
               scaleValue={0.9}
             >

@@ -160,6 +160,8 @@ export interface UseEventFormReturn {
   handleCustomTagRemove: (tag: string) => void;
   pickImage: () => Promise<void>;
   setBannerImage: (value: string | null) => void;
+  setVisibility: (value: 'public' | 'unlisted' | 'invite_only') => void;
+  setAccessCode: (value: string) => void;
 
   // Step 2 handlers
   setStartDate: (date: Date) => void;

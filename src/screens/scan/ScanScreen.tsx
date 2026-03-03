@@ -317,7 +317,7 @@ export default function ScanScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={[styles.permissionContainer, { backgroundColor: colors.white }]}>
+      <SafeAreaView style={[styles.permissionContainer, { backgroundColor: colors.card }]}>
         <Ionicons name="camera-outline" size={64} color={colors.gray400} />
         <Text style={[styles.permissionTitle, { color: colors.gray900 }]}>Accès à la caméra requis</Text>
         <Text style={[styles.permissionText, { color: colors.gray500 }]}>
@@ -411,7 +411,7 @@ export default function ScanScreen() {
         onRequestClose={handleReset}
       >
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
               {/* Transfer result */}
               {result?.type === 'transfer' && result.transfer && result.transferToken && (

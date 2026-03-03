@@ -95,7 +95,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
 
       <View style={[styles.newsletterCard, { backgroundColor: colors.primaryBg, borderColor: colors.primary + '30' }]}>
         <View style={styles.iconRow}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.white }]}>
+          <View style={[styles.iconContainer, { backgroundColor: colors.card }]}>
             <NewsletterIcon size={30} color={colors.primary} />
           </View>
         </View>
@@ -108,7 +108,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
 
         <View style={styles.formContainer}>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
+            style={[styles.input, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
             placeholder="Votre nom (optionnel)"
             placeholderTextColor={colors.gray400}
             value={name}
@@ -116,7 +116,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
             autoCapitalize="words"
           />
           <TextInput
-            style={[styles.input, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
+            style={[styles.input, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
             placeholder="Votre email *"
             placeholderTextColor={colors.gray400}
             value={email}

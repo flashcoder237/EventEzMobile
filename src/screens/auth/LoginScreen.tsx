@@ -120,8 +120,8 @@ export default function LoginScreen() {
   };
 
   const getInputStyle = (field: string, hasError: boolean) => {
-    if (hasError) return styles.inputError;
-    if (focusedField === field) return styles.inputFocused;
+    if (hasError) return [styles.inputError, { backgroundColor: colors.errorLight }];
+    if (focusedField === field) return [styles.inputFocused, { backgroundColor: colors.surface, borderColor: colors.primary }];
     return null;
   };
 
@@ -134,7 +134,7 @@ export default function LoginScreen() {
 
       {/* Top accent bar — gradient violet→pink */}
       <LinearGradient
-        colors={gradients.brand as unknown as string[]}
+        colors={[...gradients.brand] as [string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.accentBar}

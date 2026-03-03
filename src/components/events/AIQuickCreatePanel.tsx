@@ -42,14 +42,14 @@ export default function AIQuickCreatePanel({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && { backgroundColor: '#1E1040', borderColor: '#4C1D95' }]}>
       <TouchableOpacity
         style={styles.header}
         onPress={() => setIsExpanded(!isExpanded)}
         activeOpacity={0.7}
       >
         <View style={styles.headerLeft}>
-          <View style={styles.iconContainer}>
+          <View style={[styles.iconContainer, isDark && { backgroundColor: '#2E1065' }]}>
             <Ionicons name="sparkles" size={18} color="#A855F7" />
           </View>
           <View>
@@ -67,7 +67,7 @@ export default function AIQuickCreatePanel({
       {isExpanded && (
         <View style={styles.content}>
           <TextInput
-            style={styles.promptInput}
+            style={[styles.promptInput, { backgroundColor: colors.surface, color: colors.gray900 }]}
             value={prompt}
             onChangeText={setPrompt}
             placeholder="Ex: Un concert de jazz le 15 mars à Douala avec 3 types de billets..."
@@ -97,14 +97,14 @@ export default function AIQuickCreatePanel({
           </TouchableOpacity>
 
           {error && (
-            <View style={styles.errorBox}>
+            <View style={[styles.errorBox, { backgroundColor: isDark ? '#3B1515' : '#FEF2F2' }]}>
               <Ionicons name="alert-circle" size={16} color={colors.error} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
 
           {result && (
-            <View style={styles.resultBox}>
+            <View style={[styles.resultBox, { backgroundColor: colors.surface }]}>
               <Text style={styles.resultTitle}>Événement généré</Text>
               {result.title && (
                 <Text style={styles.resultField}>

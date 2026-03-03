@@ -402,7 +402,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   statValue: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes['2xl'],
     fontFamily: FontFamily.bold,
     color: Colors.gray900,
   },
@@ -450,7 +450,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
   },
   valueText: {
-    fontSize: FontSizes.xxl,
+    fontSize: FontSizes['2xl'],
     fontFamily: FontFamily.bold,
     color: Colors.gray900,
   },

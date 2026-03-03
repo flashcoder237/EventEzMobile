@@ -160,7 +160,7 @@ export default function LiveEventScreen() {
   };
 
   const renderQuestion = ({ item }: { item: Question }) => (
-    <View style={[styles.questionCard, { backgroundColor: colors.white }, item.is_answered && { borderLeftWidth: 3, borderLeftColor: colors.success }]}>
+    <View style={[styles.questionCard, { backgroundColor: colors.card }, item.is_answered && { borderLeftWidth: 3, borderLeftColor: colors.success }]}>
       <TouchableOpacity
         style={[styles.upvoteButton, { backgroundColor: colors.gray50 }, item.has_upvoted && { backgroundColor: colors.primaryBg }]}
         onPress={() => handleUpvote(item.id)}
@@ -196,7 +196,7 @@ export default function LiveEventScreen() {
     const isVoting = votingId === item.id;
 
     return (
-      <View style={[styles.pollCard, { backgroundColor: colors.white }]}>
+      <View style={[styles.pollCard, { backgroundColor: colors.card }]}>
         <Text style={[styles.pollQuestion, { color: colors.text }]}>{item.question}</Text>
         <Text style={[styles.pollVoteCount, { color: colors.textLight }]}>
           {item.total_votes} vote{item.total_votes !== 1 ? 's' : ''}
@@ -298,7 +298,7 @@ export default function LiveEventScreen() {
       {/* Tabs */}
       <View style={[styles.tabs, { backgroundColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'questions' && [styles.activeTab, { backgroundColor: colors.white }]]}
+          style={[styles.tab, activeTab === 'questions' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('questions')}
         >
           <Ionicons
@@ -312,7 +312,7 @@ export default function LiveEventScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'polls' && [styles.activeTab, { backgroundColor: colors.white }]]}
+          style={[styles.tab, activeTab === 'polls' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('polls')}
         >
           <Ionicons
@@ -348,7 +348,7 @@ export default function LiveEventScreen() {
           />
 
           {/* Question Input */}
-          <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.white }]}>
+          <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.card }]}>
             <TouchableOpacity
               style={[styles.anonymousToggle, { backgroundColor: colors.gray100 }, isAnonymous && { backgroundColor: colors.primaryBg }]}
               onPress={() => setIsAnonymous(!isAnonymous)}

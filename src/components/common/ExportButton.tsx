@@ -57,7 +57,7 @@ export default function ExportButton({
   return (
     <>
       <TouchableOpacity
-        style={[styles.button, compact && styles.buttonCompact, { borderColor: colors.gray200, backgroundColor: colors.white }]}
+        style={[styles.button, compact && styles.buttonCompact, { borderColor: colors.gray200, backgroundColor: colors.card }]}
         onPress={() => setVisible(true)}
         disabled={loading}
         activeOpacity={TOUCH_OPACITY}
@@ -77,7 +77,7 @@ export default function ExportButton({
         onRequestClose={() => setVisible(false)}
       >
         <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
-          <View style={[styles.sheet, { backgroundColor: colors.white }]}>
+          <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <Text style={[styles.title, { color: colors.gray900 }]}>Choisir le format</Text>
             {filteredOptions.map((option) => (
               <TouchableOpacity

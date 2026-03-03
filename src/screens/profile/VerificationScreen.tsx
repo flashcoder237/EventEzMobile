@@ -176,14 +176,14 @@ export default function VerificationScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]}>
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: colors.gray900 }]}>Verification du compte</Text>
         <Text style={[styles.subtitle, { color: colors.gray600 }]}>

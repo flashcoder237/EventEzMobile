@@ -112,7 +112,7 @@ export default function SpeakerDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -128,7 +128,7 @@ export default function SpeakerDetailsScreen() {
 
   if (!speaker) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -149,7 +149,7 @@ export default function SpeakerDetailsScreen() {
   const hasSocialLinks = speaker.website || speaker.linkedin || speaker.twitter;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}

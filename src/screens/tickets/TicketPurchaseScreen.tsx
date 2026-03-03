@@ -440,7 +440,7 @@ export default function TicketPurchaseScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.white, borderBottomColor: colors.gray100 }]}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
@@ -467,7 +467,7 @@ export default function TicketPurchaseScreen() {
         bottomOffset={80}
       >
         {/* Event Summary */}
-        <View style={[styles.eventSummary, { backgroundColor: colors.white }]}>
+        <View style={[styles.eventSummary, { backgroundColor: colors.card }]}>
           <Text style={[styles.eventTitle, { color: colors.gray900 }]}>{event?.title}</Text>
           <View style={styles.eventMeta}>
             <View style={styles.eventMetaItem}>
@@ -506,7 +506,7 @@ export default function TicketPurchaseScreen() {
             <View style={styles.existingRegActions}>
               {/* Bouton Voir ma réservation */}
               <TouchableOpacity
-                style={[styles.viewRegButton, { backgroundColor: colors.white, borderColor: colors.primary }]}
+                style={[styles.viewRegButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
                 onPress={() => {
                   if (existingRegistration.tickets && existingRegistration.tickets.length > 0) {
                     navigation.navigate('QRCode', { ticketId: existingRegistration.tickets[0].id });
@@ -522,7 +522,7 @@ export default function TicketPurchaseScreen() {
               {/* Bouton Modifier (inscription pending) ou Acheter plus (inscription confirmée) */}
               {existingRegistration.status === 'pending' ? (
                 <TouchableOpacity
-                  style={[styles.viewRegButton, { backgroundColor: colors.white, borderColor: colors.primary }]}
+                  style={[styles.viewRegButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
                   onPress={() => navigation.navigate('TicketPurchase', { eventId, registrationId: existingRegistration.id })}
                 >
                   <Ionicons name="create-outline" size={18} color={colors.primary} />
@@ -530,7 +530,7 @@ export default function TicketPurchaseScreen() {
                 </TouchableOpacity>
               ) : existingRegistration.status === 'confirmed' || existingRegistration.status === 'completed' ? (
                 <TouchableOpacity
-                  style={[styles.viewRegButton, { backgroundColor: colors.white, borderColor: colors.primary }]}
+                  style={[styles.viewRegButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
                   onPress={() => navigation.navigate('TicketPurchase', { eventId, additionalTickets: true })}
                 >
                   <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
@@ -540,7 +540,7 @@ export default function TicketPurchaseScreen() {
 
               {/* Bouton Annuler */}
               <TouchableOpacity
-                style={[styles.cancelRegButton, { backgroundColor: colors.white, borderColor: colors.error }]}
+                style={[styles.cancelRegButton, { backgroundColor: colors.card, borderColor: colors.error }]}
                 onPress={() => {
                   showConfirm(
                     'Annuler l\'inscription',
@@ -566,7 +566,7 @@ export default function TicketPurchaseScreen() {
 
         {/* Ticket Types - Only for billetterie */}
         {event?.event_type === 'billetterie' && (
-        <View style={[styles.ticketsSection, { backgroundColor: colors.white }]}>
+        <View style={[styles.ticketsSection, { backgroundColor: colors.card }]}>
           <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Types de billets</Text>
           {ticketTypes.length === 0 ? (
             <View style={styles.noTickets}>
@@ -615,7 +615,7 @@ export default function TicketPurchaseScreen() {
                   {isAvailable ? (
                     <View style={styles.quantitySelector}>
                       <TouchableOpacity
-                        style={[styles.quantityButton, { backgroundColor: colors.white, borderColor: colors.gray200 }, quantity === 0 && [styles.quantityButtonDisabled, { borderColor: colors.gray100 }]]}
+                        style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }, quantity === 0 && [styles.quantityButtonDisabled, { borderColor: colors.gray100 }]]}
                         onPress={() => updateQuantity(String(ticketType.id), -1)}
                         disabled={quantity === 0}
                       >
@@ -627,7 +627,7 @@ export default function TicketPurchaseScreen() {
                       </TouchableOpacity>
                       <Text style={[styles.quantityValue, { color: colors.gray900 }]}>{quantity}</Text>
                       <TouchableOpacity
-                        style={[styles.quantityButton, { backgroundColor: colors.white, borderColor: colors.gray200 }]}
+                        style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
                         onPress={() => updateQuantity(String(ticketType.id), 1)}
                       >
                         <Ionicons name="add" size={20} color={colors.primary} />
@@ -647,7 +647,7 @@ export default function TicketPurchaseScreen() {
 
         {/* Discount Code Section */}
         {event?.event_type === 'billetterie' && getTotalQuantity() > 0 && (
-          <View style={[styles.discountSection, { backgroundColor: colors.white }]}>
+          <View style={[styles.discountSection, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Code promo</Text>
             {appliedDiscount ? (
               <View style={[styles.appliedDiscountCard, { backgroundColor: colors.successLight, borderColor: colors.success }]}>
@@ -704,7 +704,7 @@ export default function TicketPurchaseScreen() {
 
         {/* Dynamic Form Fields */}
         {formFields.length > 0 && (
-          <View style={[styles.formSection, { backgroundColor: colors.white }]}>
+          <View style={[styles.formSection, { backgroundColor: colors.card }]}>
             <DynamicFormFields
               formFields={formFields}
               formData={formData}
@@ -716,7 +716,7 @@ export default function TicketPurchaseScreen() {
 
         {/* Order Summary */}
         {getTotalQuantity() > 0 && (
-          <View style={[styles.orderSummary, { backgroundColor: colors.white }]}>
+          <View style={[styles.orderSummary, { backgroundColor: colors.card }]}>
             <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Récapitulatif</Text>
             <View style={[styles.summaryCard, { backgroundColor: colors.gray50 }]}>
               {Array.from(selections.entries()).map(([ticketTypeId, quantity]) => {
@@ -786,7 +786,7 @@ export default function TicketPurchaseScreen() {
       </KeyboardAwareScrollView>
 
       {/* Bottom CTA */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.white, borderTopColor: colors.gray100 }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
         <View style={styles.totalContainer}>
           {event?.event_type === 'billetterie' ? (
             <>

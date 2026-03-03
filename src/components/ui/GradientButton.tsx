@@ -184,9 +184,9 @@ function GradientButtonComponent({
       case 'ghost':
         return styles.ghostButton;
       case 'outline':
-        return styles.outlineButton;
+        return [styles.outlineButton, { borderColor: colors.gray200 }];
       case 'secondary':
-        return styles.secondaryButton;
+        return [styles.secondaryButton, { backgroundColor: colors.gray100 }];
       default:
         return styles.primaryButton;
     }
@@ -242,7 +242,7 @@ function GradientButtonComponent({
         ]}
       >
         <LinearGradient
-          colors={Gradients.brand as unknown as string[]}
+          colors={[...Gradients.brand] as [string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[

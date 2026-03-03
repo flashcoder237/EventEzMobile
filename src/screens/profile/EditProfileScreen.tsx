@@ -47,7 +47,7 @@ const Section = ({ title, icon, children, defaultExpanded = false }: SectionProp
   const { colors } = useTheme();
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.white, borderColor: colors.gray100 }]}>
+    <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
       <TouchableOpacity
         style={[styles.sectionHeader, { borderBottomColor: colors.gray100 }]}
         onPress={() => setExpanded(!expanded)}
@@ -269,7 +269,7 @@ export default function EditProfileScreen() {
         bottomOffset={80}
       >
           {/* Profile Image Header */}
-          <View style={[styles.imageSection, { backgroundColor: colors.white, borderBottomColor: colors.gray100 }]}>
+          <View style={[styles.imageSection, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
             <TouchableOpacity
               style={styles.imageContainer}
               onPress={handlePickImage}

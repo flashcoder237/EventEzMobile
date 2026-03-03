@@ -147,7 +147,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           {/* Main icon container */}
           <View style={styles.iconWrapper}>
             <View style={[styles.iconCircle, { backgroundColor: item.iconColor + '15' }]}>
-              <View style={[styles.iconInner, { backgroundColor: colors.white }]}>
+              <View style={[styles.iconInner, { backgroundColor: colors.surface }]}>
                 <Ionicons name={item.icon} size={48} color={item.iconColor} />
               </View>
             </View>
@@ -155,17 +155,17 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
           {/* Floating decorative icons */}
           <View style={styles.floatIcon1}>
-            <View style={[styles.floatIconBg, { backgroundColor: colors.white }]}>
+            <View style={[styles.floatIconBg, { backgroundColor: colors.surface }]}>
               <Ionicons name="heart" size={16} color={colors.secondary} />
             </View>
           </View>
           <View style={styles.floatIcon2}>
-            <View style={[styles.floatIconBg, { backgroundColor: colors.white }]}>
+            <View style={[styles.floatIconBg, { backgroundColor: colors.surface }]}>
               <Ionicons name="star" size={14} color={colors.warning} />
             </View>
           </View>
           <View style={styles.floatIcon3}>
-            <View style={[styles.floatIconBg, { backgroundColor: colors.white }]}>
+            <View style={[styles.floatIconBg, { backgroundColor: colors.surface }]}>
               <Ionicons name="location" size={14} color={colors.info} />
             </View>
           </View>
@@ -184,8 +184,8 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   const isLastSlide = currentIndex === slides.length - 1;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.white }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/* Skip button */}
         {!isLastSlide && (

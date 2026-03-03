@@ -332,7 +332,7 @@ export default function WalletScreen() {
 
   const renderPendingItem = (earning: PendingEarning, index: number) => (
     <StaggeredItem key={earning.id} index={index}>
-    <View style={styles.pendingCard}>
+    <View style={[styles.pendingCard, { backgroundColor: colors.card }]}>
       <View style={styles.pendingIcon}>
         <Ionicons name="time" size={20} color="#F59E0B" />
       </View>
@@ -364,7 +364,7 @@ export default function WalletScreen() {
       <View style={styles.rootContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={styles.container}>
+          <View style={[styles.container, { backgroundColor: colors.background }]}>
             <LoadingSpinner />
           </View>
         </SafeAreaView>
@@ -376,7 +376,7 @@ export default function WalletScreen() {
     <View style={styles.rootContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.background }]}>
           {/* Header with gradient */}
           <LinearGradient
         colors={['#7C3AED', '#8B5CF6', '#6366F1']}
@@ -432,7 +432,7 @@ export default function WalletScreen() {
 
         {/* Withdraw Button */}
         <TouchableOpacity
-          style={[styles.withdrawButton, !wallet?.can_withdraw && styles.withdrawButtonDisabled]}
+          style={[styles.withdrawButton, { backgroundColor: colors.card }, !wallet?.can_withdraw && styles.withdrawButtonDisabled]}
           onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
             'Retrait impossible',
             `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} FCFA`,
@@ -456,7 +456,7 @@ export default function WalletScreen() {
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabsContainer}>
+      <View style={[styles.tabsContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsList}>
           {tabs.map((tab) => (
             <TouchableOpacity
@@ -499,7 +499,7 @@ export default function WalletScreen() {
               {transactions.slice(0, 5).length > 0 ? (
                 transactions.slice(0, 5).map(renderTransactionItem)
               ) : (
-                <View style={styles.emptySection}>
+                <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
                   <Ionicons name="receipt-outline" size={40} color={colors.gray300} />
                   <Text style={styles.emptyText}>Aucune transaction</Text>
                 </View>
@@ -517,7 +517,7 @@ export default function WalletScreen() {
               {payouts.slice(0, 3).length > 0 ? (
                 payouts.slice(0, 3).map(renderPayoutItem)
               ) : (
-                <View style={styles.emptySection}>
+                <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
                   <Ionicons name="arrow-up-circle-outline" size={40} color={colors.gray300} />
                   <Text style={styles.emptyText}>Aucun retrait</Text>
                 </View>
@@ -531,7 +531,7 @@ export default function WalletScreen() {
             {transactions.length > 0 ? (
               transactions.map(renderTransactionItem)
             ) : (
-              <View style={styles.emptySection}>
+              <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
                 <Ionicons name="receipt-outline" size={48} color={colors.gray300} />
                 <Text style={styles.emptyText}>Aucune transaction</Text>
               </View>
@@ -544,7 +544,7 @@ export default function WalletScreen() {
             {payouts.length > 0 ? (
               payouts.map(renderPayoutItem)
             ) : (
-              <View style={styles.emptySection}>
+              <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
                 <Ionicons name="arrow-up-circle-outline" size={48} color={colors.gray300} />
                 <Text style={styles.emptyText}>Aucun retrait effectué</Text>
               </View>
@@ -557,7 +557,7 @@ export default function WalletScreen() {
             {pendingEarnings.length > 0 ? (
               pendingEarnings.map(renderPendingItem)
             ) : (
-              <View style={styles.emptySection}>
+              <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
                 <Ionicons name="time-outline" size={48} color={colors.gray300} />
                 <Text style={styles.emptyText}>Aucun revenu en attente</Text>
               </View>
@@ -575,7 +575,7 @@ export default function WalletScreen() {
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Demande de retrait</Text>
               <TouchableOpacity onPress={() => setShowPayoutModal(false)}>
@@ -590,7 +590,7 @@ export default function WalletScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Montant (FCFA)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                 value={payoutAmount}
                 onChangeText={setPayoutAmount}
                 keyboardType="numeric"
@@ -686,7 +686,7 @@ export default function WalletScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
           <ScrollView style={styles.bankModalScroll} keyboardShouldPersistTaps="handled">
-            <View style={styles.modalContent}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Informations de paiement</Text>
                 <TouchableOpacity onPress={() => setShowBankModal(false)}>
@@ -704,7 +704,7 @@ export default function WalletScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Numéro</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                     value={bankDetails.mobile_money_number}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, mobile_money_number: text })}
                     placeholder="Ex: 6XX XXX XXX"
@@ -752,7 +752,7 @@ export default function WalletScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Nom de la banque</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                     value={bankDetails.bank_name}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_name: text })}
                     placeholder="Ex: Afriland First Bank"
@@ -763,7 +763,7 @@ export default function WalletScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Titulaire du compte</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                     value={bankDetails.bank_account_name}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_name: text })}
                     placeholder="Nom complet"
@@ -774,7 +774,7 @@ export default function WalletScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Numéro de compte</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                     value={bankDetails.bank_account_number}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_number: text })}
                     placeholder="IBAN ou numéro de compte"

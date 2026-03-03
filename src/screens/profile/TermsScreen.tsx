@@ -125,8 +125,8 @@ Ces conditions sont régies par les lois camerounaises.`
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>

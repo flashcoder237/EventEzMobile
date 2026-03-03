@@ -43,28 +43,6 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Map category names to icons
-const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'musique': 'musical-notes',
-  'music': 'musical-notes',
-  'concert': 'musical-notes',
-  'sport': 'football',
-  'sports': 'football',
-  'art': 'color-palette',
-  'culture': 'library',
-  'food': 'restaurant',
-  'gastronomie': 'restaurant',
-  'tech': 'hardware-chip',
-  'technologie': 'hardware-chip',
-  'business': 'briefcase',
-  'education': 'school',
-  'santé': 'fitness',
-  'health': 'fitness',
-  'film': 'film',
-  'cinéma': 'film',
-  'default': 'calendar',
-};
-
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
@@ -151,11 +129,6 @@ export default function HomeScreen() {
     setRefreshing(false);
   };
 
-  const getCategoryIcon = (name: string): keyof typeof Ionicons.glyphMap => {
-    const key = name.toLowerCase();
-    return categoryIcons[key] || categoryIcons.default;
-  };
-
   const renderFeaturedEvent = useCallback(
     ({ item, index }: { item: Event; index: number }) => {
       const range = getEventPriceRange(item);
@@ -216,7 +189,6 @@ export default function HomeScreen() {
         <CategoryCard
           id={item.id.toString()}
           name={item.name}
-          icon={getCategoryIcon(item.name)}
           image={item.image}
           eventCount={item.event_count || item.events_count}
           variant="large"
@@ -241,8 +213,8 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -257,7 +229,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.white }]}>
+        <View style={[styles.header, { backgroundColor: colors.background }]}>
           <Image
             source={require('../../../assets/logo.png')}
             style={styles.logoImage}

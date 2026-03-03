@@ -699,7 +699,7 @@ export default function PaymentScreen() {
           <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
             {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Récapitulatif'}
           </Text>
-          <View style={[styles.orderCard, { backgroundColor: colors.white }]}>
+          <View style={[styles.orderCard, { backgroundColor: colors.card }]}>
             <View style={[styles.orderHeader, { borderBottomColor: colors.gray100 }]}>
               <Text style={[styles.orderEventTitle, { color: colors.gray900 }]} numberOfLines={2}>
                 {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
@@ -740,7 +740,7 @@ export default function PaymentScreen() {
               key={method.id}
               style={[
                 styles.methodCard,
-                { backgroundColor: colors.white, borderColor: colors.gray200 },
+                { backgroundColor: colors.card, borderColor: colors.gray200 },
                 selectedMethod === method.id && [styles.methodCardSelected, { borderColor: colors.primary, backgroundColor: colors.primaryBg }],
               ]}
               onPress={() => setSelectedMethod(method.id)}
@@ -793,7 +793,7 @@ export default function PaymentScreen() {
                       key={method.id}
                       style={[
                         styles.savedMethodChip,
-                        { borderColor: colors.gray200, backgroundColor: colors.white },
+                        { borderColor: colors.gray200, backgroundColor: colors.card },
                         selectedSavedMethod?.id === method.id && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
                       ]}
                       onPress={() => {
@@ -824,7 +824,7 @@ export default function PaymentScreen() {
                     style={[
                       styles.savedMethodChip,
                       styles.newMethodChip,
-                      { borderColor: colors.gray200, backgroundColor: colors.white },
+                      { borderColor: colors.gray200, backgroundColor: colors.card },
                       !selectedSavedMethod && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
                     ]}
                     onPress={() => {
@@ -851,7 +851,7 @@ export default function PaymentScreen() {
               </View>
             )}
 
-            <View style={[styles.phoneInputContainer, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+            <View style={[styles.phoneInputContainer, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
               <View style={[styles.phonePrefix, { backgroundColor: colors.gray100 }]}>
                 <Text style={[styles.phonePrefixText, { color: colors.gray700 }]}>{countryConfig?.phone_prefix || '+237'}</Text>
               </View>
@@ -885,7 +885,7 @@ export default function PaymentScreen() {
       </KeyboardAwareScrollView>
 
       {/* Bottom CTA */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.white, borderTopColor: colors.gray100 }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
         <View style={styles.totalContainer}>
           <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
           <Text style={[styles.totalValue, { color: colors.gray900 }]}>
@@ -905,7 +905,7 @@ export default function PaymentScreen() {
       {/* Processing Overlay */}
       {processing && (
         <View style={styles.processingOverlay}>
-          <View style={[styles.processingCard, { backgroundColor: colors.white }]}>
+          <View style={[styles.processingCard, { backgroundColor: colors.card }]}>
             {/* Icône animée */}
             <View style={[
               styles.processingIconContainer,
@@ -1027,7 +1027,7 @@ export default function PaymentScreen() {
 
             {/* Bouton Annuler */}
             <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: colors.error, backgroundColor: colors.white }, (cancelling || verifyingManually) && [styles.cancelButtonDisabled, { borderColor: colors.gray300, backgroundColor: colors.gray50 }]]}
+              style={[styles.cancelButton, { borderColor: colors.error, backgroundColor: colors.card }, (cancelling || verifyingManually) && [styles.cancelButtonDisabled, { borderColor: colors.gray300, backgroundColor: colors.gray50 }]]}
               onPress={cancelPayment}
               disabled={cancelling || verifyingManually}
             >

@@ -367,6 +367,9 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginRight: Spacing.sm,
   },
+  replyBarMine: {
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
   replyContent: {
     flex: 1,
   },

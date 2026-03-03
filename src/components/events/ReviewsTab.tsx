@@ -84,7 +84,7 @@ export default function ReviewsTab({
 
           {/* Comment Input */}
           <TextInput
-            style={[styles.reviewInput, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
+            style={[styles.reviewInput, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
             placeholder="Partagez votre experience (optionnel)"
             placeholderTextColor={colors.gray400}
             multiline

@@ -227,7 +227,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                   <Text style={styles.reserveHint}>Selectionnez une zone ci-dessus</Text>
                 )}
                 <TextInput
-                  style={[styles.reserveInput, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
+                  style={[styles.reserveInput, { backgroundColor: colors.surface, borderColor: colors.gray200, color: colors.gray900 }]}
                   placeholder="Numero de siege (ex: A12)"
                   placeholderTextColor={colors.gray400}
                   value={seatLabel}
@@ -266,7 +266,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
               {fp.image && (
                 <Image
                   source={{ uri: fp.image }}
-                  style={styles.floorPlanImage}
+                  style={[styles.floorPlanImage, { backgroundColor: colors.surface }]}
                   resizeMode="contain"
                 />
               )}

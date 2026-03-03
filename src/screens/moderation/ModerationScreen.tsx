@@ -234,7 +234,7 @@ export default function ModerationScreen() {
     const isBilletterie = item.event_type === 'billetterie';
 
     return (
-      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.gray100 }]}>
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
         {/* Image */}
         <View style={styles.cardImage}>
           {item.banner_image ? (
@@ -377,7 +377,7 @@ export default function ModerationScreen() {
       </View>
 
       {/* Stats */}
-      <View style={[styles.statsContainer, { backgroundColor: colors.white }]}>
+      <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
         <View style={styles.statItem}>
           <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.total}</Text>
           <Text style={[styles.statLabel, { color: colors.gray500 }]}>En attente</Text>
@@ -402,7 +402,7 @@ export default function ModerationScreen() {
 
       {/* Search & Filter */}
       <View style={styles.searchContainer}>
-        <View style={[styles.searchInputWrapper, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
           <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
             style={[styles.searchInput, { color: colors.gray900 }]}
@@ -422,7 +422,7 @@ export default function ModerationScreen() {
       {/* Filter Chips */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
-          style={[styles.filterChip, { backgroundColor: colors.white, borderColor: colors.gray200 }, filterType === 'all' && styles.filterChipActive]}
+          style={[styles.filterChip, { backgroundColor: colors.card, borderColor: colors.gray200 }, filterType === 'all' && styles.filterChipActive]}
           onPress={() => setFilterType('all')}
         >
           <Text style={[styles.filterChipText, { color: colors.gray600 }, filterType === 'all' && styles.filterChipTextActive]}>
@@ -499,7 +499,7 @@ export default function ModerationScreen() {
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             <View style={styles.modalHeader}>
               <View style={[styles.modalIconContainer, { backgroundColor: colors.errorLight }]}>
                 <Ionicons name="close-circle" size={24} color={colors.error} />

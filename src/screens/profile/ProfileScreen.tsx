@@ -165,7 +165,7 @@ export default function ProfileScreen() {
             {user?.profile_picture || user?.image ? (
               <View>
                 <LinearGradient
-                  colors={gradients.brand as unknown as string[]}
+                  colors={[...gradients.brand] as [string, string]}
                   style={styles.avatarGradientRing}
                 />
                 <Image
@@ -176,7 +176,7 @@ export default function ProfileScreen() {
             ) : (
               <View>
                 <LinearGradient
-                  colors={gradients.brand as unknown as string[]}
+                  colors={[...gradients.brand] as [string, string]}
                   style={styles.avatarGradientRing}
                 />
                 <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200, borderColor: colors.surface }]}>

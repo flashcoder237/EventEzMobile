@@ -153,7 +153,7 @@ export default function SessionDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -169,7 +169,7 @@ export default function SessionDetailsScreen() {
 
   if (!session) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -192,7 +192,7 @@ export default function SessionDetailsScreen() {
   const isFull = session.max_capacity != null && (session.registration_count || 0) >= session.max_capacity;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}
@@ -310,7 +310,7 @@ export default function SessionDetailsScreen() {
             onPress={handleOpenVirtualLink}
             activeOpacity={TOUCH_OPACITY}
           >
-            <View style={[styles.virtualIconContainer, { backgroundColor: colors.white }]}>
+            <View style={[styles.virtualIconContainer, { backgroundColor: colors.card }]}>
               <Ionicons name="videocam" size={24} color={colors.info} />
             </View>
             <View style={styles.virtualTextContainer}>
@@ -453,7 +453,7 @@ export default function SessionDetailsScreen() {
 
       {/* Registration Button (sticky at bottom) */}
       {session.requires_registration && (
-        <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.white }]}>
+        <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
           <TouchableOpacity
             style={[
               styles.registerButton,

@@ -62,14 +62,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const shadows = useMemo(() => ({ ...Shadows }), [isDark]);
 
-  const gradients = useMemo(() => {
+  const gradients = useMemo((): typeof Gradients => {
     if (!isDark) return Gradients;
     return {
       ...Gradients,
       brand: Gradients.brandDark,
-      primary: [DarkColors.primary, DarkColors.primaryDark] as const,
-      light: ['rgba(15,15,26,0)', 'rgba(15,15,26,1)'] as const,
-    };
+      primary: [DarkColors.primary, DarkColors.primaryDark],
+      light: ['rgba(15,15,26,0)', 'rgba(15,15,26,1)'],
+    } as unknown as typeof Gradients;
   }, [isDark]);
 
   const cardFooterBg = isDark ? CardFooterBg.dark : CardFooterBg.light;

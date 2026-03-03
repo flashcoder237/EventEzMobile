@@ -103,7 +103,7 @@ export default function LocationTab({ event }: LocationTabProps) {
       {hasPhysicalLocation && (
         <>
           {/* Venue Info */}
-          <View style={[styles.venueCard, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+          <View style={[styles.venueCard, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}>
             <View style={styles.venueIconRow}>
               <View style={styles.venueIcon}>
                 <Ionicons name="location" size={22} color={colors.primary} />
@@ -118,7 +118,7 @@ export default function LocationTab({ event }: LocationTabProps) {
 
             {/* Action Buttons */}
             <View style={styles.actionsRow}>
-              <TouchableOpacity style={[styles.actionButton, { borderColor: colors.gray200, backgroundColor: colors.white }]} onPress={openInGoogleMaps}>
+              <TouchableOpacity style={[styles.actionButton, { borderColor: colors.gray200, backgroundColor: colors.surface }]} onPress={openInGoogleMaps}>
                 <Ionicons name="map-outline" size={18} color={colors.primary} />
                 <Text style={[styles.actionButtonText, { color: colors.primary }]}>Google Maps</Text>
               </TouchableOpacity>
@@ -128,7 +128,7 @@ export default function LocationTab({ event }: LocationTabProps) {
                 <Text style={[styles.actionButtonText, { color: Colors.white }]}>Itineraire</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={[styles.actionButton, { borderColor: colors.gray200, backgroundColor: colors.white }]} onPress={openInWaze}>
+              <TouchableOpacity style={[styles.actionButton, { borderColor: colors.gray200, backgroundColor: colors.surface }]} onPress={openInWaze}>
                 <Ionicons name="car-outline" size={18} color={colors.primary} />
                 <Text style={[styles.actionButtonText, { color: colors.primary }]}>Waze</Text>
               </TouchableOpacity>
@@ -189,7 +189,7 @@ export default function LocationTab({ event }: LocationTabProps) {
 
       {/* Online Location */}
       {hasOnlineLocation && (
-        <View style={[styles.onlineCard, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+        <View style={[styles.onlineCard, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}>
           <View style={styles.venueIconRow}>
             <View style={[styles.venueIcon, { backgroundColor: colors.infoLight }]}>
               <Ionicons name="videocam" size={22} color={colors.info} />

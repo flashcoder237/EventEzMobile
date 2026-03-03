@@ -81,7 +81,7 @@ export default function TicketsTab({
               </View>
               {waitlistEntry ? (
                 <TouchableOpacity
-                  style={[styles.leaveWaitlistButton, { backgroundColor: colors.white, borderColor: colors.gray300 }]}
+                  style={[styles.leaveWaitlistButton, { backgroundColor: colors.card, borderColor: colors.gray300 }]}
                   onPress={onLeaveWaitlist}
                 >
                   <Text style={[styles.leaveWaitlistText, { color: colors.gray600 }]}>Quitter la liste</Text>

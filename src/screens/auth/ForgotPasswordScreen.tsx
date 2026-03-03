@@ -148,7 +148,7 @@ export default function ForgotPasswordScreen() {
             <View style={styles.form}>
               <View style={styles.inputContainer}>
                 <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
-                <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, error && styles.inputError]}>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, error && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
                   <View style={styles.inputIconContainer}>
                     <Ionicons name="mail-outline" size={20} color={colors.gray400} />
                   </View>

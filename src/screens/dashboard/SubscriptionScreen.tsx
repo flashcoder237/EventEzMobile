@@ -80,20 +80,20 @@ const getPlanIcon = (name: PlanName): keyof typeof MaterialCommunityIcons.glyphM
   }
 };
 
-const getStatusLabel = (status?: string): { label: string; color: string; bgColor: string } => {
+const getStatusLabel = (status?: string, dark?: boolean): { label: string; color: string; bgColor: string } => {
   switch (status) {
     case 'active':
-      return { label: 'Actif', color: '#16A34A', bgColor: '#DCFCE7' };
+      return { label: 'Actif', color: '#16A34A', bgColor: dark ? '#052E16' : '#DCFCE7' };
     case 'trial':
-      return { label: 'Essai', color: '#D97706', bgColor: '#FEF3C7' };
+      return { label: 'Essai', color: '#D97706', bgColor: dark ? '#422006' : '#FEF3C7' };
     case 'expired':
-      return { label: 'Expire', color: '#DC2626', bgColor: '#FEE2E2' };
+      return { label: 'Expire', color: '#DC2626', bgColor: dark ? '#450A0A' : '#FEE2E2' };
     case 'cancelled':
-      return { label: 'Annule', color: '#DC2626', bgColor: '#FEE2E2' };
+      return { label: 'Annule', color: '#DC2626', bgColor: dark ? '#450A0A' : '#FEE2E2' };
     case 'past_due':
-      return { label: 'En retard', color: '#D97706', bgColor: '#FEF3C7' };
+      return { label: 'En retard', color: '#D97706', bgColor: dark ? '#422006' : '#FEF3C7' };
     default:
-      return { label: 'Actif', color: '#16A34A', bgColor: '#DCFCE7' };
+      return { label: 'Actif', color: '#16A34A', bgColor: dark ? '#052E16' : '#DCFCE7' };
   }
 };
 
@@ -465,7 +465,7 @@ export default function SubscriptionScreen() {
                   </View>
                 </View>
                 {(() => {
-                  const statusInfo = getStatusLabel(subscription?.status);
+                  const statusInfo = getStatusLabel(subscription?.status, isDark);
                   return (
                     <View style={[styles.statusBadge, { backgroundColor: statusInfo.bgColor }]}>
                       <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
@@ -482,18 +482,18 @@ export default function SubscriptionScreen() {
           {/* Usage */}
           <View style={styles.usageSection}>
             <View style={styles.usageHeader}>
-              <Text style={styles.usageLabel}>Evenements actifs</Text>
-              <Text style={styles.usageValue}>
+              <Text style={[styles.usageLabel, { color: colors.gray500 }]}>Evenements actifs</Text>
+              <Text style={[styles.usageValue, { color: ink }]}>
                 {usedEvents} / {maxEvents === 999 || maxEvents > 100 ? 'illimite' : maxEvents}
               </Text>
             </View>
-            <View style={styles.progressBarBackground}>
+            <View style={[styles.progressBarBackground, { backgroundColor: surface }]}>
               <View
                 style={[
                   styles.progressBarFill,
                   {
                     width: `${Math.max(usageRatio * 100, 2)}%`,
-                    backgroundColor: usageRatio > 0.8 ? colors.error : VIOLET,
+                    backgroundColor: usageRatio > 0.8 ? colors.error : violet,
                   },
                 ]}
               />
@@ -504,7 +504,7 @@ export default function SubscriptionScreen() {
           {subscription?.next_billing_date && currentPlanName !== 'free' && (
             <View style={styles.billingDateRow}>
               <Ionicons name="calendar-outline" size={16} color={colors.gray500} />
-              <Text style={styles.billingDateText}>
+              <Text style={[styles.billingDateText, { color: colors.gray500 }]}>
                 Prochain renouvellement : {formatDate(subscription.next_billing_date)}
               </Text>
             </View>
@@ -513,7 +513,7 @@ export default function SubscriptionScreen() {
           {/* Cancel button for paid plans */}
           {subscription && currentPlanName !== 'free' && subscription.status === 'active' && (
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, isDark && { backgroundColor: '#3B1515', borderColor: '#7F1D1D' }]}
               onPress={handleCancel}
               activeOpacity={TOUCH_OPACITY}
             >
@@ -524,12 +524,12 @@ export default function SubscriptionScreen() {
 
         {/* Billing Cycle Toggle */}
         <View style={styles.toggleSection}>
-          <Text style={styles.sectionTitle}>Choisir un plan</Text>
-          <View style={styles.toggleContainer}>
+          <Text style={[styles.sectionTitle, { color: ink }]}>Choisir un plan</Text>
+          <View style={[styles.toggleContainer, { backgroundColor: surface }]}>
             <Animated.View
               style={[
                 styles.toggleSlider,
-                { transform: [{ translateX }] },
+                { backgroundColor: cardBg, transform: [{ translateX }] },
               ]}
             />
             <TouchableOpacity
@@ -540,7 +540,8 @@ export default function SubscriptionScreen() {
               <Text
                 style={[
                   styles.toggleText,
-                  billingCycle === 'monthly' && styles.toggleTextActive,
+                  { color: colors.gray500 },
+                  billingCycle === 'monthly' && [styles.toggleTextActive, { color: ink }],
                 ]}
               >
                 Mensuel
@@ -554,13 +555,14 @@ export default function SubscriptionScreen() {
               <Text
                 style={[
                   styles.toggleText,
-                  billingCycle === 'yearly' && styles.toggleTextActive,
+                  { color: colors.gray500 },
+                  billingCycle === 'yearly' && [styles.toggleTextActive, { color: ink }],
                 ]}
               >
                 Annuel
               </Text>
-              <View style={styles.saveBadge}>
-                <Text style={styles.saveBadgeText}>-20%</Text>
+              <View style={[styles.saveBadge, { backgroundColor: violet + '18' }]}>
+                <Text style={[styles.saveBadgeText, { color: violet }]}>-20%</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -583,13 +585,14 @@ export default function SubscriptionScreen() {
               key={plan.id}
               style={[
                 styles.planCard,
-                isCurrent && styles.planCardCurrent,
-                isPopular && !isCurrent && styles.planCardPopular,
+                { backgroundColor: cardBg, borderColor },
+                isCurrent && [styles.planCardCurrent, { borderColor: violet }],
+                isPopular && !isCurrent && [styles.planCardPopular, { borderColor: violet + '60' }],
               ]}
             >
               {/* Popular badge */}
               {isPopular && !isCurrent && (
-                <View style={styles.popularBadge}>
+                <View style={[styles.popularBadge, { backgroundColor: violet }]}>
                   <MaterialCommunityIcons name="star" size={12} color="#FFFFFF" />
                   <Text style={styles.popularBadgeText}>Populaire</Text>
                 </View>
@@ -597,9 +600,9 @@ export default function SubscriptionScreen() {
 
               {/* Current plan badge */}
               {isCurrent && (
-                <View style={styles.currentBadge}>
-                  <Ionicons name="checkmark-circle" size={14} color={VIOLET} />
-                  <Text style={styles.currentBadgeText}>Plan actuel</Text>
+                <View style={[styles.currentBadge, { backgroundColor: violet + '12' }]}>
+                  <Ionicons name="checkmark-circle" size={14} color={violet} />
+                  <Text style={[styles.currentBadgeText, { color: violet }]}>Plan actuel</Text>
                 </View>
               )}
 
@@ -613,16 +616,16 @@ export default function SubscriptionScreen() {
                   />
                 </View>
                 <View style={styles.planCardTitleSection}>
-                  <Text style={styles.planCardName}>{plan.display_name}</Text>
-                  <Text style={styles.planCardDescription}>{plan.description}</Text>
+                  <Text style={[styles.planCardName, { color: ink }]}>{plan.display_name}</Text>
+                  <Text style={[styles.planCardDescription, { color: colors.gray500 }]}>{plan.description}</Text>
                 </View>
               </View>
 
               {/* Price */}
-              <View style={styles.planPriceSection}>
-                <Text style={styles.planPrice}>{formatPrice(price)}</Text>
+              <View style={[styles.planPriceSection, { borderTopColor: borderColor }]}>
+                <Text style={[styles.planPrice, { color: ink }]}>{formatPrice(price)}</Text>
                 {price > 0 && (
-                  <Text style={styles.planPricePeriod}>
+                  <Text style={[styles.planPricePeriod, { color: colors.gray500 }]}>
                     / {billingCycle === 'monthly' ? 'mois' : 'an'}
                   </Text>
                 )}
@@ -633,14 +636,14 @@ export default function SubscriptionScreen() {
                 {(plan.features || []).map((feature, idx) => (
                   <View key={idx} style={styles.featureRow}>
                     <Ionicons name="checkmark-circle" size={18} color={planColor} />
-                    <Text style={styles.featureText}>{feature}</Text>
+                    <Text style={[styles.featureText, { color: colors.gray600 }]}>{feature}</Text>
                   </View>
                 ))}
 
                 {/* Visibility level */}
                 <View style={styles.featureRow}>
                   <Ionicons name="eye-outline" size={18} color={planColor} />
-                  <Text style={styles.featureText}>
+                  <Text style={[styles.featureText, { color: colors.gray600 }]}>
                     {plan.name === 'free'
                       ? 'Visibilite standard'
                       : plan.name === 'essential'
@@ -652,7 +655,7 @@ export default function SubscriptionScreen() {
                 {/* Max events */}
                 <View style={styles.featureRow}>
                   <Ionicons name="calendar-outline" size={18} color={planColor} />
-                  <Text style={styles.featureText}>
+                  <Text style={[styles.featureText, { color: colors.gray600 }]}>
                     {plan.max_active_events > 100
                       ? 'Evenements illimites'
                       : `Jusqu'a ${plan.max_active_events} evenements actifs`}
@@ -662,7 +665,7 @@ export default function SubscriptionScreen() {
                 {/* Max participants */}
                 <View style={styles.featureRow}>
                   <Ionicons name="people-outline" size={18} color={planColor} />
-                  <Text style={styles.featureText}>
+                  <Text style={[styles.featureText, { color: colors.gray600 }]}>
                     {plan.max_participants_per_event > 10000
                       ? 'Participants illimites'
                       : `Jusqu'a ${plan.max_participants_per_event.toLocaleString('fr-FR')} participants / evenement`}
@@ -697,7 +700,7 @@ export default function SubscriptionScreen() {
                     </TouchableOpacity>
                   ) : (
                     <TouchableOpacity
-                      style={styles.downgradeButton}
+                      style={[styles.downgradeButton, { backgroundColor: surface, borderColor }]}
                       onPress={() => handleUpgrade(plan)}
                       activeOpacity={TOUCH_OPACITY}
                       disabled={isProcessing}
@@ -707,7 +710,7 @@ export default function SubscriptionScreen() {
                       ) : (
                         <>
                           <Ionicons name="arrow-down-circle-outline" size={20} color={colors.gray600} />
-                          <Text style={styles.downgradeButtonText}>Passer a ce plan</Text>
+                          <Text style={[styles.downgradeButtonText, { color: colors.gray600 }]}>Passer a ce plan</Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -719,11 +722,11 @@ export default function SubscriptionScreen() {
         })}
 
         {/* Commission reminder */}
-        <View style={styles.commissionReminder}>
-          <View style={styles.commissionIconCircle}>
-            <Ionicons name="information-circle-outline" size={20} color={VIOLET} />
+        <View style={[styles.commissionReminder, { backgroundColor: violet + '08', borderColor: violet + '15' }]}>
+          <View style={[styles.commissionIconCircle, { backgroundColor: violet + '12' }]}>
+            <Ionicons name="information-circle-outline" size={20} color={violet} />
           </View>
-          <Text style={styles.commissionText}>
+          <Text style={[styles.commissionText, { color: colors.gray600 }]}>
             5% + 100 XAF par billet sur tous les plans
           </Text>
         </View>
@@ -742,10 +745,10 @@ export default function SubscriptionScreen() {
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+          <View style={[styles.modalContainer, { backgroundColor: cardBg }]}>
             {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
+            <View style={[styles.modalHeader, { borderBottomColor: borderColor }]}>
+              <Text style={[styles.modalTitle, { color: ink }]}>
                 {payment.step === 'select-method' && 'Methode de paiement'}
                 {payment.step === 'enter-phone' && 'Numero de telephone'}
                 {payment.step === 'processing' && 'Paiement en cours'}
@@ -755,7 +758,7 @@ export default function SubscriptionScreen() {
               {payment.step !== 'processing' && (
                 <TouchableOpacity
                   onPress={closePaymentModal}
-                  style={styles.modalCloseButton}
+                  style={[styles.modalCloseButton, { backgroundColor: surface }]}
                   activeOpacity={TOUCH_OPACITY}
                 >
                   <Ionicons name="close" size={24} color={colors.gray600} />
@@ -765,11 +768,11 @@ export default function SubscriptionScreen() {
 
             {/* Amount display */}
             {payment.step !== 'success' && payment.step !== 'failed' && (
-              <View style={styles.modalAmountRow}>
-                <Text style={styles.modalAmountLabel}>
+              <View style={[styles.modalAmountRow, { borderBottomColor: borderColor }]}>
+                <Text style={[styles.modalAmountLabel, { color: colors.gray500 }]}>
                   {payment.plan?.display_name} - {billingCycle === 'monthly' ? 'Mensuel' : 'Annuel'}
                 </Text>
-                <Text style={styles.modalAmountValue}>
+                <Text style={[styles.modalAmountValue, { color: ink }]}>
                   {formatPrice(payment.amount)}
                 </Text>
               </View>
@@ -780,7 +783,7 @@ export default function SubscriptionScreen() {
               <View style={styles.methodsContainer}>
                 {/* MTN Mobile Money */}
                 <TouchableOpacity
-                  style={styles.methodCard}
+                  style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
                   onPress={() => handleSelectPaymentMethod('mtn_money')}
                   activeOpacity={TOUCH_OPACITY}
                 >
@@ -788,15 +791,15 @@ export default function SubscriptionScreen() {
                     <MaterialCommunityIcons name="cellphone" size={24} color="#FFCC00" />
                   </View>
                   <View style={styles.methodInfo}>
-                    <Text style={styles.methodName}>MTN Mobile Money</Text>
-                    <Text style={styles.methodDescription}>Payer avec votre compte MTN MoMo</Text>
+                    <Text style={[styles.methodName, { color: ink }]}>MTN Mobile Money</Text>
+                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>Payer avec votre compte MTN MoMo</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
                 </TouchableOpacity>
 
                 {/* Orange Money */}
                 <TouchableOpacity
-                  style={styles.methodCard}
+                  style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
                   onPress={() => handleSelectPaymentMethod('orange_money')}
                   activeOpacity={TOUCH_OPACITY}
                 >
@@ -804,15 +807,15 @@ export default function SubscriptionScreen() {
                     <MaterialCommunityIcons name="cellphone" size={24} color="#FF6600" />
                   </View>
                   <View style={styles.methodInfo}>
-                    <Text style={styles.methodName}>Orange Money</Text>
-                    <Text style={styles.methodDescription}>Payer avec votre compte Orange Money</Text>
+                    <Text style={[styles.methodName, { color: ink }]}>Orange Money</Text>
+                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>Payer avec votre compte Orange Money</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
                 </TouchableOpacity>
 
                 {/* Credit Card */}
                 <TouchableOpacity
-                  style={styles.methodCard}
+                  style={[styles.methodCard, { backgroundColor: cardBg, borderColor }]}
                   onPress={() => handleSelectPaymentMethod('credit_card')}
                   activeOpacity={TOUCH_OPACITY}
                 >
@@ -820,8 +823,8 @@ export default function SubscriptionScreen() {
                     <Ionicons name="card-outline" size={24} color="#3B82F6" />
                   </View>
                   <View style={styles.methodInfo}>
-                    <Text style={styles.methodName}>Carte bancaire</Text>
-                    <Text style={styles.methodDescription}>Visa, Mastercard</Text>
+                    <Text style={[styles.methodName, { color: ink }]}>Carte bancaire</Text>
+                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>Visa, Mastercard</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
                 </TouchableOpacity>
@@ -831,15 +834,15 @@ export default function SubscriptionScreen() {
             {/* Step: Enter Phone */}
             {payment.step === 'enter-phone' && (
               <View style={styles.phoneContainer}>
-                <Text style={styles.phoneLabel}>
+                <Text style={[styles.phoneLabel, { color: ink }]}>
                   Numero {payment.method === 'mtn_money' ? 'MTN' : 'Orange'}
                 </Text>
-                <View style={styles.phoneInputRow}>
-                  <View style={styles.phonePrefix}>
-                    <Text style={styles.phonePrefixText}>+237</Text>
+                <View style={[styles.phoneInputRow, { borderColor }]}>
+                  <View style={[styles.phonePrefix, { backgroundColor: surface, borderRightColor: borderColor }]}>
+                    <Text style={[styles.phonePrefixText, { color: colors.gray500 }]}>+237</Text>
                   </View>
                   <TextInput
-                    style={styles.phoneInput}
+                    style={[styles.phoneInput, { color: ink }]}
                     value={payment.phone}
                     onChangeText={(text) =>
                       setPayment((prev) => ({ ...prev, phone: text.replace(/[^0-9]/g, '') }))
@@ -876,7 +879,7 @@ export default function SubscriptionScreen() {
                   activeOpacity={TOUCH_OPACITY}
                 >
                   <Ionicons name="arrow-back" size={16} color={colors.gray600} />
-                  <Text style={styles.backToMethodsText}>Changer de methode</Text>
+                  <Text style={[styles.backToMethodsText, { color: colors.gray600 }]}>Changer de methode</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -885,16 +888,16 @@ export default function SubscriptionScreen() {
             {payment.step === 'processing' && (
               <View style={styles.processingContainer}>
                 <LoadingSpinner />
-                <Text style={styles.processingTitle}>Traitement en cours...</Text>
-                <Text style={styles.processingDescription}>
+                <Text style={[styles.processingTitle, { color: ink }]}>Traitement en cours...</Text>
+                <Text style={[styles.processingDescription, { color: colors.gray500 }]}>
                   {payment.method === 'credit_card'
                     ? 'Redirection vers la page de paiement securisee...'
                     : 'Veuillez valider le paiement sur votre telephone.'}
                 </Text>
                 {payment.method && payment.method !== 'credit_card' && (
-                  <View style={styles.processingHint}>
-                    <Ionicons name="information-circle-outline" size={18} color={VIOLET} />
-                    <Text style={styles.processingHintText}>
+                  <View style={[styles.processingHint, { backgroundColor: violet + '10' }]}>
+                    <Ionicons name="information-circle-outline" size={18} color={violet} />
+                    <Text style={[styles.processingHintText, { color: violet }]}>
                       {payment.method === 'mtn_money'
                         ? 'Composez *126# si vous ne recevez pas la notification.'
                         : 'Composez #150*50# si vous ne recevez pas la notification.'}
@@ -907,11 +910,11 @@ export default function SubscriptionScreen() {
             {/* Step: Success */}
             {payment.step === 'success' && (
               <View style={styles.resultContainer}>
-                <View style={styles.successIconCircle}>
+                <View style={[styles.successIconCircle, isDark && { backgroundColor: '#052E16' }]}>
                   <Ionicons name="checkmark-circle" size={56} color={colors.success} />
                 </View>
-                <Text style={styles.resultTitle}>Paiement reussi !</Text>
-                <Text style={styles.resultDescription}>
+                <Text style={[styles.resultTitle, { color: ink }]}>Paiement reussi !</Text>
+                <Text style={[styles.resultDescription, { color: colors.gray500 }]}>
                   Votre abonnement {payment.plan?.display_name} est maintenant actif.
                 </Text>
                 <TouchableOpacity
@@ -936,11 +939,11 @@ export default function SubscriptionScreen() {
             {/* Step: Failed */}
             {payment.step === 'failed' && (
               <View style={styles.resultContainer}>
-                <View style={styles.failedIconCircle}>
+                <View style={[styles.failedIconCircle, isDark && { backgroundColor: '#450A0A' }]}>
                   <Ionicons name="close-circle" size={56} color={colors.error} />
                 </View>
-                <Text style={styles.resultTitle}>Paiement echoue</Text>
-                <Text style={styles.resultDescription}>
+                <Text style={[styles.resultTitle, { color: ink }]}>Paiement echoue</Text>
+                <Text style={[styles.resultDescription, { color: colors.gray500 }]}>
                   {payment.errorMessage || 'Une erreur est survenue lors du paiement.'}
                 </Text>
                 <TouchableOpacity
@@ -969,7 +972,7 @@ export default function SubscriptionScreen() {
                   onPress={closePaymentModal}
                   activeOpacity={TOUCH_OPACITY}
                 >
-                  <Text style={styles.backToMethodsText}>Annuler</Text>
+                  <Text style={[styles.backToMethodsText, { color: colors.gray600 }]}>Annuler</Text>
                 </TouchableOpacity>
               </View>
             )}

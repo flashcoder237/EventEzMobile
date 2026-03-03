@@ -69,7 +69,7 @@ export default function GamificationScreen() {
       </View>
 
       {/* Points Card */}
-      <View style={[styles.pointsCard, { backgroundColor: colors.white }]}>
+      <View style={[styles.pointsCard, { backgroundColor: colors.card }]}>
         <Ionicons name="trophy" size={32} color="#FFD700" />
         <Text style={[styles.pointsValue, { color: colors.primary }]}>{points?.total_points || points?.balance || 0}</Text>
         <Text style={[styles.pointsLabel, { color: colors.textLight }]}>Points</Text>
@@ -78,7 +78,7 @@ export default function GamificationScreen() {
       {/* Tabs */}
       <View style={[styles.tabs, { backgroundColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'badges' && [styles.activeTab, { backgroundColor: colors.white }]]}
+          style={[styles.tab, activeTab === 'badges' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('badges')}
         >
           <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'badges' && { color: colors.primary }]}>
@@ -86,7 +86,7 @@ export default function GamificationScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'leaderboard' && [styles.activeTab, { backgroundColor: colors.white }]]}
+          style={[styles.tab, activeTab === 'leaderboard' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('leaderboard')}
         >
           <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'leaderboard' && { color: colors.primary }]}>
@@ -136,7 +136,7 @@ export default function GamificationScreen() {
             </View>
           }
           renderItem={({ item, index }) => (
-            <View style={[styles.leaderboardItem, { backgroundColor: colors.white }, index < 3 && { borderLeftColor: colors.primary, borderLeftWidth: 3 }]}>
+            <View style={[styles.leaderboardItem, { backgroundColor: colors.card }, index < 3 && { borderLeftColor: colors.primary, borderLeftWidth: 3 }]}>
               <Text style={[styles.rank, { color: colors.textLight }, index < 3 && styles.topRank]}>
                 {index === 0 ? '\u{1F947}' : index === 1 ? '\u{1F948}' : index === 2 ? '\u{1F949}' : `${index + 1}`}
               </Text>

@@ -3,9 +3,8 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { View, StyleSheet } from 'react-native';
 import * as Linking from 'expo-linking';
-import * as Font from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
   Montserrat_300Light,
@@ -30,11 +29,13 @@ import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import ConnectionStatusBar from './src/components/common/ConnectionStatusBar';
+import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
-import { Colors } from './src/constants/theme';
-import { LoadingSpinner } from './src/components/ui/LoadingOverlay';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
 import { RootStackParamList } from './src/types';
+
+// Keep native splash visible while we load fonts
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const linking: LinkingOptions<RootStackParamList> = {
   prefixes: [
@@ -85,13 +86,11 @@ function AppContent() {
 
 export default function App() {
   const [fontsLoaded] = useFonts({
-    // Montserrat - Body text
     Montserrat_300Light,
     Montserrat_400Regular,
     Montserrat_500Medium,
     Montserrat_600SemiBold,
     Montserrat_700Bold,
-    // Funnel Display - Headings
     FunnelDisplay_400Regular,
     FunnelDisplay_500Medium,
     FunnelDisplay_600SemiBold,
@@ -99,10 +98,22 @@ export default function App() {
     FunnelDisplay_800ExtraBold,
   });
 
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Once fonts are loaded, hide the native splash and show our animated one
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
+
+  const handleSplashFinish = useCallback(() => {
+    setShowSplash(false);
+  }, []);
+
+  // While fonts load, the native splash screen stays visible (preventAutoHideAsync)
   if (!fontsLoaded) {
-    return (
-<LoadingSpinner message="Chargement..." />
-    );
+    return null;
   }
 
   return (
@@ -111,18 +122,10 @@ export default function App() {
         <SafeAreaProvider>
           <ThemeProvider>
             <AppContent />
+            {showSplash && <AnimatedSplash onFinish={handleSplashFinish} />}
           </ThemeProvider>
         </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-  },
-});

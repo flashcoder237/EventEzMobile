@@ -562,7 +562,7 @@ export default function ExploreScreen() {
     <TouchableOpacity
       style={[
         styles.filterOption,
-        { borderColor: colors.gray200, backgroundColor: colors.white },
+        { borderColor: colors.gray200, backgroundColor: colors.card },
         currentValue === value && { backgroundColor: colors.primary, borderColor: colors.primary },
       ]}
       onPress={onPress}
@@ -588,7 +588,7 @@ export default function ExploreScreen() {
     >
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <View style={styles.modalOverlay}>
-        <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
           {/* Header */}
           <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
             <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Filtres</Text>
@@ -865,7 +865,7 @@ export default function ExploreScreen() {
       />
 
       {/* Radius Slider Panel */}
-      <View style={[styles.radiusSliderContainer, { backgroundColor: colors.white }]}>
+      <View style={[styles.radiusSliderContainer, { backgroundColor: colors.card }]}>
         <View style={styles.radiusSliderHeader}>
           <Ionicons name="radio-button-on" size={18} color={colors.primary} />
           <Text style={[styles.radiusSliderTitle, { color: colors.gray700 }]}>Rayon de recherche</Text>
@@ -890,16 +890,16 @@ export default function ExploreScreen() {
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
-        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.white }]} onPress={centerOnUser}>
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={centerOnUser}>
           <Ionicons name="locate" size={22} color={colors.gray700} />
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.white }]} onPress={fetchMapEvents}>
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.card }]} onPress={fetchMapEvents}>
           <Ionicons name="refresh" size={22} color={colors.gray700} />
         </TouchableOpacity>
       </View>
 
       {/* Events Count */}
-      <View style={[styles.countBadge, { backgroundColor: colors.white }]}>
+      <View style={[styles.countBadge, { backgroundColor: colors.card }]}>
         <Ionicons name="location" size={14} color={colors.primary} />
         <Text style={[styles.countText, { color: colors.gray700 }]}>
           {filteredMarkers.length} événement{filteredMarkers.length > 1 ? 's' : ''}
@@ -910,7 +910,7 @@ export default function ExploreScreen() {
       {/* Selected Event Card */}
       {selectedMarker && (
         <TouchableOpacity
-          style={[styles.selectedCard, { backgroundColor: colors.white }]}
+          style={[styles.selectedCard, { backgroundColor: colors.card }]}
           onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
           activeOpacity={0.95}
         >
@@ -942,11 +942,11 @@ export default function ExploreScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Search Bar */}
-      <View style={[styles.searchContainer, { backgroundColor: colors.white }]}>
+      <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
         <View style={[styles.searchBar, { backgroundColor: colors.gray50 }]}>
           <Ionicons name="search" size={20} color={colors.gray400} />
           <TextInput

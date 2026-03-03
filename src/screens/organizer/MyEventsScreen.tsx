@@ -411,7 +411,7 @@ export default function MyEventsScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mes événements</Text>
           <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: colors.white }]}
+            style={[styles.addButton, { backgroundColor: colors.card }]}
             onPress={() => navigation.navigate('EventCreate')}
           >
             <Ionicons name="add" size={24} color="#7C3AED" />

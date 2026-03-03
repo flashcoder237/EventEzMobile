@@ -95,14 +95,14 @@ function ErrorFallbackUI({
   const { colors, isDark } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.white }]}>
+    <View style={[styles.container, { backgroundColor: colors.card }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           {/* Illustration */}
           <View style={styles.illustrationContainer}>
             <View style={[styles.outerCircle, { backgroundColor: colors.primaryBg }]}>
-              <View style={[styles.innerCircle, { backgroundColor: colors.white }]}>
+              <View style={[styles.innerCircle, { backgroundColor: colors.card }]}>
                 <Ionicons
                   name="sad-outline"
                   size={64}

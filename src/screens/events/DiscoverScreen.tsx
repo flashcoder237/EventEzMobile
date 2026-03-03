@@ -46,32 +46,12 @@ import { useTabletLayout } from '../../hooks/useTabletLayout';
 import { EmptyState } from '../../components/ui';
 import EventCard from '../../components/events/EventCard';
 import CategoryCard from '../../components/events/CategoryCard';
+import CategoryIcon from '../../components/icons/CategoryIcons';
 import WebViewMap from '../../components/maps/WebViewMap';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Category icons map
-const categoryIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
-  'musique': 'musical-notes',
-  'music': 'musical-notes',
-  'concert': 'musical-notes',
-  'sport': 'football',
-  'sports': 'football',
-  'art': 'color-palette',
-  'culture': 'library',
-  'food': 'restaurant',
-  'gastronomie': 'restaurant',
-  'tech': 'hardware-chip',
-  'technologie': 'hardware-chip',
-  'business': 'briefcase',
-  'education': 'school',
-  'santé': 'fitness',
-  'health': 'fitness',
-  'film': 'film',
-  'cinéma': 'film',
-  'default': 'calendar',
-};
 
 // Filter types
 type EventTypeFilter = 'all' | 'billetterie' | 'inscription';
@@ -430,10 +410,6 @@ export default function DiscoverScreen() {
     setShowFilters(false);
   };
 
-  const getCategoryIcon = (name: string): keyof typeof Ionicons.glyphMap => {
-    return categoryIcons[name.toLowerCase()] || categoryIcons.default;
-  };
-
   const navigateToEvent = (eventId: string) => {
     navigation.navigate('EventDetails', { eventId });
   };
@@ -522,20 +498,27 @@ export default function DiscoverScreen() {
       <TouchableOpacity
         style={[styles.chip, { backgroundColor: colors.gray100 }, !selectedCategory && { backgroundColor: colors.primary }]}
         onPress={() => setSelectedCategory(null)}
+        activeOpacity={0.7}
       >
+        <CategoryIcon name="sparkles" size={14} color={!selectedCategory ? colors.white : colors.gray600} strokeWidth={2} />
         <Text style={[styles.chipText, { color: colors.gray600 }, !selectedCategory && { color: colors.white }]}>Tous</Text>
       </TouchableOpacity>
-      {categories.map(cat => (
-        <TouchableOpacity
-          key={cat.id}
-          style={[styles.chip, { backgroundColor: colors.gray100 }, selectedCategory === cat.id && { backgroundColor: colors.primary }]}
-          onPress={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-        >
-          <Text style={[styles.chipText, { color: colors.gray600 }, selectedCategory === cat.id && { color: colors.white }]}>
-            {cat.name}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {categories.map(cat => {
+        const isActive = selectedCategory === cat.id;
+        return (
+          <TouchableOpacity
+            key={cat.id}
+            style={[styles.chip, { backgroundColor: colors.gray100 }, isActive && { backgroundColor: colors.primary }]}
+            onPress={() => setSelectedCategory(isActive ? null : cat.id)}
+            activeOpacity={0.7}
+          >
+            <CategoryIcon name={cat.name} size={14} color={isActive ? colors.white : colors.gray600} strokeWidth={2} />
+            <Text style={[styles.chipText, { color: colors.gray600 }, isActive && { color: colors.white }]}>
+              {cat.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
     </ScrollView>
   );
 
@@ -912,7 +895,7 @@ export default function DiscoverScreen() {
                 activateSearch();
               }}
             >
-              <Ionicons name={getCategoryIcon(cat.name)} size={16} color={colors.primary} />
+              <CategoryIcon name={cat.name} size={16} color={colors.primary} strokeWidth={2} />
               <Text style={[styles.discoverChipText, { color: colors.gray700 }]}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
@@ -1039,7 +1022,6 @@ export default function DiscoverScreen() {
                   <CategoryCard
                     id={item.id.toString()}
                     name={item.name}
-                    icon={getCategoryIcon(item.name)}
                     image={item.image}
                     eventCount={item.event_count || item.events_count}
                     variant="large"
@@ -1169,8 +1151,8 @@ const styles = StyleSheet.create({
   // === DISCOVER CHIPS ===
   discoverChips: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: Spacing.xs,
+    paddingTop: Spacing.xs,
+    paddingBottom: 0,
     gap: Spacing.xs,
   },
   discoverChip: {
@@ -1190,7 +1172,7 @@ const styles = StyleSheet.create({
 
   // === SECTIONS ===
   section: {
-    marginTop: Spacing['3xl'],   
+    marginTop: Spacing.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1268,21 +1250,24 @@ const styles = StyleSheet.create({
   // === CHIPS (search) ===
   chipsList: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingVertical: Spacing.xs,
     gap: Spacing.sm,
   },
   chip: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 34,
     borderRadius: BorderRadius.full,
     backgroundColor: Colors.gray100,
-    marginRight: Spacing.sm,
   },
   chipActive: {
     backgroundColor: Colors.primary,
   },
   chipText: {
-    ...TextStyles.label,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
     color: Colors.gray600,
   },
   chipTextActive: {

@@ -9,7 +9,7 @@ import * as SecureStore from 'expo-secure-store';
 const PAYMENT_METHODS_KEY = 'eventez_saved_payment_methods';
 const MAX_SAVED_METHODS = 5;
 
-export type PaymentMethodType = 'mtn_money' | 'orange_money' | 'wave' | 'mpesa' | 'airtel_money';
+export type PaymentMethodType = 'mtn_money' | 'orange_money' | 'credit_card' | 'wave' | 'mpesa' | 'airtel_money';
 
 export interface SavedPaymentMethod {
   id: string;

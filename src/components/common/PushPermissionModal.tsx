@@ -21,7 +21,7 @@ export default function PushPermissionModal({ visible, onAccept, onDecline }: Pu
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: colors.white }]}>
+        <View style={[styles.container, { backgroundColor: colors.card }]}>
           {/* Icon */}
           <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
             <Ionicons name="notifications" size={40} color={colors.primary} />

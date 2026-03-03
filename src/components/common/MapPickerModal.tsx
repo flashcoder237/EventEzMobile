@@ -291,7 +291,7 @@ export default function MapPickerModal({
     >
       <KeyboardAvoidingView
         behavior="padding"
-        style={[styles.container, { backgroundColor: colors.white }]}
+        style={[styles.container, { backgroundColor: colors.card }]}
       >
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.primary }]}>
@@ -306,7 +306,7 @@ export default function MapPickerModal({
         </View>
 
         {/* Search Bar */}
-        <View style={[styles.searchContainer, { backgroundColor: colors.white, borderBottomColor: colors.gray100 }]}>
+        <View style={[styles.searchContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
           <View style={[styles.searchInputContainer, { backgroundColor: colors.gray50 }]}>
             <Ionicons name="search" size={18} color={colors.gray400} />
             <TextInput
@@ -352,7 +352,7 @@ export default function MapPickerModal({
 
         {/* Search Results */}
         {searchResults.length > 0 && (
-          <View style={[styles.searchResultsContainer, { backgroundColor: colors.white }]}>
+          <View style={[styles.searchResultsContainer, { backgroundColor: colors.card }]}>
             <FlatList
               data={searchResults}
               keyExtractor={(item) => item.place_id.toString()}

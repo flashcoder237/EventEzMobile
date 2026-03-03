@@ -161,18 +161,18 @@ Vous avez egalement le droit d'introduire une reclamation aupres de l'autorite d
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.gray50 }]}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Politique de confidentialite</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Politique de confidentialite</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -182,8 +182,8 @@ Vous avez egalement le droit d'introduire une reclamation aupres de l'autorite d
         contentContainerStyle={styles.scrollContent}
       >
         {/* Introduction */}
-        <View style={styles.introCard}>
-          <Ionicons name="shield-checkmark" size={32} color={Colors.primary} />
+        <View style={[styles.introCard, { backgroundColor: colors.gray50 }]}>
+          <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
           <Text style={styles.introTitle}>Politique de Confidentialite</Text>
           <Text style={styles.introText}>
             Derniere mise a jour : Janvier 2026
@@ -193,14 +193,14 @@ Vous avez egalement le droit d'introduire une reclamation aupres de l'autorite d
         {/* Sections */}
         {sections.map((section, index) => (
           <View key={index} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <Text style={styles.sectionContent}>{section.content}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{section.title}</Text>
+            <Text style={[styles.sectionContent, { color: colors.gray600 }]}>{section.content}</Text>
           </View>
         ))}
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Ionicons name="lock-closed" size={24} color={Colors.primary} />
+        <View style={[styles.footer, { backgroundColor: colors.primaryBg }]}>
+          <Ionicons name="lock-closed" size={24} color={colors.primary} />
           <Text style={styles.footerText}>
             Vos donnees sont protegees. Nous prenons votre vie privee au serieux.
           </Text>

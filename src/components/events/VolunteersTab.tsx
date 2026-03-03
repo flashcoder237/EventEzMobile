@@ -196,7 +196,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                 {!hasApplied && !isFull && (
                   <>
                     {isApplying ? (
-                      <View style={[styles.applyForm, { backgroundColor: colors.white }]}>
+                      <View style={[styles.applyForm, { backgroundColor: colors.card }]}>
                         <Text style={[styles.subsectionTitle, { color: colors.gray700 }]}>Postuler</Text>
                         <TextInput
                           style={[styles.applyInput, styles.applyTextarea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}

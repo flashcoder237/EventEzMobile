@@ -283,7 +283,7 @@ export default function FollowUserButton({
         presentationStyle="pageSheet"
         onRequestClose={() => setShowPreferences(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.white }]}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.card }]}>
           <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
             <TouchableOpacity onPress={() => setShowPreferences(false)}>
               <Text style={[styles.modalCancel, { color: colors.gray600 }]}>Annuler</Text>

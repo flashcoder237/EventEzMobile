@@ -143,7 +143,7 @@ export default function TransferTicketModal({
         behavior="padding"
         style={styles.overlay}
       >
-        <View style={[styles.container, { backgroundColor: colors.white }]}>
+        <View style={[styles.container, { backgroundColor: colors.card }]}>
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
             <Text style={[styles.title, { color: colors.gray900 }]}>Transférer un billet</Text>
@@ -210,7 +210,7 @@ export default function TransferTicketModal({
                 <Text style={[styles.label, { color: colors.gray700 }]}>Nombre de billets à transférer</Text>
                 <View style={styles.quantitySelector}>
                   <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.white, borderColor: colors.gray200 }, quantity <= 1 && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
+                    style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }, quantity <= 1 && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
                     onPress={() => quantity > 1 && setQuantity(quantity - 1)}
                     disabled={quantity <= 1}
                   >
@@ -222,7 +222,7 @@ export default function TransferTicketModal({
                   </TouchableOpacity>
                   <Text style={[styles.quantityValue, { color: colors.gray900 }]}>{quantity}</Text>
                   <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.white, borderColor: colors.gray200 }, quantity >= ticket.quantity && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
+                    style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }, quantity >= ticket.quantity && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
                     onPress={() => quantity < ticket.quantity && setQuantity(quantity + 1)}
                     disabled={quantity >= ticket.quantity}
                   >

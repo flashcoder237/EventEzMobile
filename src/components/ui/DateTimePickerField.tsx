@@ -148,7 +148,7 @@ export default function DateTimePickerField({
       {Platform.OS === 'ios' && pickerStep !== 'hidden' && (
         <Modal transparent animationType="slide">
           <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
                 <TouchableOpacity onPress={() => setPickerStep('hidden')}>
                   <Text style={[styles.modalCancel, { color: colors.gray500 }]}>Annuler</Text>
