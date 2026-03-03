@@ -55,6 +55,9 @@ export interface User {
   // Statistiques (SerializerMethodField)
   followers_count?: number;
   following_count?: number;
+  // Django built-in fields
+  is_active?: boolean; // Django User.is_active
+  date_joined?: string; // Django User.date_joined
   // --- Client-side aliases (non renvoyes par le backend) ---
   phone?: string; // Alias client pour phone_number
   user_type?: OrganizerType; // Alias client pour organizer_type
@@ -1334,6 +1337,104 @@ export interface AuditLog {
   resource_id?: string; // Alias client pour object_id
 }
 
+export interface AuditStatistics {
+  total_logs: number;
+  by_action: Record<string, number>;
+  by_severity: Record<string, number>;
+  recent_critical: AuditLog[];
+}
+
+// ============================================
+// TREASURY TYPES
+// ============================================
+
+export interface PlatformWallet {
+  id: string;
+  total_revenue: number;
+  total_commissions: number;
+  total_expenses: number;
+  total_payroll: number;
+  total_dividends: number;
+  net_balance: number;
+  last_computed_at?: string;
+}
+
+export interface PlatformTransaction {
+  id: string;
+  transaction_type: 'commission' | 'subscription' | 'expense' | 'payroll' | 'dividend' | 'adjustment';
+  amount: number;
+  description: string;
+  reference_id?: string;
+  created_at: string;
+}
+
+export interface StaffMember {
+  id: string;
+  user: any;
+  role: string;
+  monthly_salary: number;
+  is_active: boolean;
+  hired_at: string;
+  terminated_at?: string;
+}
+
+export interface StaffPayment {
+  id: string;
+  staff: StaffMember;
+  amount: number;
+  period_start: string;
+  period_end: string;
+  status: 'pending' | 'paid' | 'failed';
+  paid_at?: string;
+}
+
+export interface Expense {
+  id: string;
+  title: string;
+  description?: string;
+  amount: number;
+  category: string;
+  is_recurring: boolean;
+  recurrence_period?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'paid';
+  created_at: string;
+  approved_by?: any;
+}
+
+export interface Shareholder {
+  id: string;
+  user: any;
+  name: string;
+  ownership_percentage: number;
+  is_active: boolean;
+  joined_at: string;
+}
+
+export interface DividendDistribution {
+  id: string;
+  total_amount: number;
+  period_start: string;
+  period_end: string;
+  status: 'draft' | 'approved' | 'distributed';
+  created_at: string;
+  payments?: DividendPayment[];
+}
+
+export interface DividendPayment {
+  id: string;
+  shareholder: Shareholder;
+  amount: number;
+  status: 'pending' | 'paid' | 'failed';
+}
+
+export interface TreasuryOverview {
+  wallet: PlatformWallet;
+  recent_transactions: PlatformTransaction[];
+  monthly_revenue: number;
+  monthly_expenses: number;
+  pending_payroll: number;
+}
+
 // ============================================
 // NAVIGATION TYPES
 // ============================================
@@ -1409,6 +1510,20 @@ export type RootStackParamList = {
   Volunteers: { eventId?: string };
   DiscountManagement: { eventId: string };
   DiscountForm: { eventId: string; discountId?: number };
+  Help: undefined;
+  AnalyticsDashboard: undefined;
+  Reports: undefined;
+  AdminDashboard: undefined;
+  UserManagement: undefined;
+  UserEdit: { userId: string };
+  SubscriptionManagement: undefined;
+  AuditLogs: undefined;
+  PlatformSettings: undefined;
+  TreasuryOverview: undefined;
+  TreasuryStaff: undefined;
+  TreasuryExpenses: undefined;
+  TreasuryShareholders: undefined;
+  TreasuryReports: undefined;
 };
 
 export type AuthStackParamList = {

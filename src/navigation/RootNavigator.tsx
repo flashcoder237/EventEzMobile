@@ -74,6 +74,28 @@ import ReferralScreen from '../screens/dashboard/ReferralScreen';
 import VolunteerScreen from '../screens/organizer/VolunteerScreen';
 import SubscriptionScreen from '../screens/dashboard/SubscriptionScreen';
 
+// Help Screen
+import HelpScreen from '../screens/profile/HelpScreen';
+
+// Analytics Screens
+import AnalyticsDashboardScreen from '../screens/organizer/AnalyticsDashboardScreen';
+import ReportsScreen from '../screens/organizer/ReportsScreen';
+
+// Admin Screens
+import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
+import UserManagementScreen from '../screens/admin/UserManagementScreen';
+import UserEditScreen from '../screens/admin/UserEditScreen';
+import SubscriptionManagementScreen from '../screens/admin/SubscriptionManagementScreen';
+import AuditLogsScreen from '../screens/admin/AuditLogsScreen';
+import PlatformSettingsScreen from '../screens/admin/PlatformSettingsScreen';
+
+// Treasury Screens
+import TreasuryOverviewScreen from '../screens/admin/treasury/TreasuryOverviewScreen';
+import TreasuryStaffScreen from '../screens/admin/treasury/TreasuryStaffScreen';
+import TreasuryExpensesScreen from '../screens/admin/treasury/TreasuryExpensesScreen';
+import TreasuryShareholdersScreen from '../screens/admin/treasury/TreasuryShareholdersScreen';
+import TreasuryReportsScreen from '../screens/admin/treasury/TreasuryReportsScreen';
+
 // Onboarding Screen
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
@@ -448,6 +470,84 @@ export default function RootNavigator() {
           <Stack.Screen
             name="Subscription"
             component={SubscriptionScreen}
+            options={{ headerShown: false }}
+          />
+
+          {/* Help Screen */}
+          <Stack.Screen
+            name="Help"
+            component={HelpScreen}
+            options={{ headerShown: false }}
+          />
+
+          {/* Analytics Screens */}
+          <Stack.Screen
+            name="AnalyticsDashboard"
+            component={AnalyticsDashboardScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="Reports"
+            component={ReportsScreen}
+            options={{ headerShown: false }}
+          />
+
+          {/* Admin Screens */}
+          <Stack.Screen
+            name="AdminDashboard"
+            component={AdminDashboardScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="UserManagement"
+            component={UserManagementScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="UserEdit"
+            component={UserEditScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SubscriptionManagement"
+            component={SubscriptionManagementScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="AuditLogs"
+            component={AuditLogsScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PlatformSettings"
+            component={PlatformSettingsScreen}
+            options={{ headerShown: false }}
+          />
+
+          {/* Treasury Screens */}
+          <Stack.Screen
+            name="TreasuryOverview"
+            component={TreasuryOverviewScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TreasuryStaff"
+            component={TreasuryStaffScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TreasuryExpenses"
+            component={TreasuryExpensesScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TreasuryShareholders"
+            component={TreasuryShareholdersScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TreasuryReports"
+            component={TreasuryReportsScreen}
             options={{ headerShown: false }}
           />
         </>

@@ -129,6 +129,7 @@ export default function ProfileScreen() {
 
   const isOrganizer = user?.role === 'organizer';
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
@@ -275,6 +276,12 @@ export default function ProfileScreen() {
                 onPress={() => navigation.navigate('Wallet')}
               />
               <MenuItem
+                icon="analytics-outline"
+                title="Analytics"
+                subtitle="Statistiques et rapports"
+                onPress={() => navigation.navigate('AnalyticsDashboard')}
+              />
+              <MenuItem
                 icon={user?.is_verified ? "checkmark-circle" : "shield-outline"}
                 title="Vérification du compte"
                 subtitle={user?.is_verified ? "Compte vérifié" : "Vérifier votre identité"}
@@ -355,18 +362,62 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Administration Section (admin only) */}
+        {isAdmin && (
+          <View style={styles.menuSection}>
+            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Administration</Text>
+            <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
+              <MenuItem
+                icon="speedometer-outline"
+                title="Dashboard admin"
+                subtitle="Vue d'ensemble plateforme"
+                onPress={() => navigation.navigate('AdminDashboard')}
+              />
+              <MenuItem
+                icon="people-outline"
+                title="Utilisateurs"
+                subtitle="Gestion des comptes"
+                onPress={() => navigation.navigate('UserManagement')}
+              />
+              <MenuItem
+                icon="diamond-outline"
+                title="Abonnements"
+                subtitle="Plans et tarifs"
+                onPress={() => navigation.navigate('SubscriptionManagement')}
+              />
+              <MenuItem
+                icon="shield-outline"
+                title="Logs d'audit"
+                subtitle="Journalisation"
+                onPress={() => navigation.navigate('AuditLogs')}
+              />
+              <MenuItem
+                icon="settings-outline"
+                title="Parametres plateforme"
+                onPress={() => navigation.navigate('PlatformSettings')}
+              />
+              <MenuItem
+                icon="cash-outline"
+                title="Tresorerie"
+                subtitle="Finances et paie"
+                onPress={() => navigation.navigate('TreasuryOverview')}
+              />
+            </View>
+          </View>
+        )}
+
         <View style={styles.menuSection}>
           <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Support</Text>
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="help-circle-outline"
               title="Centre d'aide"
-              onPress={() => showAlert('Info', 'Bientôt disponible')}
+              onPress={() => navigation.navigate('Help')}
             />
             <MenuItem
               icon="document-text-outline"
               title="Conditions d'utilisation"
-              onPress={() => showAlert('Info', 'Consulter les CGU')}
+              onPress={() => navigation.navigate('Terms')}
             />
           </View>
         </View>

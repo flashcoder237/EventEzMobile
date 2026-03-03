@@ -263,6 +263,15 @@ export default function DashboardScreen() {
                 onPress={() => navigation.navigate('Gamification')}
               />
             </StaggeredItem>
+            {isOrganizer && (
+              <StaggeredItem index={7} style={styles.quickActionWrapper}>
+                <QuickAction
+                  icon="analytics-outline"
+                  title="Analytics"
+                  onPress={() => navigation.navigate('AnalyticsDashboard')}
+                />
+              </StaggeredItem>
+            )}
           </View>
         </View>
 

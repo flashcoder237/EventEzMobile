@@ -30,6 +30,7 @@ import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
 import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
+import AddToCalendarButton from '../../components/events/AddToCalendarButton';
 import SponsorsTab from '../../components/events/SponsorsTab';
 import VenueTab from '../../components/events/VenueTab';
 import VolunteersTab from '../../components/events/VolunteersTab';
@@ -411,7 +412,7 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Share Buttons */}
+          {/* Share & Calendar Buttons */}
           <View style={styles.shareRow}>
             <Text style={[styles.shareLabel, { color: colors.gray500 }]}>Partager :</Text>
             <View style={styles.shareButtons}>
@@ -421,6 +422,7 @@ export default function EventDetailsScreen() {
               <TouchableOpacity style={[styles.shareButton, { backgroundColor: isDark ? '#1A3D1A' : '#E7F5E7' }]} onPress={handleShareToWhatsApp}>
                 <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
               </TouchableOpacity>
+              <AddToCalendarButton event={event} size="sm" />
             </View>
           </View>
 

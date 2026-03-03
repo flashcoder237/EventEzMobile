@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   StatusBar,
   Modal,
   TextInput,
+  Share,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -32,6 +34,9 @@ import {
 } from '../../constants/theme';
 import { SkeletonList, RegistrationItemSkeleton } from '../../components/ui/Skeleton';
 import Badge from '../../components/ui/Badge';
+import RegistrationSearchBar from '../../components/organizer/RegistrationSearchBar';
+import BulkActionBar from '../../components/organizer/BulkActionBar';
+import SendEmailModal from '../../components/organizer/SendEmailModal';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventRegistrations'>;
@@ -41,19 +46,19 @@ type FilterType = 'all' | 'pending' | 'approved' | 'rejected';
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   pending: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
   pending_approval: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
-  confirmed: { label: 'Confirmé', color: '#10B981', bgColor: '#D1FAE5' },
-  approved: { label: 'Approuvé', color: '#10B981', bgColor: '#D1FAE5' },
-  rejected: { label: 'Refusé', color: '#EF4444', bgColor: '#FEE2E2' },
-  cancelled: { label: 'Annulé', color: '#6B7280', bgColor: '#F3F4F6' },
-  completed: { label: 'Complété', color: '#3B82F6', bgColor: '#DBEAFE' },
-  checked_in: { label: 'Enregistré', color: '#8B5CF6', bgColor: '#EDE9FE' },
+  confirmed: { label: 'Confirme', color: '#10B981', bgColor: '#D1FAE5' },
+  approved: { label: 'Approuve', color: '#10B981', bgColor: '#D1FAE5' },
+  rejected: { label: 'Refuse', color: '#EF4444', bgColor: '#FEE2E2' },
+  cancelled: { label: 'Annule', color: '#6B7280', bgColor: '#F3F4F6' },
+  completed: { label: 'Complete', color: '#3B82F6', bgColor: '#DBEAFE' },
+  checked_in: { label: 'Enregistre', color: '#8B5CF6', bgColor: '#EDE9FE' },
 };
 
 const approvalStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   not_required: { label: 'Auto', color: '#6B7280', bgColor: '#F3F4F6' },
   pending: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
-  approved: { label: 'Approuvé', color: '#10B981', bgColor: '#D1FAE5' },
-  rejected: { label: 'Refusé', color: '#EF4444', bgColor: '#FEE2E2' },
+  approved: { label: 'Approuve', color: '#10B981', bgColor: '#D1FAE5' },
+  rejected: { label: 'Refuse', color: '#EF4444', bgColor: '#FEE2E2' },
 };
 
 const getApprovalBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' => {
@@ -84,27 +89,31 @@ export default function EventRegistrationsScreen() {
   const [processing, setProcessing] = useState(false);
   const [eventTitle, setEventTitle] = useState('');
 
+  // New state for advanced features
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
   useEffect(() => {
     fetchRegistrations();
   }, [eventId]);
 
   const fetchRegistrations = async () => {
     try {
-      // Fetch event details and registrations in parallel
       const [eventResponse, registrationsResponse] = await Promise.all([
         eventsAPI.getEvent(eventId),
         registrationsAPI.getRegistrations({ event: eventId, event_id: eventId }),
       ]);
 
-      // Set event title
       if (eventResponse.data) {
         setEventTitle(eventResponse.data.title || '');
       }
 
-      // Set registrations - filter to make sure we only get this event's registrations
       const data = registrationsResponse.data.results || registrationsResponse.data || [];
       const filteredData = data.filter((r: Registration) => {
-        // Handle both cases: event as string or event as object
         const regEventId = typeof r.event === 'string' ? r.event : r.event?.id;
         return regEventId === eventId;
       });
@@ -132,25 +141,164 @@ export default function EventRegistrationsScreen() {
     };
   }, [registrations]);
 
-  // Filtered registrations
+  // Search + Filter
   const filteredRegistrations = useMemo(() => {
+    let result = registrations;
+
+    // Apply filter
     switch (filter) {
       case 'pending':
-        return registrations.filter(r => r.approval_status === 'pending');
+        result = result.filter(r => r.approval_status === 'pending');
+        break;
       case 'approved':
-        return registrations.filter(r => r.approval_status === 'approved' || r.status === 'confirmed');
+        result = result.filter(r => r.approval_status === 'approved' || r.status === 'confirmed');
+        break;
       case 'rejected':
-        return registrations.filter(r => r.approval_status === 'rejected');
-      default:
-        return registrations;
+        result = result.filter(r => r.approval_status === 'rejected');
+        break;
     }
-  }, [registrations, filter]);
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r => {
+        const name = getDisplayName(r).toLowerCase();
+        const email = getEmail(r).toLowerCase();
+        const ref = (r.reference_code || '').toLowerCase();
+        return name.includes(q) || email.includes(q) || ref.includes(q);
+      });
+    }
+
+    return result;
+  }, [registrations, filter, searchQuery]);
+
+  // Selection handlers
+  const handleLongPress = useCallback((id: string) => {
+    setSelectionMode(true);
+    setSelectedIds(new Set([id]));
+  }, []);
+
+  const toggleSelection = useCallback((id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        if (next.size === 0) setSelectionMode(false);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  }, []);
+
+  const cancelSelection = useCallback(() => {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  // Bulk actions
+  const handleBulkApprove = async () => {
+    const ids = Array.from(selectedIds);
+    setBulkLoading(true);
+    try {
+      await registrationsAPI.bulkApprove(ids);
+      setRegistrations(prev =>
+        prev.map(r => ids.includes(r.id)
+          ? { ...r, approval_status: 'approved' as any, status: 'confirmed' as any }
+          : r
+        )
+      );
+      showSuccess('Succes', `${ids.length} inscription(s) approuvee(s)`);
+      cancelSelection();
+    } catch (error) {
+      showError('Erreur', 'Impossible d\'approuver les inscriptions');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleBulkReject = async () => {
+    const ids = Array.from(selectedIds);
+    if (Alert.prompt) {
+      Alert.prompt(
+        'Raison du refus',
+        'Veuillez indiquer la raison du refus',
+        async (reason: string) => {
+          if (!reason?.trim()) return;
+          setBulkLoading(true);
+          try {
+            await registrationsAPI.bulkReject(ids, reason);
+            setRegistrations(prev =>
+              prev.map(r => ids.includes(r.id)
+                ? { ...r, approval_status: 'rejected' as any, status: 'rejected' as any }
+                : r
+              )
+            );
+            showSuccess('Succes', `${ids.length} inscription(s) refusee(s)`);
+            cancelSelection();
+          } catch (error) {
+            showError('Erreur', 'Impossible de refuser les inscriptions');
+          } finally {
+            setBulkLoading(false);
+          }
+        }
+      );
+    } else {
+      // Fallback for Android (no Alert.prompt)
+      setBulkLoading(true);
+      registrationsAPI.bulkReject(ids, 'Refuse par l\'organisateur')
+        .then(() => {
+          setRegistrations(prev =>
+            prev.map(r => ids.includes(r.id)
+              ? { ...r, approval_status: 'rejected' as any, status: 'rejected' as any }
+              : r
+            )
+          );
+          showSuccess('Succes', `${ids.length} inscription(s) refusee(s)`);
+          cancelSelection();
+        })
+        .catch(() => showError('Erreur', 'Impossible de refuser les inscriptions'))
+        .finally(() => setBulkLoading(false));
+    }
+  };
+
+  const handleBulkCheckIn = async () => {
+    const ids = Array.from(selectedIds);
+    setBulkLoading(true);
+    try {
+      await registrationsAPI.bulkCheckIn(ids);
+      setRegistrations(prev =>
+        prev.map(r => ids.includes(r.id)
+          ? { ...r, status: 'checked_in' as any }
+          : r
+        )
+      );
+      showSuccess('Succes', `${ids.length} participant(s) enregistre(s)`);
+      cancelSelection();
+    } catch (error) {
+      showError('Erreur', 'Impossible d\'enregistrer les participants');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  // Export
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await registrationsAPI.exportRegistrations({ event_id: eventId, format: 'csv' });
+      showSuccess('Succes', 'Export telecharge avec succes');
+    } catch (error) {
+      showError('Erreur', 'Impossible d\'exporter les inscriptions');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const handleApprove = async (registration: Registration) => {
     setProcessing(true);
     try {
       await registrationsAPI.approveRegistration(registration.id);
-      // Update local state
       setRegistrations(prev =>
         prev.map(r => r.id === registration.id
           ? { ...r, approval_status: 'approved' as any, status: 'confirmed' as any }
@@ -158,7 +306,7 @@ export default function EventRegistrationsScreen() {
         )
       );
       setShowDetailModal(false);
-      showSuccess('Succès', 'Inscription approuvée avec succès');
+      showSuccess('Succes', 'Inscription approuvee avec succes');
     } catch (error) {
       console.error('Erreur approbation:', error);
       showError('Erreur', 'Impossible d\'approuver l\'inscription');
@@ -178,7 +326,6 @@ export default function EventRegistrationsScreen() {
     setProcessing(true);
     try {
       await registrationsAPI.rejectRegistration(selectedRegistration.id, rejectReason);
-      // Update local state
       setRegistrations(prev =>
         prev.map(r => r.id === selectedRegistration.id
           ? { ...r, approval_status: 'rejected' as any, status: 'rejected' as any }
@@ -188,7 +335,7 @@ export default function EventRegistrationsScreen() {
       setShowRejectModal(false);
       setShowDetailModal(false);
       setRejectReason('');
-      showSuccess('Succès', 'Inscription refusée');
+      showSuccess('Succes', 'Inscription refusee');
     } catch (error) {
       console.error('Erreur refus:', error);
       showError('Erreur', 'Impossible de refuser l\'inscription');
@@ -234,21 +381,36 @@ export default function EventRegistrationsScreen() {
   };
 
   const renderRegistration = ({ item }: { item: Registration }) => {
-    const statusInfo = statusConfig[item.status] || statusConfig.pending;
     const approvalInfo = approvalStatusConfig[item.approval_status || 'not_required'];
     const isPending = item.approval_status === 'pending';
+    const isSelected = selectedIds.has(item.id);
 
     return (
       <TouchableOpacity
-        style={[styles.registrationCard, { backgroundColor: colors.card, borderColor: colors.gray100 }, isPending && styles.pendingCard]}
+        style={[
+          styles.registrationCard,
+          { backgroundColor: colors.card, borderColor: colors.gray100 },
+          isPending && styles.pendingCard,
+          isSelected && { borderColor: '#7C3AED', borderWidth: 2 },
+        ]}
         onPress={() => {
-          setSelectedRegistration(item);
-          setShowDetailModal(true);
+          if (selectionMode) {
+            toggleSelection(item.id);
+          } else {
+            setSelectedRegistration(item);
+            setShowDetailModal(true);
+          }
         }}
+        onLongPress={() => handleLongPress(item.id)}
         activeOpacity={0.7}
       >
         <View style={styles.registrationHeader}>
           <View style={styles.participantInfo}>
+            {selectionMode && (
+              <View style={[styles.checkbox, isSelected && styles.checkboxChecked]}>
+                {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+              </View>
+            )}
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
                 {getDisplayName(item).substring(0, 2).toUpperCase()}
@@ -281,7 +443,7 @@ export default function EventRegistrationsScreen() {
           </View>
         </View>
 
-        {isPending && (
+        {!selectionMode && isPending && (
           <View style={styles.quickActions}>
             <TouchableOpacity
               style={styles.approveButton}
@@ -309,12 +471,14 @@ export default function EventRegistrationsScreen() {
         <Ionicons name="people-outline" size={48} color={colors.gray400} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
-        {filter === 'pending' ? 'Aucune inscription en attente' : 'Aucune inscription'}
+        {searchQuery ? 'Aucun resultat' : filter === 'pending' ? 'Aucune inscription en attente' : 'Aucune inscription'}
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        {filter === 'pending'
-          ? 'Toutes les inscriptions ont été traitées.'
-          : 'Les inscriptions à cet événement apparaîtront ici.'}
+        {searchQuery
+          ? 'Essayez avec d\'autres termes de recherche.'
+          : filter === 'pending'
+          ? 'Toutes les inscriptions ont ete traitees.'
+          : 'Les inscriptions a cet evenement apparaitront ici.'}
       </Text>
     </View>
   );
@@ -359,6 +523,25 @@ export default function EventRegistrationsScreen() {
                   <Text style={styles.headerSubtitle} numberOfLines={1}>{eventTitle}</Text>
                 )}
               </View>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={styles.headerActionBtn}
+                  onPress={() => setShowEmailModal(true)}
+                >
+                  <Ionicons name="mail-outline" size={20} color={Colors.white} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.headerActionBtn}
+                  onPress={handleExport}
+                  disabled={exporting}
+                >
+                  {exporting ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <Ionicons name="download-outline" size={20} color={Colors.white} />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Stats */}
@@ -377,15 +560,20 @@ export default function EventRegistrationsScreen() {
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{stats.approved}</Text>
-                <Text style={styles.statLabel}>Approuvés</Text>
+                <Text style={styles.statLabel}>Approuves</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{stats.rejected}</Text>
-                <Text style={styles.statLabel}>Refusés</Text>
+                <Text style={styles.statLabel}>Refuses</Text>
               </View>
             </View>
           </LinearGradient>
+
+          {/* Search Bar */}
+          <View style={[styles.searchContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
+            <RegistrationSearchBar onSearch={setSearchQuery} />
+          </View>
 
           {/* Filters */}
           <View style={[styles.filtersContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
@@ -396,7 +584,7 @@ export default function EventRegistrationsScreen() {
                 onPress={() => setFilter(f)}
               >
                 <Text style={[styles.filterText, { color: colors.gray600 }, filter === f && styles.filterTextActive]}>
-                  {f === 'all' ? 'Tous' : f === 'pending' ? 'En attente' : f === 'approved' ? 'Approuvés' : 'Refusés'}
+                  {f === 'all' ? 'Tous' : f === 'pending' ? 'En attente' : f === 'approved' ? 'Approuves' : 'Refuses'}
                 </Text>
                 {f === 'pending' && stats.pending > 0 && (
                   <View style={styles.filterBadge}>
@@ -412,7 +600,7 @@ export default function EventRegistrationsScreen() {
             data={filteredRegistrations}
             renderItem={renderRegistration}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
+            contentContainerStyle={[styles.listContent, selectionMode && { paddingBottom: 120 }]}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}
             refreshControl={
@@ -421,6 +609,27 @@ export default function EventRegistrationsScreen() {
                 onRefresh={onRefresh}
                 tintColor={colors.primary}
               />
+            }
+          />
+
+          {/* Bulk Action Bar */}
+          <BulkActionBar
+            selectedCount={selectedIds.size}
+            onApprove={handleBulkApprove}
+            onReject={handleBulkReject}
+            onCheckIn={handleBulkCheckIn}
+            onCancel={cancelSelection}
+            loading={bulkLoading}
+          />
+
+          {/* Send Email Modal */}
+          <SendEmailModal
+            visible={showEmailModal}
+            onClose={() => setShowEmailModal(false)}
+            registrationIds={
+              selectedIds.size > 0
+                ? Array.from(selectedIds)
+                : registrations.map(r => r.id)
             }
           />
 
@@ -436,7 +645,7 @@ export default function EventRegistrationsScreen() {
                 {selectedRegistration && (
                   <>
                     <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
-                      <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Détails de l'inscription</Text>
+                      <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Details de l'inscription</Text>
                       <TouchableOpacity onPress={() => setShowDetailModal(false)}>
                         <Ionicons name="close" size={24} color={colors.gray600} />
                       </TouchableOpacity>
@@ -452,7 +661,7 @@ export default function EventRegistrationsScreen() {
                         <Text style={[styles.detailValue, { color: colors.gray900 }]}>{getEmail(selectedRegistration)}</Text>
                       </View>
                       <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
-                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Référence</Text>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Reference</Text>
                         <Text style={[styles.detailValue, { color: colors.gray900 }]}>{selectedRegistration.reference_code}</Text>
                       </View>
                       <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
@@ -470,7 +679,7 @@ export default function EventRegistrationsScreen() {
 
                       {selectedRegistration.form_data && Object.keys(selectedRegistration.form_data).length > 0 && (
                         <View style={[styles.formDataSection, { backgroundColor: colors.gray50 }]}>
-                          <Text style={[styles.formDataTitle, { color: colors.gray700 }]}>Données du formulaire</Text>
+                          <Text style={[styles.formDataTitle, { color: colors.gray700 }]}>Donnees du formulaire</Text>
                           {Object.entries(selectedRegistration.form_data).map(([key, value]) => (
                             <View key={key} style={styles.formDataRow}>
                               <Text style={[styles.formDataKey, { color: colors.gray500 }]}>{key}</Text>
@@ -573,427 +782,81 @@ export default function EventRegistrationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  rootContainer: {
-    flex: 1,
-    backgroundColor: '#7C3AED',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: Colors.gray50,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Header
-  header: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes['2xl'],
-    color: Colors.white,
-  },
-  headerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-  },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    color: Colors.white,
-  },
-  statLabel: {
-    fontSize: FontSizes.xs,
-    color: 'rgba(255,255,255,0.8)',
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    marginHorizontal: Spacing.sm,
-  },
-
-  // Filters
-  filtersContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-    gap: Spacing.sm,
-  },
-  filterButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray100,
-  },
-  filterButtonActive: {
-    backgroundColor: Colors.primary,
-  },
-  filterText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    color: Colors.gray600,
-  },
-  filterTextActive: {
-    color: Colors.white,
-  },
-  filterBadge: {
-    marginLeft: Spacing.xs,
-    backgroundColor: Colors.error,
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 6,
-  },
-  filterBadgeText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 10,
-    color: Colors.white,
-  },
-
-  // List
-  listContent: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
-    flexGrow: 1,
-  },
-
-  // Registration Card
-  registrationCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
-  },
-  pendingCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: '#F59E0B',
-  },
-  registrationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  participantInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatarPlaceholder: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSizes.sm,
-    color: Colors.white,
-  },
-  participantDetails: {
-    flex: 1,
-    marginLeft: Spacing.sm,
-  },
-  participantName: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
-  },
-  participantEmail: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginTop: 2,
-  },
-  registrationInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  infoText: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray500,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    marginTop: Spacing.md,
-    gap: Spacing.sm,
-  },
-  approveButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#10B981',
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    gap: 4,
-  },
-  approveButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    color: Colors.white,
-  },
-  rejectButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FEE2E2',
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    gap: 4,
-  },
-  rejectButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    color: Colors.error,
-  },
-
-  // Empty
-  emptyContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing['3xl'],
-  },
-  emptyIconContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: Colors.gray100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
-  },
-  emptyTitle: {
-    ...TextStyles.h3,
-    marginBottom: Spacing.sm,
-  },
-  emptyText: {
-    fontSize: FontSizes.base,
-    color: Colors.gray500,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-
-  // Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-  },
-  modalTitle: {
-    ...TextStyles.h4,
-  },
-  modalBody: {
-    padding: Spacing.lg,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray50,
-  },
-  detailLabel: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-  },
-  detailValue: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray900,
-    maxWidth: '60%',
-    textAlign: 'right',
-  },
-  formDataSection: {
-    marginTop: Spacing.lg,
-    padding: Spacing.md,
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.md,
-  },
-  formDataTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    color: Colors.gray700,
-    marginBottom: Spacing.sm,
-  },
-  formDataRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.xs,
-  },
-  formDataKey: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-  },
-  formDataValue: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray900,
-    maxWidth: '60%',
-    textAlign: 'right',
-  },
-  modalFooter: {
-    flexDirection: 'row',
-    padding: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    gap: Spacing.sm,
-  },
-  modalRejectButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    backgroundColor: '#FEE2E2',
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  modalRejectButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.error,
-  },
-  modalApproveButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    backgroundColor: '#10B981',
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  modalApproveButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.white,
-  },
-
-  // Reject Modal
-  rejectModalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    margin: Spacing.lg,
-    padding: Spacing.lg,
-  },
-  rejectModalHeader: {
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-  },
-  rejectModalTitle: {
-    ...TextStyles.h4,
-    marginTop: Spacing.sm,
-  },
-  rejectModalSubtitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginTop: Spacing.xs,
-    textAlign: 'center',
-  },
-  rejectInput: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.md,
-    padding: Spacing.md,
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
-    minHeight: 100,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  rejectModalFooter: {
-    flexDirection: 'row',
-    marginTop: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  rejectCancelButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.gray100,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  rejectCancelButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.gray700,
-  },
-  rejectConfirmButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.error,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-  },
-  rejectConfirmButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.white,
-  },
+  rootContainer: { flex: 1, backgroundColor: '#7C3AED' },
+  safeArea: { flex: 1 },
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.xl },
+  headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.lg },
+  backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
+  headerTitleContainer: { flex: 1 },
+  headerTitle: { fontFamily: FontFamily.displayBold, fontSize: FontSizes['2xl'], color: Colors.white },
+  headerSubtitle: { fontSize: FontSizes.sm, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  headerActions: { flexDirection: 'row', gap: Spacing.sm },
+  headerActionBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
+  statsRow: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: BorderRadius.lg, padding: Spacing.md },
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.xl, color: Colors.white },
+  statLabel: { fontSize: FontSizes.xs, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
+  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: Spacing.sm },
+  searchContainer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  filtersContainer: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1, gap: Spacing.sm },
+  filterButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.full },
+  filterButtonActive: { backgroundColor: Colors.primary },
+  filterText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
+  filterTextActive: { color: Colors.white },
+  filterBadge: { marginLeft: Spacing.xs, backgroundColor: Colors.error, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
+  filterBadgeText: { fontFamily: FontFamily.bold, fontSize: 10, color: Colors.white },
+  listContent: { padding: Spacing.lg, paddingBottom: Spacing['3xl'], flexGrow: 1 },
+  registrationCard: { borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1 },
+  pendingCard: { borderLeftWidth: 3, borderLeftColor: '#F59E0B' },
+  registrationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
+  participantInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#7C3AED', alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
+  checkboxChecked: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm, color: Colors.white },
+  participantDetails: { flex: 1, marginLeft: Spacing.sm },
+  participantName: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.base },
+  participantEmail: { fontSize: FontSizes.sm, marginTop: 2 },
+  registrationInfo: { flexDirection: 'row', justifyContent: 'space-between', paddingTop: Spacing.sm, borderTopWidth: 1 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  infoText: { fontSize: FontSizes.xs },
+  quickActions: { flexDirection: 'row', marginTop: Spacing.md, gap: Spacing.sm },
+  approveButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#10B981', paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, gap: 4 },
+  approveButtonText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, color: Colors.white },
+  rejectButton: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FEE2E2', paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, gap: 4 },
+  rejectButtonText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, color: Colors.error },
+  emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'] },
+  emptyIconContainer: { width: 100, height: 100, borderRadius: 50, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.lg },
+  emptyTitle: { ...TextStyles.h3, marginBottom: Spacing.sm },
+  emptyText: { fontSize: FontSizes.base, textAlign: 'center', lineHeight: 22 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { borderTopLeftRadius: BorderRadius.xl, borderTopRightRadius: BorderRadius.xl, maxHeight: '80%' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.lg, borderBottomWidth: 1 },
+  modalTitle: { ...TextStyles.h4 },
+  modalBody: { padding: Spacing.lg },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: Spacing.sm, borderBottomWidth: 1 },
+  detailLabel: { fontSize: FontSizes.sm },
+  detailValue: { fontSize: FontSizes.sm, fontFamily: FontFamily.medium, maxWidth: '60%', textAlign: 'right' },
+  formDataSection: { marginTop: Spacing.lg, padding: Spacing.md, borderRadius: BorderRadius.md },
+  formDataTitle: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, marginBottom: Spacing.sm },
+  formDataRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.xs },
+  formDataKey: { fontSize: FontSizes.sm },
+  formDataValue: { fontSize: FontSizes.sm, maxWidth: '60%', textAlign: 'right' },
+  modalFooter: { flexDirection: 'row', padding: Spacing.lg, borderTopWidth: 1, gap: Spacing.sm },
+  modalRejectButton: { flex: 1, paddingVertical: Spacing.md, backgroundColor: '#FEE2E2', borderRadius: BorderRadius.lg, alignItems: 'center' },
+  modalRejectButtonText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.base, color: Colors.error },
+  modalApproveButton: { flex: 1, paddingVertical: Spacing.md, backgroundColor: '#10B981', borderRadius: BorderRadius.lg, alignItems: 'center' },
+  modalApproveButtonText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.base, color: Colors.white },
+  rejectModalContent: { borderRadius: BorderRadius.xl, margin: Spacing.lg, padding: Spacing.lg },
+  rejectModalHeader: { alignItems: 'center', marginBottom: Spacing.lg },
+  rejectModalTitle: { ...TextStyles.h4, marginTop: Spacing.sm },
+  rejectModalSubtitle: { fontSize: FontSizes.sm, marginTop: Spacing.xs, textAlign: 'center' },
+  rejectInput: { borderRadius: BorderRadius.md, padding: Spacing.md, fontSize: FontSizes.base, minHeight: 100, borderWidth: 1 },
+  rejectModalFooter: { flexDirection: 'row', marginTop: Spacing.lg, gap: Spacing.sm },
+  rejectCancelButton: { flex: 1, paddingVertical: Spacing.md, borderRadius: BorderRadius.lg, alignItems: 'center' },
+  rejectCancelButtonText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.base },
+  rejectConfirmButton: { flex: 1, paddingVertical: Spacing.md, backgroundColor: Colors.error, borderRadius: BorderRadius.lg, alignItems: 'center' },
+  rejectConfirmButtonText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.base, color: Colors.white },
 });
