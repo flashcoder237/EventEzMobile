@@ -20,6 +20,7 @@ import { notificationsAPI } from '../../api/client';
 import { Notification, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { MyNotifications } from '../../components/illustrations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 import {
@@ -385,9 +386,7 @@ export default function NotificationsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
-        <Ionicons name="notifications-off-outline" size={48} color={colors.gray400} />
-      </View>
+      <MyNotifications color={colors.primary} size={160} />
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
         {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
       </Text>

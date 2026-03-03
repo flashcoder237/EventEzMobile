@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Events as EventsIllustration } from '../../components/illustrations';
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import {
@@ -357,9 +358,7 @@ export default function MyEventsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: colors.gray50 }]}>
-        <Ionicons name="calendar-outline" size={48} color={colors.gray400} />
-      </View>
+      <EventsIllustration color={colors.primary} size={160} />
       <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
         {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Aucun événement'}
       </Text>

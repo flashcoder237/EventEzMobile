@@ -18,6 +18,7 @@ import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { Emails } from '../../components/illustrations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -273,7 +274,7 @@ export default function InvitationsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="mail-outline" size={48} color={colors.textLight} />
+            <Emails color={colors.primary} size={150} />
             <Text style={[styles.emptyText, { color: colors.textLight }]}>
               {activeTab === 'received' ? 'Aucune invitation recue' : 'Aucune invitation envoyee'}
             </Text>

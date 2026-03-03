@@ -2,11 +2,11 @@ import React, { memo } from 'react';
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
@@ -126,10 +126,11 @@ function EventCard({
         scaleValue={0.98}
         haptic="light"
       >
-        <Image
+        <Animated.Image
           source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
           style={[styles.horizontalImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
+          sharedTransitionTag={`event-image-${id}`}
         />
         <View style={styles.horizontalContent}>
           <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
@@ -163,10 +164,11 @@ function EventCard({
   if (variant === 'compact') {
     return (
       <TouchableOpacity onPress={onPress} style={[styles.compactCard, { backgroundColor: colors.card }, cardShadow]} activeOpacity={0.7}>
-        <Image
+        <Animated.Image
           source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
           style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
+          sharedTransitionTag={`event-image-${id}`}
         />
         <View style={styles.compactContent}>
           <Text style={[styles.dateAccentSmall, { color: colors.accent }]}>{formatDateShort()}</Text>
@@ -189,10 +191,11 @@ function EventCard({
         haptic="light"
       >
         <View style={styles.featuredImageContainer}>
-          <Image
+          <Animated.Image
             source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
             style={[styles.featuredImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
+            sharedTransitionTag={`event-image-${id}`}
           />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.5)']}
@@ -253,10 +256,11 @@ function EventCard({
         haptic="light"
       >
         <View style={{ position: 'relative' }}>
-          <Image
+          <Animated.Image
             source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
             style={[styles.gridImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
+            sharedTransitionTag={`event-image-${id}`}
           />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.3)']}
@@ -301,10 +305,11 @@ function EventCard({
       scaleValue={0.97}
       haptic="light"
     >
-      <Image
+      <Animated.Image
         source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
         style={[styles.defaultImage, { backgroundColor: colors.gray100 }]}
         resizeMode="cover"
+        sharedTransitionTag={`event-image-${id}`}
       />
       <View style={styles.defaultContent}>
         <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>

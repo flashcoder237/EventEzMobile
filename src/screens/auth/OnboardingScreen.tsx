@@ -28,6 +28,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Events as EventsIllustration, Searching as SearchingIllustration, OnlinePayments, Conference } from '../../components/illustrations';
 import GradientButton from '../../components/ui/GradientButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -42,6 +43,7 @@ interface OnboardingSlide {
   title: string;
   subtitle: string;
   description: string;
+  illustration: React.ReactElement;
 }
 
 const slides: OnboardingSlide[] = [
@@ -54,6 +56,7 @@ const slides: OnboardingSlide[] = [
     subtitle: 'Votre compagnon evenementiel',
     description:
       'Decouvrez les meilleurs evenements pres de chez vous et ne manquez plus aucune occasion.',
+    illustration: <EventsIllustration color="#7C3AED" size={160} />,
   },
   {
     id: '2',
@@ -64,6 +67,7 @@ const slides: OnboardingSlide[] = [
     subtitle: 'Parcourez, filtrez, decouvrez',
     description:
       'Explorez par categorie, localisation ou date. Trouvez exactement ce qui vous interesse.',
+    illustration: <SearchingIllustration color="#3B82F6" size={160} />,
   },
   {
     id: '3',
@@ -74,6 +78,7 @@ const slides: OnboardingSlide[] = [
     subtitle: 'Paiement mobile facile',
     description:
       'Payez facilement via Mobile Money, carte bancaire ou PayPal. Recevez vos billets instantanement.',
+    illustration: <OnlinePayments color="#22C55E" size={160} />,
   },
   {
     id: '4',
@@ -84,6 +89,7 @@ const slides: OnboardingSlide[] = [
     subtitle: 'Check-in avec QR code',
     description:
       'Presentez votre QR code a l\'entree et profitez pleinement de votre evenement. C\'est aussi simple que ca !',
+    illustration: <Conference color="#EC4899" size={160} />,
   },
 ];
 
@@ -144,30 +150,9 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <View style={styles.decorCircleOuter} />
           <View style={styles.decorCircleMid} />
 
-          {/* Main icon container */}
+          {/* Illustration */}
           <View style={styles.iconWrapper}>
-            <View style={[styles.iconCircle, { backgroundColor: item.iconColor + '15' }]}>
-              <View style={[styles.iconInner, { backgroundColor: colors.surface }]}>
-                <Ionicons name={item.icon} size={48} color={item.iconColor} />
-              </View>
-            </View>
-          </View>
-
-          {/* Floating decorative icons */}
-          <View style={styles.floatIcon1}>
-            <View style={[styles.floatIconBg, { backgroundColor: colors.surface }]}>
-              <Ionicons name="heart" size={16} color={colors.secondary} />
-            </View>
-          </View>
-          <View style={styles.floatIcon2}>
-            <View style={[styles.floatIconBg, { backgroundColor: colors.surface }]}>
-              <Ionicons name="star" size={14} color={colors.warning} />
-            </View>
-          </View>
-          <View style={styles.floatIcon3}>
-            <View style={[styles.floatIconBg, { backgroundColor: colors.surface }]}>
-              <Ionicons name="location" size={14} color={colors.info} />
-            </View>
+            {item.illustration}
           </View>
         </LinearGradient>
       </View>

@@ -12,6 +12,8 @@ import GradientButton from './GradientButton';
 
 interface EmptyStateProps {
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Optional illustration ReactNode — replaces the icon when provided */
+  illustration?: React.ReactNode;
   title: string;
   description?: string;
   actionLabel?: string;
@@ -25,6 +27,7 @@ interface EmptyStateProps {
 
 function EmptyStateComponent({
   icon = 'folder-open-outline',
+  illustration,
   title,
   description,
   actionLabel,
@@ -40,9 +43,13 @@ function EmptyStateComponent({
 
   const content = (
     <>
-      <View style={[styles.iconContainer, { backgroundColor: colors.gray50 }]}>
-        <Ionicons name={icon} size={iconSize} color={resolvedIconColor} />
-      </View>
+      {illustration ? (
+        <View style={styles.illustrationContainer}>{illustration}</View>
+      ) : (
+        <View style={[styles.iconContainer, { backgroundColor: colors.gray50 }]}>
+          <Ionicons name={icon} size={iconSize} color={resolvedIconColor} />
+        </View>
+      )}
       <Text style={[styles.title, { color: colors.gray700 }]}>{title}</Text>
       {description && <Text style={[styles.description, { color: colors.gray500 }]}>{description}</Text>}
       {actionLabel && onAction && (
@@ -94,6 +101,11 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  illustrationContainer: {
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,

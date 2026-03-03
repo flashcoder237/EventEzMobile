@@ -545,7 +545,7 @@ export default function ExploreScreen() {
             eventType={item.event_type}
             attendees={item.registration_count || item.registrations_count}
             variant="grid"
-            onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.id, imageUrl: item.banner_image || item.category?.default_event_image || item.display_image })}
           />
         </View>
       );
@@ -911,7 +911,7 @@ export default function ExploreScreen() {
       {selectedMarker && (
         <TouchableOpacity
           style={[styles.selectedCard, { backgroundColor: colors.card }]}
-          onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
+          onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id, imageUrl: selectedMarker.banner_image || undefined })}
           activeOpacity={0.95}
         >
           <View style={styles.selectedCardContent}>

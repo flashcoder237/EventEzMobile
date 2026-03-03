@@ -18,6 +18,7 @@ import {
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import GradientButton from '../../components/ui/GradientButton';
+import { Alert as AlertIllustration } from '../../components/illustrations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentFailedRouteProp = RouteProp<RootStackParamList, 'PaymentFailed'>;
@@ -31,11 +32,9 @@ export default function PaymentFailedScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
-        {/* Error Icon */}
+        {/* Error Illustration */}
         <View style={styles.iconContainer}>
-          <View style={[styles.iconCircle, { backgroundColor: colors.error }]}>
-            <Ionicons name="close" size={60} color={colors.white} />
-          </View>
+          <AlertIllustration color={colors.error} size={180} />
         </View>
 
         <View style={styles.textContainer}>

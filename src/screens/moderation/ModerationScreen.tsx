@@ -25,6 +25,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { AccessDenied, WellDone } from '../../components/illustrations';
 import {
   Colors,
   FontFamily,
@@ -211,9 +212,7 @@ export default function ModerationScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={styles.accessDenied}>
-          <View style={[styles.accessDeniedIcon, { backgroundColor: colors.gray100 }]}>
-            <Ionicons name="shield-outline" size={48} color={colors.gray400} />
-          </View>
+          <AccessDenied color={colors.primary} size={160} />
           <Text style={[styles.accessDeniedTitle, { color: colors.gray700 }]}>Accès restreint</Text>
           <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
             Cette section est réservée aux modérateurs et administrateurs.
@@ -332,9 +331,7 @@ export default function ModerationScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: colors.successLight }]}>
-        <Ionicons name="sparkles" size={48} color={colors.success} />
-      </View>
+      <WellDone color={colors.success} size={160} />
       <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement en attente</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filterType !== 'all'

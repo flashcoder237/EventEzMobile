@@ -263,7 +263,7 @@ export function ContentTransition({
   }
 
   return (
-    <Animated.View entering={FadeInUp.duration(300).delay(100)} style={style}>
+    <Animated.View entering={FadeIn.duration(250)} style={style}>
       {children}
     </Animated.View>
   );

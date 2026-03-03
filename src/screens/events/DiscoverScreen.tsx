@@ -25,8 +25,9 @@ import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Searching as SearchingIllustration } from '../../components/illustrations';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
-import { FadeInView, SectionEntrance, PulsingBadge, ContentTransition, StaggeredItem } from '../../components/ui/Animations';
+import { FadeInView, SectionEntrance, PulsingBadge, StaggeredItem } from '../../components/ui/Animations';
 import { useNotifications } from '../../contexts/NotificationContext';
 import GradientText from '../../components/ui/GradientText';
 import {
@@ -104,8 +105,8 @@ export default function DiscoverScreen() {
   // === State: Search Mode ===
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Event[]>([]);
-  const [filteredResults, setFilteredResults] = useState<Event[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -155,20 +156,20 @@ export default function DiscoverScreen() {
     }
   }, [route.params?.category]);
 
-  // Search when query or category changes
+  // Debounce search query (300ms)
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Search when debounced query or category changes
   useEffect(() => {
     if (isSearchActive) {
       setCurrentPage(1);
       fetchSearchResults(1, false);
     }
-  }, [searchQuery, selectedCategory, filters.sortBy]);
+  }, [debouncedQuery, selectedCategory, filters.sortBy]);
 
-  // Apply filters
-  useEffect(() => {
-    if (isSearchActive) {
-      applyFilters();
-    }
-  }, [searchResults, filters]);
 
   // Location-dependent fetch
   useEffect(() => {
@@ -199,25 +200,28 @@ export default function DiscoverScreen() {
 
   const fetchDiscoveryData = async () => {
     try {
-      const [featuredRes, categoriesRes, upcomingRes] = await Promise.all([
+      const [featuredRes, categoriesRes, upcomingRes, freeRes] = await Promise.all([
         eventsAPI.getFeaturedEvents(),
         categoriesAPI.getCategories(),
         eventsAPI.getEvents({ ordering: 'start_date', limit: 15 }),
+        eventsAPI.getEvents({ price: 'free', ordering: 'start_date', limit: 10 }),
       ]);
 
       const featuredData = getApiResults<Event>(featuredRes).filter(e => isEventInFuture(e.start_date));
       const upcomingData = getApiResults<Event>(upcomingRes).filter(e => isEventInFuture(e.start_date));
+      const freeData = getApiResults<Event>(freeRes).filter(e => isEventInFuture(e.start_date));
 
       setFeaturedEvents(featuredData);
       setCategories(getApiResults<Category>(categoriesRes));
       setUpcomingEvents(upcomingData);
-      setFreeEvents(upcomingData.filter(e => e.is_free));
+      setFreeEvents(freeData);
     } catch (error) {
       console.error('Erreur chargement:', error);
     }
   };
 
   const fetchRecommendations = async () => {
+    if (!user) return;
     try {
       const response = await recommendationsAPI.getRecommendations({ limit: 10 });
       setRecommendations(getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date)));
@@ -245,11 +249,11 @@ export default function DiscoverScreen() {
   // === Data fetching: Search ===
 
   const fetchSearchResults = async (page: number = 1, append: boolean = false) => {
-    if (page === 1) setSearchLoading(true);
-    else setLoadingMore(true);
+    if (page === 1 && searchResults.length === 0) setSearchLoading(true);
+    else if (page > 1) setLoadingMore(true);
     try {
       const params: any = { page, page_size: PAGE_SIZE };
-      if (searchQuery) params.search = searchQuery;
+      if (debouncedQuery) params.search = debouncedQuery;
       if (selectedCategory) params.category = selectedCategory;
       if (filters.sortBy === 'date') params.ordering = 'start_date';
       else if (filters.sortBy === 'popularity') params.ordering = '-registration_count';
@@ -289,9 +293,10 @@ export default function DiscoverScreen() {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }, []);
 
-  // === Filter logic ===
+  // === Filter logic (computed synchronously) ===
 
-  const applyFilters = () => {
+  const filteredResults = useMemo(() => {
+    if (!isSearchActive) return [];
     let result = [...searchResults];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -363,8 +368,8 @@ export default function DiscoverScreen() {
       }
     });
 
-    setFilteredResults(result);
-  };
+    return result;
+  }, [searchResults, filters, location, isSearchActive, calculateDistance]);
 
   const filteredMarkers = useMemo(() => {
     let result = [...markers];
@@ -389,6 +394,8 @@ export default function DiscoverScreen() {
   const deactivateSearch = () => {
     setIsSearchActive(false);
     setSearchQuery('');
+    setDebouncedQuery('');
+    setSearchResults([]);
     setSelectedCategory(null);
     setFilters(defaultFilters);
     setViewMode('list');
@@ -410,14 +417,15 @@ export default function DiscoverScreen() {
     setShowFilters(false);
   };
 
-  const navigateToEvent = (eventId: string) => {
-    navigation.navigate('EventDetails', { eventId });
+  const navigateToEvent = (eventId: string, imageUrl?: string) => {
+    navigation.navigate('EventDetails', { eventId, imageUrl });
   };
 
   // === Render helpers ===
 
   const renderEventCard = useCallback((item: Event, variant: 'default' | 'featured' | 'horizontal' | 'grid' = 'default') => {
     const range = getEventPriceRange(item);
+    const eventImageUrl = item.banner_image || item.category?.default_event_image || item.display_image;
     return (
       <EventCard
         id={item.id}
@@ -425,7 +433,7 @@ export default function DiscoverScreen() {
         date={item.start_date}
         time={item.start_time}
         location={item.location_city || item.location_address || 'Lieu à confirmer'}
-        imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
+        imageUrl={eventImageUrl}
         category={item.category?.name}
         price={range?.min}
         priceMax={range?.max}
@@ -435,7 +443,7 @@ export default function DiscoverScreen() {
         eventType={item.event_type}
         attendees={item.registration_count || item.registrations_count}
         variant={variant}
-        onPress={() => navigateToEvent(item.id)}
+        onPress={() => navigateToEvent(item.id, eventImageUrl)}
       />
     );
   }, [navigation]);
@@ -559,7 +567,7 @@ export default function DiscoverScreen() {
           {selectedMarker && (
             <TouchableOpacity
               style={[styles.mapSelectedCard, { backgroundColor: colors.card }]}
-              onPress={() => navigateToEvent(selectedMarker.id)}
+              onPress={() => navigateToEvent(selectedMarker.id, selectedMarker.banner_image || undefined)}
               activeOpacity={0.9}
             >
               <View style={{ flex: 1 }}>
@@ -606,7 +614,7 @@ export default function DiscoverScreen() {
         ListEmptyComponent={
           !searchLoading ? (
             <View style={styles.emptySearch}>
-              <Ionicons name="search-outline" size={48} color={colors.gray300} />
+              <SearchingIllustration color={colors.primary} size={150} />
               <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement trouvé</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Essayez de modifier vos critères</Text>
             </View>
@@ -632,17 +640,13 @@ export default function DiscoverScreen() {
     <View style={{ flex: 1 }}>
       {renderSearchHeader()}
       {viewMode === 'list' && renderCategoryChips()}
-      <ContentTransition
-        isLoading={searchLoading && viewMode === 'list'}
-        skeleton={
-          <View style={{ flex: 1, padding: 20 }}>
-            <SkeletonList count={4} Component={EventCardSkeleton} />
-          </View>
-        }
-        style={{ flex: 1 }}
-      >
-        {renderSearchContent()}
-      </ContentTransition>
+      {searchLoading && searchResults.length === 0 && viewMode === 'list' ? (
+        <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: Spacing.sm }}>
+          <SkeletonList count={4} Component={EventCardSkeleton} />
+        </View>
+      ) : (
+        renderSearchContent()
+      )}
     </View>
   );
 
@@ -947,7 +951,7 @@ export default function DiscoverScreen() {
       )}
 
       {/* Recommendations */}
-      {recommendations.length > 0 && (
+      {user && recommendations.length > 0 && (
         <SectionEntrance delay={500}>
           <View style={styles.section}>
             <SectionHeader title="Recommandé pour toi" onSeeAll={activateSearch} />
@@ -966,12 +970,30 @@ export default function DiscoverScreen() {
           </View>
         </SectionEntrance>
       )}
+      {!user && (
+        <SectionEntrance delay={500}>
+          <View style={[styles.section, { paddingHorizontal: Spacing.lg }]}>
+            <TouchableOpacity
+              style={[styles.loginCta, { backgroundColor: colors.surface, borderColor: colors.primary }]}
+              onPress={() => navigation.navigate('Auth')}
+              activeOpacity={TOUCH_OPACITY}
+            >
+              <Ionicons name="sparkles" size={20} color={colors.primary} />
+              <View style={{ flex: 1, marginLeft: Spacing.sm }}>
+                <Text style={[styles.loginCtaTitle, { color: colors.gray900 }]}>Recommandations personnalisées</Text>
+                <Text style={[styles.loginCtaSubtitle, { color: colors.gray500 }]}>Connectez-vous pour découvrir des événements adaptés à vos goûts</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+        </SectionEntrance>
+      )}
 
-      {/* This Weekend */}
+      {/* Upcoming Events */}
       {upcomingEvents.length > 0 && (
         <SectionEntrance delay={600}>
           <View style={styles.section}>
-            <SectionHeader title="Ce week-end" onSeeAll={activateSearch} />
+            <SectionHeader title="À venir" onSeeAll={activateSearch} />
             <FlatList
               horizontal
               data={upcomingEvents.slice(0, 6)}
@@ -1203,6 +1225,24 @@ const styles = StyleSheet.create({
     marginRight: Spacing.md,
   },
 
+  // === LOGIN CTA ===
+  loginCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  loginCtaTitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    marginBottom: 2,
+  },
+  loginCtaSubtitle: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+  },
+
   // === SEARCH MODE ===
   searchHeader: {
     flexDirection: 'row',
@@ -1277,7 +1317,7 @@ const styles = StyleSheet.create({
   // === SEARCH RESULTS ===
   searchResultsList: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 130,
+    paddingBottom: 80,
   },
   searchResultItem: {
     marginBottom: Spacing.sm,
@@ -1286,7 +1326,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   resultsCount: {
     ...TextStyles.label,
@@ -1303,7 +1343,7 @@ const styles = StyleSheet.create({
   },
   emptySearch: {
     alignItems: 'center',
-    paddingTop: Spacing['3xl'],
+    paddingTop: Spacing.xl,
   },
   emptyTitle: {
     ...TextStyles.h4,

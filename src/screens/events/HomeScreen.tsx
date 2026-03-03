@@ -148,7 +148,7 @@ export default function HomeScreen() {
             eventType={item.event_type}
             attendees={item.registration_count || item.registrations_count}
             variant="featured"
-            onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.id, imageUrl: item.banner_image || item.category?.default_event_image || item.display_image })}
           />
         </View>
       );
@@ -175,7 +175,7 @@ export default function HomeScreen() {
             eventType={item.event_type}
             attendees={item.registration_count || item.registrations_count}
             variant="default"
-            onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+            onPress={() => navigation.navigate('EventDetails', { eventId: item.id, imageUrl: item.banner_image || item.category?.default_event_image || item.display_image })}
           />
         </View>
       );

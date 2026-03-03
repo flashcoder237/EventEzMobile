@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { registrationsAPI } from '../../api/client';
+import { Searching, Empty } from '../../components/illustrations';
 import { Registration, RootStackParamList, Event } from '../../types';
 import {
   Colors,
@@ -443,13 +444,11 @@ export default function MyTicketsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
-        <Ionicons
-          name={activeTab === 'cancelled' ? 'close-circle-outline' : 'calendar-outline'}
-          size={48}
-          color={colors.gray400}
-        />
-      </View>
+      {activeTab === 'cancelled' ? (
+        <Empty color={colors.primary} size={160} />
+      ) : (
+        <Searching color={colors.primary} size={160} />
+      )}
       <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>
         {activeTab === 'upcoming' && 'Aucun billet ou inscription a venir'}
         {activeTab === 'past' && 'Aucun billet ou inscription passe'}

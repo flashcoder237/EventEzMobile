@@ -47,6 +47,7 @@ import {
 } from '../../lib/utils/messagingHelpers';
 import { ConversationItemSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui';
+import { NewMessage, PeopleSearch } from '../../components/illustrations';
 import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -323,6 +324,7 @@ export default function MessagesScreen() {
 
   const renderEmpty = () => (
     <EmptyState
+      illustration={<NewMessage color={colors.primary} size={160} />}
       icon={activeTab === 'archived' ? 'archive-outline' : 'chatbubbles-outline'}
       title={activeTab === 'archived' ? 'Aucune archive' : 'Aucune conversation'}
       description={
@@ -508,7 +510,7 @@ export default function MessagesScreen() {
                     keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={
                       <View style={styles.noUsers}>
-                        <Ionicons name="people-outline" size={48} color={colors.gray300} />
+                        <PeopleSearch color={colors.primary} size={120} />
                         <Text style={[styles.noUsersText, { color: colors.gray500 }]}>Aucun utilisateur trouvé</Text>
                       </View>
                     }

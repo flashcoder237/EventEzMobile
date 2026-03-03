@@ -163,7 +163,7 @@ export default function RootNavigator() {
             component={EventDetailsScreen}
             options={{
               headerShown: false,
-              animation: 'slide_from_right',
+              animation: 'fade',
             }}
           />
           <Stack.Screen

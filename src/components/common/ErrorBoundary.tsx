@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import { Alert as AlertIllustration } from '../illustrations';
 import {
   Colors,
   FontFamily,
@@ -101,25 +102,7 @@ function ErrorFallbackUI({
         <View style={styles.content}>
           {/* Illustration */}
           <View style={styles.illustrationContainer}>
-            <View style={[styles.outerCircle, { backgroundColor: colors.primaryBg }]}>
-              <View style={[styles.innerCircle, { backgroundColor: colors.card }]}>
-                <Ionicons
-                  name="sad-outline"
-                  size={64}
-                  color={colors.primary}
-                />
-              </View>
-            </View>
-            {/* Decorative elements */}
-            <View style={styles.decorStar1}>
-              <Ionicons name="sparkles" size={20} color={colors.warning} />
-            </View>
-            <View style={styles.decorStar2}>
-              <Ionicons name="alert-circle" size={16} color={colors.error} />
-            </View>
-            <View style={styles.decorDot}>
-              <Ionicons name="ellipse" size={8} color={colors.primaryLight} />
-            </View>
+            <AlertIllustration color={colors.primary} size={200} />
           </View>
 
           {/* Title */}

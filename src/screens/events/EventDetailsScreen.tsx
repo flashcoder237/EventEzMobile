@@ -25,6 +25,7 @@ import Animated, {
   useAnimatedStyle,
   interpolate,
   Extrapolation,
+  FadeInUp,
 } from 'react-native-reanimated';
 import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
@@ -55,7 +56,7 @@ const { width } = Dimensions.get('window');
 
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
-  const { eventId } = route.params;
+  const { eventId, imageUrl: routeImageUrl } = route.params;
   const { colors, isDark, gradients } = useTheme();
 
   const {
@@ -157,11 +158,7 @@ export default function EventDetailsScreen() {
     }
   };
 
-  if (loading) {
-    return <DetailScreenSkeleton />;
-  }
-
-  if (!event) {
+  if (!loading && !event) {
     return (
       <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
         <Ionicons name="alert-circle-outline" size={60} color={colors.gray400} />
@@ -177,7 +174,7 @@ export default function EventDetailsScreen() {
   }
 
   // Invite-only gate
-  if (event.visibility === 'invite_only' && event.user_has_access === false) {
+  if (event?.visibility === 'invite_only' && event?.user_has_access === false) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -202,7 +199,7 @@ export default function EventDetailsScreen() {
   }
 
   // Access code gate
-  if (event.requires_access_code) {
+  if (event?.requires_access_code) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
@@ -255,8 +252,8 @@ export default function EventDetailsScreen() {
     );
   }
 
-  const dateInfo = formatDateShort(event.start_date);
-  const minPrice = event.ticket_types && event.ticket_types.length > 0
+  const dateInfo = event ? formatDateShort(event.start_date) : null;
+  const minPrice = event?.ticket_types && event.ticket_types.length > 0
     ? Math.min(...event.ticket_types.map(t => t.price))
     : 0;
 
@@ -272,7 +269,7 @@ export default function EventDetailsScreen() {
       {/* BlurHeader that appears on scroll */}
       <BlurHeader
         scrollY={scrollY}
-        title={event.title}
+        title={event?.title || ''}
         titleShowOffset={280}
         bgShowOffset={200}
         leftAction={
@@ -307,8 +304,9 @@ export default function EventDetailsScreen() {
             onPress={() => setShowImageViewer(true)}
           >
             <Animated.Image
-              source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
+              source={{ uri: event?.banner_image || event?.category?.default_event_image || routeImageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
               style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
+              sharedTransitionTag={`event-image-${eventId}`}
             />
             {/* Triple gradient overlay */}
             <LinearGradient
@@ -347,6 +345,17 @@ export default function EventDetailsScreen() {
         </View>
 
         {/* Content */}
+        {loading ? (
+          <View style={[styles.content, { backgroundColor: colors.surface, padding: Spacing.lg }]}>
+            <View style={{ height: 20, width: '40%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 12 }} />
+            <View style={{ height: 28, width: '80%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 16 }} />
+            <View style={{ height: 60, width: '100%', backgroundColor: colors.gray100, borderRadius: 12, marginBottom: 16 }} />
+            <View style={{ height: 16, width: '60%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 8 }} />
+            <View style={{ height: 16, width: '90%', backgroundColor: colors.gray200, borderRadius: 4, marginBottom: 8 }} />
+            <View style={{ height: 16, width: '70%', backgroundColor: colors.gray200, borderRadius: 4 }} />
+          </View>
+        ) : event ? (
+        <Animated.View entering={FadeInUp.delay(200).duration(400).springify()}>
         <View style={[styles.content, { backgroundColor: colors.surface }]}>
           {/* Pending Payment Alert */}
           {userRegistration && userRegistration.status === 'pending' && isPaymentRequired(userRegistration) && (
@@ -705,10 +714,12 @@ export default function EventDetailsScreen() {
           {/* Spacer for bottom bar */}
           <View style={{ height: 120 }} />
         </View>
+        </Animated.View>
+        ) : null}
       </Animated.ScrollView>
 
       {/* Bottom CTA with glass effect */}
-      <BlurView
+      {!loading && event ? <BlurView
         intensity={Platform.OS === 'ios' ? 80 : 0}
         tint={isDark ? 'dark' : 'light'}
         style={styles.bottomBar}
@@ -814,7 +825,7 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
         )}
       </View>
-      </BlurView>
+      </BlurView> : null}
 
       {/* Image Viewer Modal */}
       <Modal
@@ -831,11 +842,11 @@ export default function EventDetailsScreen() {
             <Ionicons name="close" size={28} color={colors.white} />
           </TouchableOpacity>
           <Image
-            source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
+            source={{ uri: event?.banner_image || event?.category?.default_event_image || routeImageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
             style={styles.imageViewerImage}
             resizeMode="contain"
           />
-          <Text style={styles.imageViewerTitle} numberOfLines={2}>{event.title}</Text>
+          <Text style={styles.imageViewerTitle} numberOfLines={2}>{event?.title}</Text>
         </View>
       </Modal>
     </View>

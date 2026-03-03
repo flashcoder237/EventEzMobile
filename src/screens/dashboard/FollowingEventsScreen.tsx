@@ -21,6 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI } from '../../api/client';
+import { SaveToBookmarks, Authentication } from '../../components/illustrations';
 import { RootStackParamList, Event } from '../../types';
 import {
   Colors,
@@ -194,7 +195,7 @@ export default function FollowingEventsScreen() {
           { backgroundColor: colors.card, borderColor: colors.gray100 },
           isPast && styles.eventCardPast,
         ]}
-        onPress={() => navigation.navigate('EventDetails', { eventId: event.id })}
+        onPress={() => navigation.navigate('EventDetails', { eventId: event.id, imageUrl: event.banner_image || event.category?.default_event_image || undefined })}
         activeOpacity={0.7}
       >
         {/* Date Badge */}
@@ -274,9 +275,7 @@ export default function FollowingEventsScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <View style={[styles.emptyIcon, { backgroundColor: colors.gray100 }]}>
-        <Ionicons name="heart-outline" size={48} color={colors.gray400} />
-      </View>
+      <SaveToBookmarks color={colors.primary} size={160} />
       <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
         {follows.length === 0 ? 'Aucun evenement suivi' : 'Aucun resultat'}
       </Text>
@@ -299,9 +298,7 @@ export default function FollowingEventsScreen() {
 
   const renderAuthRequired = () => (
     <View style={styles.authContainer}>
-      <View style={[styles.authIcon, { backgroundColor: colors.primaryBg }]}>
-        <Ionicons name="heart-outline" size={48} color={colors.primary} />
-      </View>
+      <Authentication color={colors.primary} size={160} />
       <Text style={[styles.authTitle, { color: colors.gray900 }]}>Connectez-vous</Text>
       <Text style={[styles.authSubtitle, { color: colors.gray500 }]}>
         Vous devez etre connecte pour voir vos evenements suivis

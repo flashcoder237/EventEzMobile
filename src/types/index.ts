@@ -1443,7 +1443,7 @@ export type RootStackParamList = {
   Main: undefined;
   Auth: undefined;
   Onboarding: undefined;
-  EventDetails: { eventId: string };
+  EventDetails: { eventId: string; imageUrl?: string };
   TicketPurchase: {
     eventId: string;
     ticketTypeId?: string;
