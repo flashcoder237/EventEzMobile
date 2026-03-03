@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Event } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import FollowEventButton from './FollowEventButton';
 
 export interface AboutTabProps {
@@ -25,20 +26,22 @@ export default function AboutTab({
   onFollowChange,
   onNavigateVolunteers,
 }: AboutTabProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <>
       {/* About Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Description</Text>
-        <Text style={styles.description}>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Description</Text>
+        <Text style={[styles.description, { color: colors.gray600 }]}>
           {event.description || event.short_description || 'Aucune description disponible pour cet evenement.'}
         </Text>
       </View>
 
       {/* Follow Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Suivre cet evenement</Text>
-        <Text style={styles.followDescription}>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Suivre cet evenement</Text>
+        <Text style={[styles.followDescription, { color: colors.gray500 }]}>
           Recevez des notifications pour les mises a jour, rappels et annonces.
         </Text>
         <FollowEventButton
@@ -53,11 +56,11 @@ export default function AboutTab({
       {/* Tags */}
       {event.tags && event.tags.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Tags</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Tags</Text>
           <View style={styles.tagsRow}>
             {event.tags.map((tag) => (
-              <View key={tag.id} style={styles.tag}>
-                <Text style={styles.tagText}>#{tag.name}</Text>
+              <View key={tag.id} style={[styles.tag, { backgroundColor: colors.gray100 }]}>
+                <Text style={[styles.tagText, { color: colors.gray600 }]}>#{tag.name}</Text>
               </View>
             ))}
           </View>
@@ -67,18 +70,18 @@ export default function AboutTab({
       {/* Volunteers Section */}
       <View style={styles.section}>
         <TouchableOpacity
-          style={styles.volunteerButton}
+          style={[styles.volunteerButton, { backgroundColor: colors.gray50 }]}
           onPress={onNavigateVolunteers}
           activeOpacity={0.7}
         >
-          <View style={styles.volunteerIconContainer}>
-            <Ionicons name="people-outline" size={22} color={Colors.primary} />
+          <View style={[styles.volunteerIconContainer, { backgroundColor: colors.primaryBg }]}>
+            <Ionicons name="people-outline" size={22} color={colors.primary} />
           </View>
           <View style={styles.volunteerTextContainer}>
-            <Text style={styles.volunteerTitle}>Benevoles</Text>
-            <Text style={styles.volunteerSubtitle}>Voir ou rejoindre l'equipe de benevoles</Text>
+            <Text style={[styles.volunteerTitle, { color: colors.gray900 }]}>Benevoles</Text>
+            <Text style={[styles.volunteerSubtitle, { color: colors.gray500 }]}>Voir ou rejoindre l'equipe de benevoles</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+          <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
         </TouchableOpacity>
       </View>
     </>

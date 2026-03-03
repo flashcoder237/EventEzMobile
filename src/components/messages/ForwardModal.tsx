@@ -1,5 +1,5 @@
 /**
- * Modal pour transférer un message à un autre utilisateur
+ * Modal pour transferer un message a un autre utilisateur
  */
 
 import React, { memo } from 'react';
@@ -24,6 +24,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { getDisplayName, getUserInitials, MESSAGE_AVATAR_SIZE } from '../../lib/utils/messagingHelpers';
 
 interface ForwardModalProps {
@@ -45,6 +46,8 @@ function ForwardModal({
   onClose,
   onSelectTarget,
 }: ForwardModalProps) {
+  const { colors, isDark } = useTheme();
+
   // Filtrer les cibles par recherche
   const filteredTargets = targets.filter(user => {
     const name = getDisplayName(user).toLowerCase();
@@ -60,32 +63,32 @@ function ForwardModal({
 
     return (
       <TouchableOpacity
-        style={styles.targetItem}
+        style={[styles.targetItem, { borderBottomColor: colors.gray50 }]}
         onPress={() => onSelectTarget(String(item.id))}
       >
         {avatar ? (
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
-          <View style={styles.avatarPlaceholder}>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarInitials}>{initials}</Text>
           </View>
         )}
         <View style={styles.targetInfo}>
-          <Text style={styles.targetName}>{name}</Text>
+          <Text style={[styles.targetName, { color: colors.gray900 }]}>{name}</Text>
           {item.email && (
-            <Text style={styles.targetEmail}>{item.email}</Text>
+            <Text style={[styles.targetEmail, { color: colors.gray500 }]}>{item.email}</Text>
           )}
         </View>
-        <Ionicons name="send" size={18} color={Colors.primary} />
+        <Ionicons name="send" size={18} color={colors.primary} />
       </TouchableOpacity>
     );
   };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="people-outline" size={48} color={Colors.gray300} />
-      <Text style={styles.emptyText}>
-        {searchQuery ? 'Aucun résultat' : 'Aucun contact disponible'}
+      <Ionicons name="people-outline" size={48} color={colors.gray300} />
+      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
+        {searchQuery ? 'Aucun resultat' : 'Aucun contact disponible'}
       </Text>
     </View>
   );
@@ -98,22 +101,22 @@ function ForwardModal({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.surface }]}>
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Transférer à</Text>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <Text style={[styles.title, { color: colors.gray900 }]}>Transferer a</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color={Colors.gray700} />
+              <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
           </View>
 
           {/* Search */}
-          <View style={styles.searchContainer}>
-            <Ionicons name="search" size={18} color={Colors.gray400} />
+          <View style={[styles.searchContainer, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="search" size={18} color={colors.gray400} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.gray900 }]}
               placeholder="Rechercher un contact..."
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               value={searchQuery}
               onChangeText={onSearchChange}
               autoFocus

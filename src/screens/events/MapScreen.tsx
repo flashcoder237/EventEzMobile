@@ -18,6 +18,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { eventsAPI, categoriesAPI } from '../../api/client';
 import { MapMarker, RootStackParamList, Category } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontSizes,
@@ -49,6 +50,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function MapScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
+  const { colors, isDark } = useTheme();
 
   const [allMarkers, setAllMarkers] = useState<MapMarker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,17 +259,25 @@ export default function MapScreen() {
     onPress: () => void;
   }) => (
     <TouchableOpacity
-      style={[styles.filterButton, isActive && styles.filterButtonActive]}
+      style={[
+        styles.filterButton,
+        { backgroundColor: colors.gray100, borderColor: colors.gray200 },
+        isActive && { backgroundColor: colors.primary, borderColor: colors.primary },
+      ]}
       onPress={onPress}
     >
-      <Text style={[styles.filterButtonText, isActive && styles.filterButtonTextActive]}>
+      <Text style={[
+        styles.filterButtonText,
+        { color: colors.gray700 },
+        isActive && styles.filterButtonTextActive,
+      ]}>
         {label}
       </Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.white }]}>
       {/* Map */}
       <WebViewMap
         markers={filteredMarkers}
@@ -282,34 +292,34 @@ export default function MapScreen() {
       {/* Top Bar - Back + Filters */}
       <SafeAreaView style={styles.topBar} edges={['top']}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.white }]}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
 
         <View style={styles.topBarRight}>
           {/* Radius Selector */}
           <TouchableOpacity
-            style={styles.radiusButton}
+            style={[styles.radiusButton, { backgroundColor: colors.white }]}
             onPress={() => setShowRadiusSelector(true)}
           >
-            <Ionicons name="radio-button-on" size={18} color={Colors.primary} />
-            <Text style={styles.radiusButtonText}>{radius} km</Text>
-            <Ionicons name="chevron-down" size={16} color={Colors.gray500} />
+            <Ionicons name="radio-button-on" size={18} color={colors.primary} />
+            <Text style={[styles.radiusButtonText, { color: colors.gray700 }]}>{radius} km</Text>
+            <Ionicons name="chevron-down" size={16} color={colors.gray500} />
           </TouchableOpacity>
 
           {/* Filter Button */}
           <TouchableOpacity
-            style={styles.filterIconButton}
+            style={[styles.filterIconButton, { backgroundColor: colors.white }]}
             onPress={() => {
               setTempFilters(filters);
               setShowFilters(true);
             }}
           >
-            <Ionicons name="options-outline" size={22} color={Colors.gray700} />
+            <Ionicons name="options-outline" size={22} color={colors.gray700} />
             {activeFiltersCount > 0 && (
-              <View style={styles.filterBadge}>
+              <View style={[styles.filterBadge, { backgroundColor: colors.primary }]}>
                 <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
               </View>
             )}
@@ -319,11 +329,11 @@ export default function MapScreen() {
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
-        <TouchableOpacity style={styles.mapButton} onPress={centerOnUser}>
-          <Ionicons name="locate" size={24} color={Colors.gray700} />
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.white }]} onPress={centerOnUser}>
+          <Ionicons name="locate" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.mapButton} onPress={fetchMapEvents}>
-          <Ionicons name="refresh" size={24} color={Colors.gray700} />
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.white }]} onPress={fetchMapEvents}>
+          <Ionicons name="refresh" size={24} color={colors.gray700} />
         </TouchableOpacity>
       </View>
 
@@ -333,9 +343,9 @@ export default function MapScreen() {
       )}
 
       {/* Events Count */}
-      <View style={styles.countBadge}>
-        <Ionicons name="location" size={14} color={Colors.primary} />
-        <Text style={styles.countText}>
+      <View style={[styles.countBadge, { backgroundColor: colors.white }]}>
+        <Ionicons name="location" size={14} color={colors.primary} />
+        <Text style={[styles.countText, { color: colors.gray700 }]}>
           {filteredMarkers.length} événement{filteredMarkers.length > 1 ? 's' : ''}
           {radius > 0 && ` dans ${radius} km`}
         </Text>
@@ -344,31 +354,31 @@ export default function MapScreen() {
       {/* Selected Event Card */}
       {selectedMarker && (
         <TouchableOpacity
-          style={styles.selectedCard}
+          style={[styles.selectedCard, { backgroundColor: colors.white }]}
           onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
           activeOpacity={0.95}
         >
           <View style={styles.selectedCardContent}>
-            <Text style={styles.selectedCardDate}>
+            <Text style={[styles.selectedCardDate, { color: colors.primary }]}>
               {formatDate(selectedMarker.start_date).toUpperCase()}
             </Text>
-            <Text style={styles.selectedCardTitle} numberOfLines={1}>
+            <Text style={[styles.selectedCardTitle, { color: colors.gray900 }]} numberOfLines={1}>
               {selectedMarker.title}
             </Text>
             <View style={styles.selectedCardMeta}>
-              <Ionicons name="location-outline" size={14} color={Colors.gray500} />
-              <Text style={styles.selectedCardMetaText}>
+              <Ionicons name="location-outline" size={14} color={colors.gray500} />
+              <Text style={[styles.selectedCardMetaText, { color: colors.gray500 }]}>
                 {selectedMarker.location_city}
               </Text>
               {userLocation && selectedMarker.lat && selectedMarker.lng && (
-                <Text style={styles.selectedCardDistance}>
+                <Text style={[styles.selectedCardDistance, { color: colors.primary }]}>
                   • {Math.round(calculateDistance(userLocation.lat, userLocation.lng, selectedMarker.lat, selectedMarker.lng))} km
                 </Text>
               )}
             </View>
           </View>
-          <View style={styles.selectedCardButton}>
-            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+          <View style={[styles.selectedCardButton, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </View>
         </TouchableOpacity>
       )}
@@ -385,15 +395,16 @@ export default function MapScreen() {
           activeOpacity={1}
           onPress={() => setShowRadiusSelector(false)}
         >
-          <View style={styles.radiusSelectorModal}>
-            <Text style={styles.radiusSelectorTitle}>Rayon de recherche</Text>
+          <View style={[styles.radiusSelectorModal, { backgroundColor: colors.white }]}>
+            <Text style={[styles.radiusSelectorTitle, { color: colors.gray900 }]}>Rayon de recherche</Text>
             <View style={styles.radiusOptions}>
               {RADIUS_OPTIONS.map((r) => (
                 <TouchableOpacity
                   key={r}
                   style={[
                     styles.radiusOption,
-                    radius === r && styles.radiusOptionActive,
+                    { backgroundColor: colors.gray100 },
+                    radius === r && { backgroundColor: colors.primary },
                   ]}
                   onPress={() => {
                     setRadius(r);
@@ -403,6 +414,7 @@ export default function MapScreen() {
                   <Text
                     style={[
                       styles.radiusOptionText,
+                      { color: colors.gray700 },
                       radius === r && styles.radiusOptionTextActive,
                     ]}
                   >
@@ -422,22 +434,22 @@ export default function MapScreen() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowFilters(false)}
       >
-        <SafeAreaView style={styles.filtersModal}>
+        <SafeAreaView style={[styles.filtersModal, { backgroundColor: colors.white }]}>
           {/* Header */}
-          <View style={styles.filtersHeader}>
+          <View style={[styles.filtersHeader, { borderBottomColor: colors.gray100 }]}>
             <TouchableOpacity onPress={() => setShowFilters(false)}>
-              <Ionicons name="close" size={24} color={Colors.gray700} />
+              <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
-            <Text style={styles.filtersTitle}>Filtres</Text>
+            <Text style={[styles.filtersTitle, { color: colors.gray900 }]}>Filtres</Text>
             <TouchableOpacity onPress={resetFilters}>
-              <Text style={styles.resetText}>Réinitialiser</Text>
+              <Text style={[styles.resetText, { color: colors.primary }]}>Réinitialiser</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.filtersContent}>
             {/* Type d'événement */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Type d'événement</Text>
+            <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Type d'événement</Text>
               <View style={styles.filterOptions}>
                 <FilterButton
                   label="Tous"
@@ -458,8 +470,8 @@ export default function MapScreen() {
             </View>
 
             {/* Prix */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Prix</Text>
+            <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Prix</Text>
               <View style={styles.filterOptions}>
                 <FilterButton
                   label="Tous"
@@ -480,8 +492,8 @@ export default function MapScreen() {
             </View>
 
             {/* Date */}
-            <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Date</Text>
+            <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Date</Text>
               <View style={styles.filterOptions}>
                 <FilterButton
                   label="Toutes"
@@ -513,8 +525,8 @@ export default function MapScreen() {
 
             {/* Catégories */}
             {categories.length > 0 && (
-              <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Catégorie</Text>
+              <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
+                <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Catégorie</Text>
                 <View style={styles.filterOptions}>
                   <FilterButton
                     label="Toutes"
@@ -535,9 +547,9 @@ export default function MapScreen() {
           </ScrollView>
 
           {/* Apply Button */}
-          <View style={styles.filtersFooter}>
+          <View style={[styles.filtersFooter, { borderTopColor: colors.gray100 }]}>
             <TouchableOpacity
-              style={styles.applyButton}
+              style={[styles.applyButton, { backgroundColor: colors.primary }]}
               onPress={applyFilters}
             >
               <Text style={styles.applyButtonText}>

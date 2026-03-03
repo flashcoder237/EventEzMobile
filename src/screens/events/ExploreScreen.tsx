@@ -29,6 +29,7 @@ import EventCard from '../../components/events/EventCard';
 import { getEventPrice, getEventPriceRange } from '../../lib/utils/priceFormatters';
 import { formatDate } from '../../lib/utils/dateFormatters';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -77,6 +78,7 @@ const defaultFilters: Filters = {
 export default function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Explore'>>();
+  const { colors, isDark } = useTheme();
   const flatListRef = useRef<FlatList>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -560,13 +562,15 @@ export default function ExploreScreen() {
     <TouchableOpacity
       style={[
         styles.filterOption,
-        currentValue === value && styles.filterOptionActive,
+        { borderColor: colors.gray200, backgroundColor: colors.white },
+        currentValue === value && { backgroundColor: colors.primary, borderColor: colors.primary },
       ]}
       onPress={onPress}
     >
       <Text
         style={[
           styles.filterOptionText,
+          { color: colors.gray700 },
           currentValue === value && styles.filterOptionTextActive,
         ]}
       >
@@ -584,19 +588,19 @@ export default function ExploreScreen() {
     >
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
           {/* Header */}
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filtres</Text>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
+            <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Filtres</Text>
             <TouchableOpacity onPress={() => setShowFilters(false)}>
-              <Ionicons name="close" size={24} color={Colors.gray700} />
+              <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {/* Sort By */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Trier par</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Trier par</Text>
               <View style={styles.filterOptionsRow}>
                 {renderFilterOption('Date', 'date', tempFilters.sortBy, () =>
                   setTempFilters({ ...tempFilters, sortBy: 'date' })
@@ -624,7 +628,7 @@ export default function ExploreScreen() {
 
             {/* Event Type Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Type d'événement</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Type d'événement</Text>
               <View style={styles.filterOptionsRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.eventType, () =>
                   setTempFilters({ ...tempFilters, eventType: 'all' })
@@ -640,7 +644,7 @@ export default function ExploreScreen() {
 
             {/* Location Type Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Type de lieu</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Type de lieu</Text>
               <View style={styles.filterOptionsRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.locationType, () =>
                   setTempFilters({ ...tempFilters, locationType: 'all' })
@@ -661,7 +665,7 @@ export default function ExploreScreen() {
 
             {/* Price Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Prix</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Prix</Text>
               <View style={styles.filterOptionsRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.price, () =>
                   setTempFilters({ ...tempFilters, price: 'all' })
@@ -677,12 +681,12 @@ export default function ExploreScreen() {
 
             {/* Price Range */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Fourchette de prix (FCFA)</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Fourchette de prix (FCFA)</Text>
               <View style={styles.priceRangeContainer}>
                 <View style={styles.priceInputContainer}>
-                  <Text style={styles.priceInputLabel}>Min</Text>
+                  <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Min</Text>
                   <TextInput
-                    style={styles.priceInput}
+                    style={[styles.priceInput, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                     value={tempFilters.priceMin > 0 ? tempFilters.priceMin.toString() : ''}
                     onChangeText={(text) => {
                       const value = parseInt(text) || 0;
@@ -690,16 +694,16 @@ export default function ExploreScreen() {
                     }}
                     keyboardType="numeric"
                     placeholder="0"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                   />
                 </View>
                 <View style={styles.priceRangeSeparator}>
-                  <Text style={styles.priceRangeSeparatorText}>-</Text>
+                  <Text style={[styles.priceRangeSeparatorText, { color: colors.gray400 }]}>-</Text>
                 </View>
                 <View style={styles.priceInputContainer}>
-                  <Text style={styles.priceInputLabel}>Max</Text>
+                  <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Max</Text>
                   <TextInput
-                    style={styles.priceInput}
+                    style={[styles.priceInput, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                     value={tempFilters.priceMax > 0 ? tempFilters.priceMax.toString() : ''}
                     onChangeText={(text) => {
                       const value = parseInt(text) || 0;
@@ -707,7 +711,7 @@ export default function ExploreScreen() {
                     }}
                     keyboardType="numeric"
                     placeholder="Illimité"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                   />
                 </View>
               </View>
@@ -716,7 +720,7 @@ export default function ExploreScreen() {
             {/* Distance Filter */}
             {userLocation && (
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Distance maximale</Text>
+                <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Distance maximale</Text>
                 <View style={styles.filterOptionsRow}>
                   {renderFilterOption('Illimitée', '0', tempFilters.distance.toString(), () =>
                     setTempFilters({ ...tempFilters, distance: 0 })
@@ -744,7 +748,7 @@ export default function ExploreScreen() {
 
             {/* Date Filter */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Date</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Date</Text>
               <View style={styles.filterOptionsRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.date, () =>
                   setTempFilters({ ...tempFilters, date: 'all' })
@@ -768,11 +772,11 @@ export default function ExploreScreen() {
           </ScrollView>
 
           {/* Footer */}
-          <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.resetButton} onPress={resetFilters}>
-              <Text style={styles.resetButtonText}>Réinitialiser</Text>
+          <View style={[styles.modalFooter, { borderTopColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.resetButton, { borderColor: colors.gray200 }]} onPress={resetFilters}>
+              <Text style={[styles.resetButtonText, { color: colors.gray700 }]}>Réinitialiser</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.applyButton} onPress={applyFilterChanges}>
+            <TouchableOpacity style={[styles.applyButton, { backgroundColor: colors.primary }]} onPress={applyFilterChanges}>
               <Text style={styles.applyButtonText}>Appliquer</Text>
             </TouchableOpacity>
           </View>
@@ -789,19 +793,19 @@ export default function ExploreScreen() {
       <View style={styles.listFooter}>
         {loadingMore ? (
           <View style={styles.loadingMoreContainer}>
-            <ActivityIndicator size="small" color={Colors.primary} />
-            <Text style={styles.loadingMoreText}>Chargement...</Text>
+            <ActivityIndicator size="small" color={colors.primary} />
+            <Text style={[styles.loadingMoreText, { color: colors.gray500 }]}>Chargement...</Text>
           </View>
         ) : hasNextPage ? (
-          <TouchableOpacity style={styles.loadMoreButton} onPress={loadMoreEvents}>
-            <Text style={styles.loadMoreButtonText}>Voir plus</Text>
-            <Ionicons name="chevron-down" size={20} color={Colors.primary} />
+          <TouchableOpacity style={[styles.loadMoreButton, { borderColor: colors.primary }]} onPress={loadMoreEvents}>
+            <Text style={[styles.loadMoreButtonText, { color: colors.primary }]}>Voir plus</Text>
+            <Ionicons name="chevron-down" size={20} color={colors.primary} />
           </TouchableOpacity>
         ) : filteredEvents.length > 0 ? (
           <View style={styles.endOfListContainer}>
-            <View style={styles.endOfListLine} />
-            <Text style={styles.endOfListText}>Fin des résultats</Text>
-            <View style={styles.endOfListLine} />
+            <View style={[styles.endOfListLine, { backgroundColor: colors.gray200 }]} />
+            <Text style={[styles.endOfListText, { color: colors.gray400 }]}>Fin des résultats</Text>
+            <View style={[styles.endOfListLine, { backgroundColor: colors.gray200 }]} />
           </View>
         ) : null}
       </View>
@@ -823,11 +827,11 @@ export default function ExploreScreen() {
         ListEmptyComponent={
           !loading ? (
             <View style={styles.emptyContainer}>
-              <View style={styles.emptyIconContainer}>
-                <Ionicons name="search-outline" size={48} color={Colors.gray300} />
+              <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray50 }]}>
+                <Ionicons name="search-outline" size={48} color={colors.gray300} />
               </View>
-              <Text style={styles.emptyTitle}>Aucun événement trouvé</Text>
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement trouvé</Text>
+              <Text style={[styles.emptyText, { color: colors.gray500 }]}>
                 Essayez de modifier vos critères de recherche
               </Text>
             </View>
@@ -838,7 +842,7 @@ export default function ExploreScreen() {
       {/* Scroll to Top Button */}
       {showScrollToTop && (
         <TouchableOpacity
-          style={styles.scrollToTopButton}
+          style={[styles.scrollToTopButton, { backgroundColor: colors.primary }]}
           onPress={scrollToTop}
           activeOpacity={0.8}
         >
@@ -861,11 +865,11 @@ export default function ExploreScreen() {
       />
 
       {/* Radius Slider Panel */}
-      <View style={styles.radiusSliderContainer}>
+      <View style={[styles.radiusSliderContainer, { backgroundColor: colors.white }]}>
         <View style={styles.radiusSliderHeader}>
-          <Ionicons name="radio-button-on" size={18} color={Colors.primary} />
-          <Text style={styles.radiusSliderTitle}>Rayon de recherche</Text>
-          <Text style={styles.radiusSliderValue}>{mapRadius} km</Text>
+          <Ionicons name="radio-button-on" size={18} color={colors.primary} />
+          <Text style={[styles.radiusSliderTitle, { color: colors.gray700 }]}>Rayon de recherche</Text>
+          <Text style={[styles.radiusSliderValue, { color: colors.primary }]}>{mapRadius} km</Text>
         </View>
         <Slider
           style={styles.radiusSlider}
@@ -874,30 +878,30 @@ export default function ExploreScreen() {
           step={10}
           value={mapRadius}
           onValueChange={(value) => setMapRadius(Math.round(value))}
-          minimumTrackTintColor={Colors.primary}
-          maximumTrackTintColor={Colors.gray200}
-          thumbTintColor={Colors.primary}
+          minimumTrackTintColor={colors.primary}
+          maximumTrackTintColor={colors.gray200}
+          thumbTintColor={colors.primary}
         />
         <View style={styles.radiusSliderLabels}>
-          <Text style={styles.radiusSliderLabel}>{MIN_RADIUS} km</Text>
-          <Text style={styles.radiusSliderLabel}>{MAX_RADIUS} km</Text>
+          <Text style={[styles.radiusSliderLabel, { color: colors.gray400 }]}>{MIN_RADIUS} km</Text>
+          <Text style={[styles.radiusSliderLabel, { color: colors.gray400 }]}>{MAX_RADIUS} km</Text>
         </View>
       </View>
 
       {/* Map Controls */}
       <View style={styles.mapControls}>
-        <TouchableOpacity style={styles.mapButton} onPress={centerOnUser}>
-          <Ionicons name="locate" size={22} color={Colors.gray700} />
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.white }]} onPress={centerOnUser}>
+          <Ionicons name="locate" size={22} color={colors.gray700} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.mapButton} onPress={fetchMapEvents}>
-          <Ionicons name="refresh" size={22} color={Colors.gray700} />
+        <TouchableOpacity style={[styles.mapButton, { backgroundColor: colors.white }]} onPress={fetchMapEvents}>
+          <Ionicons name="refresh" size={22} color={colors.gray700} />
         </TouchableOpacity>
       </View>
 
       {/* Events Count */}
-      <View style={styles.countBadge}>
-        <Ionicons name="location" size={14} color={Colors.primary} />
-        <Text style={styles.countText}>
+      <View style={[styles.countBadge, { backgroundColor: colors.white }]}>
+        <Ionicons name="location" size={14} color={colors.primary} />
+        <Text style={[styles.countText, { color: colors.gray700 }]}>
           {filteredMarkers.length} événement{filteredMarkers.length > 1 ? 's' : ''}
           {mapRadius > 0 && ` dans ${mapRadius} km`}
         </Text>
@@ -906,31 +910,31 @@ export default function ExploreScreen() {
       {/* Selected Event Card */}
       {selectedMarker && (
         <TouchableOpacity
-          style={styles.selectedCard}
+          style={[styles.selectedCard, { backgroundColor: colors.white }]}
           onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
           activeOpacity={0.95}
         >
           <View style={styles.selectedCardContent}>
-            <Text style={styles.selectedCardDate}>
+            <Text style={[styles.selectedCardDate, { color: colors.primary }]}>
               {formatDate(selectedMarker.start_date).toUpperCase()}
             </Text>
-            <Text style={styles.selectedCardTitle} numberOfLines={1}>
+            <Text style={[styles.selectedCardTitle, { color: colors.gray900 }]} numberOfLines={1}>
               {selectedMarker.title}
             </Text>
             <View style={styles.selectedCardMeta}>
-              <Ionicons name="location-outline" size={14} color={Colors.gray500} />
-              <Text style={styles.selectedCardMetaText}>
+              <Ionicons name="location-outline" size={14} color={colors.gray500} />
+              <Text style={[styles.selectedCardMetaText, { color: colors.gray500 }]}>
                 {selectedMarker.location_city}
               </Text>
               {userLocation && selectedMarker.lat && selectedMarker.lng && (
-                <Text style={styles.selectedCardDistance}>
+                <Text style={[styles.selectedCardDistance, { color: colors.primary }]}>
                   • {Math.round(calculateDistance(userLocation.lat, userLocation.lng, selectedMarker.lat, selectedMarker.lng))} km
                 </Text>
               )}
             </View>
           </View>
-          <View style={styles.selectedCardButton}>
-            <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+          <View style={[styles.selectedCardButton, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
           </View>
         </TouchableOpacity>
       )}
@@ -938,52 +942,52 @@ export default function ExploreScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color={Colors.gray400} />
+      <View style={[styles.searchContainer, { backgroundColor: colors.white }]}>
+        <View style={[styles.searchBar, { backgroundColor: colors.gray50 }]}>
+          <Ionicons name="search" size={20} color={colors.gray400} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.gray900 }]}
             placeholder="Rechercher des événements"
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color={Colors.gray400} />
+              <Ionicons name="close-circle" size={20} color={colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
         <TouchableOpacity
-          style={[styles.filterButton, activeFiltersCount > 0 && styles.filterButtonActive]}
+          style={[styles.filterButton, { backgroundColor: colors.gray50 }, activeFiltersCount > 0 && { backgroundColor: colors.primary }]}
           onPress={openFilters}
         >
-          <Ionicons name="options-outline" size={22} color={activeFiltersCount > 0 ? Colors.white : Colors.gray700} />
+          <Ionicons name="options-outline" size={22} color={activeFiltersCount > 0 ? Colors.white : colors.gray700} />
           {activeFiltersCount > 0 && (
-            <View style={styles.filterBadge}>
+            <View style={[styles.filterBadge, { backgroundColor: colors.error }]}>
               <Text style={styles.filterBadgeText}>{activeFiltersCount}</Text>
             </View>
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.mapToggleButton}
+          style={[styles.mapToggleButton, { backgroundColor: colors.gray50 }]}
           onPress={() => setViewMode(viewMode === 'list' ? 'map' : 'list')}
         >
           <Ionicons
             name={viewMode === 'list' ? 'map-outline' : 'list-outline'}
             size={22}
-            color={Colors.gray700}
+            color={colors.gray700}
           />
         </TouchableOpacity>
       </View>
 
       {/* Categories Filter */}
       {viewMode === 'list' && (
-        <View style={styles.categoriesContainer}>
+        <View style={[styles.categoriesContainer, { borderBottomColor: colors.gray100 }]}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -992,13 +996,15 @@ export default function ExploreScreen() {
             <TouchableOpacity
               style={[
                 styles.categoryChip,
-                selectedCategory === null && styles.categoryChipActive,
+                { backgroundColor: colors.gray100 },
+                selectedCategory === null && { backgroundColor: colors.primary },
               ]}
               onPress={() => setSelectedCategory(null)}
             >
               <Text
                 style={[
                   styles.categoryChipText,
+                  { color: colors.gray600 },
                   selectedCategory === null && styles.categoryChipTextActive,
                 ]}
               >
@@ -1010,7 +1016,8 @@ export default function ExploreScreen() {
                 key={category.id}
                 style={[
                   styles.categoryChip,
-                  selectedCategory === category.id && styles.categoryChipActive,
+                  { backgroundColor: colors.gray100 },
+                  selectedCategory === category.id && { backgroundColor: colors.primary },
                 ]}
                 onPress={() =>
                   setSelectedCategory(selectedCategory === category.id ? null : category.id)
@@ -1019,6 +1026,7 @@ export default function ExploreScreen() {
                 <Text
                   style={[
                     styles.categoryChipText,
+                    { color: colors.gray600 },
                     selectedCategory === category.id && styles.categoryChipTextActive,
                   ]}
                 >
@@ -1033,13 +1041,13 @@ export default function ExploreScreen() {
       {/* Results Header */}
       {viewMode === 'list' && !loading && (
         <View style={styles.resultsHeader}>
-          <Text style={styles.resultsCount}>
+          <Text style={[styles.resultsCount, { color: colors.gray500 }]}>
             {filteredEvents.length} événement{filteredEvents.length !== 1 ? 's' : ''}
             {totalCount > filteredEvents.length && ` sur ${totalCount}`}
           </Text>
           {activeFiltersCount > 0 && (
             <TouchableOpacity onPress={resetFilters}>
-              <Text style={styles.clearFiltersText}>Effacer les filtres</Text>
+              <Text style={[styles.clearFiltersText, { color: colors.primary }]}>Effacer les filtres</Text>
             </TouchableOpacity>
           )}
         </View>

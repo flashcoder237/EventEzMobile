@@ -17,6 +17,7 @@ import * as Clipboard from 'expo-clipboard';
 import { referralsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -47,6 +48,7 @@ interface ReferralStats {
 
 export default function ReferralScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { colors, isDark } = useTheme();
   const [codes, setCodes] = useState<ReferralCode[]>([]);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -129,20 +131,20 @@ export default function ReferralScreen() {
 
   const renderStatsCard = () => (
     <View style={styles.statsRow}>
-      <View style={styles.statCard}>
-        <Ionicons name="hand-left-outline" size={22} color={Colors.info} />
-        <Text style={styles.statValue}>{stats?.total_clicks || 0}</Text>
-        <Text style={styles.statLabel}>Clics</Text>
+      <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+        <Ionicons name="hand-left-outline" size={22} color={colors.info} />
+        <Text style={[styles.statValue, { color: colors.text }]}>{stats?.total_clicks || 0}</Text>
+        <Text style={[styles.statLabel, { color: colors.textLight }]}>Clics</Text>
       </View>
-      <View style={styles.statCard}>
-        <Ionicons name="people-outline" size={22} color={Colors.success} />
-        <Text style={styles.statValue}>{stats?.total_conversions || 0}</Text>
-        <Text style={styles.statLabel}>Conversions</Text>
+      <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+        <Ionicons name="people-outline" size={22} color={colors.success} />
+        <Text style={[styles.statValue, { color: colors.text }]}>{stats?.total_conversions || 0}</Text>
+        <Text style={[styles.statLabel, { color: colors.textLight }]}>Conversions</Text>
       </View>
-      <View style={styles.statCard}>
-        <Ionicons name="cash-outline" size={22} color={Colors.primary} />
-        <Text style={styles.statValue}>{formatCurrency(stats?.total_earnings || 0)}</Text>
-        <Text style={styles.statLabel}>Gains</Text>
+      <View style={[styles.statCard, { backgroundColor: colors.card }]}>
+        <Ionicons name="cash-outline" size={22} color={colors.primary} />
+        <Text style={[styles.statValue, { color: colors.text }]}>{formatCurrency(stats?.total_earnings || 0)}</Text>
+        <Text style={[styles.statLabel, { color: colors.textLight }]}>Gains</Text>
       </View>
     </View>
   );
@@ -152,29 +154,29 @@ export default function ReferralScreen() {
     const eventName = item.event_title || item.event_name;
 
     return (
-      <View style={styles.codeCard}>
+      <View style={[styles.codeCard, { backgroundColor: colors.card }]}>
         {eventName && (
-          <Text style={styles.codeEventName} numberOfLines={1}>
+          <Text style={[styles.codeEventName, { color: colors.textSecondary }]} numberOfLines={1}>
             {eventName}
           </Text>
         )}
 
         <View style={styles.codeRow}>
-          <View style={styles.codeBox}>
-            <Text style={styles.codeText}>{item.code}</Text>
+          <View style={[styles.codeBox, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+            <Text style={[styles.codeText, { color: colors.primary }]}>{item.code}</Text>
           </View>
           <TouchableOpacity
-            style={[styles.copyButton, isCopied && styles.copyButtonDone]}
+            style={[styles.copyButton, { backgroundColor: colors.primaryBg }, isCopied && { backgroundColor: colors.successLight }]}
             onPress={() => handleCopy(item.code, item.id)}
           >
             <Ionicons
               name={isCopied ? 'checkmark' : 'copy-outline'}
               size={18}
-              color={isCopied ? Colors.success : Colors.primary}
+              color={isCopied ? colors.success : colors.primary}
             />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.shareButton}
+            style={[styles.shareButton, { backgroundColor: colors.primary }]}
             onPress={() => handleShare(item.code, eventName)}
           >
             <Ionicons name="share-outline" size={18} color={Colors.white} />
@@ -183,22 +185,22 @@ export default function ReferralScreen() {
 
         <View style={styles.codeDetails}>
           {item.commission_percentage != null && (
-            <View style={styles.detailChip}>
-              <Text style={styles.detailChipText}>
+            <View style={[styles.detailChip, { backgroundColor: colors.gray100 }]}>
+              <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>
                 {item.commission_percentage}% commission
               </Text>
             </View>
           )}
           {item.usage_limit != null && (
-            <View style={styles.detailChip}>
-              <Text style={styles.detailChipText}>
+            <View style={[styles.detailChip, { backgroundColor: colors.gray100 }]}>
+              <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>
                 {item.usage_count || 0}/{item.usage_limit} utilisations
               </Text>
             </View>
           )}
           {item.total_clicks != null && (
-            <View style={styles.detailChip}>
-              <Text style={styles.detailChipText}>
+            <View style={[styles.detailChip, { backgroundColor: colors.gray100 }]}>
+              <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>
                 {item.total_clicks} clic{(item.total_clicks || 0) !== 1 ? 's' : ''}
               </Text>
             </View>
@@ -206,7 +208,7 @@ export default function ReferralScreen() {
         </View>
 
         {item.valid_until && (
-          <Text style={styles.validUntil}>
+          <Text style={[styles.validUntil, { color: colors.textLight }]}>
             Valide jusqu'au {new Date(item.valid_until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
           </Text>
         )}
@@ -216,20 +218,20 @@ export default function ReferralScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Parrainage</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Parrainage</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -238,14 +240,14 @@ export default function ReferralScreen() {
         contentContainerStyle={styles.listContent}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
           <>
             {/* Description */}
-            <View style={styles.descriptionCard}>
-              <Ionicons name="gift-outline" size={24} color={Colors.primary} />
-              <Text style={styles.descriptionText}>
+            <View style={[styles.descriptionCard, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name="gift-outline" size={24} color={colors.primary} />
+              <Text style={[styles.descriptionText, { color: colors.primary }]}>
                 Partagez vos codes de parrainage et gagnez des commissions sur chaque inscription !
               </Text>
             </View>
@@ -254,14 +256,14 @@ export default function ReferralScreen() {
             {renderStatsCard()}
 
             {/* Section Title */}
-            <Text style={styles.sectionTitle}>Mes codes de parrainage</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Mes codes de parrainage</Text>
           </>
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="link-outline" size={48} color={Colors.textLight} />
-            <Text style={styles.emptyText}>Aucun code de parrainage</Text>
-            <Text style={styles.emptySubtext}>
+            <Ionicons name="link-outline" size={48} color={colors.textLight} />
+            <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun code de parrainage</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
               Vos codes de parrainage apparaitront ici lorsqu'ils seront disponibles.
             </Text>
           </View>

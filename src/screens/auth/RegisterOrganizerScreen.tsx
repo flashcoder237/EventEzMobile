@@ -17,6 +17,7 @@ import { authAPI, setTokens } from '../../api/client';
 import { usersAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -66,6 +67,7 @@ export default function RegisterOrganizerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { setUser } = useAuth();
   const { showError, showSuccess } = useAlert();
+  const { colors, isDark } = useTheme();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -242,6 +244,7 @@ export default function RegisterOrganizerScreen() {
     <View
       style={[
         styles.inputWrapper,
+        { backgroundColor: colors.gray50, borderColor: colors.gray200 },
         getInputStyle(field, !!errors[field as keyof FormErrors]),
       ]}
     >
@@ -249,13 +252,13 @@ export default function RegisterOrganizerScreen() {
         <Ionicons
           name={icon}
           size={20}
-          color={focusedField === field ? Colors.primary : Colors.gray400}
+          color={focusedField === field ? colors.primary : colors.gray400}
         />
       </View>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: colors.gray900 }]}
         placeholder={placeholder}
-        placeholderTextColor={Colors.gray400}
+        placeholderTextColor={colors.gray400}
         value={formData[field]}
         onChangeText={options?.onChangeText || ((text) => updateField(field, text))}
         onFocus={() => setFocusedField(field)}
@@ -275,7 +278,7 @@ export default function RegisterOrganizerScreen() {
           <Ionicons
             name={options.showPassword ? 'eye-off-outline' : 'eye-outline'}
             size={20}
-            color={Colors.gray400}
+            color={colors.gray400}
           />
         </AnimatedPressable>
       )}
@@ -284,34 +287,37 @@ export default function RegisterOrganizerScreen() {
 
   const renderTypeSelector = () => (
     <View style={styles.typeSelectorContainer}>
-      <Text style={styles.sectionLabel}>Type d'organisateur</Text>
+      <Text style={[styles.sectionLabel, { color: colors.gray700 }]}>Type d'organisateur</Text>
       <View style={styles.typeOptions}>
         <AnimatedPressable
           onPress={() => updateField('organizer_type', 'individual')}
           style={[
             styles.typeOption,
-            formData.organizer_type === 'individual' && styles.typeOptionSelected,
+            { borderColor: colors.gray200, backgroundColor: colors.white },
+            formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
           scaleValue={0.98}
         >
           <View style={[
             styles.typeIconContainer,
-            formData.organizer_type === 'individual' && styles.typeIconContainerSelected,
+            { backgroundColor: colors.gray100 },
+            formData.organizer_type === 'individual' && { backgroundColor: colors.primary },
           ]}>
             <Ionicons
               name="person"
               size={24}
-              color={formData.organizer_type === 'individual' ? Colors.white : Colors.gray500}
+              color={formData.organizer_type === 'individual' ? colors.white : colors.gray500}
             />
           </View>
           <Text style={[
             styles.typeOptionTitle,
-            formData.organizer_type === 'individual' && styles.typeOptionTitleSelected,
+            { color: colors.gray700 },
+            formData.organizer_type === 'individual' && { color: colors.primary },
           ]}>
             Particulier
           </Text>
-          <Text style={styles.typeOptionDescription}>
+          <Text style={[styles.typeOptionDescription, { color: colors.gray500 }]}>
             Organisateur indépendant
           </Text>
         </AnimatedPressable>
@@ -320,28 +326,31 @@ export default function RegisterOrganizerScreen() {
           onPress={() => updateField('organizer_type', 'organization')}
           style={[
             styles.typeOption,
-            formData.organizer_type === 'organization' && styles.typeOptionSelected,
+            { borderColor: colors.gray200, backgroundColor: colors.white },
+            formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
           scaleValue={0.98}
         >
           <View style={[
             styles.typeIconContainer,
-            formData.organizer_type === 'organization' && styles.typeIconContainerSelected,
+            { backgroundColor: colors.gray100 },
+            formData.organizer_type === 'organization' && { backgroundColor: colors.primary },
           ]}>
             <Ionicons
               name="business"
               size={24}
-              color={formData.organizer_type === 'organization' ? Colors.white : Colors.gray500}
+              color={formData.organizer_type === 'organization' ? colors.white : colors.gray500}
             />
           </View>
           <Text style={[
             styles.typeOptionTitle,
-            formData.organizer_type === 'organization' && styles.typeOptionTitleSelected,
+            { color: colors.gray700 },
+            formData.organizer_type === 'organization' && { color: colors.primary },
           ]}>
             Organisation
           </Text>
-          <Text style={styles.typeOptionDescription}>
+          <Text style={[styles.typeOptionDescription, { color: colors.gray500 }]}>
             Entreprise / Association
           </Text>
         </AnimatedPressable>
@@ -466,28 +475,28 @@ export default function RegisterOrganizerScreen() {
       </View>
 
       {/* Terms */}
-      <Text style={styles.termsText}>
+      <Text style={[styles.termsText, { color: colors.gray500 }]}>
         En vous inscrivant, vous acceptez nos{' '}
-        <Text style={styles.termsLink}>Conditions d'utilisation</Text> et notre{' '}
-        <Text style={styles.termsLink}>Politique de confidentialité</Text>
+        <Text style={[styles.termsLink, { color: colors.primary }]}>Conditions d'utilisation</Text> et notre{' '}
+        <Text style={[styles.termsLink, { color: colors.primary }]}>Politique de confidentialité</Text>
       </Text>
 
       <View style={styles.buttonRow}>
         <AnimatedPressable
           onPress={() => setStep(1)}
-          style={styles.backStepButton}
+          style={[styles.backStepButton, { backgroundColor: colors.gray100 }]}
           animationType="scale"
           scaleValue={0.95}
         >
-          <Ionicons name="arrow-back" size={20} color={Colors.gray600} />
-          <Text style={styles.backStepText}>Retour</Text>
+          <Ionicons name="arrow-back" size={20} color={colors.gray600} />
+          <Text style={[styles.backStepText, { color: colors.gray600 }]}>Retour</Text>
         </AnimatedPressable>
 
         <GradientButton
           onPress={handleRegister}
           title="Créer mon compte"
           loading={isLoading}
-          icon={<Ionicons name="checkmark" size={20} color={Colors.white} />}
+          icon={<Ionicons name="checkmark" size={20} color={colors.white} />}
           size="lg"
           style={styles.submitButtonFlex}
         />
@@ -496,14 +505,14 @@ export default function RegisterOrganizerScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.white }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Dot pattern background */}
       <DotPattern />
 
       {/* Top accent bar */}
-      <View style={styles.accentBar} />
+      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -516,11 +525,11 @@ export default function RegisterOrganizerScreen() {
             {/* Back Button */}
             <AnimatedPressable
               onPress={() => navigation.goBack()}
-              style={styles.backButton}
+              style={[styles.backButton, { backgroundColor: colors.white }]}
               animationType="scale"
               scaleValue={0.9}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.gray800} />
+              <Ionicons name="arrow-back" size={24} color={colors.gray800} />
             </AnimatedPressable>
 
             {/* Logo */}
@@ -534,31 +543,31 @@ export default function RegisterOrganizerScreen() {
 
             {/* Header */}
             <View style={styles.headerContainer}>
-              <Text style={styles.title}>Devenir Organisateur</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: colors.gray900 }]}>Devenir Organisateur</Text>
+              <Text style={[styles.subtitle, { color: colors.gray500 }]}>
                 Créez et gérez vos propres événements sur EventEz
               </Text>
             </View>
 
             {/* Progress Indicator */}
             <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: step === 1 ? '50%' : '100%' }]} />
+              <View style={[styles.progressBar, { backgroundColor: colors.gray200 }]}>
+                <View style={[styles.progressFill, { width: step === 1 ? '50%' : '100%', backgroundColor: colors.primary }]} />
               </View>
-              <Text style={styles.progressText}>Étape {step} sur 2</Text>
+              <Text style={[styles.progressText, { color: colors.gray500 }]}>Étape {step} sur 2</Text>
             </View>
 
             {step === 1 ? renderStep1() : renderStep2()}
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Déjà un compte ?</Text>
+              <Text style={[styles.loginText, { color: colors.gray500 }]}>Déjà un compte ?</Text>
               <AnimatedPressable
                 onPress={() => navigation.navigate('Login')}
                 animationType="scale"
                 scaleValue={0.95}
               >
-                <Text style={styles.loginLink}> Se connecter</Text>
+                <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
               </AnimatedPressable>
             </View>
         </KeyboardAwareScrollView>

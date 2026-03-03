@@ -1,6 +1,6 @@
 /**
- * Composant MessageBubble optimisé avec memo
- * Affiche une bulle de message avec contenu, attachments, réactions
+ * Composant MessageBubble optimise avec memo
+ * Affiche une bulle de message avec contenu, attachments, reactions
  */
 
 import React, { memo, useCallback } from 'react';
@@ -20,6 +20,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   MESSAGE_AVATAR_SIZE,
   formatMessageTime,
@@ -52,6 +53,7 @@ function MessageBubble({
   onLongPress,
   onPlayVoice,
 }: MessageBubbleProps) {
+  const { colors, isDark } = useTheme();
   const avatar = getMessageAvatar(message);
   const initials = getMessageInitials(message);
   const hasAttachments = message.attachments && message.attachments.length > 0;
@@ -67,17 +69,17 @@ function MessageBubble({
     if (!replyToMessage) return null;
 
     return (
-      <View style={[styles.replyPreview, isMine && styles.replyPreviewMine]}>
-        <View style={[styles.replyBar, isMine && styles.replyBarMine]} />
+      <View style={[styles.replyPreview, { backgroundColor: colors.gray100 }, isMine && styles.replyPreviewMine]}>
+        <View style={[styles.replyBar, { backgroundColor: colors.primary }, isMine && styles.replyBarMine]} />
         <View style={styles.replyContent}>
           <Text
-            style={[styles.replyName, isMine && styles.replyNameMine]}
+            style={[styles.replyName, { color: colors.primary }, isMine && styles.replyNameMine]}
             numberOfLines={1}
           >
             {replyToMessage.sender_name || 'Utilisateur'}
           </Text>
           <Text
-            style={[styles.replyText, isMine && styles.replyTextMine]}
+            style={[styles.replyText, { color: colors.gray600 }, isMine && styles.replyTextMine]}
             numberOfLines={1}
           >
             {replyToMessage.content}
@@ -94,7 +96,7 @@ function MessageBubble({
         <Image
           key={attachment.id || index}
           source={{ uri: attachment.file }}
-          style={styles.imageAttachment}
+          style={[styles.imageAttachment, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
         />
       );
@@ -105,13 +107,13 @@ function MessageBubble({
       return (
         <TouchableOpacity
           key={attachment.id || index}
-          style={[styles.voiceAttachment, isMine && styles.voiceAttachmentMine]}
-          onPress={() => onPlayVoice?.(attachment.file, message.id)}
+          style={[styles.voiceAttachment, { backgroundColor: colors.gray100 }, isMine && styles.voiceAttachmentMine]}
+          onPress={() => onPlayVoice?.(attachment.file, String(message.id))}
         >
           <Ionicons
             name={isPlaying ? 'pause' : 'play'}
             size={24}
-            color={isMine ? Colors.white : Colors.primary}
+            color={isMine ? Colors.white : colors.primary}
           />
           <View style={styles.waveformContainer}>
             {[...Array(16)].map((_, i) => (
@@ -119,13 +121,13 @@ function MessageBubble({
                 key={i}
                 style={[
                   styles.waveformBar,
-                  { height: Math.random() * 16 + 4 },
+                  { height: Math.random() * 16 + 4, backgroundColor: colors.primary },
                   isMine && styles.waveformBarMine,
                 ]}
               />
             ))}
           </View>
-          <Text style={[styles.voiceDuration, isMine && styles.voiceDurationMine]}>
+          <Text style={[styles.voiceDuration, { color: colors.gray600 }, isMine && styles.voiceDurationMine]}>
             {formatDuration(attachment.duration_seconds || 0)}
           </Text>
         </TouchableOpacity>
@@ -136,15 +138,15 @@ function MessageBubble({
     return (
       <TouchableOpacity
         key={attachment.id || index}
-        style={[styles.documentAttachment, isMine && styles.documentAttachmentMine]}
+        style={[styles.documentAttachment, { backgroundColor: colors.gray100 }, isMine && styles.documentAttachmentMine]}
       >
         <Ionicons
           name="document-outline"
           size={20}
-          color={isMine ? Colors.white : Colors.gray600}
+          color={isMine ? Colors.white : colors.gray600}
         />
         <Text
-          style={[styles.documentName, isMine && styles.documentNameMine]}
+          style={[styles.documentName, { color: colors.gray700 }, isMine && styles.documentNameMine]}
           numberOfLines={1}
         >
           {attachment.file_name || 'Document'}
@@ -161,9 +163,9 @@ function MessageBubble({
     return (
       <View style={[styles.reactionsContainer, isMine && styles.reactionsContainerMine]}>
         {entries.map(([emoji, count]) => (
-          <View key={emoji} style={styles.reactionBadge}>
+          <View key={emoji} style={[styles.reactionBadge, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}>
             <Text style={styles.reactionEmoji}>{emoji}</Text>
-            {count > 1 && <Text style={styles.reactionCount}>{count}</Text>}
+            {count > 1 && <Text style={[styles.reactionCount, { color: colors.gray600 }]}>{count}</Text>}
           </View>
         ))}
       </View>
@@ -178,19 +180,19 @@ function MessageBubble({
         activeOpacity={1}
       >
         {!isMine && (
-          <View style={styles.avatarPlaceholder}>
-            {!isGrouped && <Text style={styles.avatarInitials}>{initials}</Text>}
+          <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200 }]}>
+            {!isGrouped && <Text style={[styles.avatarInitials, { color: colors.gray600 }]}>{initials}</Text>}
           </View>
         )}
         <View style={styles.bubbleContainer}>
-          <View style={[styles.bubble, styles.deletedBubble]}>
+          <View style={[styles.bubble, styles.deletedBubble, { backgroundColor: colors.gray100 }]}>
             <View style={styles.deletedContent}>
-              <Ionicons name="trash-outline" size={14} color={Colors.gray400} />
-              <Text style={styles.deletedText}>Ce message a ete supprime</Text>
+              <Ionicons name="trash-outline" size={14} color={colors.gray400} />
+              <Text style={[styles.deletedText, { color: colors.gray400 }]}>Ce message a ete supprime</Text>
             </View>
           </View>
           <View style={[styles.timeRow, isMine && styles.timeRowMine]}>
-            <Text style={styles.timeText}>{formatMessageTime(message.created_at)}</Text>
+            <Text style={[styles.timeText, { color: colors.gray400 }]}>{formatMessageTime(message.created_at)}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -211,8 +213,8 @@ function MessageBubble({
         ) : avatar ? (
           <Image source={{ uri: avatar }} style={styles.avatar} />
         ) : (
-          <View style={styles.avatarPlaceholder}>
-            <Text style={styles.avatarInitials}>{initials}</Text>
+          <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200 }]}>
+            <Text style={[styles.avatarInitials, { color: colors.gray600 }]}>{initials}</Text>
           </View>
         )
       )}
@@ -233,11 +235,11 @@ function MessageBubble({
           <View
             style={[
               styles.bubble,
-              isMine ? styles.bubbleMine : styles.bubbleOther,
+              isMine ? [styles.bubbleMine, { backgroundColor: colors.primary }] : [styles.bubbleOther, { backgroundColor: colors.surface }],
               hasAttachments && styles.bubbleWithAttachment,
             ]}
           >
-            <Text style={[styles.messageText, isMine && styles.messageTextMine]}>
+            <Text style={[styles.messageText, { color: colors.gray900 }, isMine && styles.messageTextMine]}>
               {message.content}
             </Text>
           </View>
@@ -249,9 +251,9 @@ function MessageBubble({
         {/* Time and Status */}
         <View style={[styles.timeRow, isMine && styles.timeRowMine]}>
           {message.is_edited && (
-            <Text style={styles.editedLabel}>modifie</Text>
+            <Text style={[styles.editedLabel, { color: colors.gray400 }]}>modifie</Text>
           )}
-          <Text style={styles.timeText}>{formatMessageTime(message.created_at)}</Text>
+          <Text style={[styles.timeText, { color: colors.gray400 }]}>{formatMessageTime(message.created_at)}</Text>
           {status && (
             <View style={styles.statusIcon}>
               <MessageStatusIcon status={status} />
@@ -364,9 +366,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 2,
     marginRight: Spacing.sm,
-  },
-  replyBarMine: {
-    backgroundColor: Colors.white,
   },
   replyContent: {
     flex: 1,

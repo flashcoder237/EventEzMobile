@@ -2,6 +2,8 @@
  * Export des hooks personnalises
  */
 
+export { useReducedMotion } from './useReducedMotion';
+export { useTabletLayout } from './useTabletLayout';
 export { useLoadingState, useAsyncOperation } from './useLoadingState';
 export { useMessagingWebSocket } from './useMessagingWebSocket';
 export { useMessageState } from './useMessageState';

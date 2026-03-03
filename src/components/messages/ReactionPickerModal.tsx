@@ -1,5 +1,5 @@
 /**
- * Modal pour sélectionner une réaction emoji
+ * Modal pour selectionner une reaction emoji
  */
 
 import React, { memo } from 'react';
@@ -18,6 +18,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { REACTION_EMOJIS } from '../../lib/utils/messagingHelpers';
 
 interface ReactionPickerModalProps {
@@ -31,6 +32,8 @@ function ReactionPickerModal({
   onClose,
   onSelectReaction,
 }: ReactionPickerModalProps) {
+  const { colors, isDark } = useTheme();
+
   const handleSelect = (emoji: string) => {
     onSelectReaction(emoji);
     onClose();
@@ -44,13 +47,13 @@ function ReactionPickerModal({
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Réagir au message</Text>
+        <View style={[styles.container, { backgroundColor: colors.surface }]}>
+          <Text style={[styles.title, { color: colors.gray500 }]}>Reagir au message</Text>
           <View style={styles.emojiRow}>
             {REACTION_EMOJIS.map((emoji) => (
               <TouchableOpacity
                 key={emoji}
-                style={styles.emojiButton}
+                style={[styles.emojiButton, { backgroundColor: colors.gray50 }]}
                 onPress={() => handleSelect(emoji)}
               >
                 <Text style={styles.emoji}>{emoji}</Text>

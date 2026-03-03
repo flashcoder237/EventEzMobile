@@ -19,6 +19,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { ticketTransfersAPI, usersAPI, registrationsAPI } from '../../api/client';
 import { RootStackParamList, Registration } from '../../types';
@@ -127,6 +128,7 @@ export default function ScanScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user: currentUser } = useAuth();
   const { showSuccess, showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [flashOn, setFlashOn] = useState(false);
@@ -300,9 +302,9 @@ export default function ScanScreen() {
 
   const getRoleBadge = (role?: string) => {
     switch (role) {
-      case 'organizer': return { label: 'Organisateur', color: Colors.primary };
-      case 'moderator': return { label: 'Modérateur', color: Colors.warning };
-      case 'admin': return { label: 'Admin', color: Colors.error };
+      case 'organizer': return { label: 'Organisateur', color: colors.primary };
+      case 'moderator': return { label: 'Modérateur', color: colors.warning };
+      case 'admin': return { label: 'Admin', color: colors.error };
       default: return null;
     }
   };
@@ -315,17 +317,17 @@ export default function ScanScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={styles.permissionContainer}>
-        <Ionicons name="camera-outline" size={64} color={Colors.gray400} />
-        <Text style={styles.permissionTitle}>Accès à la caméra requis</Text>
-        <Text style={styles.permissionText}>
+      <SafeAreaView style={[styles.permissionContainer, { backgroundColor: colors.white }]}>
+        <Ionicons name="camera-outline" size={64} color={colors.gray400} />
+        <Text style={[styles.permissionTitle, { color: colors.gray900 }]}>Accès à la caméra requis</Text>
+        <Text style={[styles.permissionText, { color: colors.gray500 }]}>
           Pour scanner les QR codes, autorisez l'accès à la caméra
         </Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+        <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
           <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-          <Text style={styles.backLinkText}>Retour</Text>
+          <Text style={[styles.backLinkText, { color: colors.gray500 }]}>Retour</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -346,7 +348,7 @@ export default function ScanScreen() {
 
       {/* Overlay */}
       <View style={styles.overlay}>
-        {/* Header */}
+        {/* Header - on camera overlay, Colors.white is fine */}
         <SafeAreaView style={styles.header}>
           <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
             <Ionicons name="close" size={24} color={Colors.white} />
@@ -409,7 +411,7 @@ export default function ScanScreen() {
         onRequestClose={handleReset}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
               {/* Transfer result */}
               {result?.type === 'transfer' && result.transfer && result.transferToken && (
@@ -437,7 +439,7 @@ export default function ScanScreen() {
                     // Navigate to the ticket's QR code screen if there are ticket purchases
                     const tickets = result.ticket?.registration?.tickets;
                     if (tickets && tickets.length > 0) {
-                      navigation.navigate('QRCode', { ticketId: tickets[0].id });
+                      navigation.navigate('QRCode', { ticketId: String(tickets[0].id) });
                     } else {
                       navigation.navigate('EventDetails', { eventId: result.ticket!.eventId });
                     }
@@ -465,19 +467,19 @@ export default function ScanScreen() {
               {/* Error result */}
               {result?.type === 'error' && (
                 <View style={styles.errorResult}>
-                  <View style={styles.errorIcon}>
-                    <Ionicons name="help-circle" size={64} color={Colors.gray400} />
+                  <View style={[styles.errorIcon, { backgroundColor: colors.gray100 }]}>
+                    <Ionicons name="help-circle" size={64} color={colors.gray400} />
                   </View>
-                  <Text style={styles.errorTitle}>QR code non reconnu</Text>
-                  <Text style={styles.errorMessage}>
+                  <Text style={[styles.errorTitle, { color: colors.gray900 }]}>QR code non reconnu</Text>
+                  <Text style={[styles.errorMessage, { color: colors.gray500 }]}>
                     {result.errorMessage || 'Ce QR code ne correspond pas à un format EventEz.'}
                   </Text>
                 </View>
               )}
             </ScrollView>
 
-            {/* Scan another */}
-            <TouchableOpacity style={styles.scanAgainButton} onPress={handleReset}>
+            {/* Scan another - Colors.white on colored button is fine */}
+            <TouchableOpacity style={[styles.scanAgainButton, { backgroundColor: colors.primary }]} onPress={handleReset}>
               <Ionicons name="scan-outline" size={20} color={Colors.white} />
               <Text style={styles.scanAgainText}>Scanner un autre</Text>
             </TouchableOpacity>
@@ -507,46 +509,48 @@ function TransferResult({
   formatDate: (d: string) => string;
   getTimeRemaining: (d: string) => string;
 }) {
+  const { colors, isDark } = useTheme();
+
   return (
     <>
       <View style={styles.resultHeader}>
-        <View style={[styles.resultIconBg, { backgroundColor: '#EEF2FF' }]}>
-          <Ionicons name="ticket" size={32} color={Colors.primary} />
+        <View style={[styles.resultIconBg, { backgroundColor: isDark ? 'rgba(238,242,255,0.15)' : '#EEF2FF' }]}>
+          <Ionicons name="ticket" size={32} color={colors.primary} />
         </View>
-        <Text style={styles.resultTitle}>Transfert de billet</Text>
+        <Text style={[styles.resultTitle, { color: colors.gray900 }]}>Transfert de billet</Text>
       </View>
 
       {/* Event info */}
-      <View style={styles.resultCard}>
-        <Text style={styles.cardLabel}>Événement</Text>
-        <Text style={styles.cardTitle}>{transfer.event_info.title}</Text>
+      <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Événement</Text>
+        <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{transfer.event_info.title}</Text>
         {transfer.event_info.start_date && (
           <View style={styles.cardRow}>
-            <Ionicons name="calendar-outline" size={16} color={Colors.gray500} />
-            <Text style={styles.cardRowText}>{formatDate(transfer.event_info.start_date)}</Text>
+            <Ionicons name="calendar-outline" size={16} color={colors.gray500} />
+            <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{formatDate(transfer.event_info.start_date)}</Text>
           </View>
         )}
         {transfer.event_info.location_city && (
           <View style={styles.cardRow}>
-            <Ionicons name="location-outline" size={16} color={Colors.gray500} />
-            <Text style={styles.cardRowText}>{transfer.event_info.location_city}</Text>
+            <Ionicons name="location-outline" size={16} color={colors.gray500} />
+            <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{transfer.event_info.location_city}</Text>
           </View>
         )}
       </View>
 
       {/* Ticket info */}
-      <View style={styles.resultCard}>
-        <Text style={styles.cardLabel}>Billet</Text>
-        <Text style={styles.cardTitle}>
+      <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Billet</Text>
+        <Text style={[styles.cardTitle, { color: colors.gray900 }]}>
           {transfer.ticket_info.transfer_quantity}x {transfer.ticket_info.ticket_type_name}
         </Text>
         <View style={styles.cardRow}>
-          <Ionicons name="person-outline" size={16} color={Colors.gray500} />
-          <Text style={styles.cardRowText}>De : {transfer.sender_name}</Text>
+          <Ionicons name="person-outline" size={16} color={colors.gray500} />
+          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>De : {transfer.sender_name}</Text>
         </View>
         <View style={styles.cardRow}>
-          <Ionicons name="mail-outline" size={16} color={Colors.gray500} />
-          <Text style={styles.cardRowText}>{transfer.sender_email}</Text>
+          <Ionicons name="mail-outline" size={16} color={colors.gray500} />
+          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{transfer.sender_email}</Text>
         </View>
       </View>
 
@@ -555,9 +559,9 @@ function TransferResult({
         <Ionicons
           name="time-outline"
           size={16}
-          color={transfer.is_expired ? Colors.error : Colors.warning}
+          color={transfer.is_expired ? colors.error : colors.warning}
         />
-        <Text style={[styles.expirationText, transfer.is_expired && { color: Colors.error }]}>
+        <Text style={[styles.expirationText, transfer.is_expired && { color: colors.error }]}>
           {transfer.is_expired ? 'Ce transfert a expiré' : getTimeRemaining(transfer.expires_at)}
         </Text>
       </View>
@@ -566,21 +570,21 @@ function TransferResult({
       {!transfer.is_expired && transfer.can_accept && (
         <View style={styles.transferActions}>
           <TouchableOpacity
-            style={styles.declineBtn}
+            style={[styles.declineBtn, { borderColor: colors.error }]}
             onPress={() => onDecline(token)}
             disabled={actionLoading}
           >
             {actionLoading ? (
-              <ActivityIndicator size="small" color={Colors.error} />
+              <ActivityIndicator size="small" color={colors.error} />
             ) : (
               <>
-                <Ionicons name="close" size={18} color={Colors.error} />
-                <Text style={styles.declineBtnText}>Refuser</Text>
+                <Ionicons name="close" size={18} color={colors.error} />
+                <Text style={[styles.declineBtnText, { color: colors.error }]}>Refuser</Text>
               </>
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.acceptBtn}
+            style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
             onPress={() => onAccept(token)}
             disabled={actionLoading}
           >
@@ -597,8 +601,8 @@ function TransferResult({
       )}
 
       {transfer.status !== 'pending' && (
-        <View style={styles.statusInfo}>
-          <Text style={styles.statusInfoText}>
+        <View style={[styles.statusInfo, { backgroundColor: colors.gray100 }]}>
+          <Text style={[styles.statusInfoText, { color: colors.gray600 }]}>
             {transfer.status === 'accepted' ? 'Ce transfert a déjà été accepté.' :
              transfer.status === 'declined' ? 'Ce transfert a été refusé.' :
              transfer.status === 'cancelled' ? 'Ce transfert a été annulé.' :
@@ -621,16 +625,18 @@ function TicketResult({
   onViewEvent: (eventId: string) => void;
   onViewTicket: (registrationId: string) => void;
 }) {
+  const { colors, isDark } = useTheme();
+
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'confirmed': return { label: 'Confirmé', color: Colors.success, bg: '#D1FAE5' };
-      case 'completed': return { label: 'Terminé', color: Colors.success, bg: '#D1FAE5' };
-      case 'checked_in': return { label: 'Enregistré', color: Colors.success, bg: '#D1FAE5' };
-      case 'pending': return { label: 'En attente', color: Colors.warning, bg: '#FEF3C7' };
-      case 'pending_approval': return { label: 'En approbation', color: Colors.warning, bg: '#FEF3C7' };
-      case 'cancelled': return { label: 'Annulé', color: Colors.error, bg: '#FEE2E2' };
-      case 'rejected': return { label: 'Rejeté', color: Colors.error, bg: '#FEE2E2' };
-      default: return { label: status, color: Colors.gray500, bg: Colors.gray100 };
+      case 'confirmed': return { label: 'Confirmé', color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
+      case 'completed': return { label: 'Terminé', color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
+      case 'checked_in': return { label: 'Enregistré', color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
+      case 'pending': return { label: 'En attente', color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
+      case 'pending_approval': return { label: 'En approbation', color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
+      case 'cancelled': return { label: 'Annulé', color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
+      case 'rejected': return { label: 'Rejeté', color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
+      default: return { label: status, color: colors.gray500, bg: colors.gray100 };
     }
   };
 
@@ -639,38 +645,38 @@ function TicketResult({
   return (
     <>
       <View style={styles.resultHeader}>
-        <View style={[styles.resultIconBg, { backgroundColor: '#D1FAE5' }]}>
-          <Ionicons name="qr-code" size={32} color={Colors.success} />
+        <View style={[styles.resultIconBg, { backgroundColor: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' }]}>
+          <Ionicons name="qr-code" size={32} color={colors.success} />
         </View>
-        <Text style={styles.resultTitle}>Billet vérifié</Text>
+        <Text style={[styles.resultTitle, { color: colors.gray900 }]}>Billet vérifié</Text>
       </View>
 
       {/* Event info */}
-      <View style={styles.resultCard}>
-        <Text style={styles.cardLabel}>Événement</Text>
-        <Text style={styles.cardTitle}>{ticket.eventTitle}</Text>
+      <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Événement</Text>
+        <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{ticket.eventTitle}</Text>
       </View>
 
       {/* Ticket details */}
-      <View style={styles.resultCard}>
-        <Text style={styles.cardLabel}>Inscription</Text>
+      <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Inscription</Text>
         <View style={styles.cardRow}>
-          <Ionicons name="person-outline" size={16} color={Colors.gray500} />
-          <Text style={styles.cardRowText}>{ticket.userName || ticket.userEmail}</Text>
+          <Ionicons name="person-outline" size={16} color={colors.gray500} />
+          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{ticket.userName || ticket.userEmail}</Text>
         </View>
         {ticket.userName && ticket.userEmail ? (
           <View style={styles.cardRow}>
-            <Ionicons name="mail-outline" size={16} color={Colors.gray500} />
-            <Text style={styles.cardRowText}>{ticket.userEmail}</Text>
+            <Ionicons name="mail-outline" size={16} color={colors.gray500} />
+            <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{ticket.userEmail}</Text>
           </View>
         ) : null}
         <View style={styles.cardRow}>
-          <Ionicons name="document-text-outline" size={16} color={Colors.gray500} />
-          <Text style={styles.cardRowText}>Réf: {ticket.referenceCode}</Text>
+          <Ionicons name="document-text-outline" size={16} color={colors.gray500} />
+          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>Réf: {ticket.referenceCode}</Text>
         </View>
         <View style={styles.cardRow}>
-          <Ionicons name="pricetag-outline" size={16} color={Colors.gray500} />
-          <Text style={styles.cardRowText}>
+          <Ionicons name="pricetag-outline" size={16} color={colors.gray500} />
+          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>
             {ticket.registrationType === 'billetterie' ? 'Billetterie' : 'Inscription'}
           </Text>
         </View>
@@ -687,14 +693,14 @@ function TicketResult({
       {/* Actions */}
       <View style={styles.transferActions}>
         <TouchableOpacity
-          style={styles.declineBtn}
+          style={[styles.declineBtn, { borderColor: colors.primary }]}
           onPress={() => onViewEvent(ticket.eventId)}
         >
-          <Ionicons name="calendar-outline" size={18} color={Colors.primary} />
-          <Text style={[styles.declineBtnText, { color: Colors.primary }]}>Voir l'événement</Text>
+          <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+          <Text style={[styles.declineBtnText, { color: colors.primary }]}>Voir l'événement</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.acceptBtn}
+          style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
           onPress={() => onViewTicket(ticket.registrationId)}
         >
           <Ionicons name="ticket-outline" size={18} color={Colors.white} />
@@ -728,6 +734,7 @@ function UserResult({
   getUserInitials: (u: UserData) => string;
   getRoleBadge: (role?: string) => { label: string; color: string } | null;
 }) {
+  const { colors, isDark } = useTheme();
   const roleBadge = getRoleBadge(userData.role);
   const avatarUri = userData.profile_picture || userData.image;
 
@@ -735,14 +742,14 @@ function UserResult({
     <>
       <View style={styles.userResultHeader}>
         {avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={styles.userAvatar} />
+          <Image source={{ uri: avatarUri }} style={[styles.userAvatar, { borderColor: colors.gray200 }]} />
         ) : (
-          <View style={styles.userAvatarPlaceholder}>
-            <Text style={styles.userAvatarText}>{getUserInitials(userData)}</Text>
+          <View style={[styles.userAvatarPlaceholder, { backgroundColor: colors.gray200, borderColor: colors.white }]}>
+            <Text style={[styles.userAvatarText, { color: colors.gray600 }]}>{getUserInitials(userData)}</Text>
           </View>
         )}
-        <Text style={styles.userName}>{getUserDisplayName(userData)}</Text>
-        <Text style={styles.userEmail}>{userData.email}</Text>
+        <Text style={[styles.userName, { color: colors.gray900 }]}>{getUserDisplayName(userData)}</Text>
+        <Text style={[styles.userEmail, { color: colors.gray500 }]}>{userData.email}</Text>
         {roleBadge && (
           <View style={[styles.roleBadge, { backgroundColor: roleBadge.color + '20' }]}>
             <Text style={[styles.roleBadgeText, { color: roleBadge.color }]}>{roleBadge.label}</Text>
@@ -756,37 +763,38 @@ function UserResult({
           <TouchableOpacity
             style={[
               styles.followBtn,
-              isFollowing && styles.followBtnActive,
+              { backgroundColor: colors.primary },
+              isFollowing && [styles.followBtnActive, { backgroundColor: colors.gray100, borderColor: colors.gray300 }],
             ]}
             onPress={onToggleFollow}
             disabled={actionLoading}
           >
             {actionLoading ? (
-              <ActivityIndicator size="small" color={isFollowing ? Colors.gray700 : Colors.white} />
+              <ActivityIndicator size="small" color={isFollowing ? colors.gray700 : Colors.white} />
             ) : (
               <>
                 <Ionicons
                   name={isFollowing ? 'person-remove-outline' : 'person-add-outline'}
                   size={18}
-                  color={isFollowing ? Colors.gray700 : Colors.white}
+                  color={isFollowing ? colors.gray700 : Colors.white}
                 />
-                <Text style={[styles.followBtnText, isFollowing && styles.followBtnTextActive]}>
+                <Text style={[styles.followBtnText, isFollowing && [styles.followBtnTextActive, { color: colors.gray700 }]]}>
                   {isFollowing ? 'Ne plus suivre' : 'Suivre'}
                 </Text>
               </>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.messageBtn} onPress={onSendMessage}>
-            <Ionicons name="chatbubble-outline" size={18} color={Colors.primary} />
-            <Text style={styles.messageBtnText}>Message</Text>
+          <TouchableOpacity style={[styles.messageBtn, { borderColor: colors.primary }]} onPress={onSendMessage}>
+            <Ionicons name="chatbubble-outline" size={18} color={colors.primary} />
+            <Text style={[styles.messageBtnText, { color: colors.primary }]}>Message</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {isSelf && (
-        <View style={styles.statusInfo}>
-          <Ionicons name="information-circle-outline" size={18} color={Colors.gray500} />
-          <Text style={styles.statusInfoText}>C'est votre propre profil</Text>
+        <View style={[styles.statusInfo, { backgroundColor: colors.gray100 }]}>
+          <Ionicons name="information-circle-outline" size={18} color={colors.gray500} />
+          <Text style={[styles.statusInfoText, { color: colors.gray600 }]}>C'est votre propre profil</Text>
         </View>
       )}
     </>

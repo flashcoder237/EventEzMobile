@@ -5,6 +5,7 @@
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { eventBus } from '../lib/eventBus';
 
 // Configuration de base
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api';
@@ -127,8 +128,10 @@ api.interceptors.response.use(
           return api(originalRequest);
         }
         console.error(`[API] Max retries reached for ${originalRequest.url}`);
+        eventBus.emit('api-server-error');
       } else {
         console.error(`[API] File upload failed for ${originalRequest.url} (no retry for FormData)`);
+        eventBus.emit('api-server-error');
       }
     }
 
@@ -166,6 +169,7 @@ api.interceptors.response.use(
           processQueue(noTokenError, null);
           isRefreshing = false;
           await clearTokens();
+          eventBus.emit('api-auth-error');
           return Promise.reject(noTokenError);
         }
       } catch (refreshError) {
@@ -173,6 +177,7 @@ api.interceptors.response.use(
         // Supprimer les tokens si le refresh échoue
         await clearTokens();
         isRefreshing = false;
+        eventBus.emit('api-auth-error');
         return Promise.reject(refreshError);
       }
     }

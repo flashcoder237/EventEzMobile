@@ -15,9 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import ExportButton from '../../components/common/ExportButton';
 
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api/client';
 import { RootStackParamList, Event } from '../../types';
 import EventCard from '../../components/events/EventCard';
+import { StaggeredItem } from '../../components/ui/Animations';
 import {
   Colors,
   FontFamily,
@@ -37,23 +39,27 @@ interface QuickActionProps {
   badge?: number;
 }
 
-const QuickAction = ({ icon, title, onPress, badge }: QuickActionProps) => (
-  <TouchableOpacity style={styles.quickAction} onPress={onPress} activeOpacity={0.6}>
-    <View style={styles.quickActionIcon}>
-      <Ionicons name={icon} size={22} color={Colors.gray700} />
-      {badge !== undefined && badge > 0 && (
-        <View style={styles.quickActionBadge}>
-          <Text style={styles.quickActionBadgeText}>{badge > 9 ? '9+' : badge}</Text>
-        </View>
-      )}
-    </View>
-    <Text style={styles.quickActionTitle}>{title}</Text>
-  </TouchableOpacity>
-);
+const QuickAction = ({ icon, title, onPress, badge }: QuickActionProps) => {
+  const { colors } = useTheme();
+  return (
+    <TouchableOpacity style={[styles.quickAction, { backgroundColor: colors.gray50 }]} onPress={onPress} activeOpacity={0.6}>
+      <View style={[styles.quickActionIcon, { backgroundColor: colors.card }]}>
+        <Ionicons name={icon} size={22} color={colors.gray700} />
+        {badge !== undefined && badge > 0 && (
+          <View style={[styles.quickActionBadge, { backgroundColor: colors.error }]}>
+            <Text style={styles.quickActionBadgeText}>{badge > 9 ? '9+' : badge}</Text>
+          </View>
+        )}
+      </View>
+      <Text style={[styles.quickActionTitle, { color: colors.text }]}>{title}</Text>
+    </TouchableOpacity>
+  );
+};
 
 export default function DashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     events: 0,
@@ -109,8 +115,8 @@ export default function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -118,7 +124,7 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
         contentContainerStyle={styles.scrollContent}
@@ -127,23 +133,23 @@ export default function DashboardScreen() {
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <TouchableOpacity
-              style={styles.backButton}
+              style={[styles.backButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
             <View>
-              <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.userName}>{user?.first_name || 'Utilisateur'}</Text>
+              <Text style={[styles.greeting, { color: colors.gray500 }]}>{getGreeting()}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>{user?.first_name || 'Utilisateur'}</Text>
             </View>
           </View>
           <TouchableOpacity
-            style={styles.notificationButton}
+            style={[styles.notificationButton, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Notifications')}
           >
-            <Ionicons name="notifications-outline" size={24} color={Colors.gray700} />
+            <Ionicons name="notifications-outline" size={24} color={colors.gray700} />
             {stats.notifications > 0 && (
-              <View style={styles.notificationBadge}>
+              <View style={[styles.notificationBadge, { backgroundColor: colors.error }]}>
                 <Text style={styles.notificationBadgeText}>
                   {stats.notifications > 9 ? '9+' : stats.notifications}
                 </Text>
@@ -155,18 +161,18 @@ export default function DashboardScreen() {
         {/* Organizer Balance Card */}
         {isOrganizer && (
           <TouchableOpacity
-            style={styles.balanceCard}
+            style={[styles.balanceCard, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Wallet')}
             activeOpacity={0.8}
           >
             <View>
-              <Text style={styles.balanceLabel}>Solde disponible</Text>
-              <Text style={styles.balanceValue}>
+              <Text style={[styles.balanceLabel, { color: colors.gray500 }]}>Solde disponible</Text>
+              <Text style={[styles.balanceValue, { color: colors.text }]}>
                 {stats.balance.toLocaleString()} FCFA
               </Text>
             </View>
-            <View style={styles.balanceIcon}>
-              <Ionicons name="wallet-outline" size={24} color={Colors.primary} />
+            <View style={[styles.balanceIcon, { backgroundColor: colors.card }]}>
+              <Ionicons name="wallet-outline" size={24} color={colors.primary} />
             </View>
           </TouchableOpacity>
         )}
@@ -174,155 +180,169 @@ export default function DashboardScreen() {
         {/* Quick Stats */}
         <View style={styles.statsRow}>
           <TouchableOpacity
-            style={styles.statCard}
+            style={[styles.statCard, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Main', { screen: 'MyTickets' } as any)}
             activeOpacity={0.7}
           >
-            <Text style={styles.statValue}>{stats.tickets}</Text>
-            <Text style={styles.statLabel}>Billets</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.tickets}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Billets</Text>
           </TouchableOpacity>
 
           {isOrganizer && (
             <TouchableOpacity
-              style={styles.statCard}
+              style={[styles.statCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('MyEvents')}
               activeOpacity={0.7}
             >
-              <Text style={styles.statValue}>{stats.events}</Text>
-              <Text style={styles.statLabel}>Événements</Text>
+              <Text style={[styles.statValue, { color: colors.text }]}>{stats.events}</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Événements</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
-            style={styles.statCard}
+            style={[styles.statCard, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
             activeOpacity={0.7}
           >
-            <Ionicons name="compass-outline" size={24} color={Colors.primary} />
-            <Text style={styles.statLabel}>Explorer</Text>
+            <Ionicons name="compass-outline" size={24} color={colors.primary} />
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Explorer</Text>
           </TouchableOpacity>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Accès rapide</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Accès rapide</Text>
           <View style={styles.quickActionsGrid}>
-            <QuickAction
-              icon="ticket-outline"
-              title="Mes billets"
-              onPress={() => navigation.navigate('Main', { screen: 'MyTickets' } as any)}
-            />
-            <QuickAction
-              icon="heart-outline"
-              title="Favoris"
-              onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
-            />
-            <QuickAction
-              icon="notifications-outline"
-              title="Notifications"
-              badge={stats.notifications}
-              onPress={() => navigation.navigate('Notifications')}
-            />
-            <QuickAction
-              icon="chatbubbles-outline"
-              title="Messages"
-              onPress={() => navigation.navigate('Messages')}
-            />
-            <QuickAction
-              icon="mail-outline"
-              title="Invitations"
-              onPress={() => navigation.navigate('Invitations')}
-            />
-            <QuickAction
-              icon="gift-outline"
-              title="Parrainage"
-              onPress={() => navigation.navigate('Referrals')}
-            />
-            <QuickAction
-              icon="trophy-outline"
-              title="Badges"
-              onPress={() => navigation.navigate('Gamification')}
-            />
+            <StaggeredItem index={0} style={styles.quickActionWrapper}>
+              <QuickAction
+                icon="ticket-outline"
+                title="Mes billets"
+                onPress={() => navigation.navigate('Main', { screen: 'MyTickets' } as any)}
+              />
+            </StaggeredItem>
+            <StaggeredItem index={1} style={styles.quickActionWrapper}>
+              <QuickAction
+                icon="heart-outline"
+                title="Favoris"
+                onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
+              />
+            </StaggeredItem>
+            <StaggeredItem index={2} style={styles.quickActionWrapper}>
+              <QuickAction
+                icon="notifications-outline"
+                title="Notifications"
+                badge={stats.notifications}
+                onPress={() => navigation.navigate('Notifications')}
+              />
+            </StaggeredItem>
+            <StaggeredItem index={3} style={styles.quickActionWrapper}>
+              <QuickAction
+                icon="chatbubbles-outline"
+                title="Messages"
+                onPress={() => navigation.navigate('Messages')}
+              />
+            </StaggeredItem>
+            <StaggeredItem index={4} style={styles.quickActionWrapper}>
+              <QuickAction
+                icon="mail-outline"
+                title="Invitations"
+                onPress={() => navigation.navigate('Invitations')}
+              />
+            </StaggeredItem>
+            <StaggeredItem index={5} style={styles.quickActionWrapper}>
+              <QuickAction
+                icon="gift-outline"
+                title="Parrainage"
+                onPress={() => navigation.navigate('Referrals')}
+              />
+            </StaggeredItem>
+            <StaggeredItem index={6} style={styles.quickActionWrapper}>
+              <QuickAction
+                icon="trophy-outline"
+                title="Badges"
+                onPress={() => navigation.navigate('Gamification')}
+              />
+            </StaggeredItem>
           </View>
         </View>
 
         {/* Organizer Actions */}
         {isOrganizer && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Organisateur</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Organisateur</Text>
             <View style={styles.organizerActions}>
               <TouchableOpacity
-                style={styles.organizerActionCard}
+                style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('EventCreate')}
                 activeOpacity={0.7}
               >
-                <View style={styles.organizerActionIcon}>
-                  <Ionicons name="add" size={24} color={Colors.primary} />
+                <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
+                  <Ionicons name="add" size={24} color={colors.primary} />
                 </View>
-                <Text style={styles.organizerActionTitle}>Créer un événement</Text>
-                <Text style={styles.organizerActionSubtitle}>Nouveau</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Créer un événement</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Nouveau</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.organizerActionCard}
+                style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('MyEvents')}
                 activeOpacity={0.7}
               >
-                <View style={styles.organizerActionIcon}>
-                  <Ionicons name="calendar-outline" size={24} color={Colors.primary} />
+                <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
+                  <Ionicons name="calendar-outline" size={24} color={colors.primary} />
                 </View>
-                <Text style={styles.organizerActionTitle}>Mes événements</Text>
-                <Text style={styles.organizerActionSubtitle}>{stats.events} actifs</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Mes événements</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>{stats.events} actifs</Text>
               </TouchableOpacity>
             </View>
 
             {/* Additional Organizer Actions */}
             <View style={[styles.organizerActions, { marginTop: Spacing.md }]}>
               <TouchableOpacity
-                style={styles.organizerActionCard}
+                style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('Wallet')}
                 activeOpacity={0.7}
               >
-                <View style={[styles.organizerActionIcon, { backgroundColor: '#F0FDF4' }]}>
+                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#064E3B' : '#F0FDF4' }]}>
                   <Ionicons name="wallet-outline" size={24} color="#10B981" />
                 </View>
-                <Text style={styles.organizerActionTitle}>Portefeuille</Text>
-                <Text style={styles.organizerActionSubtitle}>Revenus & paiements</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Portefeuille</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Revenus & paiements</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={styles.organizerActionCard}
+                style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('MyEvents')}
                 activeOpacity={0.7}
               >
-                <View style={[styles.organizerActionIcon, { backgroundColor: '#FEF3C7' }]}>
+                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#78350F' : '#FEF3C7' }]}>
                   <Ionicons name="stats-chart-outline" size={24} color="#F59E0B" />
                 </View>
-                <Text style={styles.organizerActionTitle}>Analytiques</Text>
-                <Text style={styles.organizerActionSubtitle}>Voir les stats</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Analytiques</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Voir les stats</Text>
               </TouchableOpacity>
             </View>
 
             {/* Subscription Action */}
             <View style={[styles.organizerActions, { marginTop: Spacing.md }]}>
               <TouchableOpacity
-                style={styles.organizerActionCard}
+                style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('Subscription')}
                 activeOpacity={0.7}
               >
-                <View style={[styles.organizerActionIcon, { backgroundColor: '#EDE9FE' }]}>
-                  <Ionicons name="diamond-outline" size={24} color="#7C3AED" />
+                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#1E1540' : '#EDE9FE' }]}>
+                  <Ionicons name="diamond-outline" size={24} color={isDark ? '#C4B5FD' : '#7C3AED'} />
                 </View>
-                <Text style={styles.organizerActionTitle}>Abonnement</Text>
-                <Text style={styles.organizerActionSubtitle}>Gerer mon plan</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Abonnement</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Gerer mon plan</Text>
               </TouchableOpacity>
 
-              <View style={styles.organizerActionCard}>
-                <View style={[styles.organizerActionIcon, { backgroundColor: '#E0E7FF' }]}>
-                  <Ionicons name="download-outline" size={24} color="#6366F1" />
+              <View style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
+                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#10182D' : '#E0E7FF' }]}>
+                  <Ionicons name="download-outline" size={24} color={isDark ? '#93C5FD' : '#6366F1'} />
                 </View>
-                <Text style={styles.organizerActionTitle}>Exporter</Text>
-                <Text style={styles.organizerActionSubtitle}>Vos donnees</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Exporter</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Vos donnees</Text>
                 <ExportButton
                   endpoint="/events/export/"
                   filename="evenements"
@@ -334,14 +354,14 @@ export default function DashboardScreen() {
 
         {/* Settings Link */}
         <TouchableOpacity
-          style={styles.settingsLink}
+          style={[styles.settingsLink, { borderTopColor: colors.gray100 }]}
           onPress={() => navigation.navigate('Settings')}
         >
           <View style={styles.settingsLinkLeft}>
-            <Ionicons name="settings-outline" size={20} color={Colors.gray600} />
-            <Text style={styles.settingsLinkText}>Paramètres</Text>
+            <Ionicons name="settings-outline" size={20} color={colors.gray600} />
+            <Text style={[styles.settingsLinkText, { color: colors.gray600 }]}>Paramètres</Text>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+          <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
         </TouchableOpacity>
 
         <View style={{ height: Spacing['3xl'] }} />
@@ -471,8 +491,10 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.md,
   },
-  quickAction: {
+  quickActionWrapper: {
     width: '47%',
+  },
+  quickAction: {
     backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
@@ -553,7 +575,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   settingsLinkText: {
-    fontSize: FontSizes.base,
+    ...TextStyles.body,
     color: Colors.gray600,
   },
 });

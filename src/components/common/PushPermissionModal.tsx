@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 
 interface PushPermissionModalProps {
@@ -10,6 +11,8 @@ interface PushPermissionModalProps {
 }
 
 export default function PushPermissionModal({ visible, onAccept, onDecline }: PushPermissionModalProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <Modal
       visible={visible}
@@ -18,46 +21,46 @@ export default function PushPermissionModal({ visible, onAccept, onDecline }: Pu
       statusBarTranslucent
     >
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.white }]}>
           {/* Icon */}
-          <View style={styles.iconContainer}>
-            <Ionicons name="notifications" size={40} color={Colors.primary} />
+          <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
+            <Ionicons name="notifications" size={40} color={colors.primary} />
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>Restez informé</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]}>Restez informé</Text>
 
           {/* Description */}
-          <Text style={styles.description}>
+          <Text style={[styles.description, { color: colors.gray600 }]}>
             Activez les notifications pour recevoir :
           </Text>
 
           <View style={styles.featureList}>
             <View style={styles.featureItem}>
-              <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
-              <Text style={styles.featureText}>Rappels de vos événements</Text>
+              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.gray700 }]}>Rappels de vos événements</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="ticket-outline" size={20} color={Colors.primary} />
-              <Text style={styles.featureText}>Confirmations d'inscription</Text>
+              <Ionicons name="ticket-outline" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.gray700 }]}>Confirmations d'inscription</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="chatbubble-outline" size={20} color={Colors.primary} />
-              <Text style={styles.featureText}>Nouveaux messages</Text>
+              <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.gray700 }]}>Nouveaux messages</Text>
             </View>
             <View style={styles.featureItem}>
-              <Ionicons name="card-outline" size={20} color={Colors.primary} />
-              <Text style={styles.featureText}>Confirmations de paiement</Text>
+              <Ionicons name="card-outline" size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.gray700 }]}>Confirmations de paiement</Text>
             </View>
           </View>
 
           {/* Buttons */}
-          <TouchableOpacity style={styles.acceptButton} onPress={onAccept} activeOpacity={0.8}>
+          <TouchableOpacity style={[styles.acceptButton, { backgroundColor: colors.primary }]} onPress={onAccept} activeOpacity={0.8}>
             <Text style={styles.acceptButtonText}>Activer les notifications</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.declineButton} onPress={onDecline} activeOpacity={0.8}>
-            <Text style={styles.declineButtonText}>Plus tard</Text>
+            <Text style={[styles.declineButtonText, { color: colors.gray500 }]}>Plus tard</Text>
           </TouchableOpacity>
         </View>
       </View>

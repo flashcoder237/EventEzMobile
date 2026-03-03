@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { liveAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -56,6 +57,7 @@ interface Poll {
 export default function LiveEventScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LiveEventRouteProp>();
+  const { colors, isDark } = useTheme();
   const { eventId } = route.params;
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -158,31 +160,31 @@ export default function LiveEventScreen() {
   };
 
   const renderQuestion = ({ item }: { item: Question }) => (
-    <View style={[styles.questionCard, item.is_answered && styles.answeredCard]}>
+    <View style={[styles.questionCard, { backgroundColor: colors.white }, item.is_answered && { borderLeftWidth: 3, borderLeftColor: colors.success }]}>
       <TouchableOpacity
-        style={[styles.upvoteButton, item.has_upvoted && styles.upvoted]}
+        style={[styles.upvoteButton, { backgroundColor: colors.gray50 }, item.has_upvoted && { backgroundColor: colors.primaryBg }]}
         onPress={() => handleUpvote(item.id)}
       >
         <Ionicons
           name={item.has_upvoted ? 'arrow-up' : 'arrow-up-outline'}
           size={20}
-          color={item.has_upvoted ? Colors.primary : Colors.textLight}
+          color={item.has_upvoted ? colors.primary : colors.textLight}
         />
-        <Text style={[styles.upvoteCount, item.has_upvoted && styles.upvotedText]}>
+        <Text style={[styles.upvoteCount, { color: colors.textLight }, item.has_upvoted && { color: colors.primary }]}>
           {item.upvotes_count}
         </Text>
       </TouchableOpacity>
       <View style={styles.questionContent}>
-        <Text style={styles.questionText}>{item.content}</Text>
+        <Text style={[styles.questionText, { color: colors.text }]}>{item.content}</Text>
         <View style={styles.questionMeta}>
-          <Text style={styles.questionAuthor}>
+          <Text style={[styles.questionAuthor, { color: colors.textSecondary }]}>
             {item.is_anonymous ? 'Anonyme' : item.author_name || 'Participant'}
           </Text>
-          <Text style={styles.questionTime}>{formatTime(item.created_at)}</Text>
+          <Text style={[styles.questionTime, { color: colors.textLight }]}>{formatTime(item.created_at)}</Text>
           {item.is_answered && (
             <View style={styles.answeredBadge}>
-              <Ionicons name="checkmark-circle" size={12} color={Colors.success} />
-              <Text style={styles.answeredText}>Repondue</Text>
+              <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+              <Text style={[styles.answeredText, { color: colors.success }]}>Repondue</Text>
             </View>
           )}
         </View>
@@ -194,9 +196,9 @@ export default function LiveEventScreen() {
     const isVoting = votingId === item.id;
 
     return (
-      <View style={styles.pollCard}>
-        <Text style={styles.pollQuestion}>{item.question}</Text>
-        <Text style={styles.pollVoteCount}>
+      <View style={[styles.pollCard, { backgroundColor: colors.white }]}>
+        <Text style={[styles.pollQuestion, { color: colors.text }]}>{item.question}</Text>
+        <Text style={[styles.pollVoteCount, { color: colors.textLight }]}>
           {item.total_votes} vote{item.total_votes !== 1 ? 's' : ''}
         </Text>
 
@@ -212,8 +214,9 @@ export default function LiveEventScreen() {
               key={option.id}
               style={[
                 styles.pollOption,
-                item.has_voted && styles.pollOptionVoted,
-                isVotedOption && styles.pollOptionSelected,
+                { borderColor: colors.border },
+                item.has_voted && { borderColor: colors.gray200 },
+                isVotedOption && { borderColor: colors.primary },
               ]}
               onPress={() => !item.has_voted && handleVote(item.id, option.id)}
               disabled={item.has_voted || isVoting || !item.is_active}
@@ -223,8 +226,8 @@ export default function LiveEventScreen() {
                 <View
                   style={[
                     styles.pollProgressBar,
-                    { width: `${percentage}%` },
-                    isVotedOption && styles.pollProgressBarSelected,
+                    { width: `${percentage}%`, backgroundColor: colors.primaryBg },
+                    isVotedOption && { backgroundColor: colors.primaryBg },
                   ]}
                 />
               )}
@@ -232,7 +235,8 @@ export default function LiveEventScreen() {
                 <Text
                   style={[
                     styles.pollOptionText,
-                    isVotedOption && styles.pollOptionTextSelected,
+                    { color: colors.text },
+                    isVotedOption && { color: colors.primary },
                   ]}
                 >
                   {option.text}
@@ -241,7 +245,8 @@ export default function LiveEventScreen() {
                   <Text
                     style={[
                       styles.pollPercentage,
-                      isVotedOption && styles.pollPercentageSelected,
+                      { color: colors.textSecondary },
+                      isVotedOption && { color: colors.primary },
                     ]}
                   >
                     {percentage}%
@@ -255,13 +260,13 @@ export default function LiveEventScreen() {
         {isVoting && (
           <ActivityIndicator
             size="small"
-            color={Colors.primary}
+            color={colors.primary}
             style={{ marginTop: Spacing.sm }}
           />
         )}
 
         {!item.is_active && (
-          <Text style={styles.pollClosed}>Sondage termine</Text>
+          <Text style={[styles.pollClosed, { color: colors.textLight }]}>Sondage termine</Text>
         )}
       </View>
     );
@@ -269,54 +274,54 @@ export default function LiveEventScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Live</Text>
-        <View style={styles.liveBadge}>
-          <View style={styles.liveIndicator} />
-          <Text style={styles.liveText}>EN DIRECT</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Live</Text>
+        <View style={[styles.liveBadge, { backgroundColor: colors.errorLight }]}>
+          <View style={[styles.liveIndicator, { backgroundColor: colors.error }]} />
+          <Text style={[styles.liveText, { color: colors.error }]}>EN DIRECT</Text>
         </View>
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { backgroundColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'questions' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'questions' && [styles.activeTab, { backgroundColor: colors.white }]]}
           onPress={() => setActiveTab('questions')}
         >
           <Ionicons
             name="help-circle-outline"
             size={16}
-            color={activeTab === 'questions' ? Colors.primary : Colors.textLight}
+            color={activeTab === 'questions' ? colors.primary : colors.textLight}
             style={{ marginRight: 4 }}
           />
-          <Text style={[styles.tabText, activeTab === 'questions' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'questions' && { color: colors.primary }]}>
             Questions ({questions.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'polls' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'polls' && [styles.activeTab, { backgroundColor: colors.white }]]}
           onPress={() => setActiveTab('polls')}
         >
           <Ionicons
             name="bar-chart-outline"
             size={16}
-            color={activeTab === 'polls' ? Colors.primary : Colors.textLight}
+            color={activeTab === 'polls' ? colors.primary : colors.textLight}
             style={{ marginRight: 4 }}
           />
-          <Text style={[styles.tabText, activeTab === 'polls' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'polls' && { color: colors.primary }]}>
             Sondages ({polls.length})
           </Text>
         </TouchableOpacity>
@@ -330,41 +335,41 @@ export default function LiveEventScreen() {
             contentContainerStyle={styles.listContent}
             keyExtractor={(item) => item.id}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
             }
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Ionicons name="chatbubbles-outline" size={48} color={Colors.textLight} />
-                <Text style={styles.emptyText}>Aucune question pour le moment</Text>
-                <Text style={styles.emptySubtext}>Soyez le premier a poser une question !</Text>
+                <Ionicons name="chatbubbles-outline" size={48} color={colors.textLight} />
+                <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucune question pour le moment</Text>
+                <Text style={[styles.emptySubtext, { color: colors.textLight }]}>Soyez le premier a poser une question !</Text>
               </View>
             }
             renderItem={renderQuestion}
           />
 
           {/* Question Input */}
-          <View style={styles.inputContainer}>
+          <View style={[styles.inputContainer, { borderTopColor: colors.border, backgroundColor: colors.white }]}>
             <TouchableOpacity
-              style={[styles.anonymousToggle, isAnonymous && styles.anonymousActive]}
+              style={[styles.anonymousToggle, { backgroundColor: colors.gray100 }, isAnonymous && { backgroundColor: colors.primaryBg }]}
               onPress={() => setIsAnonymous(!isAnonymous)}
             >
               <Ionicons
                 name={isAnonymous ? 'eye-off' : 'eye-off-outline'}
                 size={20}
-                color={isAnonymous ? Colors.primary : Colors.textLight}
+                color={isAnonymous ? colors.primary : colors.textLight}
               />
             </TouchableOpacity>
             <TextInput
-              style={styles.textInput}
+              style={[styles.textInput, { color: colors.text, backgroundColor: colors.gray50 }]}
               placeholder="Poser une question..."
-              placeholderTextColor={Colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={newQuestion}
               onChangeText={setNewQuestion}
               multiline
               maxLength={500}
             />
             <TouchableOpacity
-              style={[styles.sendButton, !newQuestion.trim() && styles.sendButtonDisabled]}
+              style={[styles.sendButton, { backgroundColor: colors.primary }, !newQuestion.trim() && { backgroundColor: colors.gray300 }]}
               onPress={handleSubmitQuestion}
               disabled={!newQuestion.trim() || submitting}
             >
@@ -382,13 +387,13 @@ export default function LiveEventScreen() {
           contentContainerStyle={styles.listContent}
           keyExtractor={(item) => item.id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="bar-chart-outline" size={48} color={Colors.textLight} />
-              <Text style={styles.emptyText}>Aucun sondage pour le moment</Text>
-              <Text style={styles.emptySubtext}>Les sondages de l'evenement apparaitront ici.</Text>
+              <Ionicons name="bar-chart-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun sondage pour le moment</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>Les sondages de l'evenement apparaitront ici.</Text>
             </View>
           }
           renderItem={renderPoll}

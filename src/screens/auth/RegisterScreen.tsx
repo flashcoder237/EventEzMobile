@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -57,6 +58,7 @@ export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { register, isLoading } = useAuth();
   const { showError } = useAlert();
+  const { colors, isDark } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -143,19 +145,19 @@ export default function RegisterScreen() {
     }
   ) => (
     <View
-      style={[styles.inputWrapper, getInputStyle(field, !!errors[field])]}
+      style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle(field, !!errors[field])]}
     >
       <View style={styles.inputIconContainer}>
         <Ionicons
           name={icon}
           size={20}
-          color={focusedField === field ? Colors.primary : Colors.gray400}
+          color={focusedField === field ? colors.primary : colors.gray400}
         />
       </View>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { color: colors.gray900 }]}
         placeholder={placeholder}
-        placeholderTextColor={Colors.gray400}
+        placeholderTextColor={colors.gray400}
         value={formData[field]}
         onChangeText={options?.onChangeText || ((text) => updateField(field, text))}
         onFocus={() => setFocusedField(field)}
@@ -175,7 +177,7 @@ export default function RegisterScreen() {
           <Ionicons
             name={options.showPassword ? 'eye-off-outline' : 'eye-outline'}
             size={20}
-            color={Colors.gray400}
+            color={colors.gray400}
           />
         </AnimatedPressable>
       )}
@@ -183,14 +185,14 @@ export default function RegisterScreen() {
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Dot pattern background */}
-      <DotPattern opacity={0.04} />
+      <DotPattern opacity={isDark ? 0.02 : 0.04} />
 
       {/* Top accent bar */}
-      <View style={styles.accentBar} />
+      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -203,11 +205,11 @@ export default function RegisterScreen() {
           {/* Back Button */}
           <AnimatedPressable
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: colors.gray50 }]}
             animationType="scale"
             scaleValue={0.9}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.gray800} />
+            <Ionicons name="arrow-back" size={24} color={colors.gray800} />
           </AnimatedPressable>
 
           {/* Logo */}
@@ -221,8 +223,8 @@ export default function RegisterScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={styles.title}>Créer un compte</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.gray900 }]}>Créer un compte</Text>
+            <Text style={[styles.subtitle, { color: colors.gray500 }]}>
               Rejoignez EventEz et découvrez les meilleurs événements
             </Text>
           </View>
@@ -236,7 +238,7 @@ export default function RegisterScreen() {
                   autoCapitalize: 'words',
                 })}
                 {errors.first_name && (
-                  <Text style={styles.fieldError}>{errors.first_name}</Text>
+                  <Text style={[styles.fieldError, { color: colors.error }]}>{errors.first_name}</Text>
                 )}
               </View>
               <View style={styles.halfInput}>
@@ -244,7 +246,7 @@ export default function RegisterScreen() {
                   autoCapitalize: 'words',
                 })}
                 {errors.last_name && (
-                  <Text style={styles.fieldError}>{errors.last_name}</Text>
+                  <Text style={[styles.fieldError, { color: colors.error }]}>{errors.last_name}</Text>
                 )}
               </View>
             </View>
@@ -253,7 +255,7 @@ export default function RegisterScreen() {
             <View style={styles.inputContainer}>
               {renderInput('username', "Nom d'utilisateur", 'at-outline')}
               {errors.username && (
-                <Text style={styles.fieldError}>{errors.username}</Text>
+                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.username}</Text>
               )}
             </View>
 
@@ -264,7 +266,7 @@ export default function RegisterScreen() {
                 onChangeText: handleEmailChange,
               })}
               {errors.email && (
-                <Text style={styles.fieldError}>{errors.email}</Text>
+                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.email}</Text>
               )}
             </View>
 
@@ -284,7 +286,7 @@ export default function RegisterScreen() {
                 onTogglePassword: () => setShowPassword(!showPassword),
               })}
               {errors.password && (
-                <Text style={styles.fieldError}>{errors.password}</Text>
+                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.password}</Text>
               )}
             </View>
 
@@ -297,15 +299,15 @@ export default function RegisterScreen() {
                 onTogglePassword: () => setShowConfirmPassword(!showConfirmPassword),
               })}
               {errors.confirm_password && (
-                <Text style={styles.fieldError}>{errors.confirm_password}</Text>
+                <Text style={[styles.fieldError, { color: colors.error }]}>{errors.confirm_password}</Text>
               )}
             </View>
 
             {/* Terms */}
-            <Text style={styles.termsText}>
+            <Text style={[styles.termsText, { color: colors.gray500 }]}>
               En vous inscrivant, vous acceptez nos{' '}
-              <Text style={styles.termsLink}>Conditions d'utilisation</Text> et notre{' '}
-              <Text style={styles.termsLink}>Politique de confidentialité</Text>
+              <Text style={[styles.termsLink, { color: colors.primary }]}>Conditions d'utilisation</Text> et notre{' '}
+              <Text style={[styles.termsLink, { color: colors.primary }]}>Politique de confidentialité</Text>
             </Text>
 
             {/* Register Button */}
@@ -328,26 +330,26 @@ export default function RegisterScreen() {
               animationType="lift"
               scaleValue={0.98}
             >
-              <View style={styles.organizerIconContainer}>
+              <View style={[styles.organizerIconContainer, { backgroundColor: colors.background }]}>
                 <Ionicons name="megaphone" size={24} color={Colors.secondary} />
               </View>
               <View style={styles.organizerTextContainer}>
-                <Text style={styles.organizerTitle}>Vous êtes organisateur ?</Text>
-                <Text style={styles.organizerSubtitle}>Créez et gérez vos événements</Text>
+                <Text style={[styles.organizerTitle, { color: colors.gray800 }]}>Vous êtes organisateur ?</Text>
+                <Text style={[styles.organizerSubtitle, { color: colors.gray500 }]}>Créez et gérez vos événements</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
             </AnimatedPressable>
           </View>
 
           {/* Login Link */}
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Déjà un compte ?</Text>
+            <Text style={[styles.loginText, { color: colors.gray500 }]}>Déjà un compte ?</Text>
             <AnimatedPressable
               onPress={() => navigation.navigate('Login')}
               animationType="scale"
               scaleValue={0.95}
             >
-              <Text style={styles.loginLink}> Se connecter</Text>
+              <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
             </AnimatedPressable>
           </View>
         </KeyboardAwareScrollView>
@@ -359,7 +361,6 @@ export default function RegisterScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   accentBar: {
     position: 'absolute',
@@ -367,7 +368,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: Colors.primary,
   },
   safeArea: {
     flex: 1,

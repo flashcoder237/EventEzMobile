@@ -18,6 +18,7 @@ import { paymentsAPI } from '../../api/client';
 import { Payment, RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -25,18 +26,16 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
+  TextStyles,
 } from '../../constants/theme';
+import { StaggeredItem } from '../../components/ui/Animations';
+import Badge from '../../components/ui/Badge';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type StatusFilter = 'all' | 'completed' | 'pending' | 'failed' | 'refunded';
 
 interface PaymentWithEvent extends Payment {
   event_title?: string;
-  registration_details?: {
-    event_detail?: {
-      title?: string;
-    };
-  };
 }
 
 interface PaymentSection {
@@ -69,9 +68,22 @@ const FILTER_TABS: { key: StatusFilter; label: string; icon: keyof typeof Ionico
   { key: 'refunded', label: 'Rembourses', icon: 'refresh-circle-outline' },
 ];
 
+const getPaymentBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' => {
+  switch (status) {
+    case 'completed': return 'success';
+    case 'pending': return 'warning';
+    case 'processing': return 'info';
+    case 'failed': return 'destructive';
+    case 'refunded': return 'secondary';
+    case 'cancelled': return 'secondary';
+    default: return 'warning';
+  }
+};
+
 export default function MyPaymentsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [payments, setPayments] = useState<PaymentWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -191,24 +203,25 @@ export default function MyPaymentsScreen() {
 
   const getMethodConfig = (method: string) => {
     const key = method?.toLowerCase().replace(/\s+/g, '_');
-    return methodConfig[key] || { label: method || 'Paiement', icon: 'cash', color: Colors.gray500 };
+    return methodConfig[key] || { label: method || 'Paiement', icon: 'cash', color: colors.gray500 };
   };
 
   const renderSectionHeader = ({ section }: { section: PaymentSection }) => (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{section.title}</Text>
-      <Text style={styles.sectionCount}>{section.data.length} paiement{section.data.length > 1 ? 's' : ''}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{section.title}</Text>
+      <Text style={[styles.sectionCount, { color: colors.gray500 }]}>{section.data.length} paiement{section.data.length > 1 ? 's' : ''}</Text>
     </View>
   );
 
-  const renderPayment = ({ item }: { item: PaymentWithEvent }) => {
+  const renderPayment = ({ item, index }: { item: PaymentWithEvent; index: number }) => {
     const status = getStatusConfig(item.status || 'pending');
     const method = getMethodConfig(item.payment_method);
     const canRefund = item.status === 'completed';
 
     return (
+      <StaggeredItem index={index}>
       <TouchableOpacity
-        style={styles.paymentCard}
+        style={[styles.paymentCard, { backgroundColor: colors.white, borderColor: colors.gray100 }]}
         onPress={() => {
           // Navigate to payment details if needed
         }}
@@ -222,34 +235,35 @@ export default function MyPaymentsScreen() {
         {/* Content */}
         <View style={styles.paymentContent}>
           <View style={styles.paymentHeader}>
-            <Text style={styles.paymentTitle} numberOfLines={1}>{getEventTitle(item)}</Text>
-            <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-              <Ionicons name={status.icon} size={12} color={status.color} />
-              <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
-            </View>
+            <Text style={[styles.paymentTitle, { color: colors.gray900 }]} numberOfLines={1}>{getEventTitle(item)}</Text>
+            <Badge
+              label={status.label}
+              variant={getPaymentBadgeVariant(item.status || 'pending')}
+              size="sm"
+            />
           </View>
 
           <View style={styles.paymentMeta}>
-            <Text style={styles.methodText}>{method.label}</Text>
-            <View style={styles.metaDot} />
-            <Text style={styles.dateText}>{formatDate(item.created_at)}</Text>
+            <Text style={[styles.methodText, { color: colors.gray500 }]}>{method.label}</Text>
+            <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
+            <Text style={[styles.dateText, { color: colors.gray500 }]}>{formatDate(item.created_at)}</Text>
             {item.transaction_id && (
               <>
-                <View style={styles.metaDot} />
-                <Text style={styles.txnText}>#{item.transaction_id.slice(-6)}</Text>
+                <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
+                <Text style={[styles.txnText, { color: colors.gray400 }]}>#{item.transaction_id.slice(-6)}</Text>
               </>
             )}
           </View>
 
           <View style={styles.paymentFooter}>
             <View style={styles.amountContainer}>
-              <Text style={styles.amount}>{formatAmount(item.amount)}</Text>
-              <Text style={styles.currency}>{item.currency || 'XAF'}</Text>
+              <Text style={[styles.amount, { color: colors.gray900 }]}>{formatAmount(item.amount)}</Text>
+              <Text style={[styles.currency, { color: colors.gray500 }]}>{item.currency || 'XAF'}</Text>
             </View>
 
             {canRefund && (
               <TouchableOpacity
-                style={styles.refundButton}
+                style={[styles.refundButton, { backgroundColor: isDark ? colors.card : '#EDE9FE' }]}
                 onPress={() => navigation.navigate('RefundRequest', { paymentId: item.id })}
               >
                 <Ionicons name="refresh-circle-outline" size={16} color="#8B5CF6" />
@@ -261,19 +275,20 @@ export default function MyPaymentsScreen() {
 
         {/* Arrow */}
         <View style={styles.arrowContainer}>
-          <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
+          <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
         </View>
       </TouchableOpacity>
+      </StaggeredItem>
     );
   };
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name="card-outline" size={48} color={Colors.gray400} />
+      <View style={[styles.emptyIcon, { backgroundColor: colors.gray100 }]}>
+        <Ionicons name="card-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>Aucun paiement</Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun paiement</Text>
+      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || statusFilter !== 'all'
           ? 'Aucun paiement ne correspond a vos criteres.'
           : 'Vous n\'avez pas encore effectue de paiement.'}
@@ -283,111 +298,111 @@ export default function MyPaymentsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.white, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes Paiements</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mes Paiements</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Main Stats Card */}
-      <View style={styles.mainStatsCard}>
+      <View style={[styles.mainStatsCard, { backgroundColor: colors.white }]}>
         <View style={styles.mainStatRow}>
-          <View style={styles.mainStatIcon}>
-            <Ionicons name="wallet" size={28} color={Colors.primary} />
+          <View style={[styles.mainStatIcon, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name="wallet" size={28} color={colors.primary} />
           </View>
           <View style={styles.mainStatContent}>
-            <Text style={styles.mainStatLabel}>Total depense</Text>
+            <Text style={[styles.mainStatLabel, { color: colors.gray500 }]}>Total depense</Text>
             <View style={styles.mainStatValueRow}>
-              <Text style={styles.mainStatValue}>{formatAmount(stats.total)}</Text>
-              <Text style={styles.mainStatCurrency}>XAF</Text>
+              <Text style={[styles.mainStatValue, { color: colors.gray900 }]}>{formatAmount(stats.total)}</Text>
+              <Text style={[styles.mainStatCurrency, { color: colors.gray500 }]}>XAF</Text>
             </View>
           </View>
         </View>
-        <View style={styles.mainStatDivider} />
+        <View style={[styles.mainStatDivider, { backgroundColor: colors.gray100 }]} />
         <View style={styles.monthlyStatRow}>
-          <Ionicons name="trending-up" size={16} color={Colors.success} />
-          <Text style={styles.monthlyStatText}>Ce mois: {formatAmount(stats.thisMonthTotal)} XAF</Text>
+          <Ionicons name="trending-up" size={16} color={colors.success} />
+          <Text style={[styles.monthlyStatText, { color: colors.gray600 }]}>Ce mois: {formatAmount(stats.thisMonthTotal)} XAF</Text>
         </View>
       </View>
 
       {/* Quick Stats */}
       <View style={styles.quickStats}>
         <TouchableOpacity
-          style={[styles.quickStatItem, statusFilter === 'completed' && styles.quickStatItemActive]}
+          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'completed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#D1FAE5' }]}>
             <Ionicons name="checkmark-circle" size={16} color="#10B981" />
           </View>
-          <Text style={styles.quickStatValue}>{stats.completed}</Text>
-          <Text style={styles.quickStatLabel}>Completes</Text>
+          <Text style={[styles.quickStatValue, { color: colors.gray900 }]}>{stats.completed}</Text>
+          <Text style={[styles.quickStatLabel, { color: colors.gray500 }]}>Completes</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, statusFilter === 'pending' && styles.quickStatItemActive]}
+          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'pending' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEF3C7' }]}>
             <Ionicons name="time" size={16} color="#F59E0B" />
           </View>
-          <Text style={styles.quickStatValue}>{stats.pending}</Text>
-          <Text style={styles.quickStatLabel}>En attente</Text>
+          <Text style={[styles.quickStatValue, { color: colors.gray900 }]}>{stats.pending}</Text>
+          <Text style={[styles.quickStatLabel, { color: colors.gray500 }]}>En attente</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, statusFilter === 'failed' && styles.quickStatItemActive]}
+          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'failed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEE2E2' }]}>
             <Ionicons name="close-circle" size={16} color="#EF4444" />
           </View>
-          <Text style={styles.quickStatValue}>{stats.failed}</Text>
-          <Text style={styles.quickStatLabel}>Echoues</Text>
+          <Text style={[styles.quickStatValue, { color: colors.gray900 }]}>{stats.failed}</Text>
+          <Text style={[styles.quickStatLabel, { color: colors.gray500 }]}>Echoues</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, statusFilter === 'refunded' && styles.quickStatItemActive]}
+          style={[styles.quickStatItem, { backgroundColor: colors.white, borderColor: colors.gray100 }, statusFilter === 'refunded' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
           onPress={() => setStatusFilter(statusFilter === 'refunded' ? 'all' : 'refunded')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#EDE9FE' }]}>
             <Ionicons name="refresh-circle" size={16} color="#8B5CF6" />
           </View>
-          <Text style={styles.quickStatValue}>{stats.refunded}</Text>
-          <Text style={styles.quickStatLabel}>Rembourses</Text>
+          <Text style={[styles.quickStatValue, { color: colors.gray900 }]}>{stats.refunded}</Text>
+          <Text style={[styles.quickStatLabel, { color: colors.gray500 }]}>Rembourses</Text>
         </TouchableOpacity>
       </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <Ionicons name="search" size={18} color={Colors.gray400} />
+        <View style={[styles.searchInputWrapper, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+          <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.gray900 }]}
             placeholder="Rechercher par evenement, transaction..."
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.gray400} />
+              <Ionicons name="close-circle" size={18} color={colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
@@ -395,19 +410,19 @@ export default function MyPaymentsScreen() {
 
       {/* Active Filter Indicator */}
       {statusFilter !== 'all' && (
-        <View style={styles.filterIndicator}>
-          <Text style={styles.filterIndicatorText}>
+        <View style={[styles.filterIndicator, { backgroundColor: colors.primaryLight }]}>
+          <Text style={[styles.filterIndicatorText, { color: colors.primary }]}>
             Filtre: {FILTER_TABS.find(t => t.key === statusFilter)?.label}
           </Text>
           <TouchableOpacity onPress={() => setStatusFilter('all')}>
-            <Ionicons name="close" size={18} color={Colors.primary} />
+            <Ionicons name="close" size={18} color={colors.primary} />
           </TouchableOpacity>
         </View>
       )}
 
       {/* Results count */}
       <View style={styles.resultsInfo}>
-        <Text style={styles.resultsText}>
+        <Text style={[styles.resultsText, { color: colors.gray500 }]}>
           {sections.reduce((sum, s) => sum + s.data.length, 0)} paiement{sections.reduce((sum, s) => sum + s.data.length, 0) !== 1 ? 's' : ''}
         </Text>
       </View>
@@ -426,7 +441,7 @@ export default function MyPaymentsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.primary}
+              tintColor={colors.primary}
             />
           }
         />
@@ -440,7 +455,7 @@ export default function MyPaymentsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.primary}
+              tintColor={colors.primary}
             />
           }
         />
@@ -478,9 +493,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    ...TextStyles.h4,
   },
 
   // Main Stats Card
@@ -509,8 +522,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   mainStatLabel: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginBottom: 2,
   },
@@ -540,8 +552,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   monthlyStatText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    ...TextStyles.label,
     color: Colors.gray600,
   },
 
@@ -601,9 +612,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   searchInput: {
+    ...TextStyles.small,
     flex: 1,
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
     color: Colors.gray900,
     paddingVertical: 0,
   },
@@ -621,8 +631,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   filterIndicatorText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    ...TextStyles.label,
     color: Colors.primary,
   },
 
@@ -633,8 +642,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xs,
   },
   resultsText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.small,
     color: Colors.gray500,
   },
 
@@ -652,9 +660,7 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
   },
   sectionCount: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    ...TextStyles.caption,
   },
 
   // List
@@ -693,23 +699,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   paymentTitle: {
+    ...TextStyles.smallBold,
     flex: 1,
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
     marginRight: Spacing.sm,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingVertical: 3,
-    paddingHorizontal: 8,
-    borderRadius: BorderRadius.full,
-  },
-  statusText: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
   },
   paymentMeta: {
     flexDirection: 'row',
@@ -717,9 +710,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   methodText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    ...TextStyles.caption,
   },
   metaDot: {
     width: 3,
@@ -729,13 +720,10 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   dateText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    ...TextStyles.caption,
   },
   txnText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.caption,
     color: Colors.gray400,
   },
   paymentFooter: {
@@ -754,9 +742,7 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
   },
   currency: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    ...TextStyles.caption,
   },
   refundButton: {
     flexDirection: 'row',
@@ -798,8 +784,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.body,
     color: Colors.gray500,
     textAlign: 'center',
   },

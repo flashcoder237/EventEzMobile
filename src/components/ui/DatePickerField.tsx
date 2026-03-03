@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontSizes,
@@ -40,6 +41,7 @@ export default function DatePickerField({
   disabled = false,
   placeholder = 'Sélectionner une date',
 }: DatePickerFieldProps) {
+  const { colors, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
 
   const formatDate = (date: Date) => {
@@ -77,7 +79,7 @@ export default function DatePickerField({
   return (
     <View style={styles.container}>
       {label && (
-        <Text style={[styles.label, error && styles.labelError]}>
+        <Text style={[styles.label, { color: colors.gray700 }, error && styles.labelError]}>
           {label}
         </Text>
       )}
@@ -85,19 +87,20 @@ export default function DatePickerField({
       <TouchableOpacity
         style={[
           styles.trigger,
+          { backgroundColor: colors.gray50, borderColor: colors.gray200 },
           error && styles.triggerError,
           disabled && styles.triggerDisabled,
         ]}
         onPress={() => !disabled && setShowPicker(true)}
         activeOpacity={disabled ? 1 : TOUCH_OPACITY}
       >
-        <Text style={value ? styles.valueText : styles.placeholderText}>
+        <Text style={value ? [styles.valueText, { color: colors.gray900 }] : [styles.placeholderText, { color: colors.gray400 }]}>
           {value ? formatDate(value) : placeholder}
         </Text>
         <Ionicons
           name="calendar-outline"
           size={20}
-          color={error ? Colors.error : Colors.gray400}
+          color={error ? colors.error : colors.gray400}
         />
       </TouchableOpacity>
 
@@ -107,14 +110,14 @@ export default function DatePickerField({
       {Platform.OS === 'ios' && showPicker && (
         <Modal transparent animationType="slide">
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
+            <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+              <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={styles.modalCancel}>Annuler</Text>
+                  <Text style={[styles.modalCancel, { color: colors.gray500 }]}>Annuler</Text>
                 </TouchableOpacity>
-                <Text style={styles.modalTitle}>{label || 'Date'}</Text>
+                <Text style={[styles.modalTitle, { color: colors.gray900 }]}>{label || 'Date'}</Text>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={styles.modalDone}>Valider</Text>
+                  <Text style={[styles.modalDone, { color: colors.primary }]}>Valider</Text>
                 </TouchableOpacity>
               </View>
               {renderPicker()}

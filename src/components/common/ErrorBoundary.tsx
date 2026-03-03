@@ -13,6 +13,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -69,83 +70,104 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   render() {
     if (this.state.hasError) {
       return (
-        <View style={styles.container}>
-          <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-          <SafeAreaView style={styles.safeArea}>
-            <View style={styles.content}>
-              {/* Illustration */}
-              <View style={styles.illustrationContainer}>
-                <View style={styles.outerCircle}>
-                  <View style={styles.innerCircle}>
-                    <Ionicons
-                      name="sad-outline"
-                      size={64}
-                      color={Colors.primary}
-                    />
-                  </View>
-                </View>
-                {/* Decorative elements */}
-                <View style={styles.decorStar1}>
-                  <Ionicons name="sparkles" size={20} color={Colors.warning} />
-                </View>
-                <View style={styles.decorStar2}>
-                  <Ionicons name="alert-circle" size={16} color={Colors.error} />
-                </View>
-                <View style={styles.decorDot}>
-                  <Ionicons name="ellipse" size={8} color={Colors.primaryLight} />
-                </View>
-              </View>
-
-              {/* Title */}
-              <Text style={styles.title}>
-                Oups ! Quelque chose s'est mal passe
-              </Text>
-
-              {/* Subtitle */}
-              <Text style={styles.subtitle}>
-                Nous sommes desoles, une erreur inattendue s'est produite.
-              </Text>
-
-              {/* Error details (dev only) */}
-              {__DEV__ && this.state.error && (
-                <View style={styles.errorDetailsContainer}>
-                  <Text style={styles.errorDetailsLabel}>Details de l'erreur :</Text>
-                  <Text style={styles.errorDetailsText} numberOfLines={4}>
-                    {this.state.error.message}
-                  </Text>
-                </View>
-              )}
-
-              {/* Action Buttons */}
-              <View style={styles.buttonContainer}>
-                <GradientButton
-                  title="Reessayer"
-                  onPress={this.handleRetry}
-                  variant="primary"
-                  size="lg"
-                  fullWidth
-                  iconLeft="refresh-outline"
-                />
-
-                <View style={styles.buttonSpacer} />
-
-                <GradientButton
-                  title="Retour a l'accueil"
-                  onPress={this.handleGoHome}
-                  variant="outline"
-                  size="lg"
-                  fullWidth
-                  iconLeft="home-outline"
-                />
-              </View>
-            </View>
-          </SafeAreaView>
-        </View>
+        <ErrorFallbackUI
+          error={this.state.error}
+          onRetry={this.handleRetry}
+          onGoHome={this.handleGoHome}
+        />
       );
     }
 
     return this.props.children;
   }
+}
+
+/** Functional wrapper for the error UI so it can use useTheme() hook */
+function ErrorFallbackUI({
+  error,
+  onRetry,
+  onGoHome,
+}: {
+  error: Error | null;
+  onRetry: () => void;
+  onGoHome: () => void;
+}) {
+  const { colors, isDark } = useTheme();
+
+  return (
+    <View style={[styles.container, { backgroundColor: colors.white }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.content}>
+          {/* Illustration */}
+          <View style={styles.illustrationContainer}>
+            <View style={[styles.outerCircle, { backgroundColor: colors.primaryBg }]}>
+              <View style={[styles.innerCircle, { backgroundColor: colors.white }]}>
+                <Ionicons
+                  name="sad-outline"
+                  size={64}
+                  color={colors.primary}
+                />
+              </View>
+            </View>
+            {/* Decorative elements */}
+            <View style={styles.decorStar1}>
+              <Ionicons name="sparkles" size={20} color={colors.warning} />
+            </View>
+            <View style={styles.decorStar2}>
+              <Ionicons name="alert-circle" size={16} color={colors.error} />
+            </View>
+            <View style={styles.decorDot}>
+              <Ionicons name="ellipse" size={8} color={colors.primaryLight} />
+            </View>
+          </View>
+
+          {/* Title */}
+          <Text style={[styles.title, { color: colors.gray900 }]}>
+            Oups ! Quelque chose s'est mal passe
+          </Text>
+
+          {/* Subtitle */}
+          <Text style={[styles.subtitle, { color: colors.gray500 }]}>
+            Nous sommes desoles, une erreur inattendue s'est produite.
+          </Text>
+
+          {/* Error details (dev only) */}
+          {__DEV__ && error && (
+            <View style={[styles.errorDetailsContainer, { backgroundColor: colors.errorLight, borderColor: colors.error + '30' }]}>
+              <Text style={[styles.errorDetailsLabel, { color: colors.error }]}>Details de l'erreur :</Text>
+              <Text style={[styles.errorDetailsText, { color: colors.errorDark }]} numberOfLines={4}>
+                {error.message}
+              </Text>
+            </View>
+          )}
+
+          {/* Action Buttons */}
+          <View style={styles.buttonContainer}>
+            <GradientButton
+              title="Reessayer"
+              onPress={onRetry}
+              variant="primary"
+              size="lg"
+              fullWidth
+              iconLeft="refresh-outline"
+            />
+
+            <View style={styles.buttonSpacer} />
+
+            <GradientButton
+              title="Retour a l'accueil"
+              onPress={onGoHome}
+              variant="outline"
+              size="lg"
+              fullWidth
+              iconLeft="home-outline"
+            />
+          </View>
+        </View>
+      </SafeAreaView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({

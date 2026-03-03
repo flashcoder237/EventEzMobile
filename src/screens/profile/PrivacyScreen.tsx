@@ -18,9 +18,11 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function PrivacyScreen() {
   const navigation = useNavigation();
+  const { colors, isDark } = useTheme();
 
   const sections = [
     {

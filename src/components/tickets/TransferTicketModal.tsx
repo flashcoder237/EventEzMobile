@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { ticketTransfersAPI } from '../../api/client';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import GradientButton from '../ui/GradientButton';
 import {
   Colors,
@@ -43,6 +44,7 @@ export default function TransferTicketModal({
   ticket,
   onTransferComplete,
 }: TransferTicketModalProps) {
+  const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientName, setRecipientName] = useState('');
@@ -141,12 +143,12 @@ export default function TransferTicketModal({
         behavior="padding"
         style={styles.overlay}
       >
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.white }]}>
           {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Transférer un billet</Text>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <Text style={[styles.title, { color: colors.gray900 }]}>Transférer un billet</Text>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-              <Ionicons name="close" size={24} color={Colors.gray600} />
+              <Ionicons name="close" size={24} color={colors.gray600} />
             </TouchableOpacity>
           </View>
 
@@ -156,11 +158,11 @@ export default function TransferTicketModal({
             keyboardShouldPersistTaps="handled"
           >
             {/* Ticket Info */}
-            <View style={styles.ticketInfo}>
-              <Ionicons name="ticket-outline" size={24} color={Colors.primary} />
+            <View style={[styles.ticketInfo, { backgroundColor: colors.primaryLight }]}>
+              <Ionicons name="ticket-outline" size={24} color={colors.primary} />
               <View style={styles.ticketDetails}>
-                <Text style={styles.ticketName}>{ticket.ticket_type_name}</Text>
-                <Text style={styles.ticketQuantity}>
+                <Text style={[styles.ticketName, { color: colors.gray900 }]}>{ticket.ticket_type_name}</Text>
+                <Text style={[styles.ticketQuantity, { color: colors.gray600 }]}>
                   {ticket.quantity} billet{ticket.quantity > 1 ? 's' : ''} disponible{ticket.quantity > 1 ? 's' : ''}
                 </Text>
               </View>
@@ -168,11 +170,11 @@ export default function TransferTicketModal({
 
             {/* Recipient Email */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email du destinataire *</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Email du destinataire *</Text>
               <TextInput
-                style={[styles.input, errors.email && styles.inputError]}
+                style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }, errors.email && styles.inputError]}
                 placeholder="exemple@email.com"
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
                 value={recipientEmail}
                 onChangeText={(text) => {
                   setRecipientEmail(text);
@@ -191,11 +193,11 @@ export default function TransferTicketModal({
 
             {/* Recipient Name (Optional) */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nom du destinataire (optionnel)</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Nom du destinataire (optionnel)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                 placeholder="Jean Dupont"
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
                 value={recipientName}
                 onChangeText={setRecipientName}
                 autoCapitalize="words"
@@ -205,29 +207,29 @@ export default function TransferTicketModal({
             {/* Quantity */}
             {ticket.quantity > 1 && (
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nombre de billets à transférer</Text>
+                <Text style={[styles.label, { color: colors.gray700 }]}>Nombre de billets à transférer</Text>
                 <View style={styles.quantitySelector}>
                   <TouchableOpacity
-                    style={[styles.quantityButton, quantity <= 1 && styles.quantityButtonDisabled]}
+                    style={[styles.quantityButton, { backgroundColor: colors.white, borderColor: colors.gray200 }, quantity <= 1 && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
                     onPress={() => quantity > 1 && setQuantity(quantity - 1)}
                     disabled={quantity <= 1}
                   >
                     <Ionicons
                       name="remove"
                       size={20}
-                      color={quantity <= 1 ? Colors.gray300 : Colors.primary}
+                      color={quantity <= 1 ? colors.gray300 : colors.primary}
                     />
                   </TouchableOpacity>
-                  <Text style={styles.quantityValue}>{quantity}</Text>
+                  <Text style={[styles.quantityValue, { color: colors.gray900 }]}>{quantity}</Text>
                   <TouchableOpacity
-                    style={[styles.quantityButton, quantity >= ticket.quantity && styles.quantityButtonDisabled]}
+                    style={[styles.quantityButton, { backgroundColor: colors.white, borderColor: colors.gray200 }, quantity >= ticket.quantity && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
                     onPress={() => quantity < ticket.quantity && setQuantity(quantity + 1)}
                     disabled={quantity >= ticket.quantity}
                   >
                     <Ionicons
                       name="add"
                       size={20}
-                      color={quantity >= ticket.quantity ? Colors.gray300 : Colors.primary}
+                      color={quantity >= ticket.quantity ? colors.gray300 : colors.primary}
                     />
                   </TouchableOpacity>
                 </View>
@@ -239,11 +241,11 @@ export default function TransferTicketModal({
 
             {/* Message (Optional) */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Message personnel (optionnel)</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Message personnel (optionnel)</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, styles.textArea, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                 placeholder="Ajouter un message pour le destinataire..."
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
                 value={message}
                 onChangeText={setMessage}
                 multiline
@@ -253,9 +255,9 @@ export default function TransferTicketModal({
             </View>
 
             {/* Info Note */}
-            <View style={styles.infoNote}>
-              <Ionicons name="information-circle-outline" size={20} color={Colors.info} />
-              <Text style={styles.infoText}>
+            <View style={[styles.infoNote, { backgroundColor: colors.infoLight }]}>
+              <Ionicons name="information-circle-outline" size={20} color={colors.info} />
+              <Text style={[styles.infoText, { color: colors.info }]}>
                 Le destinataire recevra un email avec un lien pour accepter ou refuser le transfert.
                 Le transfert expire après 48 heures.
               </Text>
@@ -263,9 +265,9 @@ export default function TransferTicketModal({
           </ScrollView>
 
           {/* Actions */}
-          <View style={styles.actions}>
-            <TouchableOpacity style={styles.cancelButton} onPress={handleClose}>
-              <Text style={styles.cancelButtonText}>Annuler</Text>
+          <View style={[styles.actions, { borderTopColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.cancelButton, { borderColor: colors.gray300 }]} onPress={handleClose}>
+              <Text style={[styles.cancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
             </TouchableOpacity>
             <GradientButton
               title={loading ? 'Envoi...' : 'Transférer'}

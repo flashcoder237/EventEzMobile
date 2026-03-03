@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { sponsorsAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface Sponsor {
@@ -29,6 +30,7 @@ interface SponsorsTabProps {
 }
 
 export default function SponsorsTab({ eventId }: SponsorsTabProps) {
+  const { colors, isDark } = useTheme();
   const [sponsors, setSponsors] = useState<Sponsor[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -81,7 +83,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={styles.emptyTabText}>Chargement des sponsors...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement des sponsors...</Text>
       </View>
     );
   }
@@ -89,10 +91,10 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   if (!sponsors || sponsors.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Sponsors</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sponsors</Text>
         <View style={styles.emptyTab}>
-          <Ionicons name="ribbon-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucun sponsor pour cet evenement</Text>
+          <Ionicons name="ribbon-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun sponsor pour cet evenement</Text>
         </View>
       </View>
     );
@@ -100,19 +102,19 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Sponsors</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sponsors</Text>
       {sponsors.map((sponsor) => (
-        <View key={sponsor.id} style={styles.sponsorCard}>
+        <View key={sponsor.id} style={[styles.sponsorCard, { backgroundColor: colors.gray50 }]}>
           <View style={styles.sponsorHeader}>
             {sponsor.logo ? (
               <Image source={{ uri: sponsor.logo }} style={styles.sponsorLogo} resizeMode="contain" />
             ) : (
-              <View style={styles.sponsorLogoPlaceholder}>
-                <Ionicons name="ribbon" size={24} color={Colors.primary} />
+              <View style={[styles.sponsorLogoPlaceholder, { backgroundColor: colors.primaryBg }]}>
+                <Ionicons name="ribbon" size={24} color={colors.primary} />
               </View>
             )}
             <View style={styles.sponsorInfo}>
-              <Text style={styles.sponsorName}>{sponsor.name}</Text>
+              <Text style={[styles.sponsorName, { color: colors.gray900 }]}>{sponsor.name}</Text>
               {(sponsor.sponsor_level || sponsor.package_name) && (
                 <View style={[styles.levelBadge, { backgroundColor: getSponsorLevelColor(sponsor.sponsor_level) + '20' }]}>
                   <Text style={[styles.levelBadgeText, { color: getSponsorLevelColor(sponsor.sponsor_level) }]}>
@@ -123,18 +125,18 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
             </View>
           </View>
           {sponsor.description && (
-            <Text style={styles.sponsorDescription} numberOfLines={3}>
+            <Text style={[styles.sponsorDescription, { color: colors.gray600 }]} numberOfLines={3}>
               {sponsor.description}
             </Text>
           )}
           {sponsor.website && (
             <TouchableOpacity
-              style={styles.websiteButton}
+              style={[styles.websiteButton, { backgroundColor: colors.primaryBg }]}
               onPress={() => handleWebsitePress(sponsor.website!, sponsor.id)}
               activeOpacity={0.7}
             >
-              <Ionicons name="globe-outline" size={16} color={Colors.primary} />
-              <Text style={styles.websiteButtonText}>Visiter le site</Text>
+              <Ionicons name="globe-outline" size={16} color={colors.primary} />
+              <Text style={[styles.websiteButtonText, { color: colors.primary }]}>Visiter le site</Text>
             </TouchableOpacity>
           )}
         </View>

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { seatingAPI, floorPlansAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface SeatingZone {
@@ -56,6 +57,7 @@ interface VenueTabProps {
 }
 
 export default function VenueTab({ eventId }: VenueTabProps) {
+  const { colors, isDark } = useTheme();
   const [seatingPlans, setSeatingPlans] = useState<SeatingPlan[]>([]);
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -112,7 +114,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={styles.emptyTabText}>Chargement du plan...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement du plan...</Text>
       </View>
     );
   }
@@ -120,10 +122,10 @@ export default function VenueTab({ eventId }: VenueTabProps) {
   if (seatingPlans.length === 0 && floorPlans.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Placement</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Placement</Text>
         <View style={styles.emptyTab}>
-          <Ionicons name="map-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucun plan de salle pour cet evenement</Text>
+          <Ionicons name="map-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun plan de salle pour cet evenement</Text>
         </View>
       </View>
     );
@@ -136,7 +138,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
       {/* Seating Plans */}
       {seatingPlans.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Plans de salle</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Plans de salle</Text>
           {seatingPlans.map((plan) => {
             const reserved = plan.reserved_seats || 0;
             const total = plan.total_seats || 0;
@@ -146,7 +148,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
             return (
               <TouchableOpacity
                 key={plan.id}
-                style={[styles.planCard, selectedPlan === plan.id && styles.planCardSelected]}
+                style={[styles.planCard, { backgroundColor: colors.gray50 }, selectedPlan === plan.id && { borderColor: colors.primary }]}
                 onPress={() => {
                   setSelectedPlan(plan.id === selectedPlan ? '' : plan.id);
                   setSelectedZone('');
@@ -154,7 +156,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                 activeOpacity={0.7}
               >
                 <View style={styles.planHeader}>
-                  <Text style={styles.planName}>{plan.name}</Text>
+                  <Text style={[styles.planName, { color: colors.gray900 }]}>{plan.name}</Text>
                   <View style={styles.availBadge}>
                     <Text style={styles.availBadgeText}>
                       {available} dispo.
@@ -162,14 +164,14 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                   </View>
                 </View>
                 {plan.description && (
-                  <Text style={styles.planDescription} numberOfLines={2}>{plan.description}</Text>
+                  <Text style={[styles.planDescription, { color: colors.gray500 }]} numberOfLines={2}>{plan.description}</Text>
                 )}
 
                 {/* Capacity bar */}
                 <View style={styles.capacityRow}>
-                  <Text style={styles.capacityText}>{reserved} / {total} ({pct}%)</Text>
+                  <Text style={[styles.capacityText, { color: colors.gray500 }]}>{reserved} / {total} ({pct}%)</Text>
                 </View>
-                <View style={styles.capacityBar}>
+                <View style={[styles.capacityBar, { backgroundColor: colors.gray200 }]}>
                   <View
                     style={[
                       styles.capacityFill,
@@ -188,8 +190,8 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                         style={[
                           styles.zoneBadge,
                           {
-                            backgroundColor: zone.color ? `${zone.color}20` : Colors.gray100,
-                            borderColor: selectedZone === zone.id ? (zone.color || Colors.primary) : 'transparent',
+                            backgroundColor: zone.color ? `${zone.color}20` : colors.gray100,
+                            borderColor: selectedZone === zone.id ? (zone.color || colors.primary) : 'transparent',
                             borderWidth: selectedPlan === plan.id ? 1.5 : 0,
                           },
                         ]}
@@ -203,7 +205,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                         <Text
                           style={[
                             styles.zoneBadgeText,
-                            { color: zone.color || Colors.gray600 },
+                            { color: zone.color || colors.gray600 },
                           ]}
                         >
                           {zone.name} ({zone.capacity - (zone.reserved_count || 0)} dispo.)
@@ -218,16 +220,16 @@ export default function VenueTab({ eventId }: VenueTabProps) {
 
           {/* Reservation form */}
           {selectedPlan && (
-            <View style={styles.reserveCard}>
-              <Text style={styles.reserveTitle}>Reserver une place</Text>
+            <View style={[styles.reserveCard, { backgroundColor: colors.gray50 }]}>
+              <Text style={[styles.reserveTitle, { color: colors.gray900 }]}>Reserver une place</Text>
               <View style={styles.reserveForm}>
                 {!selectedZone && currentPlan?.zones && currentPlan.zones.length > 0 && (
                   <Text style={styles.reserveHint}>Selectionnez une zone ci-dessus</Text>
                 )}
                 <TextInput
-                  style={styles.reserveInput}
+                  style={[styles.reserveInput, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
                   placeholder="Numero de siege (ex: A12)"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   value={seatLabel}
                   onChangeText={setSeatLabel}
                 />
@@ -252,14 +254,14 @@ export default function VenueTab({ eventId }: VenueTabProps) {
       {/* Floor Plans */}
       {floorPlans.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, seatingPlans.length > 0 && { marginTop: Spacing.lg }]}>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }, seatingPlans.length > 0 && { marginTop: Spacing.lg }]}>
             Plans d'etage
           </Text>
           {floorPlans.map((fp) => (
-            <View key={fp.id} style={styles.floorPlanCard}>
-              <Text style={styles.planName}>{fp.name}</Text>
+            <View key={fp.id} style={[styles.floorPlanCard, { backgroundColor: colors.gray50 }]}>
+              <Text style={[styles.planName, { color: colors.gray900 }]}>{fp.name}</Text>
               {fp.description && (
-                <Text style={styles.planDescription} numberOfLines={2}>{fp.description}</Text>
+                <Text style={[styles.planDescription, { color: colors.gray500 }]} numberOfLines={2}>{fp.description}</Text>
               )}
               {fp.image && (
                 <Image
@@ -275,10 +277,10 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                       key={area.id}
                       style={[
                         styles.zoneBadge,
-                        { backgroundColor: area.color ? `${area.color}20` : Colors.gray100 },
+                        { backgroundColor: area.color ? `${area.color}20` : colors.gray100 },
                       ]}
                     >
-                      <Text style={[styles.zoneBadgeText, { color: area.color || Colors.gray600 }]}>
+                      <Text style={[styles.zoneBadgeText, { color: area.color || colors.gray600 }]}>
                         {area.name} ({area.area_type})
                       </Text>
                     </View>
@@ -287,8 +289,8 @@ export default function VenueTab({ eventId }: VenueTabProps) {
               )}
               <View style={styles.floorPlanMeta}>
                 {fp.width && fp.height && (
-                  <View style={styles.metaBadge}>
-                    <Text style={styles.metaBadgeText}>{fp.width} x {fp.height}</Text>
+                  <View style={[styles.metaBadge, { backgroundColor: colors.gray200 }]}>
+                    <Text style={[styles.metaBadgeText, { color: colors.gray600 }]}>{fp.width} x {fp.height}</Text>
                   </View>
                 )}
                 {fp.is_published && (

@@ -15,6 +15,7 @@ import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as Location from 'expo-location';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -67,6 +68,7 @@ export default function MapPickerModal({
   initialLat,
   initialLng,
 }: MapPickerModalProps) {
+  const { colors, isDark } = useTheme();
   const mapRef = useRef<MapView>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -264,16 +266,16 @@ export default function MapPickerModal({
 
   const renderSearchResult = ({ item }: { item: SearchResult }) => (
     <TouchableOpacity
-      style={styles.searchResultItem}
+      style={[styles.searchResultItem, { borderBottomColor: colors.gray100 }]}
       onPress={() => selectSearchResult(item)}
       activeOpacity={TOUCH_OPACITY}
     >
-      <Ionicons name="location-outline" size={18} color={Colors.primary} />
+      <Ionicons name="location-outline" size={18} color={colors.primary} />
       <View style={styles.searchResultText}>
-        <Text style={styles.searchResultName} numberOfLines={1}>
+        <Text style={[styles.searchResultName, { color: colors.gray900 }]} numberOfLines={1}>
           {item.name || item.display_name.split(',')[0]}
         </Text>
-        <Text style={styles.searchResultAddress} numberOfLines={1}>
+        <Text style={[styles.searchResultAddress, { color: colors.gray500 }]} numberOfLines={1}>
           {item.display_name}
         </Text>
       </View>
@@ -289,10 +291,10 @@ export default function MapPickerModal({
     >
       <KeyboardAvoidingView
         behavior="padding"
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.white }]}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.primary }]}>
           <TouchableOpacity onPress={onClose} activeOpacity={TOUCH_OPACITY} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={Colors.white} />
           </TouchableOpacity>
@@ -304,26 +306,26 @@ export default function MapPickerModal({
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={styles.searchInputContainer}>
-            <Ionicons name="search" size={18} color={Colors.gray400} />
+        <View style={[styles.searchContainer, { backgroundColor: colors.white, borderBottomColor: colors.gray100 }]}>
+          <View style={[styles.searchInputContainer, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="search" size={18} color={colors.gray400} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.gray900 }]}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Rechercher un lieu..."
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               onSubmitEditing={handleSearch}
               returnKeyType="search"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={18} color={Colors.gray400} />
+                <Ionicons name="close-circle" size={18} color={colors.gray400} />
               </TouchableOpacity>
             )}
           </View>
           <TouchableOpacity
-            style={styles.searchButton}
+            style={[styles.searchButton, { backgroundColor: colors.primary }]}
             onPress={handleSearch}
             disabled={searching || !searchQuery.trim()}
             activeOpacity={TOUCH_OPACITY}
@@ -335,7 +337,7 @@ export default function MapPickerModal({
             )}
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.locationButton}
+            style={[styles.locationButton, { backgroundColor: colors.info }]}
             onPress={getUserLocation}
             disabled={loadingLocation}
             activeOpacity={TOUCH_OPACITY}
@@ -350,7 +352,7 @@ export default function MapPickerModal({
 
         {/* Search Results */}
         {searchResults.length > 0 && (
-          <View style={styles.searchResultsContainer}>
+          <View style={[styles.searchResultsContainer, { backgroundColor: colors.white }]}>
             <FlatList
               data={searchResults}
               keyExtractor={(item) => item.place_id.toString()}
@@ -392,20 +394,20 @@ export default function MapPickerModal({
 
         {/* Selected Location Info */}
         {selectedLocation && (
-          <View style={styles.selectedLocationContainer}>
+          <View style={[styles.selectedLocationContainer, { backgroundColor: colors.gray50, borderTopColor: colors.gray200 }]}>
             <View style={styles.selectedLocationInfo}>
-              <Text style={styles.selectedLocationLabel}>Emplacement sélectionné</Text>
-              <Text style={styles.selectedLocationName} numberOfLines={1}>
+              <Text style={[styles.selectedLocationLabel, { color: colors.gray500 }]}>Emplacement sélectionné</Text>
+              <Text style={[styles.selectedLocationName, { color: colors.gray900 }]} numberOfLines={1}>
                 {selectedLocation.locationName || `${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`}
               </Text>
               {selectedLocation.address && (
-                <Text style={styles.selectedLocationAddress} numberOfLines={2}>
+                <Text style={[styles.selectedLocationAddress, { color: colors.gray600 }]} numberOfLines={2}>
                   {selectedLocation.address}
                 </Text>
               )}
             </View>
             <TouchableOpacity
-              style={styles.confirmButton}
+              style={[styles.confirmButton, { backgroundColor: colors.success }]}
               onPress={confirmSelection}
               activeOpacity={TOUCH_OPACITY}
             >
@@ -416,9 +418,9 @@ export default function MapPickerModal({
         )}
 
         {/* Help Text */}
-        <View style={styles.helpContainer}>
-          <Ionicons name="information-circle-outline" size={16} color={Colors.info} />
-          <Text style={styles.helpText}>
+        <View style={[styles.helpContainer, { backgroundColor: colors.infoLight }]}>
+          <Ionicons name="information-circle-outline" size={16} color={colors.info} />
+          <Text style={[styles.helpText, { color: colors.info }]}>
             Appuyez sur la carte pour placer un marqueur, ou utilisez la recherche
           </Text>
         </View>

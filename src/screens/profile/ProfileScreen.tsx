@@ -13,8 +13,10 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import { ticketPurchasesAPI, eventsAPI, feedbacksAPI, registrationsAPI } from '../../api/client';
@@ -40,33 +42,37 @@ interface MenuItemProps {
   danger?: boolean;
 }
 
-const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, danger }: MenuItemProps) => (
-  <TouchableOpacity
-    style={styles.menuItem}
-    onPress={onPress}
-    activeOpacity={0.6}
-  >
-    <View style={[styles.menuIconContainer, danger && styles.menuIconDanger]}>
-      <Ionicons
-        name={icon}
-        size={20}
-        color={danger ? Colors.error : Colors.gray700}
-      />
-    </View>
-    <View style={styles.menuTextContainer}>
-      <Text style={[styles.menuTitle, danger && styles.menuTitleDanger]}>{title}</Text>
-      {subtitle && <Text style={styles.menuSubtitle}>{subtitle}</Text>}
-    </View>
-    {showArrow && (
-      <Ionicons name="chevron-forward" size={20} color={Colors.gray300} />
-    )}
-  </TouchableOpacity>
-);
+const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, danger }: MenuItemProps) => {
+  const { colors } = useTheme();
+  return (
+    <TouchableOpacity
+      style={[styles.menuItem, { borderBottomColor: colors.gray100 }]}
+      onPress={onPress}
+      activeOpacity={0.6}
+    >
+      <View style={[styles.menuIconContainer, { backgroundColor: colors.gray50 }, danger && { backgroundColor: colors.errorBg }]}>
+        <Ionicons
+          name={icon}
+          size={20}
+          color={danger ? colors.error : colors.gray700}
+        />
+      </View>
+      <View style={styles.menuTextContainer}>
+        <Text style={[styles.menuTitle, { color: colors.gray900 }, danger && { color: colors.error }]}>{title}</Text>
+        {subtitle && <Text style={[styles.menuSubtitle, { color: colors.gray500 }]}>{subtitle}</Text>}
+      </View>
+      {showArrow && (
+        <Ionicons name="chevron-forward" size={20} color={colors.gray300} />
+      )}
+    </TouchableOpacity>
+  );
+};
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout } = useAuth();
   const { showAlert, showConfirm } = useAlert();
+  const { colors, isDark, gradients } = useTheme();
   const [showMyQR, setShowMyQR] = useState(false);
   const [stats, setStats] = useState({
     tickets: 0,
@@ -125,53 +131,65 @@ export default function ProfileScreen() {
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profil</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Profil</Text>
           <View style={styles.headerRight}>
             <TouchableOpacity
-              style={styles.settingsButton}
+              style={[styles.settingsButton, { backgroundColor: colors.gray50 }]}
               onPress={() => setShowMyQR(true)}
             >
-              <Ionicons name="qr-code-outline" size={22} color={Colors.gray700} />
+              <Ionicons name="qr-code-outline" size={22} color={colors.gray700} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.settingsButton}
+              style={[styles.settingsButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('Settings')}
             >
-              <Ionicons name="settings-outline" size={24} color={Colors.gray700} />
+              <Ionicons name="settings-outline" size={24} color={colors.gray700} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* User Card */}
+        {/* User Card with gradient behind avatar */}
         <FadeInView delay={100} translateY={16}>
         <TouchableOpacity
-          style={styles.userCard}
+          style={[styles.userCard, { backgroundColor: colors.card }, Shadows.cardViolet]}
           onPress={() => navigation.navigate('EditProfile')}
           activeOpacity={0.8}
         >
           <View style={styles.userCardLeft}>
             {user?.profile_picture || user?.image ? (
-              <Image
-                source={{ uri: user.profile_picture || user.image }}
-                style={styles.avatar}
-              />
+              <View>
+                <LinearGradient
+                  colors={gradients.brand as unknown as string[]}
+                  style={styles.avatarGradientRing}
+                />
+                <Image
+                  source={{ uri: user.profile_picture || user.image }}
+                  style={[styles.avatar, { borderColor: colors.surface }]}
+                />
+              </View>
             ) : (
-              <View style={styles.avatarPlaceholder}>
-                <Text style={styles.avatarText}>{getInitials()}</Text>
+              <View>
+                <LinearGradient
+                  colors={gradients.brand as unknown as string[]}
+                  style={styles.avatarGradientRing}
+                />
+                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200, borderColor: colors.surface }]}>
+                  <Text style={[styles.avatarText, { color: colors.gray600 }]}>{getInitials()}</Text>
+                </View>
               </View>
             )}
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>
+              <Text style={[styles.userName, { color: colors.gray900 }]}>
                 {user?.first_name || ''} {user?.last_name || ''}
                 {!user?.first_name && !user?.last_name && 'Utilisateur'}
               </Text>
-              <Text style={styles.userEmail}>{user?.email}</Text>
+              <Text style={[styles.userEmail, { color: colors.gray500 }]}>{user?.email}</Text>
               {isOrganizer && (
                 <View style={styles.organizerBadge}>
                   <Text style={styles.organizerBadgeText}>Organisateur</Text>
@@ -179,24 +197,24 @@ export default function ProfileScreen() {
               )}
             </View>
           </View>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray300} />
+          <Ionicons name="chevron-forward" size={20} color={colors.gray300} />
         </TouchableOpacity>
         </FadeInView>
 
         {/* Stats — 3 individual cards */}
         <FadeInView delay={200} translateY={16}>
         <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.tickets}</Text>
-            <Text style={styles.statLabel}>Réservations</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.card }, Shadows.cardViolet]}>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.tickets}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Réservations</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.favorites}</Text>
-            <Text style={styles.statLabel}>Favoris</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.card }, Shadows.cardViolet]}>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.favorites}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Favoris</Text>
           </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statValue}>{stats.reviews}</Text>
-            <Text style={styles.statLabel}>Avis</Text>
+          <View style={[styles.statCard, { backgroundColor: colors.card }, Shadows.cardViolet]}>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.reviews}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Avis</Text>
           </View>
         </View>
         </FadeInView>
@@ -224,8 +242,8 @@ export default function ProfileScreen() {
         {/* Moderator Section */}
         {isModerator && (
           <View style={styles.menuSection}>
-            <Text style={styles.menuSectionTitle}>Modération</Text>
-            <View style={styles.menuCard}>
+            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Modération</Text>
+            <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
               <MenuItem
                 icon="shield-checkmark-outline"
                 title="File de modération"
@@ -239,8 +257,8 @@ export default function ProfileScreen() {
         {/* Organizer Section */}
         {isOrganizer && (
           <View style={styles.menuSection}>
-            <Text style={styles.menuSectionTitle}>Organisateur</Text>
-            <View style={styles.menuCard}>
+            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Organisateur</Text>
+            <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
               <MenuItem
                 icon="add-circle-outline"
                 title="Créer un événement"
@@ -268,8 +286,8 @@ export default function ProfileScreen() {
 
         {/* Menu Sections */}
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Compte</Text>
-          <View style={styles.menuCard}>
+          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Compte</Text>
+          <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="person-outline"
               title="Modifier le profil"
@@ -306,8 +324,8 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Préférences</Text>
-          <View style={styles.menuCard}>
+          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Préférences</Text>
+          <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="heart-outline"
               title="Événements favoris"
@@ -338,8 +356,8 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.menuSection}>
-          <Text style={styles.menuSectionTitle}>Support</Text>
-          <View style={styles.menuCard}>
+          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Support</Text>
+          <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="help-circle-outline"
               title="Centre d'aide"
@@ -355,7 +373,7 @@ export default function ProfileScreen() {
 
         {/* Logout */}
         <View style={styles.menuSection}>
-          <View style={styles.menuCard}>
+          <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="log-out-outline"
               title="Déconnexion"
@@ -367,7 +385,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* App Version */}
-        <Text style={styles.version}>EventEz v1.0.0</Text>
+        <Text style={[styles.version, { color: colors.gray400 }]}>EventEz v1.0.0</Text>
 
         <View style={{ height: 130 }} />
       </ScrollView>
@@ -429,28 +447,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  avatarGradientRing: {
+    position: 'absolute',
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    top: -3,
+    left: -3,
+  },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
     borderWidth: 3,
-    borderColor: Colors.white,
     ...Shadows.sm,
   },
   avatarPlaceholder: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: Colors.white,
     ...Shadows.sm,
   },
   avatarText: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
+    ...TextStyles.h3,
     color: Colors.gray600,
   },
   userInfo: {
@@ -474,7 +496,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.full,
   },
   organizerBadgeText: {
-    fontSize: FontSizes.xs,
+    ...TextStyles.caption,
     fontFamily: FontFamily.medium,
     color: Colors.white,
   },
@@ -525,14 +547,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   becomeOrganizerTitle: {
+    ...TextStyles.bodyBold,
     fontSize: FontSizes.md,
-    fontFamily: FontFamily.semiBold,
     color: Colors.gray800,
   },
   becomeOrganizerSubtitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
+    ...TextStyles.small,
     marginTop: 2,
   },
   menuSection: {
@@ -540,12 +560,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
   },
   menuSectionTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 11,
-    color: Colors.accent,
-    marginBottom: Spacing.sm,
-    textTransform: 'uppercase',
+    ...TextStyles.eyebrow,
     letterSpacing: 1.2,
+    marginBottom: Spacing.sm,
   },
   menuCard: {
     backgroundColor: Colors.white,
@@ -589,8 +606,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   version: {
+    ...TextStyles.small,
     textAlign: 'center',
-    fontSize: FontSizes.sm,
     color: Colors.gray400,
     marginTop: Spacing['2xl'],
   },

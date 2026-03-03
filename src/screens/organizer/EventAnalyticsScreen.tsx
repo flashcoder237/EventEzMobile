@@ -8,12 +8,14 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTheme } from '../../contexts/ThemeContext';
 import { analyticsAPI, eventsAPI } from '../../api/client';
 import { RootStackParamList, Event, AnalyticsDashboardSummary } from '../../types';
 import {
@@ -38,21 +40,25 @@ interface StatCardProps {
   subtitle?: string;
 }
 
-const StatCard = ({ title, value, icon, color, subtitle }: StatCardProps) => (
-  <View style={styles.statCard}>
-    <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
-      <Ionicons name={icon} size={24} color={color} />
+const StatCard = ({ title, value, icon, color, subtitle }: StatCardProps) => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.statCard, { backgroundColor: colors.gray50 }]}>
+      <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <Text style={[styles.statValue, { color: colors.gray900 }]}>{value}</Text>
+      <Text style={[styles.statTitle, { color: colors.gray500 }]}>{title}</Text>
+      {subtitle && <Text style={[styles.statSubtitle, { color: colors.gray400 }]}>{subtitle}</Text>}
     </View>
-    <Text style={styles.statValue}>{value}</Text>
-    <Text style={styles.statTitle}>{title}</Text>
-    {subtitle && <Text style={styles.statSubtitle}>{subtitle}</Text>}
-  </View>
-);
+  );
+};
 
 export default function EventAnalyticsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
+  const { colors, isDark } = useTheme();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -101,7 +107,7 @@ export default function EventAnalyticsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <SkeletonList count={4} Component={StatCardSkeleton} />
       </View>
     );
@@ -113,16 +119,17 @@ export default function EventAnalyticsScreen() {
   const revenue = analytics?.revenue || 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Analytiques</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Analytiques</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -132,18 +139,18 @@ export default function EventAnalyticsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
         contentContainerStyle={styles.scrollContent}
       >
         {/* Event Title */}
-        <View style={styles.eventHeader}>
-          <Text style={styles.eventTitle} numberOfLines={2}>
+        <View style={[styles.eventHeader, { borderBottomColor: colors.gray100 }]}>
+          <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
             {event?.title}
           </Text>
-          <View style={styles.statusBadge}>
-            <Text style={styles.statusText}>{event?.status}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: colors.primaryBg }]}>
+            <Text style={[styles.statusText, { color: colors.primary }]}>{event?.status}</Text>
           </View>
         </View>
 
@@ -177,12 +184,12 @@ export default function EventAnalyticsScreen() {
 
         {/* Performance Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Performance</Text>
-          <View style={styles.performanceCard}>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Performance</Text>
+          <View style={[styles.performanceCard, { backgroundColor: colors.gray50 }]}>
             <View style={styles.performanceRow}>
               <View style={styles.performanceItem}>
-                <Text style={styles.performanceLabel}>Capacité utilisée</Text>
-                <View style={styles.progressContainer}>
+                <Text style={[styles.performanceLabel, { color: colors.gray600 }]}>Capacité utilisée</Text>
+                <View style={[styles.progressContainer, { backgroundColor: colors.gray200 }]}>
                   <View
                     style={[
                       styles.progressBar,
@@ -192,7 +199,7 @@ export default function EventAnalyticsScreen() {
                     ]}
                   />
                 </View>
-                <Text style={styles.performanceValue}>
+                <Text style={[styles.performanceValue, { color: colors.gray500 }]}>
                   {registrations} / {event?.max_participants || '∞'}
                 </Text>
               </View>
@@ -202,41 +209,41 @@ export default function EventAnalyticsScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Actions rapides</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Actions rapides</Text>
           <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('EventRegistrations', { eventId })}
             >
-              <Ionicons name="list-outline" size={24} color={Colors.primary} />
-              <Text style={styles.actionText}>Inscriptions</Text>
+              <Ionicons name="list-outline" size={24} color={colors.primary} />
+              <Text style={[styles.actionText, { color: colors.gray700 }]}>Inscriptions</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('QRScanner', { eventId })}
             >
-              <Ionicons name="qr-code-outline" size={24} color={Colors.primary} />
-              <Text style={styles.actionText}>Scanner</Text>
+              <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
+              <Text style={[styles.actionText, { color: colors.gray700 }]}>Scanner</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.actionCard}
+              style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('EventEdit', { eventId })}
             >
-              <Ionicons name="create-outline" size={24} color={Colors.primary} />
-              <Text style={styles.actionText}>Modifier</Text>
+              <Ionicons name="create-outline" size={24} color={colors.primary} />
+              <Text style={[styles.actionText, { color: colors.gray700 }]}>Modifier</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Insights */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Aperçu</Text>
-          <View style={styles.insightCard}>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Aperçu</Text>
+          <View style={[styles.insightCard, { backgroundColor: colors.gray50 }]}>
             <View style={styles.insightRow}>
               <Ionicons name="trending-up" size={20} color="#10B981" />
-              <Text style={styles.insightText}>
+              <Text style={[styles.insightText, { color: colors.gray600 }]}>
                 {views > 0
                   ? `Votre événement a été vu ${views} fois`
                   : 'Partagez votre événement pour obtenir plus de vues'}
@@ -244,8 +251,8 @@ export default function EventAnalyticsScreen() {
             </View>
             {registrations > 0 && (
               <View style={styles.insightRow}>
-                <Ionicons name="people" size={20} color={Colors.primary} />
-                <Text style={styles.insightText}>
+                <Ionicons name="people" size={20} color={colors.primary} />
+                <Text style={[styles.insightText, { color: colors.gray600 }]}>
                   {registrations} personne{registrations > 1 ? 's' : ''} inscrite{registrations > 1 ? 's' : ''}
                 </Text>
               </View>

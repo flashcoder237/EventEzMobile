@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { volunteersAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface VolunteerRole {
@@ -29,6 +30,7 @@ interface VolunteersTabProps {
 }
 
 export default function VolunteersTab({ eventId }: VolunteersTabProps) {
+  const { colors, isDark } = useTheme();
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={styles.emptyTabText}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
       </View>
     );
   }
@@ -97,10 +99,10 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
   if (roles.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Benevoles</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Benevoles</Text>
         <View style={styles.emptyTab}>
-          <Ionicons name="people-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucun poste de benevole pour cet evenement</Text>
+          <Ionicons name="people-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun poste de benevole pour cet evenement</Text>
         </View>
       </View>
     );
@@ -108,7 +110,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Postes de benevoles</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Postes de benevoles</Text>
 
       {roles.map((role) => {
         const hasApplied = myApplications.includes(role.id);
@@ -119,16 +121,16 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
         const pct = Math.min(100, ((role.accepted_count || 0) / role.max_volunteers) * 100);
 
         return (
-          <View key={role.id} style={styles.roleCard}>
+          <View key={role.id} style={[styles.roleCard, { backgroundColor: colors.gray50 }]}>
             <TouchableOpacity
               style={styles.roleHeader}
               onPress={() => setExpandedRole(isExpanded ? null : role.id)}
               activeOpacity={0.7}
             >
               <View style={styles.roleInfo}>
-                <Text style={styles.roleTitle}>{role.title}</Text>
+                <Text style={[styles.roleTitle, { color: colors.gray900 }]}>{role.title}</Text>
                 {role.description && (
-                  <Text style={styles.roleDescription} numberOfLines={isExpanded ? undefined : 2}>
+                  <Text style={[styles.roleDescription, { color: colors.gray500 }]} numberOfLines={isExpanded ? undefined : 2}>
                     {role.description}
                   </Text>
                 )}
@@ -153,14 +155,14 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                 <Ionicons
                   name={isExpanded ? 'chevron-up' : 'chevron-down'}
                   size={18}
-                  color={Colors.gray400}
+                  color={colors.gray400}
                 />
               </View>
             </TouchableOpacity>
 
             {/* Capacity bar */}
             <View style={styles.capacityBarContainer}>
-              <View style={styles.capacityBar}>
+              <View style={[styles.capacityBar, { backgroundColor: colors.gray200 }]}>
                 <View
                   style={[
                     styles.capacityFill,
@@ -169,22 +171,22 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                   ]}
                 />
               </View>
-              <Text style={styles.capacityText}>
+              <Text style={[styles.capacityText, { color: colors.gray500 }]}>
                 {role.accepted_count || 0} / {role.max_volunteers}
               </Text>
             </View>
 
             {/* Expanded content */}
             {isExpanded && (
-              <View style={styles.expandedContent}>
+              <View style={[styles.expandedContent, { borderTopColor: colors.gray200 }]}>
                 {/* Responsibilities */}
                 {role.responsibilities && role.responsibilities.length > 0 && (
                   <View style={styles.responsibilitiesSection}>
-                    <Text style={styles.subsectionTitle}>Responsabilites</Text>
+                    <Text style={[styles.subsectionTitle, { color: colors.gray700 }]}>Responsabilites</Text>
                     {role.responsibilities.map((resp, idx) => (
                       <View key={idx} style={styles.responsibilityRow}>
-                        <Ionicons name="checkmark-circle" size={16} color={Colors.primary} />
-                        <Text style={styles.responsibilityText}>{resp}</Text>
+                        <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
+                        <Text style={[styles.responsibilityText, { color: colors.gray600 }]}>{resp}</Text>
                       </View>
                     ))}
                   </View>
@@ -194,12 +196,12 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                 {!hasApplied && !isFull && (
                   <>
                     {isApplying ? (
-                      <View style={styles.applyForm}>
-                        <Text style={styles.subsectionTitle}>Postuler</Text>
+                      <View style={[styles.applyForm, { backgroundColor: colors.white }]}>
+                        <Text style={[styles.subsectionTitle, { color: colors.gray700 }]}>Postuler</Text>
                         <TextInput
-                          style={[styles.applyInput, styles.applyTextarea]}
+                          style={[styles.applyInput, styles.applyTextarea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                           placeholder="Pourquoi souhaitez-vous etre benevole ?"
-                          placeholderTextColor={Colors.gray400}
+                          placeholderTextColor={colors.gray400}
                           multiline
                           numberOfLines={3}
                           value={motivation}
@@ -207,16 +209,16 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                           textAlignVertical="top"
                         />
                         <TextInput
-                          style={styles.applyInput}
+                          style={[styles.applyInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                           placeholder="Disponibilite (ex: Samedi 9h-18h)"
-                          placeholderTextColor={Colors.gray400}
+                          placeholderTextColor={colors.gray400}
                           value={availability}
                           onChangeText={setAvailability}
                         />
                         <TextInput
-                          style={styles.applyInput}
+                          style={[styles.applyInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                           placeholder="Experience (ex: 2 ans evenementiel)"
-                          placeholderTextColor={Colors.gray400}
+                          placeholderTextColor={colors.gray400}
                           value={experience}
                           onChangeText={setExperience}
                         />
@@ -230,7 +232,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                               setExperience('');
                             }}
                           >
-                            <Text style={styles.cancelButtonText}>Annuler</Text>
+                            <Text style={[styles.cancelButtonText, { color: colors.gray500 }]}>Annuler</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.submitButton}

@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -17,6 +18,7 @@ import { volunteersAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type VolunteerRouteProp = RouteProp<RootStackParamList, 'Volunteers'>;
@@ -58,6 +60,7 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; color: string; 
 export default function VolunteerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<VolunteerRouteProp>();
+  const { colors, isDark } = useTheme();
   const eventId = route.params?.eventId;
 
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
@@ -166,15 +169,15 @@ export default function VolunteerScreen() {
     );
 
     return (
-      <View style={styles.roleCard}>
+      <View style={[styles.roleCard, { backgroundColor: colors.card }]}>
         <View style={styles.roleHeader}>
-          <View style={styles.roleIconContainer}>
-            <Ionicons name="hand-right-outline" size={22} color={Colors.primary} />
+          <View style={[styles.roleIconContainer, { backgroundColor: colors.primaryBg }]}>
+            <Ionicons name="hand-right-outline" size={22} color={colors.primary} />
           </View>
           <View style={styles.roleInfo}>
-            <Text style={styles.roleTitle} numberOfLines={1}>{item.title}</Text>
+            <Text style={[styles.roleTitle, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
             {(item.event_title || item.event_name) && (
-              <Text style={styles.roleEvent} numberOfLines={1}>
+              <Text style={[styles.roleEvent, { color: colors.textSecondary }]} numberOfLines={1}>
                 {item.event_title || item.event_name}
               </Text>
             )}
@@ -182,15 +185,15 @@ export default function VolunteerScreen() {
         </View>
 
         {item.description ? (
-          <Text style={styles.roleDescription} numberOfLines={3}>
+          <Text style={[styles.roleDescription, { color: colors.textSecondary }]} numberOfLines={3}>
             {item.description}
           </Text>
         ) : null}
 
         {item.requirements ? (
-          <View style={styles.requirementsRow}>
-            <Ionicons name="document-text-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.requirementsText} numberOfLines={2}>
+          <View style={[styles.requirementsRow, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="document-text-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.requirementsText, { color: colors.textSecondary }]} numberOfLines={2}>
               {item.requirements}
             </Text>
           </View>
@@ -199,17 +202,17 @@ export default function VolunteerScreen() {
         {/* Capacity Bar */}
         <View style={styles.capacitySection}>
           <View style={styles.capacityLabelRow}>
-            <Text style={styles.capacityLabel}>Places</Text>
-            <Text style={styles.capacityValue}>
+            <Text style={[styles.capacityLabel, { color: colors.textLight }]}>Places</Text>
+            <Text style={[styles.capacityValue, { color: colors.text }]}>
               {filled}/{capacity}
             </Text>
           </View>
-          <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarBg, { backgroundColor: colors.gray100 }]}>
             <View
               style={[
                 styles.progressBarFill,
-                { width: `${fillPercentage}%` },
-                isFull && styles.progressBarFull,
+                { width: `${fillPercentage}%`, backgroundColor: colors.primary },
+                isFull && { backgroundColor: colors.error },
               ]}
             />
           </View>
@@ -217,22 +220,22 @@ export default function VolunteerScreen() {
 
         {/* Action */}
         {hasApplied ? (
-          <View style={styles.appliedBadge}>
-            <Ionicons name="checkmark-circle" size={16} color={Colors.success} />
-            <Text style={styles.appliedText}>Candidature envoyee</Text>
+          <View style={[styles.appliedBadge, { backgroundColor: colors.successLight }]}>
+            <Ionicons name="checkmark-circle" size={16} color={colors.success} />
+            <Text style={[styles.appliedText, { color: colors.success }]}>Candidature envoyee</Text>
           </View>
         ) : (
           <TouchableOpacity
-            style={[styles.applyButton, (isFull || !item.is_active) && styles.applyButtonDisabled]}
+            style={[styles.applyButton, { backgroundColor: colors.primary }, (isFull || !item.is_active) && { backgroundColor: colors.gray300 }]}
             onPress={() => handleApply(item)}
             disabled={isFull || isProcessing || !item.is_active}
           >
             {isProcessing ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
               <>
-                <Ionicons name="add" size={18} color={Colors.white} />
-                <Text style={styles.applyButtonText}>
+                <Ionicons name="add" size={18} color={colors.white} />
+                <Text style={[styles.applyButtonText, { color: colors.white }]}>
                   {isFull ? 'Complet' : 'Postuler'}
                 </Text>
               </>
@@ -244,19 +247,25 @@ export default function VolunteerScreen() {
   };
 
   const renderApplicationCard = ({ item }: { item: VolunteerApplication }) => {
-    const statusConfig = APPLICATION_STATUS_CONFIG[item.status] || APPLICATION_STATUS_CONFIG.pending;
+    const statusColors: Record<string, { label: string; color: string; bg: string }> = {
+      pending: { label: 'En attente', color: colors.warning, bg: colors.warningLight },
+      approved: { label: 'Approuvee', color: colors.success, bg: colors.successLight },
+      rejected: { label: 'Refusee', color: colors.error, bg: colors.errorLight },
+      withdrawn: { label: 'Retiree', color: colors.textLight, bg: colors.gray100 },
+    };
+    const statusConfig = statusColors[item.status] || statusColors.pending;
     const isPending = item.status === 'pending';
     const isProcessing = actionLoading === item.id;
 
     return (
-      <View style={styles.applicationCard}>
+      <View style={[styles.applicationCard, { backgroundColor: colors.card }]}>
         <View style={styles.applicationHeader}>
           <View style={styles.applicationInfo}>
-            <Text style={styles.applicationRole} numberOfLines={1}>
+            <Text style={[styles.applicationRole, { color: colors.text }]} numberOfLines={1}>
               {item.role_title || item.role_name || 'Role benevole'}
             </Text>
             {item.applicant_name && (
-              <Text style={styles.applicationApplicant}>
+              <Text style={[styles.applicationApplicant, { color: colors.textSecondary }]}>
                 {item.applicant_name}
               </Text>
             )}
@@ -269,29 +278,29 @@ export default function VolunteerScreen() {
         </View>
 
         {item.motivation ? (
-          <Text style={styles.motivationText} numberOfLines={2}>
+          <Text style={[styles.motivationText, { color: colors.textSecondary }]} numberOfLines={2}>
             "{item.motivation}"
           </Text>
         ) : null}
 
         <View style={styles.applicationFooter}>
-          <Text style={styles.applicationDate}>
-            <Ionicons name="calendar-outline" size={12} color={Colors.textLight} />{' '}
+          <Text style={[styles.applicationDate, { color: colors.textLight }]}>
+            <Ionicons name="calendar-outline" size={12} color={colors.textLight} />{' '}
             {formatDate(item.created_at)}
           </Text>
 
           {isPending && (
             <TouchableOpacity
-              style={styles.withdrawButton}
+              style={[styles.withdrawButton, { backgroundColor: colors.errorLight }]}
               onPress={() => handleWithdraw(item.id)}
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <ActivityIndicator size="small" color={Colors.error} />
+                <ActivityIndicator size="small" color={colors.error} />
               ) : (
                 <>
-                  <Ionicons name="close-circle-outline" size={16} color={Colors.error} />
-                  <Text style={styles.withdrawText}>Retirer</Text>
+                  <Ionicons name="close-circle-outline" size={16} color={colors.error} />
+                  <Text style={[styles.withdrawText, { color: colors.error }]}>Retirer</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -303,7 +312,8 @@ export default function VolunteerScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <LoadingSpinner />
       </SafeAreaView>
     );
@@ -312,43 +322,45 @@ export default function VolunteerScreen() {
   const currentData = activeTab === 'roles' ? roles : applications;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Benevoles</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Benevoles</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { backgroundColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'roles' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'roles' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('roles')}
         >
           <Ionicons
             name="people-outline"
             size={16}
-            color={activeTab === 'roles' ? Colors.primary : Colors.textLight}
+            color={activeTab === 'roles' ? colors.primary : colors.textLight}
             style={{ marginRight: 4 }}
           />
-          <Text style={[styles.tabText, activeTab === 'roles' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'roles' && { color: colors.primary }]}>
             Roles ({roles.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'applications' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'applications' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('applications')}
         >
           <Ionicons
             name="document-text-outline"
             size={16}
-            color={activeTab === 'applications' ? Colors.primary : Colors.textLight}
+            color={activeTab === 'applications' ? colors.primary : colors.textLight}
             style={{ marginRight: 4 }}
           />
-          <Text style={[styles.tabText, activeTab === 'applications' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'applications' && { color: colors.primary }]}>
             Candidatures ({applications.length})
           </Text>
         </TouchableOpacity>
@@ -361,13 +373,13 @@ export default function VolunteerScreen() {
           contentContainerStyle={styles.listContent}
           keyExtractor={(item) => item.id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="people-outline" size={48} color={Colors.textLight} />
-              <Text style={styles.emptyText}>Aucun role disponible</Text>
-              <Text style={styles.emptySubtext}>
+              <Ionicons name="people-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun role disponible</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
                 Les postes de benevoles seront affiches ici lorsqu'ils seront disponibles.
               </Text>
             </View>
@@ -380,13 +392,13 @@ export default function VolunteerScreen() {
           contentContainerStyle={styles.listContent}
           keyExtractor={(item) => item.id}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="document-text-outline" size={48} color={Colors.textLight} />
-              <Text style={styles.emptyText}>Aucune candidature</Text>
-              <Text style={styles.emptySubtext}>
+              <Ionicons name="document-text-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucune candidature</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
                 Postulez a un role pour voir votre candidature ici.
               </Text>
             </View>

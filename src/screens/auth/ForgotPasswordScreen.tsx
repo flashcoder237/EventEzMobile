@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../api/client';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -33,6 +34,7 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassw
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError } = useAlert();
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -75,17 +77,17 @@ export default function ForgotPasswordScreen() {
 
   if (isSuccess) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <View style={styles.successContainer}>
-          <View style={styles.successIcon}>
-            <Ionicons name="mail-outline" size={48} color={Colors.primary} />
+          <View style={[styles.successIcon, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="mail-outline" size={48} color={colors.primary} />
           </View>
-          <Text style={styles.successTitle}>Email envoyé !</Text>
-          <Text style={styles.successText}>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Email envoyé !</Text>
+          <Text style={[styles.successText, { color: colors.gray600 }]}>
             Si un compte existe avec l'adresse {email}, vous recevrez un email avec les instructions pour réinitialiser votre mot de passe.
           </Text>
-          <Text style={styles.successHint}>
+          <Text style={[styles.successHint, { color: colors.gray400 }]}>
             Vérifiez également votre dossier spam.
           </Text>
           <GradientButton
@@ -100,14 +102,14 @@ export default function ForgotPasswordScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Dot pattern background */}
-      <DotPattern />
+      <DotPattern opacity={isDark ? 0.02 : 0.04} />
 
       {/* Top accent bar */}
-      <View style={styles.accentBar} />
+      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -120,24 +122,24 @@ export default function ForgotPasswordScreen() {
             {/* Back Button */}
             <AnimatedPressable
               onPress={() => navigation.goBack()}
-              style={styles.backButton}
+              style={[styles.backButton, { backgroundColor: colors.gray50 }]}
               animationType="scale"
               scaleValue={0.9}
             >
-              <Ionicons name="arrow-back" size={24} color={Colors.gray800} />
+              <Ionicons name="arrow-back" size={24} color={colors.gray800} />
             </AnimatedPressable>
 
             {/* Icon */}
             <View style={styles.iconContainer}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="lock-closed-outline" size={40} color={Colors.primary} />
+              <View style={[styles.iconCircle, { backgroundColor: colors.gray50 }]}>
+                <Ionicons name="lock-closed-outline" size={40} color={colors.primary} />
               </View>
             </View>
 
             {/* Header */}
             <View style={styles.headerContainer}>
-              <Text style={styles.title}>Mot de passe oublié ?</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: colors.gray900 }]}>Mot de passe oublié ?</Text>
+              <Text style={[styles.subtitle, { color: colors.gray500 }]}>
                 Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
               </Text>
             </View>
@@ -145,15 +147,15 @@ export default function ForgotPasswordScreen() {
             {/* Form */}
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Email</Text>
-                <View style={[styles.inputWrapper, error && styles.inputError]}>
+                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, error && styles.inputError]}>
                   <View style={styles.inputIconContainer}>
-                    <Ionicons name="mail-outline" size={20} color={Colors.gray400} />
+                    <Ionicons name="mail-outline" size={20} color={colors.gray400} />
                   </View>
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: colors.gray900 }]}
                     placeholder="votre@email.com"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                     value={email}
                     onChangeText={(text) => {
                       setEmail(text);
@@ -167,8 +169,8 @@ export default function ForgotPasswordScreen() {
                 </View>
                 {error && (
                   <View style={styles.errorContainer}>
-                    <Ionicons name="alert-circle" size={14} color={Colors.error} />
-                    <Text style={styles.errorText}>{error}</Text>
+                    <Ionicons name="alert-circle" size={14} color={colors.error} />
+                    <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
                   </View>
                 )}
               </View>
@@ -186,13 +188,13 @@ export default function ForgotPasswordScreen() {
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <Text style={styles.loginText}>Vous vous souvenez ?</Text>
+              <Text style={[styles.loginText, { color: colors.gray500 }]}>Vous vous souvenez ?</Text>
               <AnimatedPressable
                 onPress={() => navigation.navigate('Login')}
                 animationType="scale"
                 scaleValue={0.95}
               >
-                <Text style={styles.loginLink}> Se connecter</Text>
+                <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
               </AnimatedPressable>
             </View>
         </KeyboardAwareScrollView>
@@ -204,7 +206,6 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   accentBar: {
     position: 'absolute',
@@ -212,7 +213,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: Colors.primary,
   },
   safeArea: {
     flex: 1,

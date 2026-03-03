@@ -21,6 +21,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { walletAPI, payoutsAPI } from '../../api/client';
 import {
@@ -39,6 +40,8 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
+import { StaggeredItem } from '../../components/ui/Animations';
+import Badge from '../../components/ui/Badge';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'overview' | 'transactions' | 'payouts' | 'pending';
@@ -50,9 +53,21 @@ const tabs: { key: TabType; label: string }[] = [
   { key: 'pending', label: 'En attente' },
 ];
 
+const getPayoutBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' => {
+  switch (status) {
+    case 'completed': return 'success';
+    case 'pending': return 'warning';
+    case 'processing': return 'info';
+    case 'failed': return 'destructive';
+    case 'cancelled': return 'secondary';
+    default: return 'warning';
+  }
+};
+
 export default function WalletScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showAlert, showSuccess, showError } = useAlert();
+  const { colors, isDark } = useTheme();
   const [wallet, setWallet] = useState<OrganizerWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -200,7 +215,7 @@ export default function WalletScreen() {
       case 'refund':
         return '#3B82F6';
       default:
-        return Colors.gray500;
+        return colors.gray500;
     }
   };
 
@@ -225,8 +240,9 @@ export default function WalletScreen() {
     return configs[status] || configs.pending;
   };
 
-  const renderTransactionItem = (transaction: WalletTransaction) => (
-    <View key={transaction.id} style={styles.transactionCard}>
+  const renderTransactionItem = (transaction: WalletTransaction, index: number) => (
+    <StaggeredItem key={transaction.id} index={index}>
+    <View style={[styles.transactionCard, { backgroundColor: colors.card }]}>
       <View
         style={[
           styles.transactionIcon,
@@ -240,15 +256,15 @@ export default function WalletScreen() {
         />
       </View>
       <View style={styles.transactionContent}>
-        <Text style={styles.transactionDescription} numberOfLines={1}>
+        <Text style={[styles.transactionDescription, { color: colors.gray900 }]} numberOfLines={1}>
           {transaction.description}
         </Text>
         {transaction.event_title && (
-          <Text style={styles.transactionEvent} numberOfLines={1}>
+          <Text style={[styles.transactionEvent, { color: colors.gray500 }]} numberOfLines={1}>
             {transaction.event_title}
           </Text>
         )}
-        <Text style={styles.transactionDate}>
+        <Text style={[styles.transactionDate, { color: colors.gray400 }]}>
           {formatDate(transaction.created_at)}
         </Text>
       </View>
@@ -262,17 +278,19 @@ export default function WalletScreen() {
           {transaction.transaction_type === 'credit' ? '+' : '-'}
           {formatPrice(Math.abs(transaction.amount))}
         </Text>
-        <Text style={styles.transactionBalance}>
+        <Text style={[styles.transactionBalance, { color: colors.gray400 }]}>
           Solde: {formatPrice(transaction.balance_after)}
         </Text>
       </View>
     </View>
+    </StaggeredItem>
   );
 
-  const renderPayoutItem = (payout: Payout) => {
+  const renderPayoutItem = (payout: Payout, index: number) => {
     const statusConfig = getPayoutStatusConfig(payout.status);
     return (
-      <View key={payout.id} style={styles.payoutCard}>
+      <StaggeredItem key={payout.id} index={index}>
+      <View style={[styles.payoutCard, { backgroundColor: colors.card }]}>
         <View style={[styles.payoutIcon, {
           backgroundColor: payout.payout_method === 'bank_transfer' ? '#DBEAFE' : '#FED7AA'
         }]}>
@@ -283,24 +301,24 @@ export default function WalletScreen() {
           />
         </View>
         <View style={styles.payoutContent}>
-          <Text style={styles.payoutAmount}>
+          <Text style={[styles.payoutAmount, { color: colors.gray900 }]}>
             {formatPrice(payout.amount)} FCFA
           </Text>
-          <Text style={styles.payoutMethod}>
+          <Text style={[styles.payoutMethod, { color: colors.gray600 }]}>
             {payout.payout_method === 'mtn_money' ? 'MTN Mobile Money' :
              payout.payout_method === 'orange_money' ? 'Orange Money' : 'Virement bancaire'}
           </Text>
-          <Text style={styles.payoutDestination}>
+          <Text style={[styles.payoutDestination, { color: colors.gray400 }]}>
             {payout.destination_account} - {payout.destination_name}
           </Text>
         </View>
         <View style={styles.payoutRight}>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-          </View>
-          <Text style={styles.payoutDate}>{formatDate(payout.requested_at)}</Text>
+          <Badge
+            label={statusConfig.label}
+            variant={getPayoutBadgeVariant(payout.status)}
+            size="sm"
+          />
+          <Text style={[styles.payoutDate, { color: colors.gray400 }]}>{formatDate(payout.requested_at)}</Text>
           {payout.failure_reason && (
             <Text style={styles.failureReason} numberOfLines={1}>
               {payout.failure_reason}
@@ -308,11 +326,13 @@ export default function WalletScreen() {
           )}
         </View>
       </View>
+      </StaggeredItem>
     );
   };
 
-  const renderPendingItem = (earning: PendingEarning) => (
-    <View key={earning.id} style={styles.pendingCard}>
+  const renderPendingItem = (earning: PendingEarning, index: number) => (
+    <StaggeredItem key={earning.id} index={index}>
+    <View style={styles.pendingCard}>
       <View style={styles.pendingIcon}>
         <Ionicons name="time" size={20} color="#F59E0B" />
       </View>
@@ -336,6 +356,7 @@ export default function WalletScreen() {
         </Text>
       </View>
     </View>
+    </StaggeredItem>
   );
 
   if (loading) {
@@ -419,8 +440,8 @@ export default function WalletScreen() {
             'warning'
           )}
         >
-          <Ionicons name="arrow-up-circle" size={20} color={wallet?.can_withdraw ? '#7C3AED' : Colors.gray400} />
-          <Text style={[styles.withdrawButtonText, !wallet?.can_withdraw && { color: Colors.gray400 }]}>
+          <Ionicons name="arrow-up-circle" size={20} color={wallet?.can_withdraw ? colors.primary : colors.gray400} />
+          <Text style={[styles.withdrawButtonText, !wallet?.can_withdraw && { color: colors.gray400 }]}>
             Demander un retrait
           </Text>
         </TouchableOpacity>
@@ -460,8 +481,8 @@ export default function WalletScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
       >
@@ -479,7 +500,7 @@ export default function WalletScreen() {
                 transactions.slice(0, 5).map(renderTransactionItem)
               ) : (
                 <View style={styles.emptySection}>
-                  <Ionicons name="receipt-outline" size={40} color={Colors.gray300} />
+                  <Ionicons name="receipt-outline" size={40} color={colors.gray300} />
                   <Text style={styles.emptyText}>Aucune transaction</Text>
                 </View>
               )}
@@ -497,7 +518,7 @@ export default function WalletScreen() {
                 payouts.slice(0, 3).map(renderPayoutItem)
               ) : (
                 <View style={styles.emptySection}>
-                  <Ionicons name="arrow-up-circle-outline" size={40} color={Colors.gray300} />
+                  <Ionicons name="arrow-up-circle-outline" size={40} color={colors.gray300} />
                   <Text style={styles.emptyText}>Aucun retrait</Text>
                 </View>
               )}
@@ -511,7 +532,7 @@ export default function WalletScreen() {
               transactions.map(renderTransactionItem)
             ) : (
               <View style={styles.emptySection}>
-                <Ionicons name="receipt-outline" size={48} color={Colors.gray300} />
+                <Ionicons name="receipt-outline" size={48} color={colors.gray300} />
                 <Text style={styles.emptyText}>Aucune transaction</Text>
               </View>
             )}
@@ -524,7 +545,7 @@ export default function WalletScreen() {
               payouts.map(renderPayoutItem)
             ) : (
               <View style={styles.emptySection}>
-                <Ionicons name="arrow-up-circle-outline" size={48} color={Colors.gray300} />
+                <Ionicons name="arrow-up-circle-outline" size={48} color={colors.gray300} />
                 <Text style={styles.emptyText}>Aucun retrait effectué</Text>
               </View>
             )}
@@ -537,7 +558,7 @@ export default function WalletScreen() {
               pendingEarnings.map(renderPendingItem)
             ) : (
               <View style={styles.emptySection}>
-                <Ionicons name="time-outline" size={48} color={Colors.gray300} />
+                <Ionicons name="time-outline" size={48} color={colors.gray300} />
                 <Text style={styles.emptyText}>Aucun revenu en attente</Text>
               </View>
             )}
@@ -558,7 +579,7 @@ export default function WalletScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Demande de retrait</Text>
               <TouchableOpacity onPress={() => setShowPayoutModal(false)}>
-                <Ionicons name="close" size={24} color={Colors.gray500} />
+                <Ionicons name="close" size={24} color={colors.gray500} />
               </TouchableOpacity>
             </View>
 
@@ -574,7 +595,7 @@ export default function WalletScreen() {
                 onChangeText={setPayoutAmount}
                 keyboardType="numeric"
                 placeholder={`Min: ${formatPrice(wallet?.minimum_payout || 5000)}`}
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
               />
             </View>
 
@@ -597,7 +618,7 @@ export default function WalletScreen() {
                     <Ionicons
                       name={method.icon as any}
                       size={20}
-                      color={payoutMethod === method.value ? Colors.primary : Colors.gray400}
+                      color={payoutMethod === method.value ? colors.primary : colors.gray400}
                     />
                     <Text style={[
                       styles.methodText,
@@ -669,14 +690,14 @@ export default function WalletScreen() {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Informations de paiement</Text>
                 <TouchableOpacity onPress={() => setShowBankModal(false)}>
-                  <Ionicons name="close" size={24} color={Colors.gray500} />
+                  <Ionicons name="close" size={24} color={colors.gray500} />
                 </TouchableOpacity>
               </View>
 
               {/* Mobile Money Section */}
               <View style={styles.bankSection}>
                 <View style={styles.bankSectionHeader}>
-                  <Ionicons name="phone-portrait" size={18} color={Colors.primary} />
+                  <Ionicons name="phone-portrait" size={18} color={colors.primary} />
                   <Text style={styles.bankSectionTitle}>Mobile Money</Text>
                 </View>
 
@@ -687,7 +708,7 @@ export default function WalletScreen() {
                     value={bankDetails.mobile_money_number}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, mobile_money_number: text })}
                     placeholder="Ex: 6XX XXX XXX"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                     keyboardType="phone-pad"
                   />
                 </View>
@@ -724,7 +745,7 @@ export default function WalletScreen() {
               {/* Bank Account Section */}
               <View style={styles.bankSection}>
                 <View style={styles.bankSectionHeader}>
-                  <Ionicons name="business" size={18} color={Colors.primary} />
+                  <Ionicons name="business" size={18} color={colors.primary} />
                   <Text style={styles.bankSectionTitle}>Compte bancaire</Text>
                 </View>
 
@@ -735,7 +756,7 @@ export default function WalletScreen() {
                     value={bankDetails.bank_name}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_name: text })}
                     placeholder="Ex: Afriland First Bank"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                   />
                 </View>
 
@@ -746,7 +767,7 @@ export default function WalletScreen() {
                     value={bankDetails.bank_account_name}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_name: text })}
                     placeholder="Nom complet"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                   />
                 </View>
 
@@ -757,7 +778,7 @@ export default function WalletScreen() {
                     value={bankDetails.bank_account_number}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_number: text })}
                     placeholder="IBAN ou numéro de compte"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                   />
                 </View>
               </View>
@@ -1056,15 +1077,6 @@ const styles = StyleSheet.create({
   },
   payoutRight: {
     alignItems: 'flex-end',
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  statusText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
   },
   payoutDate: {
     fontSize: FontSizes.xs,

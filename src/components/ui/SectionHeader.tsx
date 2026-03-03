@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from './AnimatedPressable';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontSizes,
@@ -26,11 +27,13 @@ export default function SectionHeader({
   onActionPress,
   style,
 }: SectionHeaderProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <View style={[styles.container, style]}>
       <View style={styles.titleContainer}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+        <Text style={[styles.title, { color: colors.gray900 }]}>{title}</Text>
+        {subtitle && <Text style={[styles.subtitle, { color: colors.gray500 }]}>{subtitle}</Text>}
       </View>
       {(actionText || onActionPress) && (
         <AnimatedPressable
@@ -39,11 +42,11 @@ export default function SectionHeader({
           animationType="scale"
           scaleValue={0.95}
         >
-          {actionText && <Text style={styles.actionText}>{actionText}</Text>}
+          {actionText && <Text style={[styles.actionText, { color: colors.primary }]}>{actionText}</Text>}
           <Ionicons
             name={actionIcon}
             size={16}
-            color={Colors.primary}
+            color={colors.primary}
           />
         </AnimatedPressable>
       )}

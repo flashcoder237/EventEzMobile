@@ -18,6 +18,7 @@ import { sessionsAPI } from '../../api/client';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList, Session, Speaker, SessionResource } from '../../types';
 import {
   Colors,
@@ -56,6 +57,7 @@ export default function SessionDetailsScreen() {
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
   const { sessionId } = route.params;
 
   const [session, setSession] = useState<Session | null>(null);
@@ -151,13 +153,13 @@ export default function SessionDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Session</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
           <View style={styles.headerRight} />
         </View>
         <DetailScreenSkeleton />
@@ -167,18 +169,18 @@ export default function SessionDetailsScreen() {
 
   if (!session) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Session</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.errorText}>Session introuvable</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>Session introuvable</Text>
         </View>
       </SafeAreaView>
     );
@@ -190,15 +192,15 @@ export default function SessionDetailsScreen() {
   const isFull = session.max_capacity != null && (session.registration_count || 0) >= session.max_capacity;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} numberOfLines={1}>Session</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]} numberOfLines={1}>Session</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -214,21 +216,21 @@ export default function SessionDetailsScreen() {
             <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
           </View>
           {session.level && (
-            <View style={styles.levelBadge}>
-              <Ionicons name="bar-chart-outline" size={14} color={Colors.gray600} />
-              <Text style={styles.levelBadgeText}>{LEVEL_LABELS[session.level] || session.level}</Text>
+            <View style={[styles.levelBadge, { backgroundColor: colors.gray100 }]}>
+              <Ionicons name="bar-chart-outline" size={14} color={colors.gray600} />
+              <Text style={[styles.levelBadgeText, { color: colors.gray600 }]}>{LEVEL_LABELS[session.level] || session.level}</Text>
             </View>
           )}
           {session.is_featured && (
-            <View style={styles.featuredBadge}>
-              <Ionicons name="star" size={14} color={Colors.warning} />
-              <Text style={styles.featuredBadgeText}>En vedette</Text>
+            <View style={[styles.featuredBadge, { backgroundColor: colors.warningLight }]}>
+              <Ionicons name="star" size={14} color={colors.warning} />
+              <Text style={[styles.featuredBadgeText, { color: colors.warningDark }]}>En vedette</Text>
             </View>
           )}
         </View>
 
         {/* Title */}
-        <Text style={styles.title}>{session.title}</Text>
+        <Text style={[styles.title, { color: colors.gray900 }]}>{session.title}</Text>
 
         {/* Track info */}
         {session.track_detail && (
@@ -236,32 +238,32 @@ export default function SessionDetailsScreen() {
             <View
               style={[
                 styles.trackDot,
-                { backgroundColor: session.track_detail.color || Colors.primary },
+                { backgroundColor: session.track_detail.color || colors.primary },
               ]}
             />
-            <Text style={styles.trackText}>{session.track_detail.name}</Text>
+            <Text style={[styles.trackText, { color: colors.gray600 }]}>{session.track_detail.name}</Text>
           </View>
         )}
 
         {/* Date & Time */}
-        <View style={styles.infoCard}>
+        <View style={[styles.infoCard, { backgroundColor: colors.gray50 }]}>
           <View style={styles.infoRow}>
-            <View style={styles.infoIconContainer}>
-              <Ionicons name="calendar-outline" size={20} color={Colors.primary} />
+            <View style={[styles.infoIconContainer, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
             </View>
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Date</Text>
-              <Text style={styles.infoValue}>{formatDate(session.start_time)}</Text>
+              <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Date</Text>
+              <Text style={[styles.infoValue, { color: colors.gray900 }]}>{formatDate(session.start_time)}</Text>
             </View>
           </View>
-          <View style={styles.divider} />
+          <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
           <View style={styles.infoRow}>
-            <View style={styles.infoIconContainer}>
-              <Ionicons name="time-outline" size={20} color={Colors.primary} />
+            <View style={[styles.infoIconContainer, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name="time-outline" size={20} color={colors.primary} />
             </View>
             <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Horaire</Text>
-              <Text style={styles.infoValue}>
+              <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Horaire</Text>
+              <Text style={[styles.infoValue, { color: colors.gray900 }]}>
                 {formatTime(session.start_time)} - {formatTime(session.end_time)}
                 {session.duration_minutes ? ` (${session.duration_minutes} min)` : ''}
               </Text>
@@ -269,14 +271,14 @@ export default function SessionDetailsScreen() {
           </View>
           {(session.location || session.room) && (
             <>
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
               <View style={styles.infoRow}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="location-outline" size={20} color={Colors.primary} />
+                <View style={[styles.infoIconContainer, { backgroundColor: colors.primaryBg }]}>
+                  <Ionicons name="location-outline" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.infoTextContainer}>
-                  <Text style={styles.infoLabel}>Lieu</Text>
-                  <Text style={styles.infoValue}>
+                  <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Lieu</Text>
+                  <Text style={[styles.infoValue, { color: colors.gray900 }]}>
                     {[session.room, session.location].filter(Boolean).join(' - ')}
                   </Text>
                 </View>
@@ -285,14 +287,14 @@ export default function SessionDetailsScreen() {
           )}
           {session.max_capacity != null && (
             <>
-              <View style={styles.divider} />
+              <View style={[styles.divider, { backgroundColor: colors.gray200 }]} />
               <View style={styles.infoRow}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="people-outline" size={20} color={Colors.primary} />
+                <View style={[styles.infoIconContainer, { backgroundColor: colors.primaryBg }]}>
+                  <Ionicons name="people-outline" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.infoTextContainer}>
-                  <Text style={styles.infoLabel}>Capacite</Text>
-                  <Text style={styles.infoValue}>
+                  <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Capacite</Text>
+                  <Text style={[styles.infoValue, { color: colors.gray900 }]}>
                     {session.registration_count || 0} / {session.max_capacity} places
                   </Text>
                 </View>
@@ -304,35 +306,35 @@ export default function SessionDetailsScreen() {
         {/* Virtual Link */}
         {session.is_virtual && session.virtual_link && (
           <TouchableOpacity
-            style={styles.virtualCard}
+            style={[styles.virtualCard, { backgroundColor: colors.infoLight }]}
             onPress={handleOpenVirtualLink}
             activeOpacity={TOUCH_OPACITY}
           >
-            <View style={styles.virtualIconContainer}>
-              <Ionicons name="videocam" size={24} color={Colors.info} />
+            <View style={[styles.virtualIconContainer, { backgroundColor: colors.white }]}>
+              <Ionicons name="videocam" size={24} color={colors.info} />
             </View>
             <View style={styles.virtualTextContainer}>
-              <Text style={styles.virtualTitle}>Session en ligne</Text>
-              <Text style={styles.virtualLink} numberOfLines={1}>
+              <Text style={[styles.virtualTitle, { color: colors.infoDark }]}>Session en ligne</Text>
+              <Text style={[styles.virtualLink, { color: colors.info }]} numberOfLines={1}>
                 {session.virtual_link}
               </Text>
             </View>
-            <Ionicons name="open-outline" size={20} color={Colors.info} />
+            <Ionicons name="open-outline" size={20} color={colors.info} />
           </TouchableOpacity>
         )}
 
         {/* Description */}
         {session.description && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.descriptionText}>{session.description}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Description</Text>
+            <Text style={[styles.descriptionText, { color: colors.gray600 }]}>{session.description}</Text>
           </View>
         )}
 
         {/* Speakers */}
         {speakers.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
               {speakers.length === 1 ? 'Intervenant' : 'Intervenants'}
             </Text>
             {speakers.map((speaker: any) => {
@@ -345,26 +347,26 @@ export default function SessionDetailsScreen() {
               return (
                 <TouchableOpacity
                   key={speakerId}
-                  style={styles.speakerCard}
+                  style={[styles.speakerCard, { backgroundColor: colors.gray50 }]}
                   onPress={() => navigateToSpeaker(speakerId)}
                   activeOpacity={TOUCH_OPACITY}
                 >
                   {speakerPhoto ? (
                     <Image source={{ uri: speakerPhoto }} style={styles.speakerPhoto} />
                   ) : (
-                    <View style={styles.speakerPhotoPlaceholder}>
-                      <Ionicons name="person" size={20} color={Colors.gray400} />
+                    <View style={[styles.speakerPhotoPlaceholder, { backgroundColor: colors.gray200 }]}>
+                      <Ionicons name="person" size={20} color={colors.gray400} />
                     </View>
                   )}
                   <View style={styles.speakerInfo}>
-                    <Text style={styles.speakerName}>{speakerName}</Text>
+                    <Text style={[styles.speakerName, { color: colors.gray900 }]}>{speakerName}</Text>
                     {(speakerTitle || speakerCompany) && (
-                      <Text style={styles.speakerRole} numberOfLines={1}>
+                      <Text style={[styles.speakerRole, { color: colors.gray500 }]} numberOfLines={1}>
                         {[speakerTitle, speakerCompany].filter(Boolean).join(' - ')}
                       </Text>
                     )}
                   </View>
-                  <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
+                  <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
                 </TouchableOpacity>
               );
             })}
@@ -374,28 +376,28 @@ export default function SessionDetailsScreen() {
         {/* Moderator */}
         {session.moderator_detail && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Moderateur</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Moderateur</Text>
             <TouchableOpacity
-              style={styles.speakerCard}
+              style={[styles.speakerCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigateToSpeaker(session.moderator_detail!.id)}
               activeOpacity={TOUCH_OPACITY}
             >
               {session.moderator_detail.photo ? (
                 <Image source={{ uri: session.moderator_detail.photo }} style={styles.speakerPhoto} />
               ) : (
-                <View style={styles.speakerPhotoPlaceholder}>
-                  <Ionicons name="person" size={20} color={Colors.gray400} />
+                <View style={[styles.speakerPhotoPlaceholder, { backgroundColor: colors.gray200 }]}>
+                  <Ionicons name="person" size={20} color={colors.gray400} />
                 </View>
               )}
               <View style={styles.speakerInfo}>
-                <Text style={styles.speakerName}>{session.moderator_detail.full_name}</Text>
+                <Text style={[styles.speakerName, { color: colors.gray900 }]}>{session.moderator_detail.full_name}</Text>
                 {(session.moderator_detail.title || session.moderator_detail.company) && (
-                  <Text style={styles.speakerRole} numberOfLines={1}>
+                  <Text style={[styles.speakerRole, { color: colors.gray500 }]} numberOfLines={1}>
                     {[session.moderator_detail.title, session.moderator_detail.company].filter(Boolean).join(' - ')}
                   </Text>
                 )}
               </View>
-              <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
+              <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
             </TouchableOpacity>
           </View>
         )}
@@ -403,28 +405,28 @@ export default function SessionDetailsScreen() {
         {/* Resources */}
         {resources.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ressources</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Ressources</Text>
             {resources.map((resource: SessionResource) => {
               const resourceIcon = getResourceIcon(resource.resource_type);
               return (
                 <TouchableOpacity
                   key={resource.id}
-                  style={styles.resourceCard}
+                  style={[styles.resourceCard, { backgroundColor: colors.gray50 }]}
                   onPress={() => handleOpenResource(resource)}
                   activeOpacity={TOUCH_OPACITY}
                 >
-                  <View style={styles.resourceIconContainer}>
-                    <Ionicons name={resourceIcon as any} size={20} color={Colors.primary} />
+                  <View style={[styles.resourceIconContainer, { backgroundColor: colors.primaryBg }]}>
+                    <Ionicons name={resourceIcon as any} size={20} color={colors.primary} />
                   </View>
                   <View style={styles.resourceInfo}>
-                    <Text style={styles.resourceTitle}>{resource.title}</Text>
+                    <Text style={[styles.resourceTitle, { color: colors.gray900 }]}>{resource.title}</Text>
                     {resource.description && (
-                      <Text style={styles.resourceDescription} numberOfLines={1}>
+                      <Text style={[styles.resourceDescription, { color: colors.gray500 }]} numberOfLines={1}>
                         {resource.description}
                       </Text>
                     )}
                   </View>
-                  <Ionicons name="download-outline" size={18} color={Colors.gray400} />
+                  <Ionicons name="download-outline" size={18} color={colors.gray400} />
                 </TouchableOpacity>
               );
             })}
@@ -434,11 +436,11 @@ export default function SessionDetailsScreen() {
         {/* Tags */}
         {session.tags && session.tags.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tags</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Tags</Text>
             <View style={styles.tagsRow}>
               {session.tags.map((tag, index) => (
-                <View key={index} style={styles.tagBadge}>
-                  <Text style={styles.tagText}>{tag}</Text>
+                <View key={index} style={[styles.tagBadge, { backgroundColor: colors.gray100 }]}>
+                  <Text style={[styles.tagText, { color: colors.gray600 }]}>{tag}</Text>
                 </View>
               ))}
             </View>
@@ -451,12 +453,13 @@ export default function SessionDetailsScreen() {
 
       {/* Registration Button (sticky at bottom) */}
       {session.requires_registration && (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.white }]}>
           <TouchableOpacity
             style={[
               styles.registerButton,
-              session.is_registered && styles.unregisterButton,
-              isFull && !session.is_registered && styles.disabledButton,
+              { backgroundColor: colors.primary },
+              session.is_registered && { backgroundColor: colors.gray700 },
+              isFull && !session.is_registered && { backgroundColor: colors.gray300 },
             ]}
             onPress={handleRegister}
             activeOpacity={TOUCH_OPACITY}
@@ -469,7 +472,7 @@ export default function SessionDetailsScreen() {
                 <Ionicons
                   name={session.is_registered ? 'close-circle-outline' : 'checkmark-circle-outline'}
                   size={20}
-                  color={session.is_registered ? Colors.white : Colors.white}
+                  color={Colors.white}
                 />
                 <Text style={styles.registerButtonText}>
                   {session.is_registered

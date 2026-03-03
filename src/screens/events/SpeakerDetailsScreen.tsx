@@ -15,8 +15,9 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { speakersAPI } from '../../api/client';
-import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
+import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList, Speaker, Session } from '../../types';
 import {
   Colors,
@@ -36,6 +37,7 @@ export default function SpeakerDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { showError } = useAlert();
+  const { colors, isDark } = useTheme();
   const { speakerId } = route.params;
 
   const [speaker, setSpeaker] = useState<Speaker | null>(null);
@@ -110,34 +112,34 @@ export default function SpeakerDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Intervenant</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
           <View style={styles.headerRight} />
         </View>
-        <DetailScreenSkeleton />
+        <ProfileSkeleton />
       </SafeAreaView>
     );
   }
 
   if (!speaker) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Intervenant</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.errorText}>Intervenant introuvable</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>Intervenant introuvable</Text>
         </View>
       </SafeAreaView>
     );
@@ -147,15 +149,15 @@ export default function SpeakerDetailsScreen() {
   const hasSocialLinks = speaker.website || speaker.linkedin || speaker.twitter;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Intervenant</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -169,23 +171,23 @@ export default function SpeakerDetailsScreen() {
           {speaker.photo ? (
             <Image source={{ uri: speaker.photo }} style={styles.avatar} />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={40} color={Colors.gray400} />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray100 }]}>
+              <Ionicons name="person" size={40} color={colors.gray400} />
             </View>
           )}
 
-          <Text style={styles.name}>{fullName}</Text>
+          <Text style={[styles.name, { color: colors.gray900 }]}>{fullName}</Text>
 
           {(speaker.title || speaker.company) && (
-            <Text style={styles.roleText}>
+            <Text style={[styles.roleText, { color: colors.gray500 }]}>
               {[speaker.title, speaker.company].filter(Boolean).join(' chez ')}
             </Text>
           )}
 
           {speaker.is_featured && (
-            <View style={styles.featuredBadge}>
-              <Ionicons name="star" size={14} color={Colors.warning} />
-              <Text style={styles.featuredText}>Intervenant vedette</Text>
+            <View style={[styles.featuredBadge, { backgroundColor: colors.warningLight }]}>
+              <Ionicons name="star" size={14} color={colors.warning} />
+              <Text style={[styles.featuredText, { color: colors.warningDark }]}>Intervenant vedette</Text>
             </View>
           )}
         </View>
@@ -195,32 +197,32 @@ export default function SpeakerDetailsScreen() {
           <View style={styles.socialLinksRow}>
             {speaker.website && (
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
                 onPress={() => handleOpenLink(speaker.website)}
                 activeOpacity={TOUCH_OPACITY}
               >
-                <Ionicons name="globe-outline" size={22} color={Colors.primary} />
-                <Text style={styles.socialButtonText}>Site web</Text>
+                <Ionicons name="globe-outline" size={22} color={colors.primary} />
+                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Site web</Text>
               </TouchableOpacity>
             )}
             {speaker.linkedin && (
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
                 onPress={() => handleOpenLink(speaker.linkedin)}
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="logo-linkedin" size={22} color="#0A66C2" />
-                <Text style={styles.socialButtonText}>LinkedIn</Text>
+                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>LinkedIn</Text>
               </TouchableOpacity>
             )}
             {speaker.twitter && (
               <TouchableOpacity
-                style={styles.socialButton}
+                style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
                 onPress={() => handleOpenLink(speaker.twitter)}
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="logo-twitter" size={22} color="#1DA1F2" />
-                <Text style={styles.socialButtonText}>Twitter</Text>
+                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Twitter</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -229,41 +231,41 @@ export default function SpeakerDetailsScreen() {
         {/* Bio */}
         {speaker.bio && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Biographie</Text>
-            <Text style={styles.bioText}>{speaker.bio}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Biographie</Text>
+            <Text style={[styles.bioText, { color: colors.gray600 }]}>{speaker.bio}</Text>
           </View>
         )}
 
         {/* Contact Info */}
         {(speaker.email || speaker.phone) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Contact</Text>
-            <View style={styles.contactCard}>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Contact</Text>
+            <View style={[styles.contactCard, { backgroundColor: colors.gray50 }]}>
               {speaker.email && (
                 <TouchableOpacity
                   style={styles.contactRow}
                   onPress={() => Linking.openURL(`mailto:${speaker.email}`)}
                   activeOpacity={TOUCH_OPACITY}
                 >
-                  <View style={styles.contactIconContainer}>
-                    <Ionicons name="mail-outline" size={18} color={Colors.primary} />
+                  <View style={[styles.contactIconContainer, { backgroundColor: colors.primaryBg }]}>
+                    <Ionicons name="mail-outline" size={18} color={colors.primary} />
                   </View>
-                  <Text style={styles.contactText}>{speaker.email}</Text>
-                  <Ionicons name="open-outline" size={16} color={Colors.gray400} />
+                  <Text style={[styles.contactText, { color: colors.gray700 }]}>{speaker.email}</Text>
+                  <Ionicons name="open-outline" size={16} color={colors.gray400} />
                 </TouchableOpacity>
               )}
-              {speaker.email && speaker.phone && <View style={styles.contactDivider} />}
+              {speaker.email && speaker.phone && <View style={[styles.contactDivider, { backgroundColor: colors.gray200 }]} />}
               {speaker.phone && (
                 <TouchableOpacity
                   style={styles.contactRow}
                   onPress={() => Linking.openURL(`tel:${speaker.phone}`)}
                   activeOpacity={TOUCH_OPACITY}
                 >
-                  <View style={styles.contactIconContainer}>
-                    <Ionicons name="call-outline" size={18} color={Colors.primary} />
+                  <View style={[styles.contactIconContainer, { backgroundColor: colors.primaryBg }]}>
+                    <Ionicons name="call-outline" size={18} color={colors.primary} />
                   </View>
-                  <Text style={styles.contactText}>{speaker.phone}</Text>
-                  <Ionicons name="open-outline" size={16} color={Colors.gray400} />
+                  <Text style={[styles.contactText, { color: colors.gray700 }]}>{speaker.phone}</Text>
+                  <Ionicons name="open-outline" size={16} color={colors.gray400} />
                 </TouchableOpacity>
               )}
             </View>
@@ -272,52 +274,52 @@ export default function SpeakerDetailsScreen() {
 
         {/* Sessions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sessions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sessions</Text>
           {isLoadingSessions ? (
             <View style={styles.sessionsLoadingContainer}>
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.sessionsLoadingText}>Chargement des sessions...</Text>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.sessionsLoadingText, { color: colors.gray500 }]}>Chargement des sessions...</Text>
             </View>
           ) : sessions.length > 0 ? (
             sessions.map((sessionItem) => (
               <TouchableOpacity
                 key={sessionItem.id}
-                style={styles.sessionCard}
+                style={[styles.sessionCard, { backgroundColor: colors.gray50 }]}
                 onPress={() => navigateToSession(sessionItem.id)}
                 activeOpacity={TOUCH_OPACITY}
               >
                 <View style={styles.sessionTimeColumn}>
-                  <Text style={styles.sessionDate}>{formatDate(sessionItem.start_time)}</Text>
-                  <Text style={styles.sessionTime}>
+                  <Text style={[styles.sessionDate, { color: colors.gray500 }]}>{formatDate(sessionItem.start_time)}</Text>
+                  <Text style={[styles.sessionTime, { color: colors.primary }]}>
                     {formatTime(sessionItem.start_time)}
                   </Text>
                 </View>
-                <View style={styles.sessionDividerLine} />
+                <View style={[styles.sessionDividerLine, { backgroundColor: colors.gray200 }]} />
                 <View style={styles.sessionInfoColumn}>
-                  <Text style={styles.sessionTitle} numberOfLines={2}>
+                  <Text style={[styles.sessionTitle, { color: colors.gray900 }]} numberOfLines={2}>
                     {sessionItem.title}
                   </Text>
                   {sessionItem.session_type && (
-                    <Text style={styles.sessionType}>
+                    <Text style={[styles.sessionType, { color: colors.gray500 }]}>
                       {sessionItem.session_type.charAt(0).toUpperCase() + sessionItem.session_type.slice(1)}
                     </Text>
                   )}
                   {(sessionItem.room || sessionItem.location) && (
                     <View style={styles.sessionLocationRow}>
-                      <Ionicons name="location-outline" size={14} color={Colors.gray400} />
-                      <Text style={styles.sessionLocation}>
+                      <Ionicons name="location-outline" size={14} color={colors.gray400} />
+                      <Text style={[styles.sessionLocation, { color: colors.gray400 }]}>
                         {sessionItem.room || sessionItem.location}
                       </Text>
                     </View>
                   )}
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
+                <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
               </TouchableOpacity>
             ))
           ) : (
             <View style={styles.emptySessionsContainer}>
-              <Ionicons name="calendar-outline" size={32} color={Colors.gray300} />
-              <Text style={styles.emptySessionsText}>Aucune session programmee</Text>
+              <Ionicons name="calendar-outline" size={32} color={colors.gray300} />
+              <Text style={[styles.emptySessionsText, { color: colors.gray400 }]}>Aucune session programmee</Text>
             </View>
           )}
         </View>

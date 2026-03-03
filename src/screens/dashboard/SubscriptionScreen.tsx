@@ -29,6 +29,7 @@ import {
   OrganizerSubscription,
   PlanName,
 } from '../../types';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -142,6 +143,7 @@ const INITIAL_PAYMENT_STATE: PaymentModalState = {
 
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { colors, isDark } = useTheme();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [subscription, setSubscription] = useState<OrganizerSubscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -392,18 +394,25 @@ export default function SubscriptionScreen() {
     outputRange: [4, TOGGLE_ITEM_WIDTH + 4],
   });
 
+  // Dynamic design colors based on theme
+  const ink = isDark ? colors.gray900 : INK;
+  const surface = isDark ? colors.gray100 : SURFACE;
+  const borderColor = isDark ? colors.gray200 : BORDER_COLOR;
+  const cardBg = isDark ? colors.card : '#FFFFFF';
+  const violet = isDark ? colors.primary : VIOLET;
+
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: cardBg }]} edges={['top']}>
+        <View style={[styles.header, { borderBottomColor: borderColor }]}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: surface }]}
             onPress={() => navigation.goBack()}
             activeOpacity={TOUCH_OPACITY}
           >
-            <Ionicons name="arrow-back" size={24} color={INK} />
+            <Ionicons name="arrow-back" size={24} color={ink} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mon abonnement</Text>
+          <Text style={[styles.headerTitle, { color: ink }]}>Mon abonnement</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
@@ -414,17 +423,17 @@ export default function SubscriptionScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: cardBg }]} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: surface }]}
           onPress={() => navigation.goBack()}
           activeOpacity={TOUCH_OPACITY}
         >
-          <Ionicons name="arrow-back" size={24} color={INK} />
+          <Ionicons name="arrow-back" size={24} color={ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon abonnement</Text>
+        <Text style={[styles.headerTitle, { color: ink }]}>Mon abonnement</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -434,7 +443,7 @@ export default function SubscriptionScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Current Plan Card */}
-        <View style={styles.currentPlanCard}>
+        <View style={[styles.currentPlanCard, { backgroundColor: cardBg, borderColor: borderColor }]}>
           <View style={styles.currentPlanHeader}>
             <View style={styles.currentPlanLeft}>
               <View style={[styles.planIconCircle, { backgroundColor: getPlanColor(currentPlanName) + '18' }]}>
@@ -446,7 +455,7 @@ export default function SubscriptionScreen() {
               </View>
               <View style={styles.currentPlanInfo}>
                 <View style={styles.currentPlanNameRow}>
-                  <Text style={styles.currentPlanName}>
+                  <Text style={[styles.currentPlanName, { color: ink }]}>
                     {currentPlan?.display_name || (currentPlanName === 'free' ? 'Gratuit' : currentPlanName)}
                   </Text>
                   <View style={[styles.planNameBadge, { backgroundColor: getPlanColor(currentPlanName) + '18' }]}>
@@ -484,7 +493,7 @@ export default function SubscriptionScreen() {
                   styles.progressBarFill,
                   {
                     width: `${Math.max(usageRatio * 100, 2)}%`,
-                    backgroundColor: usageRatio > 0.8 ? Colors.error : VIOLET,
+                    backgroundColor: usageRatio > 0.8 ? colors.error : VIOLET,
                   },
                 ]}
               />
@@ -494,7 +503,7 @@ export default function SubscriptionScreen() {
           {/* Next billing date */}
           {subscription?.next_billing_date && currentPlanName !== 'free' && (
             <View style={styles.billingDateRow}>
-              <Ionicons name="calendar-outline" size={16} color={Colors.gray500} />
+              <Ionicons name="calendar-outline" size={16} color={colors.gray500} />
               <Text style={styles.billingDateText}>
                 Prochain renouvellement : {formatDate(subscription.next_billing_date)}
               </Text>
@@ -694,10 +703,10 @@ export default function SubscriptionScreen() {
                       disabled={isProcessing}
                     >
                       {isProcessing ? (
-                        <ActivityIndicator size="small" color={Colors.gray600} />
+                        <ActivityIndicator size="small" color={colors.gray600} />
                       ) : (
                         <>
-                          <Ionicons name="arrow-down-circle-outline" size={20} color={Colors.gray600} />
+                          <Ionicons name="arrow-down-circle-outline" size={20} color={colors.gray600} />
                           <Text style={styles.downgradeButtonText}>Passer a ce plan</Text>
                         </>
                       )}
@@ -749,7 +758,7 @@ export default function SubscriptionScreen() {
                   style={styles.modalCloseButton}
                   activeOpacity={TOUCH_OPACITY}
                 >
-                  <Ionicons name="close" size={24} color={Colors.gray600} />
+                  <Ionicons name="close" size={24} color={colors.gray600} />
                 </TouchableOpacity>
               )}
             </View>
@@ -782,7 +791,7 @@ export default function SubscriptionScreen() {
                     <Text style={styles.methodName}>MTN Mobile Money</Text>
                     <Text style={styles.methodDescription}>Payer avec votre compte MTN MoMo</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                  <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
                 </TouchableOpacity>
 
                 {/* Orange Money */}
@@ -798,7 +807,7 @@ export default function SubscriptionScreen() {
                     <Text style={styles.methodName}>Orange Money</Text>
                     <Text style={styles.methodDescription}>Payer avec votre compte Orange Money</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                  <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
                 </TouchableOpacity>
 
                 {/* Credit Card */}
@@ -814,7 +823,7 @@ export default function SubscriptionScreen() {
                     <Text style={styles.methodName}>Carte bancaire</Text>
                     <Text style={styles.methodDescription}>Visa, Mastercard</Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                  <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
                 </TouchableOpacity>
               </View>
             )}
@@ -836,7 +845,7 @@ export default function SubscriptionScreen() {
                       setPayment((prev) => ({ ...prev, phone: text.replace(/[^0-9]/g, '') }))
                     }
                     placeholder="6XX XXX XXX"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                     keyboardType="phone-pad"
                     maxLength={9}
                     autoFocus
@@ -866,7 +875,7 @@ export default function SubscriptionScreen() {
                   onPress={() => setPayment((prev) => ({ ...prev, step: 'select-method', method: null }))}
                   activeOpacity={TOUCH_OPACITY}
                 >
-                  <Ionicons name="arrow-back" size={16} color={Colors.gray600} />
+                  <Ionicons name="arrow-back" size={16} color={colors.gray600} />
                   <Text style={styles.backToMethodsText}>Changer de methode</Text>
                 </TouchableOpacity>
               </View>
@@ -899,7 +908,7 @@ export default function SubscriptionScreen() {
             {payment.step === 'success' && (
               <View style={styles.resultContainer}>
                 <View style={styles.successIconCircle}>
-                  <Ionicons name="checkmark-circle" size={56} color={Colors.success} />
+                  <Ionicons name="checkmark-circle" size={56} color={colors.success} />
                 </View>
                 <Text style={styles.resultTitle}>Paiement reussi !</Text>
                 <Text style={styles.resultDescription}>
@@ -928,7 +937,7 @@ export default function SubscriptionScreen() {
             {payment.step === 'failed' && (
               <View style={styles.resultContainer}>
                 <View style={styles.failedIconCircle}>
-                  <Ionicons name="close-circle" size={56} color={Colors.error} />
+                  <Ionicons name="close-circle" size={56} color={colors.error} />
                 </View>
                 <Text style={styles.resultTitle}>Paiement echoue</Text>
                 <Text style={styles.resultDescription}>

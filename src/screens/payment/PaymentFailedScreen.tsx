@@ -11,13 +11,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { RootStackParamList } from '../../types';
 import {
-  Colors,
   FontSizes,
   FontFamily,
-  TextStyles,
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import GradientButton from '../../components/ui/GradientButton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,28 +26,29 @@ export default function PaymentFailedScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentFailedRouteProp>();
   const { error } = route.params || {};
+  const { colors } = useTheme();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={styles.content}>
         {/* Error Icon */}
         <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="close" size={60} color={Colors.white} />
+          <View style={[styles.iconCircle, { backgroundColor: colors.error }]}>
+            <Ionicons name="close" size={60} color={colors.white} />
           </View>
         </View>
 
         <View style={styles.textContainer}>
-          <Text style={styles.title}>Paiement échoué</Text>
-          <Text style={styles.subtitle}>
+          <Text style={[styles.title, { color: colors.gray900 }]}>Paiement échoué</Text>
+          <Text style={[styles.subtitle, { color: colors.gray600 }]}>
             {error || 'Une erreur est survenue lors du paiement.\nVeuillez réessayer.'}
           </Text>
         </View>
 
         {/* Help Card */}
-        <View style={styles.helpCard}>
-          <Text style={styles.helpTitle}>Besoin d'aide ?</Text>
-          <Text style={styles.helpText}>
+        <View style={[styles.helpCard, { backgroundColor: colors.errorBg }]}>
+          <Text style={[styles.helpTitle, { color: colors.error }]}>Besoin d'aide ?</Text>
+          <Text style={[styles.helpText, { color: colors.gray600 }]}>
             Si le problème persiste, veuillez contacter notre support ou essayer un autre mode de paiement.
           </Text>
         </View>
@@ -59,7 +59,7 @@ export default function PaymentFailedScreen() {
         <GradientButton
           title="Réessayer"
           onPress={() => navigation.goBack()}
-          icon={<Ionicons name="refresh" size={20} color={Colors.white} />}
+          icon={<Ionicons name="refresh" size={20} color={colors.white} />}
           fullWidth
         />
         <View style={{ height: Spacing.md }} />
@@ -77,7 +77,6 @@ export default function PaymentFailedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   content: {
     flex: 1,
@@ -92,7 +91,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.error,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -103,17 +101,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSizes['3xl'],
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: FontSizes.md,
-    color: Colors.gray600,
     textAlign: 'center',
     lineHeight: FontSizes.md * 1.5,
   },
   helpCard: {
-    backgroundColor: Colors.errorLight,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     width: '100%',
@@ -121,12 +116,10 @@ const styles = StyleSheet.create({
   helpTitle: {
     fontSize: FontSizes.md,
     fontFamily: FontFamily.semiBold,
-    color: Colors.error,
     marginBottom: Spacing.sm,
   },
   helpText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     lineHeight: FontSizes.sm * 1.5,
   },
   bottomButtons: {

@@ -27,6 +27,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import GradientButton from '../../components/ui/GradientButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -91,6 +92,7 @@ interface OnboardingScreenProps {
 }
 
 export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+  const { colors, isDark } = useTheme();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -135,7 +137,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
       {/* Illustration area */}
       <View style={styles.illustrationArea}>
         <LinearGradient
-          colors={item.bgGradient}
+          colors={isDark ? [item.bgGradient[0] + '40', item.bgGradient[1] + '40'] as const : item.bgGradient}
           style={styles.illustrationGradient}
         >
           {/* Decorative background circles */}
@@ -145,7 +147,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           {/* Main icon container */}
           <View style={styles.iconWrapper}>
             <View style={[styles.iconCircle, { backgroundColor: item.iconColor + '15' }]}>
-              <View style={[styles.iconInner, { backgroundColor: Colors.white }]}>
+              <View style={[styles.iconInner, { backgroundColor: colors.white }]}>
                 <Ionicons name={item.icon} size={48} color={item.iconColor} />
               </View>
             </View>
@@ -153,18 +155,18 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
           {/* Floating decorative icons */}
           <View style={styles.floatIcon1}>
-            <View style={styles.floatIconBg}>
-              <Ionicons name="heart" size={16} color={Colors.secondary} />
+            <View style={[styles.floatIconBg, { backgroundColor: colors.white }]}>
+              <Ionicons name="heart" size={16} color={colors.secondary} />
             </View>
           </View>
           <View style={styles.floatIcon2}>
-            <View style={styles.floatIconBg}>
-              <Ionicons name="star" size={14} color={Colors.warning} />
+            <View style={[styles.floatIconBg, { backgroundColor: colors.white }]}>
+              <Ionicons name="star" size={14} color={colors.warning} />
             </View>
           </View>
           <View style={styles.floatIcon3}>
-            <View style={styles.floatIconBg}>
-              <Ionicons name="location" size={14} color={Colors.info} />
+            <View style={[styles.floatIconBg, { backgroundColor: colors.white }]}>
+              <Ionicons name="location" size={14} color={colors.info} />
             </View>
           </View>
         </LinearGradient>
@@ -172,9 +174,9 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
       {/* Text content */}
       <View style={styles.textContent}>
-        <Text style={styles.slideSubtitle}>{item.subtitle}</Text>
-        <Text style={styles.slideTitle}>{item.title}</Text>
-        <Text style={styles.slideDescription}>{item.description}</Text>
+        <Text style={[styles.slideSubtitle, { color: colors.primary }]}>{item.subtitle}</Text>
+        <Text style={[styles.slideTitle, { color: colors.gray900 }]}>{item.title}</Text>
+        <Text style={[styles.slideDescription, { color: colors.gray500 }]}>{item.description}</Text>
       </View>
     </View>
   );
@@ -182,8 +184,8 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   const isLastSlide = currentIndex === slides.length - 1;
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.white }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         {/* Skip button */}
         {!isLastSlide && (
@@ -225,7 +227,9 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
                 key={index}
                 style={[
                   styles.dot,
-                  index === currentIndex ? styles.dotActive : styles.dotInactive,
+                  index === currentIndex
+                    ? [styles.dotActive, { backgroundColor: colors.primary }]
+                    : [styles.dotInactive, { backgroundColor: colors.gray300 }],
                 ]}
               />
             ))}

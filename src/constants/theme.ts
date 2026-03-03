@@ -98,6 +98,103 @@ export const Colors = {
   gradientEnd: '#EC4899',
 };
 
+// Dark mode palette — inverted, softer violet on dark backgrounds
+export const DarkColors = {
+  // Primary - Lighter violet for dark backgrounds
+  primary: '#A78BFA',
+  primaryDark: '#8B5CF6',
+  primaryLight: '#C4B5FD',
+
+  // Accent
+  accent: '#FF8F66',
+  accentDark: '#FF6B35',
+  accentLight: '#FFB899',
+
+  // Lime
+  lime: '#D4FF8A',
+  limeDark: '#BEFF5A',
+  limeLight: '#E8FFBB',
+
+  // Secondary
+  secondary: '#F472B6',
+
+  // Neutrals
+  white: '#FFFFFF',
+  black: '#000000',
+
+  // Grays — reversed for dark mode
+  gray50: '#1A1A2E',
+  gray100: '#1E1E35',
+  gray200: '#2A2A42',
+  gray300: '#3D3D58',
+  gray400: '#5C5C78',
+  gray500: '#8888A0',
+  gray600: '#A8A8BE',
+  gray700: '#C8C8D8',
+  gray800: '#E0E0EA',
+  gray900: '#F0F0F5',
+
+  // Semantic
+  success: '#34D399',
+  successLight: '#064E3B',
+  successDark: '#6EE7B7',
+
+  warning: '#FBBF24',
+  warningLight: '#78350F',
+  warningDark: '#FCD34D',
+
+  error: '#F87171',
+  errorLight: '#7F1D1D',
+  errorDark: '#FCA5A5',
+
+  info: '#60A5FA',
+  infoLight: '#1E3A5F',
+  infoDark: '#93C5FD',
+
+  // Background
+  background: '#0F0F1A',
+  backgroundSecondary: '#161625',
+  surface: '#1A1A2E',
+  card: '#1E1E35',
+  border: '#2A2A42',
+
+  // Text
+  text: '#F0F0F5',
+  textSecondary: '#A8A8BE',
+  textTertiary: '#8888A0',
+  textLight: '#5C5C78',
+  textInverse: '#1A1A2E',
+
+  // Primary tints
+  primaryBg: '#1E1540',
+  primaryBgLight: '#160F2E',
+
+  // Accent tints
+  accentBg: '#2A1A14',
+  limeBg: '#1A2210',
+
+  // Semantic backgrounds
+  errorBg: '#2D1010',
+  errorBorder: '#5C1C1C',
+  warningBg: '#2D2410',
+  infoBg: '#10182D',
+  infoBorder: '#1C3A5C',
+
+  // Blue accent
+  blue: '#60A5FA',
+  blueBg: '#10182D',
+  blueDark: '#93C5FD',
+
+  // Overlay
+  overlay: 'rgba(0, 0, 0, 0.7)',
+  overlayLight: 'rgba(0, 0, 0, 0.5)',
+
+  // Legacy support
+  gradientStart: '#A78BFA',
+  gradientMiddle: '#C084FC',
+  gradientEnd: '#F472B6',
+};
+
 export const FontFamily = {
   // Titles - Funnel Display (h1, h2, hero text)
   displayExtraBold: 'FunnelDisplay_800ExtraBold',
@@ -292,11 +389,35 @@ export const Shadows = {
     shadowRadius: 16,
     elevation: 3,
   },
+  // Violet-tinted card shadows (web parity)
+  cardViolet: {
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  cardVioletHover: {
+    shadowColor: '#7C3AED',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 4,
+  },
+};
+
+// Card footer background (light/dark)
+export const CardFooterBg = {
+  light: '#FAF8FF',
+  dark: '#1E1540',
 };
 
 // Gradients
 export const Gradients = {
   primary: [Colors.primary, Colors.primaryDark] as const,
+  // Brand gradient: violet → pink (web parity)
+  brand: ['#7C3AED', '#EC4899'] as const,
+  brandDark: ['#A78BFA', '#F472B6'] as const,
   subtle: ['rgba(124, 58, 237, 0.03)', 'rgba(124, 58, 237, 0.01)'] as const,
   dark: ['transparent', 'rgba(0,0,0,0.7)'] as const,
   light: ['rgba(255,255,255,0)', 'rgba(255,255,255,1)'] as const,
@@ -500,6 +621,7 @@ export const AvatarSizes = {
 
 const theme = {
   colors: Colors,
+  darkColors: DarkColors,
   fontFamily: FontFamily,
   fontSizes: FontSizes,
   fontWeights: FontWeights,
@@ -507,6 +629,7 @@ const theme = {
   borderRadius: BorderRadius,
   shadows: Shadows,
   gradients: Gradients,
+  cardFooterBg: CardFooterBg,
   safeArea: SafeArea,
   textStyles: TextStyles,
   springPresets: SpringPresets,

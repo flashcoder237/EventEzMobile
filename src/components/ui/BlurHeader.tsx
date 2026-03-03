@@ -8,7 +8,8 @@ import Animated, {
   SharedValue,
   Extrapolation,
 } from 'react-native-reanimated';
-import { Colors, FontFamily, FontSizes, Spacing } from '../../constants/theme';
+import { FontFamily, FontSizes, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface BlurHeaderProps {
   scrollY: SharedValue<number>;
@@ -30,6 +31,7 @@ export default function BlurHeader({
   bgShowOffset = 100,
 }: BlurHeaderProps) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const headerHeight = 44 + insets.top;
 
   // Background + buttons fade in together
@@ -76,20 +78,20 @@ export default function BlurHeader({
       {/* Background — wrap BlurView in Animated.View for reliable opacity */}
       <Animated.View style={[StyleSheet.absoluteFill, bgAnimatedStyle]}>
         {Platform.OS === 'ios' ? (
-          <BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={80} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
         ) : (
-          <View style={[StyleSheet.absoluteFill, styles.androidBg]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: isDark ? 'rgba(15,15,26,0.97)' : 'rgba(255,255,255,0.97)' }]} />
         )}
       </Animated.View>
 
       {/* Bottom border */}
-      <Animated.View style={[styles.bottomBorder, borderAnimatedStyle]} />
+      <Animated.View style={[styles.bottomBorder, { backgroundColor: colors.border }, borderAnimatedStyle]} />
 
       {/* Content row — buttons fade in with background, title fades in later */}
       <Animated.View style={[styles.row, bgAnimatedStyle]}>
         <View style={styles.leftAction}>{leftAction}</View>
         <Animated.View style={[styles.titleContainer, titleAnimatedStyle]}>
-          <Text style={styles.title} numberOfLines={1}>{title}</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]} numberOfLines={1}>{title}</Text>
         </Animated.View>
         <View style={styles.rightActions}>{rightActions}</View>
       </Animated.View>
@@ -104,9 +106,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 100,
-  },
-  androidBg: {
-    backgroundColor: 'rgba(255,255,255,0.97)',
   },
   row: {
     flex: 1,
@@ -125,7 +124,6 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FontFamily.displaySemiBold,
     fontSize: FontSizes.lg,
-    color: Colors.gray900,
   },
   rightActions: {
     width: 44,
@@ -140,6 +138,5 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 1,
-    backgroundColor: Colors.gray100,
   },
 });

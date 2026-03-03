@@ -11,6 +11,7 @@ import {
   Shadows,
   FontFamily,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface CategoryCardProps {
   id: string;
@@ -23,7 +24,7 @@ interface CategoryCardProps {
   variant?: 'default' | 'large' | 'compact';
 }
 
-// Images par défaut pour les catégories (comme sur le web)
+// Images par defaut pour les categories (comme sur le web)
 const categoryImages: Record<string, string> = {
   'Musique': 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=400',
   'Business': 'https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400',
@@ -61,6 +62,8 @@ function CategoryCard({
   onPress,
   variant = 'default',
 }: CategoryCardProps) {
+  const { colors, isDark } = useTheme();
+
   const gradientColors: [string, string] = color
     ? [color, color]
     : categoryColors[id.toLowerCase()] || categoryColors.default;
@@ -92,7 +95,7 @@ function CategoryCard({
               </View>
               <Text style={styles.largeName}>{name}</Text>
               {eventCount !== undefined && eventCount > 0 && (
-                <Text style={styles.largeCount}>{eventCount} événement{eventCount > 1 ? 's' : ''}</Text>
+                <Text style={styles.largeCount}>{eventCount} evenement{eventCount > 1 ? 's' : ''}</Text>
               )}
             </LinearGradient>
           </ImageBackground>
@@ -108,7 +111,7 @@ function CategoryCard({
             </View>
             <Text style={styles.largeName}>{name}</Text>
             {eventCount !== undefined && eventCount > 0 && (
-              <Text style={styles.largeCount}>{eventCount} événement{eventCount > 1 ? 's' : ''}</Text>
+              <Text style={styles.largeCount}>{eventCount} evenement{eventCount > 1 ? 's' : ''}</Text>
             )}
           </LinearGradient>
         )}
@@ -120,14 +123,14 @@ function CategoryCard({
     return (
       <AnimatedPressable
         onPress={onPress}
-        style={styles.compactCard}
+        style={[styles.compactCard, { backgroundColor: colors.white }]}
         animationType="scale"
         scaleValue={0.95}
       >
         <View style={[styles.compactIconBg, { backgroundColor: `${gradientColors[0]}15` }]}>
           <Ionicons name={icon} size={20} color={gradientColors[0]} />
         </View>
-        <Text style={styles.compactName} numberOfLines={1}>
+        <Text style={[styles.compactName, { color: colors.gray700 }]} numberOfLines={1}>
           {name}
         </Text>
       </AnimatedPressable>
@@ -152,11 +155,11 @@ function CategoryCard({
           <Ionicons name={icon} size={28} color={Colors.white} />
         </View>
       </LinearGradient>
-      <Text style={styles.name} numberOfLines={1}>
+      <Text style={[styles.name, { color: colors.gray700 }]} numberOfLines={1}>
         {name}
       </Text>
       {eventCount !== undefined && (
-        <Text style={styles.count}>{eventCount}</Text>
+        <Text style={[styles.count, { color: colors.gray400 }]}>{eventCount}</Text>
       )}
     </AnimatedPressable>
   );

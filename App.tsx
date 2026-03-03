@@ -23,10 +23,13 @@ import {
 } from '@expo-google-fonts/funnel-display';
 
 import { KeyboardProvider } from 'react-native-keyboard-controller';
+import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { ConnectionProvider } from './src/contexts/ConnectionContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
+import ConnectionStatusBar from './src/components/common/ConnectionStatusBar';
 import RootNavigator from './src/navigation/RootNavigator';
 import { Colors } from './src/constants/theme';
 import { LoadingSpinner } from './src/components/ui/LoadingOverlay';
@@ -58,6 +61,28 @@ const linking: LinkingOptions<RootStackParamList> = {
   },
 };
 
+function AppContent() {
+  const { isDark } = useTheme();
+
+  return (
+    <ConnectionProvider>
+      <NavigationContainer linking={linking}>
+        <ErrorBoundary>
+          <AuthProvider>
+            <NotificationProvider>
+              <AlertProvider>
+                <StatusBar style={isDark ? 'light' : 'dark'} />
+                <ConnectionStatusBar />
+                <RootNavigator />
+              </AlertProvider>
+            </NotificationProvider>
+          </AuthProvider>
+        </ErrorBoundary>
+      </NavigationContainer>
+    </ConnectionProvider>
+  );
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     // Montserrat - Body text
@@ -84,18 +109,9 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardProvider>
         <SafeAreaProvider>
-          <NavigationContainer linking={linking}>
-            <ErrorBoundary>
-              <AuthProvider>
-                <NotificationProvider>
-                  <AlertProvider>
-                    <StatusBar style="dark" />
-                    <RootNavigator />
-                  </AlertProvider>
-                </NotificationProvider>
-              </AuthProvider>
-            </ErrorBoundary>
-          </NavigationContainer>
+          <ThemeProvider>
+            <AppContent />
+          </ThemeProvider>
         </SafeAreaProvider>
       </KeyboardProvider>
     </GestureHandlerRootView>

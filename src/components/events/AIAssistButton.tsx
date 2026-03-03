@@ -6,6 +6,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -31,6 +32,8 @@ export default function AIAssistButton({
   disabled = false,
   variant = 'compact',
 }: AIAssistButtonProps) {
+  const { colors, isDark } = useTheme();
+
   if (variant === 'compact') {
     return (
       <TouchableOpacity
@@ -40,9 +43,9 @@ export default function AIAssistButton({
         activeOpacity={TOUCH_OPACITY}
       >
         {isLoading ? (
-          <ActivityIndicator size={12} color={Colors.primaryLight} />
+          <ActivityIndicator size={12} color={colors.primaryLight} />
         ) : (
-          <Ionicons name="sparkles" size={12} color={Colors.primaryLight} />
+          <Ionicons name="sparkles" size={12} color={colors.primaryLight} />
         )}
         <Text style={styles.compactText}>{label}</Text>
       </TouchableOpacity>

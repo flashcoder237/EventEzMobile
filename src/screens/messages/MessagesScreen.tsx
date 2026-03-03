@@ -28,6 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { messagesAPI, usersAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Conversation, RootStackParamList, User } from '../../types';
 import {
   Colors,
@@ -44,8 +45,9 @@ import {
   getUserInitials,
   formatRelativeTime,
 } from '../../lib/utils/messagingHelpers';
-import { MessageSkeleton } from '../../components/ui/Skeleton';
+import { ConversationItemSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui';
+import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'all' | 'archived';
@@ -67,6 +69,7 @@ const ConversationCard = memo(function ConversationCard({
   onPress,
   onLongPress,
 }: ConversationCardProps) {
+  const { colors } = useTheme();
   const otherUser = conversation.participants?.find(p => p.id !== currentUserId) || conversation.participants?.[0];
   const displayName = conversation.title || getDisplayName(otherUser || null);
   const avatar = otherUser?.profile_picture || (otherUser as any)?.image;
@@ -75,7 +78,7 @@ const ConversationCard = memo(function ConversationCard({
 
   return (
     <TouchableOpacity
-      style={[styles.conversationCard, hasUnread && styles.unreadCard]}
+      style={[styles.conversationCard, { backgroundColor: colors.white, borderColor: colors.gray100 }, hasUnread && [styles.unreadCard, { borderLeftColor: colors.primary }]]}
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={TOUCH_OPACITY}
@@ -83,7 +86,7 @@ const ConversationCard = memo(function ConversationCard({
       {avatar ? (
         <Image source={{ uri: avatar }} style={styles.avatar} />
       ) : (
-        <View style={styles.avatarPlaceholder}>
+        <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarInitials}>{initials}</Text>
         </View>
       )}
@@ -91,24 +94,24 @@ const ConversationCard = memo(function ConversationCard({
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
           <Text
-            style={[styles.conversationName, hasUnread && styles.unreadText]}
+            style={[styles.conversationName, { color: colors.gray900 }, hasUnread && styles.unreadText]}
             numberOfLines={1}
           >
             {displayName}
           </Text>
-          <Text style={styles.conversationTime}>
+          <Text style={[styles.conversationTime, { color: colors.gray500 }]}>
             {conversation.last_message_at ? formatRelativeTime(conversation.last_message_at) : ''}
           </Text>
         </View>
         <View style={styles.conversationFooter}>
           <Text
-            style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]}
+            style={[styles.lastMessage, { color: colors.gray500 }, hasUnread && [styles.lastMessageUnread, { color: colors.gray700 }]]}
             numberOfLines={1}
           >
             {(typeof conversation.last_message === 'object' ? conversation.last_message?.content : conversation.last_message) || 'Aucun message'}
           </Text>
           {hasUnread && (
-            <View style={styles.unreadBadge}>
+            <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
               <Text style={styles.unreadCountText}>
                 {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </Text>
@@ -130,28 +133,29 @@ interface UserItemProps {
 }
 
 const UserItem = memo(function UserItem({ user, onPress }: UserItemProps) {
+  const { colors } = useTheme();
   const name = getDisplayName(user);
   const avatar = user.profile_picture || (user as any)?.image;
   const initials = getUserInitials(name);
 
   return (
     <TouchableOpacity
-      style={styles.userItem}
+      style={[styles.userItem, { borderBottomColor: colors.gray100 }]}
       onPress={onPress}
       activeOpacity={TOUCH_OPACITY}
     >
       {avatar ? (
         <Image source={{ uri: avatar }} style={styles.userAvatar} />
       ) : (
-        <View style={styles.userAvatarPlaceholder}>
+        <View style={[styles.userAvatarPlaceholder, { backgroundColor: colors.primary }]}>
           <Text style={styles.userAvatarInitials}>{initials}</Text>
         </View>
       )}
       <View style={styles.userInfo}>
-        <Text style={styles.userName}>{name}</Text>
-        {user.email && <Text style={styles.userEmail}>{user.email}</Text>}
+        <Text style={[styles.userName, { color: colors.gray900 }]}>{name}</Text>
+        {user.email && <Text style={[styles.userEmail, { color: colors.gray500 }]}>{user.email}</Text>}
       </View>
-      <Ionicons name="chatbubble-outline" size={20} color={Colors.gray400} />
+      <Ionicons name="chatbubble-outline" size={20} color={colors.gray400} />
     </TouchableOpacity>
   );
 });
@@ -164,6 +168,7 @@ export default function MessagesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showConfirm } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -229,11 +234,11 @@ export default function MessagesScreen() {
     setShowNewModal(false);
 
     if (existingConv) {
-      navigation.navigate('Conversation', { conversationId: existingConv.id });
+      navigation.navigate('Conversation', { conversationId: String(existingConv.id) });
     } else {
       const targetName = getDisplayName(targetUser);
       navigation.navigate('Conversation', {
-        userId: targetUser.id,
+        userId: String(targetUser.id),
         userName: targetName,
       });
     }
@@ -293,24 +298,26 @@ export default function MessagesScreen() {
     return name.includes(search) || email.includes(search);
   });
 
-  const renderConversation = useCallback(({ item }: { item: Conversation }) => {
+  const renderConversation = useCallback(({ item, index }: { item: Conversation; index: number }) => {
     const otherUser = item.participants?.find(p => p.id !== user?.id);
     const displayName = item.title || getDisplayName(otherUser || null);
 
     return (
-      <ConversationCard
-        conversation={item}
-        currentUserId={user?.id}
-        onPress={() => navigation.navigate('Conversation', { conversationId: item.id })}
-        onLongPress={() => {
-          showConfirm(
-            'Options',
-            `${displayName}\n\nQue souhaitez-vous faire ?`,
-            () => handleArchive(item.id),
-            () => handleDelete(item.id)
-          );
-        }}
-      />
+      <StaggeredItem index={index}>
+        <ConversationCard
+          conversation={item}
+          currentUserId={user?.id}
+          onPress={() => navigation.navigate('Conversation', { conversationId: String(item.id) })}
+          onLongPress={() => {
+            showConfirm(
+              'Options',
+              `${displayName}\n\nQue souhaitez-vous faire ?`,
+              () => handleArchive(String(item.id)),
+              () => handleDelete(String(item.id))
+            );
+          }}
+        />
+      </StaggeredItem>
     );
   }, [user?.id, navigation, showConfirm]);
 
@@ -335,10 +342,10 @@ export default function MessagesScreen() {
   // Loading state with skeletons
   if (loading) {
     return (
-      <View style={styles.rootContainer}>
-        <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+      <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={styles.container}>
+          <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
             <View style={styles.headerContainer}>
               <View style={styles.header}>
                 <TouchableOpacity
@@ -360,7 +367,7 @@ export default function MessagesScreen() {
             </View>
             <View style={styles.listContent}>
               {[1, 2, 3, 4, 5].map(i => (
-                <MessageSkeleton key={i} />
+                <ConversationItemSkeleton key={i} />
               ))}
             </View>
           </View>
@@ -370,12 +377,12 @@ export default function MessagesScreen() {
   }
 
   return (
-    <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.primary} />
+    <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
           {/* Header */}
-          <View style={styles.headerContainer}>
+          <View style={[styles.headerContainer, { backgroundColor: colors.primary }]}>
             <View style={styles.header}>
               <TouchableOpacity
                 style={styles.backButton}
@@ -402,12 +409,12 @@ export default function MessagesScreen() {
             </View>
 
             {/* Search */}
-            <View style={styles.searchContainer}>
-              <Ionicons name="search" size={18} color={Colors.gray400} style={styles.searchIcon} />
+            <View style={[styles.searchContainer, { backgroundColor: colors.white }]}>
+              <Ionicons name="search" size={18} color={colors.gray400} style={styles.searchIcon} />
               <TextInput
-                style={styles.searchInput}
+                style={[styles.searchInput, { color: colors.gray900 }]}
                 placeholder="Rechercher..."
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
               />
@@ -430,7 +437,7 @@ export default function MessagesScreen() {
                 <Ionicons
                   name="archive-outline"
                   size={14}
-                  color={activeTab === 'archived' ? Colors.white : Colors.gray500}
+                  color={activeTab === 'archived' ? Colors.white : 'rgba(255,255,255,0.7)'}
                   style={{ marginRight: 4 }}
                 />
                 <Text style={[styles.tabText, activeTab === 'archived' && styles.tabTextActive]}>
@@ -444,7 +451,7 @@ export default function MessagesScreen() {
           <FlatList
             data={filteredConversations}
             renderItem={renderConversation}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}
@@ -453,7 +460,7 @@ export default function MessagesScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={Colors.primary}
+                tintColor={colors.primary}
               />
             }
           />
@@ -466,20 +473,20 @@ export default function MessagesScreen() {
             onRequestClose={() => setShowNewModal(false)}
           >
             <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Nouveau message</Text>
+              <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
+                <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
+                  <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Nouveau message</Text>
                   <TouchableOpacity onPress={() => setShowNewModal(false)}>
-                    <Ionicons name="close" size={24} color={Colors.gray600} />
+                    <Ionicons name="close" size={24} color={colors.gray600} />
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.modalSearchContainer}>
-                  <Ionicons name="search" size={18} color={Colors.gray400} />
+                <View style={[styles.modalSearchContainer, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="search" size={18} color={colors.gray400} />
                   <TextInput
-                    style={styles.modalSearchInput}
+                    style={[styles.modalSearchInput, { color: colors.gray900 }]}
                     placeholder="Rechercher un utilisateur..."
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                     value={userSearch}
                     onChangeText={setUserSearch}
                     autoFocus
@@ -489,7 +496,7 @@ export default function MessagesScreen() {
                 {loadingUsers ? (
                   <View style={styles.modalLoading}>
                     {[1, 2, 3].map(i => (
-                      <MessageSkeleton key={i} />
+                      <ConversationItemSkeleton key={i} />
                     ))}
                   </View>
                 ) : (
@@ -501,8 +508,8 @@ export default function MessagesScreen() {
                     keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={
                       <View style={styles.noUsers}>
-                        <Ionicons name="people-outline" size={48} color={Colors.gray300} />
-                        <Text style={styles.noUsersText}>Aucun utilisateur trouvé</Text>
+                        <Ionicons name="people-outline" size={48} color={colors.gray300} />
+                        <Text style={[styles.noUsersText, { color: colors.gray500 }]}>Aucun utilisateur trouvé</Text>
                       </View>
                     }
                   />
@@ -570,7 +577,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   headerSubtitle: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: 'rgba(255,255,255,0.8)',
   },
   newButton: {
@@ -595,10 +602,9 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   searchInput: {
+    ...TextStyles.body,
     flex: 1,
     paddingVertical: Spacing.sm,
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
     color: Colors.gray900,
   },
 
@@ -621,8 +627,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.3)',
   },
   tabText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+    ...TextStyles.label,
     color: 'rgba(255,255,255,0.7)',
   },
   tabTextActive: {
@@ -681,8 +686,8 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   conversationName: {
+    ...TextStyles.body,
     fontFamily: FontFamily.medium,
-    fontSize: FontSizes.base,
     color: Colors.gray900,
     flex: 1,
     marginRight: Spacing.sm,
@@ -691,8 +696,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
   },
   conversationTime: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.caption,
     color: Colors.gray500,
   },
   conversationFooter: {
@@ -701,8 +705,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lastMessage: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.small,
     color: Colors.gray500,
     flex: 1,
     marginRight: Spacing.sm,
@@ -759,10 +762,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   modalSearchInput: {
+    ...TextStyles.body,
     flex: 1,
     paddingVertical: Spacing.md,
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
     color: Colors.gray900,
   },
   modalLoading: {
@@ -801,13 +803,12 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   userName: {
+    ...TextStyles.body,
     fontFamily: FontFamily.medium,
-    fontSize: FontSizes.base,
     color: Colors.gray900,
   },
   userEmail: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },
@@ -816,8 +817,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing['3xl'],
   },
   noUsersText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.body,
     color: Colors.gray500,
     marginTop: Spacing.md,
   },

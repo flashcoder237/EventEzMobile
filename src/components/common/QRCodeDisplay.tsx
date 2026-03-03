@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -38,6 +39,8 @@ export default function QRCodeDisplay({
   visible,
   onClose,
 }: QRCodeDisplayProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <Modal
       visible={visible}
@@ -46,33 +49,33 @@ export default function QRCodeDisplay({
       onRequestClose={onClose}
     >
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { backgroundColor: colors.white }]}>
           {/* Handle bar */}
-          <View style={styles.handleBar} />
+          <View style={[styles.handleBar, { backgroundColor: colors.gray300 }]} />
 
           {/* Close button */}
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={22} color={Colors.gray500} />
+          <TouchableOpacity style={[styles.closeButton, { backgroundColor: colors.gray100 }]} onPress={onClose}>
+            <Ionicons name="close" size={22} color={colors.gray500} />
           </TouchableOpacity>
 
           {/* Title */}
-          {title && <Text style={styles.title}>{title}</Text>}
-          {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+          {title && <Text style={[styles.title, { color: colors.gray900 }]}>{title}</Text>}
+          {subtitle && <Text style={[styles.subtitle, { color: colors.gray500 }]}>{subtitle}</Text>}
 
           {/* QR Code */}
           <View style={styles.qrWrapper}>
-            <View style={[styles.qrCard, { width: size + 32, height: size + 32 }]}>
+            <View style={[styles.qrCard, { width: size + 32, height: size + 32, borderColor: colors.primary, backgroundColor: colors.white }]}>
               <QRCode
                 value={data}
                 size={size}
-                color="#5B21B6"
-                backgroundColor="#FFFFFF"
+                color={isDark ? colors.primary : "#5B21B6"}
+                backgroundColor={isDark ? colors.white : "#FFFFFF"}
               />
             </View>
           </View>
 
           {/* Hint */}
-          <Text style={styles.hint}>
+          <Text style={[styles.hint, { color: colors.gray500 }]}>
             Faites scanner ce QR code
           </Text>
         </View>

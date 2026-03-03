@@ -21,6 +21,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface DynamicFormFieldsProps {
   formFields: FormField[];
@@ -40,6 +41,7 @@ export default function DynamicFormFields({
   onFieldChange,
   errors = {},
 }: DynamicFormFieldsProps) {
+  const { colors, isDark } = useTheme();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Group fields by step
@@ -51,7 +53,7 @@ export default function DynamicFormFields({
       if (!groups[stepNum]) {
         groups[stepNum] = {
           fields: [],
-          title: (field as any).step_title || `Étape ${stepNum}`,
+          title: (field as any).step_title || `Etape ${stepNum}`,
         };
       }
       groups[stepNum].fields.push(field);
@@ -105,18 +107,18 @@ export default function DynamicFormFields({
     return (
       <View key={field.id} style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <Text style={styles.label}>{field.label}</Text>
-          {field.required && <Text style={styles.required}>*</Text>}
+          <Text style={[styles.label, { color: colors.gray700 }]}>{field.label}</Text>
+          {field.required && <Text style={[styles.required, { color: colors.error }]}>*</Text>}
         </View>
 
         {/* Text, Email, Number, Phone, URL fields */}
         {['text', 'email', 'number', 'phone', 'tel', 'url'].includes(field.field_type) && (
           <TextInput
-            style={[styles.input, error && styles.inputError]}
+            style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }, error && { borderColor: colors.error }]}
             value={value || ''}
             onChangeText={(text) => onFieldChange(field.label, text)}
             placeholder={field.placeholder || ''}
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             keyboardType={
               field.field_type === 'email' ? 'email-address' :
               field.field_type === 'number' ? 'numeric' :
@@ -130,11 +132,11 @@ export default function DynamicFormFields({
         {/* Textarea */}
         {field.field_type === 'textarea' && (
           <TextInput
-            style={[styles.input, styles.textArea, error && styles.inputError]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }, error && { borderColor: colors.error }]}
             value={value || ''}
             onChangeText={(text) => onFieldChange(field.label, text)}
             placeholder={field.placeholder || ''}
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
@@ -149,18 +151,20 @@ export default function DynamicFormFields({
                 key={optIndex}
                 style={[
                   styles.selectOption,
-                  value === option && styles.selectOptionActive,
+                  { backgroundColor: colors.gray50, borderColor: colors.gray200 },
+                  value === option && { borderColor: colors.primary, backgroundColor: colors.primaryBg },
                 ]}
                 onPress={() => onFieldChange(field.label, option)}
               >
                 <Text style={[
                   styles.selectOptionText,
-                  value === option && styles.selectOptionTextActive,
+                  { color: colors.gray700 },
+                  value === option && { color: colors.primary, fontFamily: FontFamily.medium },
                 ]}>
                   {option}
                 </Text>
                 {value === option && (
-                  <Ionicons name="checkmark" size={18} color={Colors.primary} />
+                  <Ionicons name="checkmark" size={18} color={colors.primary} />
                 )}
               </TouchableOpacity>
             ))}
@@ -178,11 +182,12 @@ export default function DynamicFormFields({
               >
                 <View style={[
                   styles.radioCircle,
-                  value === option && styles.radioCircleActive,
+                  { borderColor: colors.gray300 },
+                  value === option && { borderColor: colors.primary },
                 ]}>
-                  {value === option && <View style={styles.radioInner} />}
+                  {value === option && <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />}
                 </View>
-                <Text style={styles.radioText}>{option}</Text>
+                <Text style={[styles.radioText, { color: colors.gray700 }]}>{option}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -194,10 +199,14 @@ export default function DynamicFormFields({
             style={styles.checkboxContainer}
             onPress={() => onFieldChange(field.label, !value)}
           >
-            <View style={[styles.checkbox, value && styles.checkboxActive]}>
+            <View style={[
+              styles.checkbox,
+              { borderColor: colors.gray300 },
+              value && { backgroundColor: colors.primary, borderColor: colors.primary },
+            ]}>
               {value && <Ionicons name="checkmark" size={16} color={Colors.white} />}
             </View>
-            <Text style={styles.checkboxText}>
+            <Text style={[styles.checkboxText, { color: colors.gray700 }]}>
               {field.placeholder || field.label}
             </Text>
           </TouchableOpacity>
@@ -209,7 +218,7 @@ export default function DynamicFormFields({
             value={value ? new Date(value) : undefined}
             onChange={(date) => onFieldChange(field.label, date.toISOString().split('T')[0])}
             error={error}
-            placeholder={field.placeholder || 'Sélectionner une date'}
+            placeholder={field.placeholder || 'Selectionner une date'}
           />
         )}
 
@@ -223,17 +232,17 @@ export default function DynamicFormFields({
               onFieldChange(field.label, `${h}:${m}`);
             }}
             error={error}
-            placeholder={field.placeholder || 'Sélectionner une heure'}
+            placeholder={field.placeholder || 'Selectionner une heure'}
           />
         )}
 
         {/* Help Text */}
         {field.help_text && (
-          <Text style={styles.helpText}>{field.help_text}</Text>
+          <Text style={[styles.helpText, { color: colors.gray500 }]}>{field.help_text}</Text>
         )}
 
         {/* Error Message */}
-        {error && <Text style={styles.errorText}>{error}</Text>}
+        {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
       </View>
     );
   };
@@ -242,7 +251,7 @@ export default function DynamicFormFields({
   if (!isMultiStep) {
     return (
       <View style={styles.container}>
-        <Text style={styles.sectionTitle}>Informations requises</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Informations requises</Text>
         {formFields
           .sort((a, b) => a.order - b.order)
           .map((field, index) => renderField(field, index))}
@@ -268,8 +277,9 @@ export default function DynamicFormFields({
                 <TouchableOpacity
                   style={[
                     styles.stepCircle,
-                    isCompleted && styles.stepCircleCompleted,
-                    isCurrent && styles.stepCircleCurrent,
+                    { backgroundColor: colors.gray200 },
+                    isCompleted && { backgroundColor: colors.success },
+                    isCurrent && { backgroundColor: colors.primary, borderWidth: 3, borderColor: colors.primaryLight },
                   ]}
                   onPress={() => {
                     if (index <= stepIndex) setCurrentStep(step);
@@ -281,7 +291,8 @@ export default function DynamicFormFields({
                   ) : (
                     <Text style={[
                       styles.stepNumber,
-                      (isCompleted || isCurrent) && styles.stepNumberActive,
+                      { color: colors.gray500 },
+                      (isCompleted || isCurrent) && { color: Colors.white },
                     ]}>
                       {step}
                     </Text>
@@ -290,16 +301,17 @@ export default function DynamicFormFields({
                 {index < steps.length - 1 && (
                   <View style={[
                     styles.stepLine,
-                    isCompleted && styles.stepLineCompleted,
+                    { backgroundColor: colors.gray200 },
+                    isCompleted && { backgroundColor: colors.success },
                   ]} />
                 )}
               </React.Fragment>
             );
           })}
         </View>
-        <Text style={styles.stepTitle}>{currentStepData?.title}</Text>
-        <Text style={styles.stepProgress}>
-          Étape {steps.indexOf(currentStep) + 1} sur {totalSteps}
+        <Text style={[styles.stepTitle, { color: colors.gray900 }]}>{currentStepData?.title}</Text>
+        <Text style={[styles.stepProgress, { color: colors.gray500 }]}>
+          Etape {steps.indexOf(currentStep) + 1} sur {totalSteps}
         </Text>
       </View>
 
@@ -309,21 +321,21 @@ export default function DynamicFormFields({
       </View>
 
       {/* Step Navigation */}
-      <View style={styles.stepNavigation}>
+      <View style={[styles.stepNavigation, { borderTopColor: colors.gray200 }]}>
         <TouchableOpacity
           style={[styles.navButton, isFirstStep && styles.navButtonDisabled]}
           onPress={handlePrevious}
           disabled={isFirstStep}
         >
-          <Ionicons name="chevron-back" size={20} color={isFirstStep ? Colors.gray300 : Colors.gray700} />
-          <Text style={[styles.navButtonText, isFirstStep && styles.navButtonTextDisabled]}>
-            Précédent
+          <Ionicons name="chevron-back" size={20} color={isFirstStep ? colors.gray300 : colors.gray700} />
+          <Text style={[styles.navButtonText, { color: colors.gray700 }, isFirstStep && { color: colors.gray300 }]}>
+            Precedent
           </Text>
         </TouchableOpacity>
 
         {!isLastStep && (
           <TouchableOpacity
-            style={[styles.navButton, styles.navButtonPrimary]}
+            style={[styles.navButton, styles.navButtonPrimary, { backgroundColor: colors.primary }]}
             onPress={handleNext}
           >
             <Text style={styles.navButtonTextPrimary}>Suivant</Text>

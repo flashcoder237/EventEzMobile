@@ -12,6 +12,7 @@ import {
   Modal,
   ViewStyle,
 } from 'react-native';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 interface LoadingOverlayProps {
@@ -36,16 +37,19 @@ function LoadingOverlayComponent({
   message,
   fullScreen = true,
   size = 'large',
-  color = Colors.primary,
+  color,
   style,
   transparent = true,
 }: LoadingOverlayProps) {
+  const { colors, isDark } = useTheme();
+  const indicatorColor = color || colors.primary;
+
   if (!visible) return null;
 
   const content = (
-    <View style={[styles.content, !transparent && styles.contentSolid]}>
-      <ActivityIndicator size={size} color={color} />
-      {message && <Text style={styles.message}>{message}</Text>}
+    <View style={[styles.content, { backgroundColor: colors.white }, !transparent && [styles.contentSolid, { backgroundColor: colors.white }]]}>
+      <ActivityIndicator size={size} color={indicatorColor} />
+      {message && <Text style={[styles.message, { color: colors.gray700 }]}>{message}</Text>}
     </View>
   );
 
@@ -83,14 +87,17 @@ interface LoadingSpinnerProps {
 
 export function LoadingSpinner({
   size = 'large',
-  color = Colors.primary,
+  color,
   message,
   style,
 }: LoadingSpinnerProps) {
+  const { colors } = useTheme();
+  const indicatorColor = color || colors.primary;
+
   return (
     <View style={[styles.spinnerContainer, style]}>
-      <ActivityIndicator size={size} color={color} />
-      {message && <Text style={styles.spinnerMessage}>{message}</Text>}
+      <ActivityIndicator size={size} color={indicatorColor} />
+      {message && <Text style={[styles.spinnerMessage, { color: colors.gray500 }]}>{message}</Text>}
     </View>
   );
 }
@@ -103,11 +110,13 @@ interface ListLoadingFooterProps {
 }
 
 export function ListLoadingFooter({ visible }: ListLoadingFooterProps) {
+  const { colors } = useTheme();
+
   if (!visible) return null;
 
   return (
     <View style={styles.listFooter}>
-      <ActivityIndicator size="small" color={Colors.primary} />
+      <ActivityIndicator size="small" color={colors.primary} />
     </View>
   );
 }
@@ -121,12 +130,14 @@ interface RefreshIndicatorProps {
 }
 
 export function useRefreshControl({ refreshing, onRefresh }: RefreshIndicatorProps) {
+  const { colors } = useTheme();
+
   return {
     refreshing,
     onRefresh,
-    tintColor: Colors.primary,
-    colors: [Colors.primary],
-    progressBackgroundColor: Colors.white,
+    tintColor: colors.primary,
+    colors: [colors.primary],
+    progressBackgroundColor: colors.white,
   };
 }
 

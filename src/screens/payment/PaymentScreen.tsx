@@ -10,6 +10,7 @@ import {
   Image,
   ImageSourcePropType,
   Linking,
+  StatusBar,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,6 +24,7 @@ import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOp
 import { useAlert } from '../../contexts/AlertContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useSavedPaymentMethods, SavedPaymentMethod, maskPhoneNumber } from '../../hooks';
 import {
   usePaymentVerification,
@@ -136,6 +138,7 @@ export default function PaymentScreen() {
   const { registrationId, newTickets, totalAmount } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
 
   // Mode billets supplémentaires: on a des newTickets passés en params
   const isAdditionalTicketsMode = !!(newTickets && newTickets.length > 0);
@@ -504,7 +507,7 @@ export default function PaymentScreen() {
           const result = await WebBrowser.openBrowserAsync(authUrl, {
             dismissButtonStyle: 'close',
             presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-            toolbarColor: Colors.primary,
+            toolbarColor: colors.primary,
             controlsColor: Colors.white,
           });
 
@@ -670,16 +673,17 @@ export default function PaymentScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paiement</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Paiement</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -692,36 +696,36 @@ export default function PaymentScreen() {
       >
         {/* Order Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
             {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Récapitulatif'}
           </Text>
-          <View style={styles.orderCard}>
-            <View style={styles.orderHeader}>
-              <Text style={styles.orderEventTitle} numberOfLines={2}>
+          <View style={[styles.orderCard, { backgroundColor: colors.white }]}>
+            <View style={[styles.orderHeader, { borderBottomColor: colors.gray100 }]}>
+              <Text style={[styles.orderEventTitle, { color: colors.gray900 }]} numberOfLines={2}>
                 {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
               </Text>
               {isAdditionalTicketsMode && (
-                <Text style={styles.additionalBadge}>Achat supplémentaire</Text>
+                <Text style={[styles.additionalBadge, { color: colors.primary, backgroundColor: colors.primaryBg }]}>Achat supplémentaire</Text>
               )}
             </View>
 
             {getTicketsToDisplay().map((ticket: any, index: number) => (
               <View key={ticket.id || index} style={styles.orderItem}>
                 <View style={styles.orderItemLeft}>
-                  <Text style={styles.orderItemName}>
+                  <Text style={[styles.orderItemName, { color: colors.gray700 }]}>
                     {ticket.ticket_type_name || ticket.ticket_type?.name}
                   </Text>
-                  <Text style={styles.orderItemQty}>x{ticket.quantity || 1}</Text>
+                  <Text style={[styles.orderItemQty, { color: colors.gray500, backgroundColor: colors.gray100 }]}>x{ticket.quantity || 1}</Text>
                 </View>
-                <Text style={styles.orderItemPrice}>
+                <Text style={[styles.orderItemPrice, { color: colors.gray900 }]}>
                   {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} {countryConfig?.currency || 'FCFA'}
                 </Text>
               </View>
             ))}
 
-            <View style={styles.orderTotal}>
-              <Text style={styles.orderTotalLabel}>Total à payer</Text>
-              <Text style={styles.orderTotalValue}>
+            <View style={[styles.orderTotal, { borderTopColor: colors.gray100 }]}>
+              <Text style={[styles.orderTotalLabel, { color: colors.gray700 }]}>Total à payer</Text>
+              <Text style={[styles.orderTotalValue, { color: colors.primary }]}>
                 {calculateTotal().toLocaleString()} {countryConfig?.currency || 'FCFA'}
               </Text>
             </View>
@@ -730,13 +734,14 @@ export default function PaymentScreen() {
 
         {/* Payment Methods */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Mode de paiement</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Mode de paiement</Text>
           {dynamicMethods.map((method) => (
             <AnimatedPressable
               key={method.id}
               style={[
                 styles.methodCard,
-                selectedMethod === method.id && styles.methodCardSelected,
+                { backgroundColor: colors.white, borderColor: colors.gray200 },
+                selectedMethod === method.id && [styles.methodCardSelected, { borderColor: colors.primary, backgroundColor: colors.primaryBg }],
               ]}
               onPress={() => setSelectedMethod(method.id)}
               animationType="scale"
@@ -751,13 +756,14 @@ export default function PaymentScreen() {
                 <Image source={method.icon} style={styles.methodIconImage} resizeMode="contain" />
               </View>
               <View style={styles.methodInfo}>
-                <Text style={styles.methodName}>{method.name}</Text>
-                <Text style={styles.methodDescription}>{method.description}</Text>
+                <Text style={[styles.methodName, { color: colors.gray900 }]}>{method.name}</Text>
+                <Text style={[styles.methodDescription, { color: colors.gray500 }]}>{method.description}</Text>
               </View>
               <View
                 style={[
                   styles.methodRadio,
-                  selectedMethod === method.id && styles.methodRadioSelected,
+                  { borderColor: colors.gray300 },
+                  selectedMethod === method.id && [styles.methodRadioSelected, { borderColor: colors.primary, backgroundColor: colors.primary }],
                 ]}
               >
                 {selectedMethod === method.id && (
@@ -771,12 +777,12 @@ export default function PaymentScreen() {
         {/* Phone Number Input - Afficher pour Mobile Money uniquement */}
         {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Numéro de téléphone</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Numéro de téléphone</Text>
 
             {/* Saved Payment Methods */}
             {getMethodsByType(selectedMethod).length > 0 && (
               <View style={styles.savedMethodsContainer}>
-                <Text style={styles.savedMethodsLabel}>Numéros enregistrés</Text>
+                <Text style={[styles.savedMethodsLabel, { color: colors.gray600 }]}>Numéros enregistrés</Text>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -787,7 +793,8 @@ export default function PaymentScreen() {
                       key={method.id}
                       style={[
                         styles.savedMethodChip,
-                        selectedSavedMethod?.id === method.id && styles.savedMethodChipSelected,
+                        { borderColor: colors.gray200, backgroundColor: colors.white },
+                        selectedSavedMethod?.id === method.id && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
                       ]}
                       onPress={() => {
                         if (selectedSavedMethod?.id === method.id) {
@@ -800,12 +807,13 @@ export default function PaymentScreen() {
                       <Ionicons
                         name="phone-portrait-outline"
                         size={16}
-                        color={selectedSavedMethod?.id === method.id ? Colors.primary : Colors.gray600}
+                        color={selectedSavedMethod?.id === method.id ? colors.primary : colors.gray600}
                       />
                       <Text
                         style={[
                           styles.savedMethodChipText,
-                          selectedSavedMethod?.id === method.id && styles.savedMethodChipTextSelected,
+                          { color: colors.gray700 },
+                          selectedSavedMethod?.id === method.id && [styles.savedMethodChipTextSelected, { color: colors.primary }],
                         ]}
                       >
                         {method.displayName}
@@ -816,7 +824,8 @@ export default function PaymentScreen() {
                     style={[
                       styles.savedMethodChip,
                       styles.newMethodChip,
-                      !selectedSavedMethod && styles.savedMethodChipSelected,
+                      { borderColor: colors.gray200, backgroundColor: colors.white },
+                      !selectedSavedMethod && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
                     ]}
                     onPress={() => {
                       setSelectedSavedMethod(null);
@@ -826,12 +835,13 @@ export default function PaymentScreen() {
                     <Ionicons
                       name="add"
                       size={16}
-                      color={!selectedSavedMethod ? Colors.primary : Colors.gray600}
+                      color={!selectedSavedMethod ? colors.primary : colors.gray600}
                     />
                     <Text
                       style={[
                         styles.savedMethodChipText,
-                        !selectedSavedMethod && styles.savedMethodChipTextSelected,
+                        { color: colors.gray700 },
+                        !selectedSavedMethod && [styles.savedMethodChipTextSelected, { color: colors.primary }],
                       ]}
                     >
                       Nouveau
@@ -841,14 +851,14 @@ export default function PaymentScreen() {
               </View>
             )}
 
-            <View style={styles.phoneInputContainer}>
-              <View style={styles.phonePrefix}>
-                <Text style={styles.phonePrefixText}>{countryConfig?.phone_prefix || '+237'}</Text>
+            <View style={[styles.phoneInputContainer, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+              <View style={[styles.phonePrefix, { backgroundColor: colors.gray100 }]}>
+                <Text style={[styles.phonePrefixText, { color: colors.gray700 }]}>{countryConfig?.phone_prefix || '+237'}</Text>
               </View>
               <TextInput
-                style={styles.phoneInput}
+                style={[styles.phoneInput, { color: colors.gray900 }]}
                 placeholder={'X'.repeat(countryConfig?.phone_digits || 9)}
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
                 value={phoneNumber}
                 onChangeText={(text) => {
                   setPhoneNumber(formatPhoneNumber(text));
@@ -862,7 +872,7 @@ export default function PaymentScreen() {
               />
             </View>
             {(!countryConfig || countryConfig.country_code === 'CM') && (
-              <Text style={styles.phoneHint}>
+              <Text style={[styles.phoneHint, { color: colors.gray500 }]}>
                 {selectedMethod === 'mtn_money'
                   ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
                   : selectedMethod === 'orange_money'
@@ -875,10 +885,10 @@ export default function PaymentScreen() {
       </KeyboardAwareScrollView>
 
       {/* Bottom CTA */}
-      <View style={styles.bottomBar}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.white, borderTopColor: colors.gray100 }]}>
         <View style={styles.totalContainer}>
-          <Text style={styles.totalLabel}>Total à payer</Text>
-          <Text style={styles.totalValue}>
+          <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
+          <Text style={[styles.totalValue, { color: colors.gray900 }]}>
             {calculateTotal().toLocaleString()} {countryConfig?.currency || 'FCFA'}
           </Text>
         </View>
@@ -895,7 +905,7 @@ export default function PaymentScreen() {
       {/* Processing Overlay */}
       {processing && (
         <View style={styles.processingOverlay}>
-          <View style={styles.processingCard}>
+          <View style={[styles.processingCard, { backgroundColor: colors.white }]}>
             {/* Icône animée */}
             <View style={[
               styles.processingIconContainer,
@@ -908,49 +918,49 @@ export default function PaymentScreen() {
               />
             </View>
 
-            <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: Spacing.md }} />
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.md }} />
 
-            <Text style={styles.processingTitle}>
+            <Text style={[styles.processingTitle, { color: colors.gray900 }]}>
               {selectedMethod ? (dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Paiement') : 'Paiement par carte'}
             </Text>
 
-            <Text style={styles.processingSubtitle}>Traitement en cours...</Text>
+            <Text style={[styles.processingSubtitle, { color: colors.primary }]}>Traitement en cours...</Text>
 
             {/* Instructions détaillées pour Mobile Money */}
             {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
-              <View style={styles.instructionsContainer}>
-                <Text style={styles.instructionsTitle}>Comment valider :</Text>
+              <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
+                <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Comment valider :</Text>
 
                 <View style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
+                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                     <Text style={styles.stepNumberText}>1</Text>
                   </View>
-                  <Text style={styles.stepText}>
+                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
                     Vous allez recevoir une notification sur votre téléphone
                   </Text>
                 </View>
 
                 <View style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
+                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                     <Text style={styles.stepNumberText}>2</Text>
                   </View>
-                  <Text style={styles.stepText}>
+                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
                     Entrez votre code PIN {dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money'}
                   </Text>
                 </View>
 
                 <View style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
+                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                     <Text style={styles.stepNumberText}>3</Text>
                   </View>
-                  <Text style={styles.stepText}>
+                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
                     Confirmez la transaction
                   </Text>
                 </View>
 
-                <View style={styles.waitingNote}>
-                  <Ionicons name="time-outline" size={16} color={Colors.gray500} />
-                  <Text style={styles.waitingNoteText}>
+                <View style={[styles.waitingNote, { borderTopColor: colors.gray200 }]}>
+                  <Ionicons name="time-outline" size={16} color={colors.gray500} />
+                  <Text style={[styles.waitingNoteText, { color: colors.gray500 }]}>
                     Cette page se met à jour automatiquement
                   </Text>
                 </View>
@@ -959,39 +969,39 @@ export default function PaymentScreen() {
 
             {/* Instructions pour carte bancaire */}
             {selectedMethod === 'credit_card' && (
-              <View style={styles.instructionsContainer}>
-                <Text style={styles.instructionsTitle}>Paiement sécurisé :</Text>
+              <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
+                <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Paiement sécurisé :</Text>
 
                 <View style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
+                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                     <Text style={styles.stepNumberText}>1</Text>
                   </View>
-                  <Text style={styles.stepText}>
+                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
                     Une page de paiement sécurisée va s'ouvrir
                   </Text>
                 </View>
 
                 <View style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
+                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                     <Text style={styles.stepNumberText}>2</Text>
                   </View>
-                  <Text style={styles.stepText}>
+                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
                     Entrez les informations de votre carte bancaire
                   </Text>
                 </View>
 
                 <View style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
+                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                     <Text style={styles.stepNumberText}>3</Text>
                   </View>
-                  <Text style={styles.stepText}>
+                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
                     Validez le paiement et revenez sur l'application
                   </Text>
                 </View>
 
-                <View style={styles.securityNote}>
-                  <Ionicons name="shield-checkmark" size={16} color={Colors.success} />
-                  <Text style={styles.securityNoteText}>
+                <View style={[styles.securityNote, { borderTopColor: colors.gray200 }]}>
+                  <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+                  <Text style={[styles.securityNoteText, { color: colors.success }]}>
                     Paiement sécurisé par NotchPay
                   </Text>
                 </View>
@@ -1000,34 +1010,34 @@ export default function PaymentScreen() {
 
             {/* Bouton J'ai déjà payé */}
             {verifyingManually ? (
-              <View style={styles.alreadyPaidButton}>
-                <ActivityIndicator size="small" color={Colors.primary} />
-                <Text style={styles.alreadyPaidButtonTextActive}>Vérification en cours...</Text>
+              <View style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.alreadyPaidButtonTextActive, { color: colors.primary }]}>Vérification en cours...</Text>
               </View>
             ) : (
               <TouchableOpacity
-                style={styles.alreadyPaidButton}
+                style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}
                 onPress={handleAlreadyPaid}
                 disabled={cancelling || verifyingManually}
               >
-                <Ionicons name="checkmark-circle-outline" size={20} color={Colors.primary} />
-                <Text style={styles.alreadyPaidButtonText}>J'ai déjà payé</Text>
+                <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
+                <Text style={[styles.alreadyPaidButtonText, { color: colors.primary }]}>J'ai déjà payé</Text>
               </TouchableOpacity>
             )}
 
             {/* Bouton Annuler */}
             <TouchableOpacity
-              style={[styles.cancelButton, (cancelling || verifyingManually) && styles.cancelButtonDisabled]}
+              style={[styles.cancelButton, { borderColor: colors.error, backgroundColor: colors.white }, (cancelling || verifyingManually) && [styles.cancelButtonDisabled, { borderColor: colors.gray300, backgroundColor: colors.gray50 }]]}
               onPress={cancelPayment}
               disabled={cancelling || verifyingManually}
             >
               {cancelling ? (
                 <View style={styles.cancellingContainer}>
-                  <ActivityIndicator size="small" color={Colors.error} />
-                  <Text style={styles.cancelButtonTextActive}>Annulation...</Text>
+                  <ActivityIndicator size="small" color={colors.error} />
+                  <Text style={[styles.cancelButtonTextActive, { color: colors.error }]}>Annulation...</Text>
                 </View>
               ) : (
-                <Text style={styles.cancelButtonText}>Annuler le paiement</Text>
+                <Text style={[styles.cancelButtonText, { color: colors.error }]}>Annuler le paiement</Text>
               )}
             </TouchableOpacity>
           </View>

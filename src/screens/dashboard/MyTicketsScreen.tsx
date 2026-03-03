@@ -27,8 +27,11 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Badge } from '../../components/ui/Badge';
 import { SkeletonList, TicketCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
+import { useTabletLayout } from '../../hooks/useTabletLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -41,6 +44,8 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 export default function MyTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { colors, isDark } = useTheme();
+  const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,7 +107,7 @@ export default function MyTicketsScreen() {
     };
   };
 
-  // Format date d'inscription de manière lisible
+  // Format date d'inscription de maniere lisible
   const formatRegistrationDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -115,22 +120,42 @@ export default function MyTicketsScreen() {
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
+  const getStatusBadgeVariant = (status: string): { variant: 'success' | 'warning' | 'destructive' | 'info' | 'secondary'; label: string } => {
+    switch (status) {
+      case 'confirmed':
+        return { variant: 'success', label: 'Confirme' };
+      case 'completed':
+        return { variant: 'info', label: 'Termine' };
+      case 'pending':
+      case 'pending_approval':
+        return { variant: 'warning', label: 'En attente' };
+      case 'cancelled':
+        return { variant: 'destructive', label: 'Annule' };
+      case 'rejected':
+        return { variant: 'destructive', label: 'Refuse' };
+      case 'checked_in':
+        return { variant: 'success', label: 'Enregistre' };
+      default:
+        return { variant: 'secondary', label: status || 'Inconnu' };
+    }
+  };
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case 'confirmed':
       case 'completed':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
+        return { color: colors.success, bg: colors.successLight, label: 'Confirme', icon: 'checkmark-circle' };
       case 'pending':
       case 'pending_approval':
-        return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente', icon: 'time' };
+        return { color: colors.warning, bg: colors.warningLight, label: 'En attente', icon: 'time' };
       case 'cancelled':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Annulé', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: 'Annule', icon: 'close-circle' };
       case 'rejected':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Refusé', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: 'Refuse', icon: 'close-circle' };
       case 'checked_in':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Validé', icon: 'checkmark-done-circle' };
+        return { color: colors.success, bg: colors.successLight, label: 'Valide', icon: 'checkmark-done-circle' };
       default:
-        return { color: Colors.gray500, bg: Colors.gray100, label: status || 'Inconnu', icon: 'help-circle' };
+        return { color: colors.gray500, bg: colors.gray100, label: status || 'Inconnu', icon: 'help-circle' };
     }
   };
 
@@ -206,7 +231,7 @@ export default function MyTicketsScreen() {
 
       switch (sort) {
         case 'registration_date':
-          // Plus récent en premier
+          // Plus recent en premier
           return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
         case 'event_date':
           // Plus proche en premier
@@ -214,7 +239,7 @@ export default function MyTicketsScreen() {
           const dateB = eventB?.start_date ? new Date(eventB.start_date).getTime() : Infinity;
           return dateA - dateB;
         case 'name':
-          // Alphabétique
+          // Alphabetique
           return (eventA?.title || '').localeCompare(eventB?.title || '');
         default:
           return 0;
@@ -279,14 +304,14 @@ export default function MyTicketsScreen() {
     };
   }, [getRegistrationType]);
 
-  const getApprovalStatusConfig = (approvalStatus?: string) => {
+  const getApprovalBadgeVariant = (approvalStatus?: string): { variant: 'warning' | 'success' | 'destructive'; label: string } | null => {
     switch (approvalStatus) {
       case 'pending':
-        return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente de validation', icon: 'hourglass-outline' };
+        return { variant: 'warning', label: 'En attente de validation' };
       case 'approved':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Validée', icon: 'checkmark-circle' };
+        return { variant: 'success', label: 'Validee' };
       case 'rejected':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Refusée', icon: 'close-circle' };
+        return { variant: 'destructive', label: 'Refusee' };
       default:
         return null;
     }
@@ -295,22 +320,24 @@ export default function MyTicketsScreen() {
   const renderRegistration = ({ item, index }: { item: Registration; index: number }) => {
     const event = getEventData(item);
     const dateInfo = event?.start_date ? formatDate(event.start_date) : null;
-    const statusConfig = getStatusConfig(item.status);
     const ticketInfo = getTicketInfo(item);
     const isInscription = ticketInfo.type === 'inscription';
-    const approvalConfig = isInscription ? getApprovalStatusConfig(item.approval_status) : null;
+    const approvalBadge = isInscription ? getApprovalBadgeVariant(item.approval_status) : null;
 
-    const displayStatus = isInscription && approvalConfig && item.approval_status === 'pending'
-      ? approvalConfig
-      : statusConfig;
+    // Determine which badge to show
+    const displayBadge = isInscription && approvalBadge && item.approval_status === 'pending'
+      ? approvalBadge
+      : getStatusBadgeVariant(item.status);
 
     // Get event ID - handle both object and string cases
     const eventId = event?.id || (typeof item.event === 'string' ? item.event : undefined);
 
+    const inscriptionColor = isDark ? '#A78BFA' : '#8B5CF6';
+
     return (
       <StaggeredItem index={index} staggerDelay={50}>
       <TouchableOpacity
-        style={styles.card}
+        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
         onPress={() => {
           // Navigate to RegistrationDetails to see all tickets/inscription details
           navigation.navigate('RegistrationDetails', { registrationId: item.id });
@@ -318,10 +345,10 @@ export default function MyTicketsScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.cardRow}>
-          {/* Date badge à gauche */}
+          {/* Date badge a gauche */}
           <View style={[
             styles.dateBadge,
-            isInscription && styles.dateBadgeInscription,
+            { backgroundColor: isInscription ? inscriptionColor : colors.primary },
           ]}>
             <Text style={styles.dateDay}>{dateInfo?.day || '--'}</Text>
             <Text style={styles.dateMonth}>{dateInfo?.month || '---'}</Text>
@@ -333,52 +360,53 @@ export default function MyTicketsScreen() {
             <View style={styles.cardHeader}>
               <View style={[
                 styles.typeBadge,
-                isInscription ? styles.typeBadgeInscription : styles.typeBadgeBillet,
+                isInscription
+                  ? { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }
+                  : { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' },
               ]}>
                 <Ionicons
                   name={isInscription ? 'document-text' : 'ticket'}
                   size={10}
-                  color={isInscription ? '#8B5CF6' : Colors.primary}
+                  color={isInscription ? inscriptionColor : colors.primary}
                 />
                 <Text style={[
                   styles.typeBadgeText,
-                  isInscription ? styles.typeBadgeTextInscription : styles.typeBadgeTextBillet,
+                  { color: isInscription ? inscriptionColor : colors.primary },
                 ]}>
                   {isInscription
                     ? 'Inscription'
                     : `${ticketInfo.quantity} Billet${ticketInfo.quantity > 1 ? 's' : ''}`}
                 </Text>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: displayStatus.bg }]}>
-                <Ionicons name={displayStatus.icon as any} size={12} color={displayStatus.color} />
-                <Text style={[styles.statusText, { color: displayStatus.color }]}>
-                  {displayStatus.label}
-                </Text>
-              </View>
+              <Badge
+                label={displayBadge.label}
+                variant={displayBadge.variant}
+                size="sm"
+              />
             </View>
 
             {/* Titre */}
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {event?.title || 'Événement'}
+            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
+              {event?.title || 'Evenement'}
             </Text>
 
-            {/* Métadonnées */}
+            {/* Metadonnees */}
             <View style={styles.cardMeta}>
               {dateInfo && (
                 <View style={styles.metaItem}>
-                  <Ionicons name="time-outline" size={12} color={Colors.gray400} />
-                  <Text style={styles.metaText}>{dateInfo.time}</Text>
+                  <Ionicons name="time-outline" size={12} color={colors.gray400} />
+                  <Text style={[styles.metaText, { color: colors.gray500 }]}>{dateInfo.time}</Text>
                 </View>
               )}
               {event?.location_city && (
                 <View style={styles.metaItem}>
-                  <Ionicons name="location-outline" size={12} color={Colors.gray400} />
-                  <Text style={styles.metaText}>{event.location_city}</Text>
+                  <Ionicons name="location-outline" size={12} color={colors.gray400} />
+                  <Text style={[styles.metaText, { color: colors.gray500 }]}>{event.location_city}</Text>
                 </View>
               )}
               {item.reference_code && (
-                <View style={styles.refCodeBadge}>
-                  <Text style={styles.refCodeText}>#{item.reference_code}</Text>
+                <View style={[styles.refCodeBadge, { backgroundColor: colors.gray100 }]}>
+                  <Text style={[styles.refCodeText, { color: colors.gray500 }]}>#{item.reference_code}</Text>
                 </View>
               )}
             </View>
@@ -386,19 +414,19 @@ export default function MyTicketsScreen() {
             {/* Date d'inscription */}
             {item.created_at && (
               <View style={styles.registrationDateContainer}>
-                <Ionicons name="calendar-outline" size={10} color={Colors.gray400} />
-                <Text style={styles.registrationDateText}>
+                <Ionicons name="calendar-outline" size={10} color={colors.gray400} />
+                <Text style={[styles.registrationDateText, { color: colors.gray400 }]}>
                   Inscrit {formatRegistrationDate(item.created_at)}
                 </Text>
               </View>
             )}
           </View>
 
-          {/* QR/View Button à droite */}
+          {/* QR/View Button a droite */}
           <TouchableOpacity
             style={[
               styles.qrButton,
-              isInscription && styles.qrButtonInscription,
+              { backgroundColor: isInscription ? inscriptionColor : colors.primary },
             ]}
             onPress={() => {
               // Navigate to RegistrationDetails to see all tickets/details
@@ -415,30 +443,30 @@ export default function MyTicketsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconContainer}>
+      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
         <Ionicons
           name={activeTab === 'cancelled' ? 'close-circle-outline' : 'calendar-outline'}
           size={48}
-          color={Colors.gray300}
+          color={colors.gray400}
         />
       </View>
-      <Text style={styles.emptyTitle}>
-        {activeTab === 'upcoming' && 'Aucun billet ou inscription à venir'}
-        {activeTab === 'past' && 'Aucun billet ou inscription passé'}
+      <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>
+        {activeTab === 'upcoming' && 'Aucun billet ou inscription a venir'}
+        {activeTab === 'past' && 'Aucun billet ou inscription passe'}
         {activeTab === 'cancelled' && 'Aucune annulation'}
       </Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {activeTab === 'upcoming'
-          ? 'Explorez les événements et inscrivez-vous ou achetez vos premiers billets !'
-          : 'Les billets et inscriptions correspondants apparaîtront ici.'}
+          ? 'Explorez les evenements et inscrivez-vous ou achetez vos premiers billets !'
+          : 'Les billets et inscriptions correspondants apparaitront ici.'}
       </Text>
       {activeTab === 'upcoming' && (
         <TouchableOpacity
-          style={styles.emptyButton}
+          style={[styles.emptyButton, { backgroundColor: colors.primary }]}
           onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
           activeOpacity={0.8}
         >
-          <Text style={styles.emptyButtonText}>Explorer les événements</Text>
+          <Text style={styles.emptyButtonText}>Explorer les evenements</Text>
           <Ionicons name="arrow-forward" size={18} color={Colors.white} />
         </TouchableOpacity>
       )}
@@ -447,15 +475,27 @@ export default function MyTicketsScreen() {
 
   const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => (
     <TouchableOpacity
-      style={[styles.tabButton, activeTab === tab && styles.tabButtonActive]}
+      style={[
+        styles.tabButton,
+        { backgroundColor: activeTab === tab ? colors.primary : colors.gray100 },
+      ]}
       onPress={() => setActiveTab(tab)}
     >
-      <Text style={[styles.tabButtonText, activeTab === tab && styles.tabButtonTextActive]}>
+      <Text style={[
+        styles.tabButtonText,
+        { color: activeTab === tab ? Colors.white : colors.gray600 },
+      ]}>
         {label}
       </Text>
       {count > 0 && (
-        <View style={[styles.tabBadge, activeTab === tab && styles.tabBadgeActive]}>
-          <Text style={[styles.tabBadgeText, activeTab === tab && styles.tabBadgeTextActive]}>
+        <View style={[
+          styles.tabBadge,
+          { backgroundColor: activeTab === tab ? 'rgba(255,255,255,0.3)' : colors.gray200 },
+        ]}>
+          <Text style={[
+            styles.tabBadgeText,
+            { color: activeTab === tab ? Colors.white : colors.gray600 },
+          ]}>
             {count}
           </Text>
         </View>
@@ -465,8 +505,11 @@ export default function MyTicketsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar
+          barStyle={isDark ? 'light-content' : 'dark-content'}
+          backgroundColor={colors.background}
+        />
         <View style={styles.loadingContainer}>
           <SkeletonList count={4} Component={TicketCardSkeleton} />
         </View>
@@ -475,12 +518,15 @@ export default function MyTicketsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background}
+      />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mes Billets & Inscriptions</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Billets & Inscriptions</Text>
         <View style={styles.headerActions}>
           {/* Export Button */}
           <ExportButton
@@ -493,23 +539,23 @@ export default function MyTicketsScreen() {
             style={styles.headerButton}
             onPress={() => navigation.navigate('OfflineTickets')}
           >
-            <Ionicons name="cloud-offline-outline" size={22} color={Colors.gray600} />
+            <Ionicons name="cloud-offline-outline" size={22} color={colors.gray600} />
           </TouchableOpacity>
           {/* Pending Transfers Button */}
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => navigation.navigate('PendingTransfers')}
           >
-            <Ionicons name="gift-outline" size={22} color={Colors.gray600} />
+            <Ionicons name="gift-outline" size={22} color={colors.gray600} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.filterToggleButton}
+            style={[styles.filterToggleButton, { backgroundColor: colors.gray100 }]}
             onPress={() => setShowFilters(!showFilters)}
           >
             <Ionicons
               name={showFilters ? 'options' : 'options-outline'}
               size={22}
-              color={showFilters ? Colors.primary : Colors.gray600}
+              color={showFilters ? colors.primary : colors.gray600}
             />
           </TouchableOpacity>
         </View>
@@ -517,18 +563,18 @@ export default function MyTicketsScreen() {
 
       {/* Barre de recherche */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <Ionicons name="search" size={18} color={Colors.gray400} />
+        <View style={[styles.searchInputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
+          <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
-            style={styles.searchInput}
-            placeholder="Rechercher par événement, référence..."
-            placeholderTextColor={Colors.gray400}
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Rechercher par evenement, reference..."
+            placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.gray400} />
+              <Ionicons name="close-circle" size={18} color={colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
@@ -538,17 +584,17 @@ export default function MyTicketsScreen() {
       <View style={styles.tabsContainer}>
         <TabButton
           tab="upcoming"
-          label="À venir"
+          label="A venir"
           count={filterRegistrations('upcoming', 'all', 'all', '').length}
         />
         <TabButton
           tab="past"
-          label="Passés"
+          label="Passes"
           count={filterRegistrations('past', 'all', 'all', '').length}
         />
         <TabButton
           tab="cancelled"
-          label="Annulés"
+          label="Annules"
           count={filterRegistrations('cancelled', 'all', 'all', '').length}
         />
       </View>
@@ -561,17 +607,21 @@ export default function MyTicketsScreen() {
           contentContainerStyle={styles.filterScroll}
         >
           <TouchableOpacity
-            style={[styles.filterChip, typeFilter === 'all' && styles.filterChipActive]}
+            style={[
+              styles.filterChip,
+              { backgroundColor: colors.gray50, borderColor: colors.gray200 },
+              typeFilter === 'all' && { backgroundColor: colors.gray700, borderColor: colors.gray700 },
+            ]}
             onPress={() => setTypeFilter('all')}
           >
             <Ionicons
               name="apps"
               size={14}
-              color={typeFilter === 'all' ? Colors.white : Colors.gray500}
+              color={typeFilter === 'all' ? Colors.white : colors.gray500}
             />
             <Text style={[
               styles.filterChipText,
-              typeFilter === 'all' && styles.filterChipTextActive,
+              { color: typeFilter === 'all' ? Colors.white : colors.gray600 },
             ]}>
               Tous ({typeCounts.all})
             </Text>
@@ -580,19 +630,19 @@ export default function MyTicketsScreen() {
           <TouchableOpacity
             style={[
               styles.filterChip,
-              typeFilter === 'billetterie' && styles.filterChipActiveBillet,
+              { backgroundColor: colors.gray50, borderColor: colors.gray200 },
+              typeFilter === 'billetterie' && { backgroundColor: colors.primary, borderColor: colors.primary },
             ]}
             onPress={() => setTypeFilter('billetterie')}
           >
             <Ionicons
               name="ticket"
               size={14}
-              color={typeFilter === 'billetterie' ? Colors.white : Colors.primary}
+              color={typeFilter === 'billetterie' ? Colors.white : colors.primary}
             />
             <Text style={[
               styles.filterChipText,
-              typeFilter === 'billetterie' && styles.filterChipTextActive,
-              typeFilter !== 'billetterie' && { color: Colors.primary },
+              { color: typeFilter === 'billetterie' ? Colors.white : colors.primary },
             ]}>
               Billets ({typeCounts.billetterie})
             </Text>
@@ -601,19 +651,19 @@ export default function MyTicketsScreen() {
           <TouchableOpacity
             style={[
               styles.filterChip,
-              typeFilter === 'inscription' && styles.filterChipActiveInscription,
+              { backgroundColor: colors.gray50, borderColor: colors.gray200 },
+              typeFilter === 'inscription' && { backgroundColor: isDark ? '#A78BFA' : '#8B5CF6', borderColor: isDark ? '#A78BFA' : '#8B5CF6' },
             ]}
             onPress={() => setTypeFilter('inscription')}
           >
             <Ionicons
               name="document-text"
               size={14}
-              color={typeFilter === 'inscription' ? Colors.white : '#8B5CF6'}
+              color={typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6')}
             />
             <Text style={[
               styles.filterChipText,
-              typeFilter === 'inscription' && styles.filterChipTextActive,
-              typeFilter !== 'inscription' && { color: '#8B5CF6' },
+              { color: typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6') },
             ]}>
               Inscriptions ({typeCounts.inscription})
             </Text>
@@ -621,47 +671,75 @@ export default function MyTicketsScreen() {
         </ScrollView>
       </View>
 
-      {/* Filtres avancés (visibles si showFilters = true) */}
+      {/* Filtres avances (visibles si showFilters = true) */}
       {showFilters && (
-        <View style={styles.advancedFiltersContainer}>
+        <View style={[styles.advancedFiltersContainer, { backgroundColor: colors.gray50 }]}>
           {/* Filtre par statut */}
           <View style={styles.filterSection}>
-            <Text style={styles.filterSectionTitle}>Statut</Text>
+            <Text style={[styles.filterSectionTitle, { color: colors.gray500 }]}>Statut</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.filterChipsRow}>
                 <TouchableOpacity
-                  style={[styles.statusChip, statusFilter === 'all' && styles.statusChipActive]}
+                  style={[
+                    styles.statusChip,
+                    { backgroundColor: colors.card, borderColor: colors.gray200 },
+                    statusFilter === 'all' && { backgroundColor: colors.gray700, borderColor: colors.gray700 },
+                  ]}
                   onPress={() => setStatusFilter('all')}
                 >
-                  <Text style={[styles.statusChipText, statusFilter === 'all' && styles.statusChipTextActive]}>
+                  <Text style={[
+                    styles.statusChipText,
+                    { color: statusFilter === 'all' ? Colors.white : colors.gray600 },
+                  ]}>
                     Tous ({statusCounts.all})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.statusChip, statusFilter === 'confirmed' && styles.statusChipActiveSuccess]}
+                  style={[
+                    styles.statusChip,
+                    { backgroundColor: colors.card, borderColor: colors.gray200 },
+                    statusFilter === 'confirmed' && { backgroundColor: colors.success, borderColor: colors.success },
+                  ]}
                   onPress={() => setStatusFilter('confirmed')}
                 >
-                  <Ionicons name="checkmark-circle" size={12} color={statusFilter === 'confirmed' ? Colors.white : Colors.success} />
-                  <Text style={[styles.statusChipText, statusFilter === 'confirmed' && styles.statusChipTextActive, statusFilter !== 'confirmed' && { color: Colors.success }]}>
-                    Confirmés ({statusCounts.confirmed})
+                  <Ionicons name="checkmark-circle" size={12} color={statusFilter === 'confirmed' ? Colors.white : colors.success} />
+                  <Text style={[
+                    styles.statusChipText,
+                    { color: statusFilter === 'confirmed' ? Colors.white : colors.success },
+                  ]}>
+                    Confirmes ({statusCounts.confirmed})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.statusChip, statusFilter === 'pending' && styles.statusChipActiveWarning]}
+                  style={[
+                    styles.statusChip,
+                    { backgroundColor: colors.card, borderColor: colors.gray200 },
+                    statusFilter === 'pending' && { backgroundColor: colors.warning, borderColor: colors.warning },
+                  ]}
                   onPress={() => setStatusFilter('pending')}
                 >
-                  <Ionicons name="time" size={12} color={statusFilter === 'pending' ? Colors.white : Colors.warning} />
-                  <Text style={[styles.statusChipText, statusFilter === 'pending' && styles.statusChipTextActive, statusFilter !== 'pending' && { color: Colors.warning }]}>
+                  <Ionicons name="time" size={12} color={statusFilter === 'pending' ? Colors.white : colors.warning} />
+                  <Text style={[
+                    styles.statusChipText,
+                    { color: statusFilter === 'pending' ? Colors.white : colors.warning },
+                  ]}>
                     En attente ({statusCounts.pending})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.statusChip, statusFilter === 'checked_in' && styles.statusChipActiveSuccess]}
+                  style={[
+                    styles.statusChip,
+                    { backgroundColor: colors.card, borderColor: colors.gray200 },
+                    statusFilter === 'checked_in' && { backgroundColor: colors.success, borderColor: colors.success },
+                  ]}
                   onPress={() => setStatusFilter('checked_in')}
                 >
-                  <Ionicons name="checkmark-done-circle" size={12} color={statusFilter === 'checked_in' ? Colors.white : Colors.success} />
-                  <Text style={[styles.statusChipText, statusFilter === 'checked_in' && styles.statusChipTextActive, statusFilter !== 'checked_in' && { color: Colors.success }]}>
-                    Validés ({statusCounts.checked_in})
+                  <Ionicons name="checkmark-done-circle" size={12} color={statusFilter === 'checked_in' ? Colors.white : colors.success} />
+                  <Text style={[
+                    styles.statusChipText,
+                    { color: statusFilter === 'checked_in' ? Colors.white : colors.success },
+                  ]}>
+                    Valides ({statusCounts.checked_in})
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -670,32 +748,53 @@ export default function MyTicketsScreen() {
 
           {/* Tri */}
           <View style={styles.filterSection}>
-            <Text style={styles.filterSectionTitle}>Trier par</Text>
+            <Text style={[styles.filterSectionTitle, { color: colors.gray500 }]}>Trier par</Text>
             <View style={styles.filterChipsRow}>
               <TouchableOpacity
-                style={[styles.sortChip, sortBy === 'event_date' && styles.sortChipActive]}
+                style={[
+                  styles.sortChip,
+                  { backgroundColor: colors.card, borderColor: colors.gray200 },
+                  sortBy === 'event_date' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                ]}
                 onPress={() => setSortBy('event_date')}
               >
-                <Ionicons name="calendar" size={12} color={sortBy === 'event_date' ? Colors.white : Colors.gray600} />
-                <Text style={[styles.sortChipText, sortBy === 'event_date' && styles.sortChipTextActive]}>
-                  Date événement
+                <Ionicons name="calendar" size={12} color={sortBy === 'event_date' ? Colors.white : colors.gray600} />
+                <Text style={[
+                  styles.sortChipText,
+                  { color: sortBy === 'event_date' ? Colors.white : colors.gray600 },
+                ]}>
+                  Date evenement
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.sortChip, sortBy === 'registration_date' && styles.sortChipActive]}
+                style={[
+                  styles.sortChip,
+                  { backgroundColor: colors.card, borderColor: colors.gray200 },
+                  sortBy === 'registration_date' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                ]}
                 onPress={() => setSortBy('registration_date')}
               >
-                <Ionicons name="time" size={12} color={sortBy === 'registration_date' ? Colors.white : Colors.gray600} />
-                <Text style={[styles.sortChipText, sortBy === 'registration_date' && styles.sortChipTextActive]}>
+                <Ionicons name="time" size={12} color={sortBy === 'registration_date' ? Colors.white : colors.gray600} />
+                <Text style={[
+                  styles.sortChipText,
+                  { color: sortBy === 'registration_date' ? Colors.white : colors.gray600 },
+                ]}>
                   Date inscription
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.sortChip, sortBy === 'name' && styles.sortChipActive]}
+                style={[
+                  styles.sortChip,
+                  { backgroundColor: colors.card, borderColor: colors.gray200 },
+                  sortBy === 'name' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                ]}
                 onPress={() => setSortBy('name')}
               >
-                <Ionicons name="text" size={12} color={sortBy === 'name' ? Colors.white : Colors.gray600} />
-                <Text style={[styles.sortChipText, sortBy === 'name' && styles.sortChipTextActive]}>
+                <Ionicons name="text" size={12} color={sortBy === 'name' ? Colors.white : colors.gray600} />
+                <Text style={[
+                  styles.sortChipText,
+                  { color: sortBy === 'name' ? Colors.white : colors.gray600 },
+                ]}>
                   Nom A-Z
                 </Text>
               </TouchableOpacity>
@@ -706,10 +805,17 @@ export default function MyTicketsScreen() {
 
       {/* Tickets List */}
       <FlatList
+        key={columns}
+        numColumns={columns}
+        columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
         data={filteredRegistrations}
-        renderItem={renderRegistration}
+        renderItem={({ item, index }) => (
+          <View style={columns > 1 ? { flex: 1 } : undefined}>
+            {renderRegistration({ item, index })}
+          </View>
+        )}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingHorizontal: containerPadding }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
         keyboardShouldPersistTaps="handled"
@@ -717,7 +823,7 @@ export default function MyTicketsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       />
@@ -728,7 +834,6 @@ export default function MyTicketsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   loadingContainer: {
     flex: 1,
@@ -751,7 +856,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -776,19 +880,15 @@ const styles = StyleSheet.create({
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.gray200,
     gap: Spacing.sm,
   },
   searchInput: {
+    ...TextStyles.small,
     flex: 1,
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray900,
     paddingVertical: 0,
   },
 
@@ -805,39 +905,22 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray100,
     gap: Spacing.xs,
   },
-  tabButtonActive: {
-    backgroundColor: Colors.primary,
-  },
   tabButtonText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray600,
-  },
-  tabButtonTextActive: {
-    color: Colors.white,
+    ...TextStyles.label,
   },
   tabBadge: {
     minWidth: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 6,
   },
-  tabBadgeActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
   tabBadgeText: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray600,
-  },
-  tabBadgeTextActive: {
-    color: Colors.white,
   },
 
   // Filters
@@ -854,35 +937,16 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray50,
     borderWidth: 1,
-    borderColor: Colors.gray200,
     gap: 6,
   },
-  filterChipActive: {
-    backgroundColor: Colors.gray700,
-    borderColor: Colors.gray700,
-  },
-  filterChipActiveBillet: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterChipActiveInscription: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
-  },
   filterChipText: {
-    fontSize: FontSizes.xs,
+    ...TextStyles.caption,
     fontFamily: FontFamily.medium,
-    color: Colors.gray600,
-  },
-  filterChipTextActive: {
-    color: Colors.white,
   },
 
   // Advanced Filters
   advancedFiltersContainer: {
-    backgroundColor: Colors.gray50,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     marginHorizontal: Spacing.lg,
@@ -894,11 +958,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   filterSectionTitle: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray500,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    ...TextStyles.eyebrow,
+    color: undefined,
   },
   filterChipsRow: {
     flexDirection: 'row',
@@ -913,30 +974,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.gray200,
     gap: 4,
   },
-  statusChipActive: {
-    backgroundColor: Colors.gray700,
-    borderColor: Colors.gray700,
-  },
-  statusChipActiveSuccess: {
-    backgroundColor: Colors.success,
-    borderColor: Colors.success,
-  },
-  statusChipActiveWarning: {
-    backgroundColor: Colors.warning,
-    borderColor: Colors.warning,
-  },
   statusChipText: {
-    fontSize: FontSizes.xs,
+    ...TextStyles.caption,
     fontFamily: FontFamily.medium,
-    color: Colors.gray600,
-  },
-  statusChipTextActive: {
-    color: Colors.white,
   },
 
   // Sort chips
@@ -946,22 +989,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.gray200,
     gap: 4,
   },
-  sortChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
   sortChipText: {
-    fontSize: FontSizes.xs,
+    ...TextStyles.caption,
     fontFamily: FontFamily.medium,
-    color: Colors.gray600,
-  },
-  sortChipTextActive: {
-    color: Colors.white,
   },
 
   // List
@@ -973,11 +1006,9 @@ const styles = StyleSheet.create({
 
   // Card styles - Simple list design
   card: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.gray100,
   },
   cardRow: {
     flexDirection: 'row',
@@ -986,15 +1017,11 @@ const styles = StyleSheet.create({
   // Date badge
   dateBadge: {
     width: 56,
-    backgroundColor: Colors.primary,
     paddingVertical: Spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderTopLeftRadius: BorderRadius.lg,
     borderBottomLeftRadius: BorderRadius.lg,
-  },
-  dateBadgeInscription: {
-    backgroundColor: '#8B5CF6',
   },
   dateDay: {
     fontSize: FontSizes.xl,
@@ -1028,40 +1055,13 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
   },
-  typeBadgeBillet: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-  },
-  typeBadgeInscription: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-  },
   typeBadgeText: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-  },
-  typeBadgeTextBillet: {
-    color: Colors.primary,
-  },
-  typeBadgeTextInscription: {
-    color: '#8B5CF6',
-  },
-  // Status badge
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-  },
-  statusText: {
     fontSize: 10,
     fontFamily: FontFamily.semiBold,
   },
   // Title
   cardTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+    ...TextStyles.smallBold,
     marginBottom: 4,
   },
   // Meta
@@ -1077,12 +1077,9 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   metaText: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray500,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.caption,
   },
   refCodeBadge: {
-    backgroundColor: Colors.gray100,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: BorderRadius.sm,
@@ -1090,7 +1087,6 @@ const styles = StyleSheet.create({
   refCodeText: {
     fontSize: 10,
     fontFamily: FontFamily.medium,
-    color: Colors.gray500,
   },
   // Registration date
   registrationDateContainer: {
@@ -1102,7 +1098,6 @@ const styles = StyleSheet.create({
   registrationDateText: {
     fontSize: 10,
     fontFamily: FontFamily.regular,
-    color: Colors.gray400,
     fontStyle: 'italic',
   },
   // QR Button
@@ -1110,14 +1105,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: '100%',
     minHeight: 70,
-    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     borderTopRightRadius: BorderRadius.lg,
     borderBottomRightRadius: BorderRadius.lg,
-  },
-  qrButtonInscription: {
-    backgroundColor: '#8B5CF6',
   },
 
   // Empty State
@@ -1130,19 +1121,16 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
   },
   emptyTitle: {
     ...TextStyles.h4,
-    color: Colors.gray700,
     marginBottom: Spacing.sm,
   },
   emptyText: {
     ...TextStyles.body,
-    color: Colors.gray500,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.xl,
@@ -1151,7 +1139,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.primary,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
     borderRadius: BorderRadius.full,

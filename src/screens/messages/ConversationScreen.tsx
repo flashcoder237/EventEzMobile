@@ -45,6 +45,7 @@ const AudioPlayerClass = require('expo-audio').AudioPlayer;
 import { messagesAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { Message, RootStackParamList, User } from '../../types';
@@ -88,6 +89,7 @@ export default function ConversationScreen() {
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
   const { showError, showSuccess } = useAlert();
+  const { colors, isDark } = useTheme();
 
   // State centralisé
   const { state, actions } = useMessageState(initialConversationId, userName);
@@ -303,13 +305,13 @@ export default function ConversationScreen() {
           {avatar ? (
             <Image source={{ uri: avatar }} style={styles.headerAvatar} />
           ) : (
-            <View style={styles.headerAvatarPlaceholder}>
+            <View style={[styles.headerAvatarPlaceholder, { backgroundColor: colors.primary }]}>
               <Text style={styles.headerAvatarText}>
                 {title.substring(0, 2).toUpperCase()}
               </Text>
             </View>
           )}
-          <Text style={styles.headerTitleText} numberOfLines={1}>{title}</Text>
+          <Text style={[styles.headerTitleText, { color: colors.gray900 }]} numberOfLines={1}>{title}</Text>
         </View>
       ),
       headerRight: () => (
@@ -317,7 +319,7 @@ export default function ConversationScreen() {
           style={styles.headerMenuButton}
           onPress={handleShowConversationOptions}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color={Colors.gray700} />
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.gray700} />
         </TouchableOpacity>
       ),
     });
@@ -327,12 +329,12 @@ export default function ConversationScreen() {
     navigation.setOptions({
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
-          <View style={styles.headerAvatarPlaceholder}>
+          <View style={[styles.headerAvatarPlaceholder, { backgroundColor: colors.primary }]}>
             <Text style={styles.headerAvatarText}>
               {(userName || '').substring(0, 2).toUpperCase()}
             </Text>
           </View>
-          <Text style={styles.headerTitleText} numberOfLines={1}>{userName}</Text>
+          <Text style={[styles.headerTitleText, { color: colors.gray900 }]} numberOfLines={1}>{userName}</Text>
         </View>
       ),
     });
@@ -567,7 +569,7 @@ export default function ConversationScreen() {
         break;
 
       case 'delete':
-        handleDeleteMessage(message.id);
+        handleDeleteMessage(String(message.id));
         break;
 
       case 'forward':
@@ -648,7 +650,7 @@ export default function ConversationScreen() {
 
     try {
       await messagesAPI.forwardMessage({
-        message_id: state.selectedMessage.id,
+        message_id: String(state.selectedMessage.id),
         target_user_id: targetUserId,
       });
       showSuccess('Message transféré', '');
@@ -662,15 +664,16 @@ export default function ConversationScreen() {
     const messageId = state.selectedMessage?.id;
     if (!messageId) return;
 
+    const messageIdStr = String(messageId);
     actions.hideReactionPicker();
 
     try {
       if (isConnected && isAuthenticated) {
-        wsAddReaction(messageId, emoji);
+        wsAddReaction(messageIdStr, emoji);
       } else {
-        await messagesAPI.addReaction(messageId, emoji);
+        await messagesAPI.addReaction(messageIdStr, emoji);
       }
-      actions.addReaction(messageId, emoji, String(user?.id));
+      actions.addReaction(messageIdStr, emoji, String(user?.id));
     } catch (error) {
       console.error('Erreur ajout réaction:', error);
     }
@@ -695,12 +698,13 @@ export default function ConversationScreen() {
     try {
       // Mode édition
       if (isEditing && state.editingMessage) {
+        const editMsgId = String(state.editingMessage.id);
         if (isConnected && isAuthenticated) {
-          wsEditMessage(state.editingMessage.id, messageContent);
+          wsEditMessage(editMsgId, messageContent);
         } else {
-          await messagesAPI.updateMessage(state.editingMessage.id, { content: messageContent });
+          await messagesAPI.updateMessage(editMsgId, { content: messageContent });
         }
-        actions.updateMessage(state.editingMessage.id, {
+        actions.updateMessage(editMsgId, {
           content: messageContent,
           is_edited: true,
           edited_at: new Date().toISOString(),
@@ -803,10 +807,10 @@ export default function ConversationScreen() {
         const response = await messagesAPI.sendMessage({
           conversation: conversationIdToUse,
           content: messageContent,
-          reply_to: state.replyToMessage?.id,
+          reply_to: state.replyToMessage?.id != null ? String(state.replyToMessage.id) : undefined,
         });
 
-        actions.updateMessage(tempMessage.id, response.data);
+        actions.updateMessage(String(tempMessage.id), response.data);
       }
 
       // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
@@ -837,7 +841,10 @@ export default function ConversationScreen() {
   const renderMessage = useCallback(({ item, index }: { item: Message; index: number }) => {
     const isMine = isMyMessage(item, user?.id);
     const showDate = shouldShowDateSeparator(state.messages, index);
-    const replyToContent = getReplyToContent(item.reply_to, state.messages);
+    const replyToContent = getReplyToContent(
+      item.reply_to != null && typeof item.reply_to !== 'object' ? String(item.reply_to) : item.reply_to,
+      state.messages
+    );
 
     // System messages rendered as centered pills
     if (item.message_type === 'system') {
@@ -845,11 +852,11 @@ export default function ConversationScreen() {
         <View>
           {showDate && (
             <View style={styles.dateContainer}>
-              <Text style={styles.dateText}>{formatMessageDate(item.created_at)}</Text>
+              <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.white }]}>{formatMessageDate(item.created_at)}</Text>
             </View>
           )}
           <View style={styles.systemMessageContainer}>
-            <Text style={styles.systemMessageText}>{item.content}</Text>
+            <Text style={[styles.systemMessageText, { color: colors.gray500, backgroundColor: colors.gray100 }]}>{item.content}</Text>
           </View>
         </View>
       );
@@ -866,7 +873,7 @@ export default function ConversationScreen() {
       <View>
         {showDate && (
           <View style={styles.dateContainer}>
-            <Text style={styles.dateText}>{formatMessageDate(item.created_at)}</Text>
+            <Text style={[styles.dateText, { color: colors.gray500, backgroundColor: colors.white }]}>{formatMessageDate(item.created_at)}</Text>
           </View>
         )}
         <MessageBubble
@@ -885,13 +892,13 @@ export default function ConversationScreen() {
 
   const renderEmpty = () => (
     <View style={[styles.emptyContainer, { transform: [{ scaleY: -1 }] }]}>
-      <View style={styles.emptyIconContainer}>
-        <Ionicons name="chatbubble-ellipses-outline" size={48} color={Colors.gray300} />
+      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
+        <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.gray300} />
       </View>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {state.isNewConversation ? 'Nouvelle conversation' : 'Aucun message'}
       </Text>
-      <Text style={styles.emptySubtext}>
+      <Text style={[styles.emptySubtext, { color: colors.gray400 }]}>
         {state.isNewConversation
           ? `Envoyez un message à ${state.conversationTitle}`
           : 'Commencez la conversation !'}
@@ -903,7 +910,7 @@ export default function ConversationScreen() {
     if (!state.loadingMore) return null;
     return (
       <View style={styles.loadingMore}>
-        <ActivityIndicator size="small" color={Colors.primary} />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   };
@@ -916,8 +923,8 @@ export default function ConversationScreen() {
 
   if (state.loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['bottom']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.gray50 }]} edges={['bottom']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={styles.loadingContainer}>
           <SkeletonList count={6} Component={MessageSkeleton} />
         </View>
@@ -926,13 +933,13 @@ export default function ConversationScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.gray50 }]} edges={['bottom']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Connection Status Warning */}
       {!isConnected && state.conversationId && (
-        <View style={styles.connectionStatus}>
-          <Text style={styles.connectionStatusText}>
+        <View style={[styles.connectionStatus, { backgroundColor: colors.warning }]}>
+          <Text style={[styles.connectionStatusText, { color: colors.white }]}>
             Mode hors-ligne - Rafraîchissement automatique
           </Text>
         </View>
@@ -947,7 +954,7 @@ export default function ConversationScreen() {
             ref={flatListRef}
             data={state.messages}
             renderItem={renderMessage}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => String(item.id)}
             contentContainerStyle={styles.messagesList}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}
@@ -964,11 +971,11 @@ export default function ConversationScreen() {
           {/* Scroll to bottom button */}
           {showScrollToBottom && (
             <TouchableOpacity
-              style={styles.scrollToBottomButton}
+              style={[styles.scrollToBottomButton, { backgroundColor: colors.white, borderColor: colors.gray200 }]}
               onPress={scrollToBottom}
               activeOpacity={0.8}
             >
-              <Ionicons name="chevron-down" size={22} color={Colors.gray700} />
+              <Ionicons name="chevron-down" size={22} color={colors.gray700} />
             </TouchableOpacity>
           )}
         </View>

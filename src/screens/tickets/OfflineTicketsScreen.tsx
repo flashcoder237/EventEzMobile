@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useOfflineTickets, CachedTicket } from '../../hooks/useOfflineTickets';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontSizes,
@@ -31,6 +32,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function OfflineTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showConfirm } = useAlert();
+  const { colors, isDark } = useTheme();
   const {
     isOnline,
     loading,
@@ -103,28 +105,28 @@ export default function OfflineTicketsScreen() {
 
     return (
       <TouchableOpacity
-        style={[styles.ticketCard, isPast && styles.pastTicketCard]}
+        style={[styles.ticketCard, { backgroundColor: colors.card }, isPast && styles.pastTicketCard]}
         onPress={() => setExpandedTicket(isExpanded ? null : item.ticketId)}
         activeOpacity={0.8}
       >
         <View style={styles.ticketHeader}>
           <View style={styles.ticketInfo}>
-            <Text style={styles.eventTitle} numberOfLines={2}>
+            <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
               {item.eventTitle}
             </Text>
-            <Text style={styles.ticketType}>
+            <Text style={[styles.ticketType, { color: colors.primary }]}>
               {item.quantity}x {item.ticketType}
             </Text>
-            <Text style={styles.eventDate}>{formatDate(item.eventDate)}</Text>
+            <Text style={[styles.eventDate, { color: colors.gray500 }]}>{formatDate(item.eventDate)}</Text>
           </View>
           <View style={styles.ticketActions}>
-            <View style={[styles.offlineBadge, !isOnline && styles.offlineBadgeActive]}>
+            <View style={[styles.offlineBadge, { backgroundColor: isOnline ? colors.successLight : colors.warningLight }]}>
               <Ionicons
                 name={isOnline ? 'cloud-done' : 'cloud-offline'}
                 size={14}
-                color={isOnline ? Colors.success : Colors.warning}
+                color={isOnline ? colors.success : colors.warning}
               />
-              <Text style={[styles.offlineBadgeText, !isOnline && styles.offlineBadgeTextActive]}>
+              <Text style={[styles.offlineBadgeText, { color: isOnline ? colors.success : colors.warning }]}>
                 {isOnline ? 'En ligne' : 'Hors-ligne'}
               </Text>
             </View>
@@ -132,14 +134,14 @@ export default function OfflineTicketsScreen() {
               style={styles.removeButton}
               onPress={() => handleRemoveTicket(item.ticketId)}
             >
-              <Ionicons name="trash-outline" size={18} color={Colors.error} />
+              <Ionicons name="trash-outline" size={18} color={colors.error} />
             </TouchableOpacity>
           </View>
         </View>
 
         {isExpanded && (
           <View style={styles.expandedContent}>
-            <View style={styles.qrContainer}>
+            <View style={[styles.qrContainer, { backgroundColor: Colors.white, borderColor: colors.primary }]}>
               <Image
                 source={{ uri: item.qrCodeBase64 }}
                 style={styles.qrImage}
@@ -147,10 +149,10 @@ export default function OfflineTicketsScreen() {
               />
             </View>
             <View style={styles.referenceContainer}>
-              <Text style={styles.referenceLabel}>Référence</Text>
-              <Text style={styles.referenceCode}>{item.referenceCode}</Text>
+              <Text style={[styles.referenceLabel, { color: colors.gray500 }]}>Référence</Text>
+              <Text style={[styles.referenceCode, { color: colors.gray900 }]}>{item.referenceCode}</Text>
             </View>
-            <Text style={styles.qrHint}>
+            <Text style={[styles.qrHint, { color: colors.gray500 }]}>
               Présentez ce QR code à l'entrée de l'événement
             </Text>
           </View>
@@ -160,7 +162,7 @@ export default function OfflineTicketsScreen() {
           <Ionicons
             name={isExpanded ? 'chevron-up' : 'chevron-down'}
             size={20}
-            color={Colors.gray400}
+            color={colors.gray400}
           />
         </View>
       </TouchableOpacity>
@@ -169,11 +171,11 @@ export default function OfflineTicketsScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconContainer}>
-        <Ionicons name="cloud-download-outline" size={48} color={Colors.gray400} />
+      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
+        <Ionicons name="cloud-download-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>Aucun billet en cache</Text>
-      <Text style={styles.emptySubtitle}>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun billet en cache</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
         Vos billets sont automatiquement mis en cache lorsque vous les consultez.
         Ils seront disponibles même sans connexion.
       </Text>
@@ -181,16 +183,16 @@ export default function OfflineTicketsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Billets hors-ligne</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Billets hors-ligne</Text>
         {tickets.length > 0 ? (
           <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
-            <Ionicons name="trash-outline" size={22} color={Colors.error} />
+            <Ionicons name="trash-outline" size={22} color={colors.error} />
           </TouchableOpacity>
         ) : (
           <View style={{ width: 40 }} />
@@ -198,13 +200,13 @@ export default function OfflineTicketsScreen() {
       </View>
 
       {/* Connection Status */}
-      <View style={[styles.connectionStatus, !isOnline && styles.connectionStatusOffline]}>
+      <View style={[styles.connectionStatus, { backgroundColor: isOnline ? colors.successLight : colors.warningLight }]}>
         <Ionicons
           name={isOnline ? 'wifi' : 'wifi-outline'}
           size={18}
-          color={isOnline ? Colors.success : Colors.warning}
+          color={isOnline ? colors.success : colors.warning}
         />
-        <Text style={[styles.connectionText, !isOnline && styles.connectionTextOffline]}>
+        <Text style={[styles.connectionText, { color: isOnline ? colors.success : colors.warning }]}>
           {isOnline
             ? 'Connecté - Vos billets sont synchronisés'
             : 'Hors-ligne - Utilisation du cache local'
@@ -225,8 +227,8 @@ export default function OfflineTicketsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={[Colors.primary]}
-              tintColor={Colors.primary}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
         />
@@ -234,9 +236,9 @@ export default function OfflineTicketsScreen() {
 
       {/* Info Card */}
       {tickets.length > 0 && (
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle-outline" size={20} color={Colors.info} />
-          <Text style={styles.infoText}>
+        <View style={[styles.infoCard, { backgroundColor: colors.infoLight }]}>
+          <Ionicons name="information-circle-outline" size={20} color={colors.info} />
+          <Text style={[styles.infoText, { color: colors.info }]}>
             {tickets.length} billet{tickets.length > 1 ? 's' : ''} disponible{tickets.length > 1 ? 's' : ''} hors-ligne.
             Les données sont conservées pendant 7 jours.
           </Text>

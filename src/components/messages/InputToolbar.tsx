@@ -1,7 +1,7 @@
 /**
  * Barre d'outils de saisie de message
  * Inclut: champ texte, bouton image, bouton micro, bouton envoi
- * Gère aussi l'aperçu des pièces jointes, réponse et édition
+ * Gere aussi l'apercu des pieces jointes, reponse et edition
  */
 
 import React, { memo, useRef, useEffect } from 'react';
@@ -27,6 +27,7 @@ import {
   Spacing,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { formatDuration } from '../../lib/utils/messagingHelpers';
 
 interface InputToolbarProps {
@@ -73,6 +74,7 @@ function InputToolbar({
   onCancelReply,
   onCancelEdit,
 }: InputToolbarProps) {
+  const { colors, isDark } = useTheme();
   const inputRef = useRef<TextInput>(null);
   const recordingAnim = useRef(new Animated.Value(1)).current;
 
@@ -113,20 +115,20 @@ function InputToolbar({
     if (!replyToMessage) return null;
 
     return (
-      <View style={styles.previewContainer}>
+      <View style={[styles.previewContainer, { borderBottomColor: colors.gray100 }]}>
         <View style={styles.previewLeft}>
-          <View style={styles.previewBar} />
+          <View style={[styles.previewBar, { backgroundColor: colors.primary }]} />
           <View style={styles.previewContent}>
-            <Text style={styles.previewLabel}>
-              Répondre à {replyToMessage.sender_name || 'Utilisateur'}
+            <Text style={[styles.previewLabel, { color: colors.primary }]}>
+              Repondre a {replyToMessage.sender_name || 'Utilisateur'}
             </Text>
-            <Text style={styles.previewMessage} numberOfLines={1}>
+            <Text style={[styles.previewMessage, { color: colors.gray600 }]} numberOfLines={1}>
               {replyToMessage.content}
             </Text>
           </View>
         </View>
         <TouchableOpacity onPress={onCancelReply} style={styles.previewClose}>
-          <Ionicons name="close" size={20} color={Colors.gray500} />
+          <Ionicons name="close" size={20} color={colors.gray500} />
         </TouchableOpacity>
       </View>
     );
@@ -137,18 +139,18 @@ function InputToolbar({
     if (!editingMessage) return null;
 
     return (
-      <View style={[styles.previewContainer, styles.editPreview]}>
+      <View style={[styles.previewContainer, styles.editPreview, { borderBottomColor: colors.gray100, backgroundColor: colors.primary + '10' }]}>
         <View style={styles.previewLeft}>
-          <Ionicons name="create-outline" size={20} color={Colors.primary} />
+          <Ionicons name="create-outline" size={20} color={colors.primary} />
           <View style={styles.previewContent}>
-            <Text style={styles.previewLabel}>Modifier le message</Text>
-            <Text style={styles.previewMessage} numberOfLines={1}>
+            <Text style={[styles.previewLabel, { color: colors.primary }]}>Modifier le message</Text>
+            <Text style={[styles.previewMessage, { color: colors.gray600 }]} numberOfLines={1}>
               {editingMessage.content}
             </Text>
           </View>
         </View>
         <TouchableOpacity onPress={onCancelEdit} style={styles.previewClose}>
-          <Ionicons name="close" size={20} color={Colors.gray500} />
+          <Ionicons name="close" size={20} color={colors.gray500} />
         </TouchableOpacity>
       </View>
     );
@@ -159,25 +161,25 @@ function InputToolbar({
     if (attachedFiles.length === 0) return null;
 
     return (
-      <View style={styles.attachmentPreview}>
+      <View style={[styles.attachmentPreview, { borderBottomColor: colors.gray100 }]}>
         {attachedFiles.map((file, index) => (
           <View key={index} style={styles.attachmentItem}>
             {file.type === 'image' && (
               <Image source={{ uri: file.uri }} style={styles.attachmentImage} />
             )}
             {file.type === 'voice' && (
-              <View style={styles.attachmentVoice}>
-                <Ionicons name="mic" size={24} color={Colors.primary} />
-                <Text style={styles.attachmentVoiceDuration}>
+              <View style={[styles.attachmentVoice, { backgroundColor: colors.gray100 }]}>
+                <Ionicons name="mic" size={24} color={colors.primary} />
+                <Text style={[styles.attachmentVoiceDuration, { color: colors.gray600 }]}>
                   {formatDuration(file.duration || 0)}
                 </Text>
               </View>
             )}
             <TouchableOpacity
-              style={styles.attachmentRemove}
+              style={[styles.attachmentRemove, { backgroundColor: colors.surface }]}
               onPress={onRemoveAttachment}
             >
-              <Ionicons name="close-circle" size={20} color={Colors.error} />
+              <Ionicons name="close-circle" size={20} color={colors.error} />
             </TouchableOpacity>
           </View>
         ))}
@@ -188,29 +190,29 @@ function InputToolbar({
   // Recording UI
   if (isRecording) {
     return (
-      <View style={styles.recordingContainer}>
+      <View style={[styles.recordingContainer, { backgroundColor: colors.surface, borderTopColor: colors.gray100 }]}>
         <TouchableOpacity
           onPress={onCancelRecording}
-          style={styles.recordingCancelButton}
+          style={[styles.recordingCancelButton, { backgroundColor: colors.error + '15' }]}
         >
-          <Ionicons name="trash-outline" size={24} color={Colors.error} />
+          <Ionicons name="trash-outline" size={24} color={colors.error} />
         </TouchableOpacity>
 
         <View style={styles.recordingInfo}>
           <Animated.View
             style={[
               styles.recordingDot,
-              { transform: [{ scale: recordingAnim }] },
+              { backgroundColor: colors.error, transform: [{ scale: recordingAnim }] },
             ]}
           />
-          <Text style={styles.recordingDurationText}>
+          <Text style={[styles.recordingDurationText, { color: colors.gray900 }]}>
             {formatDuration(recordingDuration)}
           </Text>
         </View>
 
         <TouchableOpacity
           onPress={onStopRecording}
-          style={styles.recordingSendButton}
+          style={[styles.recordingSendButton, { backgroundColor: colors.primary }]}
         >
           <Ionicons name="send" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -219,7 +221,7 @@ function InputToolbar({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.gray100 }]}>
       {renderReplyPreview()}
       {renderEditPreview()}
       {renderAttachmentPreview()}
@@ -231,18 +233,18 @@ function InputToolbar({
           onPress={onPickImage}
           activeOpacity={TOUCH_OPACITY}
         >
-          <Ionicons name="image-outline" size={22} color={Colors.primary} />
+          <Ionicons name="image-outline" size={22} color={colors.primary} />
         </TouchableOpacity>
 
         {/* Text Input */}
-        <View style={styles.inputWrapper}>
+        <View style={[styles.inputWrapper, { backgroundColor: colors.gray50 }]}>
           <TextInput
             ref={inputRef}
-            style={styles.input}
+            style={[styles.input, { color: colors.gray900 }]}
             value={value}
             onChangeText={onChangeText}
-            placeholder={editingMessage ? 'Modifier le message...' : 'Écrivez votre message...'}
-            placeholderTextColor={Colors.gray400}
+            placeholder={editingMessage ? 'Modifier le message...' : 'Ecrivez votre message...'}
+            placeholderTextColor={colors.gray400}
             multiline
             maxLength={1000}
           />
@@ -251,7 +253,7 @@ function InputToolbar({
         {/* Send or Mic Button */}
         {canSend ? (
           <TouchableOpacity
-            style={[styles.sendButton, sending && styles.sendButtonDisabled]}
+            style={[styles.sendButton, { backgroundColor: colors.primary }, sending && styles.sendButtonDisabled]}
             onPress={handleSend}
             disabled={sending}
             activeOpacity={TOUCH_OPACITY}
@@ -264,11 +266,11 @@ function InputToolbar({
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
-            style={styles.micButton}
+            style={[styles.micButton, { backgroundColor: colors.gray100 }]}
             onPress={onStartRecording}
             activeOpacity={TOUCH_OPACITY}
           >
-            <Ionicons name="mic" size={22} color={Colors.primary} />
+            <Ionicons name="mic" size={22} color={colors.primary} />
           </TouchableOpacity>
         )}
       </View>

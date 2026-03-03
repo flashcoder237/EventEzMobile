@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import type { AIUsage } from '../../types';
 
@@ -9,21 +10,23 @@ interface AIUsageBadgeProps {
 }
 
 export default function AIUsageBadge({ usage }: AIUsageBadgeProps) {
+  const { colors, isDark } = useTheme();
+
   if (!usage) return null;
 
   const isUnlimited = usage.daily_limit === 0;
   const remaining = isUnlimited ? Infinity : usage.daily_limit - usage.daily_count;
   const ratio = isUnlimited ? 1 : remaining / usage.daily_limit;
 
-  let bgColor = Colors.successLight;
-  let textColor = Colors.successDark;
+  let bgColor = colors.successLight;
+  let textColor = colors.successDark;
   if (!isUnlimited) {
     if (ratio <= 0) {
-      bgColor = Colors.errorLight;
-      textColor = Colors.errorDark;
+      bgColor = colors.errorLight;
+      textColor = colors.errorDark;
     } else if (ratio <= 0.25) {
-      bgColor = Colors.warningLight;
-      textColor = Colors.warningDark;
+      bgColor = colors.warningLight;
+      textColor = colors.warningDark;
     }
   }
 

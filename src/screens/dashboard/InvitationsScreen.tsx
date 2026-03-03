@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { invitationsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -43,6 +44,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 
 export default function InvitationsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { colors, isDark } = useTheme();
   const [received, setReceived] = useState<Invitation[]>([]);
   const [sent, setSent] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,20 +134,20 @@ export default function InvitationsScreen() {
     const isProcessing = actionLoading === item.id;
 
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.card }]}>
         <View style={styles.cardHeader}>
-          <View style={styles.cardIcon}>
+          <View style={[styles.cardIcon, { backgroundColor: colors.primaryBg }]}>
             <Ionicons
               name={isReceived ? 'mail' : 'send'}
               size={20}
-              color={Colors.primary}
+              color={colors.primary}
             />
           </View>
           <View style={styles.cardHeaderInfo}>
-            <Text style={styles.eventName} numberOfLines={1}>
+            <Text style={[styles.eventName, { color: colors.text }]} numberOfLines={1}>
               {item.event_title || item.event_name || 'Evenement'}
             </Text>
-            <Text style={styles.cardSubtitle}>
+            <Text style={[styles.cardSubtitle, { color: colors.textSecondary }]}>
               {isReceived
                 ? `De: ${item.inviter_name || 'Organisateur'}`
                 : `A: ${item.invitee_name || item.invitee_email || 'Invite'}`
@@ -160,35 +162,35 @@ export default function InvitationsScreen() {
         </View>
 
         {item.message ? (
-          <Text style={styles.messageText} numberOfLines={2}>
+          <Text style={[styles.messageText, { color: colors.textSecondary }]} numberOfLines={2}>
             {item.message}
           </Text>
         ) : null}
 
         <View style={styles.cardFooter}>
-          <Text style={styles.dateText}>
-            <Ionicons name="calendar-outline" size={12} color={Colors.textLight} />{' '}
+          <Text style={[styles.dateText, { color: colors.textLight }]}>
+            <Ionicons name="calendar-outline" size={12} color={colors.textLight} />{' '}
             {formatDate(item.created_at)}
           </Text>
 
           {isReceived && isPending && (
             <View style={styles.actionButtons}>
               <TouchableOpacity
-                style={[styles.actionButton, styles.declineButton]}
+                style={[styles.actionButton, styles.declineButton, { backgroundColor: colors.errorLight }]}
                 onPress={() => handleDecline(item.id)}
                 disabled={isProcessing}
               >
                 {isProcessing ? (
-                  <ActivityIndicator size="small" color={Colors.error} />
+                  <ActivityIndicator size="small" color={colors.error} />
                 ) : (
                   <>
-                    <Ionicons name="close" size={16} color={Colors.error} />
-                    <Text style={styles.declineText}>Refuser</Text>
+                    <Ionicons name="close" size={16} color={colors.error} />
+                    <Text style={[styles.declineText, { color: colors.error }]}>Refuser</Text>
                   </>
                 )}
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.actionButton, styles.acceptButton]}
+                style={[styles.actionButton, styles.acceptButton, { backgroundColor: colors.primary }]}
                 onPress={() => handleAccept(item.id)}
                 disabled={isProcessing}
               >
@@ -210,7 +212,7 @@ export default function InvitationsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <LoadingSpinner />
       </SafeAreaView>
     );
@@ -219,43 +221,43 @@ export default function InvitationsScreen() {
   const currentData = activeTab === 'received' ? received : sent;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Invitations</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Invitations</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { backgroundColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'received' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'received' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('received')}
         >
           <Ionicons
             name="mail-outline"
             size={16}
-            color={activeTab === 'received' ? Colors.primary : Colors.textLight}
+            color={activeTab === 'received' ? colors.primary : colors.textLight}
             style={{ marginRight: 4 }}
           />
-          <Text style={[styles.tabText, activeTab === 'received' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'received' && [styles.activeTabText, { color: colors.primary }]]}>
             Recues ({received.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'sent' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'sent' && [styles.activeTab, { backgroundColor: colors.card }]]}
           onPress={() => setActiveTab('sent')}
         >
           <Ionicons
             name="send-outline"
             size={16}
-            color={activeTab === 'sent' ? Colors.primary : Colors.textLight}
+            color={activeTab === 'sent' ? colors.primary : colors.textLight}
             style={{ marginRight: 4 }}
           />
-          <Text style={[styles.tabText, activeTab === 'sent' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'sent' && [styles.activeTabText, { color: colors.primary }]]}>
             Envoyees ({sent.length})
           </Text>
         </TouchableOpacity>
@@ -267,15 +269,15 @@ export default function InvitationsScreen() {
         contentContainerStyle={styles.listContent}
         keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="mail-outline" size={48} color={Colors.textLight} />
-            <Text style={styles.emptyText}>
+            <Ionicons name="mail-outline" size={48} color={colors.textLight} />
+            <Text style={[styles.emptyText, { color: colors.textLight }]}>
               {activeTab === 'received' ? 'Aucune invitation recue' : 'Aucune invitation envoyee'}
             </Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
               {activeTab === 'received'
                 ? 'Les invitations que vous recevrez apparaitront ici.'
                 : 'Les invitations que vous envoyez apparaitront ici.'

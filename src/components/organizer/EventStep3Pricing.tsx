@@ -9,12 +9,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Spacing } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { TicketTypeForm, FormFieldForm, FIELD_TYPES } from '../../hooks/useEventForm';
 import DateTimePickerField from '../ui/DateTimePickerField';
 import AIAssistButton from '../events/AIAssistButton';
 import styles from './eventCreateStyles';
+import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
 
 // ============================================
 // Props
@@ -81,23 +83,25 @@ function FormFieldsSection({
   onUpdateFormField: (index: number, field: string, value: any) => void;
   onRemoveFormField: (index: number) => void;
 }) {
+  const { colors, isDark } = useTheme();
+  const themed = useEventCreateThemedStyles();
   if (formFields.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <View style={styles.emptyIcon}>
-          <Ionicons name="document-text-outline" size={40} color={Colors.gray400} />
+      <View style={[styles.emptyContainer, themed.emptyContainer]}>
+        <View style={[styles.emptyIcon, themed.emptyIcon]}>
+          <Ionicons name="document-text-outline" size={40} color={colors.gray400} />
         </View>
-        <Text style={styles.emptyTitle}>
+        <Text style={[styles.emptyTitle, themed.emptyTitle]}>
           {isOptional ? 'Aucun champ suppl\u00e9mentaire' : 'Aucun champ'}
         </Text>
-        <Text style={styles.emptyText}>
+        <Text style={[styles.emptyText, themed.emptyText]}>
           {isOptional
             ? 'Ajoutez des champs pour collecter des informations suppl\u00e9mentaires lors de l\'achat'
             : 'Ajoutez des champs pour collecter les informations des participants'}
         </Text>
-        <TouchableOpacity style={styles.addButton} onPress={onAddFormField}>
-          <Ionicons name="add" size={20} color={Colors.white} />
-          <Text style={styles.addButtonText}>Ajouter un champ</Text>
+        <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddFormField}>
+          <Ionicons name="add" size={20} color={colors.white} />
+          <Text style={[styles.addButtonText, themed.addButtonText]}>Ajouter un champ</Text>
         </TouchableOpacity>
       </View>
     );
@@ -106,42 +110,42 @@ function FormFieldsSection({
   return (
     <>
       {formFields.map((field, index) => (
-        <View key={index} style={styles.card}>
-          <View style={styles.cardHeader}>
-            <Text style={styles.cardTitle}>Champ {index + 1}</Text>
+        <View key={index} style={[styles.card, themed.card]}>
+          <View style={[styles.cardHeader, themed.cardHeader]}>
+            <Text style={[styles.cardTitle, themed.cardTitle]}>Champ {index + 1}</Text>
             <TouchableOpacity onPress={() => onRemoveFormField(index)}>
-              <Ionicons name="trash-outline" size={20} color={Colors.error} />
+              <Ionicons name="trash-outline" size={20} color={colors.error} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Intitul\u00e9 *</Text>
+            <Text style={[styles.label, themed.label]}>Intitul\u00e9 *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={field.label}
               onChangeText={(value) => onUpdateFormField(index, 'label', value)}
               placeholder="Ex: Nom complet, Entreprise, Poste"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Type de champ</Text>
+            <Text style={[styles.label, themed.label]}>Type de champ</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.chipContainer}>
                 {FIELD_TYPES.map((type) => (
                   <TouchableOpacity
                     key={type.value}
                     style={[
-                      styles.chip,
-                      field.field_type === type.value && styles.chipActive,
+                      styles.chip, themed.chip,
+                      field.field_type === type.value && [styles.chipActive, themed.chipActive],
                     ]}
                     onPress={() => onUpdateFormField(index, 'field_type', type.value)}
                   >
                     <Text
                       style={[
-                        styles.chipText,
-                        field.field_type === type.value && styles.chipTextActive,
+                        styles.chipText, themed.chipText,
+                        field.field_type === type.value && [styles.chipTextActive, themed.chipTextActive],
                       ]}
                     >
                       {type.label}
@@ -153,58 +157,58 @@ function FormFieldsSection({
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Placeholder</Text>
+            <Text style={[styles.label, themed.label]}>Placeholder</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={field.placeholder}
               onChangeText={(value) => onUpdateFormField(index, 'placeholder', value)}
               placeholder="Texte d'aide dans le champ"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
 
           {['select', 'checkbox', 'radio'].includes(field.field_type) && (
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Options (s\u00e9par\u00e9es par des virgules) *</Text>
+              <Text style={[styles.label, themed.label]}>Options (s\u00e9par\u00e9es par des virgules) *</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, themed.input]}
                 value={field.options}
                 onChangeText={(value) => onUpdateFormField(index, 'options', value)}
                 placeholder="Ex: Option 1, Option 2, Option 3"
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
               />
             </View>
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Texte d'aide</Text>
+            <Text style={[styles.label, themed.label]}>Texte d'aide</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={field.help_text}
               onChangeText={(value) => onUpdateFormField(index, 'help_text', value)}
               placeholder="Instructions suppl\u00e9mentaires"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
 
-          <View style={styles.switchRow}>
+          <View style={[styles.switchRow, themed.switchRow]}>
             <View style={styles.switchContent}>
-              <Text style={styles.switchLabel}>Obligatoire</Text>
-              <Text style={styles.switchDescription}>Ce champ doit \u00eatre rempli</Text>
+              <Text style={[styles.switchLabel, themed.switchLabel]}>Obligatoire</Text>
+              <Text style={[styles.switchDescription, themed.switchDescription]}>Ce champ doit \u00eatre rempli</Text>
             </View>
             <Switch
               value={field.required}
               onValueChange={(value) => onUpdateFormField(index, 'required', value)}
-              trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-              thumbColor={field.required ? Colors.primary : Colors.gray400}
+              trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+              thumbColor={field.required ? colors.primary : colors.gray400}
             />
           </View>
         </View>
       ))}
 
-      <TouchableOpacity style={styles.addAnotherButton} onPress={onAddFormField}>
-        <Ionicons name="add" size={20} color={Colors.primary} />
-        <Text style={styles.addAnotherText}>Ajouter un autre champ</Text>
+      <TouchableOpacity style={[styles.addAnotherButton, themed.addAnotherButton]} onPress={onAddFormField}>
+        <Ionicons name="add" size={20} color={colors.primary} />
+        <Text style={[styles.addAnotherText, themed.addAnotherText]}>Ajouter un autre champ</Text>
       </TouchableOpacity>
     </>
   );
@@ -242,12 +246,14 @@ export default function EventStep3Pricing({
   onSetFormFields,
   onSuggestPricing,
 }: EventStep3PricingProps) {
+  const { colors, isDark } = useTheme();
+  const themed = useEventCreateThemedStyles();
   return (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>
+      <Text style={[styles.stepTitle, themed.stepTitle]}>
         {eventType === 'billetterie' ? 'Billetterie' : 'Formulaire d\'inscription'}
       </Text>
-      <Text style={styles.stepDescription}>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>
         {eventType === 'billetterie'
           ? 'Cr\u00e9ez les diff\u00e9rents types de billets pour votre \u00e9v\u00e9nement'
           : 'D\u00e9finissez les champs du formulaire d\'inscription'}
@@ -265,10 +271,10 @@ export default function EventStep3Pricing({
       {eventType === 'billetterie' ? (
         <>
           {/* Free event toggle */}
-          <View style={styles.switchRow}>
+          <View style={[styles.switchRow, themed.switchRow]}>
             <View style={styles.switchContent}>
-              <Text style={styles.switchLabel}>\u00c9v\u00e9nement gratuit</Text>
-              <Text style={styles.switchDescription}>Aucun billet payant ne sera propos\u00e9</Text>
+              <Text style={[styles.switchLabel, themed.switchLabel]}>\u00c9v\u00e9nement gratuit</Text>
+              <Text style={[styles.switchDescription, themed.switchDescription]}>Aucun billet payant ne sera propos\u00e9</Text>
             </View>
             <Switch
               value={isFree}
@@ -282,63 +288,63 @@ export default function EventStep3Pricing({
                   }, 100);
                 }
               }}
-              trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-              thumbColor={isFree ? Colors.primary : Colors.gray400}
+              trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+              thumbColor={isFree ? colors.primary : colors.gray400}
             />
           </View>
 
           {/* Ticket Types Section */}
           <View style={styles.sectionHeader}>
-            <View style={styles.sectionIconContainer}>
-              <Ionicons name="ticket-outline" size={20} color={Colors.primary} />
+            <View style={[styles.sectionIconContainer, themed.sectionIconContainer]}>
+              <Ionicons name="ticket-outline" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.sectionHeaderTitle}>Types de billets</Text>
+            <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>Types de billets</Text>
           </View>
 
           {ticketTypes.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <View style={styles.emptyIcon}>
-                <Ionicons name="ticket-outline" size={40} color={Colors.gray400} />
+            <View style={[styles.emptyContainer, themed.emptyContainer]}>
+              <View style={[styles.emptyIcon, themed.emptyIcon]}>
+                <Ionicons name="ticket-outline" size={40} color={colors.gray400} />
               </View>
-              <Text style={styles.emptyTitle}>Aucun type de billet</Text>
-              <Text style={styles.emptyText}>
+              <Text style={[styles.emptyTitle, themed.emptyTitle]}>Aucun type de billet</Text>
+              <Text style={[styles.emptyText, themed.emptyText]}>
                 Cr\u00e9ez au moins un type de billet pour votre \u00e9v\u00e9nement
               </Text>
-              <TouchableOpacity style={styles.addButton} onPress={onAddTicketType}>
-                <Ionicons name="add" size={20} color={Colors.white} />
-                <Text style={styles.addButtonText}>Ajouter un billet</Text>
+              <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddTicketType}>
+                <Ionicons name="add" size={20} color={colors.white} />
+                <Text style={[styles.addButtonText, themed.addButtonText]}>Ajouter un billet</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               {ticketTypes.map((ticket, index) => (
-                <View key={index} style={styles.card}>
-                  <View style={styles.cardHeader}>
-                    <Text style={styles.cardTitle}>Billet {index + 1}</Text>
+                <View key={index} style={[styles.card, themed.card]}>
+                  <View style={[styles.cardHeader, themed.cardHeader]}>
+                    <Text style={[styles.cardTitle, themed.cardTitle]}>Billet {index + 1}</Text>
                     <TouchableOpacity onPress={() => onRemoveTicketType(index)}>
-                      <Ionicons name="trash-outline" size={20} color={Colors.error} />
+                      <Ionicons name="trash-outline" size={20} color={colors.error} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Nom du billet *</Text>
+                    <Text style={[styles.label, themed.label]}>Nom du billet *</Text>
                     <TextInput
-                      style={styles.input}
+                      style={[styles.input, themed.input]}
                       value={ticket.name}
                       onChangeText={(value) => onUpdateTicketType(index, 'name', value)}
                       placeholder="Ex: Standard, VIP, Early Bird"
-                      placeholderTextColor={Colors.gray400}
+                      placeholderTextColor={colors.gray400}
                     />
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={styles.label}>Description</Text>
+                    <Text style={[styles.label, themed.label]}>Description</Text>
                     <TextInput
-                      style={[styles.input, styles.textAreaSmall]}
+                      style={[styles.input, styles.textAreaSmall, themed.input]}
                       value={ticket.description}
                       onChangeText={(value) => onUpdateTicketType(index, 'description', value)}
                       placeholder="D\u00e9crivez ce que ce billet inclut"
-                      placeholderTextColor={Colors.gray400}
+                      placeholderTextColor={colors.gray400}
                       multiline
                       numberOfLines={2}
                       textAlignVertical="top"
@@ -347,25 +353,25 @@ export default function EventStep3Pricing({
 
                   <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={styles.label}>Prix (FCFA) *</Text>
+                      <Text style={[styles.label, themed.label]}>Prix (FCFA) *</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, themed.input]}
                         value={ticket.price}
                         onChangeText={(value) => onUpdateTicketType(index, 'price', value)}
                         placeholder="0"
-                        placeholderTextColor={Colors.gray400}
+                        placeholderTextColor={colors.gray400}
                         keyboardType="numeric"
                         editable={!isFree}
                       />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={styles.label}>Quantit\u00e9 *</Text>
+                      <Text style={[styles.label, themed.label]}>Quantit\u00e9 *</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, themed.input]}
                         value={ticket.quantity_total}
                         onChangeText={(value) => onUpdateTicketType(index, 'quantity_total', value)}
                         placeholder="100"
-                        placeholderTextColor={Colors.gray400}
+                        placeholderTextColor={colors.gray400}
                         keyboardType="numeric"
                       />
                     </View>
@@ -373,24 +379,24 @@ export default function EventStep3Pricing({
 
                   <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={styles.label}>Min/commande</Text>
+                      <Text style={[styles.label, themed.label]}>Min/commande</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, themed.input]}
                         value={ticket.min_per_order}
                         onChangeText={(value) => onUpdateTicketType(index, 'min_per_order', value)}
                         placeholder="1"
-                        placeholderTextColor={Colors.gray400}
+                        placeholderTextColor={colors.gray400}
                         keyboardType="numeric"
                       />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={styles.label}>Max/commande</Text>
+                      <Text style={[styles.label, themed.label]}>Max/commande</Text>
                       <TextInput
-                        style={styles.input}
+                        style={[styles.input, themed.input]}
                         value={ticket.max_per_order}
                         onChangeText={(value) => onUpdateTicketType(index, 'max_per_order', value)}
                         placeholder="10"
-                        placeholderTextColor={Colors.gray400}
+                        placeholderTextColor={colors.gray400}
                         keyboardType="numeric"
                       />
                     </View>
@@ -410,37 +416,37 @@ export default function EventStep3Pricing({
                     maximumDate={startDate}
                   />
 
-                  <View style={styles.switchRow}>
+                  <View style={[styles.switchRow, themed.switchRow]}>
                     <View style={styles.switchContent}>
-                      <Text style={styles.switchLabel}>Visible</Text>
-                      <Text style={styles.switchDescription}>Afficher ce billet publiquement</Text>
+                      <Text style={[styles.switchLabel, themed.switchLabel]}>Visible</Text>
+                      <Text style={[styles.switchDescription, themed.switchDescription]}>Afficher ce billet publiquement</Text>
                     </View>
                     <Switch
                       value={ticket.is_visible}
                       onValueChange={(value) => onUpdateTicketType(index, 'is_visible', value)}
-                      trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-                      thumbColor={ticket.is_visible ? Colors.primary : Colors.gray400}
+                      trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+                      thumbColor={ticket.is_visible ? colors.primary : colors.gray400}
                     />
                   </View>
                 </View>
               ))}
 
-              <TouchableOpacity style={styles.addAnotherButton} onPress={onAddTicketType}>
-                <Ionicons name="add" size={20} color={Colors.primary} />
-                <Text style={styles.addAnotherText}>Ajouter un autre billet</Text>
+              <TouchableOpacity style={[styles.addAnotherButton, themed.addAnotherButton]} onPress={onAddTicketType}>
+                <Ionicons name="add" size={20} color={colors.primary} />
+                <Text style={[styles.addAnotherText, themed.addAnotherText]}>Ajouter un autre billet</Text>
               </TouchableOpacity>
             </>
           )}
 
           {/* Optional Form Fields for Billetterie */}
-          <View style={[styles.sectionDivider, { marginTop: Spacing.xl }]}>
+          <View style={[styles.sectionDivider, themed.sectionDivider, { marginTop: Spacing.xl }]}>
             <View style={styles.sectionHeader}>
-              <View style={[styles.sectionIconContainer, { backgroundColor: Colors.warningLight }]}>
-                <Ionicons name="document-text-outline" size={20} color={Colors.secondary || '#D97706'} />
+              <View style={[styles.sectionIconContainer, { backgroundColor: colors.warningLight }]}>
+                <Ionicons name="document-text-outline" size={20} color={colors.secondary || '#D97706'} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.sectionHeaderTitle}>Formulaire d'inscription (optionnel)</Text>
-                <Text style={styles.sectionHeaderDescription}>
+                <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>Formulaire d'inscription (optionnel)</Text>
+                <Text style={[styles.sectionHeaderDescription, themed.sectionHeaderDescription]}>
                   Collectez des informations suppl\u00e9mentaires lors de l'achat
                 </Text>
               </View>
@@ -452,16 +458,16 @@ export default function EventStep3Pricing({
                     onSetFormFields([]);
                   }
                 }}
-                trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-                thumbColor={showFormFieldsForBilletterie ? Colors.primary : Colors.gray400}
+                trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+                thumbColor={showFormFieldsForBilletterie ? colors.primary : colors.gray400}
               />
             </View>
 
             {showFormFieldsForBilletterie && (
               <View style={{ marginTop: Spacing.md }}>
-                <View style={styles.infoBox}>
-                  <Ionicons name="information-circle-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.infoBoxText}>
+                <View style={[styles.infoBox, themed.infoBox]}>
+                  <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.infoBoxText, themed.infoBoxText]}>
                     Ces champs seront affich\u00e9s lors de l'achat de billets pour collecter des informations sur les participants (allergies, taille de t-shirt, etc.)
                   </Text>
                 </View>
@@ -488,70 +494,70 @@ export default function EventStep3Pricing({
       )}
 
       {/* Common settings */}
-      <View style={{ marginTop: Spacing.lg, paddingTop: Spacing.lg, borderTopWidth: 1, borderTopColor: Colors.gray100 }}>
-        <Text style={styles.subSectionTitle}>Param\u00e8tres g\u00e9n\u00e9raux</Text>
+      <View style={{ marginTop: Spacing.lg, paddingTop: Spacing.lg, borderTopWidth: 1, borderTopColor: colors.gray100 }}>
+        <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Param\u00e8tres g\u00e9n\u00e9raux</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nombre maximum de participants</Text>
+          <Text style={[styles.label, themed.label]}>Nombre maximum de participants</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, themed.input]}
             value={maxParticipants}
             onChangeText={onMaxParticipantsChange}
             placeholder="Laisser vide pour illimit\u00e9"
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             keyboardType="numeric"
           />
         </View>
 
-        <View style={styles.switchRow}>
+        <View style={[styles.switchRow, themed.switchRow]}>
           <View style={styles.switchContent}>
-            <Text style={styles.switchLabel}>Approbation automatique</Text>
-            <Text style={styles.switchDescription}>Les inscriptions sont confirm\u00e9es automatiquement</Text>
+            <Text style={[styles.switchLabel, themed.switchLabel]}>Approbation automatique</Text>
+            <Text style={[styles.switchDescription, themed.switchDescription]}>Les inscriptions sont confirm\u00e9es automatiquement</Text>
           </View>
           <Switch
             value={autoApproveRegistrations}
             onValueChange={onAutoApproveChange}
-            trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-            thumbColor={autoApproveRegistrations ? Colors.primary : Colors.gray400}
+            trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+            thumbColor={autoApproveRegistrations ? colors.primary : colors.gray400}
           />
         </View>
       </View>
 
       {/* Summary */}
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, themed.summaryCard]}>
         <Text style={styles.summaryTitle}>R\u00e9capitulatif</Text>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Titre</Text>
-          <Text style={styles.summaryValue} numberOfLines={1}>{title || '-'}</Text>
+        <View style={[styles.summaryRow, themed.summaryRow]}>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Titre</Text>
+          <Text style={[styles.summaryValue, themed.summaryValue]} numberOfLines={1}>{title || '-'}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Type</Text>
-          <Text style={styles.summaryValue}>{eventType === 'billetterie' ? 'Billetterie' : 'Inscription'}</Text>
+        <View style={[styles.summaryRow, themed.summaryRow]}>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Type</Text>
+          <Text style={[styles.summaryValue, themed.summaryValue]}>{eventType === 'billetterie' ? 'Billetterie' : 'Inscription'}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Date</Text>
-          <Text style={styles.summaryValue}>{formatDate(startDate)}</Text>
+        <View style={[styles.summaryRow, themed.summaryRow]}>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Date</Text>
+          <Text style={[styles.summaryValue, themed.summaryValue]}>{formatDate(startDate)}</Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>Lieu</Text>
-          <Text style={styles.summaryValue}>
+        <View style={[styles.summaryRow, themed.summaryRow]}>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Lieu</Text>
+          <Text style={[styles.summaryValue, themed.summaryValue]}>
             {locationType === 'online' ? 'En ligne' : locationType === 'hybrid' ? 'Hybride' : locationCity || '-'}
           </Text>
         </View>
-        <View style={styles.summaryRow}>
-          <Text style={styles.summaryLabel}>
+        <View style={[styles.summaryRow, themed.summaryRow]}>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>
             {eventType === 'billetterie' ? 'Billets' : 'Champs'}
           </Text>
-          <Text style={[styles.summaryValue, { color: Colors.primary }]}>
+          <Text style={[styles.summaryValue, { color: colors.primary }]}>
             {eventType === 'billetterie'
               ? (isFree ? 'Gratuit' : `${ticketTypes.length} type(s)`)
               : `${formFields.length} champ(s)`}
           </Text>
         </View>
         {eventType === 'billetterie' && showFormFieldsForBilletterie && formFields.length > 0 && (
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Champs d'inscription</Text>
-            <Text style={[styles.summaryValue, { color: Colors.secondary || '#D97706' }]}>
+          <View style={[styles.summaryRow, themed.summaryRow]}>
+            <Text style={[styles.summaryLabel, themed.summaryLabel]}>Champs d'inscription</Text>
+            <Text style={[styles.summaryValue, { color: colors.secondary || '#D97706' }]}>
               {formFields.length} champ(s)
             </Text>
           </View>

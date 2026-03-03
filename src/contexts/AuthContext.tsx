@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { authAPI, usersAPI, setTokens, clearTokens } from '../api/client';
+import { eventBus } from '../lib/eventBus';
 import { User, AuthState } from '../types';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
@@ -33,6 +34,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Vérifier l'authentification au démarrage
   useEffect(() => {
     checkAuth();
+  }, []);
+
+  // Ecouter les erreurs d'authentification definitives (refresh echoue)
+  useEffect(() => {
+    const unsub = eventBus.on('api-auth-error', async () => {
+      console.log('[Auth] Received api-auth-error event, logging out');
+      await clearTokens();
+      await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'false');
+      setState({ user: null, isAuthenticated: false, isLoading: false });
+    });
+    return unsub;
   }, []);
 
   const checkAuth = async () => {

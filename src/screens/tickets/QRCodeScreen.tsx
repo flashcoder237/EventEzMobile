@@ -19,6 +19,7 @@ import * as Sharing from 'expo-sharing';
 import QRCode from 'react-native-qrcode-svg';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { ticketPurchasesAPI, registrationsAPI } from '../../api/client';
 import { TicketPurchase, RootStackParamList } from '../../types';
@@ -42,6 +43,7 @@ export default function QRCodeScreen() {
   const route = useRoute<QRCodeRouteProp>();
   const { ticketId } = route.params;
   const { showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [ticket, setTicket] = useState<TicketPurchase | null>(null);
   const [loading, setLoading] = useState(true);
@@ -233,15 +235,15 @@ export default function QRCodeScreen() {
     switch (status) {
       case 'confirmed':
       case 'completed':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
+        return { color: colors.success, bg: colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
       case 'pending':
-        return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente', icon: 'time' };
+        return { color: colors.warning, bg: colors.warningLight, label: 'En attente', icon: 'time' };
       case 'cancelled':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Annulé', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: 'Annulé', icon: 'close-circle' };
       case 'checked_in':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Validé', icon: 'checkmark-done-circle' };
+        return { color: colors.success, bg: colors.successLight, label: 'Validé', icon: 'checkmark-done-circle' };
       default:
-        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
+        return { color: colors.success, bg: colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
     }
   };
 
@@ -263,17 +265,17 @@ export default function QRCodeScreen() {
 
   if (!ticket) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mon Billet</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.errorText}>Billet non trouvé</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>Billet non trouvé</Text>
         </View>
       </SafeAreaView>
     );
@@ -284,57 +286,57 @@ export default function QRCodeScreen() {
   const statusConfig = getStatusConfig(ticket.status);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mon Billet</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.headerActionButton} onPress={handlePrint}>
-            <Ionicons name="print-outline" size={22} color={Colors.gray900} />
+            <Ionicons name="print-outline" size={22} color={colors.gray900} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerActionButton} onPress={handleDownloadPDF}>
-            <Ionicons name="download-outline" size={22} color={Colors.gray900} />
+            <Ionicons name="download-outline" size={22} color={colors.gray900} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.headerActionButton} onPress={handleShare}>
-            <Ionicons name="share-outline" size={22} color={Colors.gray900} />
+            <Ionicons name="share-outline" size={22} color={colors.gray900} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Ticket Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
           {/* Event Info */}
           <View style={styles.eventInfo}>
-            <View style={[styles.typeBadge, { backgroundColor: 'rgba(99, 102, 241, 0.1)' }]}>
-              <Ionicons name="ticket" size={14} color={Colors.primary} />
-              <Text style={[styles.typeBadgeText, { color: Colors.primary }]}>Billet</Text>
+            <View style={[styles.typeBadge, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
+              <Ionicons name="ticket" size={14} color={colors.primary} />
+              <Text style={[styles.typeBadgeText, { color: colors.primary }]}>Billet</Text>
             </View>
 
-            <Text style={styles.eventTitle} numberOfLines={2}>
+            <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
               {event?.title || (ticket as any)?.event_title || 'Événement'}
             </Text>
 
             <View style={styles.eventMeta}>
               {event?.start_date && (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.eventMetaText}>{formatDate(event.start_date)}</Text>
+                  <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>{formatDate(event.start_date)}</Text>
                 </View>
               )}
               {event?.start_date && (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="time-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.eventMetaText}>{formatTime(event.start_date)}</Text>
+                  <Ionicons name="time-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>{formatTime(event.start_date)}</Text>
                 </View>
               )}
               {!!(event?.location_name || event?.location_city) && (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="location-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.eventMetaText}>
+                  <Ionicons name="location-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>
                     {event.location_name || event.location_city}
                   </Text>
                 </View>
@@ -343,7 +345,7 @@ export default function QRCodeScreen() {
 
             {/* View Event Button */}
             <TouchableOpacity
-              style={styles.viewEventButton}
+              style={[styles.viewEventButton, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}
               onPress={() => {
                 const eventId = event?.id || (ticket as any)?.event_id;
                 if (eventId) {
@@ -351,22 +353,22 @@ export default function QRCodeScreen() {
                 }
               }}
             >
-              <Ionicons name="eye-outline" size={18} color={Colors.primary} />
-              <Text style={styles.viewEventButtonText}>Voir les détails de l'événement</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+              <Ionicons name="eye-outline" size={18} color={colors.primary} />
+              <Text style={[styles.viewEventButtonText, { color: colors.primary }]}>Voir les détails de l'événement</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
             </TouchableOpacity>
           </View>
 
           {/* Divider */}
           <View style={styles.divider}>
-            <View style={styles.dividerCircleLeft} />
-            <View style={styles.dividerLine} />
-            <View style={styles.dividerCircleRight} />
+            <View style={[styles.dividerCircleLeft, { backgroundColor: colors.background }]} />
+            <View style={[styles.dividerLine, { borderColor: colors.gray200 }]} />
+            <View style={[styles.dividerCircleRight, { backgroundColor: colors.background }]} />
           </View>
 
           {/* QR Code Section */}
           <View style={styles.qrSection}>
-            <View style={styles.qrContainer}>
+            <View style={[styles.qrContainer, { backgroundColor: Colors.white, borderColor: colors.primary }]}>
               <QRCode
                 value={verificationUrl}
                 size={QR_SIZE}
@@ -374,15 +376,15 @@ export default function QRCodeScreen() {
                 backgroundColor="#FFFFFF"
               />
             </View>
-            <Text style={styles.qrHint}>
+            <Text style={[styles.qrHint, { color: colors.gray500 }]}>
               Présentez ce QR code à l'entrée de l'événement
             </Text>
           </View>
 
           {/* Ticket Details */}
-          <View style={styles.detailsSection}>
+          <View style={[styles.detailsSection, { backgroundColor: colors.gray50 }]}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Statut</Text>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Statut</Text>
               <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
                 <Ionicons name={statusConfig.icon as any} size={14} color={statusConfig.color} />
                 <Text style={[styles.statusText, { color: statusConfig.color }]}>
@@ -391,56 +393,56 @@ export default function QRCodeScreen() {
               </View>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Type de billet</Text>
-              <Text style={styles.detailValue}>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Type de billet</Text>
+              <Text style={[styles.detailValue, { color: colors.gray900 }]}>
                 {ticketType?.name || ticket.ticket_type_name || 'Standard'}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Quantité</Text>
-              <Text style={styles.detailValue}>{ticket.quantity || 1}</Text>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Quantité</Text>
+              <Text style={[styles.detailValue, { color: colors.gray900 }]}>{ticket.quantity || 1}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Prix unitaire</Text>
-              <Text style={styles.detailValue}>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Prix unitaire</Text>
+              <Text style={[styles.detailValue, { color: colors.gray900 }]}>
                 {ticket.unit_price ? `${ticket.unit_price.toLocaleString()} FCFA` : 'Gratuit'}
               </Text>
             </View>
             {(ticket.discount_amount ?? 0) > 0 && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Réduction</Text>
-                <Text style={[styles.detailValue, { color: Colors.success }]}>
+                <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Réduction</Text>
+                <Text style={[styles.detailValue, { color: colors.success }]}>
                   -{ticket.discount_amount!.toLocaleString()} FCFA
                 </Text>
               </View>
             )}
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Total payé</Text>
-              <Text style={[styles.detailValue, styles.totalPrice]}>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Total payé</Text>
+              <Text style={[styles.detailValue, styles.totalPrice, { color: colors.primary }]}>
                 {ticket.total_price ? `${ticket.total_price.toLocaleString()} FCFA` : 'Gratuit'}
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Référence</Text>
-              <Text style={styles.detailValue}>{String(ticketId).slice(0, 8).toUpperCase()}</Text>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Référence</Text>
+              <Text style={[styles.detailValue, { color: colors.gray900 }]}>{String(ticketId).slice(0, 8).toUpperCase()}</Text>
             </View>
           </View>
         </View>
 
         {/* Attendee Info if available */}
         {!!(ticket.attendee_name || ticket.attendee_email) && (
-          <View style={styles.attendeeCard}>
-            <Text style={styles.sectionTitle}>Participant</Text>
+          <View style={[styles.attendeeCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Participant</Text>
             {ticket.attendee_name && (
               <View style={styles.attendeeRow}>
-                <Ionicons name="person-outline" size={18} color={Colors.gray500} />
-                <Text style={styles.attendeeText}>{ticket.attendee_name}</Text>
+                <Ionicons name="person-outline" size={18} color={colors.gray500} />
+                <Text style={[styles.attendeeText, { color: colors.gray700 }]}>{ticket.attendee_name}</Text>
               </View>
             )}
             {ticket.attendee_email && (
               <View style={styles.attendeeRow}>
-                <Ionicons name="mail-outline" size={18} color={Colors.gray500} />
-                <Text style={styles.attendeeText}>{ticket.attendee_email}</Text>
+                <Ionicons name="mail-outline" size={18} color={colors.gray500} />
+                <Text style={[styles.attendeeText, { color: colors.gray700 }]}>{ticket.attendee_email}</Text>
               </View>
             )}
           </View>
@@ -449,26 +451,26 @@ export default function QRCodeScreen() {
         {/* Instructions */}
         <View style={styles.instructions}>
           <View style={styles.instructionItem}>
-            <View style={styles.instructionIcon}>
-              <Ionicons name="scan-outline" size={20} color={Colors.primary} />
+            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
+              <Ionicons name="scan-outline" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Le QR code sera scanné à l'entrée
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={styles.instructionIcon}>
-              <Ionicons name="phone-portrait-outline" size={20} color={Colors.primary} />
+            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
+              <Ionicons name="phone-portrait-outline" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Gardez votre téléphone chargé
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={styles.instructionIcon}>
-              <Ionicons name="time-outline" size={20} color={Colors.primary} />
+            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
+              <Ionicons name="time-outline" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Arrivez à l'heure pour éviter les files
             </Text>
           </View>
@@ -476,12 +478,12 @@ export default function QRCodeScreen() {
 
         {/* Check-in status */}
         {ticket.is_checked_in && (
-          <View style={styles.checkedInBanner}>
-            <Ionicons name="checkmark-done-circle" size={24} color={Colors.success} />
+          <View style={[styles.checkedInBanner, { backgroundColor: colors.successLight, borderColor: colors.success }]}>
+            <Ionicons name="checkmark-done-circle" size={24} color={colors.success} />
             <View style={styles.checkedInText}>
-              <Text style={styles.checkedInTitle}>Billet validé</Text>
+              <Text style={[styles.checkedInTitle, { color: colors.success }]}>Billet validé</Text>
               {ticket.checked_in_at && (
-                <Text style={styles.checkedInDate}>
+                <Text style={[styles.checkedInDate, { color: colors.gray600 }]}>
                   Entrée le {formatDate(ticket.checked_in_at)} à {formatTime(ticket.checked_in_at)}
                 </Text>
               )}
@@ -491,11 +493,11 @@ export default function QRCodeScreen() {
 
         {/* Payment required banner */}
         {ticket.status === 'pending' && isPaymentRequired(ticket) && (
-          <View style={styles.paymentRequiredBanner}>
-            <Ionicons name="warning" size={24} color={Colors.warning} />
+          <View style={[styles.paymentRequiredBanner, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}>
+            <Ionicons name="warning" size={24} color={colors.warning} />
             <View style={styles.paymentRequiredText}>
-              <Text style={styles.paymentRequiredTitle}>Paiement en attente</Text>
-              <Text style={styles.paymentRequiredDesc}>
+              <Text style={[styles.paymentRequiredTitle, { color: colors.warning }]}>Paiement en attente</Text>
+              <Text style={[styles.paymentRequiredDesc, { color: colors.gray600 }]}>
                 Finalisez votre paiement pour confirmer votre inscription
               </Text>
             </View>
@@ -505,7 +507,7 @@ export default function QRCodeScreen() {
         {/* Complete payment button */}
         {ticket.status === 'pending' && isPaymentRequired(ticket) && (
           <TouchableOpacity
-            style={styles.completePaymentButton}
+            style={[styles.completePaymentButton, { backgroundColor: colors.primary }]}
             onPress={() => {
               const regId = ticket.registration_id || ticket.registration;
               if (regId) {
@@ -521,7 +523,7 @@ export default function QRCodeScreen() {
         {/* Buy more tickets button - for confirmed tickets */}
         {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
           <TouchableOpacity
-            style={styles.buyMoreButton}
+            style={[styles.buyMoreButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
             onPress={() => {
               const eventId = event?.id || ticket.event_id;
               if (eventId) {
@@ -529,8 +531,8 @@ export default function QRCodeScreen() {
               }
             }}
           >
-            <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-            <Text style={styles.buyMoreButtonText}>Acheter plus de billets</Text>
+            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+            <Text style={[styles.buyMoreButtonText, { color: colors.primary }]}>Acheter plus de billets</Text>
           </TouchableOpacity>
         )}
 

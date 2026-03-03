@@ -1,96 +1,101 @@
 // ============================================
 // Types principaux pour l'application EventEz Mobile
-// Synchronisé avec les modèles Django backend
+// Synchronise avec les modeles Django backend
+// Derniere verification : 2026-03-02
 // ============================================
 
-// Types de lieu pour les événements
+// Types de lieu pour les evenements
 export type LocationType = 'in_person' | 'online' | 'hybrid';
 
-// Rôles utilisateur (accounts.User.ROLE_CHOICES)
+// Roles utilisateur (accounts.User.ROLE_CHOICES)
 export type UserRole = 'user' | 'organizer' | 'moderator' | 'admin';
 
 // Types d'organisateur (accounts.User.TYPE_CHOICES)
 export type OrganizerType = 'individual' | 'organization';
+
+// Fournisseurs d'authentification (accounts.User.AUTH_PROVIDER_CHOICES)
+export type AuthProvider = 'email' | 'google' | 'apple';
 
 // ============================================
 // USER & AUTHENTICATION TYPES
 // ============================================
 
 export interface User {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   email: string;
   username: string;
   first_name?: string;
   last_name?: string;
   phone_number?: string;
-  phone?: string; // Alias pour compatibilité backend
   role?: UserRole;
   organizer_type?: OrganizerType;
-  // Alias pour compatibilité
-  user_type?: OrganizerType;
   // Champs pour organisateurs de type organisation
   company_name?: string;
   registration_number?: string;
-  // Médias
+  // Medias
   profile_picture?: string;
-  image?: string; // Alias
-  logo_url?: string; // Alias
   verification_documents?: string;
-  // Informations personnelles supplémentaires
-  date_of_birth?: string;
-  bio?: string;
-  // Adresse
-  address?: string;
-  city?: string;
-  country?: string;
   // Facturation
   billing_address?: string;
-  tax_id?: string;
-  // Vérification
+  // Verification
   is_verified?: boolean;
-  // Paramètres de notification
+  email_verified?: boolean;
+  // Authentification sociale
+  auth_provider?: AuthProvider;
+  // Parametres de notification
   email_notifications?: boolean;
   push_notifications?: boolean;
   sms_notifications?: boolean;
-  // Préférences
+  // Preferences
   language?: string;
   timezone?: string;
   theme?: string;
   // Relations
-  organizer_name?: string;
   organizer_profile?: OrganizerProfile;
-  // Métadonnées
-  created_at?: string;
-  updated_at?: string;
+  // Statistiques (SerializerMethodField)
+  followers_count?: number;
+  following_count?: number;
+  // --- Client-side aliases (non renvoyes par le backend) ---
+  phone?: string; // Alias client pour phone_number
+  user_type?: OrganizerType; // Alias client pour organizer_type
+  image?: string; // Alias client pour profile_picture
+  logo_url?: string; // Alias client pour profile_picture
+  organizer_name?: string; // Calcule cote client
+  date_of_birth?: string; // Client-only
+  bio?: string; // Client-only
+  address?: string; // Client-only
+  city?: string; // Client-only
+  country?: string; // Client-only
+  tax_id?: string; // Client-only
+  created_at?: string; // Client-only (pas dans UserSerializer)
+  updated_at?: string; // Client-only (pas dans UserSerializer)
 }
 
 export interface OrganizerProfile {
-  id: string;
-  user: string;
+  id: string | number; // Backend: AutoField (integer)
+  user: string | number;
   description?: string;
-  // Alias pour compatibilité
-  company_description?: string;
   logo?: string;
   website?: string;
   // Statut
   verified_status: boolean;
-  // Alias pour compatibilité
-  verified?: boolean;
   // Statistiques
   rating: number;
   event_count: number;
-  // Social links (extension frontend)
+  // ONG
+  is_nonprofit?: boolean;
+  // --- Client-side aliases (non renvoyes par le backend) ---
+  company_description?: string; // Alias client pour description
+  verified?: boolean; // Alias client pour verified_status
   social_links?: {
     facebook?: string;
     twitter?: string;
     instagram?: string;
     linkedin?: string;
-  };
-  // Relations
-  subscription?: OrganizerSubscription;
-  // Métadonnées
-  created_at?: string;
-  updated_at?: string;
+  }; // Client-only
+  subscription?: OrganizerSubscription; // Client-only (pas dans OrganizerProfileSerializer)
+  created_at?: string; // Client-only
+  updated_at?: string; // Client-only
 }
 
 export interface AuthState {
@@ -105,14 +110,14 @@ export interface AuthState {
 // EVENT TYPES
 // ============================================
 
-// Statuts d'événement (events.Event.STATUS_CHOICES)
+// Statuts d'evenement (events.Event.STATUS_CHOICES)
 export type EventStatus = 'draft' | 'submitted' | 'validated' | 'rejected' | 'completed' | 'cancelled';
 
-// Types d'événement (events.Event.TYPE_CHOICES)
+// Types d'evenement (events.Event.TYPE_CHOICES)
 export type EventType = 'billetterie' | 'inscription';
 
 export interface Event {
-  id: string;
+  id: string; // UUID
   title: string;
   slug: string;
   description: string;
@@ -121,13 +126,10 @@ export interface Event {
   start_date: string;
   end_date: string;
   registration_deadline?: string;
-  // Alias pour compatibilité UI
-  start_time?: string;
-  end_time?: string;
   // Type de lieu
   location_type: LocationType;
-  location_type_display?: string;
-  // Lieu physique (pour présentiel et hybride)
+  location_type_display?: string; // SerializerMethodField
+  // Lieu physique (pour presentiel et hybride)
   location_name?: string;
   location_address?: string;
   location_city?: string;
@@ -140,17 +142,17 @@ export interface Event {
   online_instructions?: string;
   online_meeting_id?: string;
   online_passcode?: string;
-  // Médias
+  // Medias
   banner_image?: string;
-  display_image?: string; // Alias frontend
+  display_image?: string; // SerializerMethodField
   gallery_images?: EventImage[];
   // Relations
   category?: Category;
   organizer: User;
   created_by?: User;
-  organizer_name?: string;
+  organizer_name?: string; // SerializerMethodField
   tags?: Tag[];
-  // État (STATUS_CHOICES du backend)
+  // Etat (STATUS_CHOICES du backend)
   status: EventStatus;
   is_featured: boolean;
   // Validation tracking
@@ -164,48 +166,60 @@ export interface Event {
   // Statistiques
   view_count: number;
   registration_count: number;
-  registrations_count?: number; // Alias
-  // Métriques formulaires personnalisés
+  // Metriques formulaires personnalises
   form_storage_usage?: number;
   form_active_days?: number;
   // Gestion des inscriptions
   auto_approve_registrations?: boolean;
   max_participants?: number;
-  // Note: Le backend utilise 'max_participants', pas 'max_capacity'
-  // Prix (calculés)
-  is_free?: boolean;
-  base_price?: number;
-  min_price?: number;
-  max_price?: number;
+  // Prix (SerializerMethodField)
   ticket_price_range?: string;
-  // Relations étendues
+  // Relations etendues (EventDetailSerializer)
   form_fields?: FormField[];
   ticket_types?: TicketType[];
-  sessions?: Session[];
   feedbacks?: Feedback[];
-  tracks?: Track[];
-  speakers?: Speaker[];
-  // Métadonnées
+  // Visibilite
+  visibility?: 'public' | 'unlisted' | 'invite_only';
+  access_code?: string;
+  has_access_code?: boolean; // SerializerMethodField
+  user_has_access?: boolean; // SerializerMethodField
+  // Recurrence
+  is_recurring?: boolean;
+  parent_event?: string | null;
+  // Moderation IA
+  ai_moderation_result?: Record<string, any> | null;
+  moderated_by?: string;
+  // Champs supplementaires du serializer
+  currency?: string; // SerializerMethodField
+  location_country_code?: string; // SerializerMethodField
+  average_rating?: number; // SerializerMethodField (EventDetailSerializer)
+  feedback_count?: number; // SerializerMethodField (EventDetailSerializer)
+  // Metadonnees
   created_at: string;
   updated_at: string;
-  // Visibilité
-  visibility?: 'public' | 'unlisted' | 'invite_only';
-  access_code?: string;  // Only visible to organizer
-  has_access_code?: boolean;
-  user_has_access?: boolean;
-  requires_access_code?: boolean;
-  // UI helpers (calculés côté frontend/API)
-  is_following?: boolean;
-  distance_km?: number;
+  // --- Client-side aliases (non renvoyes par le backend) ---
+  start_time?: string; // Alias client pour start_date
+  end_time?: string; // Alias client pour end_date
+  registrations_count?: number; // Alias client pour registration_count
+  is_free?: boolean; // Client-only (calcule)
+  base_price?: number; // Client-only (calcule)
+  min_price?: number; // Client-only (calcule)
+  max_price?: number; // Client-only (calcule)
+  sessions?: Session[]; // Client-side (endpoint separe)
+  tracks?: Track[]; // Client-side (endpoint separe)
+  speakers?: Speaker[]; // Client-side (endpoint separe)
+  requires_access_code?: boolean; // Client-only
+  is_following?: boolean; // Client-only
+  distance_km?: number; // Client-only (calcule)
 }
 
 // EventImage (events.EventImage)
 export interface EventImage {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   image: string;
   caption?: string;
-  // Extension frontend
-  order?: number;
+  // --- Client-side ---
+  order?: number; // Client-only
 }
 
 // Category (events.EventCategory)
@@ -215,16 +229,16 @@ export interface Category {
   description?: string;
   image?: string;
   default_event_image?: string;
+  event_count?: number; // SerializerMethodField
+  // Admin serializer only
   is_active?: boolean;
   created_by?: number;
   created_by_name?: string;
-  // Extension frontend
-  icon?: string;
-  event_count?: number;
-  events_count?: number;
-  // Métadonnées
   created_at?: string;
   updated_at?: string;
+  // --- Client-side ---
+  icon?: string; // Client-only
+  events_count?: number; // Alias client pour event_count
 }
 
 // Alias for backward compatibility
@@ -234,8 +248,8 @@ export type EventCategory = Category;
 export interface Tag {
   id: number;
   name: string;
-  // Extension frontend
-  slug?: string;
+  // --- Client-side ---
+  slug?: string; // Client-only
 }
 
 // Alias for backward compatibility
@@ -243,8 +257,8 @@ export type EventTag = Tag;
 
 // EventFollow (events.EventFollow)
 export interface EventFollow {
-  id: string;
-  user: string;
+  id: string | number; // Backend: AutoField (integer)
+  user: string | number;
   event: string;
   notification_preference: 'all' | 'important' | 'none';
   notify_email: boolean;
@@ -253,6 +267,9 @@ export interface EventFollow {
   notify_reminders: boolean;
   notify_cancellation: boolean;
   created_at: string;
+  // SerializerMethodField
+  event_details?: Event;
+  user_email?: string;
 }
 
 // ============================================
@@ -266,8 +283,8 @@ export type RegistrationStatus = 'pending' | 'pending_approval' | 'confirmed' | 
 export type ApprovalStatus = 'not_required' | 'pending' | 'approved' | 'rejected';
 
 export interface Registration {
-  id: string;
-  event: Event | string; // Can be full Event object or just UUID string
+  id: string; // UUID
+  event: Event | string;
   user: User;
   // Informations de base
   registration_type?: EventType;
@@ -275,52 +292,53 @@ export interface Registration {
   // Approbation par l'organisateur
   approval_status?: ApprovalStatus;
   approved_by?: string | User;
-  approved_by_name?: string;
+  approved_by_name?: string; // SerializerMethodField
   approval_note?: string;
   approval_date?: string;
   // Paiement
   payment?: string;
   payment_required?: boolean;
-  // Alias pour compatibilité
-  requires_payment?: boolean;
   payment_deadline?: string;
+  payment_info?: Record<string, any>; // SerializerMethodField
   // Suivi du temps
   created_at: string;
   updated_at: string;
   confirmed_at?: string;
   checked_in_at?: string;
-  // Métriques pour tarification formulaires
+  // Metriques pour tarification formulaires
   form_data_size?: number;
-  // Référence unique
+  // Reference unique
   reference_code: string;
-  // Données formulaire personnalisé
+  // Donnees formulaire personnalise
   form_data?: Record<string, any>;
-  custom_fields?: Record<string, any>; // Alias
   // Relations
   tickets?: TicketPurchase[];
-  // UI helpers
+  // SerializerMethodField
   user_name?: string;
   user_email?: string;
   event_detail?: Event;
-  userInfo?: User;
-  qr_code?: string;
-  is_checked_in?: boolean;
-  payment_status?: 'pending' | 'paid' | 'failed' | 'refunded';
+  event_id?: string;
+  // --- Client-side aliases (non renvoyes par le backend) ---
+  requires_payment?: boolean; // Alias client pour payment_required
+  custom_fields?: Record<string, any>; // Alias client pour form_data
+  userInfo?: User; // Client-only
+  qr_code?: string; // Client-only (sur TicketPurchase cote backend)
+  is_checked_in?: boolean; // Client-only (sur TicketPurchase cote backend)
+  payment_status?: 'pending' | 'paid' | 'failed' | 'refunded'; // Client-only
 }
 
 // TicketType (registrations.TicketType)
 export interface TicketType {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   event: string;
   name: string;
   description?: string;
   price: number;
-  // Quotas et disponibilité
+  // Quotas et disponibilite
   quantity_total: number;
   quantity_sold: number;
-  quantity_available?: number; // Calculé côté backend
-  available_quantity?: number; // Alias pour compatibilité
-  // Période de vente
+  available_quantity?: number; // SerializerMethodField
+  // Periode de vente
   sales_start: string;
   sales_end: string;
   // Options
@@ -329,28 +347,31 @@ export interface TicketType {
   min_per_order?: number;
   // Sessions incluses avec ce type de billet
   included_sessions?: string[];
+  // --- Client-side aliases ---
+  quantity_available?: number; // Alias client pour available_quantity
 }
 
 // TicketPurchase (registrations.TicketPurchase)
 export interface TicketPurchase {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   registration: string;
-  registration_id?: string;
+  registration_id?: string; // SerializerMethodField
   ticket_type: TicketType | string;
   quantity: number;
   unit_price: number;
   discount_code?: string;
   discount_amount?: number;
   total_price: number;
+  // Paiement
+  is_paid?: boolean;
   // QR code et validation
   qr_code?: string;
   is_checked_in?: boolean;
   checked_in_at?: string;
-  // UI helpers
+  // SerializerMethodField
   ticket_type_name?: string;
-  attendee_name?: string;
-  attendee_email?: string;
-  // Event info (may be expanded from backend)
+  event_id?: string;
+  event_title?: string;
   event?: {
     id: string;
     title: string;
@@ -361,18 +382,18 @@ export interface TicketPurchase {
     location_address?: string;
     banner_image?: string;
   } | string;
-  event_id?: string;
-  event_title?: string;
-  // Status (from registration)
   status?: string;
   registration_status?: string;
   payment_status?: string;
   payment_required?: boolean;
+  // --- Client-side ---
+  attendee_name?: string; // Client-only
+  attendee_email?: string; // Client-only
 }
 
-// Alias pour compatibilité - Ticket représente un TicketPurchase
+// Alias pour compatibilite - Ticket represente un TicketPurchase
 export interface Ticket {
-  id: string;
+  id: string | number;
   ticket_type: TicketType;
   registration: string;
   qr_code?: string;
@@ -386,40 +407,66 @@ export interface Ticket {
   attendee_email?: string;
 }
 
+// TicketTransfer (registrations.TicketTransfer)
+export type TicketTransferStatus = 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired';
+
+export interface TicketTransfer {
+  id: string; // UUID
+  ticket_purchase: string | number;
+  sender: string | number;
+  sender_name?: string; // SerializerMethodField
+  sender_email?: string; // SerializerMethodField
+  recipient_email: string;
+  recipient_name?: string;
+  recipient_user?: string | number | null;
+  quantity: number;
+  status: TicketTransferStatus;
+  message?: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at?: string;
+  declined_at?: string;
+  // SerializerMethodField
+  ticket_info?: Record<string, any>;
+  event_info?: Record<string, any>;
+  is_expired?: boolean;
+  can_accept?: boolean;
+  transfer_token_display?: string;
+}
+
 // Discount (registrations.Discount)
 export interface Discount {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   event: string;
   code: string;
   discount_type: 'percentage' | 'fixed';
   value: number;
-  // Validité
+  // Validite
   valid_from: string;
   valid_until: string;
   max_uses?: number;
   times_used: number;
-  // Alias pour compatibilité
-  current_uses?: number;
   // Restrictions
   applicable_ticket_types?: string[];
-  // UI helpers
-  is_active?: boolean;
-  min_purchase_amount?: number;
+  // --- Client-side aliases ---
+  current_uses?: number; // Alias client pour times_used
+  is_active?: boolean; // Client-only (calcule)
+  min_purchase_amount?: number; // Client-only
 }
 
 // ============================================
 // PAYMENT TYPES
 // ============================================
 
-// Méthodes de paiement (payments.Payment.PAYMENT_METHOD_CHOICES)
+// Methodes de paiement (payments.Payment.PAYMENT_METHOD_CHOICES)
 export type PaymentMethod = 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal' | 'bank_transfer' | 'wave' | 'mpesa' | 'airtel_money';
-// Alias pour compatibilité UI
+// Alias pour compatibilite UI
 export type PaymentMethodAlias = PaymentMethod | 'momo' | 'om' | 'card' | 'transfer';
 
 // Statuts de paiement (payments.Payment.PAYMENT_STATUS_CHOICES)
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 
-// Configuration paiement par pays (retournée par GET /payments/methods/?country=XX)
+// Configuration paiement par pays (retournee par GET /payments/methods/?country=XX)
 export interface PaymentMethodOption {
   id: PaymentMethod;
   name: string;
@@ -438,19 +485,18 @@ export interface CountryPaymentConfig {
 }
 
 export interface Payment {
-  id: string;
+  id: string; // UUID
   registration: string;
   user: string;
-  // Informations financières
+  // Informations financieres
   amount: number;
   currency?: string;
   payment_method: PaymentMethod | PaymentMethodAlias;
-  method?: PaymentMethod; // Alias
   country_code?: string;
   // Statut et suivi
   status: PaymentStatus;
-  payment_status?: PaymentStatus; // Alias
   transaction_id?: string;
+  notchpay_reference?: string;
   payment_date?: string;
   // Suivi de la transaction
   created_at: string;
@@ -460,19 +506,24 @@ export interface Payment {
   billing_email?: string;
   billing_phone?: string;
   billing_address?: string;
-  // Pour les formulaires personnalisés (facturation basée sur l'usage)
+  // Pour les formulaires personnalises (facturation basee sur l'usage)
   is_usage_based?: boolean;
   storage_amount?: number;
   duration_days?: number;
-  // Données de transaction externes
+  // Donnees de transaction externes
   payment_gateway_response?: Record<string, any>;
-  // UI helpers
-  event?: Event | string;
-  reference?: string;
-  invoice?: string;
-  phone_number?: string;
-  payer_name?: string;
-  payer_email?: string;
+  // SerializerMethodField
+  invoice?: Invoice; // Backend renvoie un objet Invoice imbrique
+  registration_id?: string;
+  registration_details?: Registration;
+  // --- Client-side aliases (non renvoyes par le backend) ---
+  method?: PaymentMethod; // Alias client pour payment_method
+  payment_status?: PaymentStatus; // Alias client pour status
+  event?: Event | string; // Client-only (passer par registration)
+  reference?: string; // Client-only
+  phone_number?: string; // Client-only
+  payer_name?: string; // Client-only
+  payer_email?: string; // Client-only
 }
 
 export interface PaymentInitiation {
@@ -493,7 +544,7 @@ export interface PaymentVerification {
 export type RefundStatus = 'requested' | 'processing' | 'completed' | 'rejected';
 
 export interface Refund {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   payment: string;
   amount: number;
   reason: string;
@@ -503,59 +554,62 @@ export interface Refund {
   processed_by?: string;
   transaction_id?: string;
   notes?: string;
+  // SerializerMethodField
+  payment_details?: Record<string, any>;
 }
 
 // Invoice (payments.Invoice)
 export interface Invoice {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   payment: string;
   invoice_number: string;
   generated_at: string;
   due_date?: string;
-  // Pour les paiements basés sur l'usage
+  // Pour les paiements bases sur l'usage
   billing_period_start?: string;
   billing_period_end?: string;
   pdf_file?: string;
-  // Alias pour compatibilité
-  pdf_url?: string;
-  created_at?: string;
+  // --- Client-side aliases ---
+  pdf_url?: string; // Alias client pour pdf_file
+  created_at?: string; // Alias client pour generated_at
 }
 
 // ============================================
 // MESSAGING TYPES
-// Synchronisé avec EventEzBackend/apps/user_messages/models.py
+// Synchronise avec EventEzBackend/apps/user_messages/models.py
 // ============================================
 
 export interface Conversation {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   participants: User[];
-  participant_ids?: number[];
+  participant_ids?: number[]; // Write-only
   conversation_type: 'direct' | 'group' | 'event';
   name?: string;
-  title?: string; // Alias pour compatibilité
   avatar?: string;
   last_message?: Message;
   last_message_at?: string;
   event?: string | Event;
   is_archived: boolean;
   is_starred: boolean;
-  unread_count: number;
+  unread_count: number; // SerializerMethodField
   user_messages?: Message[];
   created_at: string;
   updated_at: string;
+  // --- Client-side aliases ---
+  title?: string; // Alias client pour name
 }
 
 export interface Message {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   conversation: string | number;
   sender: number; // ID utilisateur
-  sender_name: string;
-  sender_avatar?: string;
+  sender_name: string; // SerializerMethodField
+  sender_avatar?: string; // SerializerMethodField
   content: string;
   message_type: 'text' | 'system' | 'image' | 'voice' | 'document' | 'event_share';
   attachments?: MessageAttachment[];
   read_by: number[]; // Liste des IDs des utilisateurs qui ont lu
-  reply_to?: string | Message;
+  reply_to?: string | number | Message; // SerializerMethodField
   is_starred: boolean;
   is_edited: boolean;
   edited_at?: string;
@@ -565,7 +619,7 @@ export interface Message {
 }
 
 export interface MessageAttachment {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   file: string;
   file_name: string;
   file_size: number;
@@ -580,9 +634,9 @@ export interface MessageAttachment {
 }
 
 export interface MessageReaction {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   user: number;
-  user_name: string;
+  user_name: string; // SerializerMethodField
   emoji: string;
   created_at: string;
 }
@@ -591,7 +645,7 @@ export interface MessageReaction {
 // NOTIFICATION TYPES
 // ============================================
 
-// Types de notification synchronisés avec le backend (notifications.models.Notification.NOTIFICATION_TYPE_CHOICES)
+// Types de notification synchronises avec le backend (notifications.models.Notification.NOTIFICATION_TYPE_CHOICES)
 export type NotificationType =
   | 'event_update'
   | 'event_revalidation'
@@ -607,8 +661,8 @@ export type NotificationType =
 export type NotificationChannel = 'email' | 'sms' | 'push' | 'in_app';
 
 export interface Notification {
-  id: string;
-  user: string;
+  id: string; // UUID (serializer override hex_verbose)
+  user: string; // SerializerMethodField (retourne UUID string)
   title: string;
   message: string;
   notification_type: NotificationType;
@@ -619,13 +673,16 @@ export interface Notification {
   scheduled_for?: string;
   sent_at?: string;
   read_at?: string;
-  link?: string;
-  event?: Event;
   related_object_id?: string;
   related_object_type?: 'event' | 'registration' | 'payment' | string;
   extra_data?: Record<string, any>;
-  // Alias pour compatibilité avec l'ancien code
-  data?: Record<string, any>;
+  // Champs backend supplementaires
+  email_subject?: string;
+  phone_number?: string;
+  // --- Client-side aliases ---
+  link?: string; // Client-only
+  event?: Event; // Client-only
+  data?: Record<string, any>; // Alias client pour extra_data
 }
 
 export interface NotificationPreferences {
@@ -687,25 +744,27 @@ export interface EventAnalytics {
 
 // EventFeedback (feedback.EventFeedback)
 export interface Feedback {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   event: Event | string;
   user: User | string;
-  // Évaluation (1-5)
+  // Evaluation (1-5)
   rating: number;
   comment?: string;
   // Horodatage
   created_at: string;
   updated_at?: string;
-  // Statut de modération
+  // Statut de moderation
   is_approved?: boolean;
   is_featured?: boolean;
-  // UI helpers
-  is_verified?: boolean;
+  // SerializerMethodField
   user_name?: string;
-  user_avatar?: string;
+  event_details?: Record<string, any>;
+  // --- Client-side ---
+  is_verified?: boolean; // Client-only
+  user_avatar?: string; // Client-only
 }
 
-// Alias pour compatibilité
+// Alias pour compatibilite
 export type EventFeedback = Feedback;
 
 export interface FeedbackStats {
@@ -729,7 +788,7 @@ export type SubscriptionStatus = 'active' | 'trial' | 'expired' | 'cancelled' | 
 export type BillingCycle = 'monthly' | 'yearly';
 
 export interface SubscriptionPlan {
-  id: string;
+  id: string; // UUID
   name: PlanName;
   display_name: string;
   description: string;
@@ -739,16 +798,20 @@ export interface SubscriptionPlan {
   max_participants_per_event: number;
   max_active_events: number;
   visibility_boost: number;
+  // Limites IA
+  ai_daily_limit?: number;
+  ai_messages_per_session?: number;
   features: string[];
   is_active: boolean;
-  is_popular?: boolean;
+  // --- Client-side ---
+  is_popular?: boolean; // Client-only
 }
 
 export interface OrganizerSubscription {
-  id: string;
+  id: string; // UUID
   organizer: string;
   plan: SubscriptionPlan;
-  plan_details?: SubscriptionPlan;
+  plan_details?: SubscriptionPlan; // SerializerMethodField
   status: SubscriptionStatus;
   billing_cycle: BillingCycle;
   start_date: string;
@@ -757,8 +820,32 @@ export interface OrganizerSubscription {
   next_billing_date?: string;
   auto_renew: boolean;
   payment_method?: string;
-  is_active: boolean;
-  current_price: number;
+  is_active: boolean; // SerializerMethodField
+  current_price: number; // SerializerMethodField
+  created_at: string;
+  updated_at: string;
+}
+
+// SubscriptionPayment (payments.SubscriptionPayment)
+export interface SubscriptionPayment {
+  id: string; // UUID
+  organizer: string | number;
+  subscription?: string;
+  plan: string;
+  plan_details?: SubscriptionPlan;
+  amount: number;
+  currency: string;
+  billing_cycle: BillingCycle;
+  payment_method?: string;
+  status: PaymentStatus;
+  transaction_id?: string;
+  notchpay_reference?: string;
+  billing_email?: string;
+  billing_phone?: string;
+  nonprofit_discount?: boolean;
+  discount_amount?: number;
+  original_amount?: number;
+  payment_date?: string;
   created_at: string;
   updated_at: string;
 }
@@ -772,7 +859,7 @@ export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed' | '
 export type TransactionType = 'credit' | 'debit' | 'fee' | 'refund' | 'adjustment';
 
 export interface OrganizerWallet {
-  id: string;
+  id: string; // UUID
   organizer: string;
   available_balance: number;
   pending_balance: number;
@@ -786,14 +873,14 @@ export interface OrganizerWallet {
   mobile_money_number?: string;
   mobile_money_provider?: string;
   minimum_payout: number;
-  recent_transactions?: WalletTransaction[];
-  can_withdraw: boolean;
+  recent_transactions?: WalletTransaction[]; // SerializerMethodField
+  can_withdraw: boolean; // SerializerMethodField
   created_at: string;
   updated_at: string;
 }
 
 export interface WalletTransaction {
-  id: string;
+  id: string; // UUID
   transaction_type: TransactionType;
   amount: number;
   balance_after: number;
@@ -806,9 +893,9 @@ export interface WalletTransaction {
 }
 
 export interface Payout {
-  id: string;
+  id: string; // UUID
   wallet: string;
-  organizer_email?: string;
+  organizer_email?: string; // SerializerMethodField
   amount: number;
   currency: string;
   payout_method: PayoutMethod;
@@ -819,13 +906,15 @@ export interface Payout {
   requested_at: string;
   processed_at?: string;
   processed_by?: string;
+  processed_by_email?: string; // SerializerMethodField
   transaction_reference?: string;
   notes?: string;
   failure_reason?: string;
+  wallet_available_balance?: number; // SerializerMethodField
 }
 
 export interface PendingEarning {
-  id: string;
+  id: string; // UUID
   wallet: string;
   event: string;
   event_title?: string;
@@ -839,7 +928,7 @@ export interface PendingEarning {
 }
 
 export interface PlatformCommission {
-  id: string;
+  id: string; // UUID
   payment: string;
   ticket_price: number;
   commission_rate: number;
@@ -869,7 +958,7 @@ export interface WalletStats {
 
 // Track (events.agenda_models.Track)
 export interface Track {
-  id: string;
+  id: string; // UUID
   event: string;
   name: string;
   description?: string;
@@ -883,7 +972,7 @@ export interface Track {
 
 // Speaker (events.agenda_models.Speaker)
 export interface Speaker {
-  id: string;
+  id: string; // UUID
   event: string;
   // Informations personnelles
   first_name: string;
@@ -898,7 +987,7 @@ export interface Speaker {
   website?: string;
   linkedin?: string;
   twitter?: string;
-  // Média
+  // Media
   photo?: string;
   // Lien utilisateur (optionnel)
   user?: string;
@@ -907,14 +996,15 @@ export interface Speaker {
   order?: number;
   created_at?: string;
   updated_at?: string;
-  // UI helpers (calculés)
-  name?: string;
+  // Proprietes calculees (backend @property)
   full_name?: string;
   display_name?: string;
+  // --- Client-side ---
+  name?: string; // Alias client pour full_name
   social_links?: {
     twitter?: string;
     linkedin?: string;
-  };
+  }; // Client-only (restructure)
 }
 
 // Types de session (events.agenda_models.Session.SESSION_TYPE_CHOICES)
@@ -925,7 +1015,7 @@ export type SessionLevel = 'beginner' | 'intermediate' | 'advanced' | 'all';
 
 // Session (events.agenda_models.Session)
 export interface Session {
-  id: string;
+  id: string; // UUID
   event: string;
   track?: Track | string;
   // Informations de base
@@ -947,12 +1037,10 @@ export interface Session {
   moderator?: Speaker | string;
   moderator_detail?: { id: string; full_name: string; title?: string; company?: string; photo?: string };
   track_detail?: { id: string; name: string; color?: string };
-  // Capacité et inscription
+  // Capacite et inscription
   max_capacity?: number;
-  max_participants?: number; // Alias
   requires_registration: boolean;
   registration_count?: number;
-  current_participants?: number; // Alias
   // Contenu
   slides_url?: string;
   recording_url?: string;
@@ -964,15 +1052,17 @@ export interface Session {
   language?: string;
   created_at?: string;
   updated_at?: string;
-  // UI helpers
-  is_registered?: boolean;
-  registration_deadline?: string;
-  status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  // --- Client-side ---
+  max_participants?: number; // Alias client pour max_capacity
+  current_participants?: number; // Alias client pour registration_count
+  is_registered?: boolean; // Client-only
+  registration_deadline?: string; // Client-only
+  status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'; // Client-only
 }
 
 // SessionRegistration (events.agenda_models.SessionRegistration)
 export interface SessionRegistration {
-  id: string;
+  id: string; // UUID
   session: string;
   user: string;
   // Participation
@@ -982,15 +1072,15 @@ export interface SessionRegistration {
   // Feedback
   rating?: number;
   feedback?: string;
-  // UI helpers
-  status?: 'registered' | 'attended' | 'cancelled';
+  // --- Client-side ---
+  status?: 'registered' | 'attended' | 'cancelled'; // Client-only
 }
 
 // SessionResource (events.agenda_models.SessionResource)
 export type ResourceType = 'slides' | 'document' | 'video' | 'link' | 'code' | 'other';
 
 export interface SessionResource {
-  id: string;
+  id: string; // UUID
   session: string;
   title: string;
   description?: string;
@@ -1007,7 +1097,7 @@ export interface SessionResource {
 export type SessionWaitlistStatus = 'waiting' | 'notified' | 'registered' | 'expired' | 'cancelled';
 
 export interface SessionWaitlist {
-  id: string;
+  id: string; // UUID
   session: string;
   user: string;
   status: SessionWaitlistStatus;
@@ -1025,17 +1115,33 @@ export interface SessionWaitlist {
 export type WaitlistStatus = 'waiting' | 'notified' | 'converted' | 'expired' | 'cancelled';
 
 export interface WaitlistEntry {
-  id: string;
+  id: string; // UUID
   event: string;
   user: string;
   ticket_type?: string;
+  // Informations de contact
+  email?: string;
+  phone?: string;
+  full_name?: string;
+  // Statut et suivi
   position: number;
   priority?: number;
   status: WaitlistStatus;
-  notification_sent_at?: string;
+  quantity?: number;
+  // Notifications
   notified_at?: string;
+  notification_sent?: boolean;
+  notification_count?: number;
   expires_at?: string;
+  // Conversion
+  converted_at?: string;
+  registration?: string;
+  notes?: string;
+  // Metadonnees
   created_at: string;
+  updated_at?: string;
+  // --- Client-side aliases ---
+  notification_sent_at?: string; // Alias client pour notified_at
 }
 
 // ============================================
@@ -1044,33 +1150,33 @@ export interface WaitlistEntry {
 
 // Types de champs (events.CustomFormField.FIELD_TYPES)
 export type FieldType = 'text' | 'textarea' | 'number' | 'email' | 'phone' | 'date' | 'time' | 'select' | 'checkbox' | 'radio' | 'file';
-// Alias pour compatibilité UI (url n'existe pas dans backend)
+// Alias pour compatibilite UI (url n'existe pas dans backend)
 export type ExtendedFieldType = FieldType | 'url';
 
 // CustomFormField (events.CustomFormField)
 export interface FormField {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   event?: string;
   label: string;
   field_type: FieldType | ExtendedFieldType;
   required: boolean;
   placeholder?: string;
   help_text?: string;
-  options?: string | string[]; // Options séparées par des virgules ou tableau
+  options?: string | string[]; // Options separees par des virgules ou tableau
   order: number;
-  // Support multi-étapes pour les formulaires longs
+  // Support multi-etapes pour les formulaires longs
   step?: number;
   step_title?: string;
-  // Extension frontend
+  // --- Client-side ---
   validation?: {
     min?: number;
     max?: number;
     pattern?: string;
     message?: string;
-  };
+  }; // Client-only
 }
 
-// Alias pour compatibilité
+// Alias pour compatibilite
 export type CustomFormField = FormField;
 
 // ============================================
@@ -1145,11 +1251,9 @@ export type FlagReason = 'inappropriate' | 'misleading' | 'scam' | 'duplicate' |
 
 // EventFlag (feedback.EventFlag)
 export interface Flag {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   event: string;
   user: string;
-  // Alias pour compatibilité
-  reporter?: string;
   reason: FlagReason;
   description?: string;
   created_at: string;
@@ -1157,45 +1261,77 @@ export interface Flag {
   resolved_at?: string;
   resolved_by?: string;
   resolution_notes?: string;
-  // Alias pour compatibilité
-  resolution_note?: string;
-  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+  // SerializerMethodField
+  user_name?: string;
+  event_details?: Record<string, any>;
+  // --- Client-side aliases ---
+  reporter?: string; // Alias client pour user
+  resolution_note?: string; // Alias client pour resolution_notes
+  status?: 'pending' | 'reviewed' | 'resolved' | 'dismissed'; // Client-only
 }
 
-// Alias pour compatibilité
+// Alias pour compatibilite
 export type EventFlag = Flag;
 
 // EventValidation (feedback.EventValidation)
 export interface Validation {
-  id: string;
+  id: string | number; // Backend: AutoField (integer)
   event: Event | string;
   user: User | string;
-  // Alias pour compatibilité
-  validator?: User;
   created_at: string;
   notes?: string;
-  // UI helpers (calculés depuis Event.status)
-  status?: 'pending' | 'approved' | 'rejected';
-  validated_at?: string;
+  // SerializerMethodField
+  user_name?: string;
+  event_details?: Record<string, any>;
+  // --- Client-side aliases ---
+  validator?: User; // Alias client pour user
+  status?: 'pending' | 'approved' | 'rejected'; // Client-only
+  validated_at?: string; // Client-only
 }
 
-// Alias pour compatibilité
+// Alias pour compatibilite
 export type EventValidation = Validation;
 
 // ============================================
 // AUDIT TYPES
 // ============================================
 
+// Types d'action (audit.AuditLog.ACTION_TYPES)
+export type AuditAction =
+  | 'user_create' | 'user_edit' | 'user_delete' | 'user_restore' | 'user_suspend' | 'user_activate'
+  | 'profile_validate' | 'profile_reject'
+  | 'event_create' | 'event_validate' | 'event_reject' | 'event_edit' | 'event_delete' | 'event_register'
+  | 'role_change'
+  | 'message_delete' | 'message_report' | 'message_moderate'
+  | 'payment_refund'
+  | 'category_create' | 'category_edit' | 'category_delete'
+  | 'settings_change' | 'bulk_action'
+  | 'login_attempt' | 'login_success' | 'login_failed' | 'logout';
+
+export type AuditSeverity = 'info' | 'warning' | 'error' | 'critical';
+
 export interface AuditLog {
-  id: string;
-  user: string;
-  action: string;
-  resource_type: string;
-  resource_id: string;
+  id: string | number; // Backend: AutoField (integer)
+  user: string | number | null;
+  action: AuditAction | string;
+  // Backend utilise GenericForeignKey (content_type + object_id)
+  content_type?: number;
+  object_id?: string;
   details?: Record<string, any>;
   ip_address?: string;
   user_agent?: string;
-  created_at: string;
+  // Backend utilise 'timestamp' (pas 'created_at')
+  timestamp: string;
+  severity?: AuditSeverity;
+  // SerializerMethodField
+  user_display?: Record<string, any>;
+  action_display?: string;
+  severity_display?: string;
+  target_display?: string;
+  // --- Client-side aliases ---
+  created_at?: string; // Alias client pour timestamp
+  resource_type?: string; // Alias client pour content_type
+  resource_id?: string; // Alias client pour object_id
 }
 
 // ============================================
@@ -1210,12 +1346,11 @@ export type RootStackParamList = {
   TicketPurchase: {
     eventId: string;
     ticketTypeId?: string;
-    registrationId?: string;  // Pour modifier une inscription en attente
-    additionalTickets?: boolean;  // Pour acheter des billets supplémentaires
+    registrationId?: string;
+    additionalTickets?: boolean;
   };
   Payment: {
     registrationId: string;
-    // Pour les billets supplémentaires: passer les nouveaux billets à payer
     newTickets?: Array<{
       id: string;
       ticket_type_name: string;

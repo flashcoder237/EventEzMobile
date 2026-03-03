@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { cfpAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface CallForPapers {
@@ -39,6 +40,7 @@ interface CfpTabProps {
 }
 
 export default function CfpTab({ eventId }: CfpTabProps) {
+  const { colors, isDark } = useTheme();
   const [cfp, setCfp] = useState<CallForPapers | null>(null);
   const [proposals, setProposals] = useState<TalkProposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,7 @@ export default function CfpTab({ eventId }: CfpTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={styles.emptyTabText}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
       </View>
     );
   }
@@ -126,10 +128,10 @@ export default function CfpTab({ eventId }: CfpTabProps) {
   if (!cfp) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Appel a contributions</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Appel a contributions</Text>
         <View style={styles.emptyTab}>
-          <Ionicons name="mic-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucun appel a contributions pour cet evenement</Text>
+          <Ionicons name="mic-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun appel a contributions pour cet evenement</Text>
         </View>
       </View>
     );
@@ -140,37 +142,37 @@ export default function CfpTab({ eventId }: CfpTabProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Appel a contributions</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Appel a contributions</Text>
 
       {/* CFP Status Card */}
-      <View style={styles.cfpStatusCard}>
+      <View style={[styles.cfpStatusCard, { backgroundColor: colors.gray50 }]}>
         <View style={styles.cfpStatusHeader}>
-          <View style={[styles.statusIndicator, { backgroundColor: isOpen && !isDeadlinePassed ? Colors.success : Colors.error }]} />
-          <Text style={styles.cfpStatusText}>
+          <View style={[styles.statusIndicator, { backgroundColor: isOpen && !isDeadlinePassed ? colors.success : colors.error }]} />
+          <Text style={[styles.cfpStatusText, { color: colors.gray700 }]}>
             {isOpen && !isDeadlinePassed ? 'Ouvert aux soumissions' : 'Ferme'}
           </Text>
         </View>
         {cfp.title && (
-          <Text style={styles.cfpTitle}>{cfp.title}</Text>
+          <Text style={[styles.cfpTitle, { color: colors.gray900 }]}>{cfp.title}</Text>
         )}
         {cfp.description && (
-          <Text style={styles.cfpDescription} numberOfLines={4}>{cfp.description}</Text>
+          <Text style={[styles.cfpDescription, { color: colors.gray600 }]} numberOfLines={4}>{cfp.description}</Text>
         )}
         {cfp.deadline && (
           <View style={styles.deadlineRow}>
-            <Ionicons name="time-outline" size={16} color={Colors.gray500} />
-            <Text style={styles.deadlineText}>
+            <Ionicons name="time-outline" size={16} color={colors.gray500} />
+            <Text style={[styles.deadlineText, { color: colors.gray600 }]}>
               Date limite : {formatDeadline(cfp.deadline)}
             </Text>
           </View>
         )}
         {cfp.topics && cfp.topics.length > 0 && (
           <View style={styles.topicsContainer}>
-            <Text style={styles.topicsLabel}>Sujets :</Text>
+            <Text style={[styles.topicsLabel, { color: colors.gray600 }]}>Sujets :</Text>
             <View style={styles.topicsList}>
               {cfp.topics.map((topic, index) => (
-                <View key={index} style={styles.topicBadge}>
-                  <Text style={styles.topicBadgeText}>{topic}</Text>
+                <View key={index} style={[styles.topicBadge, { backgroundColor: colors.primaryBg }]}>
+                  <Text style={[styles.topicBadgeText, { color: colors.primary }]}>{topic}</Text>
                 </View>
               ))}
             </View>
@@ -181,14 +183,14 @@ export default function CfpTab({ eventId }: CfpTabProps) {
       {/* Proposals */}
       {proposals.length > 0 && (
         <>
-          <Text style={styles.subsectionTitle}>Mes propositions</Text>
+          <Text style={[styles.subsectionTitle, { color: colors.gray900 }]}>Mes propositions</Text>
           {proposals.map((proposal) => {
             const statusBadge = getStatusBadge(proposal.status);
             const speakerName = getSpeakerName(proposal);
             return (
-              <View key={proposal.id} style={styles.proposalCard}>
+              <View key={proposal.id} style={[styles.proposalCard, { backgroundColor: colors.gray50 }]}>
                 <View style={styles.proposalHeader}>
-                  <Text style={styles.proposalTitle} numberOfLines={2}>{proposal.title}</Text>
+                  <Text style={[styles.proposalTitle, { color: colors.gray900 }]} numberOfLines={2}>{proposal.title}</Text>
                   <View style={[styles.proposalStatusBadge, { backgroundColor: statusBadge.bg }]}>
                     <Text style={[styles.proposalStatusText, { color: statusBadge.color }]}>
                       {statusBadge.label}
@@ -196,17 +198,17 @@ export default function CfpTab({ eventId }: CfpTabProps) {
                   </View>
                 </View>
                 {proposal.abstract && (
-                  <Text style={styles.proposalAbstract} numberOfLines={2}>{proposal.abstract}</Text>
+                  <Text style={[styles.proposalAbstract, { color: colors.gray600 }]} numberOfLines={2}>{proposal.abstract}</Text>
                 )}
                 {speakerName ? (
                   <View style={styles.speakerRow}>
-                    <Ionicons name="person-outline" size={14} color={Colors.gray500} />
-                    <Text style={styles.speakerName}>{speakerName}</Text>
+                    <Ionicons name="person-outline" size={14} color={colors.gray500} />
+                    <Text style={[styles.speakerName, { color: colors.gray600 }]}>{speakerName}</Text>
                   </View>
                 ) : null}
                 {proposal.talk_type && (
-                  <View style={styles.talkTypeBadge}>
-                    <Text style={styles.talkTypeText}>{proposal.talk_type}</Text>
+                  <View style={[styles.talkTypeBadge, { backgroundColor: colors.gray200 }]}>
+                    <Text style={[styles.talkTypeText, { color: colors.gray600 }]}>{proposal.talk_type}</Text>
                   </View>
                 )}
               </View>

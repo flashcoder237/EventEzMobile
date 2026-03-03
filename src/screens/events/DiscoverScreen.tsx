@@ -24,9 +24,11 @@ import Slider from '@react-native-community/slider';
 import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
 import { FadeInView, SectionEntrance, PulsingBadge, ContentTransition, StaggeredItem } from '../../components/ui/Animations';
 import { useNotifications } from '../../contexts/NotificationContext';
+import GradientText from '../../components/ui/GradientText';
 import {
   Colors,
   FontFamily,
@@ -40,6 +42,7 @@ import {
 import { getApiResults } from '../../lib/utils/apiHelpers';
 import { getEventPrice, getEventPriceRange } from '../../lib/utils/priceFormatters';
 import { isEventInFuture, formatDate } from '../../lib/utils/dateFormatters';
+import { useTabletLayout } from '../../hooks/useTabletLayout';
 import { EmptyState } from '../../components/ui';
 import EventCard from '../../components/events/EventCard';
 import CategoryCard from '../../components/events/CategoryCard';
@@ -104,6 +107,8 @@ export default function DiscoverScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
   const { user } = useAuth();
+  const { colors, isDark, gradients } = useTheme();
+  const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const { unreadNotificationCount, unreadMessageCount } = useNotifications();
 
   // === State: Discovery Feed ===
@@ -461,10 +466,10 @@ export default function DiscoverScreen() {
 
   const SectionHeader = ({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) => (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
       {onSeeAll && (
         <TouchableOpacity onPress={onSeeAll} activeOpacity={TOUCH_OPACITY}>
-          <Text style={styles.seeAllText}>Voir tout</Text>
+          <Text style={[styles.seeAllText, { color: colors.primary }]}>Voir tout</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -473,37 +478,37 @@ export default function DiscoverScreen() {
   // === SEARCH MODE ===
 
   const renderSearchHeader = () => (
-    <View style={styles.searchHeader}>
+    <View style={[styles.searchHeader, { backgroundColor: colors.background }]}>
       <TouchableOpacity onPress={deactivateSearch} style={styles.backButton}>
-        <Ionicons name="arrow-back" size={24} color={Colors.gray800} />
+        <Ionicons name="arrow-back" size={24} color={colors.gray800} />
       </TouchableOpacity>
-      <View style={styles.searchInputContainer}>
-        <Ionicons name="search" size={18} color={Colors.gray400} />
+      <View style={[styles.searchInputContainer, { backgroundColor: colors.surface }]}>
+        <Ionicons name="search" size={18} color={colors.gray400} />
         <TextInput
           ref={searchInputRef}
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.gray900 }]}
           placeholder="Rechercher des événements"
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={colors.gray400}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <Ionicons name="close-circle" size={18} color={Colors.gray400} />
+            <Ionicons name="close-circle" size={18} color={colors.gray400} />
           </TouchableOpacity>
         )}
       </View>
       <TouchableOpacity
-        style={[styles.iconButton, activeFiltersCount > 0 && styles.iconButtonActive]}
+        style={[styles.iconButton, { backgroundColor: colors.gray100 }, activeFiltersCount > 0 && { backgroundColor: colors.primary }]}
         onPress={openFilters}
       >
-        <Ionicons name="options-outline" size={20} color={activeFiltersCount > 0 ? Colors.white : Colors.gray700} />
+        <Ionicons name="options-outline" size={20} color={activeFiltersCount > 0 ? colors.white : colors.gray700} />
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.iconButton}
+        style={[styles.iconButton, { backgroundColor: colors.gray100 }]}
         onPress={() => setViewMode(v => v === 'list' ? 'map' : 'list')}
       >
-        <Ionicons name={viewMode === 'list' ? 'map-outline' : 'list-outline'} size={20} color={Colors.gray700} />
+        <Ionicons name={viewMode === 'list' ? 'map-outline' : 'list-outline'} size={20} color={colors.gray700} />
       </TouchableOpacity>
     </View>
   );
@@ -515,18 +520,18 @@ export default function DiscoverScreen() {
       contentContainerStyle={styles.chipsList}
     >
       <TouchableOpacity
-        style={[styles.chip, !selectedCategory && styles.chipActive]}
+        style={[styles.chip, { backgroundColor: colors.gray100 }, !selectedCategory && { backgroundColor: colors.primary }]}
         onPress={() => setSelectedCategory(null)}
       >
-        <Text style={[styles.chipText, !selectedCategory && styles.chipTextActive]}>Tous</Text>
+        <Text style={[styles.chipText, { color: colors.gray600 }, !selectedCategory && { color: colors.white }]}>Tous</Text>
       </TouchableOpacity>
       {categories.map(cat => (
         <TouchableOpacity
           key={cat.id}
-          style={[styles.chip, selectedCategory === cat.id && styles.chipActive]}
+          style={[styles.chip, { backgroundColor: colors.gray100 }, selectedCategory === cat.id && { backgroundColor: colors.primary }]}
           onPress={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
         >
-          <Text style={[styles.chipText, selectedCategory === cat.id && styles.chipTextActive]}>
+          <Text style={[styles.chipText, { color: colors.gray600 }, selectedCategory === cat.id && { color: colors.white }]}>
             {cat.name}
           </Text>
         </TouchableOpacity>
@@ -551,10 +556,10 @@ export default function DiscoverScreen() {
             showRadius={!!location}
           />
           {/* Radius slider */}
-          <View style={styles.radiusPanel}>
+          <View style={[styles.radiusPanel, { backgroundColor: colors.card }]}>
             <View style={styles.radiusHeader}>
-              <Text style={styles.radiusLabel}>Rayon</Text>
-              <Text style={styles.radiusValue}>{mapRadius} km</Text>
+              <Text style={[styles.radiusLabel, { color: colors.gray700 }]}>Rayon</Text>
+              <Text style={[styles.radiusValue, { color: colors.primary }]}>{mapRadius} km</Text>
             </View>
             <Slider
               style={{ width: '100%', height: 32 }}
@@ -563,23 +568,23 @@ export default function DiscoverScreen() {
               step={10}
               value={mapRadius}
               onValueChange={v => setMapRadius(Math.round(v))}
-              minimumTrackTintColor={Colors.primary}
-              maximumTrackTintColor={Colors.gray200}
-              thumbTintColor={Colors.primary}
+              minimumTrackTintColor={colors.primary}
+              maximumTrackTintColor={colors.gray200}
+              thumbTintColor={colors.primary}
             />
           </View>
           {selectedMarker && (
             <TouchableOpacity
-              style={styles.mapSelectedCard}
+              style={[styles.mapSelectedCard, { backgroundColor: colors.card }]}
               onPress={() => navigateToEvent(selectedMarker.id)}
               activeOpacity={0.9}
             >
               <View style={{ flex: 1 }}>
-                <Text style={styles.dateAccent}>{formatDate(selectedMarker.start_date).toUpperCase()}</Text>
-                <Text style={styles.mapCardTitle} numberOfLines={1}>{selectedMarker.title}</Text>
-                <Text style={styles.mapCardLocation}>{selectedMarker.location_city}</Text>
+                <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDate(selectedMarker.start_date).toUpperCase()}</Text>
+                <Text style={[styles.mapCardTitle, { color: colors.gray900 }]} numberOfLines={1}>{selectedMarker.title}</Text>
+                <Text style={[styles.mapCardLocation, { color: colors.textSecondary }]}>{selectedMarker.location_city}</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.primary} />
+              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
             </TouchableOpacity>
           )}
         </View>
@@ -589,24 +594,27 @@ export default function DiscoverScreen() {
     return (
       <FlatList
         ref={flatListRef}
+        key={columns}
+        numColumns={columns}
+        columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
         data={filteredResults}
         renderItem={({ item, index }) => (
           <StaggeredItem index={index} staggerDelay={50}>
-            <View style={styles.searchResultItem}>{renderEventCard(item, 'grid')}</View>
+            <View style={[styles.searchResultItem, columns > 1 && { flex: 1 }]}>{renderEventCard(item, 'grid')}</View>
           </StaggeredItem>
         )}
         keyExtractor={item => item.id}
-        contentContainerStyle={styles.searchResultsList}
+        contentContainerStyle={[styles.searchResultsList, { paddingHorizontal: containerPadding }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           !searchLoading ? (
             <View style={styles.resultsInfo}>
-              <Text style={styles.resultsCount}>
+              <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>
                 {filteredResults.length} événement{filteredResults.length !== 1 ? 's' : ''}
               </Text>
               {activeFiltersCount > 0 && (
                 <TouchableOpacity onPress={resetFilters}>
-                  <Text style={styles.clearFilters}>Effacer filtres</Text>
+                  <Text style={[styles.clearFilters, { color: colors.primary }]}>Effacer filtres</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -615,21 +623,21 @@ export default function DiscoverScreen() {
         ListEmptyComponent={
           !searchLoading ? (
             <View style={styles.emptySearch}>
-              <Ionicons name="search-outline" size={48} color={Colors.gray300} />
-              <Text style={styles.emptyTitle}>Aucun événement trouvé</Text>
-              <Text style={styles.emptySubtitle}>Essayez de modifier vos critères</Text>
+              <Ionicons name="search-outline" size={48} color={colors.gray300} />
+              <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement trouvé</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Essayez de modifier vos critères</Text>
             </View>
           ) : null
         }
         ListFooterComponent={
           loadingMore ? (
-            <ActivityIndicator size="small" color={Colors.primary} style={{ paddingVertical: Spacing.lg }} />
+            <ActivityIndicator size="small" color={colors.primary} style={{ paddingVertical: Spacing.lg }} />
           ) : hasNextPage ? (
             <TouchableOpacity
-              style={styles.loadMoreBtn}
+              style={[styles.loadMoreBtn, { borderColor: colors.primary }]}
               onPress={() => fetchSearchResults(currentPage + 1, true)}
             >
-              <Text style={styles.loadMoreText}>Voir plus</Text>
+              <Text style={[styles.loadMoreText, { color: colors.primary }]}>Voir plus</Text>
             </TouchableOpacity>
           ) : null
         }
@@ -659,10 +667,18 @@ export default function DiscoverScreen() {
 
   const renderFilterOption = (label: string, value: string, current: string, onPress: () => void) => (
     <TouchableOpacity
-      style={[styles.filterChip, current === value && styles.filterChipActive]}
+      style={[
+        styles.filterChip,
+        { borderColor: colors.gray200, backgroundColor: colors.card },
+        current === value && { backgroundColor: colors.primary, borderColor: colors.primary },
+      ]}
       onPress={onPress}
     >
-      <Text style={[styles.filterChipText, current === value && styles.filterChipTextActive]}>
+      <Text style={[
+        styles.filterChipText,
+        { color: colors.gray700 },
+        current === value && { color: colors.white },
+      ]}>
         {label}
       </Text>
     </TouchableOpacity>
@@ -671,17 +687,17 @@ export default function DiscoverScreen() {
   const renderFiltersModal = () => (
     <Modal visible={showFilters} animationType="fade" transparent onRequestClose={() => setShowFilters(false)}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Filtres</Text>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.gray200 }]}>
+            <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Filtres</Text>
             <TouchableOpacity onPress={() => setShowFilters(false)}>
-              <Ionicons name="close" size={24} color={Colors.gray700} />
+              <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
           </View>
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             {/* Sort */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Trier par</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Trier par</Text>
               <View style={styles.filterRow}>
                 {renderFilterOption('Date', 'date', tempFilters.sortBy, () => setTempFilters({ ...tempFilters, sortBy: 'date' }))}
                 {renderFilterOption('Popularité', 'popularity', tempFilters.sortBy, () => setTempFilters({ ...tempFilters, sortBy: 'popularity' }))}
@@ -691,7 +707,7 @@ export default function DiscoverScreen() {
             </View>
             {/* Event Type */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Type</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Type</Text>
               <View style={styles.filterRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.eventType, () => setTempFilters({ ...tempFilters, eventType: 'all' }))}
                 {renderFilterOption('Billetterie', 'billetterie', tempFilters.eventType, () => setTempFilters({ ...tempFilters, eventType: 'billetterie' }))}
@@ -700,7 +716,7 @@ export default function DiscoverScreen() {
             </View>
             {/* Price */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Prix</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Prix</Text>
               <View style={styles.filterRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.price, () => setTempFilters({ ...tempFilters, price: 'all' }))}
                 {renderFilterOption('Gratuit', 'free', tempFilters.price, () => setTempFilters({ ...tempFilters, price: 'free' }))}
@@ -710,7 +726,7 @@ export default function DiscoverScreen() {
             {/* Price Range */}
             {tempFilters.price === 'paid' && (
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Fourchette de prix</Text>
+                <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Fourchette de prix</Text>
                 <View style={styles.filterRow}>
                   {renderFilterOption('Tous', 'all',
                     tempFilters.priceMin === 0 && tempFilters.priceMax === 0 ? 'all' : '',
@@ -731,26 +747,26 @@ export default function DiscoverScreen() {
                 </View>
                 <View style={styles.priceInputRow}>
                   <View style={styles.priceInputContainer}>
-                    <Text style={styles.priceInputLabel}>Min (FCFA)</Text>
+                    <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Min (FCFA)</Text>
                     <TextInput
-                      style={styles.priceInput}
+                      style={[styles.priceInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                       value={tempFilters.priceMin > 0 ? String(tempFilters.priceMin) : ''}
                       onChangeText={(v) => setTempFilters({ ...tempFilters, priceMin: parseInt(v) || 0 })}
                       keyboardType="numeric"
                       placeholder="0"
-                      placeholderTextColor={Colors.gray400}
+                      placeholderTextColor={colors.gray400}
                     />
                   </View>
-                  <Text style={styles.priceInputSeparator}>-</Text>
+                  <Text style={[styles.priceInputSeparator, { color: colors.gray400 }]}>-</Text>
                   <View style={styles.priceInputContainer}>
-                    <Text style={styles.priceInputLabel}>Max (FCFA)</Text>
+                    <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Max (FCFA)</Text>
                     <TextInput
-                      style={styles.priceInput}
+                      style={[styles.priceInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                       value={tempFilters.priceMax > 0 ? String(tempFilters.priceMax) : ''}
                       onChangeText={(v) => setTempFilters({ ...tempFilters, priceMax: parseInt(v) || 0 })}
                       keyboardType="numeric"
                       placeholder="Illimité"
-                      placeholderTextColor={Colors.gray400}
+                      placeholderTextColor={colors.gray400}
                     />
                   </View>
                 </View>
@@ -758,7 +774,7 @@ export default function DiscoverScreen() {
             )}
             {/* Date */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Date</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Date</Text>
               <View style={styles.filterRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'all' }))}
                 {renderFilterOption("Aujourd'hui", 'today', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'today' }))}
@@ -770,7 +786,7 @@ export default function DiscoverScreen() {
             {/* Distance */}
             {location && (
               <View style={styles.filterSection}>
-                <Text style={styles.filterSectionTitle}>Distance</Text>
+                <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Distance</Text>
                 <View style={styles.filterRow}>
                   {renderFilterOption('Tous', 'all',
                     tempFilters.distance === 0 ? 'all' : '',
@@ -797,7 +813,7 @@ export default function DiscoverScreen() {
             )}
             {/* Location Type */}
             <View style={styles.filterSection}>
-              <Text style={styles.filterSectionTitle}>Lieu</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Lieu</Text>
               <View style={styles.filterRow}>
                 {renderFilterOption('Tous', 'all', tempFilters.locationType, () => setTempFilters({ ...tempFilters, locationType: 'all' }))}
                 {renderFilterOption('Présentiel', 'in_person', tempFilters.locationType, () => setTempFilters({ ...tempFilters, locationType: 'in_person' }))}
@@ -806,11 +822,11 @@ export default function DiscoverScreen() {
               </View>
             </View>
           </ScrollView>
-          <View style={styles.modalFooter}>
-            <TouchableOpacity style={styles.resetBtn} onPress={resetFilters}>
-              <Text style={styles.resetBtnText}>Réinitialiser</Text>
+          <View style={[styles.modalFooter, { borderTopColor: colors.gray200 }]}>
+            <TouchableOpacity style={[styles.resetBtn, { borderColor: colors.gray200 }]} onPress={resetFilters}>
+              <Text style={[styles.resetBtnText, { color: colors.gray700 }]}>Réinitialiser</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.applyBtn} onPress={applyFilterChanges}>
+            <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.primary }]} onPress={applyFilterChanges}>
               <Text style={styles.applyBtnText}>Appliquer</Text>
             </TouchableOpacity>
           </View>
@@ -825,35 +841,35 @@ export default function DiscoverScreen() {
     <ScrollView
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
       }
       contentContainerStyle={styles.scrollContent}
     >
       {/* Header with actions */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="location" size={18} color={Colors.accent} />
-          <Text style={styles.headerLocation}>
+          <Ionicons name="location" size={18} color={colors.accent} />
+          <Text style={[styles.headerLocation, { color: colors.gray900 }]}>
             {location ? 'Douala' : 'Douala, Cameroun'}
           </Text>
-          <Ionicons name="chevron-down" size={14} color={Colors.gray400} />
+          <Ionicons name="chevron-down" size={14} color={colors.gray400} />
         </View>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Messages')}>
-            <Ionicons name="chatbubble-outline" size={20} color={Colors.gray800} />
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')}>
+            <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
             {unreadMessageCount > 0 && (
               <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: colors.error }]}>
                   <Text style={styles.badgeText}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</Text>
                 </View>
               </PulsingBadge>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={22} color={Colors.gray800} />
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')}>
+            <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
             {unreadNotificationCount > 0 && (
               <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: colors.error }]}>
                   <Text style={styles.badgeText}>{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</Text>
                 </View>
               </PulsingBadge>
@@ -865,18 +881,18 @@ export default function DiscoverScreen() {
       {/* Hero greeting */}
       <FadeInView delay={100} translateY={20}>
         <View style={styles.heroSection}>
-          <Text style={styles.heroEyebrow}>
+          <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
             {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
           </Text>
-          <Text style={styles.heroTitle}>Discover{'\n'}Events</Text>
+          <GradientText style={styles.heroTitle}>Discover{'\n'}Events</GradientText>
         </View>
       </FadeInView>
 
       {/* Search Bar (tap to activate) — pill shape */}
       <FadeInView delay={200} translateY={12}>
-        <TouchableOpacity style={styles.searchBarTrigger} onPress={activateSearch} activeOpacity={0.7}>
-          <Ionicons name="search" size={20} color={Colors.gray400} />
-          <Text style={styles.searchPlaceholder}>Rechercher un événement</Text>
+        <TouchableOpacity style={[styles.searchBarTrigger, { backgroundColor: colors.surface }]} onPress={activateSearch} activeOpacity={0.7}>
+          <Ionicons name="search" size={20} color={colors.gray400} />
+          <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>Rechercher un événement</Text>
         </TouchableOpacity>
       </FadeInView>
 
@@ -890,14 +906,14 @@ export default function DiscoverScreen() {
           {categories.slice(0, 8).map(cat => (
             <TouchableOpacity
               key={cat.id}
-              style={styles.discoverChip}
+              style={[styles.discoverChip, { backgroundColor: colors.surface }]}
               onPress={() => {
                 setSelectedCategory(cat.id);
                 activateSearch();
               }}
             >
-              <Ionicons name={getCategoryIcon(cat.name)} size={16} color={Colors.primary} />
-              <Text style={styles.discoverChipText}>{cat.name}</Text>
+              <Ionicons name={getCategoryIcon(cat.name)} size={16} color={colors.primary} />
+              <Text style={[styles.discoverChipText, { color: colors.gray700 }]}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -1049,8 +1065,8 @@ export default function DiscoverScreen() {
   // === MAIN RENDER ===
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.background} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       {isSearchActive ? renderSearchMode() : renderDiscoveryFeed()}
       {renderFiltersModal()}
     </SafeAreaView>
@@ -1083,9 +1099,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   headerLocation: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   headerActions: {
     flexDirection: 'row',
@@ -1126,19 +1140,11 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
   },
   heroEyebrow: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 11,
-    color: Colors.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
+    ...TextStyles.eyebrow,
     marginBottom: Spacing.xs,
   },
   heroTitle: {
-    fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
-    color: Colors.gray900,
-    lineHeight: 44,
-    letterSpacing: -1.5,
+    ...TextStyles.heroSm,
   },
 
   // === SEARCH BAR (discovery) — pill shape ===
@@ -1155,9 +1161,8 @@ const styles = StyleSheet.create({
     ...Shadows.xs,
   },
   searchPlaceholder: {
+    ...TextStyles.body,
     flex: 1,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.base,
     color: Colors.gray400,
   },
 
@@ -1180,9 +1185,7 @@ const styles = StyleSheet.create({
     ...Shadows.xs,
   },
   discoverChipText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    color: Colors.gray700,
+    ...TextStyles.label,
   },
 
   // === SECTIONS ===
@@ -1197,14 +1200,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
+    ...TextStyles.h2,
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: FontSizes['2xl'],
-    color: Colors.gray900,
-    letterSpacing: -0.5,
   },
   seeAllText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
+    ...TextStyles.smallBold,
     color: Colors.primary,
   },
 
@@ -1248,9 +1248,8 @@ const styles = StyleSheet.create({
     ...Shadows.xs,
   },
   searchInput: {
+    ...TextStyles.body,
     flex: 1,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.base,
     color: Colors.gray900,
     paddingVertical: 0,
   },
@@ -1283,8 +1282,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   chipText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+    ...TextStyles.label,
     color: Colors.gray600,
   },
   chipTextActive: {
@@ -1306,13 +1304,11 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   resultsCount: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+    ...TextStyles.label,
     color: Colors.textSecondary,
   },
   clearFilters: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+    ...TextStyles.label,
     color: Colors.primary,
   },
   loadingCenter: {
@@ -1325,14 +1321,12 @@ const styles = StyleSheet.create({
     paddingTop: Spacing['3xl'],
   },
   emptyTitle: {
-    fontFamily: FontFamily.displaySemiBold,
-    fontSize: FontSizes.lg,
+    ...TextStyles.h4,
     color: Colors.gray700,
     marginTop: Spacing.md,
   },
   emptySubtitle: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.textSecondary,
     marginTop: Spacing.xs,
   },
@@ -1345,8 +1339,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   loadMoreText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
+    ...TextStyles.button,
     color: Colors.primary,
   },
 
@@ -1371,9 +1364,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xs,
   },
   radiusLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    color: Colors.gray700,
+    ...TextStyles.label,
   },
   radiusValue: {
     fontFamily: FontFamily.bold,
@@ -1381,11 +1372,7 @@ const styles = StyleSheet.create({
     color: Colors.primary,
   },
   dateAccent: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
-    color: Colors.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    ...TextStyles.dateAccent,
     marginBottom: 2,
   },
   mapSelectedCard: {
@@ -1401,14 +1388,11 @@ const styles = StyleSheet.create({
     ...Shadows.md,
   },
   mapCardTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
     marginBottom: 2,
   },
   mapCardLocation: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.textSecondary,
   },
 
@@ -1433,9 +1417,7 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray100,
   },
   modalTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    color: Colors.gray900,
+    ...TextStyles.h3,
   },
   modalBody: {
     padding: Spacing.lg,
@@ -1444,9 +1426,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   filterSectionTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
     marginBottom: Spacing.md,
   },
   filterRow: {
@@ -1467,9 +1447,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   filterChipText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    color: Colors.gray700,
+    ...TextStyles.label,
   },
   filterChipTextActive: {
     color: Colors.white,
@@ -1523,8 +1501,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   resetBtnText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
+    ...TextStyles.button,
     color: Colors.gray700,
   },
   applyBtn: {
@@ -1535,8 +1512,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   applyBtnText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
-    color: Colors.white,
+    ...TextStyles.button,
   },
 });

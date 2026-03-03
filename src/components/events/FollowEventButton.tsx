@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { eventsAPI } from '../../api/client';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontSizes,
@@ -47,6 +48,7 @@ export default function FollowEventButton({
 }: FollowEventButtonProps) {
   const { user } = useAuth();
   const { showAlert, showError, showWarning } = useAlert();
+  const { colors, isDark } = useTheme();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const [isLoading, setIsLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -183,16 +185,17 @@ export default function FollowEventButton({
         activeOpacity={TOUCH_OPACITY}
         style={[
           styles.iconButton,
-          isFollowing && styles.iconButtonActive,
+          { backgroundColor: colors.gray100 },
+          isFollowing && { backgroundColor: colors.errorBg },
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? Colors.error : Colors.gray500} />
+          <ActivityIndicator size="small" color={isFollowing ? colors.error : colors.gray500} />
         ) : (
           <Ionicons
             name={isFollowing ? 'heart' : 'heart-outline'}
             size={22}
-            color={isFollowing ? Colors.error : Colors.gray600}
+            color={isFollowing ? colors.error : colors.gray600}
           />
         )}
       </TouchableOpacity>
@@ -208,19 +211,20 @@ export default function FollowEventButton({
         activeOpacity={TOUCH_OPACITY}
         style={[
           styles.compactButton,
-          isFollowing && styles.compactButtonActive,
+          { backgroundColor: colors.gray100 },
+          isFollowing && { backgroundColor: colors.errorBg },
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? Colors.error : Colors.gray600} />
+          <ActivityIndicator size="small" color={isFollowing ? colors.error : colors.gray600} />
         ) : (
           <>
             <Ionicons
               name={isFollowing ? 'heart' : 'heart-outline'}
               size={16}
-              color={isFollowing ? Colors.error : Colors.gray600}
+              color={isFollowing ? colors.error : colors.gray600}
             />
-            <Text style={[styles.compactText, isFollowing && styles.compactTextActive]}>
+            <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && { color: colors.error }]}>
               {isFollowing ? 'Suivi' : 'Suivre'}
             </Text>
           </>
@@ -239,24 +243,24 @@ export default function FollowEventButton({
           activeOpacity={TOUCH_OPACITY}
           style={[
             styles.mainButton,
-            isFollowing ? styles.mainButtonFollowing : styles.mainButtonDefault,
+            isFollowing ? [styles.mainButtonFollowing, { backgroundColor: colors.errorBg, borderColor: colors.errorBorder }] : styles.mainButtonDefault,
           ]}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={isFollowing ? Colors.error : Colors.white} />
+            <ActivityIndicator size="small" color={isFollowing ? colors.error : Colors.white} />
           ) : (
             <>
               <Ionicons
                 name={isFollowing ? 'heart' : 'heart-outline'}
                 size={20}
-                color={isFollowing ? Colors.error : Colors.white}
+                color={isFollowing ? colors.error : Colors.white}
               />
-              <Text style={[styles.mainButtonText, isFollowing && styles.mainButtonTextFollowing]}>
+              <Text style={[styles.mainButtonText, isFollowing && { color: colors.error }]}>
                 {isFollowing ? 'Vous suivez cet événement' : 'Suivre cet événement'}
               </Text>
               {showFollowerCount && followersCount > 0 && (
-                <View style={[styles.badge, isFollowing && styles.badgeFollowing]}>
-                  <Text style={[styles.badgeText, isFollowing && styles.badgeTextFollowing]}>
+                <View style={[styles.badge, isFollowing && { backgroundColor: colors.errorLight }]}>
+                  <Text style={[styles.badgeText, isFollowing && { color: colors.error }]}>
                     {followersCount}
                   </Text>
                 </View>
@@ -269,9 +273,9 @@ export default function FollowEventButton({
           <TouchableOpacity
             onPress={() => setShowPreferences(true)}
             activeOpacity={TOUCH_OPACITY}
-            style={styles.preferencesButton}
+            style={[styles.preferencesButton, { backgroundColor: colors.gray100 }]}
           >
-            <Ionicons name="notifications-outline" size={20} color={Colors.gray600} />
+            <Ionicons name="notifications-outline" size={20} color={colors.gray600} />
           </TouchableOpacity>
         )}
       </View>
@@ -283,31 +287,31 @@ export default function FollowEventButton({
         presentationStyle="pageSheet"
         onRequestClose={() => setShowPreferences(false)}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
+        <View style={[styles.modalContainer, { backgroundColor: colors.white }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
             <TouchableOpacity onPress={() => setShowPreferences(false)}>
-              <Text style={styles.modalCancel}>Annuler</Text>
+              <Text style={[styles.modalCancel, { color: colors.gray600 }]}>Annuler</Text>
             </TouchableOpacity>
-            <Text style={styles.modalTitle}>Préférences</Text>
+            <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Préférences</Text>
             <TouchableOpacity onPress={handleUpdatePreferences} disabled={isLoading}>
-              <Text style={[styles.modalSave, isLoading && styles.modalSaveDisabled]}>
+              <Text style={[styles.modalSave, { color: colors.primary }, isLoading && styles.modalSaveDisabled]}>
                 Enregistrer
               </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.modalContent}>
-            <Text style={styles.sectionTitle}>Niveau de notifications</Text>
-            <TouchableOpacity style={styles.levelSelector} onPress={selectNotificationLevel}>
-              <Text style={styles.levelText}>{getNotificationLabel()}</Text>
-              <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+            <Text style={[styles.sectionTitle, { color: colors.gray500 }]}>Niveau de notifications</Text>
+            <TouchableOpacity style={[styles.levelSelector, { backgroundColor: colors.gray50 }]} onPress={selectNotificationLevel}>
+              <Text style={[styles.levelText, { color: colors.gray900 }]}>{getNotificationLabel()}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
             </TouchableOpacity>
 
-            <Text style={styles.sectionTitle}>Canaux de notification</Text>
-            <View style={styles.switchRow}>
+            <Text style={[styles.sectionTitle, { color: colors.gray500 }]}>Canaux de notification</Text>
+            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
               <View style={styles.switchLabel}>
-                <Ionicons name="mail-outline" size={20} color={Colors.gray600} />
-                <Text style={styles.switchText}>Notifications par email</Text>
+                <Ionicons name="mail-outline" size={20} color={colors.gray600} />
+                <Text style={[styles.switchText, { color: colors.gray700 }]}>Notifications par email</Text>
               </View>
               <Switch
                 value={preferences.notify_email}
@@ -317,10 +321,10 @@ export default function FollowEventButton({
               />
             </View>
 
-            <View style={styles.switchRow}>
+            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
               <View style={styles.switchLabel}>
-                <Ionicons name="notifications-outline" size={20} color={Colors.gray600} />
-                <Text style={styles.switchText}>Notifications push</Text>
+                <Ionicons name="notifications-outline" size={20} color={colors.gray600} />
+                <Text style={[styles.switchText, { color: colors.gray700 }]}>Notifications push</Text>
               </View>
               <Switch
                 value={preferences.notify_push}
@@ -330,9 +334,9 @@ export default function FollowEventButton({
               />
             </View>
 
-            <Text style={styles.sectionTitle}>Me notifier pour</Text>
-            <View style={styles.switchRow}>
-              <Text style={styles.switchText}>Mises à jour de l'événement</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray500 }]}>Me notifier pour</Text>
+            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
+              <Text style={[styles.switchText, { color: colors.gray700 }]}>Mises à jour de l'événement</Text>
               <Switch
                 value={preferences.notify_updates}
                 onValueChange={(value) => setPreferences(p => ({ ...p, notify_updates: value }))}
@@ -341,8 +345,8 @@ export default function FollowEventButton({
               />
             </View>
 
-            <View style={styles.switchRow}>
-              <Text style={styles.switchText}>Rappels (7j et 1j avant)</Text>
+            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
+              <Text style={[styles.switchText, { color: colors.gray700 }]}>Rappels (7j et 1j avant)</Text>
               <Switch
                 value={preferences.notify_reminders}
                 onValueChange={(value) => setPreferences(p => ({ ...p, notify_reminders: value }))}
@@ -351,8 +355,8 @@ export default function FollowEventButton({
               />
             </View>
 
-            <View style={styles.switchRow}>
-              <Text style={styles.switchText}>Annulations</Text>
+            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
+              <Text style={[styles.switchText, { color: colors.gray700 }]}>Annulations</Text>
               <Switch
                 value={preferences.notify_cancellation}
                 onValueChange={(value) => setPreferences(p => ({ ...p, notify_cancellation: value }))}

@@ -1,11 +1,12 @@
 /**
- * Composant d'indicateur de frappe animé
- * Affiche les dots animés quand quelqu'un écrit
+ * Composant d'indicateur de frappe anime
+ * Affiche les dots animes quand quelqu'un ecrit
  */
 
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { Colors, FontFamily, FontSizes, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface TypingIndicatorProps {
   typingUsers: string[];
@@ -13,6 +14,8 @@ interface TypingIndicatorProps {
 }
 
 export default function TypingIndicator({ typingUsers, compact = false }: TypingIndicatorProps) {
+  const { colors, isDark } = useTheme();
+
   // Animations pour les 3 dots
   const dot1Anim = useRef(new Animated.Value(0)).current;
   const dot2Anim = useRef(new Animated.Value(0)).current;
@@ -21,7 +24,7 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
   useEffect(() => {
     if (typingUsers.length === 0) return;
 
-    // Animation séquentielle des dots
+    // Animation sequentielle des dots
     const createDotAnimation = (anim: Animated.Value, delay: number) => {
       return Animated.loop(
         Animated.sequence([
@@ -61,12 +64,12 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
   // Formatage du texte
   const getTypingText = () => {
     if (typingUsers.length === 1) {
-      return `${typingUsers[0]} écrit`;
+      return `${typingUsers[0]} ecrit`;
     }
     if (typingUsers.length === 2) {
-      return `${typingUsers[0]} et ${typingUsers[1]} écrivent`;
+      return `${typingUsers[0]} et ${typingUsers[1]} ecrivent`;
     }
-    return `${typingUsers[0]} et ${typingUsers.length - 1} autres écrivent`;
+    return `${typingUsers[0]} et ${typingUsers.length - 1} autres ecrivent`;
   };
 
   const dotStyle = (anim: Animated.Value) => ({
@@ -88,24 +91,24 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
     return (
       <View style={styles.compactContainer}>
         <View style={styles.dotsContainer}>
-          <Animated.View style={[styles.dot, dotStyle(dot1Anim)]} />
-          <Animated.View style={[styles.dot, dotStyle(dot2Anim)]} />
-          <Animated.View style={[styles.dot, dotStyle(dot3Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot1Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot2Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot3Anim)]} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.bubble}>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.gray100 }]}>
+      <View style={[styles.bubble, { backgroundColor: colors.gray100 }]}>
         <View style={styles.dotsContainer}>
-          <Animated.View style={[styles.dot, dotStyle(dot1Anim)]} />
-          <Animated.View style={[styles.dot, dotStyle(dot2Anim)]} />
-          <Animated.View style={[styles.dot, dotStyle(dot3Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot1Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot2Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot3Anim)]} />
         </View>
       </View>
-      <Text style={styles.text}>{getTypingText()}</Text>
+      <Text style={[styles.text, { color: colors.gray500 }]}>{getTypingText()}</Text>
     </View>
   );
 }

@@ -8,6 +8,7 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -17,6 +18,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { registrationsAPI, eventsAPI } from '../../api/client';
 import { RootStackParamList, Registration, Event } from '../../types';
@@ -48,6 +50,7 @@ export default function QRScannerScreen() {
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
   const { showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -189,7 +192,7 @@ export default function QRScannerScreen() {
 
   if (!permission) {
     return (
-      <View style={styles.permissionContainer}>
+      <View style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
 <LoadingSpinner message="Chargement..." />
       </View>
     );
@@ -197,20 +200,21 @@ export default function QRScannerScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={styles.permissionContainer}>
-        <Ionicons name="camera-outline" size={64} color={Colors.gray400} />
-        <Text style={styles.permissionTitle}>Accès à la caméra requis</Text>
-        <Text style={styles.permissionText}>
+      <SafeAreaView style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+        <Ionicons name="camera-outline" size={64} color={colors.gray400} />
+        <Text style={[styles.permissionTitle, { color: colors.text }]}>Accès à la caméra requis</Text>
+        <Text style={[styles.permissionText, { color: colors.gray500 }]}>
           Pour scanner les QR codes, autorisez l'accès à la caméra
         </Text>
-        <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
+        <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
           <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.backLink}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.backLinkText}>Retour</Text>
+          <Text style={[styles.backLinkText, { color: colors.gray500 }]}>Retour</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
@@ -237,7 +241,7 @@ export default function QRScannerScreen() {
             style={styles.headerButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="close" size={24} color={Colors.white} />
+            <Ionicons name="close" size={24} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Scanner QR</Text>
@@ -254,7 +258,7 @@ export default function QRScannerScreen() {
             <Ionicons
               name={flashOn ? 'flash' : 'flash-outline'}
               size={24}
-              color={flashOn ? '#FBBF24' : Colors.white}
+              color={flashOn ? '#FBBF24' : colors.white}
             />
           </TouchableOpacity>
         </SafeAreaView>
@@ -270,7 +274,7 @@ export default function QRScannerScreen() {
 
             {processing && (
               <View style={styles.processingOverlay}>
-                <ActivityIndicator size="large" color={Colors.white} />
+                <ActivityIndicator size="large" color={colors.white} />
                 <Text style={styles.processingText}>Vérification...</Text>
               </View>
             )}
@@ -305,8 +309,8 @@ export default function QRScannerScreen() {
             style={styles.autoCheckInToggle}
             onPress={() => setAutoCheckIn(!autoCheckIn)}
           >
-            <View style={[styles.checkbox, autoCheckIn && styles.checkboxActive]}>
-              {autoCheckIn && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+            <View style={[styles.checkbox, autoCheckIn && [styles.checkboxActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}>
+              {autoCheckIn && <Ionicons name="checkmark" size={14} color={colors.white} />}
             </View>
             <Text style={styles.autoCheckInText}>Check-in automatique après scan</Text>
           </TouchableOpacity>
@@ -321,43 +325,43 @@ export default function QRScannerScreen() {
         onRequestClose={handleContinueScan}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
             {scanResult?.success ? (
               <>
-                <View style={[styles.resultIcon, styles.resultIconSuccess]}>
-                  <Ionicons name="checkmark-circle" size={64} color="#10B981" />
+                <View style={[styles.resultIcon, { backgroundColor: colors.successLight }]}>
+                  <Ionicons name="checkmark-circle" size={64} color={colors.success} />
                 </View>
-                <Text style={styles.resultTitle}>
+                <Text style={[styles.resultTitle, { color: colors.text }]}>
                   {scanResult.alreadyCheckedIn ? 'Déjà enregistré' : 'Succès!'}
                 </Text>
-                <Text style={styles.resultMessage}>{scanResult.message}</Text>
+                <Text style={[styles.resultMessage, { color: colors.gray500 }]}>{scanResult.message}</Text>
 
                 {scanResult.registration && (
-                  <View style={styles.ticketDetails}>
-                    <View style={styles.ticketDetailRow}>
-                      <Text style={styles.ticketDetailLabel}>Participant</Text>
-                      <Text style={styles.ticketDetailValue}>
+                  <View style={[styles.ticketDetails, { backgroundColor: colors.gray50 }]}>
+                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Participant</Text>
+                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.user_name ||
                           `${scanResult.registration.user?.first_name || ''} ${scanResult.registration.user?.last_name || ''}`.trim() ||
                           scanResult.registration.user_email ||
                           'N/A'}
                       </Text>
                     </View>
-                    <View style={styles.ticketDetailRow}>
-                      <Text style={styles.ticketDetailLabel}>Email</Text>
-                      <Text style={styles.ticketDetailValue}>
+                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Email</Text>
+                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.user_email || scanResult.registration.user?.email || 'N/A'}
                       </Text>
                     </View>
-                    <View style={styles.ticketDetailRow}>
-                      <Text style={styles.ticketDetailLabel}>Type</Text>
-                      <Text style={styles.ticketDetailValue}>
+                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Type</Text>
+                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.registration_type || 'Standard'}
                       </Text>
                     </View>
-                    <View style={styles.ticketDetailRow}>
-                      <Text style={styles.ticketDetailLabel}>Référence</Text>
-                      <Text style={styles.ticketDetailValue}>
+                    <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Référence</Text>
+                      <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.reference_code || scanResult.registration.id?.slice(0, 8).toUpperCase()}
                       </Text>
                     </View>
@@ -371,10 +375,10 @@ export default function QRScannerScreen() {
                     disabled={processing}
                   >
                     {processing ? (
-                      <ActivityIndicator size="small" color={Colors.white} />
+                      <ActivityIndicator size="small" color={colors.white} />
                     ) : (
                       <>
-                        <Ionicons name="checkmark-done" size={20} color={Colors.white} />
+                        <Ionicons name="checkmark-done" size={20} color={colors.white} />
                         <Text style={styles.manualCheckInText}>Effectuer le check-in</Text>
                       </>
                     )}
@@ -383,19 +387,19 @@ export default function QRScannerScreen() {
               </>
             ) : (
               <>
-                <View style={[styles.resultIcon, styles.resultIconError]}>
-                  <Ionicons name="close-circle" size={64} color="#EF4444" />
+                <View style={[styles.resultIcon, { backgroundColor: colors.errorLight }]}>
+                  <Ionicons name="close-circle" size={64} color={colors.error} />
                 </View>
-                <Text style={styles.resultTitle}>Échec</Text>
-                <Text style={styles.resultMessage}>{scanResult?.message}</Text>
+                <Text style={[styles.resultTitle, { color: colors.text }]}>Échec</Text>
+                <Text style={[styles.resultMessage, { color: colors.gray500 }]}>{scanResult?.message}</Text>
               </>
             )}
 
             <TouchableOpacity
-              style={styles.continueButton}
+              style={[styles.continueButton, { backgroundColor: colors.primary }]}
               onPress={handleContinueScan}
             >
-              <Ionicons name="scan-outline" size={20} color={Colors.white} />
+              <Ionicons name="scan-outline" size={20} color={colors.white} />
               <Text style={styles.continueButtonText}>Scanner un autre</Text>
             </TouchableOpacity>
           </View>

@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useCallback } from 'react';
-import { ViewStyle, StyleProp } from 'react-native';
+import { View, ViewStyle, StyleProp } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -24,6 +24,7 @@ import Animated, {
   Layout,
 } from 'react-native-reanimated';
 import { SpringPresets, ANIMATION_DURATION } from '../../constants/theme';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 
 // ============================================
 // 1. FadeInView — Entrance fade + slide up
@@ -44,9 +45,11 @@ export function FadeInView({
   translateY = 16,
   style,
 }: FadeInViewProps) {
-  const progress = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  const progress = useSharedValue(reducedMotion ? 1 : 0);
 
   useEffect(() => {
+    if (reducedMotion) return;
     progress.value = withDelay(
       delay,
       withTiming(1, { duration, easing: Easing.out(Easing.cubic) })
@@ -59,6 +62,10 @@ export function FadeInView({
       { translateY: interpolate(progress.value, [0, 1], [translateY, 0]) },
     ],
   }));
+
+  if (reducedMotion) {
+    return <View style={style}>{children}</View>;
+  }
 
   return (
     <Animated.View style={[animatedStyle, style]}>
@@ -84,9 +91,11 @@ export function StaggeredItem({
   staggerDelay = 60,
   style,
 }: StaggeredItemProps) {
-  const progress = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  const progress = useSharedValue(reducedMotion ? 1 : 0);
 
   useEffect(() => {
+    if (reducedMotion) return;
     progress.value = withDelay(
       index * staggerDelay,
       withSpring(1, { damping: 18, stiffness: 200 })
@@ -100,6 +109,10 @@ export function StaggeredItem({
       { scale: interpolate(progress.value, [0, 1], [0.95, 1]) },
     ],
   }));
+
+  if (reducedMotion) {
+    return <View style={style}>{children}</View>;
+  }
 
   return (
     <Animated.View style={[animatedStyle, style]}>

@@ -21,6 +21,7 @@ import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
 import { Event, Category, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -68,6 +69,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { unreadNotificationCount, unreadMessageCount } = useNotifications();
+  const { colors, isDark } = useTheme();
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -229,18 +231,18 @@ export default function HomeScreen() {
 
   const SectionHeader = ({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) => (
     <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
       {onSeeAll && (
         <TouchableOpacity onPress={onSeeAll}>
-          <Text style={styles.seeAllText}>Voir tout</Text>
+          <Text style={[styles.seeAllText, { color: colors.primary }]}>Voir tout</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -248,14 +250,14 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
         contentContainerStyle={styles.scrollContent}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.white }]}>
           <Image
             source={require('../../../assets/logo.png')}
             style={styles.logoImage}
@@ -263,12 +265,12 @@ export default function HomeScreen() {
           />
           <View style={styles.headerActions}>
             <TouchableOpacity
-              style={styles.headerButton}
+              style={[styles.headerButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('Messages')}
             >
-              <Ionicons name="chatbubble-outline" size={22} color={Colors.gray800} />
+              <Ionicons name="chatbubble-outline" size={22} color={colors.gray800} />
               {unreadMessageCount > 0 && (
-                <View style={styles.notificationBadge}>
+                <View style={[styles.notificationBadge, { backgroundColor: colors.error }]}>
                   <Text style={styles.notificationBadgeText}>
                     {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
                   </Text>
@@ -276,12 +278,12 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.headerButton}
+              style={[styles.headerButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('Notifications')}
             >
-              <Ionicons name="notifications-outline" size={24} color={Colors.gray800} />
+              <Ionicons name="notifications-outline" size={24} color={colors.gray800} />
               {unreadNotificationCount > 0 && (
-                <View style={styles.notificationBadge}>
+                <View style={[styles.notificationBadge, { backgroundColor: colors.error }]}>
                   <Text style={styles.notificationBadgeText}>
                     {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
                   </Text>
@@ -293,21 +295,21 @@ export default function HomeScreen() {
 
         {/* Search Bar */}
         <TouchableOpacity
-          style={styles.searchBar}
+          style={[styles.searchBar, { backgroundColor: colors.gray50 }]}
           onPress={() => navigation.navigate('Main', { screen: 'Explore' } as any)}
           activeOpacity={0.7}
         >
-          <Ionicons name="search" size={20} color={Colors.gray400} />
-          <Text style={styles.searchPlaceholder}>Rechercher un événement</Text>
+          <Ionicons name="search" size={20} color={colors.gray400} />
+          <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>Rechercher un événement</Text>
         </TouchableOpacity>
 
         {/* Location Row */}
         <TouchableOpacity style={styles.locationRow} activeOpacity={0.7}>
-          <Ionicons name="location-outline" size={18} color={Colors.primary} />
-          <Text style={styles.locationText}>
+          <Ionicons name="location-outline" size={18} color={colors.primary} />
+          <Text style={[styles.locationText, { color: colors.gray700 }]}>
             {location ? 'Événements près de vous' : 'Douala, Cameroun'}
           </Text>
-          <Ionicons name="chevron-down" size={16} color={Colors.gray400} />
+          <Ionicons name="chevron-down" size={16} color={colors.gray400} />
         </TouchableOpacity>
 
         {/* Categories */}

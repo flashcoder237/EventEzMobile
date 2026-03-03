@@ -24,6 +24,7 @@ import { Event, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -61,6 +62,7 @@ export default function ModerationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showSuccess, showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [events, setEvents] = useState<PendingEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -206,21 +208,21 @@ export default function ModerationScreen() {
   // Access denied for non-moderators
   if (!isModerator) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={styles.accessDenied}>
-          <View style={styles.accessDeniedIcon}>
-            <Ionicons name="shield-outline" size={48} color={Colors.gray400} />
+          <View style={[styles.accessDeniedIcon, { backgroundColor: colors.gray100 }]}>
+            <Ionicons name="shield-outline" size={48} color={colors.gray400} />
           </View>
-          <Text style={styles.accessDeniedTitle}>Accès restreint</Text>
-          <Text style={styles.accessDeniedText}>
+          <Text style={[styles.accessDeniedTitle, { color: colors.gray700 }]}>Accès restreint</Text>
+          <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
             Cette section est réservée aux modérateurs et administrateurs.
           </Text>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backButtonText}>Retour</Text>
+            <Text style={[styles.backButtonText, { color: colors.white }]}>Retour</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -232,7 +234,7 @@ export default function ModerationScreen() {
     const isBilletterie = item.event_type === 'billetterie';
 
     return (
-      <View style={styles.card}>
+      <View style={[styles.card, { backgroundColor: colors.white, borderColor: colors.gray100 }]}>
         {/* Image */}
         <View style={styles.cardImage}>
           {item.banner_image ? (
@@ -242,7 +244,7 @@ export default function ModerationScreen() {
               <Ionicons
                 name={isBilletterie ? 'ticket' : 'document-text'}
                 size={24}
-                color={isBilletterie ? Colors.primary : '#8B5CF6'}
+                color={isBilletterie ? colors.primary : '#8B5CF6'}
               />
             </View>
           )}
@@ -250,7 +252,7 @@ export default function ModerationScreen() {
             <Ionicons
               name={isBilletterie ? 'ticket' : 'document-text'}
               size={10}
-              color={Colors.white}
+              color={colors.white}
             />
             <Text style={styles.typeBadgeText}>
               {isBilletterie ? 'Billetterie' : 'Inscription'}
@@ -260,67 +262,67 @@ export default function ModerationScreen() {
 
         {/* Content */}
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={[styles.cardTitle, { color: colors.gray900 }]} numberOfLines={2}>{item.title}</Text>
 
           {item.short_description && (
-            <Text style={styles.cardDescription} numberOfLines={2}>
+            <Text style={[styles.cardDescription, { color: colors.gray600 }]} numberOfLines={2}>
               {item.short_description}
             </Text>
           )}
 
           <View style={styles.cardMeta}>
             <View style={styles.metaItem}>
-              <Ionicons name="person-outline" size={12} color={Colors.gray400} />
-              <Text style={styles.metaText} numberOfLines={1}>{getOrganizerName(item)}</Text>
+              <Ionicons name="person-outline" size={12} color={colors.gray400} />
+              <Text style={[styles.metaText, { color: colors.gray500 }]} numberOfLines={1}>{getOrganizerName(item)}</Text>
             </View>
             {item.location_city && (
               <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={12} color={Colors.gray400} />
-                <Text style={styles.metaText}>{item.location_city}</Text>
+                <Ionicons name="location-outline" size={12} color={colors.gray400} />
+                <Text style={[styles.metaText, { color: colors.gray500 }]}>{item.location_city}</Text>
               </View>
             )}
             <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={12} color={Colors.gray400} />
-              <Text style={styles.metaText}>{formatDate(item.start_date)}</Text>
+              <Ionicons name="calendar-outline" size={12} color={colors.gray400} />
+              <Text style={[styles.metaText, { color: colors.gray500 }]}>{formatDate(item.start_date)}</Text>
             </View>
           </View>
 
-          <View style={styles.submittedInfo}>
-            <Ionicons name="time-outline" size={12} color={Colors.gray400} />
-            <Text style={styles.submittedText}>Soumis {getTimeSince(item.created_at)}</Text>
+          <View style={[styles.submittedInfo, { borderTopColor: colors.gray100 }]}>
+            <Ionicons name="time-outline" size={12} color={colors.gray400} />
+            <Text style={[styles.submittedText, { color: colors.gray400 }]}>Soumis {getTimeSince(item.created_at)}</Text>
           </View>
         </View>
 
         {/* Actions */}
-        <View style={styles.cardActions}>
+        <View style={[styles.cardActions, { borderTopColor: colors.gray100, backgroundColor: colors.gray50 }]}>
           <TouchableOpacity
             style={styles.viewButton}
             onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
           >
-            <Ionicons name="eye-outline" size={18} color={Colors.primary} />
+            <Ionicons name="eye-outline" size={18} color={colors.primary} />
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.rejectButton}
+            style={[styles.rejectButton, { backgroundColor: colors.errorLight }]}
             onPress={() => openRejectModal(item)}
             disabled={isActionLoading}
           >
             {isActionLoading && actionLoading === item.id ? (
-              <ActivityIndicator size="small" color={Colors.error} />
+              <ActivityIndicator size="small" color={colors.error} />
             ) : (
-              <Ionicons name="close-circle" size={20} color={Colors.error} />
+              <Ionicons name="close-circle" size={20} color={colors.error} />
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.validateButton}
+            style={[styles.validateButton, { backgroundColor: colors.success }]}
             onPress={() => handleValidate(item.id)}
             disabled={isActionLoading}
           >
             {isActionLoading && actionLoading === item.id ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
+              <Ionicons name="checkmark-circle" size={20} color={colors.white} />
             )}
           </TouchableOpacity>
         </View>
@@ -330,11 +332,11 @@ export default function ModerationScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name="sparkles" size={48} color={Colors.success} />
+      <View style={[styles.emptyIcon, { backgroundColor: colors.successLight }]}>
+        <Ionicons name="sparkles" size={48} color={colors.success} />
       </View>
-      <Text style={styles.emptyTitle}>Aucun événement en attente</Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement en attente</Text>
+      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filterType !== 'all'
           ? 'Aucun événement ne correspond à vos critères.'
           : 'Tous les événements ont été traités. Excellent travail !'}
@@ -344,7 +346,7 @@ export default function ModerationScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle="light-content" backgroundColor="#312E81" />
         <LoadingSpinner />
       </SafeAreaView>
@@ -352,10 +354,10 @@ export default function ModerationScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#312E81" />
 
-      {/* Header */}
+      {/* Header - gradient/colored background, Colors.white is fine */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.headerBackButton}
@@ -375,43 +377,43 @@ export default function ModerationScreen() {
       </View>
 
       {/* Stats */}
-      <View style={styles.statsContainer}>
+      <View style={[styles.statsContainer, { backgroundColor: colors.white }]}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{stats.total}</Text>
-          <Text style={styles.statLabel}>En attente</Text>
+          <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.total}</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>En attente</Text>
         </View>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
         <View style={styles.statItem}>
           <View style={styles.statRow}>
             <Ionicons name="ticket" size={14} color="#A78BFA" />
-            <Text style={styles.statValue}>{stats.billetterie}</Text>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.billetterie}</Text>
           </View>
-          <Text style={styles.statLabel}>Billetterie</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Billetterie</Text>
         </View>
-        <View style={styles.statDivider} />
+        <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
         <View style={styles.statItem}>
           <View style={styles.statRow}>
             <Ionicons name="document-text" size={14} color="#60A5FA" />
-            <Text style={styles.statValue}>{stats.inscription}</Text>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.inscription}</Text>
           </View>
-          <Text style={styles.statLabel}>Inscription</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Inscription</Text>
         </View>
       </View>
 
       {/* Search & Filter */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <Ionicons name="search" size={18} color={Colors.gray400} />
+        <View style={[styles.searchInputWrapper, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
+          <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.gray900 }]}
             placeholder="Rechercher par titre, organisateur..."
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.gray400} />
+              <Ionicons name="close-circle" size={18} color={colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
@@ -420,10 +422,10 @@ export default function ModerationScreen() {
       {/* Filter Chips */}
       <View style={styles.filterContainer}>
         <TouchableOpacity
-          style={[styles.filterChip, filterType === 'all' && styles.filterChipActive]}
+          style={[styles.filterChip, { backgroundColor: colors.white, borderColor: colors.gray200 }, filterType === 'all' && styles.filterChipActive]}
           onPress={() => setFilterType('all')}
         >
-          <Text style={[styles.filterChipText, filterType === 'all' && styles.filterChipTextActive]}>
+          <Text style={[styles.filterChipText, { color: colors.gray600 }, filterType === 'all' && styles.filterChipTextActive]}>
             Tous ({stats.total})
           </Text>
         </TouchableOpacity>
@@ -434,12 +436,12 @@ export default function ModerationScreen() {
           <Ionicons
             name="ticket"
             size={12}
-            color={filterType === 'billetterie' ? Colors.white : Colors.primary}
+            color={filterType === 'billetterie' ? Colors.white : colors.primary}
           />
           <Text style={[
             styles.filterChipText,
             filterType === 'billetterie' && styles.filterChipTextActive,
-            filterType !== 'billetterie' && { color: Colors.primary }
+            filterType !== 'billetterie' && { color: colors.primary }
           ]}>
             Billetterie ({stats.billetterie})
           </Text>
@@ -465,7 +467,7 @@ export default function ModerationScreen() {
 
       {/* Results count */}
       <View style={styles.resultsInfo}>
-        <Text style={styles.resultsText}>
+        <Text style={[styles.resultsText, { color: colors.gray500 }]}>
           {filteredEvents.length} événement{filteredEvents.length !== 1 ? 's' : ''} en attente
         </Text>
       </View>
@@ -483,7 +485,7 @@ export default function ModerationScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
+            tintColor={colors.primary}
           />
         }
       />
@@ -497,12 +499,12 @@ export default function ModerationScreen() {
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.white }]}>
             <View style={styles.modalHeader}>
-              <View style={styles.modalIconContainer}>
-                <Ionicons name="close-circle" size={24} color={Colors.error} />
+              <View style={[styles.modalIconContainer, { backgroundColor: colors.errorLight }]}>
+                <Ionicons name="close-circle" size={24} color={colors.error} />
               </View>
-              <Text style={styles.modalTitle}>Rejeter l'événement</Text>
+              <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Rejeter l'événement</Text>
               <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => {
@@ -511,24 +513,24 @@ export default function ModerationScreen() {
                   setRejectionReason('');
                 }}
               >
-                <Ionicons name="close" size={24} color={Colors.gray500} />
+                <Ionicons name="close" size={24} color={colors.gray500} />
               </TouchableOpacity>
             </View>
 
             {selectedEvent && (
-              <Text style={styles.modalEventTitle}>
+              <Text style={[styles.modalEventTitle, { color: colors.gray700 }]}>
                 "{selectedEvent.title}"
               </Text>
             )}
 
-            <Text style={styles.modalDescription}>
+            <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
               Veuillez indiquer la raison du rejet. L'organisateur recevra cette information.
             </Text>
 
             <TextInput
-              style={styles.modalTextInput}
+              style={[styles.modalTextInput, { backgroundColor: colors.gray50, color: colors.gray900 }]}
               placeholder="Raison du rejet (obligatoire)..."
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               value={rejectionReason}
               onChangeText={setRejectionReason}
               multiline
@@ -538,7 +540,7 @@ export default function ModerationScreen() {
 
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.modalCancelButton}
+                style={[styles.modalCancelButton, { backgroundColor: colors.gray100 }]}
                 onPress={() => {
                   setShowRejectModal(false);
                   setSelectedEvent(null);
@@ -546,22 +548,23 @@ export default function ModerationScreen() {
                 }}
                 disabled={actionLoading !== null}
               >
-                <Text style={styles.modalCancelButtonText}>Annuler</Text>
+                <Text style={[styles.modalCancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
                   styles.modalRejectButton,
+                  { backgroundColor: colors.error },
                   (!rejectionReason.trim() || actionLoading !== null) && styles.modalButtonDisabled
                 ]}
                 onPress={handleReject}
                 disabled={!rejectionReason.trim() || actionLoading !== null}
               >
                 {actionLoading !== null ? (
-                  <ActivityIndicator size="small" color={Colors.white} />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
                   <>
-                    <Ionicons name="close-circle" size={16} color={Colors.white} />
-                    <Text style={styles.modalRejectButtonText}>Confirmer le rejet</Text>
+                    <Ionicons name="close-circle" size={16} color={colors.white} />
+                    <Text style={[styles.modalRejectButtonText, { color: colors.white }]}>Confirmer le rejet</Text>
                   </>
                 )}
               </TouchableOpacity>

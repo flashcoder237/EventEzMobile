@@ -16,8 +16,9 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { usersAPI, eventsAPI } from '../../api/client';
-import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
+import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList, User, Event } from '../../types';
 import {
   Colors,
@@ -37,6 +38,7 @@ export default function OrganizerProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
+  const { colors, isDark } = useTheme();
   const { organizerId } = route.params;
 
   const [organizer, setOrganizer] = useState<User | null>(null);
@@ -81,7 +83,7 @@ export default function OrganizerProfileScreen() {
     if (!organizer) return;
     // Navigate to a conversation with this organizer
     navigation.navigate('Conversation', {
-      userId: organizer.id,
+      userId: String(organizer.id),
       userName: getDisplayName(organizer),
     });
   }, [organizer, navigation]);
@@ -115,34 +117,34 @@ export default function OrganizerProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Organisateur</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
           <View style={styles.headerRight} />
         </View>
-        <DetailScreenSkeleton />
+        <ProfileSkeleton />
       </SafeAreaView>
     );
   }
 
   if (!organizer) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Organisateur</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
           <View style={styles.headerRight} />
         </View>
         <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.errorText}>Organisateur introuvable</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>Organisateur introuvable</Text>
         </View>
       </SafeAreaView>
     );
@@ -158,15 +160,15 @@ export default function OrganizerProfileScreen() {
   const socialLinks = profile?.social_links;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Organisateur</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -180,28 +182,28 @@ export default function OrganizerProfileScreen() {
           {profileImage ? (
             <Image source={{ uri: profileImage }} style={styles.avatar} />
           ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="business" size={40} color={Colors.gray400} />
+            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray100 }]}>
+              <Ionicons name="business" size={40} color={colors.gray400} />
             </View>
           )}
 
           <View style={styles.nameRow}>
-            <Text style={styles.name}>{displayName}</Text>
+            <Text style={[styles.name, { color: colors.gray900 }]}>{displayName}</Text>
             {isVerified && (
               <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color={Colors.primary} />
+                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
               </View>
             )}
           </View>
 
           {organizer.company_name && organizer.company_name !== displayName && (
-            <Text style={styles.companyName}>{organizer.company_name}</Text>
+            <Text style={[styles.companyName, { color: colors.gray500 }]}>{organizer.company_name}</Text>
           )}
 
           {(organizer.city || organizer.country) && (
             <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={16} color={Colors.gray400} />
-              <Text style={styles.locationText}>
+              <Ionicons name="location-outline" size={16} color={colors.gray400} />
+              <Text style={[styles.locationText, { color: colors.gray500 }]}>
                 {[organizer.city, organizer.country].filter(Boolean).join(', ')}
               </Text>
             </View>
@@ -209,26 +211,26 @@ export default function OrganizerProfileScreen() {
         </View>
 
         {/* Stats */}
-        <View style={styles.statsRow}>
+        <View style={[styles.statsRow, { backgroundColor: colors.gray50 }]}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>{eventCount}</Text>
-            <Text style={styles.statLabel}>{eventCount === 1 ? 'Evenement' : 'Evenements'}</Text>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{eventCount}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{eventCount === 1 ? 'Evenement' : 'Evenements'}</Text>
           </View>
           {rating != null && rating > 0 && (
             <View style={styles.statItem}>
               <View style={styles.ratingRow}>
-                <Text style={styles.statValue}>{rating.toFixed(1)}</Text>
-                <Ionicons name="star" size={16} color={Colors.warning} />
+                <Text style={[styles.statValue, { color: colors.gray900 }]}>{rating.toFixed(1)}</Text>
+                <Ionicons name="star" size={16} color={colors.warning} />
               </View>
-              <Text style={styles.statLabel}>Note</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Note</Text>
             </View>
           )}
           {organizer.created_at && (
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>
+              <Text style={[styles.statValue, { color: colors.gray900 }]}>
                 {new Date(organizer.created_at).getFullYear()}
               </Text>
-              <Text style={styles.statLabel}>Membre depuis</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Membre depuis</Text>
             </View>
           )}
         </View>
@@ -236,7 +238,7 @@ export default function OrganizerProfileScreen() {
         {/* Action Buttons */}
         <View style={styles.actionsRow}>
           <TouchableOpacity
-            style={styles.contactButton}
+            style={[styles.contactButton, { backgroundColor: colors.primary }]}
             onPress={handleContact}
             activeOpacity={TOUCH_OPACITY}
           >
@@ -248,54 +250,54 @@ export default function OrganizerProfileScreen() {
         {/* Description */}
         {description && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>A propos</Text>
-            <Text style={styles.descriptionText}>{description}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>A propos</Text>
+            <Text style={[styles.descriptionText, { color: colors.gray600 }]}>{description}</Text>
           </View>
         )}
 
         {/* Social Links */}
         {socialLinks && (socialLinks.facebook || socialLinks.twitter || socialLinks.instagram || socialLinks.linkedin) && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Reseaux sociaux</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Reseaux sociaux</Text>
             <View style={styles.socialLinksRow}>
               {socialLinks.facebook && (
                 <TouchableOpacity
-                  style={styles.socialButton}
+                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => handleOpenLink(socialLinks.facebook)}
                   activeOpacity={TOUCH_OPACITY}
                 >
                   <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-                  <Text style={styles.socialButtonText}>Facebook</Text>
+                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Facebook</Text>
                 </TouchableOpacity>
               )}
               {socialLinks.instagram && (
                 <TouchableOpacity
-                  style={styles.socialButton}
+                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => handleOpenLink(socialLinks.instagram)}
                   activeOpacity={TOUCH_OPACITY}
                 >
                   <Ionicons name="logo-instagram" size={24} color="#E4405F" />
-                  <Text style={styles.socialButtonText}>Instagram</Text>
+                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Instagram</Text>
                 </TouchableOpacity>
               )}
               {socialLinks.twitter && (
                 <TouchableOpacity
-                  style={styles.socialButton}
+                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => handleOpenLink(socialLinks.twitter)}
                   activeOpacity={TOUCH_OPACITY}
                 >
                   <Ionicons name="logo-twitter" size={24} color="#1DA1F2" />
-                  <Text style={styles.socialButtonText}>Twitter</Text>
+                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Twitter</Text>
                 </TouchableOpacity>
               )}
               {socialLinks.linkedin && (
                 <TouchableOpacity
-                  style={styles.socialButton}
+                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => handleOpenLink(socialLinks.linkedin)}
                   activeOpacity={TOUCH_OPACITY}
                 >
                   <Ionicons name="logo-linkedin" size={24} color="#0A66C2" />
-                  <Text style={styles.socialButtonText}>LinkedIn</Text>
+                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>LinkedIn</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -305,71 +307,71 @@ export default function OrganizerProfileScreen() {
         {/* Website */}
         {profile?.website && (
           <TouchableOpacity
-            style={styles.websiteCard}
+            style={[styles.websiteCard, { backgroundColor: colors.gray50 }]}
             onPress={() => handleOpenLink(profile.website)}
             activeOpacity={TOUCH_OPACITY}
           >
-            <View style={styles.websiteIconContainer}>
-              <Ionicons name="globe-outline" size={22} color={Colors.primary} />
+            <View style={[styles.websiteIconContainer, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name="globe-outline" size={22} color={colors.primary} />
             </View>
             <View style={styles.websiteTextContainer}>
-              <Text style={styles.websiteLabel}>Site web</Text>
-              <Text style={styles.websiteUrl} numberOfLines={1}>{profile.website}</Text>
+              <Text style={[styles.websiteLabel, { color: colors.gray500 }]}>Site web</Text>
+              <Text style={[styles.websiteUrl, { color: colors.primary }]} numberOfLines={1}>{profile.website}</Text>
             </View>
-            <Ionicons name="open-outline" size={18} color={Colors.gray400} />
+            <Ionicons name="open-outline" size={18} color={colors.gray400} />
           </TouchableOpacity>
         )}
 
         {/* Events */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Evenements</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Evenements</Text>
           {isLoadingEvents ? (
             <View style={styles.eventsLoadingContainer}>
-              <ActivityIndicator size="small" color={Colors.primary} />
-              <Text style={styles.eventsLoadingText}>Chargement des evenements...</Text>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.eventsLoadingText, { color: colors.gray500 }]}>Chargement des evenements...</Text>
             </View>
           ) : events.length > 0 ? (
             events.map((event) => (
               <TouchableOpacity
                 key={event.id}
-                style={styles.eventCard}
+                style={[styles.eventCard, { backgroundColor: colors.gray50 }]}
                 onPress={() => navigateToEvent(event.id)}
                 activeOpacity={TOUCH_OPACITY}
               >
                 {event.banner_image ? (
                   <Image source={{ uri: event.banner_image }} style={styles.eventImage} />
                 ) : (
-                  <View style={styles.eventImagePlaceholder}>
-                    <Ionicons name="image-outline" size={24} color={Colors.gray300} />
+                  <View style={[styles.eventImagePlaceholder, { backgroundColor: colors.gray200 }]}>
+                    <Ionicons name="image-outline" size={24} color={colors.gray300} />
                   </View>
                 )}
                 <View style={styles.eventInfo}>
-                  <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
+                  <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>{event.title}</Text>
                   <View style={styles.eventDateRow}>
-                    <Ionicons name="calendar-outline" size={14} color={Colors.gray400} />
-                    <Text style={styles.eventDate}>{formatDate(event.start_date)}</Text>
+                    <Ionicons name="calendar-outline" size={14} color={colors.gray400} />
+                    <Text style={[styles.eventDate, { color: colors.gray500 }]}>{formatDate(event.start_date)}</Text>
                   </View>
                   {event.location_name && (
                     <View style={styles.eventLocationRow}>
-                      <Ionicons name="location-outline" size={14} color={Colors.gray400} />
-                      <Text style={styles.eventLocation} numberOfLines={1}>
+                      <Ionicons name="location-outline" size={14} color={colors.gray400} />
+                      <Text style={[styles.eventLocation, { color: colors.gray500 }]} numberOfLines={1}>
                         {event.location_name}
                       </Text>
                     </View>
                   )}
                   <View style={styles.eventMetaRow}>
                     {event.is_free ? (
-                      <View style={styles.freeBadge}>
-                        <Text style={styles.freeBadgeText}>Gratuit</Text>
+                      <View style={[styles.freeBadge, { backgroundColor: colors.successLight }]}>
+                        <Text style={[styles.freeBadgeText, { color: colors.successDark }]}>Gratuit</Text>
                       </View>
                     ) : event.base_price != null ? (
-                      <Text style={styles.eventPrice}>
+                      <Text style={[styles.eventPrice, { color: colors.primary }]}>
                         {event.base_price.toLocaleString()} FCFA
                       </Text>
                     ) : null}
                     <View style={styles.eventStatRow}>
-                      <Ionicons name="people-outline" size={14} color={Colors.gray400} />
-                      <Text style={styles.eventStat}>{event.registration_count || 0}</Text>
+                      <Ionicons name="people-outline" size={14} color={colors.gray400} />
+                      <Text style={[styles.eventStat, { color: colors.gray400 }]}>{event.registration_count || 0}</Text>
                     </View>
                   </View>
                 </View>
@@ -377,8 +379,8 @@ export default function OrganizerProfileScreen() {
             ))
           ) : (
             <View style={styles.emptyEventsContainer}>
-              <Ionicons name="calendar-outline" size={32} color={Colors.gray300} />
-              <Text style={styles.emptyEventsText}>Aucun evenement publie</Text>
+              <Ionicons name="calendar-outline" size={32} color={colors.gray300} />
+              <Text style={[styles.emptyEventsText, { color: colors.gray400 }]}>Aucun evenement publie</Text>
             </View>
           )}
         </View>

@@ -13,13 +13,17 @@ import {
   View,
   TouchableOpacity,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
+  Gradients,
   TOUCH_OPACITY,
   DISABLED_OPACITY,
   BUTTON_BORDER_RADIUS,
@@ -69,6 +73,7 @@ function GradientButtonComponent({
   size = 'md',
   fullWidth = false,
 }: GradientButtonProps) {
+  const { colors, isDark } = useTheme();
   const isDisabled = disabled || loading;
 
   const getSizeStyle = (): ViewStyle => {
@@ -135,17 +140,17 @@ function GradientButtonComponent({
       case 'primary':
         return Colors.white;
       case 'secondary':
-        return Colors.gray700;
+        return colors.gray700;
       case 'outline':
       case 'ghost':
-        return Colors.primary;
+        return colors.primary;
       default:
         return Colors.white;
     }
   };
 
   const getLoaderColor = () => {
-    return variant === 'primary' ? Colors.white : Colors.primary;
+    return variant === 'primary' ? Colors.white : colors.primary;
   };
 
   const renderIcon = (position: 'left' | 'right') => {
@@ -200,6 +205,58 @@ function GradientButtonComponent({
     }
   })();
 
+  const borderRadius = getBorderRadius();
+  const sizeStyle = getSizeStyle();
+
+  const content = loading ? (
+    <ActivityIndicator color={getLoaderColor()} size="small" />
+  ) : (
+    <>
+      {renderIcon('left')}
+      <Text
+        style={[
+          textStyleVariant,
+          { fontSize: getFontSize() },
+          textStyle,
+        ]}
+      >
+        {title}
+      </Text>
+      {renderIcon('right')}
+    </>
+  );
+
+  // Primary variant: use gradient background
+  if (variant === 'primary') {
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        disabled={isDisabled}
+        activeOpacity={TOUCH_OPACITY}
+        style={[
+          fullWidth && styles.fullWidth,
+          isDisabled && styles.buttonDisabled,
+          { borderRadius },
+          Shadows.coloredPrimary,
+          style,
+        ]}
+      >
+        <LinearGradient
+          colors={Gradients.brand as unknown as string[]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[
+            styles.primaryButton,
+            sizeStyle,
+            { borderRadius },
+          ]}
+        >
+          {content}
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  }
+
   return (
     <TouchableOpacity
       onPress={onPress}
@@ -207,30 +264,14 @@ function GradientButtonComponent({
       activeOpacity={TOUCH_OPACITY}
       style={[
         buttonStyle,
-        getSizeStyle(),
-        { borderRadius: getBorderRadius() },
+        sizeStyle,
+        { borderRadius },
         fullWidth && styles.fullWidth,
         isDisabled && styles.buttonDisabled,
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator color={getLoaderColor()} size="small" />
-      ) : (
-        <>
-          {renderIcon('left')}
-          <Text
-            style={[
-              textStyleVariant,
-              { fontSize: getFontSize() },
-              textStyle,
-            ]}
-          >
-            {title}
-          </Text>
-          {renderIcon('right')}
-        </>
-      )}
+      {content}
     </TouchableOpacity>
   );
 }
@@ -241,7 +282,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
+    overflow: 'hidden',
   },
   text: {
     color: Colors.white,

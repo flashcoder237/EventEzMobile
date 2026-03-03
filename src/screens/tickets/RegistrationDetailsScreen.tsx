@@ -30,6 +30,7 @@ import {
 } from '../../constants/theme';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationDetails'>;
@@ -42,6 +43,7 @@ export default function RegistrationDetailsScreen() {
   const route = useRoute<RegistrationDetailsRouteProp>();
   const { registrationId } = route.params;
   const { showError, showSuccess, showConfirm } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
@@ -180,23 +182,23 @@ export default function RegistrationDetailsScreen() {
 
   const getStatusConfig = (status: string, approvalStatus?: string) => {
     if (approvalStatus === 'pending') {
-      return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente de validation', icon: 'hourglass-outline' };
+      return { color: colors.warning, bg: colors.warningLight, label: 'En attente de validation', icon: 'hourglass-outline' };
     }
     switch (status) {
       case 'confirmed':
       case 'completed':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Confirmée', icon: 'checkmark-circle' };
+        return { color: colors.success, bg: colors.successLight, label: 'Confirmée', icon: 'checkmark-circle' };
       case 'pending':
       case 'pending_approval':
-        return { color: Colors.warning, bg: Colors.warningLight, label: 'En attente', icon: 'time' };
+        return { color: colors.warning, bg: colors.warningLight, label: 'En attente', icon: 'time' };
       case 'cancelled':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Annulée', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: 'Annulée', icon: 'close-circle' };
       case 'rejected':
-        return { color: Colors.error, bg: Colors.errorLight, label: 'Refusée', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: 'Refusée', icon: 'close-circle' };
       case 'checked_in':
-        return { color: Colors.success, bg: Colors.successLight, label: 'Validée', icon: 'checkmark-done-circle' };
+        return { color: colors.success, bg: colors.successLight, label: 'Validée', icon: 'checkmark-done-circle' };
       default:
-        return { color: Colors.gray500, bg: Colors.gray100, label: status || 'Inconnu', icon: 'help-circle' };
+        return { color: colors.gray500, bg: colors.gray100, label: status || 'Inconnu', icon: 'help-circle' };
     }
   };
 
@@ -208,17 +210,17 @@ export default function RegistrationDetailsScreen() {
 
   if (!registration) {
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Inscription</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Inscription</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.errorText}>Inscription non trouvée</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>Inscription non trouvée</Text>
         </View>
       </SafeAreaView>
     );
@@ -233,13 +235,13 @@ export default function RegistrationDetailsScreen() {
     : 0;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>
           {isBilletterie
             ? `Mes Billets (${totalTicketQuantity})`
             : 'Mon Inscription'}
@@ -248,73 +250,73 @@ export default function RegistrationDetailsScreen() {
           {/* Reminder Button */}
           {isActive && permissionGranted && (
             <TouchableOpacity
-              style={[styles.reminderButton, reminderEnabled && styles.reminderButtonActive]}
+              style={[styles.reminderButton, reminderEnabled && { backgroundColor: colors.primaryLight }]}
               onPress={handleToggleReminder}
             >
               <Ionicons
                 name={reminderEnabled ? 'notifications' : 'notifications-outline'}
                 size={22}
-                color={reminderEnabled ? Colors.primary : Colors.gray600}
+                color={reminderEnabled ? colors.primary : colors.gray600}
               />
             </TouchableOpacity>
           )}
           <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Ionicons name="share-outline" size={24} color={Colors.gray900} />
+            <Ionicons name="share-outline" size={24} color={colors.gray900} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Registration Card */}
-        <View style={styles.card}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
           {/* Event Info */}
           <View style={styles.eventInfo}>
-            <View style={[styles.typeBadge, { backgroundColor: isBilletterie ? 'rgba(99, 102, 241, 0.1)' : 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={isBilletterie ? Colors.primary : "#8B5CF6"} />
-              <Text style={[styles.typeBadgeText, { color: isBilletterie ? Colors.primary : '#8B5CF6' }]}>
+            <View style={[styles.typeBadge, { backgroundColor: isBilletterie ? (isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)') : (isDark ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)') }]}>
+              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={isBilletterie ? colors.primary : (isDark ? '#C4B5FD' : '#8B5CF6')} />
+              <Text style={[styles.typeBadgeText, { color: isBilletterie ? colors.primary : (isDark ? '#C4B5FD' : '#8B5CF6') }]}>
                 {isBilletterie ? `${totalTicketQuantity} Billet${totalTicketQuantity > 1 ? 's' : ''}` : 'Inscription'}
               </Text>
             </View>
 
-            <Text style={styles.eventTitle} numberOfLines={2}>
+            <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
               {event?.title || 'Événement'}
             </Text>
 
             <View style={styles.eventMeta}>
               {event?.start_date && (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="calendar-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.eventMetaText}>{formatDate(event.start_date)}</Text>
+                  <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>{formatDate(event.start_date)}</Text>
                 </View>
               )}
               {event?.start_date && (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="time-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.eventMetaText}>{formatTime(event.start_date)}</Text>
+                  <Ionicons name="time-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>{formatTime(event.start_date)}</Text>
                 </View>
               )}
               {event?.location_type === 'online' ? (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="videocam-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.eventMetaText}>Événement en ligne</Text>
+                  <Ionicons name="videocam-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>Événement en ligne</Text>
                 </View>
               ) : event?.location_type === 'hybrid' ? (
                 <>
                   <View style={styles.eventMetaItem}>
-                    <Ionicons name="location-outline" size={16} color={Colors.primary} />
-                    <Text style={styles.eventMetaText}>
+                    <Ionicons name="location-outline" size={16} color={colors.primary} />
+                    <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>
                       {event.location_name || event.location_city}
                     </Text>
                   </View>
                   <View style={styles.eventMetaItem}>
-                    <Ionicons name="videocam-outline" size={16} color={Colors.primary} />
-                    <Text style={styles.eventMetaText}>+ Option en ligne</Text>
+                    <Ionicons name="videocam-outline" size={16} color={colors.primary} />
+                    <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>+ Option en ligne</Text>
                   </View>
                 </>
               ) : !!(event?.location_name || event?.location_city) && (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="location-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.eventMetaText}>
+                  <Ionicons name="location-outline" size={16} color={colors.primary} />
+                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>
                     {event.location_name || event.location_city}
                   </Text>
                 </View>
@@ -323,7 +325,7 @@ export default function RegistrationDetailsScreen() {
 
             {/* View Event Button */}
             <TouchableOpacity
-              style={styles.viewEventButton}
+              style={[styles.viewEventButton, { backgroundColor: colors.primaryBg }]}
               onPress={() => {
                 const eventId = (typeof registration.event === 'string' ? registration.event : event?.id);
                 if (eventId) {
@@ -331,36 +333,36 @@ export default function RegistrationDetailsScreen() {
                 }
               }}
             >
-              <Ionicons name="eye-outline" size={18} color={Colors.primary} />
-              <Text style={styles.viewEventButtonText}>Voir les détails de l'événement</Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.primary} />
+              <Ionicons name="eye-outline" size={18} color={colors.primary} />
+              <Text style={[styles.viewEventButtonText, { color: colors.primary }]}>Voir les détails de l'événement</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
             </TouchableOpacity>
 
             {/* Online Event Access Card */}
             {(event?.location_type === 'online' || event?.location_type === 'hybrid') && (
-              <View style={styles.onlineAccessCard}>
+              <View style={[styles.onlineAccessCard, { backgroundColor: isDark ? colors.infoBg || '#10182D' : '#EFF6FF', borderColor: isDark ? colors.infoBorder || '#1C3A5C' : '#DBEAFE' }]}>
                 <View style={styles.onlineAccessHeader}>
-                  <Ionicons name="videocam" size={20} color="#3B82F6" />
-                  <Text style={styles.onlineAccessTitle}>Accès à l'événement en ligne</Text>
+                  <Ionicons name="videocam" size={20} color={colors.info} />
+                  <Text style={[styles.onlineAccessTitle, { color: isDark ? colors.info : '#1D4ED8' }]}>Accès à l'événement en ligne</Text>
                 </View>
                 {event.online_platform && (
-                  <Text style={styles.onlinePlatform}>Via {event.online_platform}</Text>
+                  <Text style={[styles.onlinePlatform, { color: colors.info }]}>Via {event.online_platform}</Text>
                 )}
                 {event.online_instructions && (
-                  <Text style={styles.onlineInstructions}>{event.online_instructions}</Text>
+                  <Text style={[styles.onlineInstructions, { color: colors.gray600 }]}>{event.online_instructions}</Text>
                 )}
                 {!!(event.online_meeting_id || event.online_passcode) && (
-                  <View style={styles.onlineMeetingDetails}>
+                  <View style={[styles.onlineMeetingDetails, { backgroundColor: colors.card }]}>
                     {event.online_meeting_id && (
                       <View style={styles.meetingDetailRow}>
-                        <Text style={styles.meetingDetailLabel}>ID de réunion :</Text>
-                        <Text style={styles.meetingDetailValue}>{event.online_meeting_id}</Text>
+                        <Text style={[styles.meetingDetailLabel, { color: colors.gray500 }]}>ID de réunion :</Text>
+                        <Text style={[styles.meetingDetailValue, { color: colors.gray900 }]}>{event.online_meeting_id}</Text>
                       </View>
                     )}
                     {event.online_passcode && (
                       <View style={styles.meetingDetailRow}>
-                        <Text style={styles.meetingDetailLabel}>Code d'accès :</Text>
-                        <Text style={styles.meetingDetailValue}>{event.online_passcode}</Text>
+                        <Text style={[styles.meetingDetailLabel, { color: colors.gray500 }]}>Code d'accès :</Text>
+                        <Text style={[styles.meetingDetailValue, { color: colors.gray900 }]}>{event.online_passcode}</Text>
                       </View>
                     )}
                   </View>
@@ -378,16 +380,16 @@ export default function RegistrationDetailsScreen() {
                     <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
                   </TouchableOpacity>
                 ) : event.online_platform?.toLowerCase() === 'eventez_visio' || event.online_platform?.toLowerCase() === 'eventez visio' ? (
-                  <View style={styles.eventezVisioInfo}>
-                    <Ionicons name="information-circle" size={18} color="#3B82F6" />
-                    <Text style={styles.eventezVisioText}>
+                  <View style={[styles.eventezVisioInfo, { backgroundColor: isDark ? colors.infoBg || '#10182D' : '#F0F9FF' }]}>
+                    <Ionicons name="information-circle" size={18} color={colors.info} />
+                    <Text style={[styles.eventezVisioText, { color: colors.gray600 }]}>
                       La visioconférence EventEz sera disponible le jour de l'événement
                     </Text>
                   </View>
                 ) : !event.online_meeting_id && !event.online_passcode ? (
-                  <View style={styles.eventezVisioInfo}>
-                    <Ionicons name="time-outline" size={18} color={Colors.gray500} />
-                    <Text style={styles.eventezVisioText}>
+                  <View style={[styles.eventezVisioInfo, { backgroundColor: isDark ? colors.infoBg || '#10182D' : '#F0F9FF' }]}>
+                    <Ionicons name="time-outline" size={18} color={colors.gray500} />
+                    <Text style={[styles.eventezVisioText, { color: colors.gray600 }]}>
                       Les informations de connexion seront communiquées avant l'événement
                     </Text>
                   </View>
@@ -398,14 +400,14 @@ export default function RegistrationDetailsScreen() {
 
           {/* Divider */}
           <View style={styles.divider}>
-            <View style={styles.dividerCircleLeft} />
-            <View style={styles.dividerLine} />
-            <View style={styles.dividerCircleRight} />
+            <View style={[styles.dividerCircleLeft, { backgroundColor: colors.background }]} />
+            <View style={[styles.dividerLine, { borderColor: colors.gray200 }]} />
+            <View style={[styles.dividerCircleRight, { backgroundColor: colors.background }]} />
           </View>
 
           {/* QR Code Section */}
           <View style={styles.qrSection}>
-            <View style={styles.qrContainer}>
+            <View style={[styles.qrContainer, { backgroundColor: Colors.white }]}>
               {registration.qr_code ? (
                 <Image
                   source={{ uri: registration.qr_code }}
@@ -414,21 +416,21 @@ export default function RegistrationDetailsScreen() {
                 />
               ) : (
                 <View style={styles.qrPlaceholder}>
-                  <View style={styles.qrPlaceholderInner}>
-                    <Ionicons name="qr-code" size={80} color="#8B5CF6" />
+                  <View style={[styles.qrPlaceholderInner, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
+                    <Ionicons name="qr-code" size={80} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
                   </View>
                 </View>
               )}
             </View>
-            <Text style={styles.qrHint}>
+            <Text style={[styles.qrHint, { color: colors.gray500 }]}>
               Présentez ce QR code à l'entrée de l'événement
             </Text>
           </View>
 
           {/* Registration Details */}
-          <View style={styles.detailsSection}>
+          <View style={[styles.detailsSection, { backgroundColor: colors.gray50 }]}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Statut</Text>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Statut</Text>
               <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
                 <Ionicons name={statusConfig.icon as any} size={14} color={statusConfig.color} />
                 <Text style={[styles.statusText, { color: statusConfig.color }]}>
@@ -437,17 +439,17 @@ export default function RegistrationDetailsScreen() {
               </View>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Référence</Text>
-              <Text style={styles.detailValue}>{registration.reference_code}</Text>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Référence</Text>
+              <Text style={[styles.detailValue, { color: colors.gray900 }]}>{registration.reference_code}</Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Date d'inscription</Text>
-              <Text style={styles.detailValue}>{formatDate(registration.created_at)}</Text>
+              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Date d'inscription</Text>
+              <Text style={[styles.detailValue, { color: colors.gray900 }]}>{formatDate(registration.created_at)}</Text>
             </View>
             {registration.confirmed_at && (
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Confirmée le</Text>
-                <Text style={styles.detailValue}>{formatDate(registration.confirmed_at)}</Text>
+                <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Confirmée le</Text>
+                <Text style={[styles.detailValue, { color: colors.gray900 }]}>{formatDate(registration.confirmed_at)}</Text>
               </View>
             )}
           </View>
@@ -455,8 +457,8 @@ export default function RegistrationDetailsScreen() {
 
         {/* Tickets List - For billetterie type */}
         {registration.tickets && registration.tickets.length > 0 && (
-          <View style={styles.ticketsCard}>
-            <Text style={styles.sectionTitle}>Mes billets</Text>
+          <View style={[styles.ticketsCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Mes billets</Text>
             {registration.tickets.map((ticket: any, index: number) => {
               const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
               const ticketStatus = ticket.status || 'confirmed';
@@ -465,7 +467,7 @@ export default function RegistrationDetailsScreen() {
               return (
                 <TouchableOpacity
                   key={ticket.id || index}
-                  style={styles.ticketItem}
+                  style={[styles.ticketItem, { borderBottomColor: colors.gray100 }]}
                   onPress={() => {
                     if (ticket.id) {
                       navigation.navigate('QRCode', { ticketId: ticket.id });
@@ -473,15 +475,15 @@ export default function RegistrationDetailsScreen() {
                   }}
                 >
                   <View style={styles.ticketItemLeft}>
-                    <View style={styles.ticketIconContainer}>
-                      <Ionicons name="ticket" size={20} color={Colors.primary} />
+                    <View style={[styles.ticketIconContainer, { backgroundColor: colors.primaryBg }]}>
+                      <Ionicons name="ticket" size={20} color={colors.primary} />
                     </View>
                     <View style={styles.ticketItemInfo}>
-                      <Text style={styles.ticketItemName}>
+                      <Text style={[styles.ticketItemName, { color: colors.gray900 }]}>
                         {ticketType?.name || ticket.ticket_type_name || 'Billet'}
                       </Text>
                       <View style={styles.ticketItemMeta}>
-                        <Text style={styles.ticketItemQuantity}>
+                        <Text style={[styles.ticketItemQuantity, { color: colors.gray500 }]}>
                           Qté: {ticket.quantity || 1}
                         </Text>
                         <View style={[styles.ticketItemStatusBadge, { backgroundColor: ticketStatusConfig.bg }]}>
@@ -493,13 +495,13 @@ export default function RegistrationDetailsScreen() {
                     </View>
                   </View>
                   <View style={styles.ticketItemRight}>
-                    <Text style={styles.ticketItemPrice}>
+                    <Text style={[styles.ticketItemPrice, { color: colors.primary }]}>
                       {ticket.total_price ? `${Number(ticket.total_price).toLocaleString()} FCFA` : 'Gratuit'}
                     </Text>
                     {/* Transfer button */}
                     {ticket.is_paid && !ticket.is_checked_in && (
                       <TouchableOpacity
-                        style={styles.transferButton}
+                        style={[styles.transferButton, { backgroundColor: colors.primaryLight }]}
                         onPress={(e) => {
                           e.stopPropagation();
                           const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
@@ -511,20 +513,20 @@ export default function RegistrationDetailsScreen() {
                           setTransferModalVisible(true);
                         }}
                       >
-                        <Ionicons name="gift-outline" size={18} color={Colors.primary} />
+                        <Ionicons name="gift-outline" size={18} color={colors.primary} />
                       </TouchableOpacity>
                     )}
-                    <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
                   </View>
                 </TouchableOpacity>
               );
             })}
             {/* Total des billets */}
             <View style={styles.ticketsTotalRow}>
-              <Text style={styles.ticketsTotalLabel}>
+              <Text style={[styles.ticketsTotalLabel, { color: colors.gray700 }]}>
                 Total ({registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)} billet{registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0) > 1 ? 's' : ''})
               </Text>
-              <Text style={styles.ticketsTotalValue}>
+              <Text style={[styles.ticketsTotalValue, { color: colors.primary }]}>
                 {registration.tickets.reduce((sum: number, t: any) => sum + (Number(t.total_price) || 0), 0).toLocaleString()} FCFA
               </Text>
             </View>
@@ -533,12 +535,12 @@ export default function RegistrationDetailsScreen() {
 
         {/* Form Data */}
         {registration.form_data && Object.keys(registration.form_data).length > 0 && (
-          <View style={styles.formDataCard}>
-            <Text style={styles.sectionTitle}>Informations fournies</Text>
+          <View style={[styles.formDataCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Informations fournies</Text>
             {Object.entries(registration.form_data).map(([key, value]) => (
-              <View key={key} style={styles.formDataRow}>
-                <Text style={styles.formDataLabel}>{key}</Text>
-                <Text style={styles.formDataValue}>{String(value)}</Text>
+              <View key={key} style={[styles.formDataRow, { borderBottomColor: colors.gray100 }]}>
+                <Text style={[styles.formDataLabel, { color: colors.gray500 }]}>{key}</Text>
+                <Text style={[styles.formDataValue, { color: colors.gray900 }]}>{String(value)}</Text>
               </View>
             ))}
           </View>
@@ -547,26 +549,26 @@ export default function RegistrationDetailsScreen() {
         {/* Instructions */}
         <View style={styles.instructions}>
           <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="scan-outline" size={20} color="#8B5CF6" />
+            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="scan-outline" size={20} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
             </View>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Le QR code sera scanné à l'entrée
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="phone-portrait-outline" size={20} color="#8B5CF6" />
+            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="phone-portrait-outline" size={20} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
             </View>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Gardez votre téléphone chargé
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="time-outline" size={20} color="#8B5CF6" />
+            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
+              <Ionicons name="time-outline" size={20} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
             </View>
-            <Text style={styles.instructionText}>
+            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Arrivez à l'heure pour éviter les files
             </Text>
           </View>
@@ -579,7 +581,7 @@ export default function RegistrationDetailsScreen() {
             {(registration.status === 'confirmed' || registration.status === 'completed') &&
               registration.tickets && registration.tickets.length > 0 && (
               <TouchableOpacity
-                style={styles.buyMoreButton}
+                style={[styles.buyMoreButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
                 onPress={() => {
                   const eventId = (typeof registration.event === 'string' ? registration.event : event?.id);
                   if (eventId) {
@@ -587,16 +589,16 @@ export default function RegistrationDetailsScreen() {
                   }
                 }}
               >
-                <Ionicons name="add-circle-outline" size={20} color={Colors.primary} />
-                <Text style={styles.buyMoreButtonText}>Acheter plus de billets</Text>
+                <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                <Text style={[styles.buyMoreButtonText, { color: colors.primary }]}>Acheter plus de billets</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { backgroundColor: colors.errorLight, borderColor: colors.error }]}
               onPress={handleCancelRegistration}
             >
-              <Ionicons name="close-circle-outline" size={20} color={Colors.error} />
-              <Text style={styles.cancelButtonText}>Annuler mon inscription</Text>
+              <Ionicons name="close-circle-outline" size={20} color={colors.error} />
+              <Text style={[styles.cancelButtonText, { color: colors.error }]}>Annuler mon inscription</Text>
             </TouchableOpacity>
           </View>
         )}

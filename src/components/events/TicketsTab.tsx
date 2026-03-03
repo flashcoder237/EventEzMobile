@@ -9,6 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Event, WaitlistEntry } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export interface TicketsTabProps {
   event: Event;
@@ -29,9 +30,11 @@ export default function TicketsTab({
   onJoinWaitlist,
   onLeaveWaitlist,
 }: TicketsTabProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
         {event.event_type === 'billetterie' ? 'Types de billets' : 'Inscription'}
       </Text>
       {event.ticket_types && event.ticket_types.length > 0 ? (
@@ -41,11 +44,11 @@ export default function TicketsTab({
             const isSoldOut = available <= 0;
 
             return (
-              <View key={index} style={[styles.ticketCard, isSoldOut && styles.ticketCardSoldOut]}>
+              <View key={index} style={[styles.ticketCard, { backgroundColor: colors.gray50 }, isSoldOut && styles.ticketCardSoldOut]}>
                 <View style={styles.ticketInfo}>
-                  <Text style={styles.ticketName}>{ticket.name}</Text>
+                  <Text style={[styles.ticketName, { color: colors.gray900 }]}>{ticket.name}</Text>
                   {ticket.description && (
-                    <Text style={styles.ticketDescription}>{ticket.description}</Text>
+                    <Text style={[styles.ticketDescription, { color: colors.gray500 }]}>{ticket.description}</Text>
                   )}
                   <Text style={[styles.ticketAvailability, isSoldOut && styles.ticketSoldOut]}>
                     {isSoldOut
@@ -54,7 +57,7 @@ export default function TicketsTab({
                   </Text>
                 </View>
                 <View style={styles.ticketPriceContainer}>
-                  <Text style={[styles.ticketPrice, isSoldOut && styles.ticketPriceSoldOut]}>
+                  <Text style={[styles.ticketPrice, { color: colors.primary }, isSoldOut && { color: colors.gray400 }]}>
                     {ticket.price > 0 ? `${ticket.price.toLocaleString()} FCFA` : 'Gratuit'}
                   </Text>
                 </View>
@@ -66,10 +69,10 @@ export default function TicketsTab({
           {areAllTicketsSoldOut() && (
             <View style={styles.waitlistSection}>
               <View style={styles.waitlistInfo}>
-                <Ionicons name="time-outline" size={24} color={Colors.warning} />
+                <Ionicons name="time-outline" size={24} color={colors.warning} />
                 <View style={styles.waitlistTextContainer}>
-                  <Text style={styles.waitlistTitle}>Tous les billets sont epuises</Text>
-                  <Text style={styles.waitlistDescription}>
+                  <Text style={[styles.waitlistTitle, { color: colors.gray900 }]}>Tous les billets sont epuises</Text>
+                  <Text style={[styles.waitlistDescription, { color: colors.gray600 }]}>
                     {waitlistEntry
                       ? 'Vous etes sur la liste d\'attente. Vous serez notifie si une place se libere.'
                       : 'Rejoignez la liste d\'attente pour etre notifie si une place se libere.'}
@@ -78,10 +81,10 @@ export default function TicketsTab({
               </View>
               {waitlistEntry ? (
                 <TouchableOpacity
-                  style={styles.leaveWaitlistButton}
+                  style={[styles.leaveWaitlistButton, { backgroundColor: colors.white, borderColor: colors.gray300 }]}
                   onPress={onLeaveWaitlist}
                 >
-                  <Text style={styles.leaveWaitlistText}>Quitter la liste</Text>
+                  <Text style={[styles.leaveWaitlistText, { color: colors.gray600 }]}>Quitter la liste</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -104,8 +107,8 @@ export default function TicketsTab({
         </>
       ) : (
         <View style={styles.emptyTab}>
-          <Ionicons name="ticket-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>
+          <Ionicons name="ticket-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>
             {event.event_type === 'billetterie'
               ? 'Aucun type de billet disponible'
               : 'Inscription gratuite'}

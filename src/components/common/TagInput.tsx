@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -38,6 +39,7 @@ export default function TagInput({
   onCustomTagAdd,
   onCustomTagRemove,
 }: TagInputProps) {
+  const { colors, isDark } = useTheme();
   const [inputValue, setInputValue] = useState('');
 
   const handleAddCustomTag = () => {
@@ -66,13 +68,13 @@ export default function TagInput({
             if (!tag) return null;
 
             return (
-              <View key={`existing-${tag.id}`} style={styles.selectedTag}>
-                <Text style={styles.selectedTagText}>{tag.name}</Text>
+              <View key={`existing-${tag.id}`} style={[styles.selectedTag, { backgroundColor: colors.primaryBg }]}>
+                <Text style={[styles.selectedTagText, { color: colors.primary }]}>{tag.name}</Text>
                 <TouchableOpacity
                   onPress={() => handleExistingTagSelect(tag.id)}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <Ionicons name="close" size={16} color={Colors.primary} />
+                  <Ionicons name="close" size={16} color={colors.primary} />
                 </TouchableOpacity>
               </View>
             );
@@ -80,13 +82,13 @@ export default function TagInput({
 
           {/* Custom Tags */}
           {customTags.map(tag => (
-            <View key={`custom-${tag}`} style={styles.customTag}>
-              <Text style={styles.customTagText}>{tag}</Text>
+            <View key={`custom-${tag}`} style={[styles.customTag, { backgroundColor: colors.blueBg }]}>
+              <Text style={[styles.customTagText, { color: colors.blueDark }]}>{tag}</Text>
               <TouchableOpacity
                 onPress={() => onCustomTagRemove(tag)}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
-                <Ionicons name="close" size={16} color={Colors.blue} />
+                <Ionicons name="close" size={16} color={colors.blue} />
               </TouchableOpacity>
             </View>
           ))}
@@ -94,35 +96,35 @@ export default function TagInput({
       )}
 
       {/* Input Field */}
-      <View style={styles.inputContainer}>
-        <Ionicons name="pricetag-outline" size={18} color={Colors.gray400} style={styles.inputIcon} />
+      <View style={[styles.inputContainer, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
+        <Ionicons name="pricetag-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
         <TextInput
-          style={styles.input}
+          style={[styles.input, { color: colors.gray900 }]}
           value={inputValue}
           onChangeText={setInputValue}
           placeholder="Ajouter un tag personnalisé"
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={colors.gray400}
           onSubmitEditing={handleAddCustomTag}
           returnKeyType="done"
         />
         <TouchableOpacity
-          style={styles.addButton}
+          style={[styles.addButton, { backgroundColor: colors.primaryBg }]}
           onPress={handleAddCustomTag}
           disabled={!inputValue.trim()}
         >
           <Ionicons
             name="add"
             size={18}
-            color={inputValue.trim() ? Colors.primary : Colors.gray400}
+            color={inputValue.trim() ? colors.primary : colors.gray400}
           />
         </TouchableOpacity>
       </View>
 
       {/* Available Tags */}
       <View style={styles.availableTagsSection}>
-        <Text style={styles.availableTagsLabel}>Tags disponibles :</Text>
+        <Text style={[styles.availableTagsLabel, { color: colors.gray600 }]}>Tags disponibles :</Text>
         <ScrollView
-          style={styles.availableTagsScroll}
+          style={[styles.availableTagsScroll, { backgroundColor: colors.gray50 }]}
           contentContainerStyle={styles.availableTagsContent}
           showsVerticalScrollIndicator={true}
           nestedScrollEnabled={true}
@@ -135,13 +137,15 @@ export default function TagInput({
                   key={tag.id}
                   style={[
                     styles.availableTag,
-                    isSelected && styles.availableTagSelected,
+                    { backgroundColor: colors.gray200 },
+                    isSelected && [styles.availableTagSelected, { backgroundColor: colors.primary }],
                   ]}
                   onPress={() => handleExistingTagSelect(tag.id)}
                 >
                   <Text
                     style={[
                       styles.availableTagText,
+                      { color: colors.gray700 },
                       isSelected && styles.availableTagTextSelected,
                     ]}
                   >

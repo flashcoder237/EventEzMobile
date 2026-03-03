@@ -13,14 +13,13 @@ import AnimatedPressable from '../ui/AnimatedPressable';
 import { AnimatedBookmark } from '../ui/Animations';
 import { formatPriceRange } from '../../lib/utils/priceFormatters';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   Spacing,
   BorderRadius,
   Shadows,
-  Gradients,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -67,6 +66,8 @@ function EventCard({
   onPress,
   onLikePress,
 }: EventCardProps) {
+  const { colors, shadows, cardFooterBg, isDark } = useTheme();
+
   // === Helpers ===
 
   const formatCardPrice = () => {
@@ -74,7 +75,7 @@ function EventCard({
     if (typeof price === 'number' && typeof priceMax === 'number' && price > 0 && priceMax > price) {
       return formatPriceRange(price, priceMax);
     }
-    if (typeof price === 'number' && price > 0) return `Dès ${price.toLocaleString()} FCFA`;
+    if (typeof price === 'number' && price > 0) return `Des ${price.toLocaleString()} FCFA`;
     if (typeof price === 'number' && price === 0) return 'Gratuit';
     if (typeof price === 'string' && price.trim()) return price;
     if (eventType === 'inscription') return 'Gratuit';
@@ -113,30 +114,31 @@ function EventCard({
   };
 
   const isGratuit = isFree || formatCardPrice() === 'Gratuit';
+  const cardShadow = isDark ? Shadows.md : Shadows.cardViolet;
 
-  // ===== HORIZONTAL VARIANT (list item — search results) =====
+  // ===== HORIZONTAL VARIANT =====
   if (variant === 'horizontal') {
     return (
       <AnimatedPressable
         onPress={onPress}
-        style={styles.horizontalCard}
+        style={[styles.horizontalCard, { backgroundColor: colors.card }, cardShadow]}
         animationType="both"
         scaleValue={0.98}
         haptic="light"
       >
         <Image
           source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
-          style={styles.horizontalImage}
+          style={[styles.horizontalImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
         />
         <View style={styles.horizontalContent}>
-          <Text style={styles.dateAccent}>{formatDateAccent()}</Text>
-          <Text style={styles.horizontalTitle} numberOfLines={2}>{title}</Text>
+          <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+          <Text style={[styles.horizontalTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={13} color={Colors.textSecondary} />
-            <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+            <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
+            <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{location}</Text>
           </View>
-          <Text style={isGratuit ? styles.priceGratuit : styles.priceText}>
+          <Text style={isGratuit ? [styles.priceGratuit, { color: colors.success }] : [styles.priceText, { color: colors.gray900 }]}>
             {formatCardPrice()}
           </Text>
         </View>
@@ -149,7 +151,7 @@ function EventCard({
             <Ionicons
               name={isLiked ? 'bookmark' : 'bookmark-outline'}
               size={20}
-              color={isLiked ? Colors.primary : Colors.gray400}
+              color={isLiked ? colors.primary : colors.gray400}
             />
           </AnimatedBookmark>
         </TouchableOpacity>
@@ -157,19 +159,19 @@ function EventCard({
     );
   }
 
-  // ===== COMPACT VARIANT (small card — horizontal scroll) =====
+  // ===== COMPACT VARIANT =====
   if (variant === 'compact') {
     return (
-      <TouchableOpacity onPress={onPress} style={styles.compactCard} activeOpacity={0.7}>
+      <TouchableOpacity onPress={onPress} style={[styles.compactCard, { backgroundColor: colors.card }, cardShadow]} activeOpacity={0.7}>
         <Image
           source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
-          style={styles.compactImage}
+          style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
         />
         <View style={styles.compactContent}>
-          <Text style={styles.dateAccentSmall}>{formatDateShort()}</Text>
-          <Text style={styles.compactTitle} numberOfLines={2}>{title}</Text>
-          <Text style={isGratuit ? styles.compactPriceGratuit : styles.compactPrice}>
+          <Text style={[styles.dateAccentSmall, { color: colors.accent }]}>{formatDateShort()}</Text>
+          <Text style={[styles.compactTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
+          <Text style={isGratuit ? [styles.compactPriceGratuit, { color: colors.success }] : [styles.compactPrice, { color: colors.gray800 }]}>
             {formatCardPrice()}
           </Text>
         </View>
@@ -177,31 +179,28 @@ function EventCard({
     );
   }
 
-  // ===== FEATURED VARIANT (hero card — carousel) =====
+  // ===== FEATURED VARIANT =====
   if (variant === 'featured') {
     return (
       <AnimatedPressable
         onPress={onPress}
-        style={styles.featuredCard}
+        style={[styles.featuredCard, { backgroundColor: colors.card }, Shadows.glass]}
         animationType="editorial"
         haptic="light"
       >
         <View style={styles.featuredImageContainer}>
           <Image
             source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
-            style={styles.featuredImage}
+            style={[styles.featuredImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
           />
-          {/* Gradient overlay for text legibility */}
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.5)']}
             style={styles.featuredGradient}
           />
-          {/* Date badge on image */}
-          <View style={styles.featuredDateBadge}>
-            <Text style={styles.featuredDateBadgeText}>{formatDateShort()}</Text>
+          <View style={[styles.featuredDateBadge, { backgroundColor: isDark ? 'rgba(26,26,46,0.9)' : 'rgba(255,255,255,0.95)' }]}>
+            <Text style={[styles.featuredDateBadgeText, { color: colors.accent }]}>{formatDateShort()}</Text>
           </View>
-          {/* Bookmark */}
           <TouchableOpacity
             onPress={onLikePress}
             style={styles.featuredBookmark}
@@ -211,30 +210,30 @@ function EventCard({
               <Ionicons
                 name={isLiked ? 'bookmark' : 'bookmark-outline'}
                 size={20}
-                color={Colors.white}
+                color={colors.white}
               />
             </AnimatedBookmark>
           </TouchableOpacity>
         </View>
-        <View style={styles.featuredContent}>
-          <Text style={styles.dateAccent}>{formatDateAccent()}</Text>
-          <Text style={styles.featuredTitle} numberOfLines={2}>{title}</Text>
+        <View style={[styles.featuredContent, { backgroundColor: cardFooterBg }]}>
+          <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+          <Text style={[styles.featuredTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.featuredLocation} numberOfLines={1}>{location}</Text>
+            <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.featuredLocation, { color: colors.textSecondary }]} numberOfLines={1}>{location}</Text>
           </View>
           <View style={styles.featuredFooter}>
             {isGratuit ? (
-              <View style={styles.freeBadge}>
-                <Text style={styles.freeBadgeText}>Gratuit</Text>
+              <View style={[styles.freeBadge, { backgroundColor: colors.successLight }]}>
+                <Text style={[styles.freeBadgeText, { color: colors.success }]}>Gratuit</Text>
               </View>
             ) : (
-              <Text style={styles.featuredPrice}>{formatPriceShort()}</Text>
+              <Text style={[styles.featuredPrice, { color: colors.gray900 }]}>{formatPriceShort()}</Text>
             )}
             {attendees != null && attendees > 0 && (
               <View style={styles.attendeesRow}>
-                <Ionicons name="people-outline" size={14} color={Colors.textSecondary} />
-                <Text style={styles.attendeesText}>{attendees}</Text>
+                <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+                <Text style={[styles.attendeesText, { color: colors.textSecondary }]}>{attendees}</Text>
               </View>
             )}
           </View>
@@ -243,12 +242,12 @@ function EventCard({
     );
   }
 
-  // ===== GRID VARIANT (full-width card — Explore/search results) =====
+  // ===== GRID VARIANT =====
   if (variant === 'grid') {
     return (
       <AnimatedPressable
         onPress={onPress}
-        style={styles.gridCard}
+        style={[styles.gridCard, { backgroundColor: colors.card }, cardShadow]}
         animationType="both"
         scaleValue={0.98}
         haptic="light"
@@ -256,7 +255,7 @@ function EventCard({
         <View style={{ position: 'relative' }}>
           <Image
             source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
-            style={styles.gridImage}
+            style={[styles.gridImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
           />
           <LinearGradient
@@ -265,14 +264,14 @@ function EventCard({
           />
         </View>
         <View style={styles.gridContent}>
-          <Text style={styles.dateAccent}>{formatDateAccent()}</Text>
-          <Text style={styles.gridTitle} numberOfLines={2}>{title}</Text>
+          <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+          <Text style={[styles.gridTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
-            <Text style={styles.gridLocation} numberOfLines={1}>{location}</Text>
+            <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+            <Text style={[styles.gridLocation, { color: colors.textSecondary }]} numberOfLines={1}>{location}</Text>
           </View>
           <View style={styles.gridFooter}>
-            <Text style={isGratuit ? styles.priceGratuit : styles.gridPrice}>
+            <Text style={isGratuit ? [styles.priceGratuit, { color: colors.success }] : [styles.gridPrice, { color: colors.gray900 }]}>
               {isGratuit ? 'Gratuit' : formatPriceShort()}
             </Text>
             <TouchableOpacity
@@ -283,7 +282,7 @@ function EventCard({
                 <Ionicons
                   name={isLiked ? 'bookmark' : 'bookmark-outline'}
                   size={22}
-                  color={isLiked ? Colors.primary : Colors.gray400}
+                  color={isLiked ? colors.primary : colors.gray400}
                 />
               </AnimatedBookmark>
             </TouchableOpacity>
@@ -293,28 +292,28 @@ function EventCard({
     );
   }
 
-  // ===== DEFAULT VARIANT (standard card — horizontal scroll feeds) =====
+  // ===== DEFAULT VARIANT =====
   return (
     <AnimatedPressable
       onPress={onPress}
-      style={styles.defaultCard}
+      style={[styles.defaultCard, { backgroundColor: colors.card }, cardShadow]}
       animationType="both"
       scaleValue={0.97}
       haptic="light"
     >
       <Image
         source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
-        style={styles.defaultImage}
+        style={[styles.defaultImage, { backgroundColor: colors.gray100 }]}
         resizeMode="cover"
       />
       <View style={styles.defaultContent}>
-        <Text style={styles.dateAccent}>{formatDateAccent()}</Text>
-        <Text style={styles.defaultTitle} numberOfLines={2}>{title}</Text>
+        <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+        <Text style={[styles.defaultTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={13} color={Colors.textSecondary} />
-          <Text style={styles.locationText} numberOfLines={1}>{location}</Text>
+          <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
+          <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{location}</Text>
         </View>
-        <Text style={isGratuit ? styles.priceGratuit : styles.priceText}>
+        <Text style={isGratuit ? [styles.priceGratuit, { color: colors.success }] : [styles.priceText, { color: colors.gray900 }]}>
           {isGratuit ? 'Gratuit' : formatPriceShort()}
         </Text>
       </View>
@@ -327,7 +326,6 @@ const styles = StyleSheet.create({
   dateAccent: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    color: Colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -335,7 +333,6 @@ const styles = StyleSheet.create({
   dateAccentSmall: {
     fontFamily: FontFamily.semiBold,
     fontSize: 10,
-    color: Colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
@@ -349,22 +346,18 @@ const styles = StyleSheet.create({
   locationText: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
     flex: 1,
   },
   priceText: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.base,
-    color: Colors.gray900,
   },
   priceGratuit: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.base,
-    color: Colors.success,
   },
   freeBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: Colors.successLight,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 3,
     borderRadius: BorderRadius.sm,
@@ -372,7 +365,6 @@ const styles = StyleSheet.create({
   freeBadgeText: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.xs,
-    color: Colors.success,
   },
   attendeesRow: {
     flexDirection: 'row',
@@ -382,21 +374,17 @@ const styles = StyleSheet.create({
   attendeesText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
   },
 
   // ===== DEFAULT CARD =====
   defaultCard: {
     width: SCREEN_WIDTH * 0.82,
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    ...Shadows.card,
   },
   defaultImage: {
     width: '100%',
     height: 200,
-    backgroundColor: Colors.gray100,
   },
   defaultContent: {
     padding: Spacing.md,
@@ -405,7 +393,6 @@ const styles = StyleSheet.create({
   defaultTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
-    color: Colors.gray900,
     lineHeight: 22,
     marginBottom: 6,
   },
@@ -413,15 +400,12 @@ const styles = StyleSheet.create({
   // ===== HORIZONTAL CARD =====
   horizontalCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    ...Shadows.card,
   },
   horizontalImage: {
     width: 120,
     height: 130,
-    backgroundColor: Colors.gray100,
   },
   horizontalContent: {
     flex: 1,
@@ -431,7 +415,6 @@ const styles = StyleSheet.create({
   horizontalTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
-    color: Colors.gray900,
     lineHeight: 22,
     marginBottom: 4,
   },
@@ -443,15 +426,12 @@ const styles = StyleSheet.create({
   // ===== COMPACT CARD =====
   compactCard: {
     width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md) / 2,
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     overflow: 'hidden',
-    ...Shadows.card,
   },
   compactImage: {
     width: '100%',
     height: 100,
-    backgroundColor: Colors.gray100,
   },
   compactContent: {
     padding: Spacing.md,
@@ -459,28 +439,23 @@ const styles = StyleSheet.create({
   compactTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    color: Colors.gray900,
     lineHeight: 18,
     marginBottom: 6,
   },
   compactPrice: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.sm,
-    color: Colors.gray800,
   },
   compactPriceGratuit: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.sm,
-    color: Colors.success,
   },
 
   // ===== FEATURED CARD =====
   featuredCard: {
     width: SCREEN_WIDTH * 0.88,
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius['3xl'],
     overflow: 'hidden',
-    ...Shadows.glass,
   },
   featuredImageContainer: {
     position: 'relative',
@@ -488,7 +463,6 @@ const styles = StyleSheet.create({
   featuredImage: {
     width: '100%',
     height: 280,
-    backgroundColor: Colors.gray100,
   },
   featuredGradient: {
     position: 'absolute',
@@ -501,7 +475,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.md,
     left: Spacing.md,
-    backgroundColor: 'rgba(255,255,255,0.95)',
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
     borderRadius: BorderRadius.sm,
@@ -509,7 +482,6 @@ const styles = StyleSheet.create({
   featuredDateBadgeText: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    color: Colors.accent,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -530,7 +502,6 @@ const styles = StyleSheet.create({
   featuredTitle: {
     fontFamily: FontFamily.displayExtraBold,
     fontSize: FontSizes['2xl'],
-    color: Colors.gray900,
     lineHeight: 30,
     marginBottom: 8,
     letterSpacing: -0.5,
@@ -538,7 +509,6 @@ const styles = StyleSheet.create({
   featuredLocation: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
     flex: 1,
   },
   featuredFooter: {
@@ -550,21 +520,17 @@ const styles = StyleSheet.create({
   featuredPrice: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.lg,
-    color: Colors.gray900,
   },
 
   // ===== GRID CARD =====
   gridCard: {
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius['4xl'],
     overflow: 'hidden',
     marginBottom: Spacing.base,
-    ...Shadows.card,
   },
   gridImage: {
     width: '100%',
     height: 200,
-    backgroundColor: Colors.gray100,
   },
   gridContent: {
     padding: Spacing.lg,
@@ -572,14 +538,12 @@ const styles = StyleSheet.create({
   gridTitle: {
     fontFamily: FontFamily.displaySemiBold,
     fontSize: FontSizes.lg,
-    color: Colors.gray900,
     lineHeight: 24,
     marginBottom: 6,
   },
   gridLocation: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
-    color: Colors.textSecondary,
     flex: 1,
   },
   gridFooter: {
@@ -591,7 +555,6 @@ const styles = StyleSheet.create({
   gridPrice: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.lg,
-    color: Colors.gray900,
   },
 });
 

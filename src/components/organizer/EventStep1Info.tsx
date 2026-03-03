@@ -9,12 +9,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Spacing } from '../../constants/theme';
 import { Category, Tag, AIUsage, AIGeneratedEvent } from '../../types';
 import TagInput from '../common/TagInput';
 import AIQuickCreatePanel from '../events/AIQuickCreatePanel';
 import AIAssistButton from '../events/AIAssistButton';
 import styles from './eventCreateStyles';
+import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
 
 // ============================================
 // Props
@@ -110,10 +112,13 @@ export default function EventStep1Info({
   onOptimizeTitle,
   onGenerateDescription,
 }: EventStep1InfoProps) {
+  const { colors, isDark } = useTheme();
+  const themed = useEventCreateThemedStyles();
+
   return (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Informations de base</Text>
-      <Text style={styles.stepDescription}>D\u00e9crivez votre \u00e9v\u00e9nement pour attirer les participants</Text>
+      <Text style={[styles.stepTitle, themed.stepTitle]}>Informations de base</Text>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>D\u00e9crivez votre \u00e9v\u00e9nement pour attirer les participants</Text>
 
       {/* AI Quick Create */}
       <AIQuickCreatePanel
@@ -128,8 +133,8 @@ export default function EventStep1Info({
 
       {/* Banner Image */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Image de couverture</Text>
-        <TouchableOpacity style={styles.imagePickerButton} onPress={onPickImage}>
+        <Text style={[styles.label, themed.label]}>Image de couverture</Text>
+        <TouchableOpacity style={[styles.imagePickerButton, themed.imagePickerButton]} onPress={onPickImage}>
           {bannerImage ? (
             <View style={styles.imagePreviewContainer}>
               <Image source={{ uri: bannerImage }} style={styles.imagePreview} />
@@ -137,13 +142,13 @@ export default function EventStep1Info({
                 style={styles.removeImageButton}
                 onPress={onRemoveImage}
               >
-                <Ionicons name="close-circle" size={24} color={Colors.error} />
+                <Ionicons name="close-circle" size={24} color={colors.error} />
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={styles.imagePickerPlaceholder}>
-              <Ionicons name="image-outline" size={40} color={Colors.gray400} />
-              <Text style={styles.imagePickerText}>Ajouter une image (16:9)</Text>
+            <View style={[styles.imagePickerPlaceholder, themed.imagePickerPlaceholder]}>
+              <Ionicons name="image-outline" size={40} color={colors.gray400} />
+              <Text style={[styles.imagePickerText, themed.imagePickerText]}>Ajouter une image (16:9)</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -152,7 +157,7 @@ export default function EventStep1Info({
       {/* Title */}
       <View style={styles.inputGroup}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={styles.label}>Titre de l'\u00e9v\u00e9nement *</Text>
+          <Text style={[styles.label, themed.label]}>Titre de l'\u00e9v\u00e9nement *</Text>
           {aiEnabled && (
             <AIAssistButton
               label="Optimiser"
@@ -163,32 +168,32 @@ export default function EventStep1Info({
           )}
         </View>
         <TextInput
-          style={styles.input}
+          style={[styles.input, themed.input]}
           value={title}
           onChangeText={onTitleChange}
           placeholder="Ex: Concert de Jazz au Palais"
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={colors.gray400}
         />
       </View>
 
       {/* Short Description */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Description courte</Text>
+        <Text style={[styles.label, themed.label]}>Description courte</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, themed.input]}
           value={shortDescription}
           onChangeText={onShortDescriptionChange}
           placeholder="R\u00e9sum\u00e9 en quelques mots (max 150 caract\u00e8res)"
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={colors.gray400}
           maxLength={150}
         />
-        <Text style={styles.charCount}>{shortDescription.length}/150</Text>
+        <Text style={[styles.charCount, themed.charCount]}>{shortDescription.length}/150</Text>
       </View>
 
       {/* Full Description */}
       <View style={styles.inputGroup}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={styles.label}>Description compl\u00e8te *</Text>
+          <Text style={[styles.label, themed.label]}>Description compl\u00e8te *</Text>
           {aiEnabled && (
             <AIAssistButton
               label="G\u00e9n\u00e9rer"
@@ -199,11 +204,11 @@ export default function EventStep1Info({
           )}
         </View>
         <TextInput
-          style={[styles.input, styles.textArea]}
+          style={[styles.input, styles.textArea, themed.input]}
           value={description}
           onChangeText={onDescriptionChange}
           placeholder="D\u00e9crivez votre \u00e9v\u00e9nement en d\u00e9tail..."
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={colors.gray400}
           multiline
           numberOfLines={5}
           textAlignVertical="top"
@@ -212,31 +217,31 @@ export default function EventStep1Info({
 
       {/* Event Type */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Type d'\u00e9v\u00e9nement *</Text>
+        <Text style={[styles.label, themed.label]}>Type d'\u00e9v\u00e9nement *</Text>
         <View style={styles.typeSelector}>
           <TouchableOpacity
-            style={[styles.typeOption, eventType === 'billetterie' && styles.typeOptionActive]}
+            style={[styles.typeOption, themed.typeOption, eventType === 'billetterie' && styles.typeOptionActive]}
             onPress={() => onEventTypeChange('billetterie')}
           >
             <Ionicons
               name="ticket-outline"
               size={20}
-              color={eventType === 'billetterie' ? Colors.white : Colors.gray600}
+              color={eventType === 'billetterie' ? Colors.white : colors.gray600}
             />
-            <Text style={[styles.typeOptionText, eventType === 'billetterie' && styles.typeOptionTextActive]}>
+            <Text style={[styles.typeOptionText, themed.typeOptionText, eventType === 'billetterie' && styles.typeOptionTextActive]}>
               Billetterie
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.typeOption, eventType === 'inscription' && styles.typeOptionActive]}
+            style={[styles.typeOption, themed.typeOption, eventType === 'inscription' && styles.typeOptionActive]}
             onPress={() => onEventTypeChange('inscription')}
           >
             <Ionicons
               name="create-outline"
               size={20}
-              color={eventType === 'inscription' ? Colors.white : Colors.gray600}
+              color={eventType === 'inscription' ? Colors.white : colors.gray600}
             />
-            <Text style={[styles.typeOptionText, eventType === 'inscription' && styles.typeOptionTextActive]}>
+            <Text style={[styles.typeOptionText, themed.typeOptionText, eventType === 'inscription' && styles.typeOptionTextActive]}>
               Inscription
             </Text>
           </TouchableOpacity>
@@ -245,16 +250,16 @@ export default function EventStep1Info({
 
       {/* Category */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Cat\u00e9gorie *</Text>
+        <Text style={[styles.label, themed.label]}>Cat\u00e9gorie *</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.categoriesContainer}>
             {categories.map((cat) => (
               <TouchableOpacity
                 key={cat.id}
-                style={[styles.categoryChip, categoryId === cat.id && styles.categoryChipActive]}
+                style={[styles.categoryChip, themed.categoryChip, categoryId === cat.id && [styles.categoryChipActive, themed.categoryChipActive]]}
                 onPress={() => onCategoryChange(cat.id)}
               >
-                <Text style={[styles.categoryChipText, categoryId === cat.id && styles.categoryChipTextActive]}>
+                <Text style={[styles.categoryChipText, themed.categoryChipText, categoryId === cat.id && [styles.categoryChipTextActive, themed.categoryChipTextActive]]}>
                   {cat.name}
                 </Text>
               </TouchableOpacity>
@@ -265,8 +270,8 @@ export default function EventStep1Info({
 
       {/* Tags */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Tags</Text>
-        <Text style={styles.inputHint}>
+        <Text style={[styles.label, themed.label]}>Tags</Text>
+        <Text style={[styles.inputHint, themed.inputHint]}>
           Ajoutez des mots-cl\u00e9s pour aider les participants \u00e0 trouver votre \u00e9v\u00e9nement
         </Text>
         <View style={{ marginTop: Spacing.sm }}>
@@ -283,8 +288,8 @@ export default function EventStep1Info({
 
       {/* Visibility */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Visibilité</Text>
-        <Text style={styles.inputHint}>Qui peut voir et accéder à votre événement</Text>
+        <Text style={[styles.label, themed.label]}>Visibilité</Text>
+        <Text style={[styles.inputHint, themed.inputHint]}>Qui peut voir et accéder à votre événement</Text>
         <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
           {([
             { value: 'public' as const, label: 'Public', icon: 'globe-outline' as const, desc: 'Visible par tous' },
@@ -299,27 +304,27 @@ export default function EventStep1Info({
                 padding: Spacing.md,
                 borderRadius: 12,
                 borderWidth: 2,
-                borderColor: visibility === opt.value ? Colors.primary : Colors.gray200,
-                backgroundColor: visibility === opt.value ? `${Colors.primary}10` : Colors.white,
+                borderColor: visibility === opt.value ? colors.primary : colors.gray200,
+                backgroundColor: visibility === opt.value ? `${colors.primary}10` : colors.white,
                 alignItems: 'center',
               }}
             >
               <Ionicons
                 name={opt.icon}
                 size={22}
-                color={visibility === opt.value ? Colors.primary : Colors.gray400}
+                color={visibility === opt.value ? colors.primary : colors.gray400}
               />
               <Text style={{
                 fontSize: 12,
                 fontWeight: '600',
-                color: visibility === opt.value ? Colors.primary : Colors.gray700,
+                color: visibility === opt.value ? colors.primary : colors.gray700,
                 marginTop: 4,
               }}>
                 {opt.label}
               </Text>
               <Text style={{
                 fontSize: 10,
-                color: Colors.gray500,
+                color: colors.gray500,
                 marginTop: 2,
                 textAlign: 'center',
               }}>
@@ -332,24 +337,24 @@ export default function EventStep1Info({
 
       {/* Access Code (optional) */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Code d'accès (optionnel)</Text>
-        <Text style={styles.inputHint}>
+        <Text style={[styles.label, themed.label]}>Code d'accès (optionnel)</Text>
+        <Text style={[styles.inputHint, themed.inputHint]}>
           Les visiteurs devront entrer ce code pour voir les détails
         </Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, themed.input]}
           value={accessCode}
           onChangeText={onAccessCodeChange}
           placeholder="Laisser vide pour pas de code"
-          placeholderTextColor={Colors.gray400}
+          placeholderTextColor={colors.gray400}
           secureTextEntry={false}
         />
       </View>
 
       {/* Featured Event Info */}
-      <View style={styles.warningInfoBox}>
-        <Ionicons name="star-outline" size={20} color={Colors.warningDark} />
-        <Text style={styles.warningInfoBoxText}>
+      <View style={[styles.warningInfoBox, themed.warningInfoBox]}>
+        <Ionicons name="star-outline" size={20} color={colors.warningDark} />
+        <Text style={[styles.warningInfoBoxText, themed.warningInfoBoxText]}>
           Vous pourrez demander la mise en avant de votre événement après sa création depuis "Mes événements".
         </Text>
       </View>

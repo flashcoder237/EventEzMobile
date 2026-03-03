@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../api/client';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
@@ -33,6 +34,7 @@ export default function ResetPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
+  const { colors, isDark } = useTheme();
   const { token } = route.params;
 
   const [password, setPassword] = useState('');
@@ -114,11 +116,11 @@ export default function ResetPasswordScreen() {
   // Loading state - validating token
   if (isValidating) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Verification du lien...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.gray500 }]}>Verification du lien...</Text>
         </View>
       </SafeAreaView>
     );
@@ -127,14 +129,14 @@ export default function ResetPasswordScreen() {
   // Invalid token state
   if (!isTokenValid) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <View style={styles.centerContainer}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="close-circle-outline" size={48} color={Colors.error} />
+          <View style={[styles.iconCircle, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="close-circle-outline" size={48} color={colors.error} />
           </View>
-          <Text style={styles.errorTitle}>Lien invalide</Text>
-          <Text style={styles.errorDescription}>
+          <Text style={[styles.errorTitle, { color: colors.gray900 }]}>Lien invalide</Text>
+          <Text style={[styles.errorDescription, { color: colors.gray600 }]}>
             Ce lien de reinitialisation est invalide ou a expire. Veuillez faire une nouvelle demande de reinitialisation de mot de passe.
           </Text>
           <GradientButton
@@ -149,7 +151,7 @@ export default function ResetPasswordScreen() {
             scaleValue={0.95}
             style={styles.linkContainer}
           >
-            <Text style={styles.linkText}>Retour a la connexion</Text>
+            <Text style={[styles.linkText, { color: colors.primary }]}>Retour a la connexion</Text>
           </AnimatedPressable>
         </View>
       </SafeAreaView>
@@ -159,14 +161,14 @@ export default function ResetPasswordScreen() {
   // Success state
   if (isSuccess) {
     return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <View style={styles.centerContainer}>
           <View style={styles.successIconCircle}>
             <Ionicons name="checkmark-circle-outline" size={48} color={Colors.success} />
           </View>
-          <Text style={styles.successTitle}>Mot de passe modifie !</Text>
-          <Text style={styles.successText}>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Mot de passe modifie !</Text>
+          <Text style={[styles.successText, { color: colors.gray600 }]}>
             Votre mot de passe a ete reinitialise avec succes. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
           </Text>
           <GradientButton
@@ -183,14 +185,14 @@ export default function ResetPasswordScreen() {
 
   // Main form
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Dot pattern background */}
-      <DotPattern />
+      <DotPattern opacity={isDark ? 0.02 : 0.04} />
 
       {/* Top accent bar */}
-      <View style={styles.accentBar} />
+      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -203,24 +205,24 @@ export default function ResetPasswordScreen() {
           {/* Back Button */}
           <AnimatedPressable
             onPress={() => navigation.goBack()}
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: colors.gray50 }]}
             animationType="scale"
             scaleValue={0.9}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.gray800} />
+            <Ionicons name="arrow-back" size={24} color={colors.gray800} />
           </AnimatedPressable>
 
           {/* Icon */}
           <View style={styles.iconContainer}>
-            <View style={styles.iconCircle}>
-              <Ionicons name="key-outline" size={40} color={Colors.primary} />
+            <View style={[styles.iconCircle, { backgroundColor: colors.gray50 }]}>
+              <Ionicons name="key-outline" size={40} color={colors.primary} />
             </View>
           </View>
 
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={styles.title}>Nouveau mot de passe</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.gray900 }]}>Nouveau mot de passe</Text>
+            <Text style={[styles.subtitle, { color: colors.gray500 }]}>
               Choisissez un nouveau mot de passe securise pour votre compte.
             </Text>
           </View>
@@ -229,15 +231,15 @@ export default function ResetPasswordScreen() {
           <View style={styles.form}>
             {/* Password Field */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Nouveau mot de passe</Text>
-              <View style={[styles.inputWrapper, errors.password && styles.inputError]}>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Nouveau mot de passe</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.password && styles.inputError]}>
                 <View style={styles.inputIconContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color={Colors.gray400} />
+                  <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
                 </View>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.gray900 }]}
                   placeholder="Minimum 8 caracteres"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -257,29 +259,29 @@ export default function ResetPasswordScreen() {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.gray400}
+                    color={colors.gray400}
                   />
                 </AnimatedPressable>
               </View>
               {errors.password && (
                 <View style={styles.fieldErrorContainer}>
-                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
-                  <Text style={styles.fieldErrorText}>{errors.password}</Text>
+                  <Ionicons name="alert-circle" size={14} color={colors.error} />
+                  <Text style={[styles.fieldErrorText, { color: colors.error }]}>{errors.password}</Text>
                 </View>
               )}
             </View>
 
             {/* Confirm Password Field */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Confirmer le mot de passe</Text>
-              <View style={[styles.inputWrapper, errors.confirmPassword && styles.inputError]}>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Confirmer le mot de passe</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.confirmPassword && styles.inputError]}>
                 <View style={styles.inputIconContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color={Colors.gray400} />
+                  <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
                 </View>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.gray900 }]}
                   placeholder="Retapez le mot de passe"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   value={confirmPassword}
                   onChangeText={(text) => {
                     setConfirmPassword(text);
@@ -299,21 +301,21 @@ export default function ResetPasswordScreen() {
                   <Ionicons
                     name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.gray400}
+                    color={colors.gray400}
                   />
                 </AnimatedPressable>
               </View>
               {errors.confirmPassword && (
                 <View style={styles.fieldErrorContainer}>
-                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
-                  <Text style={styles.fieldErrorText}>{errors.confirmPassword}</Text>
+                  <Ionicons name="alert-circle" size={14} color={colors.error} />
+                  <Text style={[styles.fieldErrorText, { color: colors.error }]}>{errors.confirmPassword}</Text>
                 </View>
               )}
             </View>
 
             {/* Password requirements */}
-            <View style={styles.requirementsContainer}>
-              <Text style={styles.requirementsTitle}>Le mot de passe doit contenir :</Text>
+            <View style={[styles.requirementsContainer, { backgroundColor: colors.gray50 }]}>
+              <Text style={[styles.requirementsTitle, { color: colors.gray700 }]}>Le mot de passe doit contenir :</Text>
               <PasswordRequirement
                 met={password.length >= 8}
                 text="Au moins 8 caracteres"
@@ -345,13 +347,13 @@ export default function ResetPasswordScreen() {
 
           {/* Login Link */}
           <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>Vous vous souvenez ?</Text>
+            <Text style={[styles.loginText, { color: colors.gray500 }]}>Vous vous souvenez ?</Text>
             <AnimatedPressable
               onPress={() => navigation.navigate('Login')}
               animationType="scale"
               scaleValue={0.95}
             >
-              <Text style={styles.loginLink}> Se connecter</Text>
+              <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
             </AnimatedPressable>
           </View>
         </KeyboardAwareScrollView>
@@ -362,14 +364,15 @@ export default function ResetPasswordScreen() {
 
 // Password requirement indicator component
 function PasswordRequirement({ met, text }: { met: boolean; text: string }) {
+  const { colors } = useTheme();
   return (
     <View style={styles.requirementRow}>
       <Ionicons
         name={met ? 'checkmark-circle' : 'ellipse-outline'}
         size={16}
-        color={met ? Colors.success : Colors.gray400}
+        color={met ? Colors.success : colors.gray400}
       />
-      <Text style={[styles.requirementText, met && styles.requirementMet]}>
+      <Text style={[styles.requirementText, { color: colors.gray500 }, met && styles.requirementMet]}>
         {text}
       </Text>
     </View>
@@ -379,7 +382,6 @@ function PasswordRequirement({ met, text }: { met: boolean; text: string }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   accentBar: {
     position: 'absolute',
@@ -387,7 +389,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: Colors.primary,
   },
   safeArea: {
     flex: 1,

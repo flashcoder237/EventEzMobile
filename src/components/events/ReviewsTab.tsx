@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Feedback, User } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 export interface ReviewsTabProps {
@@ -39,29 +40,31 @@ export default function ReviewsTab({
   submittingReview,
   onSubmitReview,
 }: ReviewsTabProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <View style={styles.section}>
       <View style={styles.reviewsHeader}>
-        <Text style={styles.sectionTitle}>Avis des participants</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Avis des participants</Text>
         {user && !showReviewForm && (
           <TouchableOpacity
-            style={styles.addReviewButton}
+            style={[styles.addReviewButton, { backgroundColor: colors.primaryBg }]}
             onPress={() => setShowReviewForm(true)}
           >
-            <Ionicons name="add" size={18} color={Colors.primary} />
-            <Text style={styles.addReviewText}>Laisser un avis</Text>
+            <Ionicons name="add" size={18} color={colors.primary} />
+            <Text style={[styles.addReviewText, { color: colors.primary }]}>Laisser un avis</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Review Form */}
       {showReviewForm && (
-        <View style={styles.reviewFormCard}>
-          <Text style={styles.reviewFormTitle}>Votre avis</Text>
+        <View style={[styles.reviewFormCard, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
+          <Text style={[styles.reviewFormTitle, { color: colors.gray900 }]}>Votre avis</Text>
 
           {/* Rating Stars */}
           <View style={styles.ratingInputRow}>
-            <Text style={styles.ratingLabel}>Note :</Text>
+            <Text style={[styles.ratingLabel, { color: colors.gray600 }]}>Note :</Text>
             <View style={styles.ratingStars}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -72,7 +75,7 @@ export default function ReviewsTab({
                   <Ionicons
                     name={star <= reviewRating ? 'star' : 'star-outline'}
                     size={28}
-                    color={star <= reviewRating ? '#FBBF24' : Colors.gray300}
+                    color={star <= reviewRating ? '#FBBF24' : colors.gray300}
                   />
                 </TouchableOpacity>
               ))}
@@ -81,9 +84,9 @@ export default function ReviewsTab({
 
           {/* Comment Input */}
           <TextInput
-            style={styles.reviewInput}
+            style={[styles.reviewInput, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
             placeholder="Partagez votre experience (optionnel)"
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             multiline
             numberOfLines={4}
             value={reviewComment}
@@ -101,7 +104,7 @@ export default function ReviewsTab({
                 setReviewRating(5);
               }}
             >
-              <Text style={styles.cancelReviewText}>Annuler</Text>
+              <Text style={[styles.cancelReviewText, { color: colors.gray500 }]}>Annuler</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.submitReviewButton}
@@ -121,11 +124,11 @@ export default function ReviewsTab({
       {loadingFeedbacks ? (
         <View style={styles.emptyTab}>
           <LoadingSpinner />
-          <Text style={styles.emptyTabText}>Chargement des avis...</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement des avis...</Text>
         </View>
       ) : feedbacks && feedbacks.length > 0 ? (
         feedbacks.map((feedback, index) => (
-          <View key={index} style={styles.reviewCard}>
+          <View key={index} style={[styles.reviewCard, { backgroundColor: colors.gray50 }]}>
             <View style={styles.reviewHeader}>
               <View style={styles.reviewAvatar}>
                 <Text style={styles.reviewAvatarText}>
@@ -133,7 +136,7 @@ export default function ReviewsTab({
                 </Text>
               </View>
               <View style={styles.reviewUserInfo}>
-                <Text style={styles.reviewUserName}>
+                <Text style={[styles.reviewUserName, { color: colors.gray900 }]}>
                   {feedback.user_name || `${(feedback.user as any)?.first_name || ''} ${(feedback.user as any)?.last_name || ''}`.trim() || 'Utilisateur'}
                 </Text>
                 <View style={styles.reviewRating}>
@@ -142,27 +145,27 @@ export default function ReviewsTab({
                       key={star}
                       name={star <= feedback.rating ? 'star' : 'star-outline'}
                       size={14}
-                      color={star <= feedback.rating ? '#FBBF24' : Colors.gray300}
+                      color={star <= feedback.rating ? '#FBBF24' : colors.gray300}
                     />
                   ))}
                 </View>
               </View>
             </View>
             {feedback.comment && (
-              <Text style={styles.reviewComment}>{feedback.comment}</Text>
+              <Text style={[styles.reviewComment, { color: colors.gray600 }]}>{feedback.comment}</Text>
             )}
           </View>
         ))
       ) : !showReviewForm ? (
         <View style={styles.emptyTab}>
-          <Ionicons name="star-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucun avis pour le moment</Text>
+          <Ionicons name="star-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun avis pour le moment</Text>
           {user && (
             <TouchableOpacity
-              style={styles.firstReviewButton}
+              style={[styles.firstReviewButton, { backgroundColor: colors.primaryBg }]}
               onPress={() => setShowReviewForm(true)}
             >
-              <Text style={styles.firstReviewText}>Soyez le premier a donner votre avis</Text>
+              <Text style={[styles.firstReviewText, { color: colors.primary }]}>Soyez le premier a donner votre avis</Text>
             </TouchableOpacity>
           )}
         </View>

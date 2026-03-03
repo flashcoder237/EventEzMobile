@@ -1,6 +1,6 @@
 /**
- * Modal unifiée pour les actions sur un message
- * Répondre, Réagir, Transférer, Modifier, Supprimer
+ * Modal unifiee pour les actions sur un message
+ * Repondre, Reagir, Transferer, Modifier, Supprimer
  */
 
 import React, { memo } from 'react';
@@ -21,6 +21,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { isMyMessage } from '../../lib/utils/messagingHelpers';
 
 export type MessageActionType = 'reply' | 'react' | 'forward' | 'edit' | 'delete' | 'copy';
@@ -43,9 +44,9 @@ interface ActionItem {
 }
 
 const ACTIONS: ActionItem[] = [
-  { type: 'reply', icon: 'arrow-undo-outline', label: 'Répondre' },
-  { type: 'react', icon: 'happy-outline', label: 'Réagir' },
-  { type: 'forward', icon: 'arrow-redo-outline', label: 'Transférer' },
+  { type: 'reply', icon: 'arrow-undo-outline', label: 'Repondre' },
+  { type: 'react', icon: 'happy-outline', label: 'Reagir' },
+  { type: 'forward', icon: 'arrow-redo-outline', label: 'Transferer' },
   { type: 'copy', icon: 'copy-outline', label: 'Copier' },
   { type: 'edit', icon: 'create-outline', label: 'Modifier', ownerOnly: true },
   { type: 'delete', icon: 'trash-outline', label: 'Supprimer', destructive: true, ownerOnly: true },
@@ -58,6 +59,8 @@ function MessageActionModal({
   onClose,
   onAction,
 }: MessageActionModalProps) {
+  const { colors, isDark } = useTheme();
+
   if (!message) return null;
 
   const isMine = isMyMessage(message, userId);
@@ -80,12 +83,12 @@ function MessageActionModal({
       onRequestClose={onClose}
     >
       <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.surface }]}>
           {/* Message Preview */}
-          <View style={styles.preview}>
-            <Text style={styles.previewLabel}>Message</Text>
-            <Text style={styles.previewText} numberOfLines={2}>
-              {message.content || '[Pièce jointe]'}
+          <View style={[styles.preview, { borderBottomColor: colors.gray100 }]}>
+            <Text style={[styles.previewLabel, { color: colors.gray500 }]}>Message</Text>
+            <Text style={[styles.previewText, { color: colors.gray700 }]} numberOfLines={2}>
+              {message.content || '[Piece jointe]'}
             </Text>
           </View>
 
@@ -103,12 +106,13 @@ function MessageActionModal({
                 <Ionicons
                   name={action.icon}
                   size={22}
-                  color={action.destructive ? Colors.error : Colors.gray700}
+                  color={action.destructive ? colors.error : colors.gray700}
                 />
                 <Text
                   style={[
                     styles.actionLabel,
-                    action.destructive && styles.actionLabelDestructive,
+                    { color: colors.gray700 },
+                    action.destructive && { color: colors.error },
                   ]}
                 >
                   {action.label}
@@ -118,8 +122,8 @@ function MessageActionModal({
           </View>
 
           {/* Cancel Button */}
-          <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
-            <Text style={styles.cancelText}>Annuler</Text>
+          <TouchableOpacity style={[styles.cancelButton, { borderTopColor: colors.gray100 }]} onPress={onClose}>
+            <Text style={[styles.cancelText, { color: colors.gray500 }]}>Annuler</Text>
           </TouchableOpacity>
         </View>
       </Pressable>

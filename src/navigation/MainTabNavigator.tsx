@@ -13,8 +13,9 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { MainTabParamList } from '../types';
-import { Colors, FontFamily, Spacing, Shadows, BorderRadius } from '../constants/theme';
+import { FontFamily, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 // Screens
 import DiscoverScreen from '../screens/events/DiscoverScreen';
@@ -44,6 +45,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const indicatorPosition = useSharedValue(0);
   const tabCount = state.routes.length;
   const { user } = useAuth();
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     indicatorPosition.value = withSpring(state.index, {
@@ -63,28 +65,30 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   });
 
   const bottomPadding = Math.max(insets.bottom, 16);
+  const pillBg = isDark ? '#2D2050' : '#EDE9FE';
+  const barBg = isDark ? 'rgba(26,26,46,0.95)' : 'rgba(255,255,255,0.95)';
 
   return (
     <View style={[styles.floatingBarOuter, { paddingBottom: bottomPadding }]}>
       {/* Fade gradient covering from bottom of screen up past the tab bar */}
       <LinearGradient
-        colors={['transparent', Colors.background]}
+        colors={['transparent', isDark ? colors.background : colors.background]}
         style={[styles.fadeGradient, { height: FADE_HEIGHT + TAB_BAR_HEIGHT + bottomPadding }]}
         pointerEvents="none"
       />
 
       <BlurView
         intensity={Platform.OS === 'ios' ? 80 : 0}
-        tint="light"
+        tint={isDark ? 'dark' : 'light'}
         style={styles.floatingBar}
       >
         {/* Android fallback bg */}
         {Platform.OS === 'android' && (
-          <View style={styles.androidBg} />
+          <View style={[styles.androidBg, { backgroundColor: barBg }]} />
         )}
 
         {/* Active pill background */}
-        <Animated.View style={[styles.pill, pillStyle]} />
+        <Animated.View style={[styles.pill, { backgroundColor: pillBg }, pillStyle]} />
 
         {/* Tab items */}
         {state.routes.map((route, index) => {
@@ -104,6 +108,9 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             }
           };
 
+          const activeColor = colors.primaryDark;
+          const inactiveColor = colors.gray400;
+
           return (
             <TouchableOpacity
               key={route.key}
@@ -119,17 +126,20 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     source={{ uri: user.profile_picture || user.image }}
                     style={[
                       styles.tabAvatar,
-                      isFocused && styles.tabAvatarActive,
+                      { borderColor: isFocused ? activeColor : colors.gray300 },
                     ]}
                   />
                 ) : (
                   <View
                     style={[
                       styles.tabAvatarInitial,
-                      isFocused && styles.tabAvatarActive,
+                      {
+                        backgroundColor: isDark ? colors.gray200 : colors.gray200,
+                        borderColor: isFocused ? activeColor : colors.gray300,
+                      },
                     ]}
                   >
-                    <Text style={[styles.tabAvatarInitialText, isFocused && { color: Colors.primaryDark }]}>
+                    <Text style={[styles.tabAvatarInitialText, { color: isFocused ? activeColor : colors.gray600 }]}>
                       {(user?.first_name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
                     </Text>
                   </View>
@@ -138,10 +148,10 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 <Ionicons
                   name={isFocused ? config.iconFocused : config.icon}
                   size={isFocused ? 28 : 26}
-                  color={isFocused ? Colors.primaryDark : Colors.gray400}
+                  color={isFocused ? activeColor : inactiveColor}
                 />
               )}
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive]}>
+              <Text style={[styles.tabLabel, { color: isFocused ? activeColor : inactiveColor, fontFamily: isFocused ? FontFamily.bold : FontFamily.medium }]}>
                 {config.label}
               </Text>
             </TouchableOpacity>
@@ -153,12 +163,14 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function MainTabNavigator() {
+  const { isDark } = useTheme();
+
   useEffect(() => {
     if (Platform.OS === 'android') {
       NavigationBar.setBackgroundColorAsync('transparent');
-      NavigationBar.setButtonStyleAsync('dark');
+      NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
     }
-  }, []);
+  }, [isDark]);
 
   return (
     <Tab.Navigator
@@ -218,14 +230,12 @@ const styles = StyleSheet.create({
   },
   androidBg: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.95)',
   },
   pill: {
     position: 'absolute',
     top: (TAB_BAR_HEIGHT - PILL_HEIGHT) / 2,
     height: PILL_HEIGHT,
     borderRadius: PILL_HEIGHT / 2,
-    backgroundColor: '#EDE9FE',
   },
   tabItem: {
     flex: 1,
@@ -235,38 +245,25 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   tabLabel: {
-    fontFamily: FontFamily.medium,
     fontSize: 11,
-    color: Colors.gray400,
     marginTop: 1,
-  },
-  tabLabelActive: {
-    color: Colors.primaryDark,
-    fontFamily: FontFamily.bold,
   },
   tabAvatar: {
     width: 30,
     height: 30,
     borderRadius: 15,
     borderWidth: 2,
-    borderColor: Colors.gray300,
-  },
-  tabAvatarActive: {
-    borderColor: Colors.primaryDark,
   },
   tabAvatarInitial: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.gray300,
   },
   tabAvatarInitialText: {
     fontFamily: FontFamily.bold,
     fontSize: 13,
-    color: Colors.gray600,
   },
 });

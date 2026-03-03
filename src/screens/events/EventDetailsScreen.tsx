@@ -27,7 +27,7 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { RootStackParamList } from '../../types';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
 import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import SponsorsTab from '../../components/events/SponsorsTab';
@@ -45,6 +45,8 @@ import ReviewsTab from '../../components/events/ReviewsTab';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { eventsAPI } from '../../api/client';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Badge } from '../../components/ui/Badge';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -53,6 +55,7 @@ const { width } = Dimensions.get('window');
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
+  const { colors, isDark, gradients } = useTheme();
 
   const {
     event,
@@ -159,11 +162,11 @@ export default function EventDetailsScreen() {
 
   if (!event) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={60} color={Colors.gray400} />
-        <Text style={styles.errorText}>Evenement non trouve</Text>
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Ionicons name="alert-circle-outline" size={60} color={colors.gray400} />
+        <Text style={[styles.errorText, { color: colors.gray500 }]}>Evenement non trouve</Text>
         <TouchableOpacity
-          style={styles.backButtonError}
+          style={[styles.backButtonError, { backgroundColor: colors.primary }]}
           onPress={() => navigation.goBack()}
         >
           <Text style={styles.backButtonErrorText}>Retour</Text>
@@ -175,21 +178,21 @@ export default function EventDetailsScreen() {
   // Invite-only gate
   if (event.visibility === 'invite_only' && event.user_has_access === false) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <View style={visibilityStyles.gateContainer}>
           <TouchableOpacity style={visibilityStyles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <View style={visibilityStyles.gateIconWrap}>
-            <Ionicons name="lock-closed" size={48} color={Colors.primary} />
+          <View style={[visibilityStyles.gateIconWrap, { backgroundColor: `${colors.primary}15` }]}>
+            <Ionicons name="lock-closed" size={48} color={colors.primary} />
           </View>
-          <Text style={visibilityStyles.gateTitle}>Événement sur invitation</Text>
-          <Text style={visibilityStyles.gateDesc}>
+          <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>Événement sur invitation</Text>
+          <Text style={[visibilityStyles.gateDesc, { color: colors.gray500 }]}>
             Cet événement est réservé aux personnes invitées.
             Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.
           </Text>
-          <TouchableOpacity style={visibilityStyles.gateBtn} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={[visibilityStyles.gateBtn, { backgroundColor: colors.primary }]} onPress={() => navigation.goBack()}>
             <Text style={visibilityStyles.gateBtnText}>Retour</Text>
           </TouchableOpacity>
         </View>
@@ -200,47 +203,47 @@ export default function EventDetailsScreen() {
   // Access code gate
   if (event.requires_access_code) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <View style={visibilityStyles.gateContainer}>
           <TouchableOpacity style={visibilityStyles.backBtn} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
 
           {event.banner_image && (
             <Image source={{ uri: event.banner_image }} style={visibilityStyles.gateBanner} />
           )}
 
-          <Text style={visibilityStyles.gateTitle}>{event.title}</Text>
+          <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>{event.title}</Text>
           {event.start_date && (
-            <Text style={visibilityStyles.gateDate}>
+            <Text style={[visibilityStyles.gateDate, { color: colors.gray500 }]}>
               {new Date(event.start_date).toLocaleDateString('fr-FR', {
                 day: 'numeric', month: 'long', year: 'numeric'
               })}
             </Text>
           )}
 
-          <View style={visibilityStyles.codeCard}>
-            <Ionicons name="key-outline" size={28} color={Colors.warning} />
-            <Text style={visibilityStyles.codeTitle}>Code d'accès requis</Text>
-            <Text style={visibilityStyles.codeDesc}>
+          <View style={[visibilityStyles.codeCard, { backgroundColor: colors.card }]}>
+            <Ionicons name="key-outline" size={28} color={colors.warning} />
+            <Text style={[visibilityStyles.codeTitle, { color: colors.gray900 }]}>Code d'accès requis</Text>
+            <Text style={[visibilityStyles.codeDesc, { color: colors.gray500 }]}>
               Entrez le code pour voir les détails complets
             </Text>
             <TextInput
-              style={visibilityStyles.codeInput}
+              style={[visibilityStyles.codeInput, { borderColor: colors.gray200, color: colors.gray900, backgroundColor: colors.gray50 }]}
               value={accessCodeInput}
               onChangeText={setAccessCodeInput}
               placeholder="Entrez le code d'accès"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               autoFocus
             />
             <TouchableOpacity
-              style={[visibilityStyles.codeBtn, (!accessCodeInput.trim() || verifyingCode) && { opacity: 0.5 }]}
+              style={[visibilityStyles.codeBtn, { backgroundColor: colors.primary }, (!accessCodeInput.trim() || verifyingCode) && { opacity: 0.5 }]}
               onPress={handleVerifyAccessCode}
               disabled={!accessCodeInput.trim() || verifyingCode}
             >
               {verifyingCode ? (
-                <ActivityIndicator color={Colors.white} size="small" />
+                <ActivityIndicator color={colors.white} size="small" />
               ) : (
                 <Text style={visibilityStyles.codeBtnText}>Accéder</Text>
               )}
@@ -262,7 +265,7 @@ export default function EventDetailsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
 
       {/* BlurHeader that appears on scroll */}
@@ -273,18 +276,18 @@ export default function EventDetailsScreen() {
         bgShowOffset={200}
         leftAction={
           <TouchableOpacity
-            style={styles.blurHeaderBtn}
+            style={[styles.blurHeaderBtn, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={22} color={Colors.gray900} />
+            <Ionicons name="arrow-back" size={22} color={colors.gray900} />
           </TouchableOpacity>
         }
         rightActions={
           <TouchableOpacity
-            style={styles.blurHeaderBtn}
+            style={[styles.blurHeaderBtn, { backgroundColor: colors.gray100 }]}
             onPress={handleShare}
           >
-            <Ionicons name="share-outline" size={20} color={Colors.gray900} />
+            <Ionicons name="share-outline" size={20} color={colors.gray900} />
           </TouchableOpacity>
         }
       />
@@ -304,7 +307,7 @@ export default function EventDetailsScreen() {
           >
             <Animated.Image
               source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
-              style={[styles.bannerImage, bannerAnimatedStyle]}
+              style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
             />
             {/* Triple gradient overlay */}
             <LinearGradient
@@ -314,7 +317,7 @@ export default function EventDetailsScreen() {
             />
             {/* Image zoom hint */}
             <View style={styles.imageZoomHint}>
-              <Ionicons name="expand-outline" size={16} color={Colors.white} />
+              <Ionicons name="expand-outline" size={16} color={colors.white} />
             </View>
           </TouchableOpacity>
 
@@ -325,7 +328,7 @@ export default function EventDetailsScreen() {
                 style={styles.backButton}
                 onPress={() => navigation.goBack()}
               >
-                <Ionicons name="arrow-back" size={24} color={Colors.white} />
+                <Ionicons name="arrow-back" size={24} color={colors.white} />
               </TouchableOpacity>
               <View style={styles.headerActions}>
                 <FollowEventButton
@@ -335,7 +338,7 @@ export default function EventDetailsScreen() {
                   onFollowChange={handleFollowChange}
                 />
                 <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
-                  <Ionicons name="share-outline" size={22} color={Colors.white} />
+                  <Ionicons name="share-outline" size={22} color={colors.white} />
                 </TouchableOpacity>
               </View>
             </SafeAreaView>
@@ -343,47 +346,45 @@ export default function EventDetailsScreen() {
         </View>
 
         {/* Content */}
-        <View style={styles.content}>
+        <View style={[styles.content, { backgroundColor: colors.surface }]}>
           {/* Pending Payment Alert */}
           {userRegistration && userRegistration.status === 'pending' && isPaymentRequired(userRegistration) && (
-            <View style={styles.pendingPaymentBanner}>
+            <View style={[styles.pendingPaymentBanner, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}>
               <View style={styles.pendingPaymentInfo}>
-                <Ionicons name="warning" size={24} color={Colors.warning} />
+                <Ionicons name="warning" size={24} color={colors.warning} />
                 <View style={styles.pendingPaymentTextContainer}>
-                  <Text style={styles.pendingPaymentTitle}>Paiement en attente</Text>
-                  <Text style={styles.pendingPaymentDescription}>
+                  <Text style={[styles.pendingPaymentTitle, { color: colors.warning }]}>Paiement en attente</Text>
+                  <Text style={[styles.pendingPaymentDescription, { color: colors.gray600 }]}>
                     Finalisez votre paiement pour confirmer votre inscription
                   </Text>
                 </View>
               </View>
               <TouchableOpacity
-                style={styles.pendingPaymentButton}
+                style={[styles.pendingPaymentButton, { backgroundColor: colors.primary }]}
                 onPress={() => navigation.navigate('Payment', { registrationId: userRegistration.id })}
               >
-                <Ionicons name="card-outline" size={18} color={Colors.white} />
+                <Ionicons name="card-outline" size={18} color={colors.white} />
                 <Text style={styles.pendingPaymentButtonText}>Finaliser le paiement</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Date — Accent orange (Eventbrite pattern) */}
-          <Text style={styles.dateAccent}>
+          <Text style={[styles.dateAccent, { color: colors.accent }]}>
             {formatDate(event.start_date)} · {formatTime(event.start_date)}
           </Text>
 
           {/* Title — Large & bold */}
-          <Text style={styles.title}>{event.title}</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]}>{event.title}</Text>
 
           {/* Category Badge */}
           {event.category?.name && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryText}>{event.category.name}</Text>
-            </View>
+            <Badge label={event.category.name} variant="default" size="md" style={{ marginBottom: Spacing.lg }} />
           )}
 
           {/* Organizer Card */}
-          <View style={styles.organizerCard}>
-            <View style={styles.organizerAvatar}>
+          <View style={[styles.organizerCard, { backgroundColor: colors.gray50 }]}>
+            <View style={[styles.organizerAvatar, { backgroundColor: colors.primary }]}>
               {event.organizer?.profile_picture ? (
                 <Image
                   source={{ uri: event.organizer.profile_picture }}
@@ -396,28 +397,28 @@ export default function EventDetailsScreen() {
               )}
             </View>
             <View style={styles.organizerInfo}>
-              <Text style={styles.organizerLabel}>Organise par</Text>
-              <Text style={styles.organizerName}>
+              <Text style={[styles.organizerLabel, { color: colors.gray500 }]}>Organise par</Text>
+              <Text style={[styles.organizerName, { color: colors.gray900 }]}>
                 {event.organizer?.first_name} {event.organizer?.last_name}
               </Text>
             </View>
             <TouchableOpacity
-              style={styles.contactOrgButton}
+              style={[styles.contactOrgButton, { borderColor: colors.primary }]}
               onPress={handleContactOrganizer}
             >
-              <Ionicons name="chatbubble-outline" size={16} color={Colors.primary} />
-              <Text style={styles.contactOrgText}>Contacter</Text>
+              <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
+              <Text style={[styles.contactOrgText, { color: colors.primary }]}>Contacter</Text>
             </TouchableOpacity>
           </View>
 
           {/* Share Buttons */}
           <View style={styles.shareRow}>
-            <Text style={styles.shareLabel}>Partager :</Text>
+            <Text style={[styles.shareLabel, { color: colors.gray500 }]}>Partager :</Text>
             <View style={styles.shareButtons}>
-              <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                <Ionicons name="share-social-outline" size={20} color={Colors.gray600} />
+              <TouchableOpacity style={[styles.shareButton, { backgroundColor: colors.gray100 }]} onPress={handleShare}>
+                <Ionicons name="share-social-outline" size={20} color={colors.gray600} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.shareButton, styles.whatsappButton]} onPress={handleShareToWhatsApp}>
+              <TouchableOpacity style={[styles.shareButton, { backgroundColor: isDark ? '#1A3D1A' : '#E7F5E7' }]} onPress={handleShareToWhatsApp}>
                 <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
               </TouchableOpacity>
             </View>
@@ -425,14 +426,14 @@ export default function EventDetailsScreen() {
 
           {/* Location Card */}
           {event.location_type === 'online' ? (
-            <View style={styles.onlineEventCard}>
+            <View style={[styles.onlineEventCard, { backgroundColor: colors.card, borderColor: isDark ? colors.border : '#DBEAFE' }]}>
               <View style={styles.onlineEventHeader}>
-                <View style={[styles.infoIconContainer, { backgroundColor: '#DBEAFE' }]}>
-                  <Ionicons name="videocam" size={22} color="#3B82F6" />
+                <View style={[styles.infoIconContainer, { backgroundColor: isDark ? colors.infoLight : '#DBEAFE' }]}>
+                  <Ionicons name="videocam" size={22} color={colors.info} />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoTitle}>Evenement en ligne</Text>
-                  <Text style={styles.infoSubtitle}>
+                  <Text style={[styles.infoTitle, { color: colors.gray900 }]}>Evenement en ligne</Text>
+                  <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>
                     {event.online_platform || 'Plateforme de visioconference'}
                   </Text>
                 </View>
@@ -442,22 +443,22 @@ export default function EventDetailsScreen() {
               {userRegistration ? (
                 <>
                   {event.online_instructions && (
-                    <Text style={styles.onlineInstructions}>
+                    <Text style={[styles.onlineInstructions, { color: colors.gray600, borderTopColor: colors.gray100 }]}>
                       {event.online_instructions}
                     </Text>
                   )}
                   {!!(event.online_meeting_id || event.online_passcode) && (
-                    <View style={styles.onlineMeetingInfo}>
+                    <View style={[styles.onlineMeetingInfo, { backgroundColor: colors.gray50 }]}>
                       {event.online_meeting_id && (
                         <View style={styles.meetingInfoRow}>
-                          <Text style={styles.meetingInfoLabel}>ID de reunion :</Text>
-                          <Text style={styles.meetingInfoValue}>{event.online_meeting_id}</Text>
+                          <Text style={[styles.meetingInfoLabel, { color: colors.gray500 }]}>ID de reunion :</Text>
+                          <Text style={[styles.meetingInfoValue, { color: colors.gray900 }]}>{event.online_meeting_id}</Text>
                         </View>
                       )}
                       {event.online_passcode && (
                         <View style={styles.meetingInfoRow}>
-                          <Text style={styles.meetingInfoLabel}>Code d'acces :</Text>
-                          <Text style={styles.meetingInfoValue}>{event.online_passcode}</Text>
+                          <Text style={[styles.meetingInfoLabel, { color: colors.gray500 }]}>Code d'acces :</Text>
+                          <Text style={[styles.meetingInfoValue, { color: colors.gray900 }]}>{event.online_passcode}</Text>
                         </View>
                       )}
                     </View>
@@ -471,29 +472,29 @@ export default function EventDetailsScreen() {
                         });
                       }}
                     >
-                      <Ionicons name="videocam" size={18} color={Colors.white} />
+                      <Ionicons name="videocam" size={18} color={colors.white} />
                       <Text style={styles.joinOnlineButtonText}>Rejoindre l'evenement</Text>
                     </TouchableOpacity>
                   ) : event.online_platform?.toLowerCase().includes('eventez') ? (
-                    <View style={styles.eventezVisioNotice}>
-                      <Ionicons name="information-circle" size={18} color="#3B82F6" />
-                      <Text style={styles.eventezVisioNoticeText}>
+                    <View style={[styles.eventezVisioNotice, { backgroundColor: isDark ? colors.infoLight : '#F0F9FF' }]}>
+                      <Ionicons name="information-circle" size={18} color={colors.info} />
+                      <Text style={[styles.eventezVisioNoticeText, { color: colors.gray600 }]}>
                         La visioconference EventEz sera disponible le jour de l'evenement
                       </Text>
                     </View>
                   ) : !event.online_meeting_id && !event.online_passcode ? (
-                    <View style={styles.eventezVisioNotice}>
-                      <Ionicons name="time-outline" size={18} color={Colors.gray500} />
-                      <Text style={styles.eventezVisioNoticeText}>
+                    <View style={[styles.eventezVisioNotice, { backgroundColor: isDark ? colors.infoLight : '#F0F9FF' }]}>
+                      <Ionicons name="time-outline" size={18} color={colors.gray500} />
+                      <Text style={[styles.eventezVisioNoticeText, { color: colors.gray600 }]}>
                         Les informations de connexion seront communiquees avant l'evenement
                       </Text>
                     </View>
                   ) : null}
                 </>
               ) : (
-                <View style={styles.onlineLockedInfo}>
-                  <Ionicons name="lock-closed" size={20} color={Colors.gray400} />
-                  <Text style={styles.onlineLockedText}>
+                <View style={[styles.onlineLockedInfo, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="lock-closed" size={20} color={colors.gray400} />
+                  <Text style={[styles.onlineLockedText, { color: colors.gray500 }]}>
                     Les informations de connexion seront disponibles apres votre inscription
                   </Text>
                 </View>
@@ -502,22 +503,22 @@ export default function EventDetailsScreen() {
           ) : event.location_type === 'hybrid' ? (
             <View style={styles.hybridEventCard}>
               {/* Physical location */}
-              <TouchableOpacity style={styles.infoCard} activeOpacity={0.7}>
-                <View style={styles.infoIconContainer}>
-                  <Ionicons name="location" size={22} color={Colors.primary} />
+              <TouchableOpacity style={[styles.infoCard, { backgroundColor: colors.gray50 }]} activeOpacity={0.7}>
+                <View style={[styles.infoIconContainer, { backgroundColor: colors.primaryBg }]}>
+                  <Ionicons name="location" size={22} color={colors.primary} />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={styles.infoTitle}>{event.location_name || 'Lieu a definir'}</Text>
-                  <Text style={styles.infoSubtitle}>
+                  <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{event.location_name || 'Lieu a definir'}</Text>
+                  <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>
                     {event.location_address || `${event.location_city}, ${event.location_country}`}
                   </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+                <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
               </TouchableOpacity>
               {/* Online option */}
-              <View style={styles.hybridOnlineOption}>
-                <Ionicons name="videocam" size={18} color="#3B82F6" />
-                <Text style={styles.hybridOnlineText}>
+              <View style={[styles.hybridOnlineOption, { backgroundColor: isDark ? colors.infoLight : '#EFF6FF' }]}>
+                <Ionicons name="videocam" size={18} color={colors.info} />
+                <Text style={[styles.hybridOnlineText, { color: isDark ? colors.infoDark : '#1D4ED8' }]}>
                   Egalement disponible en ligne via {event.online_platform || 'visioconference'}
                 </Text>
               </View>
@@ -531,44 +532,44 @@ export default function EventDetailsScreen() {
                     });
                   }}
                 >
-                  <Ionicons name="videocam" size={18} color={Colors.white} />
+                  <Ionicons name="videocam" size={18} color={colors.white} />
                   <Text style={styles.joinOnlineButtonText}>Rejoindre en ligne</Text>
                 </TouchableOpacity>
               )}
             </View>
           ) : (
-            <TouchableOpacity style={styles.infoCard} activeOpacity={0.7}>
-              <View style={styles.infoIconContainer}>
-                <Ionicons name="location" size={22} color={Colors.primary} />
+            <TouchableOpacity style={[styles.infoCard, { backgroundColor: colors.gray50 }]} activeOpacity={0.7}>
+              <View style={[styles.infoIconContainer, { backgroundColor: colors.primaryBg }]}>
+                <Ionicons name="location" size={22} color={colors.primary} />
               </View>
               <View style={styles.infoContent}>
-                <Text style={styles.infoTitle}>{event.location_name || 'Lieu a definir'}</Text>
-                <Text style={styles.infoSubtitle}>
+                <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{event.location_name || 'Lieu a definir'}</Text>
+                <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>
                   {event.location_address || `${event.location_city}, ${event.location_country}`}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
             </TouchableOpacity>
           )}
 
           {/* Stats Row */}
-          <View style={styles.statsRow}>
+          <View style={[styles.statsRow, { backgroundColor: colors.gray50 }]}>
             <View style={styles.statItem}>
-              <Ionicons name="people-outline" size={20} color={Colors.gray500} />
-              <Text style={styles.statValue}>{event.registration_count || 0}</Text>
-              <Text style={styles.statLabel}>inscrits</Text>
+              <Ionicons name="people-outline" size={20} color={colors.gray500} />
+              <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.registration_count || 0}</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>inscrits</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.statItem}>
-              <Ionicons name="eye-outline" size={20} color={Colors.gray500} />
-              <Text style={styles.statValue}>{event.view_count || 0}</Text>
-              <Text style={styles.statLabel}>vues</Text>
+              <Ionicons name="eye-outline" size={20} color={colors.gray500} />
+              <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.view_count || 0}</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>vues</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.statItem}>
-              <Ionicons name="heart-outline" size={20} color={Colors.gray500} />
-              <Text style={styles.statValue}>{followersCount}</Text>
-              <Text style={styles.statLabel}>favoris</Text>
+              <Ionicons name="heart-outline" size={20} color={colors.gray500} />
+              <Text style={[styles.statValue, { color: colors.gray900 }]}>{followersCount}</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>favoris</Text>
             </View>
           </View>
 
@@ -584,55 +585,55 @@ export default function EventDetailsScreen() {
           />
 
           {/* Section: Good to Know */}
-          <View style={styles.goodToKnowSection}>
-            <Text style={styles.sectionTitle}>Bon à savoir</Text>
+          <View style={[styles.goodToKnowSection, { borderTopColor: colors.gray100 }]}>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Bon à savoir</Text>
             <View style={styles.goodToKnowGrid}>
               {event.start_date && (
-                <View style={styles.goodToKnowItem}>
-                  <Ionicons name="time-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.goodToKnowText}>Check-in dès {formatTime(event.start_date)}</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="time-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Check-in dès {formatTime(event.start_date)}</Text>
                 </View>
               )}
               {event.location_type === 'in_person' && (
-                <View style={styles.goodToKnowItem}>
-                  <Ionicons name="navigate-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.goodToKnowText}>Événement présentiel</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="navigate-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Événement présentiel</Text>
                 </View>
               )}
               {event.location_type === 'online' && (
-                <View style={styles.goodToKnowItem}>
-                  <Ionicons name="videocam-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.goodToKnowText}>Événement en ligne</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="videocam-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Événement en ligne</Text>
                 </View>
               )}
               {event.location_type === 'hybrid' && (
-                <View style={styles.goodToKnowItem}>
-                  <Ionicons name="globe-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.goodToKnowText}>Hybride (présentiel + en ligne)</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="globe-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Hybride (présentiel + en ligne)</Text>
                 </View>
               )}
               {(event as any).max_attendees && (
-                <View style={styles.goodToKnowItem}>
-                  <Ionicons name="people-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.goodToKnowText}>{(event as any).max_attendees} places max</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="people-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{(event as any).max_attendees} places max</Text>
                 </View>
               )}
               {event.is_free && (
-                <View style={styles.goodToKnowItem}>
-                  <Ionicons name="pricetag-outline" size={20} color={Colors.success} />
-                  <Text style={styles.goodToKnowText}>Événement gratuit</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="pricetag-outline" size={20} color={colors.success} />
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Événement gratuit</Text>
                 </View>
               )}
               {event.visibility === 'unlisted' && (
-                <View style={styles.goodToKnowItem}>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
                   <Ionicons name="link-outline" size={20} color="#F97316" />
-                  <Text style={styles.goodToKnowText}>Non listé (accessible via le lien)</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Non listé (accessible via le lien)</Text>
                 </View>
               )}
               {event.visibility === 'invite_only' && (
-                <View style={styles.goodToKnowItem}>
-                  <Ionicons name="lock-closed-outline" size={20} color={Colors.primary} />
-                  <Text style={styles.goodToKnowText}>Sur invitation uniquement</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
+                  <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Sur invitation uniquement</Text>
                 </View>
               )}
             </View>
@@ -640,17 +641,17 @@ export default function EventDetailsScreen() {
 
           {/* Section: Who's Going */}
           {(event.registration_count || 0) > 0 && (
-            <View style={styles.whoIsGoingSection}>
-              <Text style={styles.sectionTitle}>Qui y va ?</Text>
+            <View style={[styles.whoIsGoingSection, { borderTopColor: colors.gray100 }]}>
+              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Qui y va ?</Text>
               <View style={styles.whoIsGoingRow}>
                 <View style={styles.avatarStack}>
                   {[0, 1, 2].map(i => (
-                    <View key={i} style={[styles.avatarCircle, { marginLeft: i > 0 ? -10 : 0, zIndex: 3 - i }]}>
-                      <Ionicons name="person" size={16} color={Colors.gray400} />
+                    <View key={i} style={[styles.avatarCircle, { marginLeft: i > 0 ? -10 : 0, zIndex: 3 - i, backgroundColor: colors.gray200, borderColor: colors.surface }]}>
+                      <Ionicons name="person" size={16} color={colors.gray400} />
                     </View>
                   ))}
                 </View>
-                <Text style={styles.whoIsGoingText}>
+                <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]}>
                   +{event.registration_count} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
                 </Text>
               </View>
@@ -707,25 +708,28 @@ export default function EventDetailsScreen() {
       {/* Bottom CTA with glass effect */}
       <BlurView
         intensity={Platform.OS === 'ios' ? 80 : 0}
-        tint="light"
+        tint={isDark ? 'dark' : 'light'}
         style={styles.bottomBar}
       >
         {Platform.OS === 'android' && (
-          <View style={styles.bottomBarAndroidBg} />
+          <View style={[styles.bottomBarAndroidBg, { backgroundColor: isDark ? 'rgba(15,15,26,0.95)' : 'rgba(255,255,255,0.95)' }]} />
         )}
-      <View style={styles.bottomBarContent}>
+      <View style={[styles.bottomBarContent, { borderTopColor: colors.gray100 }]}>
         <View style={styles.priceContainer}>
           {userRegistration ? (
             <>
-              <Text style={styles.priceLabel}>Statut</Text>
-              <Text style={[styles.priceValue, { color: Colors.success }]}>Inscrit</Text>
+              <Text style={[styles.priceLabel, { color: colors.gray500 }]}>Statut</Text>
+              <Badge
+                label={userRegistration.status === 'confirmed' ? 'Inscrit' : userRegistration.status === 'pending' ? 'En attente' : 'Inscrit'}
+                variant={userRegistration.status === 'confirmed' ? 'success' : userRegistration.status === 'pending' ? 'warning' : 'success'}
+              />
             </>
           ) : (
             <>
-              <Text style={styles.priceLabel}>
+              <Text style={[styles.priceLabel, { color: colors.gray500 }]}>
                 {minPrice > 0 ? 'A partir de' : 'Prix'}
               </Text>
-              <Text style={styles.priceValue}>
+              <Text style={[styles.priceValue, { color: colors.gray900 }]}>
                 {minPrice > 0 ? `${minPrice.toLocaleString()} FCFA` : 'Gratuit'}
               </Text>
             </>
@@ -735,18 +739,18 @@ export default function EventDetailsScreen() {
           userRegistration.status === 'pending' && isPaymentRequired(userRegistration) ? (
             <View style={styles.ctaButtonsRow}>
               <TouchableOpacity
-                style={styles.ctaButtonIcon}
+                style={[styles.ctaButtonIcon, { backgroundColor: colors.surface, borderColor: colors.primary }]}
                 onPress={() => navigation.navigate('TicketPurchase', { eventId, registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
-                <Ionicons name="create-outline" size={22} color={Colors.primary} />
+                <Ionicons name="create-outline" size={22} color={colors.primary} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.ctaButton, styles.ctaButtonCompact, { backgroundColor: Colors.warning }]}
+                style={[styles.ctaButton, styles.ctaButtonCompact, { backgroundColor: colors.warning }]}
                 onPress={() => navigation.navigate('Payment', { registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
-                <Ionicons name="card-outline" size={18} color={Colors.white} />
+                <Ionicons name="card-outline" size={18} color={colors.white} />
                 <Text style={styles.ctaButtonText}>Payer</Text>
               </TouchableOpacity>
             </View>
@@ -755,7 +759,7 @@ export default function EventDetailsScreen() {
               // Billetterie: bouton "+" pour acheter des billets supplementaires
               <View style={styles.ctaButtonsRow}>
                 <TouchableOpacity
-                  style={styles.ctaButtonIcon}
+                  style={[styles.ctaButtonIcon, { backgroundColor: colors.surface, borderColor: colors.primary }]}
                   onPress={() => navigation.navigate('TicketPurchase', {
                     eventId,
                     additionalTickets: true,
@@ -763,48 +767,48 @@ export default function EventDetailsScreen() {
                   })}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="add" size={22} color={Colors.primary} />
+                  <Ionicons name="add" size={22} color={colors.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.ctaButton, styles.ctaButtonCompact, { backgroundColor: Colors.success }]}
+                  style={[styles.ctaButton, styles.ctaButtonCompact, { backgroundColor: colors.success }]}
                   onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+                  <Ionicons name="ticket-outline" size={18} color={colors.white} />
                   <Text style={styles.ctaButtonText}>Mon Billet</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               // Inscription: pas de bouton "+" supplementaire
               <TouchableOpacity
-                style={[styles.ctaButton, { backgroundColor: Colors.success }]}
+                style={[styles.ctaButton, { backgroundColor: colors.success }]}
                 onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
                 activeOpacity={0.8}
               >
-                <Ionicons name="document-text-outline" size={18} color={Colors.white} />
+                <Ionicons name="document-text-outline" size={18} color={colors.white} />
                 <Text style={styles.ctaButtonText}>Mon Inscription</Text>
               </TouchableOpacity>
             )
           ) : (
             <TouchableOpacity
-              style={[styles.ctaButton, { backgroundColor: Colors.success }]}
+              style={[styles.ctaButton, { backgroundColor: colors.success }]}
               onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
               activeOpacity={0.8}
             >
               <Text style={styles.ctaButtonText}>Voir mon inscription</Text>
-              <Ionicons name="ticket-outline" size={18} color={Colors.white} />
+              <Ionicons name="ticket-outline" size={18} color={colors.white} />
             </TouchableOpacity>
           )
         ) : (
           <TouchableOpacity
-            style={styles.ctaButton}
+            style={[styles.ctaButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('TicketPurchase', { eventId })}
             activeOpacity={0.8}
           >
             <Text style={styles.ctaButtonText}>
               {event.event_type === 'billetterie' ? 'Acheter des billets' : 'S\'inscrire'}
             </Text>
-            <Ionicons name="arrow-forward" size={18} color={Colors.white} />
+            <Ionicons name="arrow-forward" size={18} color={colors.white} />
           </TouchableOpacity>
         )}
       </View>
@@ -822,7 +826,7 @@ export default function EventDetailsScreen() {
             style={styles.imageViewerClose}
             onPress={() => setShowImageViewer(false)}
           >
-            <Ionicons name="close" size={28} color={Colors.white} />
+            <Ionicons name="close" size={28} color={colors.white} />
           </TouchableOpacity>
           <Image
             source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
@@ -867,9 +871,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
   },
   backButtonErrorText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   bannerContainer: {
     height: 360,
@@ -920,20 +922,13 @@ const styles = StyleSheet.create({
   },
   // Date accent — orange, uppercase (Eventbrite pattern)
   dateAccent: {
-    fontFamily: FontFamily.semiBold,
+    ...TextStyles.dateAccent,
     fontSize: FontSizes.base,
-    color: Colors.accent,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
     marginBottom: Spacing.sm,
   },
   title: {
-    fontSize: 32,
-    fontFamily: FontFamily.displayExtraBold,
-    color: Colors.gray900,
+    ...TextStyles.editorial,
     marginBottom: Spacing.sm,
-    lineHeight: 36,
-    letterSpacing: -1,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
@@ -944,8 +939,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   categoryText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    ...TextStyles.label,
     color: Colors.primary,
   },
   organizerCard: {
@@ -979,13 +973,10 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   organizerLabel: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray500,
+    ...TextStyles.caption,
   },
   organizerName: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   contactOrgButton: {
     flexDirection: 'row',
@@ -1009,8 +1000,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   shareLabel: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    ...TextStyles.label,
     color: Colors.gray500,
     marginRight: Spacing.sm,
   },
@@ -1050,12 +1040,10 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   infoTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   infoSubtitle: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
   },
@@ -1072,14 +1060,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.bold,
-    color: Colors.gray900,
+    ...TextStyles.price,
     marginTop: Spacing.xs,
   },
   statLabel: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray500,
+    ...TextStyles.caption,
   },
   statDivider: {
     width: 1,
@@ -1090,9 +1075,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    ...TextStyles.h4,
     marginBottom: Spacing.md,
   },
   blurHeaderBtn: {
@@ -1127,13 +1110,10 @@ const styles = StyleSheet.create({
   },
   priceContainer: {},
   priceLabel: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray500,
+    ...TextStyles.caption,
   },
   priceValue: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
   },
   ctaButtonsRow: {
     flexDirection: 'row',
@@ -1150,9 +1130,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   ctaButtonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   ctaButtonCompact: {
     paddingHorizontal: Spacing.lg,
@@ -1271,9 +1249,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   joinOnlineButtonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   onlineLockedInfo: {
     flexDirection: 'row',
@@ -1338,8 +1314,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   liveDescription: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
+    ...TextStyles.body,
     color: Colors.gray600,
     textAlign: 'center',
     lineHeight: 24,
@@ -1357,9 +1332,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   liveButtonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   // Pending Payment Banner
   pendingPaymentBanner: {
@@ -1380,13 +1353,12 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   pendingPaymentTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
+    ...TextStyles.bodyBold,
     color: Colors.warning,
     marginBottom: 4,
   },
   pendingPaymentDescription: {
-    fontSize: FontSizes.sm,
+    ...TextStyles.small,
     color: Colors.gray600,
     lineHeight: 20,
   },
@@ -1401,9 +1373,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   pendingPaymentButtonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    ...TextStyles.button,
   },
   // Image Zoom Hint
   imageZoomHint: {
@@ -1470,9 +1440,7 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
   },
   goodToKnowText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    color: Colors.gray700,
+    ...TextStyles.label,
     flex: 1,
   },
   // ===== QUI Y VA =====
@@ -1502,9 +1470,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.white,
   },
   whoIsGoingText: {
+    ...TextStyles.body,
     fontFamily: FontFamily.medium,
-    fontSize: FontSizes.base,
-    color: Colors.gray700,
   },
 });
 

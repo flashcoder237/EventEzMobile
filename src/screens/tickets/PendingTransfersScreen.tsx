@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ticketTransfersAPI } from '../../api/client';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import {
   Colors,
@@ -57,6 +58,7 @@ interface Transfer {
 export default function PendingTransfersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const { colors, isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<TabType>('received');
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [sentTransfers, setSentTransfers] = useState<Transfer[]>([]);
@@ -204,12 +206,12 @@ export default function PendingTransfersScreen() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return Colors.warning;
-      case 'accepted': return Colors.success;
+      case 'pending': return colors.warning;
+      case 'accepted': return colors.success;
       case 'declined':
       case 'cancelled':
-      case 'expired': return Colors.error;
-      default: return Colors.gray500;
+      case 'expired': return colors.error;
+      default: return colors.gray500;
     }
   };
 
@@ -219,36 +221,36 @@ export default function PendingTransfersScreen() {
     const isProcessing = actionLoading === item.id;
 
     return (
-      <View style={styles.transferCard}>
+      <View style={[styles.transferCard, { backgroundColor: colors.card }]}>
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.senderInfo}>
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.avatarContainer, { backgroundColor: colors.primaryLight }]}>
+              <Text style={[styles.avatarText, { color: colors.primary }]}>
                 {item.sender_name.charAt(0).toUpperCase()}
               </Text>
             </View>
             <View>
-              <Text style={styles.senderName}>{item.sender_name}</Text>
-              <Text style={styles.senderEmail}>{item.sender_email}</Text>
+              <Text style={[styles.senderName, { color: colors.gray900 }]}>{item.sender_name}</Text>
+              <Text style={[styles.senderEmail, { color: colors.gray500 }]}>{item.sender_email}</Text>
             </View>
           </View>
-          <View style={[styles.statusBadge, item.is_expired && styles.expiredBadge]}>
-            <Text style={[styles.statusText, item.is_expired && styles.expiredText]}>
+          <View style={[styles.statusBadge, { backgroundColor: item.is_expired ? colors.errorLight : colors.warningLight }]}>
+            <Text style={[styles.statusText, { color: item.is_expired ? colors.error : colors.warning }]}>
               {item.is_expired ? 'Expiré' : getTimeRemaining(item.expires_at)}
             </Text>
           </View>
         </View>
 
         {/* Ticket Info */}
-        <View style={styles.ticketSection}>
-          <Ionicons name="ticket-outline" size={20} color={Colors.primary} />
+        <View style={[styles.ticketSection, { backgroundColor: colors.gray50 }]}>
+          <Ionicons name="ticket-outline" size={20} color={colors.primary} />
           <View style={styles.ticketDetails}>
-            <Text style={styles.ticketName}>
+            <Text style={[styles.ticketName, { color: colors.gray900 }]}>
               {item.ticket_info.transfer_quantity}x {item.ticket_info.ticket_type_name}
             </Text>
-            <Text style={styles.eventTitle}>{item.event_info.title}</Text>
-            <Text style={styles.eventDate}>
+            <Text style={[styles.eventTitle, { color: colors.gray700 }]}>{item.event_info.title}</Text>
+            <Text style={[styles.eventDate, { color: colors.gray500 }]}>
               {formatDate(item.event_info.start_date)} - {item.event_info.location_city || 'En ligne'}
             </Text>
           </View>
@@ -257,30 +259,30 @@ export default function PendingTransfersScreen() {
         {/* Message */}
         {item.message && (
           <View style={styles.messageSection}>
-            <Ionicons name="chatbubble-outline" size={16} color={Colors.gray500} />
-            <Text style={styles.messageText}>"{item.message}"</Text>
+            <Ionicons name="chatbubble-outline" size={16} color={colors.gray500} />
+            <Text style={[styles.messageText, { color: colors.gray600 }]}>"{item.message}"</Text>
           </View>
         )}
 
         {/* Actions */}
         {!item.is_expired && item.can_accept && (
-          <View style={styles.actions}>
+          <View style={[styles.actions, { borderTopColor: colors.gray100 }]}>
             <TouchableOpacity
-              style={styles.declineButton}
+              style={[styles.declineButton, { borderColor: colors.error }]}
               onPress={() => handleDecline(item)}
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <ActivityIndicator size="small" color={Colors.error} />
+                <ActivityIndicator size="small" color={colors.error} />
               ) : (
                 <>
-                  <Ionicons name="close" size={18} color={Colors.error} />
-                  <Text style={styles.declineText}>Refuser</Text>
+                  <Ionicons name="close" size={18} color={colors.error} />
+                  <Text style={[styles.declineText, { color: colors.error }]}>Refuser</Text>
                 </>
               )}
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.acceptButton}
+              style={[styles.acceptButton, { backgroundColor: colors.primary }]}
               onPress={() => handleAccept(item)}
               disabled={isProcessing}
             >
@@ -307,20 +309,20 @@ export default function PendingTransfersScreen() {
     const statusColor = getStatusColor(item.is_expired ? 'expired' : item.status);
 
     return (
-      <View style={styles.transferCard}>
+      <View style={[styles.transferCard, { backgroundColor: colors.card }]}>
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.senderInfo}>
-            <View style={styles.avatarContainer}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.avatarContainer, { backgroundColor: colors.primaryLight }]}>
+              <Text style={[styles.avatarText, { color: colors.primary }]}>
                 {(item.recipient_name || item.recipient_email).charAt(0).toUpperCase()}
               </Text>
             </View>
             <View>
-              <Text style={styles.senderName}>
+              <Text style={[styles.senderName, { color: colors.gray900 }]}>
                 {item.recipient_name || 'Destinataire'}
               </Text>
-              <Text style={styles.senderEmail}>{item.recipient_email}</Text>
+              <Text style={[styles.senderEmail, { color: colors.gray500 }]}>{item.recipient_email}</Text>
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
@@ -331,14 +333,14 @@ export default function PendingTransfersScreen() {
         </View>
 
         {/* Ticket Info */}
-        <View style={styles.ticketSection}>
-          <Ionicons name="ticket-outline" size={20} color={Colors.primary} />
+        <View style={[styles.ticketSection, { backgroundColor: colors.gray50 }]}>
+          <Ionicons name="ticket-outline" size={20} color={colors.primary} />
           <View style={styles.ticketDetails}>
-            <Text style={styles.ticketName}>
+            <Text style={[styles.ticketName, { color: colors.gray900 }]}>
               {item.ticket_info.transfer_quantity}x {item.ticket_info.ticket_type_name}
             </Text>
-            <Text style={styles.eventTitle}>{item.event_info.title}</Text>
-            <Text style={styles.eventDate}>
+            <Text style={[styles.eventTitle, { color: colors.gray700 }]}>{item.event_info.title}</Text>
+            <Text style={[styles.eventDate, { color: colors.gray500 }]}>
               {formatDate(item.event_info.start_date)} - {item.event_info.location_city || 'En ligne'}
             </Text>
           </View>
@@ -347,34 +349,34 @@ export default function PendingTransfersScreen() {
         {/* Expiration for pending */}
         {isPending && (
           <View style={styles.expirationRow}>
-            <Ionicons name="time-outline" size={14} color={Colors.gray500} />
-            <Text style={styles.expirationText}>{getTimeRemaining(item.expires_at)}</Text>
+            <Ionicons name="time-outline" size={14} color={colors.gray500} />
+            <Text style={[styles.expirationText, { color: colors.gray500 }]}>{getTimeRemaining(item.expires_at)}</Text>
           </View>
         )}
 
         {/* Actions for pending sent transfers */}
         {isPending && (
-          <View style={styles.actions}>
+          <View style={[styles.actions, { borderTopColor: colors.gray100 }]}>
             {item.transfer_token_display && (
               <TouchableOpacity
-                style={styles.qrButton}
+                style={[styles.qrButton, { borderColor: colors.primary }]}
                 onPress={() => handleShowQR(item)}
               >
-                <Ionicons name="qr-code-outline" size={18} color={Colors.primary} />
-                <Text style={styles.qrButtonText}>Afficher QR</Text>
+                <Ionicons name="qr-code-outline" size={18} color={colors.primary} />
+                <Text style={[styles.qrButtonText, { color: colors.primary }]}>Afficher QR</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { borderColor: colors.error }]}
               onPress={() => handleCancelTransfer(item)}
               disabled={isProcessing}
             >
               {isProcessing ? (
-                <ActivityIndicator size="small" color={Colors.error} />
+                <ActivityIndicator size="small" color={colors.error} />
               ) : (
                 <>
-                  <Ionicons name="close-circle-outline" size={18} color={Colors.error} />
-                  <Text style={styles.cancelText}>Annuler</Text>
+                  <Ionicons name="close-circle-outline" size={18} color={colors.error} />
+                  <Text style={[styles.cancelText, { color: colors.error }]}>Annuler</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -386,11 +388,11 @@ export default function PendingTransfersScreen() {
 
   const renderEmptyReceived = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconContainer}>
-        <Ionicons name="gift-outline" size={48} color={Colors.gray400} />
+      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
+        <Ionicons name="gift-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>Aucun transfert reçu</Text>
-      <Text style={styles.emptySubtitle}>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun transfert reçu</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
         Lorsque quelqu'un vous transfère un billet, il apparaitra ici.
       </Text>
     </View>
@@ -398,11 +400,11 @@ export default function PendingTransfersScreen() {
 
   const renderEmptySent = () => (
     <View style={styles.emptyState}>
-      <View style={styles.emptyIconContainer}>
-        <Ionicons name="send-outline" size={48} color={Colors.gray400} />
+      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
+        <Ionicons name="send-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>Aucun transfert envoyé</Text>
-      <Text style={styles.emptySubtitle}>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun transfert envoyé</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
         Vos transferts de billets envoyés apparaîtront ici.
       </Text>
     </View>
@@ -411,56 +413,56 @@ export default function PendingTransfersScreen() {
   const currentData = activeTab === 'received' ? transfers : sentTransfers;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Transferts</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Transferts</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabsContainer}>
+      <View style={[styles.tabsContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'received' && styles.tabActive]}
+          style={[styles.tab, { backgroundColor: colors.gray50 }, activeTab === 'received' && { backgroundColor: colors.primary + '15' }]}
           onPress={() => setActiveTab('received')}
         >
           <Ionicons
             name="arrow-down-circle-outline"
             size={16}
-            color={activeTab === 'received' ? Colors.primary : Colors.gray500}
+            color={activeTab === 'received' ? colors.primary : colors.gray500}
           />
-          <Text style={[styles.tabText, activeTab === 'received' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { color: colors.gray500 }, activeTab === 'received' && { color: colors.primary, fontFamily: FontFamily.semiBold }]}>
             Reçus
           </Text>
           {transfers.length > 0 && (
-            <View style={[styles.tabBadge, activeTab === 'received' && styles.tabBadgeActive]}>
-              <Text style={[styles.tabBadgeText, activeTab === 'received' && styles.tabBadgeTextActive]}>
+            <View style={[styles.tabBadge, { backgroundColor: colors.gray200 }, activeTab === 'received' && { backgroundColor: colors.primary }]}>
+              <Text style={[styles.tabBadgeText, { color: colors.gray600 }, activeTab === 'received' && { color: colors.white }]}>
                 {transfers.length}
               </Text>
             </View>
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'sent' && styles.tabActive]}
+          style={[styles.tab, { backgroundColor: colors.gray50 }, activeTab === 'sent' && { backgroundColor: colors.primary + '15' }]}
           onPress={() => setActiveTab('sent')}
         >
           <Ionicons
             name="arrow-up-circle-outline"
             size={16}
-            color={activeTab === 'sent' ? Colors.primary : Colors.gray500}
+            color={activeTab === 'sent' ? colors.primary : colors.gray500}
           />
-          <Text style={[styles.tabText, activeTab === 'sent' && styles.tabTextActive]}>
+          <Text style={[styles.tabText, { color: colors.gray500 }, activeTab === 'sent' && { color: colors.primary, fontFamily: FontFamily.semiBold }]}>
             Envoyés
           </Text>
           {sentTransfers.length > 0 && (
-            <View style={[styles.tabBadge, activeTab === 'sent' && styles.tabBadgeActive]}>
-              <Text style={[styles.tabBadgeText, activeTab === 'sent' && styles.tabBadgeTextActive]}>
+            <View style={[styles.tabBadge, { backgroundColor: colors.gray200 }, activeTab === 'sent' && { backgroundColor: colors.primary }]}>
+              <Text style={[styles.tabBadgeText, { color: colors.gray600 }, activeTab === 'sent' && { color: colors.white }]}>
                 {sentTransfers.length}
               </Text>
             </View>
@@ -481,8 +483,8 @@ export default function PendingTransfersScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={[Colors.primary]}
-              tintColor={Colors.primary}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
         />

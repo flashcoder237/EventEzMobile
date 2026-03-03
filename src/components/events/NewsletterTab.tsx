@@ -12,6 +12,7 @@ import Svg, { Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { newslettersAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function NewsletterIcon({ size = 28, color = Colors.primary }: { size?: number; color?: string }) {
   return (
@@ -44,6 +45,7 @@ interface NewsletterTabProps {
 }
 
 export default function NewsletterTab({ eventId, categoryName }: NewsletterTabProps) {
+  const { colors, isDark } = useTheme();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -75,10 +77,10 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
       <View style={styles.section}>
         <View style={styles.successContainer}>
           <View style={styles.successIcon}>
-            <Ionicons name="checkmark-circle" size={48} color={Colors.success} />
+            <Ionicons name="checkmark-circle" size={48} color={colors.success} />
           </View>
-          <Text style={styles.successTitle}>Merci pour votre inscription !</Text>
-          <Text style={styles.successDescription}>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Merci pour votre inscription !</Text>
+          <Text style={[styles.successDescription, { color: colors.gray500 }]}>
             Vous recevrez nos prochaines newsletters
             {categoryName ? ` sur "${categoryName}"` : ''} directement dans votre boite mail.
           </Text>
@@ -89,34 +91,34 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Newsletter</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Newsletter</Text>
 
-      <View style={styles.newsletterCard}>
+      <View style={[styles.newsletterCard, { backgroundColor: colors.primaryBg, borderColor: colors.primary + '30' }]}>
         <View style={styles.iconRow}>
-          <View style={styles.iconContainer}>
-            <NewsletterIcon size={30} color={Colors.primary} />
+          <View style={[styles.iconContainer, { backgroundColor: colors.white }]}>
+            <NewsletterIcon size={30} color={colors.primary} />
           </View>
         </View>
 
-        <Text style={styles.cardTitle}>Restez informe !</Text>
-        <Text style={styles.cardDescription}>
+        <Text style={[styles.cardTitle, { color: colors.gray900 }]}>Restez informe !</Text>
+        <Text style={[styles.cardDescription, { color: colors.gray600 }]}>
           Inscrivez-vous a notre newsletter pour recevoir les dernieres actualites
           {categoryName ? ` sur les evenements "${categoryName}"` : ''}, les nouveaux evenements et des offres exclusives.
         </Text>
 
         <View style={styles.formContainer}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
             placeholder="Votre nom (optionnel)"
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             value={name}
             onChangeText={setName}
             autoCapitalize="words"
           />
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
             placeholder="Votre email *"
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
@@ -139,7 +141,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.privacyText}>
+        <Text style={[styles.privacyText, { color: colors.gray400 }]}>
           Vous pouvez vous desabonner a tout moment. Nous respectons votre vie privee.
         </Text>
       </View>

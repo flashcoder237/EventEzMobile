@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useExport, ExportFormat } from '../../hooks/useExport';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -42,6 +43,7 @@ export default function ExportButton({
   formats = ['csv', 'excel', 'pdf'],
   compact = false,
 }: ExportButtonProps) {
+  const { colors, isDark } = useTheme();
   const [visible, setVisible] = useState(false);
   const { exportData, loading } = useExport();
 
@@ -55,17 +57,17 @@ export default function ExportButton({
   return (
     <>
       <TouchableOpacity
-        style={[styles.button, compact && styles.buttonCompact]}
+        style={[styles.button, compact && styles.buttonCompact, { borderColor: colors.gray200, backgroundColor: colors.white }]}
         onPress={() => setVisible(true)}
         disabled={loading}
         activeOpacity={TOUCH_OPACITY}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={Colors.primary} />
+          <ActivityIndicator size="small" color={colors.primary} />
         ) : (
-          <Ionicons name="download-outline" size={20} color={Colors.primary} />
+          <Ionicons name="download-outline" size={20} color={colors.primary} />
         )}
-        {!compact && <Text style={styles.buttonText}>Exporter</Text>}
+        {!compact && <Text style={[styles.buttonText, { color: colors.primary }]}>Exporter</Text>}
       </TouchableOpacity>
 
       <Modal
@@ -75,25 +77,25 @@ export default function ExportButton({
         onRequestClose={() => setVisible(false)}
       >
         <Pressable style={styles.overlay} onPress={() => setVisible(false)}>
-          <View style={styles.sheet}>
-            <Text style={styles.title}>Choisir le format</Text>
+          <View style={[styles.sheet, { backgroundColor: colors.white }]}>
+            <Text style={[styles.title, { color: colors.gray900 }]}>Choisir le format</Text>
             {filteredOptions.map((option) => (
               <TouchableOpacity
                 key={option.format}
-                style={styles.option}
+                style={[styles.option, { borderBottomColor: colors.gray100 }]}
                 onPress={() => handleSelect(option.format)}
                 activeOpacity={TOUCH_OPACITY}
               >
-                <Ionicons name={option.icon} size={22} color={Colors.gray500} />
-                <Text style={styles.optionText}>{option.label}</Text>
+                <Ionicons name={option.icon} size={22} color={colors.gray500} />
+                <Text style={[styles.optionText, { color: colors.gray700 }]}>{option.label}</Text>
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { backgroundColor: colors.gray100 }]}
               onPress={() => setVisible(false)}
               activeOpacity={TOUCH_OPACITY}
             >
-              <Text style={styles.cancelText}>Annuler</Text>
+              <Text style={[styles.cancelText, { color: colors.gray500 }]}>Annuler</Text>
             </TouchableOpacity>
           </View>
         </Pressable>

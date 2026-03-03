@@ -19,6 +19,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
@@ -43,24 +44,25 @@ interface SectionProps {
 
 const Section = ({ title, icon, children, defaultExpanded = false }: SectionProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.section}>
+    <View style={[styles.section, { backgroundColor: colors.white, borderColor: colors.gray100 }]}>
       <TouchableOpacity
-        style={styles.sectionHeader}
+        style={[styles.sectionHeader, { borderBottomColor: colors.gray100 }]}
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.7}
       >
         <View style={styles.sectionHeaderLeft}>
-          <View style={styles.sectionIconContainer}>
-            <Ionicons name={icon} size={20} color={Colors.primary} />
+          <View style={[styles.sectionIconContainer, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name={icon} size={20} color={colors.primary} />
           </View>
-          <Text style={styles.sectionTitle}>{title}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color={Colors.gray400}
+          color={colors.gray400}
         />
       </TouchableOpacity>
       {expanded && <View style={styles.sectionContent}>{children}</View>}
@@ -72,6 +74,7 @@ export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, updateUser } = useAuth();
   const { showSuccess, showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -256,8 +259,8 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.gray50 }]} edges={['bottom']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
       <KeyboardAwareScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -266,7 +269,7 @@ export default function EditProfileScreen() {
         bottomOffset={80}
       >
           {/* Profile Image Header */}
-          <View style={styles.imageSection}>
+          <View style={[styles.imageSection, { backgroundColor: colors.white, borderBottomColor: colors.gray100 }]}>
             <TouchableOpacity
               style={styles.imageContainer}
               onPress={handlePickImage}
@@ -275,73 +278,73 @@ export default function EditProfileScreen() {
               {profileImage ? (
                 <Image
                   source={{ uri: profileImage }}
-                  style={styles.profileImage}
+                  style={[styles.profileImage, { borderColor: colors.primary }]}
                 />
               ) : (
-                <View style={styles.initialsContainer}>
-                  <Text style={styles.initials}>{getInitials()}</Text>
+                <View style={[styles.initialsContainer, { backgroundColor: colors.gray200, borderColor: colors.primary }]}>
+                  <Text style={[styles.initials, { color: colors.gray600 }]}>{getInitials()}</Text>
                 </View>
               )}
-              <View style={styles.editBadge}>
-                <Ionicons name="camera" size={16} color={Colors.white} />
+              <View style={[styles.editBadge, { backgroundColor: colors.primary, borderColor: colors.white }]}>
+                <Ionicons name="camera" size={16} color={colors.white} />
               </View>
             </TouchableOpacity>
-            <Text style={styles.changePhotoText}>Changer la photo</Text>
-            <Text style={styles.emailText}>{user?.email}</Text>
+            <Text style={[styles.changePhotoText, { color: colors.primary }]}>Changer la photo</Text>
+            <Text style={[styles.emailText, { color: colors.gray500 }]}>{user?.email}</Text>
           </View>
 
           {/* Informations personnelles */}
           <Section title="Informations personnelles" icon="person-outline" defaultExpanded={true}>
             <View style={styles.inputRow}>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={styles.label}>Prénom</Text>
+                <Text style={[styles.label, { color: colors.gray700 }]}>Prénom</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={firstName}
                   onChangeText={setFirstName}
                   placeholder="Prénom"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   autoCapitalize="words"
                 />
               </View>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={styles.label}>Nom</Text>
+                <Text style={[styles.label, { color: colors.gray700 }]}>Nom</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={lastName}
                   onChangeText={setLastName}
                   placeholder="Nom"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   autoCapitalize="words"
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Téléphone</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Téléphone</Text>
               <View style={styles.inputWithIcon}>
-                <Ionicons name="call-outline" size={18} color={Colors.gray400} style={styles.inputIcon} />
+                <Ionicons name="call-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, styles.inputWithIconPadding]}
+                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="+237 6XX XXX XXX"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   keyboardType="phone-pad"
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date de naissance</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Date de naissance</Text>
               <View style={styles.inputWithIcon}>
-                <Ionicons name="calendar-outline" size={18} color={Colors.gray400} style={styles.inputIcon} />
+                <Ionicons name="calendar-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, styles.inputWithIconPadding]}
+                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={dateOfBirth}
                   onChangeText={setDateOfBirth}
                   placeholder="AAAA-MM-JJ"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                 />
               </View>
             </View>
@@ -350,47 +353,47 @@ export default function EditProfileScreen() {
           {/* Adresse */}
           <Section title="Adresse" icon="location-outline">
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Adresse</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Adresse</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                 value={address}
                 onChangeText={setAddress}
                 placeholder="Votre adresse"
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
               />
             </View>
 
             <View style={styles.inputRow}>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={styles.label}>Ville</Text>
+                <Text style={[styles.label, { color: colors.gray700 }]}>Ville</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={city}
                   onChangeText={setCity}
                   placeholder="Ville"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                 />
               </View>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={styles.label}>Pays</Text>
+                <Text style={[styles.label, { color: colors.gray700 }]}>Pays</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={country}
                   onChangeText={setCountry}
                   placeholder="Pays"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                 />
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Biographie</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Biographie</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, styles.textArea, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                 value={bio}
                 onChangeText={setBio}
                 placeholder="Parlez-nous un peu de vous..."
-                placeholderTextColor={Colors.gray400}
+                placeholderTextColor={colors.gray400}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
@@ -402,13 +405,13 @@ export default function EditProfileScreen() {
           {user?.role === 'organizer' && (
             <Section title="Organisation" icon="business-outline">
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Nom de l'entreprise</Text>
+                <Text style={[styles.label, { color: colors.gray700 }]}>Nom de l'entreprise</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={companyName}
                   onChangeText={setCompanyName}
                   placeholder="Nom de votre entreprise"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                 />
               </View>
             </Section>
@@ -416,22 +419,22 @@ export default function EditProfileScreen() {
 
           {/* Sécurité - Mot de passe */}
           <Section title="Sécurité" icon="lock-closed-outline">
-            <View style={styles.passwordNotice}>
-              <Ionicons name="information-circle" size={18} color={Colors.primary} />
-              <Text style={styles.passwordNoticeText}>
+            <View style={[styles.passwordNotice, { backgroundColor: colors.primaryLight }]}>
+              <Ionicons name="information-circle" size={18} color={colors.primary} />
+              <Text style={[styles.passwordNoticeText, { color: colors.primary }]}>
                 Remplissez ces champs uniquement si vous souhaitez changer votre mot de passe
               </Text>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Mot de passe actuel</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Mot de passe actuel</Text>
               <View style={styles.passwordInput}>
                 <TextInput
-                  style={[styles.input, styles.passwordInputField]}
+                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   secureTextEntry={!showCurrentPassword}
                 />
                 <TouchableOpacity
@@ -441,21 +444,21 @@ export default function EditProfileScreen() {
                   <Ionicons
                     name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.gray400}
+                    color={colors.gray400}
                   />
                 </TouchableOpacity>
               </View>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Nouveau mot de passe</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Nouveau mot de passe</Text>
               <View style={styles.passwordInput}>
                 <TextInput
-                  style={[styles.input, styles.passwordInputField]}
+                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={newPassword}
                   onChangeText={setNewPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   secureTextEntry={!showNewPassword}
                 />
                 <TouchableOpacity
@@ -465,24 +468,24 @@ export default function EditProfileScreen() {
                   <Ionicons
                     name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.gray400}
+                    color={colors.gray400}
                   />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.helpText}>
+              <Text style={[styles.helpText, { color: colors.gray500 }]}>
                 Minimum 8 caractères avec lettres, chiffres et symboles
               </Text>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Confirmer le mot de passe</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>Confirmer le mot de passe</Text>
               <View style={styles.passwordInput}>
                 <TextInput
-                  style={[styles.input, styles.passwordInputField]}
+                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   secureTextEntry={!showConfirmPassword}
                 />
                 <TouchableOpacity
@@ -492,7 +495,7 @@ export default function EditProfileScreen() {
                   <Ionicons
                     name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.gray400}
+                    color={colors.gray400}
                   />
                 </TouchableOpacity>
               </View>
@@ -500,11 +503,11 @@ export default function EditProfileScreen() {
 
             {hasPasswordChanges && (
               <TouchableOpacity
-                style={styles.changePasswordButton}
+                style={[styles.changePasswordButton, { backgroundColor: colors.gray100 }]}
                 onPress={handleChangePassword}
                 disabled={saving}
               >
-                <Text style={styles.changePasswordButtonText}>
+                <Text style={[styles.changePasswordButtonText, { color: colors.gray700 }]}>
                   Changer le mot de passe
                 </Text>
               </TouchableOpacity>
@@ -518,7 +521,7 @@ export default function EditProfileScreen() {
               onPress={handleSaveProfile}
               disabled={!hasProfileChanges || saving}
               fullWidth
-              icon={<Ionicons name="checkmark" size={20} color={Colors.white} />}
+              icon={<Ionicons name="checkmark" size={20} color={colors.white} />}
             />
           </View>
       </KeyboardAwareScrollView>

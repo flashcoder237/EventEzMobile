@@ -6,10 +6,11 @@ import {
   Modal,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  Platform,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
@@ -17,6 +18,7 @@ import {
   Shadows,
   TOUCH_OPACITY,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export type AlertType = 'success' | 'error' | 'warning' | 'info' | 'confirm';
 
@@ -35,12 +37,12 @@ interface CustomAlertProps {
   onClose: () => void;
 }
 
-const alertConfig: Record<AlertType, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
-  success: { icon: 'checkmark-circle', color: Colors.success },
-  error: { icon: 'close-circle', color: Colors.error },
-  warning: { icon: 'warning', color: Colors.warning },
-  info: { icon: 'information-circle', color: Colors.primary },
-  confirm: { icon: 'help-circle', color: Colors.primary },
+const alertConfig: Record<AlertType, { icon: keyof typeof Ionicons.glyphMap; colorKey: 'success' | 'error' | 'warning' | 'primary' }> = {
+  success: { icon: 'checkmark-circle', colorKey: 'success' },
+  error: { icon: 'close-circle', colorKey: 'error' },
+  warning: { icon: 'warning', colorKey: 'warning' },
+  info: { icon: 'information-circle', colorKey: 'primary' },
+  confirm: { icon: 'help-circle', colorKey: 'primary' },
 };
 
 export default function CustomAlert({
@@ -51,7 +53,9 @@ export default function CustomAlert({
   buttons = [{ text: 'OK' }],
   onClose,
 }: CustomAlertProps) {
+  const { colors, isDark } = useTheme();
   const config = alertConfig[type];
+  const iconColor = colors[config.colorKey];
 
   const handleButtonPress = (button: AlertButton) => {
     if (button.onPress) {
@@ -63,22 +67,22 @@ export default function CustomAlert({
   const getButtonStyle = (style?: string) => {
     switch (style) {
       case 'cancel':
-        return styles.cancelButton;
+        return { backgroundColor: colors.gray100 };
       case 'destructive':
-        return styles.destructiveButton;
+        return { backgroundColor: colors.error };
       default:
-        return styles.defaultButton;
+        return { backgroundColor: colors.primary };
     }
   };
 
-  const getButtonTextStyle = (style?: string) => {
+  const getButtonTextColor = (style?: string) => {
     switch (style) {
       case 'cancel':
-        return styles.cancelButtonText;
+        return colors.gray700;
       case 'destructive':
-        return styles.destructiveButtonText;
+        return colors.white;
       default:
-        return styles.defaultButtonText;
+        return colors.white;
     }
   };
 
@@ -91,18 +95,21 @@ export default function CustomAlert({
     >
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.overlay}>
+          {Platform.OS === 'ios' && (
+            <BlurView intensity={40} tint={isDark ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
+          )}
           <TouchableWithoutFeedback>
-            <View style={styles.alertContainer}>
+            <View style={[styles.alertContainer, { backgroundColor: colors.surface }, Shadows.lg]}>
               {/* Icon */}
-              <View style={[styles.iconContainer, { backgroundColor: config.color + '15' }]}>
-                <Ionicons name={config.icon} size={40} color={config.color} />
+              <View style={[styles.iconContainer, { backgroundColor: iconColor + '15' }]}>
+                <Ionicons name={config.icon} size={40} color={iconColor} />
               </View>
 
               {/* Title */}
-              <Text style={styles.title}>{title}</Text>
+              <Text style={[styles.title, { color: colors.gray900 }]}>{title}</Text>
 
               {/* Message */}
-              {message && <Text style={styles.message}>{message}</Text>}
+              {message && <Text style={[styles.message, { color: colors.gray600 }]}>{message}</Text>}
 
               {/* Buttons */}
               <View style={[styles.buttonsContainer, buttons.length > 2 && styles.buttonsVertical]}>
@@ -118,7 +125,7 @@ export default function CustomAlert({
                     onPress={() => handleButtonPress(button)}
                     activeOpacity={TOUCH_OPACITY}
                   >
-                    <Text style={[styles.buttonText, getButtonTextStyle(button.style)]}>
+                    <Text style={[styles.buttonText, { color: getButtonTextColor(button.style) }]}>
                       {button.text}
                     </Text>
                   </TouchableOpacity>
@@ -219,19 +226,17 @@ export function useCustomAlert() {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: Colors.overlay,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
   },
   alertContainer: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     padding: Spacing.xl,
     width: '100%',
     maxWidth: 340,
     alignItems: 'center',
-    ...Shadows.lg,
   },
   iconContainer: {
     width: 72,
@@ -244,14 +249,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.bold,
-    color: Colors.gray900,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   message: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
-    color: Colors.gray600,
     textAlign: 'center',
     marginBottom: Spacing.lg,
     lineHeight: 22,
@@ -277,26 +280,8 @@ const styles = StyleSheet.create({
   doubleButton: {
     flex: 1,
   },
-  defaultButton: {
-    backgroundColor: Colors.primary,
-  },
-  cancelButton: {
-    backgroundColor: Colors.gray100,
-  },
-  destructiveButton: {
-    backgroundColor: Colors.error,
-  },
   buttonText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-  },
-  defaultButtonText: {
-    color: Colors.white,
-  },
-  cancelButtonText: {
-    color: Colors.gray700,
-  },
-  destructiveButtonText: {
-    color: Colors.white,
   },
 });

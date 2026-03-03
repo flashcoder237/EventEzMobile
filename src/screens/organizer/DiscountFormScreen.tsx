@@ -17,6 +17,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { discountsAPI, ticketTypesAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
@@ -43,6 +44,7 @@ export default function DiscountFormScreen() {
   const route = useRoute<RoutePropType>();
   const { eventId, discountId } = route.params;
   const { showSuccess, showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const isEditing = !!discountId;
 
@@ -176,21 +178,22 @@ export default function DiscountFormScreen() {
 
   if (fetchingData) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
       <LinearGradient
-        colors={[Colors.primary, Colors.primaryDark]}
+        colors={[colors.primary, colors.primaryDark]}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -198,10 +201,10 @@ export default function DiscountFormScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>
+            <Text style={[styles.headerTitle, { color: colors.white }]}>
               {isEditing ? 'Modifier le code' : 'Nouveau code promo'}
             </Text>
           </View>
@@ -217,53 +220,75 @@ export default function DiscountFormScreen() {
         >
           {/* Code */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Code promo</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Code promo</Text>
             <View style={styles.codeRow}>
               <TextInput
-                style={[styles.input, styles.codeInput, errors.code ? styles.inputError : null]}
+                style={[
+                  styles.input,
+                  styles.codeInput,
+                  { backgroundColor: colors.card, borderColor: colors.gray300, color: colors.gray900 },
+                  errors.code ? { borderColor: colors.error } : null,
+                ]}
                 value={code}
                 onChangeText={(t) => {
                   setCode(t.toUpperCase());
                   setErrors(prev => ({ ...prev, code: '' }));
                 }}
                 placeholder="EX: PROMO25"
+                placeholderTextColor={colors.gray400}
                 autoCapitalize="characters"
                 maxLength={20}
               />
-              <TouchableOpacity style={styles.generateButton} onPress={generateCode}>
-                <Ionicons name="refresh" size={20} color={Colors.primary} />
+              <TouchableOpacity style={[styles.generateButton, { backgroundColor: colors.primaryBg }]} onPress={generateCode}>
+                <Ionicons name="refresh" size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            {errors.code ? <Text style={styles.errorText}>{errors.code}</Text> : null}
+            {errors.code ? <Text style={[styles.errorText, { color: colors.error }]}>{errors.code}</Text> : null}
           </View>
 
           {/* Type toggle */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Type de réduction</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Type de réduction</Text>
             <View style={styles.toggleRow}>
               <TouchableOpacity
-                style={[styles.toggleOption, discountType === 'percentage' && styles.toggleOptionActive]}
+                style={[
+                  styles.toggleOption,
+                  { backgroundColor: colors.card, borderColor: colors.gray300 },
+                  discountType === 'percentage' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                ]}
                 onPress={() => setDiscountType('percentage')}
               >
                 <Ionicons
                   name="trending-down"
                   size={18}
-                  color={discountType === 'percentage' ? Colors.white : Colors.gray600}
+                  color={discountType === 'percentage' ? colors.white : colors.gray600}
                 />
-                <Text style={[styles.toggleText, discountType === 'percentage' && styles.toggleTextActive]}>
+                <Text style={[
+                  styles.toggleText,
+                  { color: colors.gray600 },
+                  discountType === 'percentage' && { color: colors.white },
+                ]}>
                   Pourcentage (%)
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.toggleOption, discountType === 'fixed' && styles.toggleOptionActive]}
+                style={[
+                  styles.toggleOption,
+                  { backgroundColor: colors.card, borderColor: colors.gray300 },
+                  discountType === 'fixed' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                ]}
                 onPress={() => setDiscountType('fixed')}
               >
                 <Ionicons
                   name="cash-outline"
                   size={18}
-                  color={discountType === 'fixed' ? Colors.white : Colors.gray600}
+                  color={discountType === 'fixed' ? colors.white : colors.gray600}
                 />
-                <Text style={[styles.toggleText, discountType === 'fixed' && styles.toggleTextActive]}>
+                <Text style={[
+                  styles.toggleText,
+                  { color: colors.gray600 },
+                  discountType === 'fixed' && { color: colors.white },
+                ]}>
                   Montant fixe (FCFA)
                 </Text>
               </TouchableOpacity>
@@ -272,20 +297,25 @@ export default function DiscountFormScreen() {
 
           {/* Value */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>
+            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>
               Valeur {discountType === 'percentage' ? '(%)' : '(FCFA)'}
             </Text>
             <TextInput
-              style={[styles.input, errors.value ? styles.inputError : null]}
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.gray300, color: colors.gray900 },
+                errors.value ? { borderColor: colors.error } : null,
+              ]}
               value={value}
               onChangeText={(t) => {
                 setValue(t);
                 setErrors(prev => ({ ...prev, value: '' }));
               }}
               placeholder={discountType === 'percentage' ? '25' : '5000'}
+              placeholderTextColor={colors.gray400}
               keyboardType="numeric"
             />
-            {errors.value ? <Text style={styles.errorText}>{errors.value}</Text> : null}
+            {errors.value ? <Text style={[styles.errorText, { color: colors.error }]}>{errors.value}</Text> : null}
           </View>
 
           {/* Date début */}
@@ -319,40 +349,53 @@ export default function DiscountFormScreen() {
 
           {/* Max uses */}
           <View style={styles.fieldContainer}>
-            <Text style={styles.fieldLabel}>Utilisations max</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Utilisations max</Text>
             <TextInput
-              style={[styles.input, errors.max_uses ? styles.inputError : null]}
+              style={[
+                styles.input,
+                { backgroundColor: colors.card, borderColor: colors.gray300, color: colors.gray900 },
+                errors.max_uses ? { borderColor: colors.error } : null,
+              ]}
               value={maxUses}
               onChangeText={(t) => {
                 setMaxUses(t);
                 setErrors(prev => ({ ...prev, max_uses: '' }));
               }}
               placeholder="100"
+              placeholderTextColor={colors.gray400}
               keyboardType="numeric"
             />
-            {errors.max_uses ? <Text style={styles.errorText}>{errors.max_uses}</Text> : null}
+            {errors.max_uses ? <Text style={[styles.errorText, { color: colors.error }]}>{errors.max_uses}</Text> : null}
           </View>
 
           {/* Ticket types */}
           {ticketTypes.length > 0 && (
             <View style={styles.fieldContainer}>
-              <Text style={styles.fieldLabel}>Tickets applicables</Text>
-              <Text style={styles.fieldHint}>Laisser vide = tous les tickets</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Tickets applicables</Text>
+              <Text style={[styles.fieldHint, { color: colors.gray400 }]}>Laisser vide = tous les tickets</Text>
               <View style={styles.ticketTypesList}>
                 {ticketTypes.map((tt) => {
                   const selected = selectedTicketTypes.includes(Number(tt.id));
                   return (
                     <TouchableOpacity
                       key={tt.id}
-                      style={[styles.ticketTypeChip, selected && styles.ticketTypeChipActive]}
+                      style={[
+                        styles.ticketTypeChip,
+                        { backgroundColor: colors.card, borderColor: colors.gray200 },
+                        selected && { backgroundColor: colors.primaryBg, borderColor: colors.primaryLight },
+                      ]}
                       onPress={() => toggleTicketType(Number(tt.id))}
                     >
                       <Ionicons
                         name={selected ? 'checkmark-circle' : 'ellipse-outline'}
                         size={16}
-                        color={selected ? Colors.primary : Colors.gray400}
+                        color={selected ? colors.primary : colors.gray400}
                       />
-                      <Text style={[styles.ticketTypeText, selected && styles.ticketTypeTextActive]}>
+                      <Text style={[
+                        styles.ticketTypeText,
+                        { color: colors.gray600 },
+                        selected && { color: colors.primary },
+                      ]}>
                         {tt.name} — {tt.price.toLocaleString()} FCFA
                       </Text>
                     </TouchableOpacity>

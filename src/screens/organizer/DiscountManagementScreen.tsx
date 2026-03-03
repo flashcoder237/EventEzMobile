@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { discountsAPI, ticketTypesAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
@@ -24,7 +25,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
-import { SkeletonList } from '../../components/ui/Skeleton';
+import { SkeletonList, DiscountCardSkeleton } from '../../components/ui/Skeleton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'DiscountManagement'>;
@@ -77,6 +78,7 @@ export default function DiscountManagementScreen() {
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
   const { showAlert, showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -153,20 +155,37 @@ export default function DiscountManagementScreen() {
     return `${discount.value.toLocaleString()} FCFA`;
   };
 
+  const getThemedDiscountStatus = (d: Discount): { status: DiscountStatus; label: string; color: string; bgColor: string } => {
+    const now = new Date();
+    const from = new Date(d.valid_from);
+    const until = new Date(d.valid_until);
+
+    if (d.times_used >= d.max_uses) {
+      return { status: 'exhausted', label: 'Épuisé', color: colors.gray600, bgColor: colors.gray200 };
+    }
+    if (now > until) {
+      return { status: 'expired', label: 'Expiré', color: colors.error, bgColor: colors.errorLight };
+    }
+    if (now < from) {
+      return { status: 'upcoming', label: 'À venir', color: colors.info, bgColor: colors.infoLight };
+    }
+    return { status: 'active', label: 'Actif', color: colors.success, bgColor: colors.successLight };
+  };
+
   const renderDiscount = ({ item }: { item: Discount }) => {
-    const { label, color, bgColor } = getDiscountStatus(item);
+    const { label, color, bgColor } = getThemedDiscountStatus(item);
     const usagePercent = item.max_uses > 0 ? (item.times_used / item.max_uses) * 100 : 0;
 
     return (
       <TouchableOpacity
-        style={styles.discountCard}
+        style={[styles.discountCard, { backgroundColor: colors.card }]}
         onPress={() => navigation.navigate('DiscountForm', { eventId, discountId: item.id })}
         activeOpacity={0.7}
       >
         {/* Header */}
         <View style={styles.cardHeader}>
-          <View style={styles.codeContainer}>
-            <Text style={styles.codeText}>{item.code}</Text>
+          <View style={[styles.codeContainer, { backgroundColor: colors.primaryBg }]}>
+            <Text style={[styles.codeText, { color: colors.primary }]}>{item.code}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: bgColor }]}>
             <Text style={[styles.statusText, { color }]}>{label}</Text>
@@ -174,55 +193,55 @@ export default function DiscountManagementScreen() {
         </View>
 
         {/* Value */}
-        <Text style={styles.valueText}>{formatValue(item)}</Text>
-        <Text style={styles.valueLabel}>
+        <Text style={[styles.valueText, { color: colors.gray900 }]}>{formatValue(item)}</Text>
+        <Text style={[styles.valueLabel, { color: colors.gray500 }]}>
           {item.discount_type === 'percentage' ? 'de réduction' : 'de remise'}
         </Text>
 
         {/* Dates */}
         <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={14} color={Colors.gray500} />
-          <Text style={styles.infoText}>
+          <Ionicons name="calendar-outline" size={14} color={colors.gray500} />
+          <Text style={[styles.infoText, { color: colors.gray600 }]}>
             {formatDate(item.valid_from)} → {formatDate(item.valid_until)}
           </Text>
         </View>
 
         {/* Usage */}
         <View style={styles.infoRow}>
-          <Ionicons name="people-outline" size={14} color={Colors.gray500} />
-          <Text style={styles.infoText}>
+          <Ionicons name="people-outline" size={14} color={colors.gray500} />
+          <Text style={[styles.infoText, { color: colors.gray600 }]}>
             {item.times_used} / {item.max_uses} utilisations
           </Text>
         </View>
 
         {/* Usage bar */}
-        <View style={styles.usageBarBg}>
+        <View style={[styles.usageBarBg, { backgroundColor: colors.gray200 }]}>
           <View
             style={[
               styles.usageBarFill,
               {
                 width: `${Math.min(usagePercent, 100)}%`,
-                backgroundColor: usagePercent >= 90 ? Colors.error : usagePercent >= 50 ? Colors.warning : Colors.primary,
+                backgroundColor: usagePercent >= 90 ? colors.error : usagePercent >= 50 ? colors.warning : colors.primary,
               },
             ]}
           />
         </View>
 
         {/* Actions */}
-        <View style={styles.cardActions}>
+        <View style={[styles.cardActions, { borderTopColor: colors.gray100 }]}>
           <TouchableOpacity
-            style={styles.actionButton}
+            style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('DiscountForm', { eventId, discountId: item.id })}
           >
-            <Ionicons name="create-outline" size={18} color={Colors.primary} />
-            <Text style={styles.actionText}>Modifier</Text>
+            <Ionicons name="create-outline" size={18} color={colors.primary} />
+            <Text style={[styles.actionText, { color: colors.primary }]}>Modifier</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
+            style={[styles.actionButton, { backgroundColor: colors.errorLight }]}
             onPress={() => handleDelete(item)}
           >
-            <Ionicons name="trash-outline" size={18} color={Colors.error} />
-            <Text style={[styles.actionText, { color: Colors.error }]}>Supprimer</Text>
+            <Ionicons name="trash-outline" size={18} color={colors.error} />
+            <Text style={[styles.actionText, { color: colors.error }]}>Supprimer</Text>
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -231,17 +250,17 @@ export default function DiscountManagementScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="pricetag-outline" size={64} color={Colors.gray300} />
-      <Text style={styles.emptyTitle}>Aucun code promo</Text>
-      <Text style={styles.emptySubtitle}>
+      <Ionicons name="pricetag-outline" size={64} color={colors.gray300} />
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun code promo</Text>
+      <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
         Créez votre premier code promo pour attirer plus de participants
       </Text>
       <TouchableOpacity
-        style={styles.emptyCta}
+        style={[styles.emptyCta, { backgroundColor: colors.primary }]}
         onPress={() => navigation.navigate('DiscountForm', { eventId })}
       >
-        <Ionicons name="add" size={20} color={Colors.white} />
-        <Text style={styles.emptyCtaText}>Créer un code promo</Text>
+        <Ionicons name="add" size={20} color={colors.white} />
+        <Text style={[styles.emptyCtaText, { color: colors.white }]}>Créer un code promo</Text>
       </TouchableOpacity>
     </View>
   );
@@ -250,15 +269,15 @@ export default function DiscountManagementScreen() {
     <View style={styles.statsContainer}>
       <View style={styles.statsGrid}>
         {[
-          { label: 'Total', value: stats.total, icon: 'pricetag-outline' as const, color: Colors.primary },
-          { label: 'Actifs', value: stats.active, icon: 'checkmark-circle-outline' as const, color: Colors.success },
-          { label: 'Expirés', value: stats.expired, icon: 'close-circle-outline' as const, color: Colors.error },
-          { label: 'Utilisations', value: stats.totalUsages, icon: 'bar-chart-outline' as const, color: Colors.info },
+          { label: 'Total', value: stats.total, icon: 'pricetag-outline' as const, color: colors.primary },
+          { label: 'Actifs', value: stats.active, icon: 'checkmark-circle-outline' as const, color: colors.success },
+          { label: 'Expirés', value: stats.expired, icon: 'close-circle-outline' as const, color: colors.error },
+          { label: 'Utilisations', value: stats.totalUsages, icon: 'bar-chart-outline' as const, color: colors.info },
         ].map((stat) => (
-          <View key={stat.label} style={styles.statCard}>
+          <View key={stat.label} style={[styles.statCard, { backgroundColor: colors.card }]}>
             <Ionicons name={stat.icon} size={20} color={stat.color} />
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stat.value}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{stat.label}</Text>
           </View>
         ))}
       </View>
@@ -266,12 +285,12 @@ export default function DiscountManagementScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="light-content" />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {/* Header */}
       <LinearGradient
-        colors={[Colors.primary, Colors.primaryDark]}
+        colors={[colors.primary, colors.primaryDark]}
         style={styles.header}
       >
         <View style={styles.headerContent}>
@@ -279,22 +298,22 @@ export default function DiscountManagementScreen() {
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <Ionicons name="arrow-back" size={24} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Codes promo</Text>
+            <Text style={[styles.headerTitle, { color: colors.white }]}>Codes promo</Text>
           </View>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => navigation.navigate('DiscountForm', { eventId })}
           >
-            <Ionicons name="add" size={24} color={Colors.white} />
+            <Ionicons name="add" size={24} color={colors.white} />
           </TouchableOpacity>
         </View>
       </LinearGradient>
 
       {loading ? (
-        <SkeletonList count={4} />
+        <SkeletonList count={4} Component={DiscountCardSkeleton} />
       ) : (
         <FlatList
           data={discounts}
@@ -307,7 +326,7 @@ export default function DiscountManagementScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.primary}
+              tintColor={colors.primary}
             />
           }
         />

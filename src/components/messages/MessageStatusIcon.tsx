@@ -1,12 +1,13 @@
 /**
  * Composant pour afficher le statut d'envoi d'un message
- * 3 états: sent (une coche), delivered (deux coches grises), read (deux coches bleues)
+ * 3 etats: sent (une coche), delivered (deux coches grises), read (deux coches bleues)
  */
 
 import React from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { MessageStatus } from '../../lib/utils/messagingHelpers';
 
 interface MessageStatusIconProps {
@@ -15,12 +16,14 @@ interface MessageStatusIconProps {
 }
 
 export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIconProps) {
+  const { colors, isDark } = useTheme();
+
   switch (status) {
     case 'sending':
       return (
         <ActivityIndicator
           size="small"
-          color={Colors.gray400}
+          color={colors.gray400}
           style={styles.spinner}
         />
       );
@@ -30,7 +33,7 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
         <Ionicons
           name="alert-circle"
           size={size}
-          color={Colors.error}
+          color={colors.error}
         />
       );
 
@@ -39,7 +42,7 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
         <Ionicons
           name="checkmark"
           size={size}
-          color={Colors.gray400}
+          color={colors.gray400}
         />
       );
 
@@ -49,7 +52,7 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
           <Ionicons
             name="checkmark-done"
             size={size}
-            color={Colors.gray400}
+            color={colors.gray400}
           />
         </View>
       );
@@ -60,7 +63,7 @@ export default function MessageStatusIcon({ status, size = 14 }: MessageStatusIc
           <Ionicons
             name="checkmark-done"
             size={size}
-            color={Colors.primary}
+            color={colors.primary}
           />
         </View>
       );

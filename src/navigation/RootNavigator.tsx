@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
 import { Colors } from '../constants/theme';
+import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 
@@ -80,6 +81,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
   const { isAuthenticated, isLoading } = useAuth();
+  const { colors } = useTheme();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
@@ -123,7 +125,7 @@ export default function RootNavigator() {
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: Colors.white },
+        contentStyle: { backgroundColor: colors.background },
         animation: 'fade_from_bottom',
       }}
     >
@@ -149,8 +151,8 @@ export default function RootNavigator() {
               headerShown: true,
               headerTitle: 'Carte',
               headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
               headerShadowVisible: false,
             }}
           />
@@ -272,8 +274,8 @@ export default function RootNavigator() {
               headerShown: true,
               headerTitle: 'Modifier le profil',
               headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
               headerShadowVisible: false,
             }}
           />
@@ -305,8 +307,8 @@ export default function RootNavigator() {
               headerShown: true,
               headerTitle: 'Vérification',
               headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
               headerShadowVisible: false,
             }}
           />
@@ -326,8 +328,8 @@ export default function RootNavigator() {
               headerShown: true,
               headerTitle: '',
               headerBackTitle: 'Retour',
-              headerTintColor: Colors.primary,
-              headerStyle: { backgroundColor: Colors.white },
+              headerTintColor: colors.primary,
+              headerStyle: { backgroundColor: colors.background },
               headerShadowVisible: false,
             }}
           />

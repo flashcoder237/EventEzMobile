@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 
 interface AIQuickCreatePanelProps {
@@ -29,6 +30,7 @@ export default function AIQuickCreatePanel({
   disabled,
   aiEnabled,
 }: AIQuickCreatePanelProps) {
+  const { colors, isDark } = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);
   const [prompt, setPrompt] = useState('');
 
@@ -58,7 +60,7 @@ export default function AIQuickCreatePanel({
         <Ionicons
           name={isExpanded ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color={Colors.gray400}
+          color={colors.gray400}
         />
       </TouchableOpacity>
 
@@ -69,7 +71,7 @@ export default function AIQuickCreatePanel({
             value={prompt}
             onChangeText={setPrompt}
             placeholder="Ex: Un concert de jazz le 15 mars à Douala avec 3 types de billets..."
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -96,7 +98,7 @@ export default function AIQuickCreatePanel({
 
           {error && (
             <View style={styles.errorBox}>
-              <Ionicons name="alert-circle" size={16} color={Colors.error} />
+              <Ionicons name="alert-circle" size={16} color={colors.error} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}

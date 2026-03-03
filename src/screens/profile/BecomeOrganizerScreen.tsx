@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { usersAPI } from '../../api/client';
 import {
   Colors,
@@ -71,6 +72,7 @@ export default function BecomeOrganizerScreen() {
   const navigation = useNavigation();
   const { user, updateUser } = useAuth();
   const { showError, showSuccess } = useAlert();
+  const { colors, isDark } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -191,11 +193,11 @@ export default function BecomeOrganizerScreen() {
   // Step 1: Welcome
   const renderStep1 = () => (
     <View style={styles.stepContent}>
-      <View style={styles.heroIcon}>
-        <Ionicons name="megaphone" size={48} color={Colors.white} />
+      <View style={[styles.heroIcon, { backgroundColor: colors.primary }]}>
+        <Ionicons name="megaphone" size={48} color={colors.white} />
       </View>
-      <Text style={styles.heroTitle}>Devenez Organisateur</Text>
-      <Text style={styles.heroSubtitle}>
+      <Text style={[styles.heroTitle, { color: colors.gray900 }]}>Devenez Organisateur</Text>
+      <Text style={[styles.heroSubtitle, { color: colors.gray500 }]}>
         Partagez vos evenements avec des milliers de participants
       </Text>
 
@@ -203,25 +205,25 @@ export default function BecomeOrganizerScreen() {
       <View style={styles.statsRow}>
         {STATS.map((stat, index) => (
           <View key={index} style={styles.statItem}>
-            <View style={styles.statIcon}>
-              <Ionicons name={stat.icon} size={20} color={Colors.primary} />
+            <View style={[styles.statIcon, { backgroundColor: colors.primaryLight }]}>
+              <Ionicons name={stat.icon} size={20} color={colors.primary} />
             </View>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
+            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stat.value}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{stat.label}</Text>
           </View>
         ))}
       </View>
 
       {/* Benefits */}
-      <View style={styles.benefitsContainer}>
+      <View style={[styles.benefitsContainer, { backgroundColor: colors.gray50 }]}>
         {BENEFITS.map((benefit, index) => (
           <View key={index} style={styles.benefitItem}>
-            <View style={styles.benefitIcon}>
-              <Ionicons name={benefit.icon} size={20} color={Colors.primary} />
+            <View style={[styles.benefitIcon, { backgroundColor: colors.white }]}>
+              <Ionicons name={benefit.icon} size={20} color={colors.primary} />
             </View>
             <View style={styles.benefitText}>
-              <Text style={styles.benefitTitle}>{benefit.title}</Text>
-              <Text style={styles.benefitDesc}>{benefit.desc}</Text>
+              <Text style={[styles.benefitTitle, { color: colors.gray900 }]}>{benefit.title}</Text>
+              <Text style={[styles.benefitDesc, { color: colors.gray500 }]}>{benefit.desc}</Text>
             </View>
           </View>
         ))}
@@ -232,8 +234,8 @@ export default function BecomeOrganizerScreen() {
   // Step 2: Type Selection
   const renderStep2 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Quel type d'organisateur etes-vous ?</Text>
-      <Text style={styles.stepSubtitle}>
+      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>Quel type d'organisateur etes-vous ?</Text>
+      <Text style={[styles.stepSubtitle, { color: colors.gray500 }]}>
         Choisissez le profil qui vous correspond le mieux
       </Text>
 
@@ -242,33 +244,36 @@ export default function BecomeOrganizerScreen() {
           onPress={() => updateField('organizer_type', 'individual')}
           style={[
             styles.typeCard,
-            formData.organizer_type === 'individual' && styles.typeCardSelected,
+            { borderColor: colors.gray200, backgroundColor: colors.white },
+            formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
           scaleValue={0.98}
         >
           <View style={[
             styles.typeIconContainer,
-            formData.organizer_type === 'individual' && styles.typeIconContainerSelected,
+            { backgroundColor: colors.gray100 },
+            formData.organizer_type === 'individual' && { backgroundColor: colors.primary },
           ]}>
             <Ionicons
               name="person"
               size={32}
-              color={formData.organizer_type === 'individual' ? Colors.white : Colors.gray500}
+              color={formData.organizer_type === 'individual' ? colors.white : colors.gray500}
             />
           </View>
           <Text style={[
             styles.typeTitle,
-            formData.organizer_type === 'individual' && styles.typeTitleSelected,
+            { color: colors.gray700 },
+            formData.organizer_type === 'individual' && { color: colors.primary },
           ]}>
             Particulier
           </Text>
-          <Text style={styles.typeDesc}>
+          <Text style={[styles.typeDesc, { color: colors.gray500 }]}>
             Organisateur independant, freelance ou passione
           </Text>
           {formData.organizer_type === 'individual' && (
             <View style={styles.typeCheck}>
-              <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
             </View>
           )}
         </AnimatedPressable>
@@ -277,33 +282,36 @@ export default function BecomeOrganizerScreen() {
           onPress={() => updateField('organizer_type', 'organization')}
           style={[
             styles.typeCard,
-            formData.organizer_type === 'organization' && styles.typeCardSelected,
+            { borderColor: colors.gray200, backgroundColor: colors.white },
+            formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
           ]}
           animationType="scale"
           scaleValue={0.98}
         >
           <View style={[
             styles.typeIconContainer,
-            formData.organizer_type === 'organization' && styles.typeIconContainerSelected,
+            { backgroundColor: colors.gray100 },
+            formData.organizer_type === 'organization' && { backgroundColor: colors.primary },
           ]}>
             <Ionicons
               name="business"
               size={32}
-              color={formData.organizer_type === 'organization' ? Colors.white : Colors.gray500}
+              color={formData.organizer_type === 'organization' ? colors.white : colors.gray500}
             />
           </View>
           <Text style={[
             styles.typeTitle,
-            formData.organizer_type === 'organization' && styles.typeTitleSelected,
+            { color: colors.gray700 },
+            formData.organizer_type === 'organization' && { color: colors.primary },
           ]}>
             Organisation
           </Text>
-          <Text style={styles.typeDesc}>
+          <Text style={[styles.typeDesc, { color: colors.gray500 }]}>
             Entreprise, association ou structure officielle
           </Text>
           {formData.organizer_type === 'organization' && (
             <View style={styles.typeCheck}>
-              <Ionicons name="checkmark-circle" size={24} color={Colors.primary} />
+              <Ionicons name="checkmark-circle" size={24} color={colors.primary} />
             </View>
           )}
         </AnimatedPressable>
@@ -314,8 +322,8 @@ export default function BecomeOrganizerScreen() {
   // Step 3: Details Form
   const renderStep3 = () => (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Vos informations</Text>
-      <Text style={styles.stepSubtitle}>
+      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>Vos informations</Text>
+      <Text style={[styles.stepSubtitle, { color: colors.gray500 }]}>
         {formData.organizer_type === 'organization'
           ? 'Renseignez les informations de votre organisation'
           : 'Renseignez vos coordonnees de contact'}
@@ -326,17 +334,17 @@ export default function BecomeOrganizerScreen() {
           <>
             {/* Company Name */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Nom de l'entreprise</Text>
-              <View style={[styles.inputWrapper, getInputStyle('company_name', !!errors.company_name)]}>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Nom de l'entreprise</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('company_name', !!errors.company_name)]}>
                 <Ionicons
                   name="business-outline"
                   size={20}
-                  color={focusedField === 'company_name' ? Colors.primary : Colors.gray400}
+                  color={focusedField === 'company_name' ? colors.primary : colors.gray400}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.gray900 }]}
                   placeholder="Nom de votre entreprise"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   value={formData.company_name}
                   onChangeText={(text) => updateField('company_name', text)}
                   onFocus={() => setFocusedField('company_name')}
@@ -346,25 +354,25 @@ export default function BecomeOrganizerScreen() {
               </View>
               {errors.company_name && (
                 <View style={styles.errorRow}>
-                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
-                  <Text style={styles.errorText}>{errors.company_name}</Text>
+                  <Ionicons name="alert-circle" size={14} color={colors.error} />
+                  <Text style={[styles.errorText, { color: colors.error }]}>{errors.company_name}</Text>
                 </View>
               )}
             </View>
 
             {/* Registration Number */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Numero SIRET / RC</Text>
-              <View style={[styles.inputWrapper, getInputStyle('registration_number', !!errors.registration_number)]}>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Numero SIRET / RC</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('registration_number', !!errors.registration_number)]}>
                 <Ionicons
                   name="document-text-outline"
                   size={20}
-                  color={focusedField === 'registration_number' ? Colors.primary : Colors.gray400}
+                  color={focusedField === 'registration_number' ? colors.primary : colors.gray400}
                 />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.gray900 }]}
                   placeholder="Numero d'enregistrement"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   value={formData.registration_number}
                   onChangeText={(text) => updateField('registration_number', text)}
                   onFocus={() => setFocusedField('registration_number')}
@@ -373,8 +381,8 @@ export default function BecomeOrganizerScreen() {
               </View>
               {errors.registration_number && (
                 <View style={styles.errorRow}>
-                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
-                  <Text style={styles.errorText}>{errors.registration_number}</Text>
+                  <Ionicons name="alert-circle" size={14} color={colors.error} />
+                  <Text style={[styles.errorText, { color: colors.error }]}>{errors.registration_number}</Text>
                 </View>
               )}
             </View>
@@ -383,17 +391,17 @@ export default function BecomeOrganizerScreen() {
 
         {/* Phone */}
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Telephone</Text>
-          <View style={[styles.inputWrapper, getInputStyle('phone', !!errors.phone)]}>
+          <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Telephone</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('phone', !!errors.phone)]}>
             <Ionicons
               name="call-outline"
               size={20}
-              color={focusedField === 'phone' ? Colors.primary : Colors.gray400}
+              color={focusedField === 'phone' ? colors.primary : colors.gray400}
             />
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.gray900 }]}
               placeholder="Votre numero de telephone"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               value={formData.phone}
               onChangeText={(text) => updateField('phone', text)}
               onFocus={() => setFocusedField('phone')}
@@ -403,8 +411,8 @@ export default function BecomeOrganizerScreen() {
           </View>
           {errors.phone && (
             <View style={styles.errorRow}>
-              <Ionicons name="alert-circle" size={14} color={Colors.error} />
-              <Text style={styles.errorText}>{errors.phone}</Text>
+              <Ionicons name="alert-circle" size={14} color={colors.error} />
+              <Text style={[styles.errorText, { color: colors.error }]}>{errors.phone}</Text>
             </View>
           )}
         </View>
@@ -416,22 +424,22 @@ export default function BecomeOrganizerScreen() {
   const renderStep4 = () => (
     <View style={styles.stepContent}>
       <View style={styles.confirmIcon}>
-        <Ionicons name="checkmark-circle" size={64} color={Colors.success} />
+        <Ionicons name="checkmark-circle" size={64} color={colors.success} />
       </View>
-      <Text style={styles.stepTitle}>Pret a commencer !</Text>
-      <Text style={styles.stepSubtitle}>
+      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>Pret a commencer !</Text>
+      <Text style={[styles.stepSubtitle, { color: colors.gray500 }]}>
         Verifiez vos informations avant de confirmer
       </Text>
 
       {/* Summary */}
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, { backgroundColor: colors.gray50 }]}>
         <View style={styles.summaryRow}>
-          <View style={styles.summaryIcon}>
-            <Ionicons name={formData.organizer_type === 'organization' ? 'business' : 'person'} size={20} color={Colors.primary} />
+          <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name={formData.organizer_type === 'organization' ? 'business' : 'person'} size={20} color={colors.primary} />
           </View>
           <View style={styles.summaryContent}>
-            <Text style={styles.summaryLabel}>Type</Text>
-            <Text style={styles.summaryValue}>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>Type</Text>
+            <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
               {formData.organizer_type === 'organization' ? 'Organisation' : 'Particulier'}
             </Text>
           </View>
@@ -439,53 +447,53 @@ export default function BecomeOrganizerScreen() {
 
         {formData.organizer_type === 'organization' && (
           <>
-            <View style={styles.summaryDivider} />
+            <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.summaryRow}>
-              <View style={styles.summaryIcon}>
-                <Ionicons name="business-outline" size={20} color={Colors.primary} />
+              <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+                <Ionicons name="business-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.summaryContent}>
-                <Text style={styles.summaryLabel}>Entreprise</Text>
-                <Text style={styles.summaryValue}>{formData.company_name}</Text>
+                <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>Entreprise</Text>
+                <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{formData.company_name}</Text>
               </View>
             </View>
 
-            <View style={styles.summaryDivider} />
+            <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.summaryRow}>
-              <View style={styles.summaryIcon}>
-                <Ionicons name="document-text-outline" size={20} color={Colors.primary} />
+              <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+                <Ionicons name="document-text-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.summaryContent}>
-                <Text style={styles.summaryLabel}>SIRET/RC</Text>
-                <Text style={styles.summaryValue}>{formData.registration_number}</Text>
+                <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>SIRET/RC</Text>
+                <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{formData.registration_number}</Text>
               </View>
             </View>
           </>
         )}
 
-        <View style={styles.summaryDivider} />
+        <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
         <View style={styles.summaryRow}>
-          <View style={styles.summaryIcon}>
-            <Ionicons name="call-outline" size={20} color={Colors.primary} />
+          <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+            <Ionicons name="call-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.summaryContent}>
-            <Text style={styles.summaryLabel}>Telephone</Text>
-            <Text style={styles.summaryValue}>{formData.phone}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>Telephone</Text>
+            <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{formData.phone}</Text>
           </View>
         </View>
       </View>
 
       {/* Testimonial */}
-      <View style={styles.testimonialCard}>
+      <View style={[styles.testimonialCard, { backgroundColor: colors.primaryLight }]}>
         <View style={styles.testimonialStars}>
           {[1, 2, 3, 4, 5].map((star) => (
             <Ionicons key={star} name="star" size={16} color="#FBBF24" />
           ))}
         </View>
-        <Text style={styles.testimonialText}>
+        <Text style={[styles.testimonialText, { color: colors.gray700 }]}>
           "EventEz m'a permis de gerer mes evenements facilement et d'atteindre plus de participants."
         </Text>
-        <Text style={styles.testimonialAuthor}>- Marie D., Organisatrice</Text>
+        <Text style={[styles.testimonialAuthor, { color: colors.gray500 }]}>- Marie D., Organisatrice</Text>
       </View>
     </View>
   );
@@ -506,42 +514,44 @@ export default function BecomeOrganizerScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <AnimatedPressable
           onPress={handleBack}
           style={styles.headerBackButton}
           animationType="scale"
           scaleValue={0.9}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray800} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray800} />
         </AnimatedPressable>
-        <Text style={styles.headerTitle}>Devenir Organisateur</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Devenir Organisateur</Text>
         <View style={{ width: 44 }} />
       </View>
 
       {/* Progress Bar */}
-      <View style={styles.progressContainer}>
-        <View style={styles.progressBar}>
-          <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
+      <View style={[styles.progressContainer, { backgroundColor: colors.gray50 }]}>
+        <View style={[styles.progressBar, { backgroundColor: colors.gray200 }]}>
+          <Animated.View style={[styles.progressFill, { width: progressWidth, backgroundColor: colors.primary }]} />
         </View>
         <View style={styles.stepsRow}>
           {STEPS.map((step) => (
             <View key={step.number} style={styles.stepIndicator}>
               <View style={[
                 styles.stepDot,
-                currentStep >= step.number && styles.stepDotActive,
-                currentStep === step.number && styles.stepDotCurrent,
+                { backgroundColor: colors.gray200 },
+                currentStep >= step.number && { backgroundColor: colors.primary },
+                currentStep === step.number && { borderColor: colors.primary, backgroundColor: colors.white },
               ]}>
                 {currentStep > step.number ? (
-                  <Ionicons name="checkmark" size={12} color={Colors.white} />
+                  <Ionicons name="checkmark" size={12} color={colors.white} />
                 ) : (
                   <Text style={[
                     styles.stepNumber,
-                    currentStep >= step.number && styles.stepNumberActive,
+                    { color: colors.gray500 },
+                    currentStep >= step.number && { color: colors.primary },
                   ]}>
                     {step.number}
                   </Text>
@@ -549,7 +559,8 @@ export default function BecomeOrganizerScreen() {
               </View>
               <Text style={[
                 styles.stepLabel,
-                currentStep >= step.number && styles.stepLabelActive,
+                { color: colors.gray400 },
+                currentStep >= step.number && { color: colors.gray700 },
               ]}>
                 {step.label}
               </Text>
@@ -569,16 +580,16 @@ export default function BecomeOrganizerScreen() {
       </KeyboardAwareScrollView>
 
       {/* Footer Buttons */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { borderTopColor: colors.gray100, backgroundColor: colors.white }]}>
         {currentStep > 1 && (
           <AnimatedPressable
             onPress={handleBack}
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: colors.gray100 }]}
             animationType="scale"
             scaleValue={0.95}
           >
-            <Ionicons name="arrow-back" size={20} color={Colors.gray600} />
-            <Text style={styles.backButtonText}>Retour</Text>
+            <Ionicons name="arrow-back" size={20} color={colors.gray600} />
+            <Text style={[styles.backButtonText, { color: colors.gray600 }]}>Retour</Text>
           </AnimatedPressable>
         )}
 
@@ -588,8 +599,8 @@ export default function BecomeOrganizerScreen() {
           loading={isLoading}
           icon={
             currentStep === 4
-              ? <Ionicons name="checkmark" size={20} color={Colors.white} />
-              : <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+              ? <Ionicons name="checkmark" size={20} color={colors.white} />
+              : <Ionicons name="arrow-forward" size={20} color={colors.white} />
           }
           size="lg"
           style={StyleSheet.flatten([styles.nextButton, currentStep === 1 && { flex: 1 }]) as ViewStyle}

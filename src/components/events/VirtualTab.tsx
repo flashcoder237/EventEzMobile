@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { virtualRoomsAPI, recordingsAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface VirtualRoom {
@@ -38,6 +39,7 @@ interface VirtualTabProps {
 }
 
 export default function VirtualTab({ eventId }: VirtualTabProps) {
+  const { colors, isDark } = useTheme();
   const [rooms, setRooms] = useState<VirtualRoom[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,7 +106,7 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={styles.emptyTabText}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
       </View>
     );
   }
@@ -114,10 +116,10 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
   if (!hasContent) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Virtuel</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Virtuel</Text>
         <View style={styles.emptyTab}>
-          <Ionicons name="videocam-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucun contenu virtuel disponible</Text>
+          <Ionicons name="videocam-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun contenu virtuel disponible</Text>
         </View>
       </View>
     );
@@ -128,23 +130,23 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
       {/* Virtual Rooms */}
       {rooms.length > 0 && (
         <>
-          <Text style={styles.sectionTitle}>Salles virtuelles</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Salles virtuelles</Text>
           {rooms.map((room) => {
             const active = isRoomActive(room);
             return (
-              <View key={room.id} style={styles.roomCard}>
+              <View key={room.id} style={[styles.roomCard, { backgroundColor: colors.gray50 }]}>
                 <View style={styles.roomHeader}>
-                  <View style={[styles.roomStatusDot, { backgroundColor: active ? Colors.success : Colors.gray400 }]} />
+                  <View style={[styles.roomStatusDot, { backgroundColor: active ? colors.success : colors.gray400 }]} />
                   <View style={styles.roomInfo}>
-                    <Text style={styles.roomName}>{room.name}</Text>
-                    <Text style={styles.roomStatus}>
+                    <Text style={[styles.roomName, { color: colors.gray900 }]}>{room.name}</Text>
+                    <Text style={[styles.roomStatus, { color: colors.gray500 }]}>
                       {active ? 'En cours' : 'Termine'}
                     </Text>
                   </View>
                   {room.participants_count !== undefined && (
-                    <View style={styles.participantsCount}>
-                      <Ionicons name="people-outline" size={14} color={Colors.gray500} />
-                      <Text style={styles.participantsText}>
+                    <View style={[styles.participantsCount, { backgroundColor: colors.gray200 }]}>
+                      <Ionicons name="people-outline" size={14} color={colors.gray500} />
+                      <Text style={[styles.participantsText, { color: colors.gray600 }]}>
                         {room.participants_count}
                         {room.max_participants ? `/${room.max_participants}` : ''}
                       </Text>
@@ -152,11 +154,11 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
                   )}
                 </View>
                 {room.description && (
-                  <Text style={styles.roomDescription} numberOfLines={2}>{room.description}</Text>
+                  <Text style={[styles.roomDescription, { color: colors.gray600 }]} numberOfLines={2}>{room.description}</Text>
                 )}
                 {room.room_type && (
-                  <View style={styles.roomTypeBadge}>
-                    <Text style={styles.roomTypeText}>{room.room_type}</Text>
+                  <View style={[styles.roomTypeBadge, { backgroundColor: colors.primaryBg }]}>
+                    <Text style={[styles.roomTypeText, { color: colors.primary }]}>{room.room_type}</Text>
                   </View>
                 )}
                 {active && (
@@ -178,13 +180,13 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
       {/* Recordings */}
       {recordings.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, rooms.length > 0 && { marginTop: Spacing.lg }]}>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }, rooms.length > 0 && { marginTop: Spacing.lg }]}>
             Replays
           </Text>
           {recordings.map((recording) => (
             <TouchableOpacity
               key={recording.id}
-              style={styles.recordingCard}
+              style={[styles.recordingCard, { backgroundColor: colors.gray50 }]}
               onPress={() => handleViewRecording(recording.id)}
               activeOpacity={0.7}
             >
@@ -192,8 +194,8 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
                 {recording.thumbnail ? (
                   <Image source={{ uri: recording.thumbnail }} style={styles.recordingThumbnail} />
                 ) : (
-                  <View style={styles.recordingThumbnailPlaceholder}>
-                    <Ionicons name="play-circle" size={32} color={Colors.primary} />
+                  <View style={[styles.recordingThumbnailPlaceholder, { backgroundColor: colors.primaryBg }]}>
+                    <Ionicons name="play-circle" size={32} color={colors.primary} />
                   </View>
                 )}
                 <View style={styles.durationBadge}>
@@ -201,14 +203,14 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
                 </View>
               </View>
               <View style={styles.recordingInfo}>
-                <Text style={styles.recordingTitle} numberOfLines={2}>{recording.title}</Text>
+                <Text style={[styles.recordingTitle, { color: colors.gray900 }]} numberOfLines={2}>{recording.title}</Text>
                 {recording.description && (
-                  <Text style={styles.recordingDescription} numberOfLines={1}>{recording.description}</Text>
+                  <Text style={[styles.recordingDescription, { color: colors.gray600 }]} numberOfLines={1}>{recording.description}</Text>
                 )}
                 {recording.view_count !== undefined && (
                   <View style={styles.viewCountRow}>
-                    <Ionicons name="eye-outline" size={12} color={Colors.gray500} />
-                    <Text style={styles.viewCountText}>{recording.view_count} vue{recording.view_count !== 1 ? 's' : ''}</Text>
+                    <Ionicons name="eye-outline" size={12} color={colors.gray500} />
+                    <Text style={[styles.viewCountText, { color: colors.gray500 }]}>{recording.view_count} vue{recording.view_count !== 1 ? 's' : ''}</Text>
                   </View>
                 )}
               </View>

@@ -18,6 +18,7 @@ import { paymentsAPI, refundsAPI } from '../../api/client';
 import { Payment, RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
   FontFamily,
@@ -69,6 +70,7 @@ export default function RefundRequestScreen() {
   const route = useRoute<RefundRequestRouteProp>();
   const { paymentId } = route.params;
   const { showSuccess, showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,8 +149,8 @@ export default function RefundRequestScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <LoadingSpinner />
       </SafeAreaView>
     );
@@ -156,13 +158,13 @@ export default function RefundRequestScreen() {
 
   if (!payment) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.errorText}>Paiement non trouvé</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.retryButtonText}>Retour</Text>
+          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>Paiement non trouvé</Text>
+          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => navigation.goBack()}>
+            <Text style={[styles.retryButtonText, { color: colors.white }]}>Retour</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -170,17 +172,17 @@ export default function RefundRequestScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="close" size={24} color={Colors.gray700} />
+            <Ionicons name="close" size={24} color={colors.gray700} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Demande de remboursement</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Demande de remboursement</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -191,13 +193,13 @@ export default function RefundRequestScreen() {
           bottomOffset={80}
         >
           {/* Payment Summary */}
-          <View style={styles.paymentSummary}>
-            <View style={styles.summaryIcon}>
+          <View style={[styles.paymentSummary, { backgroundColor: isDark ? colors.card : '#EDE9FE' }]}>
+            <View style={[styles.summaryIcon, { backgroundColor: colors.white }]}>
               <Ionicons name="card" size={24} color="#8B5CF6" />
             </View>
             <View style={styles.summaryContent}>
-              <Text style={styles.summaryTitle}>Paiement #{paymentId.slice(0, 8)}</Text>
-              <Text style={styles.summaryAmount}>
+              <Text style={[styles.summaryTitle, { color: isDark ? colors.textSecondary : '#6B21A8' }]}>Paiement #{paymentId.slice(0, 8)}</Text>
+              <Text style={[styles.summaryAmount, { color: isDark ? colors.text : '#6B21A8' }]}>
                 {formatAmount(payment.amount)} {payment.currency || 'XAF'}
               </Text>
             </View>
@@ -205,10 +207,10 @@ export default function RefundRequestScreen() {
 
           {/* Refund Amount */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Montant du remboursement</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray700 }]}>Montant du remboursement</Text>
 
             <TouchableOpacity
-              style={[styles.amountOption, !isPartialRefund && styles.amountOptionActive]}
+              style={[styles.amountOption, { borderColor: colors.gray200 }, !isPartialRefund && [styles.amountOptionActive, { backgroundColor: isDark ? colors.card : '#FAF5FF' }]]}
               onPress={() => {
                 setIsPartialRefund(false);
                 setRefundAmount(String(payment.amount));
@@ -218,7 +220,7 @@ export default function RefundRequestScreen() {
                 {!isPartialRefund && <View style={styles.radioInner} />}
               </View>
               <View style={styles.amountOptionContent}>
-                <Text style={styles.amountOptionTitle}>Remboursement total</Text>
+                <Text style={[styles.amountOptionTitle, { color: colors.gray900 }]}>Remboursement total</Text>
                 <Text style={styles.amountOptionValue}>
                   {formatAmount(payment.amount)} {payment.currency || 'XAF'}
                 </Text>
@@ -226,22 +228,22 @@ export default function RefundRequestScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.amountOption, isPartialRefund && styles.amountOptionActive]}
+              style={[styles.amountOption, { borderColor: colors.gray200 }, isPartialRefund && [styles.amountOptionActive, { backgroundColor: isDark ? colors.card : '#FAF5FF' }]]}
               onPress={() => setIsPartialRefund(true)}
             >
               <View style={styles.radioOuter}>
                 {isPartialRefund && <View style={styles.radioInner} />}
               </View>
               <View style={styles.amountOptionContent}>
-                <Text style={styles.amountOptionTitle}>Remboursement partiel</Text>
+                <Text style={[styles.amountOptionTitle, { color: colors.gray900 }]}>Remboursement partiel</Text>
                 {isPartialRefund && (
                   <TextInput
-                    style={styles.amountInput}
+                    style={[styles.amountInput, { backgroundColor: colors.white, borderColor: colors.gray200, color: colors.gray900 }]}
                     value={refundAmount}
                     onChangeText={setRefundAmount}
                     keyboardType="numeric"
                     placeholder="Montant"
-                    placeholderTextColor={Colors.gray400}
+                    placeholderTextColor={colors.gray400}
                   />
                 )}
               </View>
@@ -250,14 +252,15 @@ export default function RefundRequestScreen() {
 
           {/* Reason Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Raison du remboursement</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray700 }]}>Raison du remboursement</Text>
 
             {refundReasons.map((reason) => (
               <TouchableOpacity
                 key={reason.id}
                 style={[
                   styles.reasonOption,
-                  selectedReason === reason.id && styles.reasonOptionActive
+                  { borderColor: colors.gray200 },
+                  selectedReason === reason.id && [styles.reasonOptionActive, { backgroundColor: isDark ? colors.card : '#FAF5FF' }]
                 ]}
                 onPress={() => setSelectedReason(reason.id)}
               >
@@ -265,8 +268,8 @@ export default function RefundRequestScreen() {
                   {selectedReason === reason.id && <View style={styles.radioInner} />}
                 </View>
                 <View style={styles.reasonContent}>
-                  <Text style={styles.reasonTitle}>{reason.label}</Text>
-                  <Text style={styles.reasonDescription}>{reason.description}</Text>
+                  <Text style={[styles.reasonTitle, { color: colors.gray900 }]}>{reason.label}</Text>
+                  <Text style={[styles.reasonDescription, { color: colors.gray500 }]}>{reason.description}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -274,13 +277,13 @@ export default function RefundRequestScreen() {
 
           {/* Additional Details */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Détails supplémentaires (optionnel)</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray700 }]}>Détails supplémentaires (optionnel)</Text>
             <TextInput
-              style={styles.textArea}
+              style={[styles.textArea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
               value={additionalDetails}
               onChangeText={setAdditionalDetails}
               placeholder="Ajoutez des détails pour aider à traiter votre demande..."
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
@@ -288,9 +291,9 @@ export default function RefundRequestScreen() {
           </View>
 
           {/* Info Banner */}
-          <View style={styles.infoBanner}>
+          <View style={[styles.infoBanner, { backgroundColor: isDark ? colors.card : '#EFF6FF', borderColor: isDark ? colors.gray200 : '#BFDBFE' }]}>
             <Ionicons name="information-circle" size={20} color="#3B82F6" />
-            <Text style={styles.infoText}>
+            <Text style={[styles.infoText, { color: isDark ? colors.textSecondary : '#1E40AF' }]}>
               Le remboursement sera traité dans un délai de 5-10 jours ouvrés.
               Vous recevrez une notification une fois la demande traitée.
             </Text>
@@ -300,7 +303,7 @@ export default function RefundRequestScreen() {
         </KeyboardAwareScrollView>
 
         {/* Submit Button */}
-        <View style={styles.footer}>
+        <View style={[styles.footer, { borderTopColor: colors.gray100, backgroundColor: colors.background }]}>
           <TouchableOpacity
             style={[
               styles.submitButton,

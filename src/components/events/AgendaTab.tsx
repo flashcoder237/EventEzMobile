@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Session } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 export interface AgendaTabProps {
@@ -19,52 +20,54 @@ export default function AgendaTab({
   sessions,
   loadingSessions,
 }: AgendaTabProps) {
+  const { colors, isDark } = useTheme();
+
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Programme</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Programme</Text>
       {loadingSessions ? (
         <View style={styles.emptyTab}>
           <LoadingSpinner />
-          <Text style={styles.emptyTabText}>Chargement du programme...</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement du programme...</Text>
         </View>
       ) : sessions && sessions.length > 0 ? (
         sessions.map((session, index) => (
-          <View key={session.id || index} style={styles.sessionCard}>
-            <View style={styles.sessionTime}>
-              <Text style={styles.sessionTimeText}>
+          <View key={session.id || index} style={[styles.sessionCard, { backgroundColor: colors.gray50 }]}>
+            <View style={[styles.sessionTime, { borderRightColor: colors.primary }]}>
+              <Text style={[styles.sessionTimeText, { color: colors.primary }]}>
                 {new Date(session.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
               </Text>
               {session.end_time && (
-                <Text style={styles.sessionEndTime}>
+                <Text style={[styles.sessionEndTime, { color: colors.gray400 }]}>
                   {new Date(session.end_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               )}
             </View>
             <View style={styles.sessionInfo}>
-              <Text style={styles.sessionTitle}>{session.title}</Text>
+              <Text style={[styles.sessionTitle, { color: colors.gray900 }]}>{session.title}</Text>
               {session.session_type && (
-                <View style={styles.sessionTypeBadge}>
-                  <Text style={styles.sessionTypeText}>{session.session_type}</Text>
+                <View style={[styles.sessionTypeBadge, { backgroundColor: colors.primaryBg }]}>
+                  <Text style={[styles.sessionTypeText, { color: colors.primary }]}>{session.session_type}</Text>
                 </View>
               )}
               {!!(session.location || session.room) && (
                 <View style={styles.sessionLocation}>
-                  <Ionicons name="location-outline" size={12} color={Colors.gray500} />
-                  <Text style={styles.sessionLocationText}>
+                  <Ionicons name="location-outline" size={12} color={colors.gray500} />
+                  <Text style={[styles.sessionLocationText, { color: colors.gray500 }]}>
                     {session.room ? `${session.room}${session.location ? ` - ${session.location}` : ''}` : session.location}
                   </Text>
                 </View>
               )}
               {session.speakers_detail && session.speakers_detail.length > 0 && (
                 <View style={styles.sessionSpeakers}>
-                  <Ionicons name="person-outline" size={12} color={Colors.gray500} />
-                  <Text style={styles.sessionSpeakersText}>
+                  <Ionicons name="person-outline" size={12} color={colors.gray500} />
+                  <Text style={[styles.sessionSpeakersText, { color: colors.gray600 }]}>
                     {session.speakers_detail.map((s: any) => s.full_name).join(', ')}
                   </Text>
                 </View>
               )}
               {session.description && (
-                <Text style={styles.sessionDescription} numberOfLines={2}>
+                <Text style={[styles.sessionDescription, { color: colors.gray600 }]} numberOfLines={2}>
                   {session.description}
                 </Text>
               )}
@@ -73,8 +76,8 @@ export default function AgendaTab({
         ))
       ) : (
         <View style={styles.emptyTab}>
-          <Ionicons name="calendar-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucune session programmee</Text>
+          <Ionicons name="calendar-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucune session programmee</Text>
         </View>
       )}
     </View>

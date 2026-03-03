@@ -8,6 +8,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { socialAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface ActivityItem {
@@ -83,6 +84,7 @@ const getActivityColor = (type?: string): string => {
 };
 
 export default function SocialTab({ eventId }: SocialTabProps) {
+  const { colors, isDark } = useTheme();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -142,7 +144,7 @@ export default function SocialTab({ eventId }: SocialTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={styles.emptyTabText}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
       </View>
     );
   }
@@ -150,10 +152,10 @@ export default function SocialTab({ eventId }: SocialTabProps) {
   if (!activities || activities.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Activite</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Activite</Text>
         <View style={styles.emptyTab}>
-          <Ionicons name="pulse-outline" size={40} color={Colors.gray300} />
-          <Text style={styles.emptyTabText}>Aucune activite recente</Text>
+          <Ionicons name="pulse-outline" size={40} color={colors.gray300} />
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucune activite recente</Text>
         </View>
       </View>
     );
@@ -161,7 +163,7 @@ export default function SocialTab({ eventId }: SocialTabProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>Activite</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Activite</Text>
       {activities.map((item, index) => {
         const icon = getActivityIcon(item.activity_type);
         const iconColor = getActivityColor(item.activity_type);
@@ -170,17 +172,17 @@ export default function SocialTab({ eventId }: SocialTabProps) {
         const timestamp = formatTimestamp(item.created_at || item.timestamp);
 
         return (
-          <View key={item.id || index} style={styles.activityCard}>
+          <View key={item.id || index} style={[styles.activityCard, { backgroundColor: colors.gray50 }]}>
             <View style={[styles.activityIconContainer, { backgroundColor: iconColor + '15' }]}>
               <Ionicons name={icon} size={18} color={iconColor} />
             </View>
             <View style={styles.activityContent}>
-              <Text style={styles.activityText} numberOfLines={2}>
-                <Text style={styles.actorName}>{actorName}</Text>
+              <Text style={[styles.activityText, { color: colors.gray700 }]} numberOfLines={2}>
+                <Text style={[styles.actorName, { color: colors.gray900 }]}>{actorName}</Text>
                 {' '}{actionText}
               </Text>
               {timestamp ? (
-                <Text style={styles.activityTimestamp}>{timestamp}</Text>
+                <Text style={[styles.activityTimestamp, { color: colors.gray500 }]}>{timestamp}</Text>
               ) : null}
             </View>
           </View>

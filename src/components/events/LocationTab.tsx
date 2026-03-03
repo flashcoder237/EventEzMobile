@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 import WebViewMap from '../maps/WebViewMap';
 import { MapMarker } from '../../types';
 
@@ -36,6 +37,7 @@ interface LocationTabProps {
 }
 
 export default function LocationTab({ event }: LocationTabProps) {
+  const { colors, isDark } = useTheme();
   const [copied, setCopied] = useState(false);
 
   const hasPhysicalLocation = event.location_type === 'in_person' || event.location_type === 'hybrid';
@@ -101,24 +103,24 @@ export default function LocationTab({ event }: LocationTabProps) {
       {hasPhysicalLocation && (
         <>
           {/* Venue Info */}
-          <View style={styles.venueCard}>
+          <View style={[styles.venueCard, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
             <View style={styles.venueIconRow}>
               <View style={styles.venueIcon}>
-                <Ionicons name="location" size={22} color={Colors.primary} />
+                <Ionicons name="location" size={22} color={colors.primary} />
               </View>
               <View style={styles.venueInfo}>
-                <Text style={styles.venueName}>
+                <Text style={[styles.venueName, { color: colors.gray900 }]}>
                   {event.location_name || 'Lieu a definir'}
                 </Text>
-                <Text style={styles.venueAddress}>{fullAddress}</Text>
+                <Text style={[styles.venueAddress, { color: colors.gray600 }]}>{fullAddress}</Text>
               </View>
             </View>
 
             {/* Action Buttons */}
             <View style={styles.actionsRow}>
-              <TouchableOpacity style={styles.actionButton} onPress={openInGoogleMaps}>
-                <Ionicons name="map-outline" size={18} color={Colors.primary} />
-                <Text style={styles.actionButtonText}>Google Maps</Text>
+              <TouchableOpacity style={[styles.actionButton, { borderColor: colors.gray200, backgroundColor: colors.white }]} onPress={openInGoogleMaps}>
+                <Ionicons name="map-outline" size={18} color={colors.primary} />
+                <Text style={[styles.actionButtonText, { color: colors.primary }]}>Google Maps</Text>
               </TouchableOpacity>
 
               <TouchableOpacity style={[styles.actionButton, styles.actionButtonPrimary]} onPress={openDirections}>
@@ -126,9 +128,9 @@ export default function LocationTab({ event }: LocationTabProps) {
                 <Text style={[styles.actionButtonText, { color: Colors.white }]}>Itineraire</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.actionButton} onPress={openInWaze}>
-                <Ionicons name="car-outline" size={18} color={Colors.primary} />
-                <Text style={styles.actionButtonText}>Waze</Text>
+              <TouchableOpacity style={[styles.actionButton, { borderColor: colors.gray200, backgroundColor: colors.white }]} onPress={openInWaze}>
+                <Ionicons name="car-outline" size={18} color={colors.primary} />
+                <Text style={[styles.actionButtonText, { color: colors.primary }]}>Waze</Text>
               </TouchableOpacity>
             </View>
 
@@ -137,9 +139,9 @@ export default function LocationTab({ event }: LocationTabProps) {
               <Ionicons
                 name={copied ? 'checkmark-circle' : 'copy-outline'}
                 size={16}
-                color={copied ? Colors.success : Colors.gray600}
+                color={copied ? colors.success : colors.gray600}
               />
-              <Text style={[styles.copyButtonText, copied && { color: Colors.success }]}>
+              <Text style={[styles.copyButtonText, { color: copied ? colors.success : colors.gray600 }]}>
                 {copied ? 'Adresse copiee !' : 'Copier l\'adresse'}
               </Text>
             </TouchableOpacity>
@@ -159,22 +161,22 @@ export default function LocationTab({ event }: LocationTabProps) {
               />
             </View>
           ) : (
-            <View style={styles.noMapContainer}>
-              <Ionicons name="map-outline" size={48} color={Colors.gray400} />
-              <Text style={styles.noMapText}>Carte non disponible</Text>
-              <Text style={styles.noMapSubtext}>
+            <View style={[styles.noMapContainer, { backgroundColor: colors.gray100 }]}>
+              <Ionicons name="map-outline" size={48} color={colors.gray400} />
+              <Text style={[styles.noMapText, { color: colors.gray600 }]}>Carte non disponible</Text>
+              <Text style={[styles.noMapSubtext, { color: colors.gray500 }]}>
                 Utilisez les boutons ci-dessus pour consulter la localisation
               </Text>
             </View>
           )}
 
           {/* Tips */}
-          <View style={styles.tipsCard}>
+          <View style={[styles.tipsCard, { backgroundColor: colors.infoLight }]}>
             <View style={styles.tipsHeader}>
-              <Ionicons name="information-circle" size={20} color={Colors.info} />
-              <Text style={styles.tipsTitle}>Conseils</Text>
+              <Ionicons name="information-circle" size={20} color={colors.info} />
+              <Text style={[styles.tipsTitle, { color: colors.infoDark }]}>Conseils</Text>
             </View>
-            <Text style={styles.tipsText}>
+            <Text style={[styles.tipsText, { color: colors.info }]}>
               {event.location_city === 'Douala'
                 ? 'A Douala, il est recommande d\'arriver au moins 30 minutes avant le debut de l\'evenement en raison du trafic.'
                 : event.location_city === 'Yaounde'
@@ -187,15 +189,15 @@ export default function LocationTab({ event }: LocationTabProps) {
 
       {/* Online Location */}
       {hasOnlineLocation && (
-        <View style={styles.onlineCard}>
+        <View style={[styles.onlineCard, { backgroundColor: colors.white, borderColor: colors.gray200 }]}>
           <View style={styles.venueIconRow}>
-            <View style={[styles.venueIcon, { backgroundColor: Colors.infoLight }]}>
-              <Ionicons name="videocam" size={22} color={Colors.info} />
+            <View style={[styles.venueIcon, { backgroundColor: colors.infoLight }]}>
+              <Ionicons name="videocam" size={22} color={colors.info} />
             </View>
             <View style={styles.venueInfo}>
-              <Text style={styles.venueName}>Evenement en ligne</Text>
+              <Text style={[styles.venueName, { color: colors.gray900 }]}>Evenement en ligne</Text>
               {event.online_platform && (
-                <Text style={styles.venueAddress}>
+                <Text style={[styles.venueAddress, { color: colors.gray600 }]}>
                   via {event.online_platform === 'eventez_visio' ? 'EventEz Visio' : event.online_platform}
                 </Text>
               )}
@@ -215,9 +217,9 @@ export default function LocationTab({ event }: LocationTabProps) {
           )}
 
           {event.online_instructions && (
-            <View style={styles.instructionsBox}>
-              <Text style={styles.instructionsLabel}>Instructions :</Text>
-              <Text style={styles.instructionsText}>{event.online_instructions}</Text>
+            <View style={[styles.instructionsBox, { backgroundColor: colors.gray50 }]}>
+              <Text style={[styles.instructionsLabel, { color: colors.gray700 }]}>Instructions :</Text>
+              <Text style={[styles.instructionsText, { color: colors.gray600 }]}>{event.online_instructions}</Text>
             </View>
           )}
         </View>
@@ -226,8 +228,8 @@ export default function LocationTab({ event }: LocationTabProps) {
       {/* No location */}
       {!hasPhysicalLocation && !hasOnlineLocation && (
         <View style={styles.emptyContainer}>
-          <Ionicons name="location-outline" size={48} color={Colors.gray400} />
-          <Text style={styles.emptyText}>Aucune information de lieu disponible</Text>
+          <Ionicons name="location-outline" size={48} color={colors.gray400} />
+          <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucune information de lieu disponible</Text>
         </View>
       )}
     </View>

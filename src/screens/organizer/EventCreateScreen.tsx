@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
 import MapPickerModal from '../../components/common/MapPickerModal';
 import AIUsageBadge from '../../components/events/AIUsageBadge';
@@ -40,6 +41,7 @@ export default function EventCreateScreen() {
   const navigation = useNavigation<NavigationProp>();
   const alertActions = useAlert();
   const { showAlert } = alertActions;
+  const { colors, isDark } = useTheme();
 
   const {
     form,
@@ -128,28 +130,29 @@ export default function EventCreateScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.keyboardView}>
         {/* Header */}
-        <View style={styles.headerBar}>
+        <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
-          <Text style={styles.headerBarTitle}>Créer un événement</Text>
+          <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Créer un événement</Text>
           {form.aiEnabled ? <AIUsageBadge usage={form.aiUsage} /> : <View style={{ width: 40 }} />}
         </View>
 
         {/* Progress Steps */}
-        <View style={styles.progressContainer}>
+        <View style={[styles.progressContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
           {STEPS.map((step, index) => (
             <React.Fragment key={step.id}>
               <TouchableOpacity
                 style={[
                   styles.stepIndicator,
+                  { backgroundColor: colors.gray200 },
                   form.currentStep >= step.id && styles.stepIndicatorActive,
                   form.currentStep === step.id && styles.stepIndicatorCurrent,
                 ]}
@@ -158,11 +161,11 @@ export default function EventCreateScreen() {
                 <Ionicons
                   name={step.icon as any}
                   size={18}
-                  color={form.currentStep >= step.id ? Colors.white : Colors.gray400}
+                  color={form.currentStep >= step.id ? Colors.white : colors.gray400}
                 />
               </TouchableOpacity>
               {index < STEPS.length - 1 && (
-                <View style={[styles.stepLine, form.currentStep > step.id && styles.stepLineActive]} />
+                <View style={[styles.stepLine, { backgroundColor: colors.gray200 }, form.currentStep > step.id && styles.stepLineActive]} />
               )}
             </React.Fragment>
           ))}
@@ -292,11 +295,11 @@ export default function EventCreateScreen() {
         </KeyboardAwareScrollView>
 
         {/* Navigation Buttons */}
-        <View style={styles.navigationButtons}>
+        <View style={[styles.navigationButtons, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
           {form.currentStep > 1 && (
-            <TouchableOpacity style={styles.prevButton} onPress={goToPrevStep}>
-              <Ionicons name="arrow-back" size={20} color={Colors.gray600} />
-              <Text style={styles.prevButtonText}>Précédent</Text>
+            <TouchableOpacity style={[styles.prevButton, { backgroundColor: colors.gray100 }]} onPress={goToPrevStep}>
+              <Ionicons name="arrow-back" size={20} color={colors.gray600} />
+              <Text style={[styles.prevButtonText, { color: colors.gray600 }]}>Précédent</Text>
             </TouchableOpacity>
           )}
 

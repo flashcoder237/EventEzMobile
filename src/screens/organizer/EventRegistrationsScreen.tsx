@@ -19,6 +19,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { registrationsAPI, eventsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
 import {
@@ -29,7 +30,8 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
-import { SkeletonList, EventCardHorizontalSkeleton } from '../../components/ui/Skeleton';
+import { SkeletonList, RegistrationItemSkeleton } from '../../components/ui/Skeleton';
+import Badge from '../../components/ui/Badge';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventRegistrations'>;
@@ -54,11 +56,22 @@ const approvalStatusConfig: Record<string, { label: string; color: string; bgCol
   rejected: { label: 'Refusé', color: '#EF4444', bgColor: '#FEE2E2' },
 };
 
+const getApprovalBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' => {
+  switch (status) {
+    case 'approved': return 'success';
+    case 'pending': return 'warning';
+    case 'rejected': return 'destructive';
+    case 'not_required': return 'secondary';
+    default: return 'secondary';
+  }
+};
+
 export default function EventRegistrationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
   const { showAlert, showSuccess, showError } = useAlert();
+  const { colors, isDark } = useTheme();
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -227,7 +240,7 @@ export default function EventRegistrationsScreen() {
 
     return (
       <TouchableOpacity
-        style={[styles.registrationCard, isPending && styles.pendingCard]}
+        style={[styles.registrationCard, { backgroundColor: colors.card, borderColor: colors.gray100 }, isPending && styles.pendingCard]}
         onPress={() => {
           setSelectedRegistration(item);
           setShowDetailModal(true);
@@ -242,29 +255,29 @@ export default function EventRegistrationsScreen() {
               </Text>
             </View>
             <View style={styles.participantDetails}>
-              <Text style={styles.participantName} numberOfLines={1}>
+              <Text style={[styles.participantName, { color: colors.gray900 }]} numberOfLines={1}>
                 {getDisplayName(item)}
               </Text>
-              <Text style={styles.participantEmail} numberOfLines={1}>
+              <Text style={[styles.participantEmail, { color: colors.gray500 }]} numberOfLines={1}>
                 {getEmail(item)}
               </Text>
             </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: approvalInfo.bgColor }]}>
-            <Text style={[styles.statusText, { color: approvalInfo.color }]}>
-              {approvalInfo.label}
-            </Text>
-          </View>
+          <Badge
+            label={approvalInfo.label}
+            variant={getApprovalBadgeVariant(item.approval_status || 'not_required')}
+            size="sm"
+          />
         </View>
 
-        <View style={styles.registrationInfo}>
+        <View style={[styles.registrationInfo, { borderTopColor: colors.gray100 }]}>
           <View style={styles.infoRow}>
-            <Ionicons name="calendar-outline" size={14} color={Colors.gray400} />
-            <Text style={styles.infoText}>{formatDate(item.created_at)}</Text>
+            <Ionicons name="calendar-outline" size={14} color={colors.gray400} />
+            <Text style={[styles.infoText, { color: colors.gray500 }]}>{formatDate(item.created_at)}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Ionicons name="ticket-outline" size={14} color={Colors.gray400} />
-            <Text style={styles.infoText}>{item.reference_code}</Text>
+            <Ionicons name="ticket-outline" size={14} color={colors.gray400} />
+            <Text style={[styles.infoText, { color: colors.gray500 }]}>{item.reference_code}</Text>
           </View>
         </View>
 
@@ -292,13 +305,13 @@ export default function EventRegistrationsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIconContainer}>
-        <Ionicons name="people-outline" size={48} color={Colors.gray400} />
+      <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
+        <Ionicons name="people-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
         {filter === 'pending' ? 'Aucune inscription en attente' : 'Aucune inscription'}
       </Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {filter === 'pending'
           ? 'Toutes les inscriptions ont été traitées.'
           : 'Les inscriptions à cet événement apparaîtront ici.'}
@@ -311,9 +324,9 @@ export default function EventRegistrationsScreen() {
       <View style={styles.rootContainer}>
         <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={styles.container}>
+          <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
             <View style={styles.loadingContainer}>
-              <SkeletonList count={5} Component={EventCardHorizontalSkeleton} />
+              <SkeletonList count={5} Component={RegistrationItemSkeleton} />
             </View>
           </View>
         </SafeAreaView>
@@ -325,7 +338,7 @@ export default function EventRegistrationsScreen() {
     <View style={styles.rootContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
           {/* Header */}
           <LinearGradient
             colors={['#7C3AED', '#9333EA', '#D946EF']}
@@ -375,14 +388,14 @@ export default function EventRegistrationsScreen() {
           </LinearGradient>
 
           {/* Filters */}
-          <View style={styles.filtersContainer}>
+          <View style={[styles.filtersContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
             {(['all', 'pending', 'approved', 'rejected'] as FilterType[]).map((f) => (
               <TouchableOpacity
                 key={f}
-                style={[styles.filterButton, filter === f && styles.filterButtonActive]}
+                style={[styles.filterButton, { backgroundColor: colors.gray100 }, filter === f && styles.filterButtonActive]}
                 onPress={() => setFilter(f)}
               >
-                <Text style={[styles.filterText, filter === f && styles.filterTextActive]}>
+                <Text style={[styles.filterText, { color: colors.gray600 }, filter === f && styles.filterTextActive]}>
                   {f === 'all' ? 'Tous' : f === 'pending' ? 'En attente' : f === 'approved' ? 'Approuvés' : 'Refusés'}
                 </Text>
                 {f === 'pending' && stats.pending > 0 && (
@@ -406,7 +419,7 @@ export default function EventRegistrationsScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor={Colors.primary}
+                tintColor={colors.primary}
               />
             }
           />
@@ -419,55 +432,49 @@ export default function EventRegistrationsScreen() {
             onRequestClose={() => setShowDetailModal(false)}
           >
             <View style={styles.modalOverlay}>
-              <View style={styles.modalContent}>
+              <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
                 {selectedRegistration && (
                   <>
-                    <View style={styles.modalHeader}>
-                      <Text style={styles.modalTitle}>Détails de l'inscription</Text>
+                    <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
+                      <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Détails de l'inscription</Text>
                       <TouchableOpacity onPress={() => setShowDetailModal(false)}>
-                        <Ionicons name="close" size={24} color={Colors.gray600} />
+                        <Ionicons name="close" size={24} color={colors.gray600} />
                       </TouchableOpacity>
                     </View>
 
                     <View style={styles.modalBody}>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Participant</Text>
-                        <Text style={styles.detailValue}>{getDisplayName(selectedRegistration)}</Text>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Participant</Text>
+                        <Text style={[styles.detailValue, { color: colors.gray900 }]}>{getDisplayName(selectedRegistration)}</Text>
                       </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Email</Text>
-                        <Text style={styles.detailValue}>{getEmail(selectedRegistration)}</Text>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Email</Text>
+                        <Text style={[styles.detailValue, { color: colors.gray900 }]}>{getEmail(selectedRegistration)}</Text>
                       </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Référence</Text>
-                        <Text style={styles.detailValue}>{selectedRegistration.reference_code}</Text>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Référence</Text>
+                        <Text style={[styles.detailValue, { color: colors.gray900 }]}>{selectedRegistration.reference_code}</Text>
                       </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Date d'inscription</Text>
-                        <Text style={styles.detailValue}>{formatDate(selectedRegistration.created_at)}</Text>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Date d'inscription</Text>
+                        <Text style={[styles.detailValue, { color: colors.gray900 }]}>{formatDate(selectedRegistration.created_at)}</Text>
                       </View>
-                      <View style={styles.detailRow}>
-                        <Text style={styles.detailLabel}>Statut</Text>
-                        <View style={[
-                          styles.statusBadge,
-                          { backgroundColor: (approvalStatusConfig[selectedRegistration.approval_status || 'not_required']).bgColor }
-                        ]}>
-                          <Text style={[
-                            styles.statusText,
-                            { color: (approvalStatusConfig[selectedRegistration.approval_status || 'not_required']).color }
-                          ]}>
-                            {(approvalStatusConfig[selectedRegistration.approval_status || 'not_required']).label}
-                          </Text>
-                        </View>
+                      <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Statut</Text>
+                        <Badge
+                          label={(approvalStatusConfig[selectedRegistration.approval_status || 'not_required']).label}
+                          variant={getApprovalBadgeVariant(selectedRegistration.approval_status || 'not_required')}
+                          size="sm"
+                        />
                       </View>
 
                       {selectedRegistration.form_data && Object.keys(selectedRegistration.form_data).length > 0 && (
-                        <View style={styles.formDataSection}>
-                          <Text style={styles.formDataTitle}>Données du formulaire</Text>
+                        <View style={[styles.formDataSection, { backgroundColor: colors.gray50 }]}>
+                          <Text style={[styles.formDataTitle, { color: colors.gray700 }]}>Données du formulaire</Text>
                           {Object.entries(selectedRegistration.form_data).map(([key, value]) => (
                             <View key={key} style={styles.formDataRow}>
-                              <Text style={styles.formDataKey}>{key}</Text>
-                              <Text style={styles.formDataValue}>{String(value)}</Text>
+                              <Text style={[styles.formDataKey, { color: colors.gray500 }]}>{key}</Text>
+                              <Text style={[styles.formDataValue, { color: colors.gray900 }]}>{String(value)}</Text>
                             </View>
                           ))}
                         </View>
@@ -475,7 +482,7 @@ export default function EventRegistrationsScreen() {
                     </View>
 
                     {selectedRegistration.approval_status === 'pending' && (
-                      <View style={styles.modalFooter}>
+                      <View style={[styles.modalFooter, { borderTopColor: colors.gray100 }]}>
                         <TouchableOpacity
                           style={styles.modalRejectButton}
                           onPress={() => openRejectModal(selectedRegistration)}
@@ -513,21 +520,21 @@ export default function EventRegistrationsScreen() {
           >
             <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
             <View style={styles.modalOverlay}>
-              <View style={styles.rejectModalContent}>
+              <View style={[styles.rejectModalContent, { backgroundColor: colors.card }]}>
                 <View style={styles.rejectModalHeader}>
                   <Ionicons name="close-circle" size={48} color={Colors.error} />
-                  <Text style={styles.rejectModalTitle}>Refuser l'inscription</Text>
-                  <Text style={styles.rejectModalSubtitle}>
+                  <Text style={[styles.rejectModalTitle, { color: colors.gray900 }]}>Refuser l'inscription</Text>
+                  <Text style={[styles.rejectModalSubtitle, { color: colors.gray500 }]}>
                     Veuillez indiquer la raison du refus
                   </Text>
                 </View>
 
                 <TextInput
-                  style={styles.rejectInput}
+                  style={[styles.rejectInput, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={rejectReason}
                   onChangeText={setRejectReason}
                   placeholder="Raison du refus..."
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
@@ -535,13 +542,13 @@ export default function EventRegistrationsScreen() {
 
                 <View style={styles.rejectModalFooter}>
                   <TouchableOpacity
-                    style={styles.rejectCancelButton}
+                    style={[styles.rejectCancelButton, { backgroundColor: colors.gray100 }]}
                     onPress={() => {
                       setShowRejectModal(false);
                       setRejectReason('');
                     }}
                   >
-                    <Text style={styles.rejectCancelButtonText}>Annuler</Text>
+                    <Text style={[styles.rejectCancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.rejectConfirmButton}
@@ -745,15 +752,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.gray500,
     marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  statusText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.xs,
   },
   registrationInfo: {
     flexDirection: 'row',

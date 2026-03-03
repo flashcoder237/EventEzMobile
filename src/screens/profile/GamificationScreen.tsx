@@ -14,12 +14,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { gamificationAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function GamificationScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { colors, isDark } = useTheme();
   const [badges, setBadges] = useState<any[]>([]);
   const [points, setPoints] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -49,45 +51,45 @@ export default function GamificationScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Badges & Points</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Badges & Points</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Points Card */}
-      <View style={styles.pointsCard}>
+      <View style={[styles.pointsCard, { backgroundColor: colors.white }]}>
         <Ionicons name="trophy" size={32} color="#FFD700" />
-        <Text style={styles.pointsValue}>{points?.total_points || points?.balance || 0}</Text>
-        <Text style={styles.pointsLabel}>Points</Text>
+        <Text style={[styles.pointsValue, { color: colors.primary }]}>{points?.total_points || points?.balance || 0}</Text>
+        <Text style={[styles.pointsLabel, { color: colors.textLight }]}>Points</Text>
       </View>
 
       {/* Tabs */}
-      <View style={styles.tabs}>
+      <View style={[styles.tabs, { backgroundColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'badges' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'badges' && [styles.activeTab, { backgroundColor: colors.white }]]}
           onPress={() => setActiveTab('badges')}
         >
-          <Text style={[styles.tabText, activeTab === 'badges' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'badges' && { color: colors.primary }]}>
             Badges ({badges.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'leaderboard' && styles.activeTab]}
+          style={[styles.tab, activeTab === 'leaderboard' && [styles.activeTab, { backgroundColor: colors.white }]]}
           onPress={() => setActiveTab('leaderboard')}
         >
-          <Text style={[styles.tabText, activeTab === 'leaderboard' && styles.activeTabText]}>
+          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'leaderboard' && { color: colors.primary }]}>
             Classement
           </Text>
         </TouchableOpacity>
@@ -102,19 +104,19 @@ export default function GamificationScreen() {
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="ribbon-outline" size={48} color={Colors.textLight} />
-              <Text style={styles.emptyText}>Aucun badge pour le moment</Text>
-              <Text style={styles.emptySubtext}>Participez a des evenements pour gagner des badges !</Text>
+              <Ionicons name="ribbon-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun badge pour le moment</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>Participez a des evenements pour gagner des badges !</Text>
             </View>
           }
           renderItem={({ item }) => (
             <View style={styles.badgeItem}>
-              <View style={[styles.badgeIcon, { backgroundColor: item.color || Colors.primaryBg }]}>
-                <Ionicons name={item.icon || 'ribbon'} size={28} color={Colors.primary} />
+              <View style={[styles.badgeIcon, { backgroundColor: item.color || colors.primaryBg }]}>
+                <Ionicons name={item.icon || 'ribbon'} size={28} color={colors.primary} />
               </View>
-              <Text style={styles.badgeName} numberOfLines={2}>{item.badge_name || item.name}</Text>
+              <Text style={[styles.badgeName, { color: colors.text }]} numberOfLines={2}>{item.badge_name || item.name}</Text>
               {item.earned_at && (
-                <Text style={styles.badgeDate}>
+                <Text style={[styles.badgeDate, { color: colors.textLight }]}>
                   {new Date(item.earned_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                 </Text>
               )}
@@ -129,19 +131,19 @@ export default function GamificationScreen() {
           keyExtractor={(item, index) => item.id || String(index)}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="podium-outline" size={48} color={Colors.textLight} />
-              <Text style={styles.emptyText}>Classement non disponible</Text>
+              <Ionicons name="podium-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>Classement non disponible</Text>
             </View>
           }
           renderItem={({ item, index }) => (
-            <View style={[styles.leaderboardItem, index < 3 && styles.topThree]}>
-              <Text style={[styles.rank, index < 3 && styles.topRank]}>
+            <View style={[styles.leaderboardItem, { backgroundColor: colors.white }, index < 3 && { borderLeftColor: colors.primary, borderLeftWidth: 3 }]}>
+              <Text style={[styles.rank, { color: colors.textLight }, index < 3 && styles.topRank]}>
                 {index === 0 ? '\u{1F947}' : index === 1 ? '\u{1F948}' : index === 2 ? '\u{1F949}' : `${index + 1}`}
               </Text>
               <View style={styles.leaderboardInfo}>
-                <Text style={styles.leaderboardName}>{item.user_name || item.username || 'Utilisateur'}</Text>
+                <Text style={[styles.leaderboardName, { color: colors.text }]}>{item.user_name || item.username || 'Utilisateur'}</Text>
               </View>
-              <Text style={styles.leaderboardPoints}>{item.total_points || 0} pts</Text>
+              <Text style={[styles.leaderboardPoints, { color: colors.primary }]}>{item.total_points || 0} pts</Text>
             </View>
           )}
         />

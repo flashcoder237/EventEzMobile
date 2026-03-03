@@ -18,9 +18,11 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
 
 export default function TermsScreen() {
   const navigation = useNavigation();
+  const { colors, isDark } = useTheme();
 
   const sections = [
     {
@@ -123,18 +125,18 @@ Ces conditions sont régies par les lois camerounaises.`
   ];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.white }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.backButton, { backgroundColor: colors.gray50 }]}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray700} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Conditions d'utilisation</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Conditions d'utilisation</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -144,10 +146,10 @@ Ces conditions sont régies par les lois camerounaises.`
         contentContainerStyle={styles.scrollContent}
       >
         {/* Introduction */}
-        <View style={styles.introCard}>
-          <Ionicons name="document-text" size={32} color={Colors.primary} />
-          <Text style={styles.introTitle}>Conditions Générales d'Utilisation</Text>
-          <Text style={styles.introText}>
+        <View style={[styles.introCard, { backgroundColor: colors.gray50 }]}>
+          <Ionicons name="document-text" size={32} color={colors.primary} />
+          <Text style={[styles.introTitle, { color: colors.gray900 }]}>Conditions Générales d'Utilisation</Text>
+          <Text style={[styles.introText, { color: colors.gray500 }]}>
             Dernière mise à jour : Janvier 2026
           </Text>
         </View>
@@ -155,15 +157,15 @@ Ces conditions sont régies par les lois camerounaises.`
         {/* Sections */}
         {sections.map((section, index) => (
           <View key={index} style={styles.section}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-            <Text style={styles.sectionContent}>{section.content}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{section.title}</Text>
+            <Text style={[styles.sectionContent, { color: colors.gray600 }]}>{section.content}</Text>
           </View>
         ))}
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
-          <Text style={styles.footerText}>
+        <View style={[styles.footer, { backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#D1FAE5' }]}>
+          <Ionicons name="checkmark-circle" size={24} color={colors.success} />
+          <Text style={[styles.footerText, { color: isDark ? colors.success : '#047857' }]}>
             En utilisant EventEz, vous acceptez ces conditions d'utilisation.
           </Text>
         </View>

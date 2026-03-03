@@ -8,12 +8,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Colors, Spacing } from '../../constants/theme';
+import { useTheme } from '../../contexts/ThemeContext';
+import { Spacing } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { LOCATION_TYPES } from '../../hooks/useEventForm';
 import DateTimePickerField from '../ui/DateTimePickerField';
 import DatePickerField from '../ui/DatePickerField';
 import styles from './eventCreateStyles';
+import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
 
 // ============================================
 // Props
@@ -97,10 +99,13 @@ export default function EventStep2DateTime({
   onOnlineMeetingIdChange,
   onOnlinePasscodeChange,
 }: EventStep2DateTimeProps) {
+  const { colors, isDark } = useTheme();
+  const themed = useEventCreateThemedStyles();
+
   return (
     <View style={styles.stepContent}>
-      <Text style={styles.stepTitle}>Date et Lieu</Text>
-      <Text style={styles.stepDescription}>Quand et o\u00f9 se d\u00e9roulera votre \u00e9v\u00e9nement ?</Text>
+      <Text style={[styles.stepTitle, themed.stepTitle]}>Date et Lieu</Text>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>Quand et o\u00f9 se d\u00e9roulera votre \u00e9v\u00e9nement ?</Text>
 
       {/* Dates */}
       <DateTimePickerField
@@ -122,10 +127,10 @@ export default function EventStep2DateTime({
       />
 
       {/* Registration Deadline */}
-      <View style={styles.switchRow}>
+      <View style={[styles.switchRow, themed.switchRow]}>
         <View style={styles.switchContent}>
-          <Text style={styles.switchLabel}>Date limite d'inscription</Text>
-          <Text style={styles.switchDescription}>Definir une date limite pour s'inscrire</Text>
+          <Text style={[styles.switchLabel, themed.switchLabel]}>Date limite d'inscription</Text>
+          <Text style={[styles.switchDescription, themed.switchDescription]}>Definir une date limite pour s'inscrire</Text>
         </View>
         <Switch
           value={hasRegistrationDeadline}
@@ -137,8 +142,8 @@ export default function EventStep2DateTime({
               onRegistrationDeadlineChange(deadline);
             }
           }}
-          trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-          thumbColor={hasRegistrationDeadline ? Colors.primary : Colors.gray400}
+          trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+          thumbColor={hasRegistrationDeadline ? colors.primary : colors.gray400}
         />
       </View>
 
@@ -154,23 +159,23 @@ export default function EventStep2DateTime({
 
       {/* Location Type */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Type de lieu *</Text>
+        <Text style={[styles.label, themed.label]}>Type de lieu *</Text>
         <View style={styles.locationTypeSelector}>
           {LOCATION_TYPES.map((type) => (
             <TouchableOpacity
               key={type.value}
-              style={[styles.locationTypeOption, locationType === type.value && styles.locationTypeOptionActive]}
+              style={[styles.locationTypeOption, themed.locationTypeOption, locationType === type.value && [styles.locationTypeOptionActive, themed.locationTypeOptionActive]]}
               onPress={() => onLocationTypeChange(type.value)}
             >
               <Ionicons
                 name={type.icon as any}
                 size={24}
-                color={locationType === type.value ? Colors.primary : Colors.gray500}
+                color={locationType === type.value ? colors.primary : colors.gray500}
               />
-              <Text style={[styles.locationTypeLabel, locationType === type.value && styles.locationTypeLabelActive]}>
+              <Text style={[styles.locationTypeLabel, themed.locationTypeLabel, locationType === type.value && [styles.locationTypeLabelActive, themed.locationTypeLabelActive]]}>
                 {type.label}
               </Text>
-              <Text style={styles.locationTypeDesc}>{type.description}</Text>
+              <Text style={[styles.locationTypeDesc, themed.locationTypeDesc]}>{type.description}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -178,65 +183,65 @@ export default function EventStep2DateTime({
 
       {/* Physical Location Fields */}
       {(locationType === 'in_person' || locationType === 'hybrid') && (
-        <View style={styles.locationFields}>
-          <Text style={styles.subSectionTitle}>Lieu physique</Text>
+        <View style={[styles.locationFields, themed.locationFields]}>
+          <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Lieu physique</Text>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Nom du lieu</Text>
+            <Text style={[styles.label, themed.label]}>Nom du lieu</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={locationName}
               onChangeText={onLocationNameChange}
               placeholder="Ex: Palais des Congr\u00e8s"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Ville *</Text>
+            <Text style={[styles.label, themed.label]}>Ville *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={locationCity}
               onChangeText={onLocationCityChange}
               placeholder="Ex: Douala"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Adresse</Text>
+            <Text style={[styles.label, themed.label]}>Adresse</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={locationAddress}
               onChangeText={onLocationAddressChange}
               placeholder="Adresse compl\u00e8te"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
 
           {/* Map Picker */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Emplacement sur la carte</Text>
+            <Text style={[styles.label, themed.label]}>Emplacement sur la carte</Text>
             <TouchableOpacity
-              style={styles.mapPickerButton}
+              style={[styles.mapPickerButton, themed.mapPickerButton]}
               onPress={onShowMapPicker}
             >
-              <Ionicons name="map-outline" size={20} color={Colors.primary} />
-              <Text style={styles.mapPickerButtonText}>
+              <Ionicons name="map-outline" size={20} color={colors.primary} />
+              <Text style={[styles.mapPickerButtonText, themed.mapPickerButtonText]}>
                 {locationLatitude && locationLongitude
                   ? 'Modifier l\'emplacement sur la carte'
                   : 'Choisir sur la carte'}
               </Text>
-              <Ionicons name="chevron-forward" size={18} color={Colors.gray400} />
+              <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
             </TouchableOpacity>
 
             {locationLatitude && locationLongitude && (
-              <View style={styles.selectedCoordsContainer}>
-                <Ionicons name="location" size={16} color={Colors.success} />
-                <Text style={styles.selectedCoordsText}>
+              <View style={[styles.selectedCoordsContainer, themed.selectedCoordsContainer]}>
+                <Ionicons name="location" size={16} color={colors.success} />
+                <Text style={[styles.selectedCoordsText, themed.selectedCoordsText]}>
                   {locationLatitude}, {locationLongitude}
                 </Text>
               </View>
             )}
 
-            <Text style={styles.inputHint}>
+            <Text style={[styles.inputHint, themed.inputHint]}>
               Pour afficher l'\u00e9v\u00e9nement sur la carte et permettre la navigation
             </Text>
           </View>
@@ -245,58 +250,58 @@ export default function EventStep2DateTime({
 
       {/* Online Location Fields */}
       {(locationType === 'online' || locationType === 'hybrid') && (
-        <View style={styles.locationFields}>
-          <Text style={styles.subSectionTitle}>Lieu virtuel</Text>
+        <View style={[styles.locationFields, themed.locationFields]}>
+          <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Lieu virtuel</Text>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Plateforme</Text>
+            <Text style={[styles.label, themed.label]}>Plateforme</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={onlinePlatform}
               onChangeText={onOnlinePlatformChange}
               placeholder="Ex: Zoom, Google Meet, Teams"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Lien de connexion</Text>
+            <Text style={[styles.label, themed.label]}>Lien de connexion</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={onlineUrl}
               onChangeText={onOnlineUrlChange}
               placeholder="https://..."
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               keyboardType="url"
               autoCapitalize="none"
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>ID de r\u00e9union</Text>
+            <Text style={[styles.label, themed.label]}>ID de r\u00e9union</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={onlineMeetingId}
               onChangeText={onOnlineMeetingIdChange}
               placeholder="Ex: 123 456 7890"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Code d'acc\u00e8s</Text>
+            <Text style={[styles.label, themed.label]}>Code d'acc\u00e8s</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, themed.input]}
               value={onlinePasscode}
               onChangeText={onOnlinePasscodeChange}
               placeholder="Ex: abc123"
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Instructions de connexion</Text>
+            <Text style={[styles.label, themed.label]}>Instructions de connexion</Text>
             <TextInput
-              style={[styles.input, styles.textAreaSmall]}
+              style={[styles.input, styles.textAreaSmall, themed.input]}
               value={onlineInstructions}
               onChangeText={onOnlineInstructionsChange}
               placeholder="Instructions pour rejoindre l'\u00e9v\u00e9nement..."
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={3}
               textAlignVertical="top"

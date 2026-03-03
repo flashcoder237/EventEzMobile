@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI } from '../../api/client';
 import { RootStackParamList, Event } from '../../types';
 import {
@@ -32,6 +33,7 @@ import {
 } from '../../constants/theme';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
+import { useTabletLayout } from '../../hooks/useTabletLayout';
 
 const { width } = Dimensions.get('window');
 
@@ -53,6 +55,8 @@ export default function FollowingEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showError, showConfirm } = useAlert();
+  const { colors, isDark } = useTheme();
+  const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const [follows, setFollows] = useState<FollowData[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -185,13 +189,17 @@ export default function FollowingEventsScreen() {
     return (
       <StaggeredItem index={index} staggerDelay={50}>
       <TouchableOpacity
-        style={[styles.eventCard, isPast && styles.eventCardPast]}
+        style={[
+          styles.eventCard,
+          { backgroundColor: colors.card, borderColor: colors.gray100 },
+          isPast && styles.eventCardPast,
+        ]}
         onPress={() => navigation.navigate('EventDetails', { eventId: event.id })}
         activeOpacity={0.7}
       >
         {/* Date Badge */}
         {dateInfo && (
-          <View style={[styles.dateBadge, isPast && styles.dateBadgePast]}>
+          <View style={[styles.dateBadge, isPast && { backgroundColor: colors.gray400 }]}>
             <Text style={[styles.dateDay, isPast && styles.dateDayPast]}>{dateInfo.day}</Text>
             <Text style={[styles.dateMonth, isPast && styles.dateMonthPast]}>{dateInfo.month}</Text>
           </View>
@@ -200,24 +208,24 @@ export default function FollowingEventsScreen() {
         {/* Event Image */}
         <Image
           source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
-          style={styles.eventImage}
+          style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
         />
 
         {/* Content */}
         <View style={styles.eventContent}>
-          <Text style={styles.eventTitle} numberOfLines={2}>{event.title}</Text>
+          <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>{event.title}</Text>
 
           <View style={styles.eventMeta}>
             {event.location_city && (
               <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={14} color={Colors.gray500} />
-                <Text style={styles.metaText} numberOfLines={1}>{event.location_city}</Text>
+                <Ionicons name="location-outline" size={14} color={colors.gray500} />
+                <Text style={[styles.metaText, { color: colors.gray500 }]} numberOfLines={1}>{event.location_city}</Text>
               </View>
             )}
             {event.start_date && (
               <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={14} color={Colors.gray500} />
-                <Text style={styles.metaText}>{formatTimeAgo(event.start_date)}</Text>
+                <Ionicons name="time-outline" size={14} color={colors.gray500} />
+                <Text style={[styles.metaText, { color: colors.gray500 }]}>{formatTimeAgo(event.start_date)}</Text>
               </View>
             )}
           </View>
@@ -225,31 +233,39 @@ export default function FollowingEventsScreen() {
           {/* Actions */}
           <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={[styles.notifButton, isNotified && styles.notifButtonActive]}
+              style={[
+                styles.notifButton,
+                { backgroundColor: colors.gray100 },
+                isNotified && { backgroundColor: colors.primaryBg },
+              ]}
               onPress={() => toggleNotification(item)}
             >
               <Ionicons
                 name={isNotified ? 'notifications' : 'notifications-off-outline'}
                 size={16}
-                color={isNotified ? Colors.primary : Colors.gray500}
+                color={isNotified ? colors.primary : colors.gray500}
               />
-              <Text style={[styles.notifButtonText, isNotified && styles.notifButtonTextActive]}>
+              <Text style={[
+                styles.notifButtonText,
+                { color: colors.gray500 },
+                isNotified && { color: colors.primary },
+              ]}>
                 {isNotified ? 'Notifs ON' : 'Notifs OFF'}
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.unfollowButton}
+              style={[styles.unfollowButton, { backgroundColor: colors.errorLight }]}
               onPress={() => handleUnfollow(event.id)}
             >
-              <Ionicons name="heart-dislike-outline" size={16} color={Colors.error} />
+              <Ionicons name="heart-dislike-outline" size={16} color={colors.error} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Arrow */}
         <View style={styles.arrowContainer}>
-          <Ionicons name="chevron-forward" size={20} color={Colors.gray400} />
+          <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
         </View>
       </TouchableOpacity>
       </StaggeredItem>
@@ -258,13 +274,13 @@ export default function FollowingEventsScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name="heart-outline" size={48} color={Colors.gray400} />
+      <View style={[styles.emptyIcon, { backgroundColor: colors.gray100 }]}>
+        <Ionicons name="heart-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
         {follows.length === 0 ? 'Aucun evenement suivi' : 'Aucun resultat'}
       </Text>
-      <Text style={styles.emptySubtitle}>
+      <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
         {follows.length === 0
           ? 'Commencez a suivre des evenements pour recevoir des notifications.'
           : 'Essayez de modifier vos criteres de recherche.'}
@@ -283,11 +299,11 @@ export default function FollowingEventsScreen() {
 
   const renderAuthRequired = () => (
     <View style={styles.authContainer}>
-      <View style={styles.authIcon}>
-        <Ionicons name="heart-outline" size={48} color={Colors.primary} />
+      <View style={[styles.authIcon, { backgroundColor: colors.primaryBg }]}>
+        <Ionicons name="heart-outline" size={48} color={colors.primary} />
       </View>
-      <Text style={styles.authTitle}>Connectez-vous</Text>
-      <Text style={styles.authSubtitle}>
+      <Text style={[styles.authTitle, { color: colors.gray900 }]}>Connectez-vous</Text>
+      <Text style={[styles.authSubtitle, { color: colors.gray500 }]}>
         Vous devez etre connecte pour voir vos evenements suivis
       </Text>
       <TouchableOpacity
@@ -301,72 +317,72 @@ export default function FollowingEventsScreen() {
 
   if (!user) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
         {renderAuthRequired()}
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes Favoris</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mes Favoris</Text>
         <TouchableOpacity
           style={styles.settingsButton}
           onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
         >
-          <Ionicons name="compass-outline" size={24} color={Colors.gray600} />
+          <Ionicons name="compass-outline" size={24} color={colors.gray600} />
         </TouchableOpacity>
       </View>
 
       {/* Summary Card */}
-      <View style={styles.summaryCard}>
+      <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
         <View style={styles.summaryMain}>
-          <View style={styles.summaryIconContainer}>
-            <Ionicons name="heart" size={24} color={Colors.primary} />
+          <View style={[styles.summaryIconContainer, { backgroundColor: colors.primaryBg }]}>
+            <Ionicons name="heart" size={24} color={colors.primary} />
           </View>
           <View>
-            <Text style={styles.summaryValue}>{stats.total}</Text>
-            <Text style={styles.summaryLabel}>evenements suivis</Text>
+            <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{stats.total}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>evenements suivis</Text>
           </View>
         </View>
-        <View style={styles.summaryDivider} />
+        <View style={[styles.summaryDivider, { backgroundColor: colors.gray100 }]} />
         <View style={styles.summaryStats}>
           <View style={styles.summaryStatItem}>
-            <Ionicons name="calendar-outline" size={16} color={Colors.success} />
-            <Text style={styles.summaryStatText}>{stats.upcoming} a venir</Text>
+            <Ionicons name="calendar-outline" size={16} color={colors.success} />
+            <Text style={[styles.summaryStatText, { color: colors.gray600 }]}>{stats.upcoming} a venir</Text>
           </View>
           <View style={styles.summaryStatItem}>
-            <Ionicons name="notifications-outline" size={16} color={Colors.primary} />
-            <Text style={styles.summaryStatText}>{stats.withNotifications} notifies</Text>
+            <Ionicons name="notifications-outline" size={16} color={colors.primary} />
+            <Text style={[styles.summaryStatText, { color: colors.gray600 }]}>{stats.withNotifications} notifies</Text>
           </View>
         </View>
       </View>
 
       {/* Search */}
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={18} color={Colors.gray400} />
+        <View style={[styles.searchInputContainer, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+          <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
-            style={styles.searchInput}
+            style={[styles.searchInput, { color: colors.gray900 }]}
             placeholder="Rechercher..."
-            placeholderTextColor={Colors.gray400}
+            placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={Colors.gray400} />
+              <Ionicons name="close-circle" size={18} color={colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
@@ -381,14 +397,30 @@ export default function FollowingEventsScreen() {
         ] as { key: TabFilter; label: string; count: number }[]).map((tab) => (
           <TouchableOpacity
             key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
+            style={[
+              styles.tab,
+              { backgroundColor: colors.card, borderColor: colors.gray200 },
+              activeTab === tab.key && styles.tabActive,
+            ]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+            <Text style={[
+              styles.tabText,
+              { color: colors.gray600 },
+              activeTab === tab.key && styles.tabTextActive,
+            ]}>
               {tab.label}
             </Text>
-            <View style={[styles.tabBadge, activeTab === tab.key && styles.tabBadgeActive]}>
-              <Text style={[styles.tabBadgeText, activeTab === tab.key && styles.tabBadgeTextActive]}>
+            <View style={[
+              styles.tabBadge,
+              { backgroundColor: colors.gray100 },
+              activeTab === tab.key && styles.tabBadgeActive,
+            ]}>
+              <Text style={[
+                styles.tabBadgeText,
+                { color: colors.gray600 },
+                activeTab === tab.key && styles.tabBadgeTextActive,
+              ]}>
                 {tab.count}
               </Text>
             </View>
@@ -407,16 +439,23 @@ export default function FollowingEventsScreen() {
         style={{ flex: 1 }}
       >
         <FlatList
+          key={columns}
+          numColumns={columns}
+          columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
           data={filteredFollows}
           keyExtractor={(item) => item.id || `${item.event}-${item.created_at}`}
-          renderItem={renderEventCard}
-          contentContainerStyle={styles.listContent}
+          renderItem={({ item, index }) => (
+            <View style={columns > 1 ? { flex: 1 } : undefined}>
+              {renderEventCard({ item, index })}
+            </View>
+          )}
+          contentContainerStyle={[styles.listContent, { paddingHorizontal: containerPadding }]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={Colors.primary}
-              colors={[Colors.primary]}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
             />
           }
           ListEmptyComponent={renderEmptyState}

@@ -17,10 +17,12 @@ import * as SecureStore from 'expo-secure-store';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useGoogleAuth, useAppleAuth } from '../../hooks/useSocialAuth';
 import { AuthStackParamList } from '../../types';
 import {
   Colors,
+  Gradients,
   FontFamily,
   FontSizes,
   BorderRadius,
@@ -30,6 +32,7 @@ import {
 } from '../../constants/theme';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
+import { LinearGradient } from 'expo-linear-gradient';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import DotPattern from '../../components/ui/DotPattern';
@@ -42,6 +45,7 @@ export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { login, isLoading, setUser } = useAuth();
   const { showError } = useAlert();
+  const { colors, isDark, gradients } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -122,14 +126,19 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
       {/* Dot pattern background */}
-      <DotPattern opacity={0.04} />
+      <DotPattern opacity={isDark ? 0.02 : 0.04} />
 
-      {/* Top accent bar */}
-      <View style={styles.accentBar} />
+      {/* Top accent bar — gradient violet→pink */}
+      <LinearGradient
+        colors={gradients.brand as unknown as string[]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+        style={styles.accentBar}
+      />
 
       <SafeAreaView style={styles.safeArea}>
         <KeyboardAwareScrollView
@@ -150,8 +159,8 @@ export default function LoginScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={styles.title}>Bon retour !</Text>
-            <Text style={styles.subtitle}>
+            <Text style={[styles.title, { color: colors.gray900 }]}>Bon retour !</Text>
+            <Text style={[styles.subtitle, { color: colors.gray500 }]}>
               Connectez-vous pour découvrir les meilleurs événements
             </Text>
           </View>
@@ -160,19 +169,19 @@ export default function LoginScreen() {
           <View style={styles.form}>
             {/* Email */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Email</Text>
-              <View style={[styles.inputWrapper, getInputStyle('email', !!errors.email)]}>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('email', !!errors.email)]}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons
                     name="mail-outline"
                     size={20}
-                    color={focusedField === 'email' ? Colors.primary : Colors.gray400}
+                    color={focusedField === 'email' ? colors.primary : colors.gray400}
                   />
                 </View>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.gray900 }]}
                   placeholder="votre@email.com"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   value={email}
                   onChangeText={(text) => {
                     setEmail(text);
@@ -188,7 +197,7 @@ export default function LoginScreen() {
               </View>
               {errors.email && (
                 <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
+                  <Ionicons name="alert-circle" size={14} color={colors.error} />
                   <Text style={styles.errorText}>{errors.email}</Text>
                 </View>
               )}
@@ -197,27 +206,27 @@ export default function LoginScreen() {
             {/* Password */}
             <View style={styles.inputContainer}>
               <View style={styles.labelRow}>
-                <Text style={styles.inputLabel}>Mot de passe</Text>
+                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Mot de passe</Text>
                 <AnimatedPressable
                   onPress={() => navigation.navigate('ForgotPassword')}
                   animationType="scale"
                   scaleValue={0.95}
                 >
-                  <Text style={styles.forgotPasswordText}>Oublié ?</Text>
+                  <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Oublié ?</Text>
                 </AnimatedPressable>
               </View>
-              <View style={[styles.inputWrapper, getInputStyle('password', !!errors.password)]}>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('password', !!errors.password)]}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons
                     name="lock-closed-outline"
                     size={20}
-                    color={focusedField === 'password' ? Colors.primary : Colors.gray400}
+                    color={focusedField === 'password' ? colors.primary : colors.gray400}
                   />
                 </View>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.gray900 }]}
                   placeholder="••••••••"
-                  placeholderTextColor={Colors.gray400}
+                  placeholderTextColor={colors.gray400}
                   value={password}
                   onChangeText={(text) => {
                     setPassword(text);
@@ -237,13 +246,13 @@ export default function LoginScreen() {
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={20}
-                    color={Colors.gray400}
+                    color={colors.gray400}
                   />
                 </AnimatedPressable>
               </View>
               {errors.password && (
                 <View style={styles.errorContainer}>
-                  <Ionicons name="alert-circle" size={14} color={Colors.error} />
+                  <Ionicons name="alert-circle" size={14} color={colors.error} />
                   <Text style={styles.errorText}>{errors.password}</Text>
                 </View>
               )}
@@ -256,12 +265,12 @@ export default function LoginScreen() {
               animationType="scale"
               scaleValue={0.98}
             >
-              <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              <View style={[styles.checkbox, { borderColor: colors.gray300, backgroundColor: isDark ? colors.gray100 : colors.white }, rememberMe && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                 {rememberMe && (
-                  <Ionicons name="checkmark" size={14} color={Colors.white} />
+                  <Ionicons name="checkmark" size={14} color={colors.white} />
                 )}
               </View>
-              <Text style={styles.rememberMeText}>Se souvenir de moi</Text>
+              <Text style={[styles.rememberMeText, { color: colors.gray600 }]}>Se souvenir de moi</Text>
             </AnimatedPressable>
 
             {/* Login Button */}
@@ -278,9 +287,9 @@ export default function LoginScreen() {
 
           {/* Divider */}
           <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>ou continuer avec</Text>
-            <View style={styles.dividerLine} />
+            <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+            <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou continuer avec</Text>
+            <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
           </View>
 
           {/* Social Login */}
@@ -288,6 +297,7 @@ export default function LoginScreen() {
             <AnimatedPressable
               style={[
                 styles.socialButton,
+                { borderColor: colors.gray200, backgroundColor: colors.surface },
                 (!googleReady || googleLoading) && styles.socialButtonDisabled,
               ]}
               onPress={handleGoogleSignIn}
@@ -301,7 +311,7 @@ export default function LoginScreen() {
               ) : (
                 <>
                   <Ionicons name="logo-google" size={22} color="#DB4437" />
-                  <Text style={styles.socialButtonText}>Google</Text>
+                  <Text style={[styles.socialButtonText, { color: colors.gray700 }]}>Google</Text>
                 </>
               )}
             </AnimatedPressable>
@@ -310,6 +320,7 @@ export default function LoginScreen() {
               <AnimatedPressable
                 style={[
                   styles.socialButton,
+                  { borderColor: colors.gray200, backgroundColor: colors.surface },
                   appleLoading && styles.socialButtonDisabled,
                 ]}
                 onPress={handleAppleSignIn}
@@ -322,8 +333,8 @@ export default function LoginScreen() {
                   <ActivityIndicator size="small" color={Colors.gray900} />
                 ) : (
                   <>
-                    <Ionicons name="logo-apple" size={22} color={Colors.gray900} />
-                    <Text style={styles.socialButtonText}>Apple</Text>
+                    <Ionicons name="logo-apple" size={22} color={colors.gray900} />
+                    <Text style={[styles.socialButtonText, { color: colors.gray700 }]}>Apple</Text>
                   </>
                 )}
               </AnimatedPressable>
@@ -332,13 +343,13 @@ export default function LoginScreen() {
 
           {/* Register Link */}
           <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>Pas encore de compte ?</Text>
+            <Text style={[styles.registerText, { color: colors.gray500 }]}>Pas encore de compte ?</Text>
             <AnimatedPressable
               onPress={() => navigation.navigate('Register')}
               animationType="scale"
               scaleValue={0.95}
             >
-              <Text style={styles.registerLink}> Créer un compte</Text>
+              <Text style={[styles.registerLink, { color: colors.primary }]}> Créer un compte</Text>
             </AnimatedPressable>
           </View>
         </KeyboardAwareScrollView>
@@ -350,7 +361,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   accentBar: {
     position: 'absolute',
@@ -358,7 +368,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 4,
-    backgroundColor: Colors.primary,
   },
   safeArea: {
     flex: 1,

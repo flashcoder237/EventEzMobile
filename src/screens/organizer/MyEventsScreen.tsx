@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import {
@@ -28,7 +29,7 @@ import {
   TextStyles,
 } from '../../constants/theme';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
-import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useTabletLayout } from '../../hooks/useTabletLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -57,6 +58,8 @@ export default function MyEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { colors, isDark } = useTheme();
+  const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,7 +160,7 @@ export default function MyEventsScreen() {
     } else if (event.location_type === 'hybrid') {
       return { icon: 'globe-outline' as const, text: `${event.location_city || 'Hybride'} + En ligne`, color: '#8B5CF6' };
     }
-    return { icon: 'location-outline' as const, text: event.location_city || 'Non spécifié', color: Colors.gray500 };
+    return { icon: 'location-outline' as const, text: event.location_city || 'Non spécifié', color: colors.gray500 };
   };
 
   const showEventActions = (event: Event) => {
@@ -229,14 +232,14 @@ export default function MyEventsScreen() {
 
     return (
       <TouchableOpacity
-        style={styles.eventCard}
+        style={[styles.eventCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
         onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
         onLongPress={() => showEventActions(item)}
         activeOpacity={0.7}
       >
         <Image
           source={{ uri: item.banner_image || item.category?.default_event_image || item.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
-          style={styles.eventImage}
+          style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
         />
 
         {/* Status Badge */}
@@ -246,12 +249,12 @@ export default function MyEventsScreen() {
         </View>
 
         <View style={styles.eventContent}>
-          <Text style={styles.eventTitle} numberOfLines={2}>{item.title}</Text>
+          <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>{item.title}</Text>
 
           <View style={styles.eventMeta}>
             <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={14} color={Colors.gray500} />
-              <Text style={styles.metaText}>{formatDate(item.start_date)}</Text>
+              <Ionicons name="time-outline" size={14} color={colors.gray500} />
+              <Text style={[styles.metaText, { color: colors.gray500 }]}>{formatDate(item.start_date)}</Text>
             </View>
             <View style={styles.metaItem}>
               <Ionicons name={location.icon} size={14} color={location.color} />
@@ -261,32 +264,32 @@ export default function MyEventsScreen() {
             </View>
           </View>
 
-          <View style={styles.eventStats}>
+          <View style={[styles.eventStats, { borderTopColor: colors.gray100 }]}>
             <View style={styles.statItem}>
-              <Ionicons name="people-outline" size={16} color={Colors.gray500} />
-              <Text style={styles.statValue}>
+              <Ionicons name="people-outline" size={16} color={colors.gray500} />
+              <Text style={[styles.statValue, { color: colors.gray900 }]}>
                 {item.registration_count || item.registrations_count || 0}
               </Text>
-              <Text style={styles.statLabel}>inscrits</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>inscrits</Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons name="eye-outline" size={16} color={Colors.gray500} />
-              <Text style={styles.statValue}>{item.view_count || 0}</Text>
-              <Text style={styles.statLabel}>vues</Text>
+              <Ionicons name="eye-outline" size={16} color={colors.gray500} />
+              <Text style={[styles.statValue, { color: colors.gray900 }]}>{item.view_count || 0}</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>vues</Text>
             </View>
-            <Text style={styles.priceText}>
+            <Text style={[styles.priceText, { color: colors.primary }]}>
               {item.is_free ? 'Gratuit' : `${item.base_price?.toLocaleString() || 0} FCFA`}
             </Text>
           </View>
 
           {/* Quick Actions */}
-          <View style={styles.actionsRow}>
+          <View style={[styles.actionsRow, { borderTopColor: colors.gray100 }]}>
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
             >
-              <Ionicons name="eye-outline" size={16} color={Colors.gray600} />
-              <Text style={styles.actionText}>Voir</Text>
+              <Ionicons name="eye-outline" size={16} color={colors.gray600} />
+              <Text style={[styles.actionText, { color: colors.gray600 }]}>Voir</Text>
             </TouchableOpacity>
 
             {item.status === 'validated' && (
@@ -299,24 +302,24 @@ export default function MyEventsScreen() {
                   <Text style={[styles.actionText, { color: Colors.white }]}>Scanner</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
                 >
-                  <Ionicons name="people" size={16} color={Colors.primary} />
-                  <Text style={[styles.actionText, { color: Colors.primary }]}>Inscrits</Text>
+                  <Ionicons name="people" size={16} color={colors.primary} />
+                  <Text style={[styles.actionText, { color: colors.primary }]}>Inscrits</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
                 >
-                  <Ionicons name="stats-chart" size={16} color={Colors.gray600} />
+                  <Ionicons name="stats-chart" size={16} color={colors.gray600} />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => navigation.navigate('Volunteers', { eventId: item.id })}
                 >
-                  <Ionicons name="people-outline" size={16} color={Colors.gray600} />
-                  <Text style={styles.actionText}>Bénévoles</Text>
+                  <Ionicons name="people-outline" size={16} color={colors.gray600} />
+                  <Text style={[styles.actionText, { color: colors.gray600 }]}>Bénévoles</Text>
                 </TouchableOpacity>
               </>
             )}
@@ -333,18 +336,18 @@ export default function MyEventsScreen() {
 
             {(item.status === 'draft' || item.status === 'rejected') && (
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                 onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
               >
-                <Ionicons name="create-outline" size={16} color={Colors.gray600} />
+                <Ionicons name="create-outline" size={16} color={colors.gray600} />
               </TouchableOpacity>
             )}
 
             <TouchableOpacity
-              style={styles.actionButton}
+              style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
               onPress={() => showEventActions(item)}
             >
-              <Ionicons name="ellipsis-vertical" size={16} color={Colors.gray600} />
+              <Ionicons name="ellipsis-vertical" size={16} color={colors.gray600} />
             </TouchableOpacity>
           </View>
         </View>
@@ -354,13 +357,13 @@ export default function MyEventsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <View style={styles.emptyIcon}>
-        <Ionicons name="calendar-outline" size={48} color={Colors.gray400} />
+      <View style={[styles.emptyIcon, { backgroundColor: colors.gray50 }]}>
+        <Ionicons name="calendar-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={styles.emptyTitle}>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
         {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Aucun événement'}
       </Text>
-      <Text style={styles.emptyText}>
+      <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filter !== 'all'
           ? 'Essayez de modifier vos critères de recherche'
           : 'Créez votre premier événement pour commencer'}
@@ -379,22 +382,22 @@ export default function MyEventsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.mainContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
-        <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-          <LoadingSpinner color={Colors.white} />
+      <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        <View style={[styles.loadingContainer, { paddingTop: insets.top, padding: Spacing.lg }]}>
+          <SkeletonList count={4} Component={EventCardSkeleton} />
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.mainContainer}>
+    <View style={[styles.mainContainer, { backgroundColor: '#7C3AED' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
 
       {/* Header with gradient */}
       <LinearGradient
-        colors={['#7C3AED', '#8B5CF6', '#6366F1']}
+        colors={isDark ? ['#5B21B6', '#6D28D9', '#4338CA'] : ['#7C3AED', '#8B5CF6', '#6366F1']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + Spacing.md }]}
@@ -408,7 +411,7 @@ export default function MyEventsScreen() {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mes événements</Text>
           <TouchableOpacity
-            style={styles.addButton}
+            style={[styles.addButton, { backgroundColor: colors.white }]}
             onPress={() => navigation.navigate('EventCreate')}
           >
             <Ionicons name="add" size={24} color="#7C3AED" />
@@ -420,22 +423,22 @@ export default function MyEventsScreen() {
         </Text>
       </LinearGradient>
 
-      {/* White content area */}
-      <View style={styles.contentArea}>
+      {/* Content area */}
+      <View style={[styles.contentArea, { backgroundColor: colors.background }]}>
         {/* Search Bar */}
         <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color={Colors.gray400} />
+          <View style={[styles.searchBar, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="search" size={20} color={colors.gray400} />
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { color: colors.gray900 }]}
               placeholder="Rechercher un événement..."
-              placeholderTextColor={Colors.gray400}
+              placeholderTextColor={colors.gray400}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={Colors.gray400} />
+                <Ionicons name="close-circle" size={20} color={colors.gray400} />
               </TouchableOpacity>
             )}
           </View>
@@ -451,10 +454,10 @@ export default function MyEventsScreen() {
             contentContainerStyle={styles.filterList}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[styles.filterTab, filter === item.value && styles.filterTabActive]}
+                style={[styles.filterTab, { backgroundColor: colors.gray100 }, filter === item.value && styles.filterTabActive]}
                 onPress={() => setFilter(item.value)}
               >
-                <Text style={[styles.filterTabText, filter === item.value && styles.filterTabTextActive]}>
+                <Text style={[styles.filterTabText, { color: colors.gray600 }, filter === item.value && styles.filterTabTextActive]}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -464,18 +467,25 @@ export default function MyEventsScreen() {
 
         {/* Events List */}
         <FlatList
+        key={columns}
+        numColumns={columns}
+        columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
         data={filteredEvents}
-        renderItem={renderEvent}
+        renderItem={({ item }) => (
+          <View style={columns > 1 ? { flex: 1 } : undefined}>
+            {renderEvent({ item })}
+          </View>
+        )}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingHorizontal: containerPadding }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
           />
         }
         />
