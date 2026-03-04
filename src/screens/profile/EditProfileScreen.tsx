@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -150,20 +151,30 @@ export default function EditProfileScreen() {
 
   const handleUploadImage = async (imageUri: string) => {
     try {
+      // Sur Android, expo-image-picker peut retourner un URI content://
+      // que React Native ne peut pas lire directement dans un FormData.
+      // On copie d'abord le fichier dans le cache pour obtenir un URI file://.
+      let uploadUri = imageUri;
+      if (imageUri.startsWith('content://')) {
+        const ext = imageUri.split('.').pop()?.split('?')[0] || 'jpg';
+        const cacheUri = `${FileSystem.cacheDirectory}profile_upload_${Date.now()}.${ext}`;
+        await FileSystem.copyAsync({ from: imageUri, to: cacheUri });
+        uploadUri = cacheUri;
+      }
+
       const formData = new FormData();
-      const filename = imageUri.split('/').pop() || 'profile.jpg';
+      const filename = uploadUri.split('/').pop() || 'profile.jpg';
       const match = /\.(\w+)$/.exec(filename);
       const type = match ? `image/${match[1]}` : 'image/jpeg';
 
       formData.append('profile_picture', {
-        uri: imageUri,
+        uri: uploadUri,
         name: filename,
         type,
       } as any);
 
       const response = await usersAPI.updateProfileImage(formData);
       if (response.data) {
-        // Mettre à jour l'état local sans re-appeler l'API PUT
         await setUser(response.data);
       }
       showSuccess('Succès', 'Photo de profil mise à jour');

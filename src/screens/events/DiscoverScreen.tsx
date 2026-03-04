@@ -877,7 +877,7 @@ export default function DiscoverScreen() {
           <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
             {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
           </Text>
-          <GradientText style={styles.heroTitle}>Discover{'\n'}Events</GradientText>
+          <GradientText style={styles.heroTitle}>Discover Events</GradientText>
         </View>
       </FadeInView>
 

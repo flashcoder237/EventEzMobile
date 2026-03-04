@@ -368,8 +368,29 @@ export const usersAPI = {
   updateProfile: (data: any) =>
     api.put('/users/update_profile/', data),
 
-  updateProfileImage: (formData: FormData) =>
-    api.patch('/users/me/upload_profile_image/', formData),
+  updateProfileImage: async (formData: FormData) => {
+    // Bypass Axios pour les uploads multipart : sur React Native, Axios AxiosHeaders
+    // ne supprime pas correctement Content-Type, ce qui corrompt le boundary multipart.
+    // On utilise fetch natif qui gère automatiquement le Content-Type + boundary.
+    const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    const url = `${API_BASE_URL}/users/me/upload_profile_image/`;
+    const response = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // Ne PAS setter Content-Type — fetch le génère avec le boundary correct
+      },
+      body: formData,
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const error: any = new Error(err.detail || `HTTP ${response.status}`);
+      error.response = { status: response.status, data: err };
+      throw error;
+    }
+    const data = await response.json();
+    return { data };
+  },
 
   getUserSettings: () =>
     api.get('/users/me/settings/'),
