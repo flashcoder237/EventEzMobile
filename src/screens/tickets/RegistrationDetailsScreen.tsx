@@ -112,13 +112,14 @@ export default function RegistrationDetailsScreen() {
   };
 
   const handleAlreadyPaid = async () => {
-    if (!registration?.payment) {
+    const paymentId = registration?.payment_info?.id || registration?.payment;
+    if (!paymentId) {
       showError('Erreur', 'Aucun paiement associé à cette inscription');
       return;
     }
     setVerifyingPayment(true);
     try {
-      const response = await paymentsAPI.verifyPayment(registration.payment);
+      const response = await paymentsAPI.verifyPayment(paymentId);
       const data = response.data;
       const status = (data?.status || data?.payment_status || data?.payment?.status || '').toLowerCase();
 
@@ -610,7 +611,7 @@ export default function RegistrationDetailsScreen() {
         {isActive && (
           <View style={styles.actionsSection}>
             {/* "J'ai déjà payé" button - for pending registrations with payment */}
-            {registration.status === 'pending' && registration.payment && (
+            {registration.status === 'pending' && (registration.payment_info?.id || registration.payment) && (
               <TouchableOpacity
                 style={[styles.alreadyPaidButton, { backgroundColor: colors.card, borderColor: colors.success }]}
                 onPress={handleAlreadyPaid}
