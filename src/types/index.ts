@@ -946,6 +946,17 @@ export interface PlatformCommission {
   created_at: string;
 }
 
+export interface CommissionConfigResponse {
+  id: string;
+  country_code: string;
+  country_name: string;
+  currency: string;
+  commission_rate: string; // Decimal string from backend, e.g. "0.0500"
+  fixed_fee: string; // Decimal string, e.g. "100.00"
+  is_default: boolean;
+  is_active: boolean;
+}
+
 export interface WalletStats {
   available_balance: number;
   pending_balance: number;

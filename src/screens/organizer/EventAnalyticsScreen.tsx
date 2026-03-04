@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { analyticsAPI, eventsAPI } from '../../api/client';
 import { RootStackParamList, Event, AnalyticsDashboardSummary } from '../../types';
 import {
@@ -59,6 +60,7 @@ export default function EventAnalyticsScreen() {
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
 
   const [event, setEvent] = useState<Event | null>(null);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -102,7 +104,7 @@ export default function EventAnalyticsScreen() {
   };
 
   const formatCurrency = (amount: number) => {
-    return amount.toLocaleString() + ' FCFA';
+    return amount.toLocaleString() + ' ' + platformCurrency;
   };
 
   if (loading) {

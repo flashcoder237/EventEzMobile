@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 
 import {
   eventsAPI,
@@ -12,6 +13,7 @@ import {
 } from '../api/client';
 import { Category, LocationType, Tag, AIUsage, AIGeneratedEvent } from '../types';
 import type { AlertType } from '../components/common/CustomAlert';
+import { useCommissionConfig } from './useCommissionConfig';
 
 // ============================================
 // Types
@@ -211,6 +213,9 @@ export interface UseEventFormReturn {
   handleSubmit: () => Promise<string | null>;
   resetForm: () => void;
 
+  // Draft hydration
+  hydrateForm: (data: Partial<EventFormState>) => void;
+
   // Util
   formatDate: (date: Date) => string;
 }
@@ -227,8 +232,8 @@ export const STEPS = [
 ] as const;
 
 export const LOCATION_TYPES: { value: LocationType; label: string; icon: string; description: string }[] = [
-  { value: 'in_person', label: 'Pr\u00e9sentiel', icon: 'location-outline', description: '\u00c9v\u00e9nement physique' },
-  { value: 'online', label: 'En ligne', icon: 'videocam-outline', description: '\u00c9v\u00e9nement virtuel' },
+  { value: 'in_person', label: 'Présentiel', icon: 'location-outline', description: 'Événement physique' },
+  { value: 'online', label: 'En ligne', icon: 'videocam-outline', description: 'Événement virtuel' },
   { value: 'hybrid', label: 'Hybride', icon: 'globe-outline', description: 'Physique + Virtuel' },
 ];
 
@@ -236,11 +241,11 @@ export const FIELD_TYPES = [
   { value: 'text', label: 'Texte' },
   { value: 'textarea', label: 'Texte long' },
   { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'T\u00e9l\u00e9phone' },
+  { value: 'phone', label: 'Téléphone' },
   { value: 'number', label: 'Nombre' },
   { value: 'date', label: 'Date' },
-  { value: 'select', label: 'Liste d\u00e9roulante' },
-  { value: 'checkbox', label: 'Cases \u00e0 cocher' },
+  { value: 'select', label: 'Liste déroulante' },
+  { value: 'checkbox', label: 'Cases à cocher' },
   { value: 'radio', label: 'Boutons radio' },
 ];
 
@@ -260,6 +265,7 @@ export const SESSION_TYPES = [
 
 export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
   const { showAlert, showSuccess, showError } = alertActions;
+  const { currency: platformCurrency } = useCommissionConfig();
 
   // Step navigation
   const [currentStep, setCurrentStep] = useState(1);
@@ -339,7 +345,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       const response = await categoriesAPI.getCategories();
       setCategories(response.data.results || response.data || []);
     } catch (error) {
-      console.error('Erreur chargement cat\u00e9gories:', error);
+      console.error('Erreur chargement catégories:', error);
     }
   };
 
@@ -389,14 +395,14 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
         try {
           setAiResult(JSON.parse(data.text));
         } catch {
-          setAiError('Format de r\u00e9ponse inattendu');
+          setAiError('Format de réponse inattendu');
         }
       } else {
         setAiResult(data);
       }
       refreshAIUsage();
     } catch (err: any) {
-      setAiError(err.response?.data?.detail || err.response?.data?.message || 'Erreur lors de la g\u00e9n\u00e9ration');
+      setAiError(err.response?.data?.detail || err.response?.data?.message || 'Erreur lors de la génération');
     } finally {
       setAiLoading(false);
     }
@@ -415,7 +421,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     if (data.suggested_location_name) setLocationName(data.suggested_location_name);
     if (data.suggested_city) setLocationCity(data.suggested_city);
     setAiResult(null);
-    showSuccess('Succ\u00e8s', 'Les donn\u00e9es IA ont \u00e9t\u00e9 appliqu\u00e9es au formulaire');
+    showSuccess('Succès', 'Les données IA ont été appliquées au formulaire');
   }, [showSuccess]);
 
   const handleOptimizeTitle = useCallback(async () => {
@@ -428,7 +434,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       if (Array.isArray(suggestions) && suggestions.length > 0) {
         showAlert(
           'Suggestions de titre',
-          suggestions.map((s: any, i: number) => `${i + 1}. ${s.title}\n   \u2192 ${s.reason}`).join('\n\n'),
+          suggestions.map((s: any, i: number) => `${i + 1}. ${s.title}\n   → ${s.reason}`).join('\n\n'),
           [
             { text: 'Annuler', style: 'cancel' },
             ...suggestions.slice(0, 3).map((s: any) => ({
@@ -458,11 +464,11 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       const text = res.data.text || res.data.description || '';
       if (text) {
         setDescription(text);
-        showSuccess('Succ\u00e8s', 'Description g\u00e9n\u00e9r\u00e9e par l\'IA');
+        showSuccess('Succès', 'Description générée par l\'IA');
       }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible de g\u00e9n\u00e9rer la description');
+      showError('Erreur', err.response?.data?.detail || 'Impossible de générer la description');
     } finally {
       setAiDescLoading(false);
     }
@@ -477,7 +483,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       if (Array.isArray(suggestions) && suggestions.length > 0) {
         showAlert(
           'Suggestions de prix IA',
-          suggestions.map((s: any) => `${s.name}: ${s.price} FCFA\n\u2192 ${s.reasoning}`).join('\n\n'),
+          suggestions.map((s: any) => `${s.name}: ${s.price} ${platformCurrency}\n→ ${s.reasoning}`).join('\n\n'),
           [
             { text: 'Annuler', style: 'cancel' },
             {
@@ -495,7 +501,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
                   min_per_order: '1',
                 }));
                 setTicketTypes(newTickets);
-                showSuccess('Succ\u00e8s', 'Tickets cr\u00e9\u00e9s \u00e0 partir des suggestions IA');
+                showSuccess('Succès', 'Tickets créés à partir des suggestions IA');
               },
             },
           ]
@@ -503,7 +509,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       }
       refreshAIUsage();
     } catch (err: any) {
-      showError('Erreur', err.response?.data?.detail || 'Impossible de sugg\u00e9rer les prix');
+      showError('Erreur', err.response?.data?.detail || 'Impossible de suggérer les prix');
     } finally {
       setAiPricingLoading(false);
     }
@@ -543,7 +549,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
   const pickImage = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      showAlert('Permission requise', 'Veuillez autoriser l\'acc\u00e8s \u00e0 la galerie', undefined, 'warning');
+      showAlert('Permission requise', 'Veuillez autoriser l\'accès à la galerie', undefined, 'warning');
       return;
     }
 
@@ -555,7 +561,18 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     });
 
     if (!result.canceled && result.assets[0]) {
-      setBannerImage(result.assets[0].uri);
+      try {
+        // Compress and convert to JPEG (max 1920px wide, quality 0.7)
+        const compressed = await ImageManipulator.manipulateAsync(
+          result.assets[0].uri,
+          [{ resize: { width: 1920 } }],
+          { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
+        );
+        setBannerImage(compressed.uri);
+      } catch {
+        // Fallback to original if compression fails
+        setBannerImage(result.assets[0].uri);
+      }
     }
   }, [showAlert]);
 
@@ -674,24 +691,24 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
           return false;
         }
         if (!categoryId) {
-          showError('Erreur', 'Veuillez s\u00e9lectionner une cat\u00e9gorie');
+          showError('Erreur', 'Veuillez sélectionner une catégorie');
           return false;
         }
         return true;
       case 2:
         if (endDate <= startDate) {
-          showError('Erreur', 'La date de fin doit \u00eatre apr\u00e8s la date de d\u00e9but');
+          showError('Erreur', 'La date de fin doit être après la date de début');
           return false;
         }
         if (locationType === 'in_person' || locationType === 'hybrid') {
           if (!locationCity.trim()) {
-            showError('Erreur', 'La ville est requise pour un \u00e9v\u00e9nement pr\u00e9sentiel');
+            showError('Erreur', 'La ville est requise pour un événement présentiel');
             return false;
           }
         }
         if (locationType === 'online' || locationType === 'hybrid') {
           if (!onlineUrl.trim() && !onlinePlatform.trim()) {
-            showError('Erreur', 'Veuillez indiquer une URL ou une plateforme pour l\'\u00e9v\u00e9nement en ligne');
+            showError('Erreur', 'Veuillez indiquer une URL ou une plateforme pour l\'événement en ligne');
             return false;
           }
         }
@@ -709,7 +726,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
               return false;
             }
             if (parseInt(ticket.quantity_total) <= 0) {
-              showError('Erreur', `La quantit\u00e9 du billet "${ticket.name}" doit \u00eatre sup\u00e9rieure \u00e0 0`);
+              showError('Erreur', `La quantité du billet "${ticket.name}" doit être supérieure à 0`);
               return false;
             }
           }
@@ -717,7 +734,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
             for (let i = 0; i < formFields.length; i++) {
               const field = formFields[i];
               if (!field.label.trim()) {
-                showError('Erreur', `L'intitul\u00e9 du champ #${i + 1} est requis`);
+                showError('Erreur', `L'intitulé du champ #${i + 1} est requis`);
                 return false;
               }
               if (['select', 'checkbox', 'radio'].includes(field.field_type) && !field.options.trim()) {
@@ -734,7 +751,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
           for (let i = 0; i < formFields.length; i++) {
             const field = formFields[i];
             if (!field.label.trim()) {
-              showError('Erreur', `L'intitul\u00e9 du champ #${i + 1} est requis`);
+              showError('Erreur', `L'intitulé du champ #${i + 1} est requis`);
               return false;
             }
             if (['select', 'checkbox', 'radio'].includes(field.field_type) && !field.options.trim()) {
@@ -772,6 +789,47 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       setCurrentStep(step);
     }
   }, [currentStep, validateStep]);
+
+  // ============================================
+  // Hydrate Form (restore from draft)
+  // ============================================
+
+  const hydrateForm = useCallback((data: Partial<EventFormState>) => {
+    if (data.currentStep !== undefined) setCurrentStep(data.currentStep);
+    if (data.title !== undefined) setTitle(data.title);
+    if (data.description !== undefined) setDescription(data.description);
+    if (data.shortDescription !== undefined) setShortDescription(data.shortDescription);
+    if (data.eventType !== undefined) setEventType(data.eventType);
+    if (data.categoryId !== undefined) setCategoryId(data.categoryId);
+    if (data.selectedTagIds !== undefined) setSelectedTagIds(data.selectedTagIds);
+    if (data.customTags !== undefined) setCustomTags(data.customTags);
+    if (data.bannerImage !== undefined) setBannerImage(data.bannerImage);
+    if (data.startDate !== undefined) setStartDate(data.startDate);
+    if (data.endDate !== undefined) setEndDate(data.endDate);
+    if (data.registrationDeadline !== undefined) setRegistrationDeadline(data.registrationDeadline);
+    if (data.hasRegistrationDeadline !== undefined) setHasRegistrationDeadline(data.hasRegistrationDeadline);
+    if (data.locationType !== undefined) setLocationType(data.locationType);
+    if (data.locationName !== undefined) setLocationName(data.locationName);
+    if (data.locationCity !== undefined) setLocationCity(data.locationCity);
+    if (data.locationAddress !== undefined) setLocationAddress(data.locationAddress);
+    if (data.locationCountry !== undefined) setLocationCountry(data.locationCountry);
+    if (data.onlineUrl !== undefined) setOnlineUrl(data.onlineUrl);
+    if (data.onlinePlatform !== undefined) setOnlinePlatform(data.onlinePlatform);
+    if (data.onlineInstructions !== undefined) setOnlineInstructions(data.onlineInstructions);
+    if (data.onlineMeetingId !== undefined) setOnlineMeetingId(data.onlineMeetingId);
+    if (data.onlinePasscode !== undefined) setOnlinePasscode(data.onlinePasscode);
+    if (data.locationLatitude !== undefined) setLocationLatitude(data.locationLatitude);
+    if (data.locationLongitude !== undefined) setLocationLongitude(data.locationLongitude);
+    if (data.isFree !== undefined) setIsFree(data.isFree);
+    if (data.maxParticipants !== undefined) setMaxParticipants(data.maxParticipants);
+    if (data.autoApproveRegistrations !== undefined) setAutoApproveRegistrations(data.autoApproveRegistrations);
+    if (data.ticketTypes !== undefined) setTicketTypes(data.ticketTypes);
+    if (data.formFields !== undefined) setFormFields(data.formFields);
+    if (data.showFormFieldsForBilletterie !== undefined) setShowFormFieldsForBilletterie(data.showFormFieldsForBilletterie);
+    if (data.visibility !== undefined) setVisibility(data.visibility);
+    if (data.accessCode !== undefined) setAccessCode(data.accessCode);
+    if (data.sessions !== undefined) setSessions(data.sessions);
+  }, []);
 
   // ============================================
   // Reset Form
@@ -851,8 +909,8 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
         formData.append('location_address', locationAddress);
 
         if (locationLatitude && locationLongitude) {
-          formData.append('location_latitude', locationLatitude);
-          formData.append('location_longitude', locationLongitude);
+          formData.append('location_latitude', parseFloat(locationLatitude).toFixed(6));
+          formData.append('location_longitude', parseFloat(locationLongitude).toFixed(6));
         }
       }
 
@@ -959,10 +1017,10 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
 
       return eventId;
     } catch (error: any) {
-      console.error('Erreur cr\u00e9ation \u00e9v\u00e9nement:', error);
+      console.error('Erreur création événement:', error);
       showError(
         'Erreur',
-        error.response?.data?.message || error.response?.data?.detail || 'Impossible de cr\u00e9er l\'\u00e9v\u00e9nement'
+        error.response?.data?.message || error.response?.data?.detail || 'Impossible de créer l\'événement'
       );
       return null;
     } finally {
@@ -1117,6 +1175,9 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     // Submit
     handleSubmit,
     resetForm,
+
+    // Draft hydration
+    hydrateForm,
 
     // Util
     formatDate,

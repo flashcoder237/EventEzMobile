@@ -65,7 +65,7 @@ export function formatDateTime(dateString: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
-  return `${datePart} \u00e0 ${timePart}`;
+  return `${datePart} à ${timePart}`;
 }
 
 /**
@@ -82,7 +82,7 @@ export function formatTimeAgo(dateString: string): string {
   }
 
   if (diff < MINUTE) {
-    return "\u00e0 l'instant";
+    return "à l'instant";
   }
 
   if (diff < HOUR) {

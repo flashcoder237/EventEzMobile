@@ -155,7 +155,7 @@ export const CategoryCardSkeleton = memo(function CategoryCardSkeleton() {
 
 // ============================================
 // TICKET CARD SKELETON
-// Matches MyTicketsScreen card: dateBadge(left) + header(typeBadge+statusBadge) + title + meta
+// Matches MyTicketsScreen card: dateBadge(left) + header(typeBadge+statusBadge) + title + meta + qrButton(right)
 // ============================================
 export const TicketCardSkeleton = memo(function TicketCardSkeleton() {
   const { colors } = useTheme();
@@ -163,7 +163,7 @@ export const TicketCardSkeleton = memo(function TicketCardSkeleton() {
     <View style={[styles.ticketCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.ticketCardRow}>
         {/* Date badge a gauche */}
-        <View style={styles.ticketDateBadge}>
+        <View style={[styles.ticketDateBadge, { backgroundColor: colors.gray200 }]}>
           <Skeleton width={30} height={22} borderRadius={BorderRadius.xs} />
           <Skeleton width={26} height={10} borderRadius={BorderRadius.xs} style={{ marginTop: 4 }} />
         </View>
@@ -175,18 +175,28 @@ export const TicketCardSkeleton = memo(function TicketCardSkeleton() {
             <Skeleton width={70} height={20} borderRadius={BorderRadius.sm} />
           </View>
           {/* Titre */}
-          <Skeleton width="80%" height={16} style={{ marginBottom: 8 }} />
-          {/* Meta: time + location */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Skeleton width="80%" height={16} style={{ marginBottom: 6 }} />
+          {/* Meta: time + location + ref */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
               <Skeleton width={12} height={12} borderRadius={BorderRadius.full} />
               <Skeleton width={40} height={10} />
             </View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
               <Skeleton width={12} height={12} borderRadius={BorderRadius.full} />
               <Skeleton width={55} height={10} />
             </View>
+            <Skeleton width={50} height={16} borderRadius={BorderRadius.sm} />
           </View>
+          {/* Registration date */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+            <Skeleton width={10} height={10} borderRadius={BorderRadius.full} />
+            <Skeleton width={80} height={10} />
+          </View>
+        </View>
+        {/* QR button a droite */}
+        <View style={[styles.ticketQrButton, { backgroundColor: colors.gray200 }]}>
+          <Skeleton width={20} height={20} borderRadius={BorderRadius.xs} />
         </View>
       </View>
     </View>
@@ -445,6 +455,220 @@ export const DiscountCardSkeleton = memo(function DiscountCardSkeleton() {
 });
 
 // ============================================
+// DISCOVER SCREEN SKELETON (full page)
+// Matches DiscoverScreen: header + featured horizontal scroll + section titles + event cards
+// ============================================
+export const DiscoverScreenSkeleton = memo(function DiscoverScreenSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Search bar placeholder */}
+      <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm }}>
+        <Skeleton height={44} borderRadius={BorderRadius.full} />
+      </View>
+      {/* Featured section title */}
+      <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
+        <Skeleton width="40%" height={18} />
+      </View>
+      {/* Featured horizontal cards */}
+      <View style={{ flexDirection: 'row', paddingLeft: Spacing.lg, gap: Spacing.md, marginBottom: Spacing.xl }}>
+        <View style={[styles.eventCard, { backgroundColor: colors.card }]}>
+          <Skeleton height={200} borderRadius={0} />
+          <View style={styles.eventCardContent}>
+            <Skeleton width="45%" height={12} style={{ marginBottom: 6 }} />
+            <Skeleton width="85%" height={16} style={{ marginBottom: 6 }} />
+            <Skeleton width="35%" height={16} />
+          </View>
+        </View>
+        <View style={[styles.eventCard, { backgroundColor: colors.card }]}>
+          <Skeleton height={200} borderRadius={0} />
+          <View style={styles.eventCardContent}>
+            <Skeleton width="45%" height={12} style={{ marginBottom: 6 }} />
+            <Skeleton width="85%" height={16} style={{ marginBottom: 6 }} />
+            <Skeleton width="35%" height={16} />
+          </View>
+        </View>
+      </View>
+      {/* Upcoming section */}
+      <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
+        <Skeleton width="55%" height={18} />
+      </View>
+      <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md }}>
+        <EventCardHorizontalSkeleton />
+        <EventCardHorizontalSkeleton />
+        <EventCardHorizontalSkeleton />
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// MY TICKETS SCREEN SKELETON (full page)
+// Matches MyTicketsScreen: header + search + tabs + type filters + ticket cards
+// ============================================
+export const MyTicketsScreenSkeleton = memo(function MyTicketsScreenSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Header: title + action buttons */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm }}>
+        <Skeleton width="55%" height={24} />
+        <View style={{ flexDirection: 'row', gap: Spacing.xs }}>
+          <Skeleton width={40} height={40} borderRadius={20} />
+          <Skeleton width={40} height={40} borderRadius={20} />
+          <Skeleton width={40} height={40} borderRadius={20} />
+        </View>
+      </View>
+      {/* Search bar */}
+      <View style={{ paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md }}>
+        <Skeleton height={40} borderRadius={BorderRadius.lg} />
+      </View>
+      {/* Tabs row */}
+      <View style={{ flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md, gap: Spacing.sm }}>
+        <Skeleton width={90} height={36} borderRadius={BorderRadius.full} />
+        <Skeleton width={80} height={36} borderRadius={BorderRadius.full} />
+        <Skeleton width={85} height={36} borderRadius={BorderRadius.full} />
+      </View>
+      {/* Type filter chips */}
+      <View style={{ flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm, gap: Spacing.sm }}>
+        <Skeleton width={75} height={30} borderRadius={BorderRadius.full} />
+        <Skeleton width={85} height={30} borderRadius={BorderRadius.full} />
+        <Skeleton width={100} height={30} borderRadius={BorderRadius.full} />
+      </View>
+      {/* Ticket cards */}
+      <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, gap: Spacing.sm }}>
+        <TicketCardSkeleton />
+        <TicketCardSkeleton />
+        <TicketCardSkeleton />
+        <TicketCardSkeleton />
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// FOLLOWING EVENT CARD SKELETON
+// Matches FollowingEventsScreen card: dateBadge(56) + image(80) + content(title+meta+actions) + arrow
+// ============================================
+export const FollowingEventCardSkeleton = memo(function FollowingEventCardSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.followingCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
+      {/* Date badge */}
+      <View style={[styles.followingDateBadge, { backgroundColor: colors.gray200 }]}>
+        <Skeleton width={28} height={22} borderRadius={BorderRadius.xs} />
+        <Skeleton width={26} height={10} borderRadius={BorderRadius.xs} style={{ marginTop: 4 }} />
+      </View>
+      {/* Image */}
+      <Skeleton width={80} height={120} borderRadius={0} />
+      {/* Content */}
+      <View style={styles.followingContent}>
+        <Skeleton width="85%" height={14} style={{ marginBottom: Spacing.xs }} />
+        {/* Meta row */}
+        <View style={{ flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Skeleton width={14} height={14} borderRadius={BorderRadius.full} />
+            <Skeleton width={55} height={12} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Skeleton width={14} height={14} borderRadius={BorderRadius.full} />
+            <Skeleton width={50} height={12} />
+          </View>
+        </View>
+        {/* Actions row */}
+        <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+          <Skeleton width={90} height={28} borderRadius={BorderRadius.md} />
+          <Skeleton width={32} height={32} borderRadius={16} />
+        </View>
+      </View>
+      {/* Arrow */}
+      <View style={{ justifyContent: 'center', paddingRight: Spacing.sm }}>
+        <Skeleton width={12} height={20} borderRadius={BorderRadius.xs} />
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// FOLLOWING SCREEN SKELETON (full page)
+// Matches FollowingEventsScreen: header + summary card + search + tabs + event cards
+// ============================================
+export const FollowingScreenSkeleton = memo(function FollowingScreenSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Header: back + title + compass */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md, backgroundColor: colors.card, borderBottomWidth: 1, borderBottomColor: colors.gray100 }}>
+        <Skeleton width={40} height={40} borderRadius={20} />
+        <Skeleton width={100} height={20} />
+        <Skeleton width={40} height={40} borderRadius={20} />
+      </View>
+      {/* Summary card */}
+      <View style={[styles.followingSummaryCard, { backgroundColor: colors.card }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+          <Skeleton width={48} height={48} borderRadius={24} />
+          <View>
+            <Skeleton width={40} height={24} style={{ marginBottom: 4 }} />
+            <Skeleton width={110} height={14} />
+          </View>
+        </View>
+        <View style={{ height: 1, backgroundColor: colors.gray100, marginVertical: Spacing.md }} />
+        <View style={{ flexDirection: 'row', gap: Spacing.xl }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+            <Skeleton width={16} height={16} borderRadius={BorderRadius.full} />
+            <Skeleton width={65} height={14} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+            <Skeleton width={16} height={16} borderRadius={BorderRadius.full} />
+            <Skeleton width={65} height={14} />
+          </View>
+        </View>
+      </View>
+      {/* Search */}
+      <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
+        <Skeleton height={40} borderRadius={BorderRadius.lg} />
+      </View>
+      {/* Tabs */}
+      <View style={{ flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, gap: Spacing.sm }}>
+        <Skeleton width={90} height={36} borderRadius={BorderRadius.lg} style={{ flex: 1 }} />
+        <Skeleton width={90} height={36} borderRadius={BorderRadius.lg} style={{ flex: 1 }} />
+        <Skeleton width={90} height={36} borderRadius={BorderRadius.lg} style={{ flex: 1 }} />
+      </View>
+      {/* Event cards */}
+      <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, gap: Spacing.md }}>
+        <FollowingEventCardSkeleton />
+        <FollowingEventCardSkeleton />
+        <FollowingEventCardSkeleton />
+        <FollowingEventCardSkeleton />
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// PAYMENT CARD SKELETON
+// Matches MyPaymentsScreen card: icon + amount + method + date + status badge
+// ============================================
+export const PaymentCardSkeleton = memo(function PaymentCardSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.paymentCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md }}>
+        <Skeleton width={40} height={40} borderRadius={20} />
+        <View style={{ flex: 1 }}>
+          <Skeleton width="50%" height={16} style={{ marginBottom: 4 }} />
+          <Skeleton width="35%" height={12} />
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Skeleton width={80} height={16} style={{ marginBottom: 4 }} />
+          <Skeleton width={60} height={20} borderRadius={BorderRadius.sm} />
+        </View>
+      </View>
+    </View>
+  );
+});
+
+// ============================================
 // STYLES
 // All theme-aware (no hardcoded Colors references)
 // ============================================
@@ -636,6 +860,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+
+  // Ticket QR Button (right side of ticket card)
+  ticketQrButton: {
+    width: 44,
+    minHeight: 70,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderTopRightRadius: BorderRadius.lg,
+    borderBottomRightRadius: BorderRadius.lg,
+  },
+
+  // Following Event Card (horizontal)
+  followingCard: {
+    flexDirection: 'row',
+    borderRadius: BorderRadius.xl,
+    overflow: 'hidden',
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
+  followingDateBadge: {
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+  },
+  followingContent: {
+    flex: 1,
+    padding: Spacing.md,
+    justifyContent: 'space-between',
+  },
+  followingSummaryCard: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+  },
+
+  // Payment Card
+  paymentCard: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: Spacing.md,
     marginBottom: Spacing.sm,
   },
 });

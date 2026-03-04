@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
 import { treasuryAPI } from '../../../api/client';
 import { RootStackParamList, StaffMember, StaffPayment } from '../../../types';
@@ -36,6 +37,7 @@ type TabType = 'staff' | 'payments';
 export default function TreasuryStaffScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const { showSuccess, showError } = useAlert();
   const [activeTab, setActiveTab] = useState<TabType>('staff');
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -101,7 +103,7 @@ export default function TreasuryStaffScreen() {
       </View>
       <View style={[styles.cardFooter, { borderTopColor: colors.gray100 }]}>
         <Text style={[styles.salary, { color: colors.primary }]}>
-          {item.monthly_salary.toLocaleString()} FCFA/mois
+          {item.monthly_salary.toLocaleString()} {platformCurrency}/mois
         </Text>
         <Text style={[styles.hiredDate, { color: colors.gray400 }]}>
           Depuis {new Date(item.hired_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
@@ -131,7 +133,7 @@ export default function TreasuryStaffScreen() {
         />
       </View>
       <View style={[styles.cardFooter, { borderTopColor: colors.gray100 }]}>
-        <Text style={[styles.salary, { color: colors.gray900 }]}>{item.amount.toLocaleString()} FCFA</Text>
+        <Text style={[styles.salary, { color: colors.gray900 }]}>{item.amount.toLocaleString()} {platformCurrency}</Text>
       </View>
     </View>
   );

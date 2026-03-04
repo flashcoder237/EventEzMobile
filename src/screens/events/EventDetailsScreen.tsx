@@ -49,6 +49,7 @@ import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { eventsAPI } from '../../api/client';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
+import ConvertedPrice from '../../components/common/ConvertedPrice';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -306,7 +307,6 @@ export default function EventDetailsScreen() {
             <Animated.Image
               source={{ uri: event?.banner_image || event?.category?.default_event_image || routeImageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
               style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
-              sharedTransitionTag={`event-image-${eventId}`}
             />
             {/* Triple gradient overlay */}
             <LinearGradient
@@ -743,8 +743,11 @@ export default function EventDetailsScreen() {
                 {minPrice > 0 ? 'A partir de' : 'Prix'}
               </Text>
               <Text style={[styles.priceValue, { color: colors.gray900 }]}>
-                {minPrice > 0 ? `${minPrice.toLocaleString()} FCFA` : 'Gratuit'}
+                {minPrice > 0 ? `${minPrice.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
               </Text>
+              {minPrice > 0 && (
+                <ConvertedPrice amount={minPrice} eventCurrency={event?.currency || 'XAF'} />
+              )}
             </>
           )}
         </View>

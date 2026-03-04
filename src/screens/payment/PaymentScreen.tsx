@@ -22,6 +22,9 @@ import * as WebBrowser from 'expo-web-browser';
 import { registrationsAPI, paymentsAPI } from '../../api/client';
 import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
+import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -81,6 +84,32 @@ const METHOD_DESCRIPTIONS: Record<string, string> = {
 const MOBILE_MONEY_METHODS = new Set([
   'mtn_money', 'orange_money', 'wave', 'mpesa', 'airtel_money',
 ]);
+
+// Map locale → code pays NotchPay (pour afficher les méthodes de paiement du payeur)
+const LOCALE_TO_COUNTRY: Record<string, string> = {
+  'fr-CM': 'CM', 'en-CM': 'CM',
+  'fr-CI': 'CI',
+  'fr-SN': 'SN',
+  'sw-KE': 'KE', 'en-KE': 'KE',
+  'en-GH': 'GH',
+  'en-UG': 'UG', 'sw-UG': 'UG',
+};
+
+function detectUserCountry(): string | null {
+  try {
+    const locale = Intl.DateTimeFormat().resolvedOptions().locale;
+    if (LOCALE_TO_COUNTRY[locale]) return LOCALE_TO_COUNTRY[locale];
+    // Try with last part as country code
+    const parts = locale.split('-');
+    if (parts.length >= 2) {
+      const countryPart = parts[parts.length - 1].toUpperCase();
+      if (['CM', 'CI', 'SN', 'KE', 'GH', 'UG'].includes(countryPart)) return countryPart;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Génère une clé d'idempotence unique pour éviter les doubles paiements
@@ -279,15 +308,19 @@ export default function PaymentScreen() {
     };
   }, []);
 
-  // Fetch dynamic payment methods based on event country
+  // Fetch dynamic payment methods based on payer's country (not event's country)
   useEffect(() => {
     const fetchPaymentMethods = async () => {
       if (!registration) return;
       const eventObj = typeof registration.event === 'object' ? registration.event : null;
-      const locationCountry = eventObj?.location_country || 'Cameroun';
+      // Utiliser le pays du payeur (locale du device) pour les méthodes de paiement
+      // Fallback: pays de l'événement si la locale ne correspond à aucun pays supporté
+      const userCountry = detectUserCountry();
+      const eventCountry = eventObj?.location_country || 'Cameroun';
+      const payerCountry = userCountry || eventCountry;
 
       try {
-        const response = await paymentsAPI.getPaymentMethods(locationCountry);
+        const response = await paymentsAPI.getPaymentMethods(payerCountry);
         const config: CountryPaymentConfig = response.data;
         setCountryConfig(config);
 
@@ -356,7 +389,7 @@ export default function PaymentScreen() {
     return registration?.tickets || [];
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     // Si on a un montant total passé en param (mode billets supplémentaires)
     if (isAdditionalTicketsMode && totalAmount !== undefined) {
       return totalAmount;
@@ -372,6 +405,29 @@ export default function PaymentScreen() {
       return total + ticketPrice;
     }, 0);
   };
+
+  // Commission config dynamique par pays
+  const eventObj = typeof registration?.event === 'object' ? registration?.event : null;
+  const eventCountryCode = (eventObj as any)?.location_country_code || (eventObj as any)?.location_country || 'CM';
+  const { config: commissionConfig } = useCommissionConfig(eventCountryCode);
+
+  const subtotal = calculateSubtotal();
+  const serviceFee = calculateServiceFee(subtotal, commissionConfig);
+  const serviceFeeLabel = getServiceFeeLabel(commissionConfig);
+  const finalTotal = Math.round((subtotal + serviceFee) * 100) / 100;
+
+  // Debug: vérifier que la commission est calculée
+  console.log('[Payment] Commission debug:', {
+    subtotal,
+    serviceFee,
+    finalTotal,
+    commissionConfig: commissionConfig ? {
+      rate: commissionConfig.commission_rate,
+      fixed: commissionConfig.fixed_fee,
+      currency: commissionConfig.currency,
+    } : 'null (using defaults: 5% + 100)',
+    eventCountryCode,
+  });
 
   const validatePhoneNumber = (method: PaymentMethodId): { valid: boolean; formatted?: string } => {
     if (method === 'credit_card') return { valid: true };
@@ -452,10 +508,10 @@ export default function PaymentScreen() {
       }
 
       // Create payment avec les bons noms de champs + clé d'idempotence
-      // Le backend déduit la devise depuis le pays de l'événement
+      // Le montant inclut les frais de service (modèle client-paye)
       const paymentResponse = await paymentsAPI.createPayment({
         registration: registrationId,
-        amount: calculateTotal(),
+        amount: finalTotal,
         currency: countryConfig?.currency || 'XAF',
         payment_method: selectedMethod,
         billing_phone: formattedPhone,
@@ -723,11 +779,37 @@ export default function PaymentScreen() {
               </View>
             ))}
 
+            {/* Sous-total */}
+            <View style={[styles.orderSubtotalRow, { borderTopColor: colors.gray100 }]}>
+              <Text style={[styles.orderSubtotalLabel, { color: colors.gray600 }]}>Sous-total</Text>
+              <Text style={[styles.orderSubtotalValue, { color: colors.gray700 }]}>
+                {subtotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+              </Text>
+            </View>
+
+            {/* Frais de service */}
+            {serviceFee > 0 && (
+              <View style={styles.orderFeeRow}>
+                <Text style={[styles.orderFeeLabel, { color: colors.gray500 }]}>
+                  Frais de service ({serviceFeeLabel})
+                </Text>
+                <Text style={[styles.orderFeeValue, { color: colors.gray500 }]}>
+                  {serviceFee.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                </Text>
+              </View>
+            )}
+
+            {/* Total */}
             <View style={[styles.orderTotal, { borderTopColor: colors.gray100 }]}>
               <Text style={[styles.orderTotalLabel, { color: colors.gray700 }]}>Total à payer</Text>
-              <Text style={[styles.orderTotalValue, { color: colors.primary }]}>
-                {calculateTotal().toLocaleString()} {countryConfig?.currency || 'FCFA'}
-              </Text>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text style={[styles.orderTotalValue, { color: colors.primary }]}>
+                  {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                </Text>
+                {finalTotal > 0 && (
+                  <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} />
+                )}
+              </View>
             </View>
           </View>
         </View>
@@ -889,8 +971,11 @@ export default function PaymentScreen() {
         <View style={styles.totalContainer}>
           <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
           <Text style={[styles.totalValue, { color: colors.gray900 }]}>
-            {calculateTotal().toLocaleString()} {countryConfig?.currency || 'FCFA'}
+            {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
           </Text>
+          {finalTotal > 0 && (
+            <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} style={{ fontSize: 10 }} />
+          )}
         </View>
         <GradientButton
           title={processing ? 'Traitement...' : 'Payer maintenant'}
@@ -1159,12 +1244,43 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: Colors.gray900,
   },
+  orderSubtotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing.md,
+    marginTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  orderSubtotalLabel: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+  },
+  orderSubtotalValue: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+  },
+  orderFeeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: Spacing.xs,
+  },
+  orderFeeLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    flex: 1,
+  },
+  orderFeeValue: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+  },
   orderTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: Spacing.md,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
   },

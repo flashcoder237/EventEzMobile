@@ -30,6 +30,7 @@ import { getEventPrice, getEventPriceRange } from '../../lib/utils/priceFormatte
 import { formatDate } from '../../lib/utils/dateFormatters';
 import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import {
   Colors,
   FontFamily,
@@ -79,6 +80,7 @@ export default function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Explore'>>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const flatListRef = useRef<FlatList>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -543,6 +545,7 @@ export default function ExploreScreen() {
             isFeatured={item.is_featured}
             locationType={item.location_type}
             eventType={item.event_type}
+            currency={item.currency || platformCurrency}
             attendees={item.registration_count || item.registrations_count}
             variant="grid"
             onPress={() => navigation.navigate('EventDetails', { eventId: item.id, imageUrl: item.banner_image || item.category?.default_event_image || item.display_image })}
@@ -681,7 +684,7 @@ export default function ExploreScreen() {
 
             {/* Price Range */}
             <View style={styles.filterSection}>
-              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Fourchette de prix (FCFA)</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Fourchette de prix ({platformCurrency})</Text>
               <View style={styles.priceRangeContainer}>
                 <View style={styles.priceInputContainer}>
                   <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Min</Text>

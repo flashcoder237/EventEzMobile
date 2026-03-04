@@ -16,10 +16,11 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { registrationsAPI, ticketTransfersAPI } from '../../api/client';
+import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api/client';
 import { Registration, RootStackParamList } from '../../types';
 import { TransferTicketModal } from '../../components/tickets';
 import { useOfflineTickets, useEventReminders } from '../../hooks';
+import { isPaymentSuccess, isPaymentFailed } from '../../hooks/usePaymentVerification';
 import {
   Colors,
   FontSizes,
@@ -56,6 +57,7 @@ export default function RegistrationDetailsScreen() {
   const { cacheTicket, isOnline } = useOfflineTickets();
   const { hasReminder, toggleReminder, permissionGranted } = useEventReminders();
   const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [verifyingPayment, setVerifyingPayment] = useState(false);
 
   useEffect(() => {
     fetchRegistration();
@@ -106,6 +108,36 @@ export default function RegistrationDetailsScreen() {
       showError('Erreur', 'Impossible de charger les détails de l\'inscription');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAlreadyPaid = async () => {
+    if (!registration?.payment) {
+      showError('Erreur', 'Aucun paiement associé à cette inscription');
+      return;
+    }
+    setVerifyingPayment(true);
+    try {
+      const response = await paymentsAPI.verifyPayment(registration.payment);
+      const data = response.data;
+      const status = (data?.status || data?.payment_status || data?.payment?.status || '').toLowerCase();
+
+      if (isPaymentSuccess(status)) {
+        showSuccess('Paiement confirmé', 'Votre paiement a été vérifié avec succès !');
+        fetchRegistration(); // Refresh to show updated status
+      } else if (isPaymentFailed(status)) {
+        showError('Paiement échoué', data?.message || 'Le paiement n\'a pas abouti. Veuillez réessayer.');
+      } else {
+        showError('En cours', 'Le paiement est toujours en cours de traitement. Réessayez dans quelques instants.');
+      }
+    } catch (error: any) {
+      console.error('[RegistrationDetails] Payment verification error:', error);
+      showError(
+        'Erreur de vérification',
+        error?.response?.data?.message || 'Impossible de vérifier le paiement. Vérifiez votre connexion et réessayez.'
+      );
+    } finally {
+      setVerifyingPayment(false);
     }
   };
 
@@ -496,7 +528,7 @@ export default function RegistrationDetailsScreen() {
                   </View>
                   <View style={styles.ticketItemRight}>
                     <Text style={[styles.ticketItemPrice, { color: colors.primary }]}>
-                      {ticket.total_price ? `${Number(ticket.total_price).toLocaleString()} FCFA` : 'Gratuit'}
+                      {ticket.total_price ? `${Number(ticket.total_price).toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
                     </Text>
                     {/* Transfer button */}
                     {ticket.is_paid && !ticket.is_checked_in && (
@@ -527,7 +559,7 @@ export default function RegistrationDetailsScreen() {
                 Total ({registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)} billet{registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0) > 1 ? 's' : ''})
               </Text>
               <Text style={[styles.ticketsTotalValue, { color: colors.primary }]}>
-                {registration.tickets.reduce((sum: number, t: any) => sum + (Number(t.total_price) || 0), 0).toLocaleString()} FCFA
+                {registration.tickets.reduce((sum: number, t: any) => sum + (Number(t.total_price) || 0), 0).toLocaleString()} {event?.currency || 'FCFA'}
               </Text>
             </View>
           </View>
@@ -577,6 +609,24 @@ export default function RegistrationDetailsScreen() {
         {/* Actions */}
         {isActive && (
           <View style={styles.actionsSection}>
+            {/* "J'ai déjà payé" button - for pending registrations with payment */}
+            {registration.status === 'pending' && registration.payment && (
+              <TouchableOpacity
+                style={[styles.alreadyPaidButton, { backgroundColor: colors.card, borderColor: colors.success }]}
+                onPress={handleAlreadyPaid}
+                disabled={verifyingPayment}
+                activeOpacity={0.7}
+              >
+                {verifyingPayment ? (
+                  <ActivityIndicator size="small" color={colors.success} />
+                ) : (
+                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.success} />
+                )}
+                <Text style={[styles.alreadyPaidButtonText, { color: colors.success }]}>
+                  {verifyingPayment ? 'Vérification en cours...' : "J'ai déjà payé"}
+                </Text>
+              </TouchableOpacity>
+            )}
             {/* Buy more tickets - for confirmed billetterie registrations */}
             {(registration.status === 'confirmed' || registration.status === 'completed') &&
               registration.tickets && registration.tickets.length > 0 && (
@@ -1019,6 +1069,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     gap: Spacing.md,
+  },
+  alreadyPaidButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  alreadyPaidButtonText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
   },
   buyMoreButton: {
     flexDirection: 'row',

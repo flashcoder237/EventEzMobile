@@ -18,6 +18,7 @@ import { referralsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -49,6 +50,7 @@ interface ReferralStats {
 export default function ReferralScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [codes, setCodes] = useState<ReferralCode[]>([]);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ export default function ReferralScreen() {
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
-      currency: 'XAF',
+      currency: platformCurrency,
       maximumFractionDigits: 0,
     }).format(amount);
   };

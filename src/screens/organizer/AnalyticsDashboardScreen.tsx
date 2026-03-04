@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { analyticsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { KPICard, ChartWrapper } from '../../components/charts';
@@ -38,6 +39,7 @@ type TimeRange = '7d' | '30d' | '90d' | '1y';
 export default function AnalyticsDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -138,7 +140,7 @@ export default function AnalyticsDashboardScreen() {
         <View style={styles.kpiRow}>
           <KPICard
             title="Revenus"
-            value={`${totalRevenue.toLocaleString()} FCFA`}
+            value={`${totalRevenue.toLocaleString()} ${platformCurrency}`}
             icon="cash-outline"
             color="#10B981"
             trend={summary?.revenue_trend ? { value: summary.revenue_trend, label: 'vs prev' } : undefined}

@@ -16,9 +16,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentsAPI } from '../../api/client';
 import { Payment, RootStackParamList } from '../../types';
-import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { SkeletonList, PaymentCardSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import {
   Colors,
   FontFamily,
@@ -84,6 +85,7 @@ export default function MyPaymentsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
 
   const [payments, setPayments] = useState<PaymentWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -300,7 +302,9 @@ export default function MyPaymentsScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-        <LoadingSpinner />
+        <View style={{ padding: 16 }}>
+          <SkeletonList count={6} Component={PaymentCardSkeleton} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -331,14 +335,14 @@ export default function MyPaymentsScreen() {
             <Text style={[styles.mainStatLabel, { color: colors.gray500 }]}>Total depense</Text>
             <View style={styles.mainStatValueRow}>
               <Text style={[styles.mainStatValue, { color: colors.gray900 }]}>{formatAmount(stats.total)}</Text>
-              <Text style={[styles.mainStatCurrency, { color: colors.gray500 }]}>XAF</Text>
+              <Text style={[styles.mainStatCurrency, { color: colors.gray500 }]}>{platformCurrency}</Text>
             </View>
           </View>
         </View>
         <View style={[styles.mainStatDivider, { backgroundColor: colors.gray100 }]} />
         <View style={styles.monthlyStatRow}>
           <Ionicons name="trending-up" size={16} color={colors.success} />
-          <Text style={[styles.monthlyStatText, { color: colors.gray600 }]}>Ce mois: {formatAmount(stats.thisMonthTotal)} XAF</Text>
+          <Text style={[styles.monthlyStatText, { color: colors.gray600 }]}>Ce mois: {formatAmount(stats.thisMonthTotal)} {platformCurrency}</Text>
         </View>
       </View>
 

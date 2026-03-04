@@ -32,7 +32,7 @@ import {
   TextStyles,
   Shadows,
 } from '../../constants/theme';
-import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
+import { FollowingScreenSkeleton, FollowingEventCardSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 
@@ -429,8 +429,11 @@ export default function FollowingEventsScreen() {
       <ContentTransition
         isLoading={loading}
         skeleton={
-          <View style={styles.loadingContainer}>
-            <SkeletonList count={4} Component={EventCardSkeleton} />
+          <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, gap: Spacing.md }}>
+            <FollowingEventCardSkeleton />
+            <FollowingEventCardSkeleton />
+            <FollowingEventCardSkeleton />
+            <FollowingEventCardSkeleton />
           </View>
         }
         style={{ flex: 1 }}

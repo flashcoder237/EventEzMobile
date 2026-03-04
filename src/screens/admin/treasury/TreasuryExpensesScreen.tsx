@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
 import { treasuryAPI } from '../../../api/client';
 import { RootStackParamList, Expense } from '../../../types';
@@ -52,6 +53,7 @@ const statusLabel = (s: string): string => {
 export default function TreasuryExpensesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const { showSuccess, showError } = useAlert();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,7 +117,7 @@ export default function TreasuryExpensesScreen() {
         <Badge label={statusLabel(item.status)} variant={statusVariant(item.status)} size="sm" />
       </View>
       <View style={[styles.cardFooter, { borderTopColor: colors.gray100 }]}>
-        <Text style={[styles.amount, { color: colors.gray900 }]}>{item.amount.toLocaleString()} FCFA</Text>
+        <Text style={[styles.amount, { color: colors.gray900 }]}>{item.amount.toLocaleString()} {platformCurrency}</Text>
         <Text style={[styles.date, { color: colors.gray400 }]}>
           {new Date(item.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
         </Text>

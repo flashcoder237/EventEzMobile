@@ -18,6 +18,7 @@ export type { SavedPaymentMethod, PaymentMethodType } from './useSavedPaymentMet
 export { usePaymentVerification, isPaymentSuccess, isPaymentFailed, PAYMENT_STATUS } from './usePaymentVerification';
 export type { PaymentVerificationConfig, PaymentVerificationResult, PaymentVerificationStatus } from './usePaymentVerification';
 export { useEventForm, STEPS, LOCATION_TYPES, FIELD_TYPES, SESSION_TYPES } from './useEventForm';
+export { useCurrencyConversion } from './useCurrencyConversion';
 export type {
   TicketTypeForm, FormFieldForm, SessionForm, EventFormState,
   AlertActions, MapLocation, UseEventFormReturn,

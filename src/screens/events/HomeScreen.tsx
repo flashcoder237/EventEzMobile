@@ -146,6 +146,7 @@ export default function HomeScreen() {
             priceMax={range?.max}
             isFree={item.is_free || (range?.min === 0 && range?.max === 0)}
             eventType={item.event_type}
+            currency={item.currency || 'FCFA'}
             attendees={item.registration_count || item.registrations_count}
             variant="featured"
             onPress={() => navigation.navigate('EventDetails', { eventId: item.id, imageUrl: item.banner_image || item.category?.default_event_image || item.display_image })}
@@ -173,6 +174,7 @@ export default function HomeScreen() {
             priceMax={range?.max}
             isFree={item.is_free || (range?.min === 0 && range?.max === 0)}
             eventType={item.event_type}
+            currency={item.currency || 'FCFA'}
             attendees={item.registration_count || item.registrations_count}
             variant="default"
             onPress={() => navigation.navigate('EventDetails', { eventId: item.id, imageUrl: item.banner_image || item.category?.default_event_image || item.display_image })}

@@ -279,7 +279,7 @@ export default function MyEventsScreen() {
               <Text style={[styles.statLabel, { color: colors.gray500 }]}>vues</Text>
             </View>
             <Text style={[styles.priceText, { color: colors.primary }]}>
-              {item.is_free ? 'Gratuit' : `${item.base_price?.toLocaleString() || 0} FCFA`}
+              {item.is_free ? 'Gratuit' : `${item.base_price?.toLocaleString() || 0} ${item.currency || 'FCFA'}`}
             </Text>
           </View>
 

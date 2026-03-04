@@ -22,6 +22,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { getServiceFeeLabel } from '../../constants/payment';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { walletAPI, payoutsAPI } from '../../api/client';
 import {
@@ -68,6 +70,7 @@ export default function WalletScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showAlert, showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { config: commissionConfig } = useCommissionConfig();
   const [wallet, setWallet] = useState<OrganizerWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -150,7 +153,7 @@ export default function WalletScreen() {
     }
 
     if (amount < wallet.minimum_payout) {
-      showError('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} FCFA`);
+      showError('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} {wallet?.currency || 'FCFA'}`);
       return;
     }
 
@@ -302,7 +305,7 @@ export default function WalletScreen() {
         </View>
         <View style={styles.payoutContent}>
           <Text style={[styles.payoutAmount, { color: colors.gray900 }]}>
-            {formatPrice(payout.amount)} FCFA
+            {formatPrice(payout.amount)} {wallet?.currency || 'FCFA'}
           </Text>
           <Text style={[styles.payoutMethod, { color: colors.gray600 }]}>
             {payout.payout_method === 'mtn_money' ? 'MTN Mobile Money' :
@@ -346,7 +349,7 @@ export default function WalletScreen() {
       </View>
       <View style={styles.pendingRight}>
         <Text style={styles.pendingAmount}>
-          {formatPrice(earning.amount)} FCFA
+          {formatPrice(earning.amount)} {wallet?.currency || 'FCFA'}
         </Text>
         <Text style={styles.pendingDays}>
           {earning.days_until_release > 0
@@ -405,7 +408,7 @@ export default function WalletScreen() {
           <Text style={styles.balanceLabel}>Solde disponible</Text>
           <Text style={styles.balanceAmount}>
             {formatPrice(wallet?.available_balance || 0)}
-            <Text style={styles.balanceCurrency}> FCFA</Text>
+            <Text style={styles.balanceCurrency}> {wallet?.currency || 'FCFA'}</Text>
           </Text>
         </View>
 
@@ -435,7 +438,7 @@ export default function WalletScreen() {
           style={[styles.withdrawButton, { backgroundColor: colors.card }, !wallet?.can_withdraw && styles.withdrawButtonDisabled]}
           onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
             'Retrait impossible',
-            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} FCFA`,
+            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} {wallet?.currency || 'FCFA'}`,
             undefined,
             'warning'
           )}
@@ -451,7 +454,7 @@ export default function WalletScreen() {
       <View style={styles.commissionInfo}>
         <Ionicons name="information-circle" size={18} color="#F59E0B" />
         <Text style={styles.commissionText}>
-          Commission EventEz: 5% + 100 XAF par vente. Fonds libérés 48h après l'événement.
+          Commission EventEz: {getServiceFeeLabel(commissionConfig)} par vente. Fonds libérés 48h après l'événement.
         </Text>
       </View>
 
@@ -584,11 +587,11 @@ export default function WalletScreen() {
             </View>
 
             <Text style={styles.modalSubtitle}>
-              Solde disponible: {formatPrice(wallet?.available_balance || 0)} FCFA
+              Solde disponible: {formatPrice(wallet?.available_balance || 0)} {wallet?.currency || 'FCFA'}
             </Text>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Montant (FCFA)</Text>
+              <Text style={styles.inputLabel}>Montant ({wallet?.currency || 'FCFA'})</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                 value={payoutAmount}

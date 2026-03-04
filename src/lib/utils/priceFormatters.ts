@@ -42,7 +42,7 @@ export function formatPrice(amount: number, currency: string = 'FCFA'): string {
   // Format number with space as thousands separator (French convention)
   const formatted = Math.round(amount)
     .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
   return `${formatted} ${currency}`;
 }
@@ -94,7 +94,7 @@ export function formatPriceRange(min: number, max: number, currency: string = 'F
   const formatNum = (n: number): string =>
     Math.round(n)
       .toString()
-      .replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 
   if (min === 0) {
     return `Gratuit - ${formatNum(max)} ${currency}`;

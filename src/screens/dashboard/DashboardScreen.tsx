@@ -16,6 +16,7 @@ import ExportButton from '../../components/common/ExportButton';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api/client';
 import { RootStackParamList, Event } from '../../types';
 import EventCard from '../../components/events/EventCard';
@@ -60,6 +61,7 @@ export default function DashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     events: 0,
@@ -168,7 +170,7 @@ export default function DashboardScreen() {
             <View>
               <Text style={[styles.balanceLabel, { color: colors.gray500 }]}>Solde disponible</Text>
               <Text style={[styles.balanceValue, { color: colors.text }]}>
-                {stats.balance.toLocaleString()} FCFA
+                {stats.balance.toLocaleString()} {platformCurrency}
               </Text>
             </View>
             <View style={[styles.balanceIcon, { backgroundColor: colors.card }]}>

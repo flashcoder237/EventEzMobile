@@ -39,9 +39,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Ecouter les erreurs d'authentification definitives (refresh echoue)
   useEffect(() => {
     const unsub = eventBus.on('api-auth-error', async () => {
-      console.log('[Auth] Received api-auth-error event, logging out');
+      console.log('[Auth] Received api-auth-error event, clearing session');
       await clearTokens();
-      await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'false');
+      // Ne pas toucher REMEMBER_ME_KEY — l'utilisateur devra se reconnecter
+      // mais sa préférence "Se souvenir de moi" est préservée
       setState({ user: null, isAuthenticated: false, isLoading: false });
     });
     return unsub;
@@ -49,44 +50,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      // Vérifier si "Se souvenir de moi" était activé
       const rememberMe = await SecureStore.getItemAsync(REMEMBER_ME_KEY);
       const token = await SecureStore.getItemAsync('eventez_access_token');
 
-      // Si "Se souvenir de moi" n'est pas activé et qu'on démarre l'app, effacer les tokens
-      if (rememberMe === 'false' && token) {
-        console.log('[Auth] Remember me disabled, clearing tokens');
-        await clearTokens();
-        setState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+      if (!token) {
+        // Pas de token : pas d'auto-connexion possible
+        setState({ user: null, isAuthenticated: false, isLoading: false });
         return;
       }
 
-      if (token) {
-        const response = await usersAPI.getCurrentUser();
-        setState({
-          user: response.data,
-          isAuthenticated: true,
-          isLoading: false,
-        });
-      } else {
-        setState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+      // Si "Se souvenir de moi" explicitement désactivé, effacer les tokens
+      if (rememberMe === 'false') {
+        console.log('[Auth] Remember me disabled, clearing tokens');
+        await clearTokens();
+        setState({ user: null, isAuthenticated: false, isLoading: false });
+        return;
       }
-    } catch (error) {
-      console.error('Erreur de vérification auth:', error);
-      await clearTokens();
+
+      // rememberMe est 'true' ou null (jamais configuré = auto-connexion par défaut)
+      const response = await usersAPI.getCurrentUser();
       setState({
-        user: null,
-        isAuthenticated: false,
+        user: response.data,
+        isAuthenticated: true,
         isLoading: false,
       });
+    } catch (error) {
+      console.error('Erreur de vérification auth:', error);
+      // Token invalide/expiré, nettoyer
+      await clearTokens();
+      setState({ user: null, isAuthenticated: false, isLoading: false });
     }
   };
 
@@ -149,8 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // Filet de securite : s'assurer que les tokens sont bien supprimes
     await clearTokens();
-    // Réinitialiser la préférence "Se souvenir de moi" à false lors de la déconnexion
-    await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'false');
+    // Ne PAS réinitialiser REMEMBER_ME_KEY — la préférence est conservée
+    // pour le prochain login. Les tokens effacés empêchent l'auto-connexion.
     setState({
       user: null,
       isAuthenticated: false,

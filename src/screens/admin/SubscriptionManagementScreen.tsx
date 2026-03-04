@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { subscriptionsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
@@ -45,6 +46,7 @@ interface SubscriptionPlan {
 export default function SubscriptionManagementScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -80,7 +82,7 @@ export default function SubscriptionManagementScreen() {
         <View style={styles.planInfo}>
           <Text style={[styles.planName, { color: colors.gray900 }]}>{item.name}</Text>
           <Text style={[styles.planPrice, { color: colors.primary }]}>
-            {item.price_monthly.toLocaleString()} FCFA/mois
+            {item.price_monthly.toLocaleString()} {platformCurrency}/mois
           </Text>
         </View>
         <Badge

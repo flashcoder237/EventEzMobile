@@ -18,7 +18,18 @@
       "usesAppleSignIn": true,
       "associatedDomains": [
         "applinks:eventez.online"
-      ]
+      ],
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "eventez.online": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": true,
+              "NSTemporaryExceptionRequiresForwardSecrecy": false
+            }
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -95,6 +106,7 @@
           "color": "#7c3aed"
         }
       ],
+      "./plugins/withNetworkSecurity",
       "expo-web-browser",
       "expo-audio",
       "@react-native-community/datetimepicker"

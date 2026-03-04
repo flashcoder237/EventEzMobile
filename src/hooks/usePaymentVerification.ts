@@ -42,7 +42,7 @@ export interface PaymentVerificationConfig {
   maxConsecutiveErrors?: number;
   /**
    * Custom verify function. Receives the paymentId and should return
-   * a promise resolving to the API response. Defaults to paymentsAPI.verifyPayment.
+   * a promise resolving to the API response. Defaults to paymentsAPI.getPayment.
    */
   verifyFn?: (paymentId: string) => Promise<any>;
   /**
@@ -206,11 +206,13 @@ export function usePaymentVerification(
   }, []);
 
   // Get the verify function -- use default paymentsAPI if none provided
+  // Uses getPayment (simple DB read) instead of verifyPayment (calls NotchPay).
+  // The backend webhook already updates payment status from NotchPay.
   const getVerifyFn = useCallback(() => {
     if (verifyFnRef.current) return verifyFnRef.current;
     // Lazy import to avoid circular dependency issues
     const { paymentsAPI } = require('../api/client');
-    return (paymentId: string) => paymentsAPI.verifyPayment(paymentId);
+    return (paymentId: string) => paymentsAPI.getPayment(paymentId);
   }, []);
 
   const stopVerification = useCallback(() => {
@@ -349,8 +351,9 @@ export function usePaymentVerification(
 
   /**
    * Perform a one-shot manual verification with limited retries.
-   * Unlike startVerification, this returns a promise with the result
-   * and does NOT update the hook state (useful for "I already paid" flows).
+   * Unlike startVerification (which polls DB status), this calls
+   * verifyPayment to re-check directly with NotchPay.
+   * Useful for "I already paid" flows.
    */
   const manualVerify = useCallback(
     async (
@@ -363,7 +366,12 @@ export function usePaymentVerification(
       data?: any;
       error?: string;
     }> => {
-      const verify = getVerifyFn();
+      // Use verifyPayment (NotchPay re-check) for manual verification,
+      // NOT getPayment (DB read) — so backend can re-verify with payment provider
+      const { paymentsAPI } = require('../api/client');
+      const verify = verifyFnRef.current
+        ? verifyFnRef.current
+        : (id: string) => paymentsAPI.verifyPayment(id);
 
       for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
@@ -421,7 +429,7 @@ export function usePaymentVerification(
       // Should not reach here, but just in case
       return { success: false, status: 'pending', error: 'Paiement toujours en attente' };
     },
-    [extractStatus, extractErrorMessage, getVerifyFn]
+    [extractStatus, extractErrorMessage]
   );
 
   return {

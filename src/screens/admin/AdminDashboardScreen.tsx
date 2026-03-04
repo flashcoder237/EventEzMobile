@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { usersAPI, auditAPI, analyticsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import { KPICard } from '../../components/charts';
@@ -31,6 +32,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function AdminDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -109,7 +111,7 @@ export default function AdminDashboardScreen() {
           <KPICard title="Evenements" value={stats.totalEvents} icon="calendar-outline" color="#EC4899" />
         </View>
         <View style={styles.kpiRow}>
-          <KPICard title="Revenus" value={`${stats.totalRevenue.toLocaleString()} FCFA`} icon="cash-outline" color="#10B981" />
+          <KPICard title="Revenus" value={`${stats.totalRevenue.toLocaleString()} ${platformCurrency}`} icon="cash-outline" color="#10B981" />
           <KPICard title="Verifications" value={stats.pendingVerifications} icon="shield-checkmark-outline" color="#F59E0B" />
         </View>
 

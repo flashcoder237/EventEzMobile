@@ -41,6 +41,7 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   wasOfflineRef.current = wasOffline;
   const isServerReachableRef = useRef(true);
   isServerReachableRef.current = isServerReachable;
+  const failCountRef = useRef(0);
 
   const checkServer = useCallback(async () => {
     try {
@@ -51,8 +52,9 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
         signal: controller.signal,
       });
       clearTimeout(timeout);
-      // Server responded — mark as reachable
+      // Server responded — mark as reachable, reset fail counter
       setIsServerReachable(true);
+      failCountRef.current = 0;
       // If we were recovering (server was down or device was offline), show "back online" briefly
       if (!isServerReachableRef.current || wasOfflineRef.current) {
         setWasOffline(true);
@@ -92,12 +94,20 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   }, [checkServer]);
 
   // Listen for server errors from API interceptor
+  // Instead of immediately marking server as down, do a health check to confirm
   useEffect(() => {
     const unsub = eventBus.on('api-server-error', () => {
-      setIsServerReachable(false);
+      failCountRef.current += 1;
+      // First failure: ping to confirm before showing "server down"
+      if (failCountRef.current <= 2) {
+        checkServer();
+      } else {
+        // Multiple failures confirmed — server is truly down
+        setIsServerReachable(false);
+      }
     });
     return unsub;
-  }, []);
+  }, [checkServer]);
 
   // Auto-retry when server is unreachable
   useEffect(() => {

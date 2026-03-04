@@ -30,8 +30,8 @@ import {
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
-import { SkeletonList, TicketCardSkeleton } from '../../components/ui/Skeleton';
-import { StaggeredItem, ContentTransition } from '../../components/ui/Animations';
+import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
+import { StaggeredItem } from '../../components/ui/Animations';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -509,9 +509,7 @@ export default function MyTicketsScreen() {
           barStyle={isDark ? 'light-content' : 'dark-content'}
           backgroundColor={colors.background}
         />
-        <View style={styles.loadingContainer}>
-          <SkeletonList count={4} Component={TicketCardSkeleton} />
-        </View>
+        <MyTicketsScreenSkeleton />
       </SafeAreaView>
     );
   }
@@ -833,11 +831,6 @@ export default function MyTicketsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   header: {
     flexDirection: 'row',

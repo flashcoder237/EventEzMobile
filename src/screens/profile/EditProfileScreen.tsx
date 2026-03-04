@@ -72,7 +72,7 @@ const Section = ({ title, icon, children, defaultExpanded = false }: SectionProp
 
 export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, setUser } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
 
@@ -163,8 +163,10 @@ export default function EditProfileScreen() {
 
       const response = await usersAPI.updateProfileImage(formData);
       if (response.data) {
-        updateUser(response.data);
+        // Mettre à jour l'état local sans re-appeler l'API PUT
+        await setUser(response.data);
       }
+      showSuccess('Succès', 'Photo de profil mise à jour');
     } catch (error: any) {
       console.error('Erreur upload image:', error);
       console.error('Upload error details:', {

@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { Spacing } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { TicketTypeForm, FormFieldForm, FIELD_TYPES } from '../../hooks/useEventForm';
@@ -92,11 +93,11 @@ function FormFieldsSection({
           <Ionicons name="document-text-outline" size={40} color={colors.gray400} />
         </View>
         <Text style={[styles.emptyTitle, themed.emptyTitle]}>
-          {isOptional ? 'Aucun champ suppl\u00e9mentaire' : 'Aucun champ'}
+          {isOptional ? 'Aucun champ supplémentaire' : 'Aucun champ'}
         </Text>
         <Text style={[styles.emptyText, themed.emptyText]}>
           {isOptional
-            ? 'Ajoutez des champs pour collecter des informations suppl\u00e9mentaires lors de l\'achat'
+            ? 'Ajoutez des champs pour collecter des informations supplémentaires lors de l\'achat'
             : 'Ajoutez des champs pour collecter les informations des participants'}
         </Text>
         <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddFormField}>
@@ -119,7 +120,7 @@ function FormFieldsSection({
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Intitul\u00e9 *</Text>
+            <Text style={[styles.label, themed.label]}>Intitulé *</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={field.label}
@@ -169,7 +170,7 @@ function FormFieldsSection({
 
           {['select', 'checkbox', 'radio'].includes(field.field_type) && (
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, themed.label]}>Options (s\u00e9par\u00e9es par des virgules) *</Text>
+              <Text style={[styles.label, themed.label]}>Options (séparées par des virgules) *</Text>
               <TextInput
                 style={[styles.input, themed.input]}
                 value={field.options}
@@ -186,7 +187,7 @@ function FormFieldsSection({
               style={[styles.input, themed.input]}
               value={field.help_text}
               onChangeText={(value) => onUpdateFormField(index, 'help_text', value)}
-              placeholder="Instructions suppl\u00e9mentaires"
+              placeholder="Instructions supplémentaires"
               placeholderTextColor={colors.gray400}
             />
           </View>
@@ -194,7 +195,7 @@ function FormFieldsSection({
           <View style={[styles.switchRow, themed.switchRow]}>
             <View style={styles.switchContent}>
               <Text style={[styles.switchLabel, themed.switchLabel]}>Obligatoire</Text>
-              <Text style={[styles.switchDescription, themed.switchDescription]}>Ce champ doit \u00eatre rempli</Text>
+              <Text style={[styles.switchDescription, themed.switchDescription]}>Ce champ doit être rempli</Text>
             </View>
             <Switch
               value={field.required}
@@ -247,6 +248,7 @@ export default function EventStep3Pricing({
   onSuggestPricing,
 }: EventStep3PricingProps) {
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const themed = useEventCreateThemedStyles();
   return (
     <View style={styles.stepContent}>
@@ -255,13 +257,13 @@ export default function EventStep3Pricing({
       </Text>
       <Text style={[styles.stepDescription, themed.stepDescription]}>
         {eventType === 'billetterie'
-          ? 'Cr\u00e9ez les diff\u00e9rents types de billets pour votre \u00e9v\u00e9nement'
-          : 'D\u00e9finissez les champs du formulaire d\'inscription'}
+          ? 'Créez les différents types de billets pour votre événement'
+          : 'Définissez les champs du formulaire d\'inscription'}
       </Text>
 
       {aiEnabled && eventType === 'billetterie' && (
         <AIAssistButton
-          label="Sugg\u00e9rer des prix avec l'IA"
+          label="Suggérer des prix avec l'IA"
           onPress={onSuggestPricing}
           isLoading={aiPricingLoading}
           variant="full"
@@ -273,8 +275,8 @@ export default function EventStep3Pricing({
           {/* Free event toggle */}
           <View style={[styles.switchRow, themed.switchRow]}>
             <View style={styles.switchContent}>
-              <Text style={[styles.switchLabel, themed.switchLabel]}>\u00c9v\u00e9nement gratuit</Text>
-              <Text style={[styles.switchDescription, themed.switchDescription]}>Aucun billet payant ne sera propos\u00e9</Text>
+              <Text style={[styles.switchLabel, themed.switchLabel]}>Événement gratuit</Text>
+              <Text style={[styles.switchDescription, themed.switchDescription]}>Aucun billet payant ne sera proposé</Text>
             </View>
             <Switch
               value={isFree}
@@ -283,7 +285,7 @@ export default function EventStep3Pricing({
                 if (value && ticketTypes.length === 0) {
                   onAddTicketType();
                   setTimeout(() => {
-                    onUpdateTicketType(0, 'name', 'Entr\u00e9e gratuite');
+                    onUpdateTicketType(0, 'name', 'Entrée gratuite');
                     onUpdateTicketType(0, 'price', '0');
                   }, 100);
                 }
@@ -308,7 +310,7 @@ export default function EventStep3Pricing({
               </View>
               <Text style={[styles.emptyTitle, themed.emptyTitle]}>Aucun type de billet</Text>
               <Text style={[styles.emptyText, themed.emptyText]}>
-                Cr\u00e9ez au moins un type de billet pour votre \u00e9v\u00e9nement
+                Créez au moins un type de billet pour votre événement
               </Text>
               <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddTicketType}>
                 <Ionicons name="add" size={20} color={colors.white} />
@@ -343,7 +345,7 @@ export default function EventStep3Pricing({
                       style={[styles.input, styles.textAreaSmall, themed.input]}
                       value={ticket.description}
                       onChangeText={(value) => onUpdateTicketType(index, 'description', value)}
-                      placeholder="D\u00e9crivez ce que ce billet inclut"
+                      placeholder="Décrivez ce que ce billet inclut"
                       placeholderTextColor={colors.gray400}
                       multiline
                       numberOfLines={2}
@@ -353,7 +355,7 @@ export default function EventStep3Pricing({
 
                   <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>Prix (FCFA) *</Text>
+                      <Text style={[styles.label, themed.label]}>Prix ({platformCurrency}) *</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.price}
@@ -365,7 +367,7 @@ export default function EventStep3Pricing({
                       />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>Quantit\u00e9 *</Text>
+                      <Text style={[styles.label, themed.label]}>Quantité *</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.quantity_total}
@@ -403,7 +405,7 @@ export default function EventStep3Pricing({
                   </View>
 
                   <DateTimePickerField
-                    label="D\u00e9but des ventes"
+                    label="Début des ventes"
                     value={ticket.sales_start}
                     onChange={(date) => onUpdateTicketType(index, 'sales_start', date)}
                   />
@@ -447,7 +449,7 @@ export default function EventStep3Pricing({
               <View style={{ flex: 1 }}>
                 <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>Formulaire d'inscription (optionnel)</Text>
                 <Text style={[styles.sectionHeaderDescription, themed.sectionHeaderDescription]}>
-                  Collectez des informations suppl\u00e9mentaires lors de l'achat
+                  Collectez des informations supplémentaires lors de l'achat
                 </Text>
               </View>
               <Switch
@@ -468,7 +470,7 @@ export default function EventStep3Pricing({
                 <View style={[styles.infoBox, themed.infoBox]}>
                   <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
                   <Text style={[styles.infoBoxText, themed.infoBoxText]}>
-                    Ces champs seront affich\u00e9s lors de l'achat de billets pour collecter des informations sur les participants (allergies, taille de t-shirt, etc.)
+                    Ces champs seront affichés lors de l'achat de billets pour collecter des informations sur les participants (allergies, taille de t-shirt, etc.)
                   </Text>
                 </View>
                 <FormFieldsSection
@@ -495,7 +497,7 @@ export default function EventStep3Pricing({
 
       {/* Common settings */}
       <View style={{ marginTop: Spacing.lg, paddingTop: Spacing.lg, borderTopWidth: 1, borderTopColor: colors.gray100 }}>
-        <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Param\u00e8tres g\u00e9n\u00e9raux</Text>
+        <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Paramètres généraux</Text>
 
         <View style={styles.inputGroup}>
           <Text style={[styles.label, themed.label]}>Nombre maximum de participants</Text>
@@ -503,7 +505,7 @@ export default function EventStep3Pricing({
             style={[styles.input, themed.input]}
             value={maxParticipants}
             onChangeText={onMaxParticipantsChange}
-            placeholder="Laisser vide pour illimit\u00e9"
+            placeholder="Laisser vide pour illimité"
             placeholderTextColor={colors.gray400}
             keyboardType="numeric"
           />
@@ -512,7 +514,7 @@ export default function EventStep3Pricing({
         <View style={[styles.switchRow, themed.switchRow]}>
           <View style={styles.switchContent}>
             <Text style={[styles.switchLabel, themed.switchLabel]}>Approbation automatique</Text>
-            <Text style={[styles.switchDescription, themed.switchDescription]}>Les inscriptions sont confirm\u00e9es automatiquement</Text>
+            <Text style={[styles.switchDescription, themed.switchDescription]}>Les inscriptions sont confirmées automatiquement</Text>
           </View>
           <Switch
             value={autoApproveRegistrations}
@@ -525,7 +527,7 @@ export default function EventStep3Pricing({
 
       {/* Summary */}
       <View style={[styles.summaryCard, themed.summaryCard]}>
-        <Text style={styles.summaryTitle}>R\u00e9capitulatif</Text>
+        <Text style={styles.summaryTitle}>Récapitulatif</Text>
         <View style={[styles.summaryRow, themed.summaryRow]}>
           <Text style={[styles.summaryLabel, themed.summaryLabel]}>Titre</Text>
           <Text style={[styles.summaryValue, themed.summaryValue]} numberOfLines={1}>{title || '-'}</Text>

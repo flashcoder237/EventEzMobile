@@ -1,134 +1,89 @@
 import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withTiming,
+  withRepeat,
+  withSequence,
+  cancelAnimation,
 } from 'react-native-reanimated';
 import { useConnection } from '../../contexts/ConnectionContext';
 
-const STATUS_CONFIG = {
-  offline: {
-    bg: '#DC2626',
-    icon: 'wifi-outline' as const,
-    text: 'Pas de connexion internet',
-    showRetry: false,
-  },
-  'server-down': {
-    bg: '#EA580C',
-    icon: 'cloud-offline-outline' as const,
-    text: 'Serveur indisponible',
-    showRetry: true,
-  },
-  reconnecting: {
-    bg: '#CA8A04',
-    icon: 'sync-outline' as const,
-    text: 'Reconnexion...',
-    showRetry: false,
-  },
-  online: {
-    bg: '#16A34A',
-    icon: 'checkmark-circle-outline' as const,
-    text: 'Connexion retablie',
-    showRetry: false,
-  },
+const STATUS_COLORS = {
+  offline: '#DC2626',
+  'server-down': '#EA580C',
+  reconnecting: '#CA8A04',
+  online: '#16A34A',
 };
 
+const BAR_HEIGHT = 4;
+
 export default function ConnectionStatusBar() {
-  const { status, retry } = useConnection();
+  const { status } = useConnection();
   const insets = useSafeAreaInsets();
-  const translateY = useSharedValue(-80);
-  const isVisible = status !== 'online';
+  const opacity = useSharedValue(0);
+  const scaleX = useSharedValue(0);
 
-  useEffect(() => {
-    if (status === 'online') {
-      // Already hidden — nothing to show
-      return;
-    }
-    // Show the bar
-    translateY.value = withTiming(0, { duration: 300 });
-  }, [status]);
-
-  // When status goes back to "online" after being shown, show green briefly then hide
   const prevStatusRef = React.useRef(status);
+  const hasEverShown = React.useRef(false);
+
   useEffect(() => {
     const prev = prevStatusRef.current;
     prevStatusRef.current = status;
 
-    if (status === 'online' && prev !== 'online') {
-      // Show green "back online" then slide out
-      translateY.value = withTiming(0, { duration: 200 });
+    if (status !== 'online') {
+      hasEverShown.current = true;
+      // Show and pulse
+      scaleX.value = withTiming(1, { duration: 300 });
+      opacity.value = withRepeat(
+        withSequence(
+          withTiming(1, { duration: 600 }),
+          withTiming(0.4, { duration: 600 }),
+        ),
+        -1, // infinite
+        true,
+      );
+    } else if (prev !== 'online' && hasEverShown.current) {
+      // Back online — solid green briefly then fade out
+      cancelAnimation(opacity);
+      opacity.value = withTiming(1, { duration: 200 });
+      scaleX.value = 1;
       const timer = setTimeout(() => {
-        translateY.value = withTiming(-80, { duration: 300 });
+        opacity.value = withTiming(0, { duration: 400 });
+        scaleX.value = withTiming(0, { duration: 400 });
       }, 2000);
       return () => clearTimeout(timer);
     }
   }, [status]);
 
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    opacity: opacity.value,
+    transform: [{ scaleX: scaleX.value }],
   }));
 
-  const config = STATUS_CONFIG[status];
-
-  // Don't render if we've never had an issue (initial state)
-  const hasEverShown = React.useRef(false);
-  if (status !== 'online') hasEverShown.current = true;
   if (!hasEverShown.current && status === 'online') return null;
+
+  const color = STATUS_COLORS[status];
 
   return (
     <Animated.View
       style={[
-        styles.container,
-        { paddingTop: insets.top + 4, backgroundColor: config.bg },
+        styles.bar,
+        { top: insets.top, backgroundColor: color },
         animatedStyle,
       ]}
-    >
-      <View style={styles.content}>
-        <Ionicons name={config.icon} size={18} color="#fff" />
-        <Text style={styles.text}>{config.text}</Text>
-        {config.showRetry && (
-          <TouchableOpacity onPress={retry} style={styles.retryButton}>
-            <Text style={styles.retryText}>Reessayer</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </Animated.View>
+    />
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  bar: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
+    height: BAR_HEIGHT,
     zIndex: 9999,
-    paddingBottom: 8,
-  },
-  content: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    gap: 8,
-  },
-  text: {
-    color: '#fff',
-    fontSize: 13,
-    fontFamily: 'Montserrat_500Medium',
-  },
-  retryButton: {
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  retryText: {
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: 'Montserrat_600SemiBold',
   },
 });

@@ -105,11 +105,11 @@ export default function EventStep2DateTime({
   return (
     <View style={styles.stepContent}>
       <Text style={[styles.stepTitle, themed.stepTitle]}>Date et Lieu</Text>
-      <Text style={[styles.stepDescription, themed.stepDescription]}>Quand et o\u00f9 se d\u00e9roulera votre \u00e9v\u00e9nement ?</Text>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>Quand et où se déroulera votre événement ?</Text>
 
       {/* Dates */}
       <DateTimePickerField
-        label="Date de d\u00e9but *"
+        label="Date de début *"
         value={startDate}
         onChange={(date) => {
           onStartDateChange(date);
@@ -153,7 +153,7 @@ export default function EventStep2DateTime({
           value={registrationDeadline || undefined}
           onChange={(date) => onRegistrationDeadlineChange(date)}
           maximumDate={startDate}
-          placeholder="S\u00e9lectionner une date"
+          placeholder="Sélectionner une date"
         />
       )}
 
@@ -191,7 +191,7 @@ export default function EventStep2DateTime({
               style={[styles.input, themed.input]}
               value={locationName}
               onChangeText={onLocationNameChange}
-              placeholder="Ex: Palais des Congr\u00e8s"
+              placeholder="Ex: Palais des Congrès"
               placeholderTextColor={colors.gray400}
             />
           </View>
@@ -211,7 +211,7 @@ export default function EventStep2DateTime({
               style={[styles.input, themed.input]}
               value={locationAddress}
               onChangeText={onLocationAddressChange}
-              placeholder="Adresse compl\u00e8te"
+              placeholder="Adresse complète"
               placeholderTextColor={colors.gray400}
             />
           </View>
@@ -242,7 +242,7 @@ export default function EventStep2DateTime({
             )}
 
             <Text style={[styles.inputHint, themed.inputHint]}>
-              Pour afficher l'\u00e9v\u00e9nement sur la carte et permettre la navigation
+              Pour afficher l'événement sur la carte et permettre la navigation
             </Text>
           </View>
         </View>
@@ -275,7 +275,7 @@ export default function EventStep2DateTime({
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>ID de r\u00e9union</Text>
+            <Text style={[styles.label, themed.label]}>ID de réunion</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={onlineMeetingId}
@@ -285,7 +285,7 @@ export default function EventStep2DateTime({
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Code d'acc\u00e8s</Text>
+            <Text style={[styles.label, themed.label]}>Code d'accès</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={onlinePasscode}
@@ -300,7 +300,7 @@ export default function EventStep2DateTime({
               style={[styles.input, styles.textAreaSmall, themed.input]}
               value={onlineInstructions}
               onChangeText={onOnlineInstructionsChange}
-              placeholder="Instructions pour rejoindre l'\u00e9v\u00e9nement..."
+              placeholder="Instructions pour rejoindre l'événement..."
               placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={3}

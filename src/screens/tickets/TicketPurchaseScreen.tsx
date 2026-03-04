@@ -30,7 +30,8 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
-import { calculateServiceFee, SERVICE_FEE_LABEL } from '../../constants/payment';
+import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TicketPurchaseRouteProp = RouteProp<RootStackParamList, 'TicketPurchase'>;
@@ -46,6 +47,7 @@ export default function TicketPurchaseScreen() {
   const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
+  const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig();
 
   // Mode d'édition: modifier une inscription existante
   const isEditMode = !!registrationId;
@@ -172,7 +174,7 @@ export default function TicketPurchaseScreen() {
   const getSubtotal = () => {
     let total = 0;
     selections.forEach((quantity, ticketTypeId) => {
-      const ticketType = ticketTypes.find(t => t.id === ticketTypeId);
+      const ticketType = ticketTypes.find(t => String(t.id) === String(ticketTypeId));
       if (ticketType) {
         total += ticketType.price * quantity;
       }
@@ -193,9 +195,9 @@ export default function TicketPurchaseScreen() {
     return Math.max(0, getSubtotal() - getDiscountAmount());
   };
 
-  // Frais de service via constantes partagées
+  // Frais de service via config dynamique du backend
   const getServiceFee = () => {
-    return calculateServiceFee(getTotalPrice());
+    return calculateServiceFee(getTotalPrice(), commissionConfig);
   };
 
   const getGrandTotal = () => {
@@ -367,7 +369,7 @@ export default function TicketPurchaseScreen() {
       }
 
       // Navigate based on payment requirements
-      const totalPrice = isBilletterie ? getTotalPrice() : (event?.base_price || 0);
+      const totalPrice = isBilletterie ? getTotalPrice() : 0;
 
       if (paymentRequired || totalPrice > 0) {
         navigation.navigate('Payment', { registrationId: finalRegistrationId });
@@ -597,7 +599,7 @@ export default function TicketPurchaseScreen() {
                     )}
                     <View style={styles.ticketMeta}>
                       <Text style={[styles.ticketPrice, { color: colors.primary }]}>
-                        {ticketType.price === 0 ? 'Gratuit' : `${ticketType.price.toLocaleString()} FCFA`}
+                        {ticketType.price === 0 ? 'Gratuit' : `${ticketType.price.toLocaleString()} {commissionCurrency}`}
                       </Text>
                       {availableQty > 0 && ticketType.quantity_total !== undefined && (
                         <Text style={[styles.ticketAvailability, { color: colors.gray500 }]}>
@@ -658,7 +660,7 @@ export default function TicketPurchaseScreen() {
                     <Text style={[styles.appliedDiscountValue, { color: colors.success }]}>
                       {appliedDiscount.discount_type === 'percentage'
                         ? `-${appliedDiscount.value || 0}%`
-                        : `-${(appliedDiscount.value || 0).toLocaleString()} FCFA`}
+                        : `-${(appliedDiscount.value || 0).toLocaleString()} {commissionCurrency}`}
                     </Text>
                   </View>
                 </View>
@@ -720,7 +722,7 @@ export default function TicketPurchaseScreen() {
             <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Récapitulatif</Text>
             <View style={[styles.summaryCard, { backgroundColor: colors.gray50 }]}>
               {Array.from(selections.entries()).map(([ticketTypeId, quantity]) => {
-                const ticketType = ticketTypes.find(t => t.id === ticketTypeId);
+                const ticketType = ticketTypes.find(t => String(t.id) === String(ticketTypeId));
                 if (!ticketType) return null;
 
                 return (
@@ -729,7 +731,7 @@ export default function TicketPurchaseScreen() {
                       {ticketType.name} x {quantity}
                     </Text>
                     <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
-                      {(ticketType.price * quantity).toLocaleString()} FCFA
+                      {(ticketType.price * quantity).toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                 );
@@ -740,7 +742,7 @@ export default function TicketPurchaseScreen() {
                   <View style={styles.summaryRow}>
                     <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Sous-total</Text>
                     <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
-                      {getSubtotal().toLocaleString()} FCFA
+                      {getSubtotal().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
@@ -751,7 +753,7 @@ export default function TicketPurchaseScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.discountValue, { color: colors.success }]}>
-                      -{getDiscountAmount().toLocaleString()} FCFA
+                      -{getDiscountAmount().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                 </>
@@ -762,13 +764,13 @@ export default function TicketPurchaseScreen() {
                   <View style={styles.summaryRow}>
                     <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Sous-total</Text>
                     <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
-                      {getTotalPrice().toLocaleString()} FCFA
+                      {getTotalPrice().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                   <View style={styles.summaryRow}>
-                    <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Frais de service ({SERVICE_FEE_LABEL})</Text>
+                    <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Frais de service ({getServiceFeeLabel(commissionConfig)})</Text>
                     <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
-                      {getServiceFee().toLocaleString()} FCFA
+                      {getServiceFee().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                   <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
@@ -777,7 +779,7 @@ export default function TicketPurchaseScreen() {
               <View style={styles.summaryRow}>
                 <Text style={[styles.totalLabel, { color: colors.gray900 }]}>Total</Text>
                 <Text style={[styles.totalValue, { color: colors.primary }]}>
-                  {getGrandTotal().toLocaleString()} FCFA
+                  {getGrandTotal().toLocaleString()} {commissionCurrency}
                 </Text>
               </View>
             </View>
@@ -792,7 +794,7 @@ export default function TicketPurchaseScreen() {
             <>
               <Text style={[styles.totalLabelBottom, { color: colors.gray500 }]}>Total</Text>
               <Text style={[styles.totalValueBottom, { color: colors.gray900 }]}>
-                {getGrandTotal().toLocaleString()} FCFA
+                {getGrandTotal().toLocaleString()} {commissionCurrency}
               </Text>
               <Text style={[styles.totalQuantityBottom, { color: colors.gray500 }]}>
                 {getTotalQuantity()} billet{getTotalQuantity() > 1 ? 's' : ''}
@@ -803,7 +805,7 @@ export default function TicketPurchaseScreen() {
             <>
               <Text style={[styles.totalLabelBottom, { color: colors.gray500 }]}>Inscription</Text>
               <Text style={[styles.totalValueBottom, { color: colors.gray900 }]}>
-                {event?.is_free || !event?.base_price ? 'Gratuit' : `${(event?.base_price || 0).toLocaleString()} FCFA`}
+                {event?.is_free || !event?.base_price ? 'Gratuit' : `${(event?.base_price || 0).toLocaleString()} {commissionCurrency}`}
               </Text>
             </>
           )}

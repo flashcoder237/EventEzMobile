@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api/client';
 import { RootStackParamList, TreasuryOverview, PlatformTransaction } from '../../../types';
 import { KPICard } from '../../../components/charts';
@@ -33,6 +34,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function TreasuryOverviewScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [overview, setOverview] = useState<TreasuryOverview | null>(null);
@@ -68,7 +70,7 @@ export default function TreasuryOverviewScreen() {
     { icon: 'document-text-outline' as const, title: 'Rapports financiers', screen: 'TreasuryReports' as const, color: '#10B981' },
   ];
 
-  const formatAmount = (amount: number) => `${amount.toLocaleString()} FCFA`;
+  const formatAmount = (amount: number) => `${amount.toLocaleString()} ${platformCurrency}`;
 
   const getTransactionColor = (type: string) => {
     switch (type) {

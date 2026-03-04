@@ -366,7 +366,7 @@ export default function OrganizerProfileScreen() {
                       </View>
                     ) : event.base_price != null ? (
                       <Text style={[styles.eventPrice, { color: colors.primary }]}>
-                        {event.base_price.toLocaleString()} FCFA
+                        {event.base_price.toLocaleString()} {event.currency || 'FCFA'}
                       </Text>
                     ) : null}
                     <View style={styles.eventStatRow}>

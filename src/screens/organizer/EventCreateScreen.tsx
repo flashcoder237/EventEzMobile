@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
@@ -26,6 +27,7 @@ import {
   EventStep4Sessions,
 } from '../../components/organizer';
 import { useEventForm, STEPS } from '../../hooks/useEventForm';
+import { useEventDraft } from '../../hooks/useEventDraft';
 import {
   Colors,
   FontFamily,
@@ -104,13 +106,96 @@ export default function EventCreateScreen() {
     // Submit
     handleSubmit,
     resetForm,
+    // Draft
+    hydrateForm,
     // Utils
     formatDate,
   } = useEventForm(alertActions);
 
+  // Draft persistence
+  const { hasDraft, draftTitle, draftLoading, draftJustSaved, loadDraft, scheduleSave, saveNow, clearDraft } = useEventDraft();
+  const draftCheckedRef = useRef(false);
+  const formRef = useRef(form);
+  formRef.current = form;
+
+  // On mount: check for existing draft
+  useEffect(() => {
+    if (draftLoading || draftCheckedRef.current) return;
+    draftCheckedRef.current = true;
+
+    if (hasDraft) {
+      showAlert(
+        'Brouillon trouvé',
+        `Vous avez un brouillon "${draftTitle}" en cours. Voulez-vous le reprendre ?`,
+        [
+          {
+            text: 'Supprimer',
+            style: 'destructive',
+            onPress: () => clearDraft(),
+          },
+          {
+            text: 'Reprendre',
+            onPress: async () => {
+              const data = await loadDraft();
+              if (data) hydrateForm(data);
+            },
+          },
+        ],
+        'info'
+      );
+    }
+  }, [draftLoading, hasDraft, draftTitle, showAlert, clearDraft, loadDraft, hydrateForm]);
+
+  // Auto-save on form changes (debounced 2s)
+  useEffect(() => {
+    if (draftLoading) return;
+    // Skip if form is completely empty (fresh state)
+    const hasContent =
+      form.title.trim() ||
+      form.description.trim() ||
+      form.shortDescription.trim() ||
+      form.bannerImage ||
+      form.locationName.trim() ||
+      form.locationCity.trim() ||
+      form.ticketTypes.length > 0 ||
+      form.formFields.length > 0 ||
+      form.sessions.length > 0;
+    if (!hasContent) return;
+
+    scheduleSave(form);
+  }, [
+    draftLoading, scheduleSave,
+    form.currentStep, form.title, form.description, form.shortDescription,
+    form.eventType, form.categoryId, form.selectedTagIds, form.customTags,
+    form.bannerImage, form.startDate, form.endDate, form.registrationDeadline,
+    form.hasRegistrationDeadline, form.locationType, form.locationName,
+    form.locationCity, form.locationAddress, form.locationCountry,
+    form.onlineUrl, form.onlinePlatform, form.onlineInstructions,
+    form.onlineMeetingId, form.onlinePasscode, form.locationLatitude,
+    form.locationLongitude, form.isFree, form.maxParticipants,
+    form.autoApproveRegistrations, form.ticketTypes, form.formFields,
+    form.showFormFieldsForBilletterie, form.visibility, form.accessCode,
+    form.sessions,
+  ]);
+
+  // Back button: save immediately then go back
+  const handleBack = useCallback(async () => {
+    const hasContent =
+      formRef.current.title.trim() ||
+      formRef.current.description.trim() ||
+      formRef.current.bannerImage ||
+      formRef.current.ticketTypes.length > 0 ||
+      formRef.current.sessions.length > 0;
+    if (hasContent) {
+      await saveNow(formRef.current);
+    }
+    navigation.goBack();
+  }, [saveNow, navigation]);
+
   const onSubmit = async () => {
     const eventId = await handleSubmit();
     if (eventId) {
+      await clearDraft();
       showAlert(
         'Succès',
         'Votre événement a été créé en tant que brouillon. Vous pouvez le modifier et le publier depuis Mes événements.',
@@ -121,7 +206,10 @@ export default function EventCreateScreen() {
           },
           {
             text: 'Créer un autre',
-            onPress: () => resetForm(),
+            onPress: async () => {
+              await clearDraft();
+              resetForm();
+            },
           },
         ],
         'success'
@@ -137,11 +225,23 @@ export default function EventCreateScreen() {
         <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            onPress={handleBack}
           >
             <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
-          <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Créer un événement</Text>
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Créer un événement</Text>
+            {draftJustSaved && (
+              <Animated.View
+                entering={FadeIn.duration(300)}
+                exiting={FadeOut.duration(300)}
+                style={styles.savedBadge}
+              >
+                <Ionicons name="cloud-done-outline" size={12} color={Colors.success} />
+                <Text style={styles.savedBadgeText}>Sauvegardé</Text>
+              </Animated.View>
+            )}
+          </View>
           {form.aiEnabled ? <AIUsageBadge usage={form.aiUsage} /> : <View style={{ width: 40 }} />}
         </View>
 
@@ -370,10 +470,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerCenter: {
+    alignItems: 'center',
+    flex: 1,
+  },
   headerBarTitle: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
     color: Colors.gray900,
+  },
+  savedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2,
+  },
+  savedBadgeText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.xs,
+    color: Colors.success,
   },
   progressContainer: {
     flexDirection: 'row',

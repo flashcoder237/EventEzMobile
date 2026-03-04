@@ -118,7 +118,7 @@ export default function EventStep1Info({
   return (
     <View style={styles.stepContent}>
       <Text style={[styles.stepTitle, themed.stepTitle]}>Informations de base</Text>
-      <Text style={[styles.stepDescription, themed.stepDescription]}>D\u00e9crivez votre \u00e9v\u00e9nement pour attirer les participants</Text>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>Décrivez votre événement pour attirer les participants</Text>
 
       {/* AI Quick Create */}
       <AIQuickCreatePanel
@@ -157,7 +157,7 @@ export default function EventStep1Info({
       {/* Title */}
       <View style={styles.inputGroup}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={[styles.label, themed.label]}>Titre de l'\u00e9v\u00e9nement *</Text>
+          <Text style={[styles.label, themed.label]}>Titre de l'événement *</Text>
           {aiEnabled && (
             <AIAssistButton
               label="Optimiser"
@@ -183,7 +183,7 @@ export default function EventStep1Info({
           style={[styles.input, themed.input]}
           value={shortDescription}
           onChangeText={onShortDescriptionChange}
-          placeholder="R\u00e9sum\u00e9 en quelques mots (max 150 caract\u00e8res)"
+          placeholder="Résumé en quelques mots (max 150 caractères)"
           placeholderTextColor={colors.gray400}
           maxLength={150}
         />
@@ -193,10 +193,10 @@ export default function EventStep1Info({
       {/* Full Description */}
       <View style={styles.inputGroup}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={[styles.label, themed.label]}>Description compl\u00e8te *</Text>
+          <Text style={[styles.label, themed.label]}>Description complète *</Text>
           {aiEnabled && (
             <AIAssistButton
-              label="G\u00e9n\u00e9rer"
+              label="Générer"
               onPress={onGenerateDescription}
               isLoading={aiDescLoading}
               disabled={!title.trim()}
@@ -207,7 +207,7 @@ export default function EventStep1Info({
           style={[styles.input, styles.textArea, themed.input]}
           value={description}
           onChangeText={onDescriptionChange}
-          placeholder="D\u00e9crivez votre \u00e9v\u00e9nement en d\u00e9tail..."
+          placeholder="Décrivez votre événement en détail..."
           placeholderTextColor={colors.gray400}
           multiline
           numberOfLines={5}
@@ -217,7 +217,7 @@ export default function EventStep1Info({
 
       {/* Event Type */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Type d'\u00e9v\u00e9nement *</Text>
+        <Text style={[styles.label, themed.label]}>Type d'événement *</Text>
         <View style={styles.typeSelector}>
           <TouchableOpacity
             style={[styles.typeOption, themed.typeOption, eventType === 'billetterie' && styles.typeOptionActive]}
@@ -250,7 +250,7 @@ export default function EventStep1Info({
 
       {/* Category */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Cat\u00e9gorie *</Text>
+        <Text style={[styles.label, themed.label]}>Catégorie *</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <View style={styles.categoriesContainer}>
             {categories.map((cat) => (
@@ -272,7 +272,7 @@ export default function EventStep1Info({
       <View style={styles.inputGroup}>
         <Text style={[styles.label, themed.label]}>Tags</Text>
         <Text style={[styles.inputHint, themed.inputHint]}>
-          Ajoutez des mots-cl\u00e9s pour aider les participants \u00e0 trouver votre \u00e9v\u00e9nement
+          Ajoutez des mots-clés pour aider les participants à trouver votre événement
         </Text>
         <View style={{ marginTop: Spacing.sm }}>
           <TagInput

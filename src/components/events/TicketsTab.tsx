@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Event, WaitlistEntry } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import ConvertedPrice from '../common/ConvertedPrice';
 
 export interface TicketsTabProps {
   event: Event;
@@ -58,8 +59,11 @@ export default function TicketsTab({
                 </View>
                 <View style={styles.ticketPriceContainer}>
                   <Text style={[styles.ticketPrice, { color: colors.primary }, isSoldOut && { color: colors.gray400 }]}>
-                    {ticket.price > 0 ? `${ticket.price.toLocaleString()} FCFA` : 'Gratuit'}
+                    {ticket.price > 0 ? `${ticket.price.toLocaleString()} ${event.currency || 'FCFA'}` : 'Gratuit'}
                   </Text>
+                  {ticket.price > 0 && (
+                    <ConvertedPrice amount={ticket.price} eventCurrency={event.currency || 'XAF'} />
+                  )}
                 </View>
               </View>
             );

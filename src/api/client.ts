@@ -48,12 +48,13 @@ api.interceptors.request.use(
     if (isFormData) {
       delete config.headers['Content-Type'];
       config.transformRequest = [(data: any) => data];
+      config.timeout = 60000; // 60s pour les uploads de fichiers
     }
 
     // Log de la requête pour debug
     console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
-    if (config.data && __DEV__) {
-      // Ne pas logger les mots de passe
+    if (config.data && __DEV__ && !isFormData) {
+      // Ne pas logger les FormData ni les mots de passe
       const safeData = { ...config.data };
       if (safeData.password) safeData.password = '***';
       if (safeData.confirm_password) safeData.confirm_password = '***';
@@ -1292,8 +1293,34 @@ export const paymentsAPI = {
   initializePayment: (id: string) =>
     api.post(`/payments/${id}/initialize_payment/`),
 
-  verifyPayment: (id: string) =>
-    api.get(`/payments/${id}/verify_payment/`),
+  verifyPayment: async (id: string) => {
+    try {
+      return await api.get(`/payments/${id}/verify_payment/`);
+    } catch (axiosErr: any) {
+      // Fallback: use native fetch if axios fails with network error
+      if (axiosErr?.code === 'ERR_NETWORK' || axiosErr?.message?.includes('Network Error')) {
+        console.log('[API] Axios network error, falling back to native fetch for payment verification');
+        const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+        const response = await fetch(`${API_BASE_URL}/payments/${id}/verify_payment/`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+        });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const error: any = new Error(`HTTP ${response.status}`);
+          error.response = { status: response.status, data: errorData };
+          throw error;
+        }
+        const data = await response.json();
+        return { data, status: response.status, headers: {} };
+      }
+      throw axiosErr;
+    }
+  },
 
   processMtnMoney: (id: string, data?: { phone?: string }) =>
     api.post(`/payments/${id}/process_mtn_money/`, data || {}),
@@ -1355,8 +1382,15 @@ export const invoicesAPI = {
 // ============================================
 
 export const subscriptionsAPI = {
-  getPlans: () =>
-    api.get('/subscription-plans/'),
+  getPlans: (countryCode?: string) => {
+    const params = countryCode ? { country_code: countryCode } : {};
+    return api.get('/subscription-plans/', { params });
+  },
+
+  getPrices: (countryCode?: string) => {
+    const params = countryCode ? { country_code: countryCode } : {};
+    return api.get('/subscription-plans/prices/', { params });
+  },
 
   getCurrentPlan: () =>
     api.get('/subscription-plans/current/'),
@@ -1438,8 +1472,16 @@ export const commissionsAPI = {
   getCommissions: (params?: any) =>
     api.get('/commissions/', { params }),
 
-  calculate: (ticketPrice: number) =>
-    api.post('/commissions/calculate/', { ticket_price: ticketPrice }),
+  getConfig: (countryCode?: string) => {
+    const params = countryCode ? { country_code: countryCode } : {};
+    return api.get('/commissions/config/', { params });
+  },
+
+  calculate: (ticketPrice: number, countryCode?: string) =>
+    api.post('/commissions/calculate/', {
+      ticket_price: ticketPrice,
+      ...(countryCode ? { country_code: countryCode } : {}),
+    }),
 
   getStats: () =>
     api.get('/commissions/stats/'),
@@ -1963,7 +2005,7 @@ export const currencyAPI = {
     api.get('/currencies/'),
 
   convert: (amount: number, from: string, to: string) =>
-    api.get('/currencies/convert/', { params: { amount, from, to } }),
+    api.get('/commissions/convert/', { params: { amount, from, to } }),
 };
 
 // ============================================

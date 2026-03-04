@@ -19,7 +19,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
-import { ticketPurchasesAPI, eventsAPI, feedbacksAPI, registrationsAPI } from '../../api/client';
+import { eventsAPI, feedbacksAPI, registrationsAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -87,21 +87,22 @@ export default function ProfileScreen() {
   const fetchStats = async () => {
     try {
       // Fetch all stats in parallel
-      const [ticketsRes, registrationsRes, followingRes, feedbacksRes] = await Promise.all([
-        ticketPurchasesAPI.getMyTickets().catch(() => ({ data: { count: 0 } })),
+      const [registrationsRes, followingRes, feedbacksRes] = await Promise.all([
         registrationsAPI.getMyRegistrations().catch(() => ({ data: { count: 0 } })),
-        eventsAPI.getFollowingEvents().catch(() => ({ data: [] })),
+        eventsAPI.getFollowingEvents().catch(() => ({ data: { count: 0 } })),
         feedbacksAPI.getFeedbacks({ user: 'me', page_size: 1 }).catch(() => ({ data: { count: 0 } })),
       ]);
 
-      const ticketsCount = ticketsRes.data?.count || 0;
+      // Registrations = nombre d'inscriptions (inclut deja les billets)
       const registrationsCount = registrationsRes.data?.count || 0;
-      const followingList = followingRes.data?.results || followingRes.data || [];
+      // Favoris = utiliser count (total) au lieu de results.length (premiere page)
+      const followingCount = followingRes.data?.count
+        ?? (Array.isArray(followingRes.data?.results) ? followingRes.data.results.length : (Array.isArray(followingRes.data) ? followingRes.data.length : 0));
       const feedbacksCount = feedbacksRes.data?.count || 0;
 
       setStats({
-        tickets: ticketsCount + registrationsCount,
-        favorites: Array.isArray(followingList) ? followingList.length : 0,
+        tickets: registrationsCount,
+        favorites: followingCount,
         reviews: feedbacksCount,
       });
     } catch (error) {

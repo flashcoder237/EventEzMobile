@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api/client';
 import { RootStackParamList } from '../../../types';
 import { KPICard, ChartWrapper } from '../../../components/charts';
@@ -33,6 +34,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function TreasuryReportsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [profitLoss, setProfitLoss] = useState<any>(null);
@@ -63,7 +65,7 @@ export default function TreasuryReportsScreen() {
     setRefreshing(false);
   };
 
-  const formatAmount = (amount: number) => `${amount.toLocaleString()} FCFA`;
+  const formatAmount = (amount: number) => `${amount.toLocaleString()} ${platformCurrency}`;
 
   const revenue = profitLoss?.total_revenue || summary?.total_revenue || 0;
   const expenses = profitLoss?.total_expenses || summary?.total_expenses || 0;

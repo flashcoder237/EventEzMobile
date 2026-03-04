@@ -18,6 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { discountsAPI, ticketTypesAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
@@ -45,6 +46,7 @@ export default function DiscountFormScreen() {
   const { eventId, discountId } = route.params;
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
 
   const isEditing = !!discountId;
 
@@ -289,7 +291,7 @@ export default function DiscountFormScreen() {
                   { color: colors.gray600 },
                   discountType === 'fixed' && { color: colors.white },
                 ]}>
-                  Montant fixe (FCFA)
+                  Montant fixe ({platformCurrency})
                 </Text>
               </TouchableOpacity>
             </View>
@@ -298,7 +300,7 @@ export default function DiscountFormScreen() {
           {/* Value */}
           <View style={styles.fieldContainer}>
             <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>
-              Valeur {discountType === 'percentage' ? '(%)' : '(FCFA)'}
+              Valeur {discountType === 'percentage' ? '(%)' : '({platformCurrency})'}
             </Text>
             <TextInput
               style={[
@@ -396,7 +398,7 @@ export default function DiscountFormScreen() {
                         { color: colors.gray600 },
                         selected && { color: colors.primary },
                       ]}>
-                        {tt.name} — {tt.price.toLocaleString()} FCFA
+                        {tt.name} — {tt.price.toLocaleString()} {platformCurrency}
                       </Text>
                     </TouchableOpacity>
                   );

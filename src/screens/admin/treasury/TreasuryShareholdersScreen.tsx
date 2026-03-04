@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api/client';
 import { RootStackParamList, Shareholder, DividendDistribution } from '../../../types';
 import Badge from '../../../components/ui/Badge';
@@ -34,6 +35,7 @@ type TabType = 'shareholders' | 'dividends';
 export default function TreasuryShareholdersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const [activeTab, setActiveTab] = useState<TabType>('shareholders');
   const [shareholders, setShareholders] = useState<Shareholder[]>([]);
   const [dividends, setDividends] = useState<DividendDistribution[]>([]);
@@ -100,7 +102,7 @@ export default function TreasuryShareholdersScreen() {
         </View>
         <View style={styles.info}>
           <Text style={[styles.cardTitle, { color: colors.gray900 }]}>
-            {item.total_amount.toLocaleString()} FCFA
+            {item.total_amount.toLocaleString()} {platformCurrency}
           </Text>
           <Text style={[styles.cardSubtitle, { color: colors.gray500 }]}>
             {new Date(item.period_start).toLocaleDateString('fr-FR', { month: 'short' })} - {new Date(item.period_end).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}

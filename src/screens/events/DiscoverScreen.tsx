@@ -25,8 +25,9 @@ import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { Searching as SearchingIllustration } from '../../components/illustrations';
-import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
+import { SkeletonList, EventCardSkeleton, DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
 import { FadeInView, SectionEntrance, PulsingBadge, StaggeredItem } from '../../components/ui/Animations';
 import { useNotifications } from '../../contexts/NotificationContext';
 import GradientText from '../../components/ui/GradientText';
@@ -89,10 +90,12 @@ export default function DiscoverScreen() {
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
   const { user } = useAuth();
   const { colors, isDark, gradients } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
   const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const { unreadNotificationCount, unreadMessageCount } = useNotifications();
 
   // === State: Discovery Feed ===
+  const [initialLoading, setInitialLoading] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -203,8 +206,8 @@ export default function DiscoverScreen() {
       const [featuredRes, categoriesRes, upcomingRes, freeRes] = await Promise.all([
         eventsAPI.getFeaturedEvents(),
         categoriesAPI.getCategories(),
-        eventsAPI.getEvents({ ordering: 'start_date', limit: 15 }),
-        eventsAPI.getEvents({ price: 'free', ordering: 'start_date', limit: 10 }),
+        eventsAPI.getEvents({ ordering: 'start_date', limit: 15, status: 'validated' }),
+        eventsAPI.getEvents({ price: 'free', ordering: 'start_date', limit: 10, status: 'validated' }),
       ]);
 
       const featuredData = getApiResults<Event>(featuredRes).filter(e => isEventInFuture(e.start_date));
@@ -217,6 +220,8 @@ export default function DiscoverScreen() {
       setFreeEvents(freeData);
     } catch (error) {
       console.error('Erreur chargement:', error);
+    } finally {
+      setInitialLoading(false);
     }
   };
 
@@ -252,7 +257,7 @@ export default function DiscoverScreen() {
     if (page === 1 && searchResults.length === 0) setSearchLoading(true);
     else if (page > 1) setLoadingMore(true);
     try {
-      const params: any = { page, page_size: PAGE_SIZE };
+      const params: any = { page, page_size: PAGE_SIZE, status: 'validated' };
       if (debouncedQuery) params.search = debouncedQuery;
       if (selectedCategory) params.category = selectedCategory;
       if (filters.sortBy === 'date') params.ordering = 'start_date';
@@ -441,6 +446,7 @@ export default function DiscoverScreen() {
         isFeatured={item.is_featured}
         locationType={item.location_type}
         eventType={item.event_type}
+        currency={item.currency || platformCurrency}
         attendees={item.registration_count || item.registrations_count}
         variant={variant}
         onPress={() => navigateToEvent(item.id, eventImageUrl)}
@@ -734,7 +740,7 @@ export default function DiscoverScreen() {
                 </View>
                 <View style={styles.priceInputRow}>
                   <View style={styles.priceInputContainer}>
-                    <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Min (FCFA)</Text>
+                    <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Min ({platformCurrency})</Text>
                     <TextInput
                       style={[styles.priceInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                       value={tempFilters.priceMin > 0 ? String(tempFilters.priceMin) : ''}
@@ -746,7 +752,7 @@ export default function DiscoverScreen() {
                   </View>
                   <Text style={[styles.priceInputSeparator, { color: colors.gray400 }]}>-</Text>
                   <View style={styles.priceInputContainer}>
-                    <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Max (FCFA)</Text>
+                    <Text style={[styles.priceInputLabel, { color: colors.gray500 }]}>Max ({platformCurrency})</Text>
                     <TextInput
                       style={[styles.priceInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
                       value={tempFilters.priceMax > 0 ? String(tempFilters.priceMax) : ''}
@@ -1071,7 +1077,13 @@ export default function DiscoverScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      {isSearchActive ? renderSearchMode() : renderDiscoveryFeed()}
+      {initialLoading && !isSearchActive ? (
+        <DiscoverScreenSkeleton />
+      ) : isSearchActive ? (
+        renderSearchMode()
+      ) : (
+        renderDiscoveryFeed()
+      )}
       {renderFiltersModal()}
     </SafeAreaView>
   );

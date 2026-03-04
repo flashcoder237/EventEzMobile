@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { discountsAPI, ticketTypesAPI } from '../../api/client';
 import { RootStackParamList } from '../../types';
 import {
@@ -79,6 +80,7 @@ export default function DiscountManagementScreen() {
   const { eventId } = route.params;
   const { showAlert, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { currency: platformCurrency } = useCommissionConfig();
 
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -152,7 +154,7 @@ export default function DiscountManagementScreen() {
     if (discount.discount_type === 'percentage') {
       return `${discount.value}%`;
     }
-    return `${discount.value.toLocaleString()} FCFA`;
+    return `${discount.value.toLocaleString()} ${platformCurrency}`;
   };
 
   const getThemedDiscountStatus = (d: Discount): { status: DiscountStatus; label: string; color: string; bgColor: string } => {

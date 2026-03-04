@@ -23,6 +23,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { subscriptionsAPI } from '../../api/client';
 import { usePaymentVerification } from '../../hooks/usePaymentVerification';
+import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { getServiceFeeLabel } from '../../constants/payment';
 import {
   RootStackParamList,
   SubscriptionPlan,
@@ -111,9 +113,9 @@ const formatDate = (dateStr?: string): string => {
   }
 };
 
-const formatPrice = (price: number): string => {
+const formatPrice = (price: number, currency: string = 'XAF'): string => {
   if (price === 0) return 'Gratuit';
-  return `${price.toLocaleString('fr-FR')} XAF`;
+  return `${price.toLocaleString('fr-FR')} ${currency}`;
 };
 
 type PaymentStep = 'select-method' | 'enter-phone' | 'processing' | 'success' | 'failed';
@@ -141,10 +143,22 @@ const INITIAL_PAYMENT_STATE: PaymentModalState = {
   errorMessage: '',
 };
 
+// Phone prefix per country code (NotchPay supported countries)
+const COUNTRY_PHONE_PREFIX: Record<string, string> = {
+  CM: '+237',
+  CI: '+225',
+  SN: '+221',
+  KE: '+254',
+  GH: '+233',
+  UG: '+256',
+};
+
 export default function SubscriptionScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [planCurrency, setPlanCurrency] = useState('XAF');
   const [subscription, setSubscription] = useState<OrganizerSubscription | null>(null);
   const [loading, setLoading] = useState(true);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
@@ -154,9 +168,12 @@ export default function SubscriptionScreen() {
   // Animated underline for toggle
   const toggleAnim = useRef(new Animated.Value(0)).current;
 
+  const countryCode = commissionConfig?.country_code;
+  const phonePrefix = COUNTRY_PHONE_PREFIX[countryCode || 'CM'] || '+237';
+
   useEffect(() => {
     loadData();
-  }, []);
+  }, [countryCode]);
 
   useEffect(() => {
     Animated.spring(toggleAnim, {
@@ -170,10 +187,14 @@ export default function SubscriptionScreen() {
   const loadData = async () => {
     try {
       const [plansRes, subRes] = await Promise.all([
-        subscriptionsAPI.getPlans(),
+        subscriptionsAPI.getPrices(countryCode),
         subscriptionsAPI.getCurrentPlan(),
       ]);
-      setPlans(plansRes.data.results || plansRes.data || []);
+      const loadedPlans = plansRes.data.results || plansRes.data || [];
+      setPlans(loadedPlans);
+      // Use currency from first non-free plan, or commission config
+      const paidPlan = loadedPlans.find((p: SubscriptionPlan) => p.monthly_price > 0);
+      setPlanCurrency(paidPlan?.currency || commissionCurrency || 'XAF');
       if (subRes.data?.plan || subRes.data?.plan_details) {
         setSubscription(subRes.data);
       }
@@ -251,7 +272,7 @@ export default function SubscriptionScreen() {
 
     Alert.alert(
       `Confirmer le changement`,
-      `Voulez-vous ${actionLabel} au plan ${plan.display_name} pour ${formatPrice(price)}/${billingCycle === 'monthly' ? 'mois' : 'an'} ?`,
+      `Voulez-vous ${actionLabel} au plan ${plan.display_name} pour ${formatPrice(price, planCurrency)}/${billingCycle === 'monthly' ? 'mois' : 'an'} ?`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -322,7 +343,8 @@ export default function SubscriptionScreen() {
   const processPayment = async (method: PaymentMethod, phone: string) => {
     const currentPaymentId = payment.paymentId!;
     try {
-      const fullPhone = phone ? `+237${phone.replace(/^\+237/, '')}` : '';
+      const prefixDigits = phonePrefix.replace('+', '');
+      const fullPhone = phone ? `${phonePrefix}${phone.replace(new RegExp(`^\\+?${prefixDigits}`), '')}` : '';
       const res = await subscriptionsAPI.processPayment(currentPaymentId, method, fullPhone);
       const data = res.data;
 
@@ -623,7 +645,7 @@ export default function SubscriptionScreen() {
 
               {/* Price */}
               <View style={[styles.planPriceSection, { borderTopColor: borderColor }]}>
-                <Text style={[styles.planPrice, { color: ink }]}>{formatPrice(price)}</Text>
+                <Text style={[styles.planPrice, { color: ink }]}>{formatPrice(price, planCurrency)}</Text>
                 {price > 0 && (
                   <Text style={[styles.planPricePeriod, { color: colors.gray500 }]}>
                     / {billingCycle === 'monthly' ? 'mois' : 'an'}
@@ -727,7 +749,7 @@ export default function SubscriptionScreen() {
             <Ionicons name="information-circle-outline" size={20} color={violet} />
           </View>
           <Text style={[styles.commissionText, { color: colors.gray600 }]}>
-            5% + 100 XAF par billet sur tous les plans
+            {getServiceFeeLabel(commissionConfig)} par billet sur tous les plans
           </Text>
         </View>
 
@@ -773,7 +795,7 @@ export default function SubscriptionScreen() {
                   {payment.plan?.display_name} - {billingCycle === 'monthly' ? 'Mensuel' : 'Annuel'}
                 </Text>
                 <Text style={[styles.modalAmountValue, { color: ink }]}>
-                  {formatPrice(payment.amount)}
+                  {formatPrice(payment.amount, planCurrency)}
                 </Text>
               </View>
             )}
@@ -839,7 +861,7 @@ export default function SubscriptionScreen() {
                 </Text>
                 <View style={[styles.phoneInputRow, { borderColor }]}>
                   <View style={[styles.phonePrefix, { backgroundColor: surface, borderRightColor: borderColor }]}>
-                    <Text style={[styles.phonePrefixText, { color: colors.gray500 }]}>+237</Text>
+                    <Text style={[styles.phonePrefixText, { color: colors.gray500 }]}>{phonePrefix}</Text>
                   </View>
                   <TextInput
                     style={[styles.phoneInput, { color: ink }]}
@@ -869,7 +891,7 @@ export default function SubscriptionScreen() {
                     ]}
                   >
                     <Text style={styles.payButtonText}>
-                      Payer {formatPrice(payment.amount)}
+                      Payer {formatPrice(payment.amount, planCurrency)}
                     </Text>
                   </LinearGradient>
                 </TouchableOpacity>

@@ -142,16 +142,16 @@ export default function QRCodeScreen() {
             </div>
             <div class="detail-row">
               <span class="detail-label">Prix unitaire</span>
-              <span class="detail-value">${ticket?.unit_price ? `${ticket.unit_price.toLocaleString()} FCFA` : 'Gratuit'}</span>
+              <span class="detail-value">${ticket?.unit_price ? `${ticket.unit_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}</span>
             </div>
             ${(ticket?.discount_amount ?? 0) > 0 ? `
             <div class="detail-row">
               <span class="detail-label">Réduction</span>
-              <span class="detail-value" style="color: #059669;">-${ticket!.discount_amount!.toLocaleString()} FCFA</span>
+              <span class="detail-value" style="color: #059669;">-${ticket!.discount_amount!.toLocaleString()} ${event?.currency || 'FCFA'}</span>
             </div>` : ''}
             <div class="detail-row">
               <span class="detail-label">Total payé</span>
-              <span class="detail-value total">${ticket?.total_price ? `${ticket.total_price.toLocaleString()} FCFA` : 'Gratuit'}</span>
+              <span class="detail-value total">${ticket?.total_price ? `${ticket.total_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}</span>
             </div>
             <div class="detail-row">
               <span class="detail-label">Référence</span>
@@ -405,21 +405,21 @@ export default function QRCodeScreen() {
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Prix unitaire</Text>
               <Text style={[styles.detailValue, { color: colors.gray900 }]}>
-                {ticket.unit_price ? `${ticket.unit_price.toLocaleString()} FCFA` : 'Gratuit'}
+                {ticket.unit_price ? `${ticket.unit_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
               </Text>
             </View>
             {(ticket.discount_amount ?? 0) > 0 && (
               <View style={styles.detailRow}>
                 <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Réduction</Text>
                 <Text style={[styles.detailValue, { color: colors.success }]}>
-                  -{ticket.discount_amount!.toLocaleString()} FCFA
+                  -{ticket.discount_amount!.toLocaleString()} ${event?.currency || 'FCFA'}
                 </Text>
               </View>
             )}
             <View style={styles.detailRow}>
               <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Total payé</Text>
               <Text style={[styles.detailValue, styles.totalPrice, { color: colors.primary }]}>
-                {ticket.total_price ? `${ticket.total_price.toLocaleString()} FCFA` : 'Gratuit'}
+                {ticket.total_price ? `${ticket.total_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
               </Text>
             </View>
             <View style={styles.detailRow}>

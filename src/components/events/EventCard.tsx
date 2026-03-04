@@ -41,6 +41,7 @@ interface EventCardProps {
   isFeatured?: boolean;
   locationType?: 'in_person' | 'online' | 'hybrid';
   eventType?: 'billetterie' | 'inscription';
+  currency?: string;
   variant?: 'default' | 'featured' | 'horizontal' | 'compact' | 'grid';
   onPress?: () => void;
   onLikePress?: () => void;
@@ -62,6 +63,7 @@ function EventCard({
   isFeatured = false,
   locationType = 'in_person',
   eventType,
+  currency = 'FCFA',
   variant = 'default',
   onPress,
   onLikePress,
@@ -73,9 +75,9 @@ function EventCard({
   const formatCardPrice = () => {
     if (isFree) return 'Gratuit';
     if (typeof price === 'number' && typeof priceMax === 'number' && price > 0 && priceMax > price) {
-      return formatPriceRange(price, priceMax);
+      return formatPriceRange(price, priceMax, currency);
     }
-    if (typeof price === 'number' && price > 0) return `Des ${price.toLocaleString()} FCFA`;
+    if (typeof price === 'number' && price > 0) return `Des ${price.toLocaleString()} ${currency}`;
     if (typeof price === 'number' && price === 0) return 'Gratuit';
     if (typeof price === 'string' && price.trim()) return price;
     if (eventType === 'inscription') return 'Gratuit';
@@ -130,7 +132,6 @@ function EventCard({
           source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
           style={[styles.horizontalImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
-          sharedTransitionTag={`event-image-${id}`}
         />
         <View style={styles.horizontalContent}>
           <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
@@ -168,7 +169,6 @@ function EventCard({
           source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
           style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
-          sharedTransitionTag={`event-image-${id}`}
         />
         <View style={styles.compactContent}>
           <Text style={[styles.dateAccentSmall, { color: colors.accent }]}>{formatDateShort()}</Text>
@@ -195,8 +195,7 @@ function EventCard({
             source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
             style={[styles.featuredImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
-            sharedTransitionTag={`event-image-${id}`}
-          />
+            />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.5)']}
             style={styles.featuredGradient}
@@ -260,8 +259,7 @@ function EventCard({
             source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
             style={[styles.gridImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
-            sharedTransitionTag={`event-image-${id}`}
-          />
+            />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.3)']}
             style={StyleSheet.absoluteFill}
@@ -309,7 +307,6 @@ function EventCard({
         source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
         style={[styles.defaultImage, { backgroundColor: colors.gray100 }]}
         resizeMode="cover"
-        sharedTransitionTag={`event-image-${id}`}
       />
       <View style={styles.defaultContent}>
         <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
