@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as NavigationBar from 'expo-navigation-bar';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
@@ -64,6 +66,15 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 function AppContent() {
   const { isDark } = useTheme();
+
+  // Barre de navigation Android : fond semi-transparent adapté au thème
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const bg = isDark ? 'rgba(15,15,26,0.78)' : 'rgba(250,250,248,0.78)';
+    NavigationBar.setPositionAsync('absolute');
+    NavigationBar.setBackgroundColorAsync(bg);
+    NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
+  }, [isDark]);
 
   return (
     <ConnectionProvider>

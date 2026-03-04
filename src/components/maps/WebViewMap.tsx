@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Colors } from '../../constants/theme';
@@ -16,8 +16,35 @@ interface WebViewMapProps {
     latitudeDelta?: number;
     longitudeDelta?: number;
   };
-  radiusKm?: number; // Rayon en km à afficher
-  showRadius?: boolean; // Afficher le cercle de rayon
+  radiusKm?: number;
+  showRadius?: boolean;
+  isDark?: boolean;
+}
+
+// Category → color mapping
+const CATEGORY_COLORS: Record<string, string> = {
+  music: '#7C3AED',
+  musique: '#7C3AED',
+  sport: '#10B981',
+  art: '#F59E0B',
+  food: '#EF4444',
+  cuisine: '#EF4444',
+  gastronomie: '#EF4444',
+  tech: '#3B82F6',
+  technologie: '#3B82F6',
+  business: '#6366F1',
+  affaires: '#6366F1',
+};
+
+function getZoomFromRadius(radius: number): number {
+  if (radius <= 0) return 10;
+  if (radius <= 5) return 13;
+  if (radius <= 10) return 12;
+  if (radius <= 25) return 11;
+  if (radius <= 50) return 10;
+  if (radius <= 100) return 9;
+  if (radius <= 200) return 8;
+  return 7;
 }
 
 export default function WebViewMap({
@@ -27,42 +54,68 @@ export default function WebViewMap({
   onMarkerPress,
   initialRegion,
   radiusKm = 0,
-  showRadius = false }: WebViewMapProps) {
+  showRadius = false,
+  isDark = false,
+}: WebViewMapProps) {
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const mapReadyRef = useRef(false);
+  const pendingMessagesRef = useRef<string[]>([]);
 
   const centerLat = initialRegion?.latitude || userLocation?.lat || 3.848;
   const centerLng = initialRegion?.longitude || userLocation?.lng || 11.502;
 
-  // Calculer le zoom basé sur le rayon
-  const getZoomFromRadius = (radius: number): number => {
-    if (radius <= 0) return 10;
-    // Formule approximative pour convertir km en niveau de zoom
-    if (radius <= 5) return 13;
-    if (radius <= 10) return 12;
-    if (radius <= 25) return 11;
-    if (radius <= 50) return 10;
-    if (radius <= 100) return 9;
-    if (radius <= 200) return 8;
-    return 7;
-  };
+  const zoom = radiusKm > 0
+    ? getZoomFromRadius(radiusKm)
+    : initialRegion?.latitudeDelta
+      ? Math.round(10 - Math.log2(initialRegion.latitudeDelta))
+      : 10;
 
-  const zoom = radiusKm > 0 ? getZoomFromRadius(radiusKm) :
-    (initialRegion?.latitudeDelta ? Math.round(10 - Math.log2(initialRegion.latitudeDelta)) : 10);
+  // Send message to WebView, queue if not ready
+  const sendToWebView = useCallback((msg: object) => {
+    const json = JSON.stringify(msg);
+    if (mapReadyRef.current && webViewRef.current) {
+      webViewRef.current.postMessage(json);
+    } else {
+      pendingMessagesRef.current.push(json);
+    }
+  }, []);
 
-  const htmlContent = `
-<!DOCTYPE html>
+  // Flush queued messages once map is ready
+  const flushPending = useCallback(() => {
+    if (webViewRef.current) {
+      for (const msg of pendingMessagesRef.current) {
+        webViewRef.current.postMessage(msg);
+      }
+    }
+    pendingMessagesRef.current = [];
+  }, []);
+
+  // HTML generated once (or when isDark changes)
+  const htmlContent = useMemo(() => {
+    const tileUrl = isDark
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    const tileAttrib = isDark ? '&copy; CartoDB' : '&copy; OpenStreetMap';
+    const clusterBase = isDark ? '#A78BFA' : '#7C3AED';
+
+    return `<!DOCTYPE html>
 <html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { width: 100%; height: 100%; overflow: hidden; }
     #map { width: 100%; height: 100%; }
+
     .leaflet-tooltip {
-      background: white;
+      background: ${isDark ? '#1A1A2E' : 'white'};
+      color: ${isDark ? '#E0E0DE' : '#1A1A2E'};
       border: none;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -73,148 +126,327 @@ export default function WebViewMap({
       background: transparent;
       border: none;
       box-shadow: none;
-      color: #6366F1;
+      color: ${clusterBase};
       font-weight: 600;
       font-size: 12px;
+    }
+
+    /* Enriched marker pills */
+    .ev-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      white-space: nowrap;
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      cursor: pointer;
+    }
+    .ev-marker-selected {
+      transform: scale(1.25);
+      border-width: 3px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+      z-index: 1000 !important;
+    }
+    .ev-marker-outside {
+      opacity: 0.45;
+      filter: saturate(0.3);
+    }
+
+    /* Cluster styles */
+    .marker-cluster-small {
+      background-color: ${clusterBase}33;
+    }
+    .marker-cluster-small div {
+      background-color: ${clusterBase};
+      color: #fff;
+      font-weight: 700;
+    }
+    .marker-cluster-medium {
+      background-color: ${clusterBase}55;
+    }
+    .marker-cluster-medium div {
+      background-color: ${clusterBase};
+      color: #fff;
+      font-weight: 700;
+    }
+    .marker-cluster-large {
+      background-color: ${clusterBase}77;
+    }
+    .marker-cluster-large div {
+      background-color: ${clusterBase};
+      color: #fff;
+      font-weight: 700;
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
   <script>
+    var CATEGORY_COLORS = ${JSON.stringify(CATEGORY_COLORS)};
+    var DEFAULT_COLOR = '${clusterBase}';
+
     var map = L.map('map', {
       center: [${centerLat}, ${centerLng}],
       zoom: ${zoom},
       zoomControl: true
     });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
-    }).addTo(map);
+    L.tileLayer('${tileUrl}', { attribution: '${tileAttrib}' }).addTo(map);
 
-    var markersLayer = L.layerGroup().addTo(map);
-    var markers = ${JSON.stringify(markers)};
-    var selectedId = ${selectedMarkerId ? `"${selectedMarkerId}"` : 'null'};
-    var userLoc = ${userLocation ? JSON.stringify(userLocation) : 'null'};
-    var radiusKm = ${radiusKm};
-    var showRadius = ${showRadius};
-
-    // Dessiner le cercle de rayon si demandé
-    if (showRadius && userLoc && radiusKm > 0) {
-      var radiusCircle = L.circle([userLoc.lat, userLoc.lng], {
-        radius: radiusKm * 1000, // Convertir km en mètres
-        color: '#6366F1',
-        fillColor: '#6366F1',
-        fillOpacity: 0.08,
-        weight: 2,
-        dashArray: '8, 8'
-      }).addTo(map);
-
-      // Label du rayon
-      var radiusLabel = L.marker([userLoc.lat + (radiusKm * 0.009), userLoc.lng], {
-        icon: L.divIcon({
-          className: 'radius-label',
-          html: radiusKm + ' km',
-          iconSize: [50, 20]
-        })
-      }).addTo(map);
-
-      // Ajuster la vue pour montrer tout le cercle
-      map.fitBounds(radiusCircle.getBounds(), { padding: [20, 20] });
-    }
-
-    // Ajouter les marqueurs d'événements
-    markers.forEach(function(marker) {
-      if (marker.lat && marker.lng) {
-        var isSelected = marker.id === selectedId;
-
-        // Vérifier si le marqueur est dans le rayon
-        var isInRadius = true;
-        if (showRadius && userLoc && radiusKm > 0) {
-          var distance = map.distance([userLoc.lat, userLoc.lng], [marker.lat, marker.lng]) / 1000;
-          isInRadius = distance <= radiusKm;
-        }
-
-        var circleMarker = L.circleMarker([marker.lat, marker.lng], {
-          radius: isSelected ? 14 : 10,
-          fillColor: isInRadius ? '#7c3aed' : '#9CA3AF',
-          color: '#fff',
-          weight: 3,
-          opacity: isInRadius ? 1 : 0.5,
-          fillOpacity: isSelected ? 1 : (isInRadius ? 0.85 : 0.4)
+    var clusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 50,
+      spiderfyOnMaxZoom: true,
+      zoomToBoundsOnClick: true,
+      iconCreateFunction: function(cluster) {
+        var count = cluster.getChildCount();
+        var size = count < 10 ? 'small' : count < 50 ? 'medium' : 'large';
+        return L.divIcon({
+          html: '<div>' + count + '</div>',
+          className: 'marker-cluster marker-cluster-' + size,
+          iconSize: L.point(40, 40)
         });
-
-        circleMarker.bindTooltip(marker.title, {
-          permanent: false,
-          direction: 'top',
-          offset: [0, -10]
-        });
-
-        circleMarker.on('click', function() {
-          window.ReactNativeWebView.postMessage(JSON.stringify({
-            type: 'markerPress',
-            marker: marker
-          }));
-        });
-
-        markersLayer.addLayer(circleMarker);
       }
     });
+    map.addLayer(clusterGroup);
 
-    // Marqueur de position utilisateur
-    if (userLoc) {
-      var pulseIcon = L.divIcon({
-        className: 'user-location-pulse',
-        html: '<div style="width: 20px; height: 20px; background: #3B82F6; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(59,130,246,0.5);"></div>',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
+    var radiusCircle = null;
+    var radiusLabel = null;
+    var userMarker = null;
+    var currentMarkers = {};
+    var currentSelectedId = null;
+    var currentUserLoc = null;
+    var currentRadiusKm = 0;
+    var currentShowRadius = false;
 
-      var userMarker = L.marker([userLoc.lat, userLoc.lng], { icon: pulseIcon });
-      userMarker.bindTooltip('Votre position', { permanent: false, direction: 'top' });
-      userMarker.addTo(map);
+    function getCatColor(cat) {
+      if (!cat) return DEFAULT_COLOR;
+      var key = cat.toLowerCase().trim();
+      return CATEGORY_COLORS[key] || DEFAULT_COLOR;
     }
 
-    // Si pas de rayon mais des marqueurs, ajuster la vue
-    if ((!showRadius || radiusKm <= 0) && markers.length > 0) {
-      var validMarkers = markers.filter(function(m) { return m.lat && m.lng; });
-      if (validMarkers.length > 1) {
-        var bounds = L.latLngBounds(validMarkers.map(function(m) { return [m.lat, m.lng]; }));
-        if (userLoc) {
-          bounds.extend([userLoc.lat, userLoc.lng]);
-        }
-        map.fitBounds(bounds, { padding: [30, 30] });
-      } else if (validMarkers.length === 1) {
-        map.setView([validMarkers[0].lat, validMarkers[0].lng], 13);
+    function formatPrice(marker) {
+      if (marker.is_free) return 'Gratuit';
+      var p = marker.min_price || marker.price;
+      if (p && p > 0) {
+        if (p >= 1000) return Math.round(p/1000) + 'k';
+        return p + '';
+      }
+      return 'Gratuit';
+    }
+
+    function isInRadius(lat, lng) {
+      if (!currentShowRadius || !currentUserLoc || currentRadiusKm <= 0) return true;
+      var d = map.distance([currentUserLoc.lat, currentUserLoc.lng], [lat, lng]) / 1000;
+      return d <= currentRadiusKm;
+    }
+
+    function createMarkerIcon(marker, isSelected) {
+      var inR = isInRadius(marker.lat, marker.lng);
+      var color = inR ? getCatColor(marker.category) : '#9CA3AF';
+      var cls = 'ev-marker' + (isSelected ? ' ev-marker-selected' : '') + (!inR ? ' ev-marker-outside' : '');
+      var label = formatPrice(marker);
+      return L.divIcon({
+        className: '',
+        html: '<div class="' + cls + '" style="background:' + color + ';">' + label + '</div>',
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+      });
+    }
+
+    function updateMarkers(markers) {
+      clusterGroup.clearLayers();
+      currentMarkers = {};
+      markers.forEach(function(m) {
+        if (!m.lat || !m.lng) return;
+        var isSelected = m.id === currentSelectedId;
+        var leafMarker = L.marker([m.lat, m.lng], {
+          icon: createMarkerIcon(m, isSelected),
+          zIndexOffset: isSelected ? 1000 : 0
+        });
+        leafMarker.bindTooltip(m.title, { permanent: false, direction: 'top', offset: [0, -5] });
+        leafMarker.on('click', function() {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'markerPress', marker: m }));
+        });
+        leafMarker._evData = m;
+        currentMarkers[m.id] = leafMarker;
+        clusterGroup.addLayer(leafMarker);
+      });
+    }
+
+    function updateSelection(newId) {
+      var oldId = currentSelectedId;
+      currentSelectedId = newId;
+      // Update old selected marker
+      if (oldId && currentMarkers[oldId]) {
+        var oldM = currentMarkers[oldId];
+        oldM.setIcon(createMarkerIcon(oldM._evData, false));
+        oldM.setZIndexOffset(0);
+      }
+      // Update new selected marker
+      if (newId && currentMarkers[newId]) {
+        var newM = currentMarkers[newId];
+        newM.setIcon(createMarkerIcon(newM._evData, true));
+        newM.setZIndexOffset(1000);
       }
     }
+
+    function updateRadius(radiusKm, showRadius, userLoc) {
+      currentRadiusKm = radiusKm;
+      currentShowRadius = showRadius;
+      currentUserLoc = userLoc;
+
+      // Remove old radius elements
+      if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+      if (radiusLabel) { map.removeLayer(radiusLabel); radiusLabel = null; }
+
+      if (showRadius && userLoc && radiusKm > 0) {
+        radiusCircle = L.circle([userLoc.lat, userLoc.lng], {
+          radius: radiusKm * 1000,
+          color: DEFAULT_COLOR,
+          fillColor: DEFAULT_COLOR,
+          fillOpacity: 0.08,
+          weight: 2,
+          dashArray: '8, 8'
+        }).addTo(map);
+
+        radiusLabel = L.marker([userLoc.lat + (radiusKm * 0.009), userLoc.lng], {
+          icon: L.divIcon({
+            className: 'radius-label',
+            html: radiusKm + ' km',
+            iconSize: [50, 20]
+          })
+        }).addTo(map);
+
+        map.fitBounds(radiusCircle.getBounds(), { padding: [20, 20] });
+      }
+
+      // Update user location marker
+      if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+      if (userLoc) {
+        var pulseIcon = L.divIcon({
+          className: 'user-location-pulse',
+          html: '<div style="width:20px;height:20px;background:#3B82F6;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(59,130,246,0.5);"></div>',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        });
+        userMarker = L.marker([userLoc.lat, userLoc.lng], { icon: pulseIcon });
+        userMarker.bindTooltip('Votre position', { permanent: false, direction: 'top' });
+        userMarker.addTo(map);
+      }
+    }
+
+    function setCenter(lat, lng, zoom) {
+      if (zoom) map.setView([lat, lng], zoom);
+      else map.panTo([lat, lng]);
+    }
+
+    function fitToMarkers(markers, userLoc) {
+      var valid = markers.filter(function(m) { return m.lat && m.lng; });
+      if (valid.length > 1) {
+        var bounds = L.latLngBounds(valid.map(function(m) { return [m.lat, m.lng]; }));
+        if (userLoc) bounds.extend([userLoc.lat, userLoc.lng]);
+        map.fitBounds(bounds, { padding: [30, 30] });
+      } else if (valid.length === 1) {
+        map.setView([valid[0].lat, valid[0].lng], 13);
+      }
+    }
+
+    // Listen for messages from React Native
+    var handleRNMessage = function(event) {
+      try {
+        var msg = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        switch (msg.type) {
+          case 'updateMarkers':
+            updateMarkers(msg.markers || []);
+            if (!currentShowRadius || currentRadiusKm <= 0) {
+              fitToMarkers(msg.markers || [], currentUserLoc);
+            }
+            break;
+          case 'updateSelection':
+            updateSelection(msg.selectedId);
+            break;
+          case 'updateRadius':
+            updateRadius(msg.radiusKm, msg.showRadius, msg.userLoc);
+            break;
+          case 'setCenter':
+            setCenter(msg.lat, msg.lng, msg.zoom);
+            break;
+        }
+      } catch(e) { console.error('handleRNMessage:', e); }
+    };
+
+    // Both Android and iOS
+    document.addEventListener('message', handleRNMessage);
+    window.addEventListener('message', handleRNMessage);
 
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'mapReady' }));
   </script>
 </body>
-</html>
-  `;
+</html>`;
+  }, [isDark, centerLat, centerLng, zoom]);
 
-  const handleMessage = (event: any) => {
+  // Handle messages from WebView
+  const handleMessage = useCallback((event: any) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       if (data.type === 'mapReady') {
+        mapReadyRef.current = true;
         setIsLoading(false);
+        flushPending();
+        // Send initial data
+        sendToWebView({
+          type: 'updateRadius',
+          radiusKm,
+          showRadius,
+          userLoc: userLocation || null,
+        });
+        sendToWebView({
+          type: 'updateMarkers',
+          markers,
+        });
+        if (selectedMarkerId) {
+          sendToWebView({ type: 'updateSelection', selectedId: selectedMarkerId });
+        }
       } else if (data.type === 'markerPress' && onMarkerPress) {
         onMarkerPress(data.marker);
       }
     } catch (e) {
       console.error('Error parsing WebView message:', e);
     }
-  };
+  }, [markers, userLocation, selectedMarkerId, radiusKm, showRadius, onMarkerPress, sendToWebView, flushPending]);
 
-  // Générer une clé unique pour forcer le re-render du WebView
-  const webViewKey = `map-${radiusKm}-${showRadius}-${markers.length}-${userLocation?.lat || 0}-${userLocation?.lng || 0}-${selectedMarkerId || 'none'}`;
+  // Update markers when they change
+  useEffect(() => {
+    if (!mapReadyRef.current) return;
+    sendToWebView({ type: 'updateMarkers', markers });
+  }, [markers, sendToWebView]);
+
+  // Update selection when it changes
+  useEffect(() => {
+    if (!mapReadyRef.current) return;
+    sendToWebView({ type: 'updateSelection', selectedId: selectedMarkerId || null });
+  }, [selectedMarkerId, sendToWebView]);
+
+  // Update radius/user location when they change
+  useEffect(() => {
+    if (!mapReadyRef.current) return;
+    sendToWebView({
+      type: 'updateRadius',
+      radiusKm,
+      showRadius,
+      userLoc: userLocation || null,
+    });
+  }, [radiusKm, showRadius, userLocation, sendToWebView]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <WebView
-        key={webViewKey}
         ref={webViewRef}
         source={{ html: htmlContent }}
         style={styles.webView}
@@ -222,11 +454,9 @@ export default function WebViewMap({
         javaScriptEnabled={true}
         domStorageEnabled={true}
         originWhitelist={['*']}
-        cacheEnabled={false}
-        incognito={true}
       />
       {isLoading && (
-        <View style={styles.loadingOverlay}>
+        <View style={[styles.loadingOverlay, isDark && styles.loadingOverlayDark]}>
           <LoadingSpinner />
         </View>
       )}
@@ -237,11 +467,21 @@ export default function WebViewMap({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f0f0f0' },
+    backgroundColor: '#f0f0f0',
+  },
+  containerDark: {
+    backgroundColor: '#1A1A2E',
+  },
   webView: {
-    flex: 1 },
+    flex: 1,
+  },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     justifyContent: 'center',
-    alignItems: 'center' } });
+    alignItems: 'center',
+  },
+  loadingOverlayDark: {
+    backgroundColor: 'rgba(26, 26, 46, 0.9)',
+  },
+});

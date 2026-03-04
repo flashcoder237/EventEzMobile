@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
+import * as FileSystem from 'expo-file-system';
 
 import {
   eventsAPI,
@@ -76,6 +77,7 @@ export interface EventFormState {
   selectedTagIds: number[];
   customTags: string[];
   bannerImage: string | null;
+  galleryImages: string[];
 
   // Step 2 - Date & Location
   startDate: Date;
@@ -162,6 +164,8 @@ export interface UseEventFormReturn {
   handleCustomTagRemove: (tag: string) => void;
   pickImage: () => Promise<void>;
   setBannerImage: (value: string | null) => void;
+  pickGalleryImages: () => Promise<void>;
+  removeGalleryImage: (index: number) => void;
   setVisibility: (value: 'public' | 'unlisted' | 'invite_only') => void;
   setAccessCode: (value: string) => void;
 
@@ -216,8 +220,30 @@ export interface UseEventFormReturn {
   // Draft hydration
   hydrateForm: (data: Partial<EventFormState>) => void;
 
+  // Edit mode
+  isEditMode: boolean;
+
   // Util
   formatDate: (date: Date) => string;
+}
+
+// ============================================
+// Image persistence helpers
+// ============================================
+
+const DRAFT_IMAGES_DIR = (FileSystem.documentDirectory ?? '') + 'event_draft_images/';
+
+async function persistImageToDisk(uri: string): Promise<string> {
+  try {
+    await FileSystem.makeDirectoryAsync(DRAFT_IMAGES_DIR, { intermediates: true });
+    const ext = uri.toLowerCase().includes('.png') ? 'png' : 'jpg';
+    const filename = `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}.${ext}`;
+    const dest = DRAFT_IMAGES_DIR + filename;
+    await FileSystem.copyAsync({ from: uri, to: dest });
+    return dest;
+  } catch {
+    return uri; // fallback to original if copy fails
+  }
 }
 
 // ============================================
@@ -263,7 +289,7 @@ export const SESSION_TYPES = [
 // Hook
 // ============================================
 
-export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
+export function useEventForm(alertActions: AlertActions, editEventId?: string): UseEventFormReturn {
   const { showAlert, showSuccess, showError } = alertActions;
   const { currency: platformCurrency } = useCommissionConfig();
 
@@ -284,6 +310,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   // Step 2 - Date & Location
   const [startDate, setStartDate] = useState(new Date());
@@ -568,13 +595,41 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
           [{ resize: { width: 1920 } }],
           { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
         );
-        setBannerImage(compressed.uri);
+        // Copy to permanent storage so the URI survives app restarts
+        const persistent = await persistImageToDisk(compressed.uri);
+        setBannerImage(persistent);
       } catch {
-        // Fallback to original if compression fails
-        setBannerImage(result.assets[0].uri);
+        // Fallback to original if compression fails; still persist
+        const persistent = await persistImageToDisk(result.assets[0].uri);
+        setBannerImage(persistent);
       }
     }
   }, [showAlert]);
+
+  const pickGalleryImages = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showAlert('Permission requise', 'Veuillez autoriser l\'accès à la galerie', undefined, 'warning');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      quality: 0.8,
+      selectionLimit: 10,
+    });
+    if (!result.canceled && result.assets.length > 0) {
+      // Copy each image to permanent storage so URIs survive app restarts
+      const persistedUris = await Promise.all(
+        result.assets.map(a => persistImageToDisk(a.uri))
+      );
+      setGalleryImages(prev => [...prev, ...persistedUris].slice(0, 10));
+    }
+  }, [showAlert]);
+
+  const removeGalleryImage = useCallback((index: number) => {
+    setGalleryImages(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
   // ============================================
   // Ticket Type Helpers
@@ -804,6 +859,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     if (data.selectedTagIds !== undefined) setSelectedTagIds(data.selectedTagIds);
     if (data.customTags !== undefined) setCustomTags(data.customTags);
     if (data.bannerImage !== undefined) setBannerImage(data.bannerImage);
+    if (data.galleryImages !== undefined) setGalleryImages(data.galleryImages);
     if (data.startDate !== undefined) setStartDate(data.startDate);
     if (data.endDate !== undefined) setEndDate(data.endDate);
     if (data.registrationDeadline !== undefined) setRegistrationDeadline(data.registrationDeadline);
@@ -830,6 +886,58 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     if (data.accessCode !== undefined) setAccessCode(data.accessCode);
     if (data.sessions !== undefined) setSessions(data.sessions);
   }, []);
+
+  // Load event data for edit mode
+  useEffect(() => {
+    if (!editEventId) return;
+    const loadEvent = async () => {
+      setLoading(true);
+      try {
+        const response = await eventsAPI.getEvent(editEventId);
+        const event = response.data;
+        hydrateForm({
+          title: event.title || '',
+          description: event.description || '',
+          shortDescription: event.short_description || '',
+          eventType: event.event_type || 'billetterie',
+          categoryId: event.category
+            ? (typeof event.category === 'object' ? event.category.id : event.category)
+            : null,
+          selectedTagIds: event.tags
+            ? event.tags.map((t: any) => (typeof t === 'object' ? t.id : t))
+            : [],
+          startDate: event.start_date ? new Date(event.start_date) : new Date(),
+          endDate: event.end_date ? new Date(event.end_date) : new Date(Date.now() + 3600000),
+          registrationDeadline: event.registration_deadline ? new Date(event.registration_deadline) : null,
+          hasRegistrationDeadline: !!event.registration_deadline,
+          locationType: event.location_type || 'in_person',
+          locationName: event.location_name || '',
+          locationCity: event.location_city || '',
+          locationAddress: event.location_address || '',
+          locationCountry: event.location_country || 'Cameroun',
+          locationLatitude: event.location_latitude ? String(event.location_latitude) : '',
+          locationLongitude: event.location_longitude ? String(event.location_longitude) : '',
+          onlineUrl: event.online_url || '',
+          onlinePlatform: event.online_platform || '',
+          onlineInstructions: event.online_instructions || '',
+          onlineMeetingId: event.online_meeting_id || '',
+          onlinePasscode: event.online_passcode || '',
+          bannerImage: event.banner_image || null,
+          maxParticipants: event.max_participants ? String(event.max_participants) : '',
+          autoApproveRegistrations: event.auto_approve_registrations ?? true,
+          visibility: event.visibility || 'public',
+          accessCode: event.access_code || '',
+        });
+      } catch (error) {
+        console.error('[useEventForm] Error loading event for edit:', error);
+        showError('Erreur', "Impossible de charger les données de l'événement");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadEvent();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editEventId]);
 
   // ============================================
   // Reset Form
@@ -947,8 +1055,22 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
         } as any);
       }
 
-      const response = await eventsAPI.createEvent(formData);
+      const response = editEventId
+        ? await eventsAPI.updateEvent(editEventId, formData)
+        : await eventsAPI.createEvent(formData);
       const eventId = response.data.id;
+
+      // Upload gallery images
+      if (galleryImages.length > 0) {
+        const galleryFormData = new FormData();
+        galleryImages.forEach((uri, idx) => {
+          const filename = uri.split('/').pop() || `gallery_${idx}.jpg`;
+          const match = /\.(\w+)$/.exec(filename);
+          const type = match ? `image/${match[1]}` : 'image/jpeg';
+          galleryFormData.append('images', { uri, name: filename, type } as any);
+        });
+        await eventsAPI.uploadImages(eventId, galleryFormData);
+      }
 
       // Create ticket types for billetterie events
       if (eventType === 'billetterie' && ticketTypes.length > 0) {
@@ -1020,7 +1142,8 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
       console.error('Erreur création événement:', error);
       showError(
         'Erreur',
-        error.response?.data?.message || error.response?.data?.detail || 'Impossible de créer l\'événement'
+        error.response?.data?.message || error.response?.data?.detail ||
+          (editEventId ? "Impossible de modifier l'événement" : "Impossible de créer l'événement")
       );
       return null;
     } finally {
@@ -1065,6 +1188,7 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     selectedTagIds,
     customTags,
     bannerImage,
+    galleryImages,
     startDate,
     endDate,
     registrationDeadline,
@@ -1123,6 +1247,8 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
     handleCustomTagRemove,
     pickImage,
     setBannerImage,
+    pickGalleryImages,
+    removeGalleryImage,
 
     // Step 2
     setStartDate,
@@ -1178,6 +1304,9 @@ export function useEventForm(alertActions: AlertActions): UseEventFormReturn {
 
     // Draft hydration
     hydrateForm,
+
+    // Edit mode
+    isEditMode: !!editEventId,
 
     // Util
     formatDate,

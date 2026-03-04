@@ -20,7 +20,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { eventsAPI } from '../../api/client';
+import { eventsAPI, getMediaUrl } from '../../api/client';
+import CacheService from '../../services/CacheService';
 import { SaveToBookmarks, Authentication } from '../../components/illustrations';
 import { RootStackParamList, Event } from '../../types';
 import {
@@ -72,10 +73,22 @@ export default function FollowingEventsScreen() {
     }, [user])
   );
 
-  const loadFollowedEvents = async () => {
+  const loadFollowedEvents = async (bypassCache = false) => {
+    const cacheKey = `following:${user?.id}`;
     try {
+      if (!bypassCache) {
+        const cached = await CacheService.get<FollowData[]>(cacheKey);
+        if (cached) {
+          setFollows(cached.data);
+          setLoading(false);
+          if (!cached.isStale) return; // Données fraîches
+          // Périmées : refresh silencieux
+        }
+      }
       const response = await eventsAPI.getFollowingEvents();
-      setFollows(response.data?.results || response.data || []);
+      const data = response.data?.results || response.data || [];
+      setFollows(data);
+      CacheService.set(cacheKey, data, 2 * 60 * 1000); // fraîcheur : 2 minutes
     } catch (error) {
       console.error('Error loading followed events:', error);
     } finally {
@@ -86,7 +99,7 @@ export default function FollowingEventsScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    loadFollowedEvents();
+    loadFollowedEvents(true);
   };
 
   const handleUnfollow = async (eventId: string) => {
@@ -97,6 +110,7 @@ export default function FollowingEventsScreen() {
         try {
           await eventsAPI.unfollowEvent(eventId);
           setFollows(prev => prev.filter(f => f.event !== eventId && f.event_details?.id !== eventId));
+          CacheService.invalidate(`following:${user?.id}`);
         } catch (error) {
           console.error('Error unfollowing:', error);
           showError('Erreur', 'Impossible de ne plus suivre cet evenement');
@@ -208,7 +222,11 @@ export default function FollowingEventsScreen() {
 
         {/* Event Image */}
         <Image
-          source={{ uri: event.banner_image || event.category?.default_event_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
+          source={
+            getMediaUrl(event.banner_image || event.category?.default_event_image)
+              ? { uri: getMediaUrl(event.banner_image || event.category?.default_event_image)! }
+              : require('../../../assets/defaults/default-event.png')
+          }
           style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
         />
 

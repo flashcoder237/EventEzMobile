@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { authAPI, usersAPI, setTokens, clearTokens } from '../api/client';
+import CacheService from '../services/CacheService';
 import { eventBus } from '../lib/eventBus';
 import { User, AuthState } from '../types';
 
@@ -114,22 +115,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     phone_number?: string;
   }) => {
     setState((prev) => ({ ...prev, isLoading: true }));
-    // Étape 1 : inscription
     try {
       await authAPI.register(data);
-    } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
-      throw error; // Échec inscription
-    }
-    // Étape 2 : auto-login (l'inscription a réussi)
-    try {
-      await login(data.email, data.password, true);
-    } catch (loginError) {
-      setState((prev) => ({ ...prev, isLoading: false }));
-      const err = new Error('Compte créé. Veuillez vous connecter manuellement.') as any;
-      err.code = 'AUTO_LOGIN_FAILED';
-      err.isRegistrationSuccess = true;
+      // Le backend envoie un email de vérification — signaler à l'UI
+      const err = new Error('Vérification email requise') as any;
+      err.code = 'EMAIL_VERIFICATION_REQUIRED';
+      err.email = data.email;
       throw err;
+    } catch (error: any) {
+      setState((prev) => ({ ...prev, isLoading: false }));
+      throw error;
     }
   };
 
@@ -141,6 +137,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     // Filet de securite : s'assurer que les tokens sont bien supprimes
     await clearTokens();
+    // Vider le cache mémoire — les données AsyncStorage restent pour le prochain login
+    CacheService.clearMemory();
     // Ne PAS réinitialiser REMEMBER_ME_KEY — la préférence est conservée
     // pour le prochain login. Les tokens effacés empêchent l'auto-connexion.
     setState({

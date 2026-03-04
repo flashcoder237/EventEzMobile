@@ -13,7 +13,7 @@ import {
   Share,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -77,6 +77,7 @@ export default function EventRegistrationsScreen() {
   const { eventId } = route.params;
   const { showAlert, showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -600,7 +601,7 @@ export default function EventRegistrationsScreen() {
             data={filteredRegistrations}
             renderItem={renderRegistration}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.listContent, selectionMode && { paddingBottom: 120 }]}
+            contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + Spacing.lg }, selectionMode && { paddingBottom: insets.bottom + 120 }]}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}
             refreshControl={
@@ -807,7 +808,7 @@ const styles = StyleSheet.create({
   filterTextActive: { color: Colors.white },
   filterBadge: { marginLeft: Spacing.xs, backgroundColor: Colors.error, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   filterBadgeText: { fontFamily: FontFamily.bold, fontSize: 10, color: Colors.white },
-  listContent: { padding: Spacing.lg, paddingBottom: Spacing['3xl'], flexGrow: 1 },
+  listContent: { padding: Spacing.lg, flexGrow: 1 },
   registrationCard: { borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.sm, borderWidth: 1 },
   pendingCard: { borderLeftWidth: 3, borderLeftColor: '#F59E0B' },
   registrationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },

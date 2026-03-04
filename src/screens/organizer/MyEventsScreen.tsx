@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Events as EventsIllustration } from '../../components/illustrations';
-import { eventsAPI } from '../../api/client';
+import { eventsAPI, getMediaUrl } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -29,7 +29,7 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
-import { SkeletonList, EventCardSkeleton } from '../../components/ui/Skeleton';
+import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -239,7 +239,11 @@ export default function MyEventsScreen() {
         activeOpacity={0.7}
       >
         <Image
-          source={{ uri: item.banner_image || item.category?.default_event_image || item.display_image || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=400' }}
+          source={
+            getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)
+              ? { uri: getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)! }
+              : require('../../../assets/defaults/default-event.png')
+          }
           style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
         />
 
@@ -381,12 +385,10 @@ export default function MyEventsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.mainContainer, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-        <View style={[styles.loadingContainer, { paddingTop: insets.top, padding: Spacing.lg }]}>
-          <SkeletonList count={4} Component={EventCardSkeleton} />
-        </View>
-      </View>
+      <>
+        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+        <MyEventsScreenSkeleton />
+      </>
     );
   }
 
@@ -501,11 +503,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.white,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   header: {
     padding: Spacing.lg,

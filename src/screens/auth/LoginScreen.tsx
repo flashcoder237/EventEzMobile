@@ -114,6 +114,14 @@ export default function LoginScreen() {
       await login(email.trim().toLowerCase(), password, rememberMe);
     } catch (error: any) {
       console.log('[Login] Error:', error.response?.status, error.response?.data);
+      // Email non vérifié → rediriger vers l'écran de vérification
+      if (
+        error.response?.status === 403 &&
+        error.response?.data?.code === 'email_not_verified'
+      ) {
+        navigation.navigate('VerifyEmail', { email: email.trim().toLowerCase() });
+        return;
+      }
       const message = extractErrorMessage(error);
       showError('Erreur de connexion', message);
     }

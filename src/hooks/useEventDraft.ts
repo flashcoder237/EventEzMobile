@@ -250,6 +250,16 @@ export function useEventDraft(): UseEventDraftReturn {
       // Validate banner image still exists on disk
       draft.bannerImage = await validateBannerImage(draft.bannerImage ?? null);
 
+      // Validate gallery images still exist on disk
+      if (Array.isArray(draft.galleryImages) && draft.galleryImages.length > 0) {
+        const validated = await Promise.all(
+          draft.galleryImages.map(uri => validateBannerImage(uri))
+        );
+        draft.galleryImages = validated.filter((uri): uri is string => uri !== null);
+      } else {
+        draft.galleryImages = [];
+      }
+
       return draft;
     } catch (error) {
       console.error('Erreur chargement brouillon:', error);

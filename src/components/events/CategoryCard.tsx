@@ -85,14 +85,10 @@ function CategoryCard({
             style={styles.largeImageBackground}
             imageStyle={styles.largeImage}
           >
-            {/* Dark overlay gradient */}
             <LinearGradient
               colors={['transparent', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.85)']}
               style={styles.largeOverlay}
             >
-              <View style={styles.largeIconContainer}>
-                <CategoryIcon name={name} size={28} color={Colors.white} strokeWidth={1.8} />
-              </View>
               <Text style={styles.largeName}>{name}</Text>
               {eventCount !== undefined && eventCount > 0 && (
                 <Text style={styles.largeCount}>{eventCount} evenement{eventCount > 1 ? 's' : ''}</Text>
@@ -106,9 +102,6 @@ function CategoryCard({
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
           >
-            <View style={styles.largeIconContainer}>
-              <CategoryIcon name={name} size={28} color={Colors.white} strokeWidth={1.8} />
-            </View>
             <Text style={styles.largeName}>{name}</Text>
             {eventCount !== undefined && eventCount > 0 && (
               <Text style={styles.largeCount}>{eventCount} evenement{eventCount > 1 ? 's' : ''}</Text>

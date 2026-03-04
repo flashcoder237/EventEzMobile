@@ -94,6 +94,61 @@ function SkeletonComponent({
 export const Skeleton = memo(SkeletonComponent);
 
 // ============================================
+// SKELETON SUR FOND PRIMAIRE (blanc semi-transparent)
+// Pour les headers avec backgroundColor: colors.primary
+// ============================================
+
+function PrimarySkeletonComponent({
+  width = '100%',
+  height = 16,
+  borderRadius = BorderRadius.sm,
+  style,
+}: SkeletonProps) {
+  const translateX = useSharedValue(-1);
+
+  useEffect(() => {
+    translateX.value = withRepeat(
+      withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      false
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: interpolate(translateX.value, [-1, 1], [-200, 200]) },
+    ],
+  }));
+
+  return (
+    <View
+      style={[
+        {
+          width,
+          height,
+          borderRadius,
+          backgroundColor: 'rgba(255,255,255,0.18)',
+          overflow: 'hidden',
+        },
+        style,
+      ]}
+    >
+      <AnimatedLinearGradient
+        colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.28)', 'rgba(255,255,255,0.06)']}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={[
+          { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: '150%' },
+          animatedStyle,
+        ]}
+      />
+    </View>
+  );
+}
+
+export const PrimarySkeleton = memo(PrimarySkeletonComponent);
+
+// ============================================
 // EVENT CARD SKELETON (default variant)
 // Matches EventCard.tsx default: image 200px + dateAccent + title + location + price
 // Width: 82% of screen (like real card)
@@ -669,6 +724,238 @@ export const PaymentCardSkeleton = memo(function PaymentCardSkeleton() {
 });
 
 // ============================================
+// MESSAGES SCREEN SKELETON (full page)
+// Matches MessagesScreen: primary header (back + icon + title + newBtn) + search + tabs + conversations
+// ============================================
+export const MessagesScreenSkeleton = memo(function MessagesScreenSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.primary }}>
+      {/* Header primary */}
+      <View style={{ backgroundColor: colors.primary, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
+        {/* Row: back | icon+title | new */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md }}>
+          <PrimarySkeleton width={40} height={40} borderRadius={20} style={{ marginRight: Spacing.md }} />
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
+            <PrimarySkeleton width={40} height={40} borderRadius={20} />
+            <View style={{ gap: 5 }}>
+              <PrimarySkeleton width={100} height={16} borderRadius={BorderRadius.sm} />
+              <PrimarySkeleton width={80} height={12} borderRadius={BorderRadius.sm} />
+            </View>
+          </View>
+          <PrimarySkeleton width={32} height={32} borderRadius={16} />
+        </View>
+
+        {/* Search bar (card bg) */}
+        <View style={{
+          backgroundColor: 'rgba(255,255,255,0.12)',
+          borderRadius: BorderRadius.lg,
+          paddingHorizontal: Spacing.md,
+          paddingVertical: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.sm,
+          marginBottom: Spacing.sm,
+        }}>
+          <PrimarySkeleton width={18} height={18} borderRadius={9} />
+          <PrimarySkeleton width="70%" height={14} borderRadius={BorderRadius.sm} />
+        </View>
+
+        {/* Tabs */}
+        <View style={{ flexDirection: 'row', gap: Spacing.sm, paddingBottom: Spacing.sm }}>
+          <PrimarySkeleton height={34} borderRadius={BorderRadius.md} style={{ flex: 1 }} />
+          <PrimarySkeleton height={34} borderRadius={BorderRadius.md} style={{ flex: 1 }} />
+        </View>
+      </View>
+
+      {/* Conversations list */}
+      <View style={{ flex: 1, backgroundColor: colors.gray50, paddingTop: Spacing.xs }}>
+        {Array.from({ length: 6 }).map((_, i) => (
+          <ConversationItemSkeleton key={i} />
+        ))}
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// NOTIFICATIONS SCREEN SKELETON (full page)
+// Matches NotificationsScreen: primary header (back+icon+title) + statsRow + filters + notification cards
+// ============================================
+export const NotificationsScreenSkeleton = memo(function NotificationsScreenSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.primary }}>
+      {/* Header primary */}
+      <View style={{ backgroundColor: colors.primary, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.lg }}>
+        {/* Row: back | icon circle | title/subtitle */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.lg }}>
+          <PrimarySkeleton width={40} height={40} borderRadius={20} />
+          <PrimarySkeleton width={40} height={40} borderRadius={20} />
+          <View style={{ gap: 5 }}>
+            <PrimarySkeleton width={130} height={18} borderRadius={BorderRadius.sm} />
+            <PrimarySkeleton width={200} height={12} borderRadius={BorderRadius.sm} />
+          </View>
+        </View>
+
+        {/* Stats row: 3 colonnes */}
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {[0, 1, 2].map((i) => (
+            <React.Fragment key={i}>
+              <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+                <PrimarySkeleton width={40} height={24} borderRadius={BorderRadius.sm} />
+                <PrimarySkeleton width={55} height={12} borderRadius={BorderRadius.sm} />
+              </View>
+              {i < 2 && (
+                <View style={{ width: 1, height: 36, backgroundColor: 'rgba(255,255,255,0.2)' }} />
+              )}
+            </React.Fragment>
+          ))}
+        </View>
+      </View>
+
+      {/* Filters bar (card bg) */}
+      <View style={{ backgroundColor: colors.card, paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm }}>
+        <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+          <Skeleton width={75} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={85} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={70} height={32} borderRadius={BorderRadius.full} />
+        </View>
+      </View>
+
+      {/* Notifications list */}
+      <View style={{ flex: 1, backgroundColor: colors.gray50 }}>
+        {/* Section header */}
+        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.xs }}>
+          <Skeleton width={80} height={12} borderRadius={BorderRadius.sm} />
+        </View>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <View key={`a-${i}`} style={{ paddingHorizontal: Spacing.lg }}>
+            <NotificationItemSkeleton />
+          </View>
+        ))}
+        {/* Section header 2 */}
+        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.xs }}>
+          <Skeleton width={40} height={12} borderRadius={BorderRadius.sm} />
+        </View>
+        {Array.from({ length: 2 }).map((_, i) => (
+          <View key={`b-${i}`} style={{ paddingHorizontal: Spacing.lg }}>
+            <NotificationItemSkeleton />
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// MY EVENT CARD SKELETON
+// Matches MyEventsScreen card: banner 160px + statusBadge + title + 2 meta rows + statsRow + actionsRow
+// ============================================
+export const MyEventCardSkeleton = memo(function MyEventCardSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.myEventCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
+      {/* Banner */}
+      <Skeleton height={160} borderRadius={0} />
+      {/* Status badge placeholder */}
+      <View style={styles.myEventBadge}>
+        <Skeleton width={75} height={22} borderRadius={BorderRadius.full} />
+      </View>
+      {/* Content */}
+      <View style={styles.myEventContent}>
+        {/* Title */}
+        <Skeleton width="78%" height={15} style={{ marginBottom: Spacing.xs }} />
+        <Skeleton width="55%" height={15} style={{ marginBottom: Spacing.md }} />
+        {/* Meta rows */}
+        <View style={{ gap: Spacing.xs, marginBottom: Spacing.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+            <Skeleton width={14} height={14} borderRadius={BorderRadius.full} />
+            <Skeleton width="52%" height={12} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+            <Skeleton width={14} height={14} borderRadius={BorderRadius.full} />
+            <Skeleton width="38%" height={12} />
+          </View>
+        </View>
+        {/* Stats row */}
+        <View style={[styles.myEventStats, { borderTopColor: colors.gray100 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Skeleton width={16} height={16} borderRadius={BorderRadius.full} />
+            <Skeleton width={24} height={14} />
+            <Skeleton width={42} height={12} />
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Skeleton width={16} height={16} borderRadius={BorderRadius.full} />
+            <Skeleton width={24} height={14} />
+            <Skeleton width={32} height={12} />
+          </View>
+          <Skeleton width={55} height={14} />
+        </View>
+        {/* Actions row */}
+        <View style={[styles.myEventActions, { borderTopColor: colors.gray100 }]}>
+          <Skeleton width={52} height={28} borderRadius={BorderRadius.md} />
+          <Skeleton width={75} height={28} borderRadius={BorderRadius.md} />
+          <Skeleton width={55} height={28} borderRadius={BorderRadius.md} />
+          <Skeleton width={32} height={28} borderRadius={BorderRadius.md} />
+        </View>
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// MY EVENTS SCREEN SKELETON (full page)
+// Matches MyEventsScreen: purple gradient header + white contentArea + search + filterTabs + cards
+// ============================================
+export const MyEventsScreenSkeleton = memo(function MyEventsScreenSkeleton() {
+  const { colors } = useTheme();
+  return (
+    <View style={{ flex: 1, backgroundColor: '#7C3AED' }}>
+      {/* Header */}
+      <View style={{ backgroundColor: '#7C3AED', paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xl }}>
+        {/* Top row: back + title + add */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
+          <PrimarySkeleton width={40} height={40} borderRadius={20} />
+          <PrimarySkeleton width={130} height={22} borderRadius={BorderRadius.sm} />
+          <PrimarySkeleton width={40} height={40} borderRadius={20} />
+        </View>
+        {/* Stats line */}
+        <PrimarySkeleton width="65%" height={14} borderRadius={BorderRadius.sm} style={{ alignSelf: 'center' }} />
+      </View>
+
+      {/* Content area */}
+      <View style={{
+        flex: 1,
+        backgroundColor: colors.background,
+        borderTopLeftRadius: BorderRadius.xl,
+        borderTopRightRadius: BorderRadius.xl,
+        marginTop: -Spacing.md,
+      }}>
+        {/* Search bar */}
+        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm }}>
+          <Skeleton height={40} borderRadius={BorderRadius.lg} />
+        </View>
+        {/* Filter tabs */}
+        <View style={{ flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm, gap: Spacing.sm }}>
+          <Skeleton width={50} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={70} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={80} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={90} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={65} height={32} borderRadius={BorderRadius.full} />
+        </View>
+        {/* Event cards */}
+        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, gap: Spacing.md }}>
+          <MyEventCardSkeleton />
+          <MyEventCardSkeleton />
+          <MyEventCardSkeleton />
+        </View>
+      </View>
+    </View>
+  );
+});
+
+// ============================================
 // STYLES
 // All theme-aware (no hardcoded Colors references)
 // ============================================
@@ -905,6 +1192,36 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
+  },
+
+  // My Event Card (MyEventsScreen)
+  myEventCard: {
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.md,
+    overflow: 'hidden',
+    borderWidth: 1,
+  },
+  myEventBadge: {
+    position: 'absolute',
+    top: Spacing.sm,
+    right: Spacing.sm,
+  },
+  myEventContent: {
+    padding: Spacing.md,
+  },
+  myEventStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    marginBottom: Spacing.sm,
+  },
+  myEventActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
   },
 });
 

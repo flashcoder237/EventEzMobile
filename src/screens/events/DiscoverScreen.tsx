@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import Slider from '@react-native-community/slider';
 
-import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
+import { eventsAPI, categoriesAPI, recommendationsAPI, getMediaUrl } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -50,6 +50,9 @@ import EventCard from '../../components/events/EventCard';
 import CategoryCard from '../../components/events/CategoryCard';
 import CategoryIcon from '../../components/icons/CategoryIcons';
 import WebViewMap from '../../components/maps/WebViewMap';
+import MapEventCard from '../../components/maps/MapEventCard';
+import { useSearchHistory } from '../../hooks/useSearchHistory';
+import { usePersistedFilters } from '../../hooks/usePersistedFilters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -114,7 +117,7 @@ export default function DiscoverScreen() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<Filters>(defaultFilters);
+  const { filters, setFilters, resetFilters: resetPersistedFilters, isLoaded: filtersLoaded } = usePersistedFilters<Filters>('@eventez_discover_filters', defaultFilters);
   const [tempFilters, setTempFilters] = useState<Filters>(defaultFilters);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -132,6 +135,7 @@ export default function DiscoverScreen() {
 
   const searchInputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList>(null);
+  const { history: searchHistory, addQuery: addSearchQuery, removeQuery: removeSearchQuery, clearAll: clearSearchHistory } = useSearchHistory();
 
   const activeFiltersCount = [
     filters.eventType !== 'all',
@@ -167,11 +171,14 @@ export default function DiscoverScreen() {
 
   // Search when debounced query or category changes
   useEffect(() => {
-    if (isSearchActive) {
+    if (isSearchActive && filtersLoaded) {
       setCurrentPage(1);
       fetchSearchResults(1, false);
+      if (debouncedQuery.trim().length >= 2) {
+        addSearchQuery(debouncedQuery);
+      }
     }
-  }, [debouncedQuery, selectedCategory, filters.sortBy]);
+  }, [debouncedQuery, selectedCategory, filters.sortBy, filtersLoaded]);
 
 
   // Location-dependent fetch
@@ -418,7 +425,7 @@ export default function DiscoverScreen() {
 
   const resetFilters = () => {
     setTempFilters(defaultFilters);
-    setFilters(defaultFilters);
+    resetPersistedFilters();
     setShowFilters(false);
   };
 
@@ -430,7 +437,7 @@ export default function DiscoverScreen() {
 
   const renderEventCard = useCallback((item: Event, variant: 'default' | 'featured' | 'horizontal' | 'grid' = 'default') => {
     const range = getEventPriceRange(item);
-    const eventImageUrl = item.banner_image || item.category?.default_event_image || item.display_image;
+    const eventImageUrl = getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image);
     return (
       <EventCard
         id={item.id}
@@ -551,6 +558,7 @@ export default function DiscoverScreen() {
             initialRegion={region}
             radiusKm={mapRadius}
             showRadius={!!location}
+            isDark={isDark}
           />
           {/* Radius slider */}
           <View style={[styles.radiusPanel, { backgroundColor: colors.card }]}>
@@ -571,18 +579,13 @@ export default function DiscoverScreen() {
             />
           </View>
           {selectedMarker && (
-            <TouchableOpacity
-              style={[styles.mapSelectedCard, { backgroundColor: colors.card }]}
+            <MapEventCard
+              marker={selectedMarker}
+              userLocation={location}
               onPress={() => navigateToEvent(selectedMarker.id, selectedMarker.banner_image || undefined)}
-              activeOpacity={0.9}
-            >
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDate(selectedMarker.start_date).toUpperCase()}</Text>
-                <Text style={[styles.mapCardTitle, { color: colors.gray900 }]} numberOfLines={1}>{selectedMarker.title}</Text>
-                <Text style={[styles.mapCardLocation, { color: colors.textSecondary }]}>{selectedMarker.location_city}</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.primary} />
-            </TouchableOpacity>
+              calculateDistance={calculateDistance}
+              bottomOffset={120}
+            />
           )}
         </View>
       );
@@ -642,16 +645,48 @@ export default function DiscoverScreen() {
     );
   };
 
+  const renderSearchHistory = () => {
+    if (searchQuery !== '' || searchHistory.length === 0 || viewMode !== 'list') return null;
+    return (
+      <View style={styles.historyContainer}>
+        <View style={styles.historyHeader}>
+          <Text style={[styles.historyTitle, { color: colors.gray700 }]}>Recherches récentes</Text>
+          <TouchableOpacity onPress={clearSearchHistory}>
+            <Text style={[styles.historyClear, { color: colors.primary }]}>Tout effacer</Text>
+          </TouchableOpacity>
+        </View>
+        {searchHistory.map((query, index) => (
+          <TouchableOpacity
+            key={`${query}-${index}`}
+            style={styles.historyItem}
+            onPress={() => setSearchQuery(query)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="time-outline" size={18} color={colors.gray400} />
+            <Text style={[styles.historyText, { color: colors.gray800 }]} numberOfLines={1}>{query}</Text>
+            <TouchableOpacity
+              onPress={() => removeSearchQuery(query)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={16} color={colors.gray400} />
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
   const renderSearchMode = () => (
     <View style={{ flex: 1 }}>
       {renderSearchHeader()}
       {viewMode === 'list' && renderCategoryChips()}
+      {renderSearchHistory()}
       {searchLoading && searchResults.length === 0 && viewMode === 'list' ? (
         <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: Spacing.sm }}>
           <SkeletonList count={4} Component={EventCardSkeleton} />
         </View>
       ) : (
-        renderSearchContent()
+        searchQuery !== '' || viewMode === 'map' ? renderSearchContent() : null
       )}
     </View>
   );
@@ -1408,31 +1443,6 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     color: Colors.primary,
   },
-  dateAccent: {
-    ...TextStyles.dateAccent,
-    marginBottom: 2,
-  },
-  mapSelectedCard: {
-    position: 'absolute',
-    bottom: Spacing.lg,
-    left: Spacing.lg,
-    right: Spacing.lg,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...Shadows.md,
-  },
-  mapCardTitle: {
-    ...TextStyles.bodyBold,
-    marginBottom: 2,
-  },
-  mapCardLocation: {
-    ...TextStyles.small,
-    color: Colors.textSecondary,
-  },
-
   // === FILTERS MODAL ===
   modalOverlay: {
     flex: 1,
@@ -1550,5 +1560,36 @@ const styles = StyleSheet.create({
   },
   applyBtnText: {
     ...TextStyles.button,
+  },
+
+  // === SEARCH HISTORY ===
+  historyContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+  },
+  historyHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  historyTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+  },
+  historyClear: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+  },
+  historyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+  },
+  historyText: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
   },
 });

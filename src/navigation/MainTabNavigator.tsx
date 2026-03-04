@@ -1,11 +1,10 @@
-import React, { useEffect } from 'react';
+import React , {useEffect} from 'react';
 import { View, StyleSheet, Platform, TouchableOpacity, Text, Image } from 'react-native';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as NavigationBar from 'expo-navigation-bar';
 import Animated, {
   useAnimatedStyle,
   withSpring,
@@ -163,20 +162,14 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 }
 
 export default function MainTabNavigator() {
-  const { isDark } = useTheme();
-
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      NavigationBar.setBackgroundColorAsync('transparent');
-      NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
-    }
-  }, [isDark]);
+  const { isDark, colors } = useTheme();
 
   return (
     <Tab.Navigator
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        sceneContainerStyle: { backgroundColor: colors.background },
       }}
     >
       <Tab.Screen

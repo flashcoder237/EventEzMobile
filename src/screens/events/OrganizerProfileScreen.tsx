@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { usersAPI, eventsAPI } from '../../api/client';
+import { usersAPI, eventsAPI, getMediaUrl } from '../../api/client';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -339,7 +339,7 @@ export default function OrganizerProfileScreen() {
                 activeOpacity={TOUCH_OPACITY}
               >
                 {event.banner_image ? (
-                  <Image source={{ uri: event.banner_image }} style={styles.eventImage} />
+                  <Image source={{ uri: getMediaUrl(event.banner_image)! }} style={styles.eventImage} />
                 ) : (
                   <View style={[styles.eventImagePlaceholder, { backgroundColor: colors.gray200 }]}>
                     <Ionicons name="image-outline" size={24} color={colors.gray300} />

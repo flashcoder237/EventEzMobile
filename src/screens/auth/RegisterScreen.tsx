@@ -119,6 +119,10 @@ export default function RegisterScreen() {
         confirm_password: formData.confirm_password,
       });
     } catch (error: any) {
+      if (error.code === 'EMAIL_VERIFICATION_REQUIRED') {
+        navigation.navigate('VerifyEmail', { email: error.email });
+        return;
+      }
       const message = extractErrorMessage(error);
       showError("Erreur d'inscription", message);
     }

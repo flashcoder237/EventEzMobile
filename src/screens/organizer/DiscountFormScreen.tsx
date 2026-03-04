@@ -300,7 +300,7 @@ export default function DiscountFormScreen() {
           {/* Value */}
           <View style={styles.fieldContainer}>
             <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>
-              Valeur {discountType === 'percentage' ? '(%)' : '({platformCurrency})'}
+              Valeur {discountType === 'percentage' ? '(%)' : `(${platformCurrency})`}
             </Text>
             <TextInput
               style={[
@@ -413,7 +413,7 @@ export default function DiscountFormScreen() {
               title={loading ? 'Enregistrement...' : isEditing ? 'Mettre à jour' : 'Créer le code promo'}
               onPress={handleSubmit}
               disabled={loading}
-              icon={loading ? undefined : 'checkmark'}
+              iconRight={loading ? undefined : 'checkmark'}
             />
           </View>
         </ScrollView>

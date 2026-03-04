@@ -51,6 +51,7 @@ import ScanScreen from '../screens/scan/ScanScreen';
 
 // Organizer Screens
 import EventCreateScreen from '../screens/organizer/EventCreateScreen';
+import EventEditScreen from '../screens/organizer/EventEditScreen';
 import WalletScreen from '../screens/organizer/WalletScreen';
 import MyEventsScreen from '../screens/organizer/MyEventsScreen';
 import QRScannerScreen from '../screens/organizer/QRScannerScreen';
@@ -148,7 +149,9 @@ export default function RootNavigator() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.background },
-        animation: 'fade_from_bottom',
+        // Transition push standard : slide depuis la droite (lisible sur iOS & Android)
+        animation: 'slide_from_right',
+        animationDuration: 320,
       }}
     >
       {!isAuthenticated ? (
@@ -161,10 +164,7 @@ export default function RootNavigator() {
           <Stack.Screen
             name="EventDetails"
             component={EventDetailsScreen}
-            options={{
-              headerShown: false,
-              animation: 'fade',
-            }}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="Map"
@@ -362,6 +362,16 @@ export default function RootNavigator() {
             component={EventCreateScreen}
             options={{
               headerShown: false,
+              // Formulaire de création : slide du bas → ressemble à un "nouveau flux"
+              animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="EventEdit"
+            component={EventEditScreen}
+            options={{
+              headerShown: false,
+              animation: 'slide_from_right',
             }}
           />
           <Stack.Screen

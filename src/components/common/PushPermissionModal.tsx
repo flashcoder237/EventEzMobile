@@ -1,8 +1,18 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Reanimated from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 interface PushPermissionModalProps {
   visible: boolean;
@@ -10,100 +20,130 @@ interface PushPermissionModalProps {
   onDecline: () => void;
 }
 
-export default function PushPermissionModal({ visible, onAccept, onDecline }: PushPermissionModalProps) {
-  const { colors, isDark } = useTheme();
+export default function PushPermissionModal({
+  visible,
+  onAccept,
+  onDecline,
+}: PushPermissionModalProps) {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
   return (
     <Modal
-      visible={visible}
+      visible={modalOpen}
       transparent
-      animationType="fade"
+      animationType="none"
       statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: colors.card }]}>
-          {/* Icon */}
-          <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
-            <Ionicons name="notifications" size={40} color={colors.primary} />
-          </View>
+      {/* Backdrop */}
+      <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
+      <TouchableWithoutFeedback onPress={onDecline}>
+        <View style={StyleSheet.absoluteFill} />
+      </TouchableWithoutFeedback>
 
-          {/* Title */}
-          <Text style={[styles.title, { color: colors.gray900 }]}>Restez informé</Text>
+      {/* Sheet */}
+      <Reanimated.View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.card,
+            paddingBottom: Math.max(insets.bottom + Spacing.md, Spacing.xl),
+          },
+          sheetAnim,
+        ]}
+      >
+        {/* Handle */}
+        <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
 
-          {/* Description */}
-          <Text style={[styles.description, { color: colors.gray600 }]}>
-            Activez les notifications pour recevoir :
-          </Text>
-
-          <View style={styles.featureList}>
-            <View style={styles.featureItem}>
-              <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.gray700 }]}>Rappels de vos événements</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="ticket-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.gray700 }]}>Confirmations d'inscription</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="chatbubble-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.gray700 }]}>Nouveaux messages</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <Ionicons name="card-outline" size={20} color={colors.primary} />
-              <Text style={[styles.featureText, { color: colors.gray700 }]}>Confirmations de paiement</Text>
-            </View>
-          </View>
-
-          {/* Buttons */}
-          <TouchableOpacity style={[styles.acceptButton, { backgroundColor: colors.primary }]} onPress={onAccept} activeOpacity={0.8}>
-            <Text style={styles.acceptButtonText}>Activer les notifications</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.declineButton} onPress={onDecline} activeOpacity={0.8}>
-            <Text style={[styles.declineButtonText, { color: colors.gray500 }]}>Plus tard</Text>
-          </TouchableOpacity>
+        {/* Icon */}
+        <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
+          <Ionicons name="notifications" size={40} color={colors.primary} />
         </View>
-      </View>
+
+        {/* Title */}
+        <Text style={[styles.title, { color: colors.gray900 }]}>Restez informé</Text>
+
+        {/* Description */}
+        <Text style={[styles.description, { color: colors.gray600 }]}>
+          Activez les notifications pour recevoir :
+        </Text>
+
+        {/* Features */}
+        <View style={styles.featureList}>
+          {[
+            { icon: 'calendar-outline' as const, label: 'Rappels de vos événements' },
+            { icon: 'ticket-outline' as const, label: "Confirmations d'inscription" },
+            { icon: 'chatbubble-outline' as const, label: 'Nouveaux messages' },
+            { icon: 'card-outline' as const, label: 'Confirmations de paiement' },
+          ].map(({ icon, label }) => (
+            <View key={label} style={styles.featureItem}>
+              <Ionicons name={icon} size={20} color={colors.primary} />
+              <Text style={[styles.featureText, { color: colors.gray700 }]}>{label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* CTA */}
+        <TouchableOpacity
+          style={[styles.acceptButton, { backgroundColor: colors.primary }]}
+          onPress={onAccept}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.acceptButtonText}>Activer les notifications</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.declineButton} onPress={onDecline} activeOpacity={0.8}>
+          <Text style={[styles.declineButtonText, { color: colors.gray500 }]}>Plus tard</Text>
+        </TouchableOpacity>
+      </Reanimated.View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
+  backdrop: {
     backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
   },
-  container: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    width: '100%',
-    maxWidth: 340,
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    marginBottom: Spacing.xl,
   },
   iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: `${Colors.primary}15`,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   title: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.xl,
-    color: Colors.gray900,
-    marginBottom: Spacing.sm,
     textAlign: 'center',
+    marginBottom: Spacing.sm,
   },
   description: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
@@ -121,12 +161,10 @@ const styles = StyleSheet.create({
   featureText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    color: Colors.gray700,
     flex: 1,
   },
   acceptButton: {
     width: '100%',
-    backgroundColor: Colors.primary,
     borderRadius: BorderRadius.lg,
     paddingVertical: 14,
     alignItems: 'center',
@@ -145,6 +183,5 @@ const styles = StyleSheet.create({
   declineButtonText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
   },
 });

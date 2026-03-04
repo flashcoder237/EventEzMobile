@@ -8,7 +8,7 @@ import {
   TextInput,
   StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -47,6 +47,7 @@ export default function TicketPurchaseScreen() {
   const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig();
 
   // Mode d'édition: modifier une inscription existante
@@ -599,7 +600,7 @@ export default function TicketPurchaseScreen() {
                     )}
                     <View style={styles.ticketMeta}>
                       <Text style={[styles.ticketPrice, { color: colors.primary }]}>
-                        {ticketType.price === 0 ? 'Gratuit' : `${ticketType.price.toLocaleString()} {commissionCurrency}`}
+                        {ticketType.price === 0 ? 'Gratuit' : `${ticketType.price.toLocaleString()} ${commissionCurrency}`}
                       </Text>
                       {availableQty > 0 && ticketType.quantity_total !== undefined && (
                         <Text style={[styles.ticketAvailability, { color: colors.gray500 }]}>
@@ -660,7 +661,7 @@ export default function TicketPurchaseScreen() {
                     <Text style={[styles.appliedDiscountValue, { color: colors.success }]}>
                       {appliedDiscount.discount_type === 'percentage'
                         ? `-${appliedDiscount.value || 0}%`
-                        : `-${(appliedDiscount.value || 0).toLocaleString()} {commissionCurrency}`}
+                        : `-${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency}`}
                     </Text>
                   </View>
                 </View>
@@ -788,7 +789,7 @@ export default function TicketPurchaseScreen() {
       </KeyboardAwareScrollView>
 
       {/* Bottom CTA */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.totalContainer}>
           {event?.event_type === 'billetterie' ? (
             <>
@@ -805,7 +806,7 @@ export default function TicketPurchaseScreen() {
             <>
               <Text style={[styles.totalLabelBottom, { color: colors.gray500 }]}>Inscription</Text>
               <Text style={[styles.totalValueBottom, { color: colors.gray900 }]}>
-                {event?.is_free || !event?.base_price ? 'Gratuit' : `${(event?.base_price || 0).toLocaleString()} {commissionCurrency}`}
+                {event?.is_free || !event?.base_price ? 'Gratuit' : `${(event?.base_price || 0).toLocaleString()} ${commissionCurrency}`}
               </Text>
             </>
           )}
@@ -1220,7 +1221,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    paddingBottom: Spacing.xl,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
   },

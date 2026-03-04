@@ -22,10 +22,12 @@ import {
   Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { messagesAPI, usersAPI } from '../../api/client';
+import CacheService from '../../services/CacheService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -45,7 +47,7 @@ import {
   getUserInitials,
   formatRelativeTime,
 } from '../../lib/utils/messagingHelpers';
-import { ConversationItemSkeleton } from '../../components/ui/Skeleton';
+import { ConversationItemSkeleton, MessagesScreenSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui';
 import { NewMessage, PeopleSearch } from '../../components/illustrations';
 import { StaggeredItem } from '../../components/ui/Animations';
@@ -188,14 +190,27 @@ export default function MessagesScreen() {
     fetchUsers();
   }, []);
 
-  const fetchConversations = async () => {
+  const fetchConversations = async (bypassCache = false) => {
+    const cacheKey = `convos:${user?.id}`;
     try {
+      if (!bypassCache) {
+        const cached = await CacheService.get<Conversation[]>(cacheKey);
+        if (cached) {
+          setConversations(cached.data);
+          setLoading(false);
+          if (!cached.isStale) return; // Données fraîches
+          // Périmées : refresh silencieux
+        }
+      }
       const response = await messagesAPI.getConversations();
-      setConversations(response.data.results || response.data || []);
+      const data = response.data.results || response.data || [];
+      setConversations(data);
+      CacheService.set(cacheKey, data, 30 * 1000); // fraîcheur : 30 secondes
     } catch (error) {
       console.error('Erreur chargement conversations:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -215,8 +230,7 @@ export default function MessagesScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchConversations();
-    setRefreshing(false);
+    await fetchConversations(true);
   };
 
   const handleOpenNewModal = () => {
@@ -248,7 +262,8 @@ export default function MessagesScreen() {
   const handleArchive = async (conversationId: string) => {
     try {
       await messagesAPI.archiveConversation(conversationId);
-      fetchConversations();
+      CacheService.invalidate(`convos:${user?.id}`);
+      fetchConversations(true);
     } catch (error) {
       console.error('Erreur archivage:', error);
     }
@@ -347,32 +362,7 @@ export default function MessagesScreen() {
       <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
-            <View style={styles.headerContainer}>
-              <View style={styles.header}>
-                <TouchableOpacity
-                  style={styles.backButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Ionicons name="arrow-back" size={24} color={Colors.white} />
-                </TouchableOpacity>
-                <View style={styles.headerLeft}>
-                  <View style={styles.headerIconContainer}>
-                    <Ionicons name="chatbubbles" size={24} color={Colors.white} />
-                  </View>
-                  <View>
-                    <Text style={styles.headerTitle}>Messages</Text>
-                    <Text style={styles.headerSubtitle}>Chargement...</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-            <View style={styles.listContent}>
-              {[1, 2, 3, 4, 5].map(i => (
-                <ConversationItemSkeleton key={i} />
-              ))}
-            </View>
-          </View>
+          <MessagesScreenSkeleton />
         </SafeAreaView>
       </View>
     );
@@ -474,6 +464,7 @@ export default function MessagesScreen() {
             animationType="slide"
             onRequestClose={() => setShowNewModal(false)}
           >
+            <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
             <View style={styles.modalOverlay}>
               <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
                 <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
@@ -518,6 +509,7 @@ export default function MessagesScreen() {
                 )}
               </View>
             </View>
+            </KeyboardAvoidingView>
           </Modal>
         </View>
       </SafeAreaView>

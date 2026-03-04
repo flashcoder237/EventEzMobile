@@ -4,7 +4,7 @@
     "slug": "EventEzMobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon2.png",
     "userInterfaceStyle": "automatic",
     "scheme": "eventez",
     "splash": {
@@ -38,7 +38,7 @@
       },
       "package": "com.eventez.mobile",
       "softwareKeyboardLayoutMode": "adjustResize",
-      "navigationBarColor": "#FFFFFF",
+      "navigationBarColor": "#00000000",
       "googleServicesFile": "./google-services.json",
       "useNextNotificationsApi": true,
       "permissions": [

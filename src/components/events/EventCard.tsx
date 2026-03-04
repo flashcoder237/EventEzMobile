@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
 import { AnimatedBookmark } from '../ui/Animations';
 import { formatPriceRange } from '../../lib/utils/priceFormatters';
+import { getMediaUrl } from '../../api/client';
 import {
   FontFamily,
   FontSizes,
@@ -23,7 +24,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-const DEFAULT_EVENT_IMAGE = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800';
+const DEFAULT_EVENT_IMAGE = require('../../../assets/defaults/default-event.png');
 
 interface EventCardProps {
   id: string;
@@ -69,6 +70,9 @@ function EventCard({
   onLikePress,
 }: EventCardProps) {
   const { colors, shadows, cardFooterBg, isDark } = useTheme();
+
+  // Résoudre l'URL image (relative → absolue) et utiliser le fallback local si absente
+  const resolvedImageUrl = getMediaUrl(imageUrl);
 
   // === Helpers ===
 
@@ -129,7 +133,7 @@ function EventCard({
         haptic="light"
       >
         <Animated.Image
-          source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
+          source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
           style={[styles.horizontalImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
         />
@@ -166,7 +170,7 @@ function EventCard({
     return (
       <TouchableOpacity onPress={onPress} style={[styles.compactCard, { backgroundColor: colors.card }, cardShadow]} activeOpacity={0.7}>
         <Animated.Image
-          source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
+          source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
           style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
         />
@@ -192,7 +196,7 @@ function EventCard({
       >
         <View style={styles.featuredImageContainer}>
           <Animated.Image
-            source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
+            source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
             style={[styles.featuredImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
             />
@@ -256,7 +260,7 @@ function EventCard({
       >
         <View style={{ position: 'relative' }}>
           <Animated.Image
-            source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
+            source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
             style={[styles.gridImage, { backgroundColor: colors.gray100 }]}
             resizeMode="cover"
             />
@@ -304,7 +308,7 @@ function EventCard({
       haptic="light"
     >
       <Animated.Image
-        source={{ uri: imageUrl || DEFAULT_EVENT_IMAGE }}
+        source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
         style={[styles.defaultImage, { backgroundColor: colors.gray100 }]}
         resizeMode="cover"
       />

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,19 +7,16 @@ import {
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
 import MapPickerModal from '../../components/common/MapPickerModal';
-import AIUsageBadge from '../../components/events/AIUsageBadge';
 import {
   EventStep1Info,
   EventStep2DateTime,
@@ -27,7 +24,6 @@ import {
   EventStep4Sessions,
 } from '../../components/organizer';
 import { useEventForm, STEPS } from '../../hooks/useEventForm';
-import { useEventDraft } from '../../hooks/useEventDraft';
 import {
   Colors,
   FontFamily,
@@ -38,9 +34,13 @@ import {
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type RouteType = RouteProp<RootStackParamList, 'EventEdit'>;
 
-export default function EventCreateScreen() {
+export default function EventEditScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteType>();
+  const { eventId } = route.params;
+
   const alertActions = useAlert();
   const { showAlert } = alertActions;
   const { colors, isDark } = useTheme();
@@ -50,7 +50,6 @@ export default function EventCreateScreen() {
     goToNextStep,
     goToPrevStep,
     goToStep,
-    validateStep,
     // Step 1
     setTitle,
     setDescription,
@@ -107,113 +106,28 @@ export default function EventCreateScreen() {
     handleSuggestPricing,
     // Submit
     handleSubmit,
-    resetForm,
-    // Draft
-    hydrateForm,
     // Utils
     formatDate,
-  } = useEventForm(alertActions);
+  } = useEventForm(alertActions, eventId);
 
-  // Draft persistence
-  const { hasDraft, draftTitle, draftLoading, draftJustSaved, loadDraft, scheduleSave, saveNow, clearDraft } = useEventDraft();
-  const draftCheckedRef = useRef(false);
-  const formRef = useRef(form);
-  formRef.current = form;
-
-  // On mount: check for existing draft
-  useEffect(() => {
-    if (draftLoading || draftCheckedRef.current) return;
-    draftCheckedRef.current = true;
-
-    if (hasDraft) {
-      showAlert(
-        'Brouillon trouvé',
-        `Vous avez un brouillon "${draftTitle}" en cours. Voulez-vous le reprendre ?`,
-        [
-          {
-            text: 'Supprimer',
-            style: 'destructive',
-            onPress: () => clearDraft(),
-          },
-          {
-            text: 'Reprendre',
-            onPress: async () => {
-              const data = await loadDraft();
-              if (data) hydrateForm(data);
-            },
-          },
-        ],
-        'info'
-      );
-    }
-  }, [draftLoading, hasDraft, draftTitle, showAlert, clearDraft, loadDraft, hydrateForm]);
-
-  // Auto-save on form changes (debounced 2s)
-  useEffect(() => {
-    if (draftLoading) return;
-    // Skip if form is completely empty (fresh state)
-    const hasContent =
-      form.title.trim() ||
-      form.description.trim() ||
-      form.shortDescription.trim() ||
-      form.bannerImage ||
-      form.galleryImages.length > 0 ||
-      form.locationName.trim() ||
-      form.locationCity.trim() ||
-      form.ticketTypes.length > 0 ||
-      form.formFields.length > 0 ||
-      form.sessions.length > 0;
-    if (!hasContent) return;
-
-    scheduleSave(form);
-  }, [
-    draftLoading, scheduleSave,
-    form.currentStep, form.title, form.description, form.shortDescription,
-    form.eventType, form.categoryId, form.selectedTagIds, form.customTags,
-    form.bannerImage, form.galleryImages, form.startDate, form.endDate, form.registrationDeadline,
-    form.hasRegistrationDeadline, form.locationType, form.locationName,
-    form.locationCity, form.locationAddress, form.locationCountry,
-    form.onlineUrl, form.onlinePlatform, form.onlineInstructions,
-    form.onlineMeetingId, form.onlinePasscode, form.locationLatitude,
-    form.locationLongitude, form.isFree, form.maxParticipants,
-    form.autoApproveRegistrations, form.ticketTypes, form.formFields,
-    form.showFormFieldsForBilletterie, form.visibility, form.accessCode,
-    form.sessions,
-  ]);
-
-  // Back button: save immediately then go back
-  const handleBack = useCallback(async () => {
-    const hasContent =
-      formRef.current.title.trim() ||
-      formRef.current.description.trim() ||
-      formRef.current.bannerImage ||
-      formRef.current.galleryImages.length > 0 ||
-      formRef.current.ticketTypes.length > 0 ||
-      formRef.current.sessions.length > 0;
-    if (hasContent) {
-      await saveNow(formRef.current);
-    }
+  const handleBack = useCallback(() => {
     navigation.goBack();
-  }, [saveNow, navigation]);
+  }, [navigation]);
 
   const onSubmit = async () => {
-    const eventId = await handleSubmit();
-    if (eventId) {
-      await clearDraft();
+    const result = await handleSubmit();
+    if (result) {
       showAlert(
         'Succès',
-        'Votre événement a été créé en tant que brouillon. Vous pouvez le modifier et le publier depuis Mes événements.',
+        "L'événement a été mis à jour avec succès.",
         [
           {
             text: 'Voir mes événements',
             onPress: () => navigation.navigate('MyEvents'),
           },
           {
-            text: 'Créer un autre',
-            onPress: async () => {
-              await clearDraft();
-              resetForm();
-            },
+            text: 'Continuer',
+            style: 'cancel',
           },
         ],
         'success'
@@ -221,32 +135,41 @@ export default function EventCreateScreen() {
     }
   };
 
+  // Show loading spinner while form data is being fetched
+  if (form.loading && !form.title) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+        <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
+          </TouchableOpacity>
+          <View style={styles.headerCenter}>
+            <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Modifier l'événement</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loadingText, { color: colors.gray500 }]}>Chargement de l'événement...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
       <View style={styles.keyboardView}>
         {/* Header */}
         <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={handleBack}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
             <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Créer un événement</Text>
-            {draftJustSaved && (
-              <Animated.View
-                entering={FadeIn.duration(300)}
-                exiting={FadeOut.duration(300)}
-                style={styles.savedBadge}
-              >
-                <Ionicons name="cloud-done-outline" size={12} color={Colors.success} />
-                <Text style={styles.savedBadgeText}>Sauvegardé</Text>
-              </Animated.View>
-            )}
+            <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Modifier l'événement</Text>
           </View>
-          {form.aiEnabled ? <AIUsageBadge usage={form.aiUsage} /> : <View style={{ width: 40 }} />}
+          <View style={{ width: 40 }} />
         </View>
 
         {/* Progress Steps */}
@@ -269,7 +192,11 @@ export default function EventCreateScreen() {
                 />
               </TouchableOpacity>
               {index < STEPS.length - 1 && (
-                <View style={[styles.stepLine, { backgroundColor: colors.gray200 }, form.currentStep > step.id && styles.stepLineActive]} />
+                <View style={[
+                  styles.stepLine,
+                  { backgroundColor: colors.gray200 },
+                  form.currentStep > step.id && styles.stepLineActive,
+                ]} />
               )}
             </React.Fragment>
           ))}
@@ -430,7 +357,7 @@ export default function EventCreateScreen() {
                 <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
               )}
               <Text style={styles.submitButtonText}>
-                {form.loading ? 'Création...' : 'Créer l\'événement'}
+                {form.loading ? 'Mise à jour...' : "Mettre à jour"}
               </Text>
             </TouchableOpacity>
           )}
@@ -449,16 +376,22 @@ export default function EventCreateScreen() {
   );
 }
 
-// ============================================
-// Screen-level styles only
-// ============================================
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   keyboardView: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.base,
   },
   headerBar: {
     flexDirection: 'row',
@@ -467,8 +400,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-    backgroundColor: Colors.white,
   },
   backButton: {
     width: 40,
@@ -484,18 +415,6 @@ const styles = StyleSheet.create({
   headerBarTitle: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
-    color: Colors.gray900,
-  },
-  savedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    marginTop: 2,
-  },
-  savedBadgeText: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.xs,
-    color: Colors.success,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -503,15 +422,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   stepIndicator: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -525,7 +441,6 @@ const styles = StyleSheet.create({
   stepLine: {
     flex: 1,
     height: 2,
-    backgroundColor: Colors.gray200,
     marginHorizontal: Spacing.sm,
   },
   stepLineActive: {
@@ -542,8 +457,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    backgroundColor: Colors.white,
   },
   prevButton: {
     flex: 1,
@@ -552,13 +465,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.gray100,
     gap: Spacing.sm,
   },
   prevButtonText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
-    color: Colors.gray600,
   },
   nextButton: {
     flex: 2,
@@ -580,7 +491,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.success,
+    backgroundColor: Colors.primary,
     gap: Spacing.sm,
   },
   submitButtonDisabled: {

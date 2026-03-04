@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  FlatList,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -57,6 +58,9 @@ interface EventStep1InfoProps {
   onCustomTagRemove: (tag: string) => void;
   onPickImage: () => void;
   onRemoveImage: () => void;
+  galleryImages: string[];
+  onPickGalleryImages: () => void;
+  onRemoveGalleryImage: (index: number) => void;
 
   // Visibility
   visibility: 'public' | 'unlisted' | 'invite_only';
@@ -103,6 +107,9 @@ export default function EventStep1Info({
   onCustomTagRemove,
   onPickImage,
   onRemoveImage,
+  galleryImages,
+  onPickGalleryImages,
+  onRemoveGalleryImage,
   visibility,
   accessCode,
   onVisibilityChange,
@@ -152,6 +159,53 @@ export default function EventStep1Info({
             </View>
           )}
         </TouchableOpacity>
+      </View>
+
+      {/* Gallery Images */}
+      <View style={styles.inputGroup}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
+          <Text style={[styles.label, themed.label]}>
+            Galerie de photos
+            {galleryImages.length > 0 ? ` (${galleryImages.length}/10)` : ''}
+          </Text>
+          {galleryImages.length < 10 && (
+            <TouchableOpacity onPress={onPickGalleryImages} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+              <Text style={{ color: colors.primary, fontSize: 13 }}>Ajouter</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {galleryImages.length === 0 ? (
+          <TouchableOpacity
+            style={[styles.imagePickerButton, themed.imagePickerButton, { height: 72 }]}
+            onPress={onPickGalleryImages}
+          >
+            <View style={[styles.imagePickerPlaceholder, themed.imagePickerPlaceholder, { paddingVertical: 12 }]}>
+              <Ionicons name="images-outline" size={28} color={colors.gray400} />
+              <Text style={[styles.imagePickerText, themed.imagePickerText]}>Ajouter des photos supplémentaires</Text>
+            </View>
+          </TouchableOpacity>
+        ) : (
+          <FlatList
+            horizontal
+            data={galleryImages}
+            keyExtractor={(_, i) => i.toString()}
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: 8 }}
+            renderItem={({ item, index }) => (
+              <View style={{ position: 'relative' }}>
+                <Image source={{ uri: item }} style={{ width: 90, height: 70, borderRadius: 8 }} />
+                <TouchableOpacity
+                  style={{ position: 'absolute', top: -6, right: -6 }}
+                  onPress={() => onRemoveGalleryImage(index)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={20} color={colors.error} />
+                </TouchableOpacity>
+              </View>
+            )}
+          />
+        )}
       </View>
 
       {/* Title */}

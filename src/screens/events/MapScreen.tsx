@@ -18,7 +18,9 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { eventsAPI, categoriesAPI } from '../../api/client';
 import { MapMarker, RootStackParamList, Category } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
+import MapEventCard from '../../components/maps/MapEventCard';
 import { useTheme } from '../../contexts/ThemeContext';
+import { usePersistedFilters } from '../../hooks/usePersistedFilters';
 import {
   Colors,
   FontSizes,
@@ -60,12 +62,13 @@ export default function MapScreen() {
   const [showRadiusSelector, setShowRadiusSelector] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [filters, setFilters] = useState<Filters>({
+  const mapDefaultFilters: Filters = {
     eventType: 'all',
     price: 'all',
     date: 'all',
     category: null,
-  });
+  };
+  const { filters, setFilters, resetFilters: resetPersistedFilters, isLoaded: filtersLoaded } = usePersistedFilters<Filters>('@eventez_map_filters', mapDefaultFilters);
   const [tempFilters, setTempFilters] = useState<Filters>(filters);
 
   const [region, setRegion] = useState({
@@ -232,21 +235,7 @@ export default function MapScreen() {
   };
 
   const resetFilters = () => {
-    const defaultFilters: Filters = {
-      eventType: 'all',
-      price: 'all',
-      date: 'all',
-      category: null,
-    };
-    setTempFilters(defaultFilters);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-    });
+    setTempFilters(mapDefaultFilters);
   };
 
   const FilterButton = ({
@@ -287,6 +276,7 @@ export default function MapScreen() {
         initialRegion={region}
         radiusKm={radius}
         showRadius={!!userLocation}
+        isDark={isDark}
       />
 
       {/* Top Bar - Back + Filters */}
@@ -353,34 +343,12 @@ export default function MapScreen() {
 
       {/* Selected Event Card */}
       {selectedMarker && (
-        <TouchableOpacity
-          style={[styles.selectedCard, { backgroundColor: colors.card }]}
+        <MapEventCard
+          marker={selectedMarker}
+          userLocation={userLocation}
           onPress={() => navigation.navigate('EventDetails', { eventId: selectedMarker.id })}
-          activeOpacity={0.95}
-        >
-          <View style={styles.selectedCardContent}>
-            <Text style={[styles.selectedCardDate, { color: colors.primary }]}>
-              {formatDate(selectedMarker.start_date).toUpperCase()}
-            </Text>
-            <Text style={[styles.selectedCardTitle, { color: colors.gray900 }]} numberOfLines={1}>
-              {selectedMarker.title}
-            </Text>
-            <View style={styles.selectedCardMeta}>
-              <Ionicons name="location-outline" size={14} color={colors.gray500} />
-              <Text style={[styles.selectedCardMetaText, { color: colors.gray500 }]}>
-                {selectedMarker.location_city}
-              </Text>
-              {userLocation && selectedMarker.lat && selectedMarker.lng && (
-                <Text style={[styles.selectedCardDistance, { color: colors.primary }]}>
-                  • {Math.round(calculateDistance(userLocation.lat, userLocation.lng, selectedMarker.lat, selectedMarker.lng))} km
-                </Text>
-              )}
-            </View>
-          </View>
-          <View style={[styles.selectedCardButton, { backgroundColor: colors.gray50 }]}>
-            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
-          </View>
-        </TouchableOpacity>
+          calculateDistance={calculateDistance}
+        />
       )}
 
       {/* Radius Selector Modal */}
@@ -675,56 +643,6 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
     fontSize: FontSizes.sm,
   },
-  selectedCard: {
-    position: 'absolute',
-    bottom: Spacing.xl,
-    left: Spacing.lg,
-    right: Spacing.lg,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...Shadows.lg,
-  },
-  selectedCardContent: {
-    flex: 1,
-  },
-  selectedCardDate: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.primary,
-    marginBottom: 4,
-  },
-  selectedCardTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
-    marginBottom: Spacing.xs,
-  },
-  selectedCardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  selectedCardMetaText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-  },
-  selectedCardDistance: {
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    fontFamily: FontFamily.medium,
-  },
-  selectedCardButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.gray50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
   // Radius Selector Modal
   modalOverlay: {
     flex: 1,

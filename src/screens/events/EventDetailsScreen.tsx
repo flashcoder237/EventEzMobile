@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   Image,
   TouchableOpacity,
   Dimensions,
@@ -14,7 +15,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -46,7 +47,7 @@ import AgendaTab from '../../components/events/AgendaTab';
 import ReviewsTab from '../../components/events/ReviewsTab';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
-import { eventsAPI } from '../../api/client';
+import { eventsAPI, getMediaUrl } from '../../api/client';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
@@ -59,6 +60,9 @@ export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
   const { eventId, imageUrl: routeImageUrl } = route.params;
   const { colors, isDark, gradients } = useTheme();
+  const insets = useSafeAreaInsets();
+  const [viewerImageIndex, setViewerImageIndex] = useState(0);
+  const viewerFlatListRef = useRef<FlatList>(null);
 
   const {
     event,
@@ -102,6 +106,23 @@ export default function EventDetailsScreen() {
     user,
     showError,
   } = useEventDetails(eventId);
+
+  // Toutes les images : banner en premier, puis gallery_images
+  const allImages = useMemo(() => {
+    const imgs: { uri: string; caption?: string }[] = [];
+    const bannerUrl = getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl);
+    if (bannerUrl) imgs.push({ uri: bannerUrl });
+    event?.gallery_images?.forEach(g => {
+      const url = getMediaUrl(g.image);
+      if (url) imgs.push({ uri: url, caption: g.caption });
+    });
+    return imgs;
+  }, [event, routeImageUrl]);
+
+  const openViewer = (index: number) => {
+    setViewerImageIndex(index);
+    setShowImageViewer(true);
+  };
 
   // All hooks must be called before any early returns
   const scrollY = useSharedValue(0);
@@ -210,7 +231,7 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
 
           {event.banner_image && (
-            <Image source={{ uri: event.banner_image }} style={visibilityStyles.gateBanner} />
+            <Image source={{ uri: getMediaUrl(event.banner_image)! }} style={visibilityStyles.gateBanner} />
           )}
 
           <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>{event.title}</Text>
@@ -265,7 +286,7 @@ export default function EventDetailsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       {/* BlurHeader that appears on scroll */}
       <BlurHeader
@@ -302,10 +323,14 @@ export default function EventDetailsScreen() {
         <View style={styles.bannerContainer}>
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => setShowImageViewer(true)}
+            onPress={() => openViewer(0)}
           >
             <Animated.Image
-              source={{ uri: event?.banner_image || event?.category?.default_event_image || routeImageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
+              source={
+              getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)
+                ? { uri: getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)! }
+                : require('../../../assets/defaults/default-event.png')
+            }
               style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
             />
             {/* Triple gradient overlay */}
@@ -669,6 +694,33 @@ export default function EventDetailsScreen() {
             </View>
           )}
 
+          {/* Section: Gallery */}
+          {allImages.length > 1 && (
+            <View style={[styles.gallerySection, { borderTopColor: colors.gray100 }]}>
+              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Photos</Text>
+              <FlatList
+                horizontal
+                data={allImages}
+                keyExtractor={(_, i) => i.toString()}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.galleryList}
+                renderItem={({ item, index }) => (
+                  <TouchableOpacity onPress={() => openViewer(index)} activeOpacity={0.8}>
+                    <Image
+                      source={{ uri: item.uri }}
+                      style={[styles.galleryThumb, { backgroundColor: colors.gray200 }]}
+                    />
+                    {item.caption ? (
+                      <Text style={[styles.galleryCaption, { color: colors.gray500 }]} numberOfLines={1}>
+                        {item.caption}
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          )}
+
           {/* Section: Tickets */}
           <TicketsTab
             event={event}
@@ -727,7 +779,7 @@ export default function EventDetailsScreen() {
         {Platform.OS === 'android' && (
           <View style={[styles.bottomBarAndroidBg, { backgroundColor: isDark ? 'rgba(15,15,26,0.95)' : 'rgba(255,255,255,0.95)' }]} />
         )}
-      <View style={[styles.bottomBarContent, { borderTopColor: colors.gray100 }]}>
+      <View style={[styles.bottomBarContent, { borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.priceContainer}>
           {userRegistration ? (
             <>
@@ -836,6 +888,9 @@ export default function EventDetailsScreen() {
         transparent={true}
         animationType="fade"
         onRequestClose={() => setShowImageViewer(false)}
+        onShow={() => {
+          viewerFlatListRef.current?.scrollToIndex({ index: viewerImageIndex, animated: false });
+        }}
       >
         <View style={styles.imageViewerContainer}>
           <TouchableOpacity
@@ -844,11 +899,47 @@ export default function EventDetailsScreen() {
           >
             <Ionicons name="close" size={28} color={colors.white} />
           </TouchableOpacity>
-          <Image
-            source={{ uri: event?.banner_image || event?.category?.default_event_image || routeImageUrl || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800' }}
-            style={styles.imageViewerImage}
-            resizeMode="contain"
-          />
+
+          {allImages.length > 0 ? (
+            <FlatList
+              ref={viewerFlatListRef}
+              data={allImages}
+              keyExtractor={(_, i) => i.toString()}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              initialScrollIndex={viewerImageIndex}
+              getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
+              onMomentumScrollEnd={e => {
+                const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+                setViewerImageIndex(idx);
+              }}
+              renderItem={({ item }) => (
+                <View style={styles.imageViewerSlide}>
+                  <Image
+                    source={{ uri: item.uri }}
+                    style={styles.imageViewerImage}
+                    resizeMode="contain"
+                  />
+                  {item.caption ? (
+                    <Text style={styles.imageViewerCaption}>{item.caption}</Text>
+                  ) : null}
+                </View>
+              )}
+            />
+          ) : (
+            <Image
+              source={require('../../../assets/defaults/default-event.png')}
+              style={styles.imageViewerImage}
+              resizeMode="contain"
+            />
+          )}
+
+          {allImages.length > 1 && (
+            <Text style={styles.imageViewerCounter}>
+              {viewerImageIndex + 1} / {allImages.length}
+            </Text>
+          )}
           <Text style={styles.imageViewerTitle} numberOfLines={2}>{event?.title}</Text>
         </View>
       </Modal>
@@ -859,13 +950,12 @@ export default function EventDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: 'transparent',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.white,
   },
   errorContainer: {
     flex: 1,
@@ -892,6 +982,8 @@ const styles = StyleSheet.create({
   bannerContainer: {
     height: 360,
     position: 'relative',
+    overflow: 'hidden',
+    backgroundColor: '#000',
   },
   bannerImage: {
     width: '100%',
@@ -1120,7 +1212,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing['2xl'],
+    paddingBottom: Spacing.md, // overridden inline with insets.bottom
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
   },
@@ -1403,6 +1495,28 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Gallery section
+  gallerySection: {
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.lg,
+    borderTopWidth: 1,
+  },
+  galleryList: {
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  galleryThumb: {
+    width: 120,
+    height: 90,
+    borderRadius: BorderRadius.md,
+  },
+  galleryCaption: {
+    marginTop: 4,
+    fontSize: FontSizes.xs,
+    width: 120,
+    textAlign: 'center',
+  },
+
   // Image Viewer Modal
   imageViewerContainer: {
     flex: 1,
@@ -1422,9 +1536,29 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
   },
+  imageViewerSlide: {
+    width,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   imageViewerImage: {
     width: width,
     height: width * 0.75,
+  },
+  imageViewerCaption: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: FontSizes.sm,
+    marginTop: Spacing.sm,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  imageViewerCounter: {
+    position: 'absolute',
+    bottom: 100,
+    alignSelf: 'center',
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
   },
   imageViewerTitle: {
     position: 'absolute',

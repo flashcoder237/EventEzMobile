@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api/client';
+import CacheService from '../../services/CacheService';
 import { RootStackParamList, Event } from '../../types';
 import EventCard from '../../components/events/EventCard';
 import { StaggeredItem } from '../../components/ui/Animations';
@@ -76,8 +77,18 @@ export default function DashboardScreen() {
     fetchStats();
   }, []);
 
-  const fetchStats = async () => {
+  const fetchStats = async (bypassCache = false) => {
+    const cacheKey = `dashboard:${user?.id}:${isOrganizer}`;
     try {
+      if (!bypassCache) {
+        const cached = await CacheService.get<typeof stats>(cacheKey);
+        if (cached) {
+          setStats(cached.data);
+          if (!cached.isStale) return; // Données fraîches
+          // Périmées : refresh silencieux
+        }
+      }
+
       const promises: Promise<any>[] = [
         ticketPurchasesAPI.getMyTickets().catch(() => ({ data: { count: 0 } })),
         notificationsAPI.getNotifications({ is_read: false, page_size: 1 }).catch(() => ({ data: { count: 0 } })),
@@ -92,21 +103,24 @@ export default function DashboardScreen() {
 
       const results = await Promise.all(promises);
 
-      setStats({
+      const newStats = {
         tickets: results[0].data?.count || results[0].data?.results?.length || 0,
         notifications: results[1].data?.count || results[1].data?.results?.length || 0,
         events: isOrganizer ? (results[2]?.data?.count || results[2]?.data?.results?.length || 0) : 0,
         balance: isOrganizer ? (results[3]?.data?.available_balance || 0) : 0,
-      });
+      };
+      setStats(newStats);
+      CacheService.set(cacheKey, newStats, 2 * 60 * 1000); // fraîcheur : 2 minutes
     } catch (error) {
       console.error('Erreur chargement stats:', error);
+    } finally {
+      setRefreshing(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchStats();
-    setRefreshing(false);
+    await fetchStats(true);
   };
 
   const getGreeting = () => {

@@ -1,5 +1,5 @@
 /**
- * Modal unifiee pour les actions sur un message
+ * Modal unifiée pour les actions sur un message — Bottom Sheet
  * Repondre, Reagir, Transferer, Modifier, Supprimer
  */
 
@@ -9,20 +9,23 @@ import {
   Text,
   StyleSheet,
   Modal,
-  Pressable,
   TouchableOpacity,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Reanimated from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Message } from '../../types';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
+  TOUCH_OPACITY,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { isMyMessage } from '../../lib/utils/messagingHelpers';
+import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 export type MessageActionType = 'reply' | 'react' | 'forward' | 'edit' | 'delete' | 'copy';
 
@@ -38,18 +41,17 @@ interface ActionItem {
   type: MessageActionType;
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  color?: string;
   destructive?: boolean;
   ownerOnly?: boolean;
 }
 
 const ACTIONS: ActionItem[] = [
-  { type: 'reply', icon: 'arrow-undo-outline', label: 'Repondre' },
-  { type: 'react', icon: 'happy-outline', label: 'Reagir' },
-  { type: 'forward', icon: 'arrow-redo-outline', label: 'Transferer' },
-  { type: 'copy', icon: 'copy-outline', label: 'Copier' },
-  { type: 'edit', icon: 'create-outline', label: 'Modifier', ownerOnly: true },
-  { type: 'delete', icon: 'trash-outline', label: 'Supprimer', destructive: true, ownerOnly: true },
+  { type: 'reply',   icon: 'arrow-undo-outline', label: 'Répondre' },
+  { type: 'react',   icon: 'happy-outline',      label: 'Réagir' },
+  { type: 'forward', icon: 'arrow-redo-outline', label: 'Transférer' },
+  { type: 'copy',    icon: 'copy-outline',        label: 'Copier' },
+  { type: 'edit',    icon: 'create-outline',      label: 'Modifier',  ownerOnly: true },
+  { type: 'delete',  icon: 'trash-outline',       label: 'Supprimer', destructive: true, ownerOnly: true },
 ];
 
 function MessageActionModal({
@@ -59,74 +61,101 @@ function MessageActionModal({
   onClose,
   onAction,
 }: MessageActionModalProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
-  if (!message) return null;
-
-  const isMine = isMyMessage(message, userId);
+  const isMine = message ? isMyMessage(message, userId) : false;
 
   const handleAction = (action: MessageActionType) => {
     onAction(action);
     onClose();
   };
 
-  const filteredActions = ACTIONS.filter(action => {
-    if (action.ownerOnly && !isMine) return false;
-    return true;
-  });
+  const filteredActions = ACTIONS.filter(a => !(a.ownerOnly && !isMine));
 
   return (
     <Modal
-      visible={visible}
+      visible={modalOpen}
       transparent
-      animationType="fade"
+      animationType="none"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <Pressable style={styles.overlay} onPress={onClose}>
-        <View style={[styles.container, { backgroundColor: colors.surface }]}>
-          {/* Message Preview */}
+      {/* Backdrop */}
+      <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={StyleSheet.absoluteFill} />
+      </TouchableWithoutFeedback>
+
+      {/* Sheet */}
+      <Reanimated.View
+        style={[
+          styles.sheet,
+          {
+            backgroundColor: colors.card,
+            paddingBottom: Math.max(insets.bottom + Spacing.xs, Spacing.lg),
+          },
+          sheetAnim,
+        ]}
+      >
+        {/* Handle */}
+        <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
+
+        {/* Message preview */}
+        {message && (
           <View style={[styles.preview, { borderBottomColor: colors.gray100 }]}>
             <Text style={[styles.previewLabel, { color: colors.gray500 }]}>Message</Text>
-            <Text style={[styles.previewText, { color: colors.gray700 }]} numberOfLines={2}>
-              {message.content || '[Piece jointe]'}
+            <Text
+              style={[styles.previewText, { color: colors.gray700 }]}
+              numberOfLines={2}
+            >
+              {message.content || '[Pièce jointe]'}
             </Text>
           </View>
+        )}
 
-          {/* Actions */}
-          <View style={styles.actionsContainer}>
-            {filteredActions.map((action, index) => (
-              <TouchableOpacity
-                key={action.type}
-                style={[
-                  styles.actionItem,
-                  index === filteredActions.length - 1 && styles.actionItemLast,
-                ]}
-                onPress={() => handleAction(action.type)}
-              >
+        {/* Actions */}
+        <View style={styles.actionsContainer}>
+          {filteredActions.map((action, index) => (
+            <TouchableOpacity
+              key={action.type}
+              style={[
+                styles.actionItem,
+                { borderBottomColor: colors.gray100 },
+                index === filteredActions.length - 1 && styles.actionItemLast,
+              ]}
+              onPress={() => handleAction(action.type)}
+              activeOpacity={TOUCH_OPACITY}
+            >
+              <View style={[styles.actionIcon, { backgroundColor: action.destructive ? `${colors.error}12` : colors.gray50 }]}>
                 <Ionicons
                   name={action.icon}
-                  size={22}
+                  size={20}
                   color={action.destructive ? colors.error : colors.gray700}
                 />
-                <Text
-                  style={[
-                    styles.actionLabel,
-                    { color: colors.gray700 },
-                    action.destructive && { color: colors.error },
-                  ]}
-                >
-                  {action.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Cancel Button */}
-          <TouchableOpacity style={[styles.cancelButton, { borderTopColor: colors.gray100 }]} onPress={onClose}>
-            <Text style={[styles.cancelText, { color: colors.gray500 }]}>Annuler</Text>
-          </TouchableOpacity>
+              </View>
+              <Text
+                style={[
+                  styles.actionLabel,
+                  { color: action.destructive ? colors.error : colors.gray700 },
+                ]}
+              >
+                {action.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
-      </Pressable>
+
+        {/* Cancel */}
+        <TouchableOpacity
+          style={[styles.cancelButton, { backgroundColor: colors.gray100 }]}
+          onPress={onClose}
+          activeOpacity={TOUCH_OPACITY}
+        >
+          <Text style={[styles.cancelText, { color: colors.gray600 }]}>Annuler</Text>
+        </TouchableOpacity>
+      </Reanimated.View>
     </Modal>
   );
 }
@@ -134,67 +163,82 @@ function MessageActionModal({
 export default memo(MessageActionModal);
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.xl,
+  backdrop: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  container: {
-    width: '100%',
-    maxWidth: 320,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    overflow: 'hidden',
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: Spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: Spacing.md,
   },
   preview: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    marginBottom: Spacing.xs,
   },
   previewLabel: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
-    color: Colors.gray500,
     marginBottom: Spacing.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   previewText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
-    color: Colors.gray700,
     lineHeight: 20,
   },
   actionsContainer: {
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.xs,
   },
   actionItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: Spacing.md,
   },
   actionItemLast: {
     borderBottomWidth: 0,
   },
+  actionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actionLabel: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
-    color: Colors.gray700,
-  },
-  actionLabelDestructive: {
-    color: Colors.error,
   },
   cancelButton: {
-    padding: Spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
   },
   cancelText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray500,
   },
 });

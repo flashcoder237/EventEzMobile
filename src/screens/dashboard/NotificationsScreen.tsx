@@ -12,11 +12,12 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { notificationsAPI } from '../../api/client';
+import CacheService from '../../services/CacheService';
 import { Notification, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -32,7 +33,7 @@ import {
   TextStyles,
   Shadows,
 } from '../../constants/theme';
-import { SkeletonList, NotificationItemSkeleton } from '../../components/ui/Skeleton';
+import { NotificationsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 
 type FilterType = 'all' | 'unread' | 'read' | 'event' | 'payment' | 'ticket';
@@ -105,6 +106,7 @@ export default function NotificationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -116,21 +118,33 @@ export default function NotificationsScreen() {
     fetchNotifications();
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (bypassCache = false) => {
+    const cacheKey = `notifs:${user?.id}`;
     try {
+      if (!bypassCache) {
+        const cached = await CacheService.get<Notification[]>(cacheKey);
+        if (cached) {
+          setNotifications(cached.data);
+          setLoading(false);
+          if (!cached.isStale) return; // Données fraîches : pas d'appel réseau
+          // Données périmées : refresh silencieux en arrière-plan
+        }
+      }
       const response = await notificationsAPI.getNotifications({ page_size: 100 });
-      setNotifications(response.data.results || response.data || []);
+      const data = response.data.results || response.data || [];
+      setNotifications(data);
+      CacheService.set(cacheKey, data, 60 * 1000); // fraîcheur : 1 minute
     } catch (error) {
       console.error('Erreur chargement notifications:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchNotifications();
-    setRefreshing(false);
+    await fetchNotifications(true);
   };
 
   // Stats
@@ -403,11 +417,7 @@ export default function NotificationsScreen() {
       <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
         <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
-            <View style={styles.loadingContainer}>
-              <SkeletonList count={6} Component={NotificationItemSkeleton} />
-            </View>
-          </View>
+          <NotificationsScreenSkeleton />
         </SafeAreaView>
       </View>
     );
@@ -493,7 +503,7 @@ export default function NotificationsScreen() {
           renderItem={renderNotification}
           renderSectionHeader={renderSectionHeader}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + Spacing.lg }]}
           showsVerticalScrollIndicator={false}
           stickySectionHeadersEnabled={false}
           refreshControl={
@@ -606,12 +616,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.gray50,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
   // Header
   headerContainer: {
     backgroundColor: Colors.primary,
@@ -753,7 +757,6 @@ const styles = StyleSheet.create({
   listContent: {
     padding: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing['3xl'],
   },
 
   // Notification Card

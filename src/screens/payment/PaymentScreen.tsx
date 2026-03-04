@@ -13,7 +13,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -168,6 +168,7 @@ export default function PaymentScreen() {
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
 
   // Mode billets supplémentaires: on a des newTickets passés en params
   const isAdditionalTicketsMode = !!(newTickets && newTickets.length > 0);
@@ -967,7 +968,7 @@ export default function PaymentScreen() {
       </KeyboardAwareScrollView>
 
       {/* Bottom CTA */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
+      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.totalContainer}>
           <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
           <Text style={[styles.totalValue, { color: colors.gray900 }]}>
@@ -1430,7 +1431,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    paddingBottom: Spacing.xl,
     borderTopWidth: 1,
     borderTopColor: Colors.gray100,
     ...Shadows.lg,

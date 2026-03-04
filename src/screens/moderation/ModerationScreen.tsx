@@ -19,7 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { eventsAPI } from '../../api/client';
+import { eventsAPI, getMediaUrl } from '../../api/client';
 import { Event, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -237,7 +237,7 @@ export default function ModerationScreen() {
         {/* Image */}
         <View style={styles.cardImage}>
           {item.banner_image ? (
-            <Image source={{ uri: item.banner_image }} style={styles.image} />
+            <Image source={{ uri: getMediaUrl(item.banner_image)! }} style={styles.image} />
           ) : (
             <View style={[styles.imagePlaceholder, isBilletterie ? styles.imagePlaceholderBillet : styles.imagePlaceholderInscription]}>
               <Ionicons

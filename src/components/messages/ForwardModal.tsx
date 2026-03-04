@@ -1,5 +1,5 @@
 /**
- * Modal pour transferer un message a un autre utilisateur
+ * Modal pour transférer un message à un autre utilisateur — Bottom Sheet
  */
 
 import React, { memo } from 'react';
@@ -12,10 +12,13 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
-  ActivityIndicator,
   TextInput,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import Reanimated from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { User } from '../../types';
 import {
   Colors,
@@ -25,7 +28,12 @@ import {
   Spacing,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getDisplayName, getUserInitials, MESSAGE_AVATAR_SIZE } from '../../lib/utils/messagingHelpers';
+import {
+  getDisplayName,
+  getUserInitials,
+  MESSAGE_AVATAR_SIZE,
+} from '../../lib/utils/messagingHelpers';
+import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 interface ForwardModalProps {
   visible: boolean;
@@ -46,10 +54,11 @@ function ForwardModal({
   onClose,
   onSelectTarget,
 }: ForwardModalProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
-  // Filtrer les cibles par recherche
-  const filteredTargets = targets.filter(user => {
+  const filteredTargets = targets.filter((user) => {
     const name = getDisplayName(user).toLowerCase();
     const email = (user.email || '').toLowerCase();
     const search = searchQuery.toLowerCase();
@@ -88,23 +97,47 @@ function ForwardModal({
     <View style={styles.emptyContainer}>
       <Ionicons name="people-outline" size={48} color={colors.gray300} />
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        {searchQuery ? 'Aucun resultat' : 'Aucun contact disponible'}
+        {searchQuery ? 'Aucun résultat' : 'Aucun contact disponible'}
       </Text>
     </View>
   );
 
   return (
     <Modal
-      visible={visible}
+      visible={modalOpen}
       transparent
-      animationType="slide"
+      animationType="none"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      {/* Backdrop */}
+      <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
+      <TouchableWithoutFeedback onPress={onClose}>
+        <View style={StyleSheet.absoluteFill} />
+      </TouchableWithoutFeedback>
+
+      {/* KAV for keyboard avoidance */}
+      <KeyboardAvoidingView
+        style={[StyleSheet.absoluteFill, styles.kav]}
+        behavior="padding"
+        pointerEvents="box-none"
+      >
+        <Reanimated.View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.surface,
+              paddingBottom: Math.max(insets.bottom + Spacing.xs, Spacing.md),
+            },
+            sheetAnim,
+          ]}
+        >
+          {/* Handle */}
+          <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
+
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-            <Text style={[styles.title, { color: colors.gray900 }]}>Transferer a</Text>
+            <Text style={[styles.title, { color: colors.gray900 }]}>Transférer à</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
@@ -136,10 +169,11 @@ function ForwardModal({
               contentContainerStyle={styles.listContent}
               ListEmptyComponent={renderEmpty}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             />
           )}
-        </View>
-      </View>
+        </Reanimated.View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -147,16 +181,29 @@ function ForwardModal({
 export default memo(ForwardModal);
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
+  backdrop: {
     backgroundColor: 'rgba(0,0,0,0.4)',
+  },
+  kav: {
     justifyContent: 'flex-end',
   },
-  container: {
-    backgroundColor: Colors.white,
+  sheet: {
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '75%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
@@ -164,12 +211,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.lg,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   title: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   closeButton: {
     padding: Spacing.xs,
@@ -177,7 +222,6 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
     margin: Spacing.lg,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
@@ -188,7 +232,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
-    color: Colors.gray900,
   },
   loadingContainer: {
     padding: Spacing['3xl'],
@@ -204,7 +247,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray50,
   },
   avatar: {
     width: MESSAGE_AVATAR_SIZE,
@@ -215,7 +257,6 @@ const styles = StyleSheet.create({
     width: MESSAGE_AVATAR_SIZE,
     height: MESSAGE_AVATAR_SIZE,
     borderRadius: MESSAGE_AVATAR_SIZE / 2,
-    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -231,12 +272,10 @@ const styles = StyleSheet.create({
   targetName: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.medium,
-    color: Colors.gray900,
   },
   targetEmail: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
-    color: Colors.gray500,
     marginTop: 2,
   },
   emptyContainer: {
@@ -246,7 +285,6 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
-    color: Colors.gray500,
     marginTop: Spacing.md,
   },
 });

@@ -8,9 +8,12 @@ import {
   TextInput,
   ActivityIndicator,
   ScrollView,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import Reanimated from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ticketTransfersAPI } from '../../api/client';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -23,6 +26,7 @@ import {
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 interface TicketInfo {
   id: number;
@@ -44,7 +48,8 @@ export default function TransferTicketModal({
   ticket,
   onTransferComplete,
 }: TransferTicketModalProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { showSuccess, showError, showConfirm } = useAlert();
   const [recipientEmail, setRecipientEmail] = useState('');
   const [recipientName, setRecipientName] = useState('');
@@ -52,27 +57,22 @@ export default function TransferTicketModal({
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+  const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-
     if (!recipientEmail.trim()) {
       newErrors.email = "L'email du destinataire est requis";
     } else if (!validateEmail(recipientEmail)) {
-      newErrors.email = "Email invalide";
+      newErrors.email = 'Email invalide';
     }
-
     if (quantity < 1) {
-      newErrors.quantity = "La quantité doit être au moins 1";
+      newErrors.quantity = 'La quantité doit être au moins 1';
     } else if (ticket && quantity > ticket.quantity) {
       newErrors.quantity = `Vous ne pouvez transférer que ${ticket.quantity} billet(s)`;
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -93,23 +93,20 @@ export default function TransferTicketModal({
             quantity,
             message: message.trim() || undefined,
           });
-
           showSuccess(
             'Transfert initié',
             `Un email a été envoyé à ${recipientEmail} pour accepter le transfert.`
           );
-
-          // Reset form
           setRecipientEmail('');
           setRecipientName('');
           setQuantity(1);
           setMessage('');
           setErrors({});
-
           onTransferComplete();
           onClose();
         } catch (error: any) {
-          const errorMessage = error.response?.data?.detail ||
+          const errorMessage =
+            error.response?.data?.detail ||
             error.response?.data?.message ||
             Object.values(error.response?.data || {}).flat().join(', ') ||
             'Erreur lors du transfert';
@@ -117,7 +114,7 @@ export default function TransferTicketModal({
         } finally {
           setLoading(false);
         }
-      },
+      }
     );
   };
 
@@ -134,16 +131,37 @@ export default function TransferTicketModal({
 
   return (
     <Modal
-      visible={visible}
-      animationType="slide"
+      visible={modalOpen}
       transparent
+      animationType="none"
       onRequestClose={handleClose}
+      statusBarTranslucent
     >
+      {/* Backdrop */}
+      <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
+      <TouchableWithoutFeedback onPress={handleClose}>
+        <View style={StyleSheet.absoluteFill} />
+      </TouchableWithoutFeedback>
+
+      {/* KAV for keyboard avoidance */}
       <KeyboardAvoidingView
         behavior="padding"
-        style={styles.overlay}
+        style={[StyleSheet.absoluteFill, styles.kav]}
+        pointerEvents="box-none"
       >
-        <View style={[styles.container, { backgroundColor: colors.card }]}>
+        <Reanimated.View
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: colors.card,
+              paddingBottom: Math.max(insets.bottom + Spacing.xs, Spacing.md),
+            },
+            sheetAnim,
+          ]}
+        >
+          {/* Handle */}
+          <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
+
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
             <Text style={[styles.title, { color: colors.gray900 }]}>Transférer un billet</Text>
@@ -161,41 +179,51 @@ export default function TransferTicketModal({
             <View style={[styles.ticketInfo, { backgroundColor: colors.primaryLight }]}>
               <Ionicons name="ticket-outline" size={24} color={colors.primary} />
               <View style={styles.ticketDetails}>
-                <Text style={[styles.ticketName, { color: colors.gray900 }]}>{ticket.ticket_type_name}</Text>
+                <Text style={[styles.ticketName, { color: colors.gray900 }]}>
+                  {ticket.ticket_type_name}
+                </Text>
                 <Text style={[styles.ticketQuantity, { color: colors.gray600 }]}>
-                  {ticket.quantity} billet{ticket.quantity > 1 ? 's' : ''} disponible{ticket.quantity > 1 ? 's' : ''}
+                  {ticket.quantity} billet{ticket.quantity > 1 ? 's' : ''} disponible
+                  {ticket.quantity > 1 ? 's' : ''}
                 </Text>
               </View>
             </View>
 
             {/* Recipient Email */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Email du destinataire *</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>
+                Email du destinataire *
+              </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }, errors.email && styles.inputError]}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 },
+                  errors.email && styles.inputError,
+                ]}
                 placeholder="exemple@email.com"
                 placeholderTextColor={colors.gray400}
                 value={recipientEmail}
                 onChangeText={(text) => {
                   setRecipientEmail(text);
-                  if (errors.email) {
-                    setErrors({ ...errors, email: '' });
-                  }
+                  if (errors.email) setErrors({ ...errors, email: '' });
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
-              {errors.email && (
-                <Text style={styles.errorText}>{errors.email}</Text>
-              )}
+              {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
             </View>
 
-            {/* Recipient Name (Optional) */}
+            {/* Recipient Name */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Nom du destinataire (optionnel)</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>
+                Nom du destinataire (optionnel)
+              </Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 },
+                ]}
                 placeholder="Jean Dupont"
                 placeholderTextColor={colors.gray400}
                 value={recipientName}
@@ -207,10 +235,16 @@ export default function TransferTicketModal({
             {/* Quantity */}
             {ticket.quantity > 1 && (
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.gray700 }]}>Nombre de billets à transférer</Text>
+                <Text style={[styles.label, { color: colors.gray700 }]}>
+                  Nombre de billets à transférer
+                </Text>
                 <View style={styles.quantitySelector}>
                   <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }, quantity <= 1 && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
+                    style={[
+                      styles.quantityButton,
+                      { backgroundColor: colors.card, borderColor: colors.gray200 },
+                      quantity <= 1 && { borderColor: colors.gray100, backgroundColor: colors.gray50 },
+                    ]}
                     onPress={() => quantity > 1 && setQuantity(quantity - 1)}
                     disabled={quantity <= 1}
                   >
@@ -222,7 +256,11 @@ export default function TransferTicketModal({
                   </TouchableOpacity>
                   <Text style={[styles.quantityValue, { color: colors.gray900 }]}>{quantity}</Text>
                   <TouchableOpacity
-                    style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }, quantity >= ticket.quantity && [styles.quantityButtonDisabled, { borderColor: colors.gray100, backgroundColor: colors.gray50 }]]}
+                    style={[
+                      styles.quantityButton,
+                      { backgroundColor: colors.card, borderColor: colors.gray200 },
+                      quantity >= ticket.quantity && { borderColor: colors.gray100, backgroundColor: colors.gray50 },
+                    ]}
                     onPress={() => quantity < ticket.quantity && setQuantity(quantity + 1)}
                     disabled={quantity >= ticket.quantity}
                   >
@@ -233,17 +271,21 @@ export default function TransferTicketModal({
                     />
                   </TouchableOpacity>
                 </View>
-                {errors.quantity && (
-                  <Text style={styles.errorText}>{errors.quantity}</Text>
-                )}
+                {errors.quantity && <Text style={styles.errorText}>{errors.quantity}</Text>}
               </View>
             )}
 
-            {/* Message (Optional) */}
+            {/* Message */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Message personnel (optionnel)</Text>
+              <Text style={[styles.label, { color: colors.gray700 }]}>
+                Message personnel (optionnel)
+              </Text>
               <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 },
+                ]}
                 placeholder="Ajouter un message pour le destinataire..."
                 placeholderTextColor={colors.gray400}
                 value={message}
@@ -254,7 +296,7 @@ export default function TransferTicketModal({
               />
             </View>
 
-            {/* Info Note */}
+            {/* Info */}
             <View style={[styles.infoNote, { backgroundColor: colors.infoLight }]}>
               <Ionicons name="information-circle-outline" size={20} color={colors.info} />
               <Text style={[styles.infoText, { color: colors.info }]}>
@@ -266,39 +308,52 @@ export default function TransferTicketModal({
 
           {/* Actions */}
           <View style={[styles.actions, { borderTopColor: colors.gray100 }]}>
-            <TouchableOpacity style={[styles.cancelButton, { borderColor: colors.gray300 }]} onPress={handleClose}>
+            <TouchableOpacity
+              style={[styles.cancelButton, { borderColor: colors.gray300 }]}
+              onPress={handleClose}
+            >
               <Text style={[styles.cancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
             </TouchableOpacity>
             <GradientButton
               title={loading ? 'Envoi...' : 'Transférer'}
               onPress={handleTransfer}
               disabled={loading || !recipientEmail.trim()}
-              icon={loading ? (
-                <ActivityIndicator size="small" color={Colors.white} />
-              ) : (
-                <Ionicons name="send" size={18} color={Colors.white} />
-              )}
+              icon={
+                loading ? (
+                  <ActivityIndicator size="small" color={Colors.white} />
+                ) : (
+                  <Ionicons name="send" size={18} color={Colors.white} />
+                )
+              }
               style={styles.transferButton}
             />
           </View>
-        </View>
+        </Reanimated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  backdrop: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  kav: {
     justifyContent: 'flex-end',
   },
-  container: {
-    backgroundColor: Colors.white,
+  sheet: {
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     maxHeight: '90%',
     ...Shadows.lg,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
@@ -307,12 +362,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   title: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   closeButton: {
     padding: Spacing.xs,
@@ -324,7 +377,6 @@ const styles = StyleSheet.create({
   ticketInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.lg,
@@ -336,11 +388,9 @@ const styles = StyleSheet.create({
   ticketName: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   ticketQuantity: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     marginTop: 2,
   },
   inputGroup: {
@@ -349,19 +399,15 @@ const styles = StyleSheet.create({
   label: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
-    color: Colors.gray700,
     marginBottom: Spacing.xs,
   },
   input: {
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
-    color: Colors.gray900,
     borderWidth: 1,
-    borderColor: Colors.gray200,
   },
   inputError: {
     borderColor: Colors.error,
@@ -385,27 +431,19 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-  quantityButtonDisabled: {
-    borderColor: Colors.gray100,
-    backgroundColor: Colors.gray50,
   },
   quantityValue: {
     fontSize: FontSizes.xl,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
     minWidth: 40,
     textAlign: 'center',
   },
   infoNote: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.infoLight,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     gap: Spacing.sm,
@@ -415,17 +453,14 @@ const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: FontSizes.sm,
-    color: Colors.info,
     lineHeight: 20,
   },
   actions: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.md,
     gap: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   cancelButton: {
     flex: 1,
@@ -434,12 +469,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.gray300,
   },
   cancelButtonText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
   },
   transferButton: {
     flex: 1,

@@ -13,6 +13,51 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/a
 // Log de l'URL API pour le debug
 console.log('[API] Base URL:', API_BASE_URL);
 
+// Base du serveur (sans /api) pour construire les URLs média
+const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+
+/**
+ * Convertit un chemin média relatif en URL absolue.
+ * Django peut retourner "/media/events/xxx.jpg" — React Native Image
+ * ne peut pas résoudre un chemin relatif, il faut l'URL complète.
+ * Si l'URL est déjà absolue, elle est retournée telle quelle.
+ */
+export function getMediaUrl(path?: string | null): string | null {
+  if (!path) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // Chemin relatif : on préfixe avec l'URL du serveur
+  return `${SERVER_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
+// Helper partagé pour tous les uploads FormData.
+// Bypass Axios : sur React Native, AxiosHeaders ignore le `delete Content-Type`,
+// ce qui corrompt le boundary multipart → ERR_NETWORK.
+// fetch natif génère automatiquement le bon Content-Type + boundary.
+async function fetchUpload(
+  method: 'POST' | 'PATCH' | 'PUT',
+  path: string,
+  formData: FormData
+): Promise<{ data: any }> {
+  const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  const url = `${API_BASE_URL}${path}`;
+  const response = await fetch(url, {
+    method,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  const text = await response.text();
+  let data: any = {};
+  try { data = JSON.parse(text); } catch { /* HTML error page */ }
+  if (!response.ok) {
+    console.error(`[fetchUpload] ${method} ${path} → ${response.status}:`, text.slice(0, 2000));
+    const message = data?.detail || data?.non_field_errors?.[0] || JSON.stringify(data) || `HTTP ${response.status}`;
+    const error: any = new Error(message);
+    error.response = { status: response.status, data };
+    throw error;
+  }
+  return { data };
+}
+
 // Clés pour le stockage sécurisé
 const ACCESS_TOKEN_KEY = 'eventez_access_token';
 const REFRESH_TOKEN_KEY = 'eventez_refresh_token';
@@ -343,6 +388,13 @@ export const authAPI = {
       };
     };
   }) => api.post('/social-auth/apple/', data),
+
+  // Vérification email
+  verifyEmail: (token: string) =>
+    api.get(`/verify-email/${token}/`),
+
+  resendVerificationEmail: (email: string) =>
+    api.post('/verify-email/resend/', { email }),
 };
 
 // ============================================
@@ -368,29 +420,8 @@ export const usersAPI = {
   updateProfile: (data: any) =>
     api.put('/users/update_profile/', data),
 
-  updateProfileImage: async (formData: FormData) => {
-    // Bypass Axios pour les uploads multipart : sur React Native, Axios AxiosHeaders
-    // ne supprime pas correctement Content-Type, ce qui corrompt le boundary multipart.
-    // On utilise fetch natif qui gère automatiquement le Content-Type + boundary.
-    const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-    const url = `${API_BASE_URL}/users/me/upload_profile_image/`;
-    const response = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        // Ne PAS setter Content-Type — fetch le génère avec le boundary correct
-      },
-      body: formData,
-    });
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      const error: any = new Error(err.detail || `HTTP ${response.status}`);
-      error.response = { status: response.status, data: err };
-      throw error;
-    }
-    const data = await response.json();
-    return { data };
-  },
+  updateProfileImage: (formData: FormData) =>
+    fetchUpload('PATCH', '/users/me/upload_profile_image/', formData),
 
   getUserSettings: () =>
     api.get('/users/me/settings/'),
@@ -497,10 +528,10 @@ export const categoriesAPI = {
     api.post(`/categories/${id}/toggle_active/`),
 
   uploadImage: (id: number, formData: FormData) =>
-    api.post(`/categories/${id}/upload_image/`, formData),
+    fetchUpload('POST', `/categories/${id}/upload_image/`, formData),
 
   uploadDefaultEventImage: (id: number, formData: FormData) =>
-    api.post(`/categories/${id}/upload_default_event_image/`, formData),
+    fetchUpload('POST', `/categories/${id}/upload_default_event_image/`, formData),
 };
 
 // ============================================
@@ -521,7 +552,7 @@ export const tagsAPI = {
 
 export const verificationAPI = {
   submit: (formData: FormData) =>
-    api.post('/verifications/submit/', formData),
+    fetchUpload('POST', '/verifications/submit/', formData),
 
   getMyRequest: () =>
     api.get('/verifications/my_request/'),
@@ -547,15 +578,14 @@ export const eventsAPI = {
   getEvent: (id: string) =>
     api.get(`/events/${id}/`),
 
-  createEvent: (data: any) => {
-    // Axios gère automatiquement le Content-Type pour FormData
-    return api.post('/events/', data);
-  },
+  createEvent: (data: any) =>
+    data instanceof FormData
+      ? fetchUpload('POST', '/events/', data)
+      : api.post('/events/', data),
 
   updateEvent: (id: string, data: any) => {
     if (data instanceof FormData) {
-      // Axios gère automatiquement le Content-Type pour FormData
-      return api.patch(`/events/${id}/`, data);
+      return fetchUpload('PATCH', `/events/${id}/`, data);
     }
     return api.put(`/events/${id}/`, data);
   },
@@ -573,7 +603,7 @@ export const eventsAPI = {
     api.get('/events/my_events/'),
 
   uploadImages: (id: string, formData: FormData) =>
-    api.post(`/events/${id}/upload_images/`, formData),
+    fetchUpload('POST', `/events/${id}/upload_images/`, formData),
 
   publishEvent: (id: string) =>
     api.post(`/events/${id}/publish/`),
@@ -1212,9 +1242,8 @@ export const speakersAPI = {
   getSpeakerSessions: (id: string) =>
     api.get(`/speakers/${id}/sessions/`),
 
-  // Upload photo - Axios gère automatiquement le Content-Type pour FormData
   uploadPhoto: (id: string, formData: FormData) =>
-    api.patch(`/speakers/${id}/`, formData),
+    fetchUpload('PATCH', `/speakers/${id}/`, formData),
 };
 
 // ============================================
@@ -1643,12 +1672,11 @@ export const messagesAPI = {
   starMessage: (id: string) =>
     api.post(`/messages/${id}/star/`),
 
-  // Axios gère automatiquement le Content-Type pour FormData
   uploadAttachment: (formData: FormData) =>
-    api.post('/messages/upload_attachment/', formData),
+    fetchUpload('POST', '/messages/upload_attachment/', formData),
 
   uploadVoiceMessage: (formData: FormData) =>
-    api.post('/messages/upload_voice_message/', formData),
+    fetchUpload('POST', '/messages/upload_voice_message/', formData),
 
   addReaction: (messageId: string, emoji: string) =>
     api.post(`/messages/${messageId}/add_reaction/`, { emoji }),
