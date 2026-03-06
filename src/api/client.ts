@@ -12,6 +12,12 @@ const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/a
 
 // Log de l'URL API pour le debug
 console.log('[API] Base URL:', API_BASE_URL);
+if (!process.env.EXPO_PUBLIC_API_URL) {
+  console.warn('[API] ⚠️ EXPO_PUBLIC_API_URL non défini — fallback sur localhost (ne marchera pas en prod)');
+}
+if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
+  console.warn('[API] ⚠️ API pointe vers localhost — vérifiez votre .env ou eas.json');
+}
 
 // Base du serveur (sans /api) pour construire les URLs média
 const SERVER_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
@@ -181,8 +187,13 @@ api.interceptors.response.use(
       }
     }
 
+    // Ne pas intercepter les 401 sur les endpoints d'auth (login, register, etc.)
+    // Ces erreurs sont des réponses légitimes (mauvais identifiants), pas des tokens expirés
+    const authEndpoints = ['/token/', '/token/refresh/', '/register/', '/register/organizer/'];
+    const isAuthEndpoint = authEndpoints.some(ep => originalRequest?.url?.endsWith(ep));
+
     // Si l'erreur est 401 et qu'on n'a pas déjà réessayé
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject, config: originalRequest });

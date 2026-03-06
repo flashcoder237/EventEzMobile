@@ -27,6 +27,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as ImagePicker from 'expo-image-picker';
@@ -90,6 +91,7 @@ export default function ConversationScreen() {
   const { user } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
+  const headerHeight = useHeaderHeight();
 
   // State centralisé
   const { state, actions } = useMessageState(initialConversationId, userName);
@@ -948,6 +950,7 @@ export default function ConversationScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior="padding"
+        keyboardVerticalOffset={headerHeight}
       >
         <View style={{ flex: 1 }}>
           <FlatList

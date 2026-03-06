@@ -44,7 +44,7 @@ type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { login, isLoading, setUser } = useAuth();
-  const { showError } = useAlert();
+  const { showError, showAlert, showSuccess } = useAlert();
   const { colors, isDark, gradients } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -114,12 +114,28 @@ export default function LoginScreen() {
       await login(email.trim().toLowerCase(), password, rememberMe);
     } catch (error: any) {
       console.log('[Login] Error:', error.response?.status, error.response?.data);
-      // Email non vérifié → rediriger vers l'écran de vérification
+      // Email non vérifié → proposer de vérifier l'email
       if (
         error.response?.status === 403 &&
         error.response?.data?.code === 'email_not_verified'
       ) {
-        navigation.navigate('VerifyEmail', { email: email.trim().toLowerCase() });
+        const targetEmail = email.trim().toLowerCase();
+        showError(
+          'Email non vérifié',
+          'Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception.',
+          {
+            label: 'Renvoyer le lien',
+            onPress: async () => {
+              try {
+                await authAPI.resendVerificationEmail(targetEmail);
+                showSuccess('Email envoyé', `Un lien de vérification a été envoyé à ${targetEmail}.`);
+              } catch (resendError: any) {
+                const msg = resendError.response?.data?.detail || "Impossible d'envoyer l'email.";
+                showError('Erreur', msg);
+              }
+            },
+          }
+        );
         return;
       }
       const message = extractErrorMessage(error);

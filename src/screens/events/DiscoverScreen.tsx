@@ -514,6 +514,7 @@ export default function DiscoverScreen() {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
+      style={{ flexGrow: 0 }}
       contentContainerStyle={styles.chipsList}
     >
       <TouchableOpacity
@@ -607,18 +608,21 @@ export default function DiscoverScreen() {
         contentContainerStyle={[styles.searchResultsList, { paddingHorizontal: containerPadding }]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          !searchLoading ? (
-            <View style={styles.resultsInfo}>
-              <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>
-                {filteredResults.length} événement{filteredResults.length !== 1 ? 's' : ''}
-              </Text>
-              {activeFiltersCount > 0 && (
-                <TouchableOpacity onPress={resetFilters}>
-                  <Text style={[styles.clearFilters, { color: colors.primary }]}>Effacer filtres</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          ) : null
+          <>
+            {renderSearchHistory()}
+            {!searchLoading && (
+              <View style={styles.resultsInfo}>
+                <Text style={[styles.resultsCount, { color: colors.textSecondary }]}>
+                  {filteredResults.length} événement{filteredResults.length !== 1 ? 's' : ''}
+                </Text>
+                {activeFiltersCount > 0 && (
+                  <TouchableOpacity onPress={resetFilters}>
+                    <Text style={[styles.clearFilters, { color: colors.primary }]}>Effacer filtres</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+          </>
         }
         ListEmptyComponent={
           !searchLoading ? (
@@ -645,6 +649,8 @@ export default function DiscoverScreen() {
     );
   };
 
+  const HISTORY_DISPLAY_LIMIT = 5;
+
   const renderSearchHistory = () => {
     if (searchQuery !== '' || searchHistory.length === 0 || viewMode !== 'list') return null;
     return (
@@ -655,7 +661,7 @@ export default function DiscoverScreen() {
             <Text style={[styles.historyClear, { color: colors.primary }]}>Tout effacer</Text>
           </TouchableOpacity>
         </View>
-        {searchHistory.map((query, index) => (
+        {searchHistory.slice(0, HISTORY_DISPLAY_LIMIT).map((query, index) => (
           <TouchableOpacity
             key={`${query}-${index}`}
             style={styles.historyItem}
@@ -680,13 +686,12 @@ export default function DiscoverScreen() {
     <View style={{ flex: 1 }}>
       {renderSearchHeader()}
       {viewMode === 'list' && renderCategoryChips()}
-      {renderSearchHistory()}
       {searchLoading && searchResults.length === 0 && viewMode === 'list' ? (
         <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: Spacing.sm }}>
           <SkeletonList count={4} Component={EventCardSkeleton} />
         </View>
       ) : (
-        searchQuery !== '' || viewMode === 'map' ? renderSearchContent() : null
+        renderSearchContent()
       )}
     </View>
   );
@@ -1387,6 +1392,16 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  searchPrompt: {
+    alignItems: 'center',
+    paddingTop: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+  },
+  searchPromptText: {
+    ...TextStyles.body,
+    textAlign: 'center',
+    marginTop: Spacing.md,
   },
   emptySearch: {
     alignItems: 'center',

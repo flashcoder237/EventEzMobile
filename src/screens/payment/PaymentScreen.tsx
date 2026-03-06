@@ -220,7 +220,7 @@ export default function PaymentScreen() {
     manualVerify,
   } = usePaymentVerification({
     pollInterval: 5000,
-    maxAttempts: 90,
+    maxAttempts: 36,
     maxConsecutiveErrors: 10,
     progressiveBackoff: true,
     detectTemporaryErrors: true,
@@ -736,398 +736,412 @@ export default function PaymentScreen() {
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (!processing) navigation.goBack();
+          }}
+          disabled={processing}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
+          <Ionicons name="arrow-back" size={24} color={processing ? colors.gray400 : colors.gray900} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Paiement</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>
+          {processing ? 'Traitement' : 'Paiement'}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAwareScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        bottomOffset={120}
-      >
-        {/* Order Summary */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
-            {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Récapitulatif'}
+      {processing ? (
+        /* ===== Processing Status Screen (replaces form) ===== */
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.processingScrollContent}
+        >
+          {/* Payment method icon */}
+          <View style={[
+            styles.processingIconContainer,
+            { backgroundColor: (selectedMethod ? (METHOD_COLORS[selectedMethod] || '#666666') : '#1A1F71') + '20' }
+          ]}>
+            <Image
+              source={selectedMethod ? (PaymentIcons[selectedMethod] || PaymentIcons.credit_card) : PaymentIcons.credit_card}
+              style={styles.processingIconImage}
+              resizeMode="contain"
+            />
+          </View>
+
+          <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.md }} />
+
+          <Text style={[styles.processingTitle, { color: colors.gray900 }]}>
+            {selectedMethod ? (dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Paiement') : 'Paiement par carte'}
           </Text>
-          <View style={[styles.orderCard, { backgroundColor: colors.card }]}>
-            <View style={[styles.orderHeader, { borderBottomColor: colors.gray100 }]}>
-              <Text style={[styles.orderEventTitle, { color: colors.gray900 }]} numberOfLines={2}>
-                {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
-              </Text>
-              {isAdditionalTicketsMode && (
-                <Text style={[styles.additionalBadge, { color: colors.primary, backgroundColor: colors.primaryBg }]}>Achat supplémentaire</Text>
-              )}
-            </View>
 
-            {getTicketsToDisplay().map((ticket: any, index: number) => (
-              <View key={ticket.id || index} style={styles.orderItem}>
-                <View style={styles.orderItemLeft}>
-                  <Text style={[styles.orderItemName, { color: colors.gray700 }]}>
-                    {ticket.ticket_type_name || ticket.ticket_type?.name}
-                  </Text>
-                  <Text style={[styles.orderItemQty, { color: colors.gray500, backgroundColor: colors.gray100 }]}>x{ticket.quantity || 1}</Text>
-                </View>
-                <Text style={[styles.orderItemPrice, { color: colors.gray900 }]}>
-                  {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} {countryConfig?.currency || 'FCFA'}
-                </Text>
-              </View>
-            ))}
+          <Text style={[styles.processingSubtitle, { color: colors.primary }]}>Traitement en cours...</Text>
 
-            {/* Sous-total */}
-            <View style={[styles.orderSubtotalRow, { borderTopColor: colors.gray100 }]}>
-              <Text style={[styles.orderSubtotalLabel, { color: colors.gray600 }]}>Sous-total</Text>
-              <Text style={[styles.orderSubtotalValue, { color: colors.gray700 }]}>
-                {subtotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
-              </Text>
-            </View>
-
-            {/* Frais de service */}
-            {serviceFee > 0 && (
-              <View style={styles.orderFeeRow}>
-                <Text style={[styles.orderFeeLabel, { color: colors.gray500 }]}>
-                  Frais de service ({serviceFeeLabel})
-                </Text>
-                <Text style={[styles.orderFeeValue, { color: colors.gray500 }]}>
-                  {serviceFee.toLocaleString()} {countryConfig?.currency || 'FCFA'}
-                </Text>
-              </View>
-            )}
-
-            {/* Total */}
-            <View style={[styles.orderTotal, { borderTopColor: colors.gray100 }]}>
-              <Text style={[styles.orderTotalLabel, { color: colors.gray700 }]}>Total à payer</Text>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={[styles.orderTotalValue, { color: colors.primary }]}>
-                  {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
-                </Text>
-                {finalTotal > 0 && (
-                  <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} />
-                )}
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Payment Methods */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Mode de paiement</Text>
-          {dynamicMethods.map((method) => (
-            <AnimatedPressable
-              key={method.id}
-              style={[
-                styles.methodCard,
-                { backgroundColor: colors.card, borderColor: colors.gray200 },
-                selectedMethod === method.id && [styles.methodCardSelected, { borderColor: colors.primary, backgroundColor: colors.primaryBg }],
-              ]}
-              onPress={() => setSelectedMethod(method.id)}
-              animationType="scale"
-              scaleValue={0.98}
-            >
-              <View
-                style={[
-                  styles.methodIcon,
-                  { backgroundColor: method.color + '20' },
-                ]}
-              >
-                <Image source={method.icon} style={styles.methodIconImage} resizeMode="contain" />
-              </View>
-              <View style={styles.methodInfo}>
-                <Text style={[styles.methodName, { color: colors.gray900 }]}>{method.name}</Text>
-                <Text style={[styles.methodDescription, { color: colors.gray500 }]}>{method.description}</Text>
-              </View>
-              <View
-                style={[
-                  styles.methodRadio,
-                  { borderColor: colors.gray300 },
-                  selectedMethod === method.id && [styles.methodRadioSelected, { borderColor: colors.primary, backgroundColor: colors.primary }],
-                ]}
-              >
-                {selectedMethod === method.id && (
-                  <Ionicons name="checkmark" size={14} color={Colors.white} />
-                )}
-              </View>
-            </AnimatedPressable>
-          ))}
-        </View>
-
-        {/* Phone Number Input - Afficher pour Mobile Money uniquement */}
-        {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Numéro de téléphone</Text>
-
-            {/* Saved Payment Methods */}
-            {getMethodsByType(selectedMethod).length > 0 && (
-              <View style={styles.savedMethodsContainer}>
-                <Text style={[styles.savedMethodsLabel, { color: colors.gray600 }]}>Numéros enregistrés</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.savedMethodsList}
-                >
-                  {getMethodsByType(selectedMethod).map((method) => (
-                    <TouchableOpacity
-                      key={method.id}
-                      style={[
-                        styles.savedMethodChip,
-                        { borderColor: colors.gray200, backgroundColor: colors.card },
-                        selectedSavedMethod?.id === method.id && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
-                      ]}
-                      onPress={() => {
-                        if (selectedSavedMethod?.id === method.id) {
-                          setSelectedSavedMethod(null);
-                        } else {
-                          setSelectedSavedMethod(method);
-                        }
-                      }}
-                    >
-                      <Ionicons
-                        name="phone-portrait-outline"
-                        size={16}
-                        color={selectedSavedMethod?.id === method.id ? colors.primary : colors.gray600}
-                      />
-                      <Text
-                        style={[
-                          styles.savedMethodChipText,
-                          { color: colors.gray700 },
-                          selectedSavedMethod?.id === method.id && [styles.savedMethodChipTextSelected, { color: colors.primary }],
-                        ]}
-                      >
-                        {method.displayName}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                  <TouchableOpacity
-                    style={[
-                      styles.savedMethodChip,
-                      styles.newMethodChip,
-                      { borderColor: colors.gray200, backgroundColor: colors.card },
-                      !selectedSavedMethod && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
-                    ]}
-                    onPress={() => {
-                      setSelectedSavedMethod(null);
-                      setPhoneNumber('');
-                    }}
-                  >
-                    <Ionicons
-                      name="add"
-                      size={16}
-                      color={!selectedSavedMethod ? colors.primary : colors.gray600}
-                    />
-                    <Text
-                      style={[
-                        styles.savedMethodChipText,
-                        { color: colors.gray700 },
-                        !selectedSavedMethod && [styles.savedMethodChipTextSelected, { color: colors.primary }],
-                      ]}
-                    >
-                      Nouveau
-                    </Text>
-                  </TouchableOpacity>
-                </ScrollView>
-              </View>
-            )}
-
-            <View style={[styles.phoneInputContainer, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-              <View style={[styles.phonePrefix, { backgroundColor: colors.gray100 }]}>
-                <Text style={[styles.phonePrefixText, { color: colors.gray700 }]}>{countryConfig?.phone_prefix || '+237'}</Text>
-              </View>
-              <TextInput
-                style={[styles.phoneInput, { color: colors.gray900 }]}
-                placeholder={'X'.repeat(countryConfig?.phone_digits || 9)}
-                placeholderTextColor={colors.gray400}
-                value={phoneNumber}
-                onChangeText={(text) => {
-                  setPhoneNumber(formatPhoneNumber(text));
-                  // Deselect saved method if user types
-                  if (selectedSavedMethod) {
-                    setSelectedSavedMethod(null);
-                  }
-                }}
-                keyboardType="phone-pad"
-                maxLength={(countryConfig?.phone_digits || 9) + 2}
-              />
-            </View>
-            {(!countryConfig || countryConfig.country_code === 'CM') && (
-              <Text style={[styles.phoneHint, { color: colors.gray500 }]}>
-                {selectedMethod === 'mtn_money'
-                  ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
-                  : selectedMethod === 'orange_money'
-                  ? 'Numéros Orange valides: 655-659, 69, 55, 59'
-                  : `Entrez votre numéro ${dynamicMethods.find(m => m.id === selectedMethod)?.name || ''}`}
-              </Text>
-            )}
-          </View>
-        )}
-      </KeyboardAwareScrollView>
-
-      {/* Bottom CTA */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
-        <View style={styles.totalContainer}>
-          <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
-          <Text style={[styles.totalValue, { color: colors.gray900 }]}>
+          {/* Amount reminder */}
+          <Text style={[styles.processingAmount, { color: colors.gray600 }]}>
             {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
           </Text>
-          {finalTotal > 0 && (
-            <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} style={{ fontSize: 10 }} />
-          )}
-        </View>
-        <GradientButton
-          title={processing ? 'Traitement...' : 'Payer maintenant'}
-          onPress={handlePayment}
-          loading={processing}
-          disabled={!selectedMethod || processing}
-          icon={!processing ? <Ionicons name="lock-closed" size={18} color={Colors.white} /> : undefined}
-          style={styles.payButton}
-        />
-      </View>
 
-      {/* Processing Overlay */}
-      {processing && (
-        <View style={styles.processingOverlay}>
-          <View style={[styles.processingCard, { backgroundColor: colors.card }]}>
-            {/* Icône animée */}
-            <View style={[
-              styles.processingIconContainer,
-              { backgroundColor: (selectedMethod ? (METHOD_COLORS[selectedMethod] || '#666666') : '#1A1F71') + '20' }
-            ]}>
-              <Image
-                source={selectedMethod ? (PaymentIcons[selectedMethod] || PaymentIcons.credit_card) : PaymentIcons.credit_card}
-                style={styles.processingIconImage}
-                resizeMode="contain"
-              />
+          {/* Instructions détaillées pour Mobile Money */}
+          {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
+            <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
+              <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Comment valider :</Text>
+
+              <View style={styles.instructionStep}>
+                <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.stepNumberText}>1</Text>
+                </View>
+                <Text style={[styles.stepText, { color: colors.gray700 }]}>
+                  Vous allez recevoir une notification sur votre téléphone
+                </Text>
+              </View>
+
+              <View style={styles.instructionStep}>
+                <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.stepNumberText}>2</Text>
+                </View>
+                <Text style={[styles.stepText, { color: colors.gray700 }]}>
+                  Entrez votre code PIN {dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money'}
+                </Text>
+              </View>
+
+              <View style={styles.instructionStep}>
+                <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.stepNumberText}>3</Text>
+                </View>
+                <Text style={[styles.stepText, { color: colors.gray700 }]}>
+                  Confirmez la transaction
+                </Text>
+              </View>
+
+              <View style={[styles.waitingNote, { borderTopColor: colors.gray200 }]}>
+                <Ionicons name="time-outline" size={16} color={colors.gray500} />
+                <Text style={[styles.waitingNoteText, { color: colors.gray500 }]}>
+                  Cette page se met à jour automatiquement
+                </Text>
+              </View>
             </View>
+          )}
 
-            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.md }} />
+          {/* Instructions pour carte bancaire */}
+          {selectedMethod === 'credit_card' && (
+            <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
+              <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Paiement sécurisé :</Text>
 
-            <Text style={[styles.processingTitle, { color: colors.gray900 }]}>
-              {selectedMethod ? (dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Paiement') : 'Paiement par carte'}
-            </Text>
-
-            <Text style={[styles.processingSubtitle, { color: colors.primary }]}>Traitement en cours...</Text>
-
-            {/* Instructions détaillées pour Mobile Money */}
-            {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
-              <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
-                <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Comment valider :</Text>
-
-                <View style={styles.instructionStep}>
-                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.stepNumberText}>1</Text>
-                  </View>
-                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                    Vous allez recevoir une notification sur votre téléphone
-                  </Text>
+              <View style={styles.instructionStep}>
+                <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.stepNumberText}>1</Text>
                 </View>
-
-                <View style={styles.instructionStep}>
-                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.stepNumberText}>2</Text>
-                  </View>
-                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                    Entrez votre code PIN {dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money'}
-                  </Text>
-                </View>
-
-                <View style={styles.instructionStep}>
-                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                    Confirmez la transaction
-                  </Text>
-                </View>
-
-                <View style={[styles.waitingNote, { borderTopColor: colors.gray200 }]}>
-                  <Ionicons name="time-outline" size={16} color={colors.gray500} />
-                  <Text style={[styles.waitingNoteText, { color: colors.gray500 }]}>
-                    Cette page se met à jour automatiquement
-                  </Text>
-                </View>
+                <Text style={[styles.stepText, { color: colors.gray700 }]}>
+                  Une page de paiement sécurisée va s'ouvrir
+                </Text>
               </View>
-            )}
 
-            {/* Instructions pour carte bancaire */}
-            {selectedMethod === 'credit_card' && (
-              <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
-                <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Paiement sécurisé :</Text>
-
-                <View style={styles.instructionStep}>
-                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.stepNumberText}>1</Text>
-                  </View>
-                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                    Une page de paiement sécurisée va s'ouvrir
-                  </Text>
+              <View style={styles.instructionStep}>
+                <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.stepNumberText}>2</Text>
                 </View>
-
-                <View style={styles.instructionStep}>
-                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.stepNumberText}>2</Text>
-                  </View>
-                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                    Entrez les informations de votre carte bancaire
-                  </Text>
-                </View>
-
-                <View style={styles.instructionStep}>
-                  <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.stepNumberText}>3</Text>
-                  </View>
-                  <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                    Validez le paiement et revenez sur l'application
-                  </Text>
-                </View>
-
-                <View style={[styles.securityNote, { borderTopColor: colors.gray200 }]}>
-                  <Ionicons name="shield-checkmark" size={16} color={colors.success} />
-                  <Text style={[styles.securityNoteText, { color: colors.success }]}>
-                    Paiement sécurisé par NotchPay
-                  </Text>
-                </View>
+                <Text style={[styles.stepText, { color: colors.gray700 }]}>
+                  Entrez les informations de votre carte bancaire
+                </Text>
               </View>
-            )}
 
-            {/* Bouton J'ai déjà payé */}
-            {verifyingManually ? (
-              <View style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.alreadyPaidButtonTextActive, { color: colors.primary }]}>Vérification en cours...</Text>
+              <View style={styles.instructionStep}>
+                <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.stepNumberText}>3</Text>
+                </View>
+                <Text style={[styles.stepText, { color: colors.gray700 }]}>
+                  Validez le paiement et revenez sur l'application
+                </Text>
               </View>
-            ) : (
-              <TouchableOpacity
-                style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}
-                onPress={handleAlreadyPaid}
-                disabled={cancelling || verifyingManually}
-              >
-                <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
-                <Text style={[styles.alreadyPaidButtonText, { color: colors.primary }]}>J'ai déjà payé</Text>
-              </TouchableOpacity>
-            )}
 
-            {/* Bouton Annuler */}
+              <View style={[styles.securityNote, { borderTopColor: colors.gray200 }]}>
+                <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+                <Text style={[styles.securityNoteText, { color: colors.success }]}>
+                  Paiement sécurisé par NotchPay
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Bouton J'ai déjà payé — toujours visible */}
+          {verifyingManually ? (
+            <View style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.alreadyPaidButtonTextActive, { color: colors.primary }]}>Vérification en cours...</Text>
+            </View>
+          ) : (
             <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: colors.error, backgroundColor: colors.card }, (cancelling || verifyingManually) && [styles.cancelButtonDisabled, { borderColor: colors.gray300, backgroundColor: colors.gray50 }]]}
-              onPress={cancelPayment}
+              style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}
+              onPress={handleAlreadyPaid}
               disabled={cancelling || verifyingManually}
             >
-              {cancelling ? (
-                <View style={styles.cancellingContainer}>
-                  <ActivityIndicator size="small" color={colors.error} />
-                  <Text style={[styles.cancelButtonTextActive, { color: colors.error }]}>Annulation...</Text>
-                </View>
-              ) : (
-                <Text style={[styles.cancelButtonText, { color: colors.error }]}>Annuler le paiement</Text>
-              )}
+              <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
+              <Text style={[styles.alreadyPaidButtonText, { color: colors.primary }]}>J'ai déjà payé</Text>
             </TouchableOpacity>
+          )}
+
+          {/* Bouton Annuler — toujours visible */}
+          <TouchableOpacity
+            style={[styles.cancelButton, { borderColor: colors.error, backgroundColor: colors.card }, (cancelling || verifyingManually) && [styles.cancelButtonDisabled, { borderColor: colors.gray300, backgroundColor: colors.gray50 }]]}
+            onPress={cancelPayment}
+            disabled={cancelling || verifyingManually}
+          >
+            {cancelling ? (
+              <View style={styles.cancellingContainer}>
+                <ActivityIndicator size="small" color={colors.error} />
+                <Text style={[styles.cancelButtonTextActive, { color: colors.error }]}>Annulation...</Text>
+              </View>
+            ) : (
+              <Text style={[styles.cancelButtonText, { color: colors.error }]}>Annuler le paiement</Text>
+            )}
+          </TouchableOpacity>
+        </ScrollView>
+      ) : (
+        /* ===== Payment Form (normal state) ===== */
+        <>
+          <KeyboardAwareScrollView
+            style={styles.content}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            bottomOffset={120}
+          >
+            {/* Order Summary */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
+                {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Récapitulatif'}
+              </Text>
+              <View style={[styles.orderCard, { backgroundColor: colors.card }]}>
+                <View style={[styles.orderHeader, { borderBottomColor: colors.gray100 }]}>
+                  <Text style={[styles.orderEventTitle, { color: colors.gray900 }]} numberOfLines={2}>
+                    {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
+                  </Text>
+                  {isAdditionalTicketsMode && (
+                    <Text style={[styles.additionalBadge, { color: colors.primary, backgroundColor: colors.primaryBg }]}>Achat supplémentaire</Text>
+                  )}
+                </View>
+
+                {getTicketsToDisplay().map((ticket: any, index: number) => (
+                  <View key={ticket.id || index} style={styles.orderItem}>
+                    <View style={styles.orderItemLeft}>
+                      <Text style={[styles.orderItemName, { color: colors.gray700 }]}>
+                        {ticket.ticket_type_name || ticket.ticket_type?.name}
+                      </Text>
+                      <Text style={[styles.orderItemQty, { color: colors.gray500, backgroundColor: colors.gray100 }]}>x{ticket.quantity || 1}</Text>
+                    </View>
+                    <Text style={[styles.orderItemPrice, { color: colors.gray900 }]}>
+                      {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                    </Text>
+                  </View>
+                ))}
+
+                {/* Sous-total */}
+                <View style={[styles.orderSubtotalRow, { borderTopColor: colors.gray100 }]}>
+                  <Text style={[styles.orderSubtotalLabel, { color: colors.gray600 }]}>Sous-total</Text>
+                  <Text style={[styles.orderSubtotalValue, { color: colors.gray700 }]}>
+                    {subtotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                  </Text>
+                </View>
+
+                {/* Frais de service */}
+                {serviceFee > 0 && (
+                  <View style={styles.orderFeeRow}>
+                    <Text style={[styles.orderFeeLabel, { color: colors.gray500 }]}>
+                      Frais de service ({serviceFeeLabel})
+                    </Text>
+                    <Text style={[styles.orderFeeValue, { color: colors.gray500 }]}>
+                      {serviceFee.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Total */}
+                <View style={[styles.orderTotal, { borderTopColor: colors.gray100 }]}>
+                  <Text style={[styles.orderTotalLabel, { color: colors.gray700 }]}>Total à payer</Text>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.orderTotalValue, { color: colors.primary }]}>
+                      {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                    </Text>
+                    {finalTotal > 0 && (
+                      <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} />
+                    )}
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Payment Methods */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Mode de paiement</Text>
+              {dynamicMethods.map((method) => (
+                <AnimatedPressable
+                  key={method.id}
+                  style={[
+                    styles.methodCard,
+                    { backgroundColor: colors.card, borderColor: colors.gray200 },
+                    selectedMethod === method.id && [styles.methodCardSelected, { borderColor: colors.primary, backgroundColor: colors.primaryBg }],
+                  ]}
+                  onPress={() => setSelectedMethod(method.id)}
+                  animationType="scale"
+                  scaleValue={0.98}
+                >
+                  <View
+                    style={[
+                      styles.methodIcon,
+                      { backgroundColor: method.color + '20' },
+                    ]}
+                  >
+                    <Image source={method.icon} style={styles.methodIconImage} resizeMode="contain" />
+                  </View>
+                  <View style={styles.methodInfo}>
+                    <Text style={[styles.methodName, { color: colors.gray900 }]}>{method.name}</Text>
+                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>{method.description}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.methodRadio,
+                      { borderColor: colors.gray300 },
+                      selectedMethod === method.id && [styles.methodRadioSelected, { borderColor: colors.primary, backgroundColor: colors.primary }],
+                    ]}
+                  >
+                    {selectedMethod === method.id && (
+                      <Ionicons name="checkmark" size={14} color={Colors.white} />
+                    )}
+                  </View>
+                </AnimatedPressable>
+              ))}
+            </View>
+
+            {/* Phone Number Input - Afficher pour Mobile Money uniquement */}
+            {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Numéro de téléphone</Text>
+
+                {/* Saved Payment Methods */}
+                {getMethodsByType(selectedMethod).length > 0 && (
+                  <View style={styles.savedMethodsContainer}>
+                    <Text style={[styles.savedMethodsLabel, { color: colors.gray600 }]}>Numéros enregistrés</Text>
+                    <ScrollView
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.savedMethodsList}
+                    >
+                      {getMethodsByType(selectedMethod).map((method) => (
+                        <TouchableOpacity
+                          key={method.id}
+                          style={[
+                            styles.savedMethodChip,
+                            { borderColor: colors.gray200, backgroundColor: colors.card },
+                            selectedSavedMethod?.id === method.id && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
+                          ]}
+                          onPress={() => {
+                            if (selectedSavedMethod?.id === method.id) {
+                              setSelectedSavedMethod(null);
+                            } else {
+                              setSelectedSavedMethod(method);
+                            }
+                          }}
+                        >
+                          <Ionicons
+                            name="phone-portrait-outline"
+                            size={16}
+                            color={selectedSavedMethod?.id === method.id ? colors.primary : colors.gray600}
+                          />
+                          <Text
+                            style={[
+                              styles.savedMethodChipText,
+                              { color: colors.gray700 },
+                              selectedSavedMethod?.id === method.id && [styles.savedMethodChipTextSelected, { color: colors.primary }],
+                            ]}
+                          >
+                            {method.displayName}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                      <TouchableOpacity
+                        style={[
+                          styles.savedMethodChip,
+                          styles.newMethodChip,
+                          { borderColor: colors.gray200, backgroundColor: colors.card },
+                          !selectedSavedMethod && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
+                        ]}
+                        onPress={() => {
+                          setSelectedSavedMethod(null);
+                          setPhoneNumber('');
+                        }}
+                      >
+                        <Ionicons
+                          name="add"
+                          size={16}
+                          color={!selectedSavedMethod ? colors.primary : colors.gray600}
+                        />
+                        <Text
+                          style={[
+                            styles.savedMethodChipText,
+                            { color: colors.gray700 },
+                            !selectedSavedMethod && [styles.savedMethodChipTextSelected, { color: colors.primary }],
+                          ]}
+                        >
+                          Nouveau
+                        </Text>
+                      </TouchableOpacity>
+                    </ScrollView>
+                  </View>
+                )}
+
+                <View style={[styles.phoneInputContainer, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+                  <View style={[styles.phonePrefix, { backgroundColor: colors.gray100 }]}>
+                    <Text style={[styles.phonePrefixText, { color: colors.gray700 }]}>{countryConfig?.phone_prefix || '+237'}</Text>
+                  </View>
+                  <TextInput
+                    style={[styles.phoneInput, { color: colors.gray900 }]}
+                    placeholder={'X'.repeat(countryConfig?.phone_digits || 9)}
+                    placeholderTextColor={colors.gray400}
+                    value={phoneNumber}
+                    onChangeText={(text) => {
+                      setPhoneNumber(formatPhoneNumber(text));
+                      // Deselect saved method if user types
+                      if (selectedSavedMethod) {
+                        setSelectedSavedMethod(null);
+                      }
+                    }}
+                    keyboardType="phone-pad"
+                    maxLength={(countryConfig?.phone_digits || 9) + 2}
+                  />
+                </View>
+                {(!countryConfig || countryConfig.country_code === 'CM') && (
+                  <Text style={[styles.phoneHint, { color: colors.gray500 }]}>
+                    {selectedMethod === 'mtn_money'
+                      ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
+                      : selectedMethod === 'orange_money'
+                      ? 'Numéros Orange valides: 655-659, 69, 55, 59'
+                      : `Entrez votre numéro ${dynamicMethods.find(m => m.id === selectedMethod)?.name || ''}`}
+                  </Text>
+                )}
+              </View>
+            )}
+          </KeyboardAwareScrollView>
+
+          {/* Bottom CTA */}
+          <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
+            <View style={styles.totalContainer}>
+              <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
+              <Text style={[styles.totalValue, { color: colors.gray900 }]}>
+                {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+              </Text>
+              {finalTotal > 0 && (
+                <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} style={{ fontSize: 10 }} />
+              )}
+            </View>
+            <GradientButton
+              title="Payer maintenant"
+              onPress={handlePayment}
+              disabled={!selectedMethod}
+              icon={<Ionicons name="lock-closed" size={18} color={Colors.white} />}
+              style={styles.payButton}
+            />
           </View>
-        </View>
+        </>
       )}
     </SafeAreaView>
   );
@@ -1454,23 +1468,16 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 
-  // Processing Overlay
-  processingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
+  // Processing Status Screen
+  processingScrollContent: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing['2xl'],
     alignItems: 'center',
-    zIndex: 1000,
   },
-  processingCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    alignItems: 'center',
-    marginHorizontal: Spacing.lg,
-    maxWidth: 340,
-    width: '100%',
-    ...Shadows.lg,
+  processingAmount: {
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.medium,
+    marginBottom: Spacing.lg,
   },
   processingIconContainer: {
     width: 80,
@@ -1577,6 +1584,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.error,
     backgroundColor: Colors.white,
+    alignSelf: 'stretch',
   },
   cancelButtonDisabled: {
     borderColor: Colors.gray300,
@@ -1612,6 +1620,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    alignSelf: 'stretch',
     gap: Spacing.sm,
   },
   alreadyPaidButtonText: {

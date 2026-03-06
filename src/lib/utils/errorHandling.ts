@@ -78,7 +78,11 @@ export function extractErrorMessage(error: any): string {
 
   // Erreur reseau
   if (error?.message?.includes('Network Error')) {
-    return 'Erreur de connexion. Verifiez votre connexion internet.';
+    if (__DEV__) {
+      const url = error?.config?.baseURL || 'unknown';
+      return `Erreur de connexion vers ${url}. Verifiez EXPO_PUBLIC_API_URL et que le serveur est accessible.`;
+    }
+    return 'Impossible de joindre le serveur. Veuillez reessayer dans quelques instants.';
   }
 
   // Timeout

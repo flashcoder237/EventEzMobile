@@ -20,6 +20,7 @@ import { notificationsAPI } from '../../api/client';
 import CacheService from '../../services/CacheService';
 import { Notification, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { MyNotifications } from '../../components/illustrations';
 
@@ -105,6 +106,7 @@ const filters: { key: FilterType; label: string }[] = [
 export default function NotificationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<Notification[]>([]);

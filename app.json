@@ -37,10 +37,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.eventez.mobile",
-      "softwareKeyboardLayoutMode": "adjustResize",
-      "navigationBarColor": "#00000000",
       "googleServicesFile": "./google-services.json",
-      "useNextNotificationsApi": true,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",
@@ -78,7 +75,10 @@
               "pathPrefix": "/payment-failed/"
             }
           ],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -109,7 +109,8 @@
       "./plugins/withNetworkSecurity",
       "expo-web-browser",
       "expo-audio",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-asset"
     ],
     "extra": {
       "eas": {

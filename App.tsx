@@ -30,7 +30,6 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
-import ConnectionStatusBar from './src/components/common/ConnectionStatusBar';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
@@ -84,7 +83,6 @@ function AppContent() {
             <NotificationProvider>
               <AlertProvider>
                 <StatusBar style={isDark ? 'light' : 'dark'} />
-                <ConnectionStatusBar />
                 <RootNavigator />
               </AlertProvider>
             </NotificationProvider>
