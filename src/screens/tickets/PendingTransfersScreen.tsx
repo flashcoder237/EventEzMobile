@@ -225,7 +225,7 @@ export default function PendingTransfersScreen() {
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.senderInfo}>
-            <View style={[styles.avatarContainer, { backgroundColor: colors.primaryLight }]}>
+            <View style={[styles.avatarContainer, { backgroundColor: colors.primaryBg }]}>
               <Text style={[styles.avatarText, { color: colors.primary }]}>
                 {item.sender_name.charAt(0).toUpperCase()}
               </Text>
@@ -313,7 +313,7 @@ export default function PendingTransfersScreen() {
         {/* Header */}
         <View style={styles.cardHeader}>
           <View style={styles.senderInfo}>
-            <View style={[styles.avatarContainer, { backgroundColor: colors.primaryLight }]}>
+            <View style={[styles.avatarContainer, { backgroundColor: colors.primaryBg }]}>
               <Text style={[styles.avatarText, { color: colors.primary }]}>
                 {(item.recipient_name || item.recipient_email).charAt(0).toUpperCase()}
               </Text>

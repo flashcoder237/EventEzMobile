@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   card: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.background,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.md,

@@ -359,7 +359,7 @@ export default function EventStep1Info({
                 borderRadius: 12,
                 borderWidth: 2,
                 borderColor: visibility === opt.value ? colors.primary : colors.gray200,
-                backgroundColor: visibility === opt.value ? `${colors.primary}10` : colors.white,
+                backgroundColor: visibility === opt.value ? colors.primaryBg : colors.card,
                 alignItems: 'center',
               }}
             >

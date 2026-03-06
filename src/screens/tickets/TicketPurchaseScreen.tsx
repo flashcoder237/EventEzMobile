@@ -183,6 +183,8 @@ export default function TicketPurchaseScreen() {
     return total;
   };
 
+  // Estimation côté client basée sur la valeur retournée par le backend (appliedDiscount.value).
+  // Le montant final exact sera calculé par le backend lors de la création de l'inscription.
   const getDiscountAmount = () => {
     if (!appliedDiscount) return 0;
     const subtotal = getSubtotal();
@@ -660,8 +662,8 @@ export default function TicketPurchaseScreen() {
                     <Text style={[styles.appliedDiscountCode, { color: colors.gray900 }]}>{appliedDiscount.code}</Text>
                     <Text style={[styles.appliedDiscountValue, { color: colors.success }]}>
                       {appliedDiscount.discount_type === 'percentage'
-                        ? `-${appliedDiscount.value || 0}%`
-                        : `-${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency}`}
+                        ? `-${appliedDiscount.value || 0}% (estimation)`
+                        : `-${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency} (estimation)`}
                     </Text>
                   </View>
                 </View>
@@ -750,11 +752,11 @@ export default function TicketPurchaseScreen() {
                     <View style={styles.discountLabelRow}>
                       <Ionicons name="pricetag" size={14} color={colors.success} />
                       <Text style={[styles.discountLabel, { color: colors.success }]}>
-                        Réduction ({appliedDiscount.code})
+                        Réduction estimée ({appliedDiscount.code})
                       </Text>
                     </View>
                     <Text style={[styles.discountValue, { color: colors.success }]}>
-                      -{getDiscountAmount().toLocaleString()} {commissionCurrency}
+                      ~-{getDiscountAmount().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                 </>

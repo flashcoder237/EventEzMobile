@@ -205,7 +205,7 @@ export default function BecomeOrganizerScreen() {
       <View style={styles.statsRow}>
         {STATS.map((stat, index) => (
           <View key={index} style={styles.statItem}>
-            <View style={[styles.statIcon, { backgroundColor: colors.primaryLight }]}>
+            <View style={[styles.statIcon, { backgroundColor: colors.primaryBg }]}>
               <Ionicons name={stat.icon} size={20} color={colors.primary} />
             </View>
             <Text style={[styles.statValue, { color: colors.gray900 }]}>{stat.value}</Text>
@@ -245,7 +245,7 @@ export default function BecomeOrganizerScreen() {
           style={[
             styles.typeCard,
             { borderColor: colors.gray200, backgroundColor: colors.card },
-            formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+            formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryBg },
           ]}
           animationType="scale"
           scaleValue={0.98}
@@ -283,7 +283,7 @@ export default function BecomeOrganizerScreen() {
           style={[
             styles.typeCard,
             { borderColor: colors.gray200, backgroundColor: colors.card },
-            formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+            formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryBg },
           ]}
           animationType="scale"
           scaleValue={0.98}
@@ -434,7 +434,7 @@ export default function BecomeOrganizerScreen() {
       {/* Summary */}
       <View style={[styles.summaryCard, { backgroundColor: colors.gray50 }]}>
         <View style={styles.summaryRow}>
-          <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+          <View style={[styles.summaryIcon, { backgroundColor: colors.primaryBg }]}>
             <Ionicons name={formData.organizer_type === 'organization' ? 'business' : 'person'} size={20} color={colors.primary} />
           </View>
           <View style={styles.summaryContent}>
@@ -449,7 +449,7 @@ export default function BecomeOrganizerScreen() {
           <>
             <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.summaryRow}>
-              <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+              <View style={[styles.summaryIcon, { backgroundColor: colors.primaryBg }]}>
                 <Ionicons name="business-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.summaryContent}>
@@ -460,7 +460,7 @@ export default function BecomeOrganizerScreen() {
 
             <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.summaryRow}>
-              <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+              <View style={[styles.summaryIcon, { backgroundColor: colors.primaryBg }]}>
                 <Ionicons name="document-text-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.summaryContent}>
@@ -473,7 +473,7 @@ export default function BecomeOrganizerScreen() {
 
         <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
         <View style={styles.summaryRow}>
-          <View style={[styles.summaryIcon, { backgroundColor: colors.primaryLight }]}>
+          <View style={[styles.summaryIcon, { backgroundColor: colors.primaryBg }]}>
             <Ionicons name="call-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.summaryContent}>
@@ -484,7 +484,7 @@ export default function BecomeOrganizerScreen() {
       </View>
 
       {/* Testimonial */}
-      <View style={[styles.testimonialCard, { backgroundColor: colors.primaryLight }]}>
+      <View style={[styles.testimonialCard, { backgroundColor: colors.primaryBg }]}>
         <View style={styles.testimonialStars}>
           {[1, 2, 3, 4, 5].map((star) => (
             <Ionicons key={star} name="star" size={16} color="#FBBF24" />

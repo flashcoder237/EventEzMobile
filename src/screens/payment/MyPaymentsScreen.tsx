@@ -328,7 +328,7 @@ export default function MyPaymentsScreen() {
       {/* Main Stats Card */}
       <View style={[styles.mainStatsCard, { backgroundColor: colors.card }]}>
         <View style={styles.mainStatRow}>
-          <View style={[styles.mainStatIcon, { backgroundColor: colors.primaryLight }]}>
+          <View style={[styles.mainStatIcon, { backgroundColor: colors.primaryBg }]}>
             <Ionicons name="wallet" size={28} color={colors.primary} />
           </View>
           <View style={styles.mainStatContent}>
@@ -349,7 +349,7 @@ export default function MyPaymentsScreen() {
       {/* Quick Stats */}
       <View style={styles.quickStats}>
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'completed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'completed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#D1FAE5' }]}>
@@ -360,7 +360,7 @@ export default function MyPaymentsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'pending' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'pending' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEF3C7' }]}>
@@ -371,7 +371,7 @@ export default function MyPaymentsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'failed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'failed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEE2E2' }]}>
@@ -382,7 +382,7 @@ export default function MyPaymentsScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'refunded' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryLight }]]}
+          style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'refunded' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'refunded' ? 'all' : 'refunded')}
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#EDE9FE' }]}>
@@ -414,7 +414,7 @@ export default function MyPaymentsScreen() {
 
       {/* Active Filter Indicator */}
       {statusFilter !== 'all' && (
-        <View style={[styles.filterIndicator, { backgroundColor: colors.primaryLight }]}>
+        <View style={[styles.filterIndicator, { backgroundColor: colors.primaryBg }]}>
           <Text style={[styles.filterIndicatorText, { color: colors.primary }]}>
             Filtre: {FILTER_TABS.find(t => t.key === statusFilter)?.label}
           </Text>

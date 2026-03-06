@@ -55,7 +55,7 @@ const Section = ({ title, icon, children, defaultExpanded = false }: SectionProp
         activeOpacity={0.7}
       >
         <View style={styles.sectionHeaderLeft}>
-          <View style={[styles.sectionIconContainer, { backgroundColor: colors.primaryLight }]}>
+          <View style={[styles.sectionIconContainer, { backgroundColor: colors.primaryBg }]}>
             <Ionicons name={icon} size={20} color={colors.primary} />
           </View>
           <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
@@ -432,7 +432,7 @@ export default function EditProfileScreen() {
 
           {/* Sécurité - Mot de passe */}
           <Section title="Sécurité" icon="lock-closed-outline">
-            <View style={[styles.passwordNotice, { backgroundColor: colors.primaryLight }]}>
+            <View style={[styles.passwordNotice, { backgroundColor: colors.primaryBg }]}>
               <Ionicons name="information-circle" size={18} color={colors.primary} />
               <Text style={[styles.passwordNoticeText, { color: colors.primary }]}>
                 Remplissez ces champs uniquement si vous souhaitez changer votre mot de passe

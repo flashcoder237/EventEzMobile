@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Image,
   StatusBar,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -32,6 +33,8 @@ import {
 } from '../../constants/theme';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
+import { eventBus } from '../../lib/eventBus';
+import { authAPI } from '../../api/client';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
@@ -52,6 +55,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors<'email' | 'password'>>({});
+  const [retryInfo, setRetryInfo] = useState<{ attempt: number; maxRetries: number } | null>(null);
 
   useEffect(() => {
     const loadRememberMe = async () => {
@@ -66,6 +70,16 @@ export default function LoginScreen() {
     };
     loadRememberMe();
   }, []);
+
+  // Écouter les événements de retry API pendant le login
+  useEffect(() => {
+    const unsubscribe = eventBus.on('api-retry', (data: { attempt: number; maxRetries: number; endpoint: string }) => {
+      if (isLoading) {
+        setRetryInfo({ attempt: data.attempt, maxRetries: data.maxRetries });
+      }
+    });
+    return unsubscribe;
+  }, [isLoading]);
 
   const {
     signIn: googleSignIn,
@@ -109,10 +123,13 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!validate()) return;
+    setRetryInfo(null);
     try {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
       await login(email.trim().toLowerCase(), password, rememberMe);
+      setRetryInfo(null);
     } catch (error: any) {
+      setRetryInfo(null);
       console.log('[Login] Error:', error.response?.status, error.response?.data);
       // Email non vérifié → proposer de vérifier l'email
       if (
@@ -122,19 +139,7 @@ export default function LoginScreen() {
         const targetEmail = email.trim().toLowerCase();
         showError(
           'Email non vérifié',
-          'Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception.',
-          {
-            label: 'Renvoyer le lien',
-            onPress: async () => {
-              try {
-                await authAPI.resendVerificationEmail(targetEmail);
-                showSuccess('Email envoyé', `Un lien de vérification a été envoyé à ${targetEmail}.`);
-              } catch (resendError: any) {
-                const msg = resendError.response?.data?.detail || "Impossible d'envoyer l'email.";
-                showError('Erreur', msg);
-              }
-            },
-          }
+          'Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception.'
         );
         return;
       }
@@ -307,6 +312,16 @@ export default function LoginScreen() {
               fullWidth
               style={styles.loginButton}
             />
+
+            {/* Retry Indicator */}
+            {retryInfo && (
+              <View style={[styles.retryBanner, { backgroundColor: colors.warningBg }]}>
+                <ActivityIndicator size="small" color={colors.warning} />
+                <Text style={[styles.retryText, { color: colors.warningDark }]}>
+                  Tentative de connexion {retryInfo.attempt}/{retryInfo.maxRetries}...
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Divider */}
@@ -364,6 +379,13 @@ export default function LoginScreen() {
               </AnimatedPressable>
             )}
           </View>
+
+          {/* Terms & Privacy */}
+          <Text style={[styles.termsText, { color: colors.gray500 }]}>
+            En vous connectant, vous acceptez nos{' '}
+            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/terms')}>Conditions d'utilisation</Text> et notre{' '}
+            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/privacy')}>Politique de confidentialité</Text>
+          </Text>
 
           {/* Register Link */}
           <View style={styles.registerContainer}>
@@ -578,6 +600,30 @@ const styles = StyleSheet.create({
   registerLink: {
     color: Colors.primary,
     fontSize: FontSizes.md,
+    fontFamily: FontFamily.semiBold,
+  },
+  retryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.sm,
+  },
+  retryText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+  },
+  termsText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    textAlign: 'center',
+    lineHeight: FontSizes.xs * 1.6,
+    marginTop: Spacing.lg,
+  },
+  termsLink: {
     fontFamily: FontFamily.semiBold,
   },
 });

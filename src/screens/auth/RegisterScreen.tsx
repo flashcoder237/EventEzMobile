@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Image,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -310,8 +311,8 @@ export default function RegisterScreen() {
             {/* Terms */}
             <Text style={[styles.termsText, { color: colors.gray500 }]}>
               En vous inscrivant, vous acceptez nos{' '}
-              <Text style={[styles.termsLink, { color: colors.primary }]}>Conditions d'utilisation</Text> et notre{' '}
-              <Text style={[styles.termsLink, { color: colors.primary }]}>Politique de confidentialité</Text>
+              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/terms')}>Conditions d'utilisation</Text> et notre{' '}
+              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/privacy')}>Politique de confidentialité</Text>
             </Text>
 
             {/* Register Button */}

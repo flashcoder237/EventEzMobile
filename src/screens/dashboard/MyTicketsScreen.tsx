@@ -27,12 +27,14 @@ import {
   BorderRadius,
   Spacing,
   TextStyles,
+  Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
+import { useOfflineTickets } from '../../hooks/useOfflineTickets';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -47,6 +49,7 @@ export default function MyTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
+  const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -71,6 +74,31 @@ export default function MyTicketsScreen() {
         console.log('[MyTickets] Sample registration:', JSON.stringify(data[0], null, 2));
       }
       setRegistrations(data);
+      // Auto-cache confirmed tickets for offline access
+      const ticketsToCache = data
+        .filter((r: any) => r.status === 'confirmed' && r.tickets?.length > 0)
+        .flatMap((r: any) =>
+          r.tickets
+            .filter((t: any) => t.qr_code)
+            .map((t: any) => ({
+              id: t.id,
+              registration: {
+                id: r.id,
+                reference_code: r.reference_code,
+                event: {
+                  id: r.event_details?.id || r.event,
+                  title: r.event_details?.title || 'Événement',
+                  start_date: r.event_details?.start_date || '',
+                },
+              },
+              ticket_type_name: t.ticket_type_name || t.type_name,
+              quantity: t.quantity || 1,
+              qr_code: t.qr_code,
+            }))
+        );
+      if (ticketsToCache.length > 0) {
+        cacheMultipleTickets(ticketsToCache).catch(console.error);
+      }
     } catch (error) {
       console.error('Erreur chargement inscriptions:', error);
     } finally {
@@ -502,64 +530,99 @@ export default function MyTicketsScreen() {
     </TouchableOpacity>
   );
 
+  // Stats for header
+  const stats = useMemo(() => {
+    const upcoming = filterRegistrations('upcoming', 'all', 'all', '').length;
+    const past = filterRegistrations('past', 'all', 'all', '').length;
+    const cancelled = filterRegistrations('cancelled', 'all', 'all', '').length;
+    return { total: registrations.length, upcoming, past, cancelled };
+  }, [registrations, filterRegistrations]);
+
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar
-          barStyle={isDark ? 'light-content' : 'dark-content'}
-          backgroundColor={colors.background}
-        />
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <MyTicketsScreenSkeleton />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={colors.background}
-      />
+    <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Billets & Inscriptions</Text>
-        <View style={styles.headerActions}>
-          {/* Export Button */}
-          <ExportButton
-            endpoint="/registrations/export/"
-            filename="mes-billets"
-            compact
-          />
-          {/* Offline Tickets Button */}
+      {/* Full-bleed Primary Header */}
+      <View style={[styles.headerContainer, { backgroundColor: colors.primary }]}>
+        <View style={styles.headerRow}>
           <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => navigation.navigate('OfflineTickets')}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
           >
-            <Ionicons name="cloud-offline-outline" size={22} color={colors.gray600} />
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
           </TouchableOpacity>
-          {/* Pending Transfers Button */}
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => navigation.navigate('PendingTransfers')}
-          >
-            <Ionicons name="gift-outline" size={22} color={colors.gray600} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterToggleButton, { backgroundColor: colors.gray100 }]}
-            onPress={() => setShowFilters(!showFilters)}
-          >
-            <Ionicons
-              name={showFilters ? 'options' : 'options-outline'}
-              size={22}
-              color={showFilters ? colors.primary : colors.gray600}
+          <View style={styles.headerIconCircle}>
+            <Ionicons name="ticket" size={28} color={Colors.white} />
+          </View>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Mes Billets</Text>
+            <Text style={styles.headerSubtitle}>Billets & inscriptions</Text>
+          </View>
+          <View style={styles.headerActions}>
+            <ExportButton
+              endpoint="/registrations/export/"
+              filename="mes-billets"
+              compact
             />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerActionBtn}
+              onPress={() => navigation.navigate('OfflineTickets')}
+            >
+              <Ionicons name="cloud-offline-outline" size={20} color={Colors.white} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.headerActionBtn}
+              onPress={() => navigation.navigate('PendingTransfers')}
+            >
+              <Ionicons name="gift-outline" size={20} color={Colors.white} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <View style={styles.statValueRow}>
+              <Text style={styles.statValue}>{stats.upcoming}</Text>
+              {stats.upcoming > 0 && <View style={[styles.statDot, { backgroundColor: Colors.lime }]} />}
+            </View>
+            <Text style={styles.statLabel}>A venir</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.past}</Text>
+            <Text style={styles.statLabel}>Passes</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <View style={styles.statValueRow}>
+              <Text style={styles.statValue}>{stats.cancelled}</Text>
+              {stats.cancelled > 0 && <View style={[styles.statDot, { backgroundColor: '#FCD34D' }]} />}
+            </View>
+            <Text style={styles.statLabel}>Annules</Text>
+          </View>
         </View>
       </View>
 
-      {/* Barre de recherche */}
-      <View style={styles.searchContainer}>
+      {/* Floating Filter Card */}
+      <View style={[styles.filtersCard, { backgroundColor: colors.card }, Shadows.md]}>
+        {/* Search Bar */}
         <View style={[styles.searchInputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
           <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
@@ -575,228 +638,163 @@ export default function MyTicketsScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </View>
 
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        <TabButton
-          tab="upcoming"
-          label="A venir"
-          count={filterRegistrations('upcoming', 'all', 'all', '').length}
-        />
-        <TabButton
-          tab="past"
-          label="Passes"
-          count={filterRegistrations('past', 'all', 'all', '').length}
-        />
-        <TabButton
-          tab="cancelled"
-          label="Annules"
-          count={filterRegistrations('cancelled', 'all', 'all', '').length}
-        />
-      </View>
+        {/* Tab Chips */}
+        <View style={styles.tabsRow}>
+          <TabButton
+            tab="upcoming"
+            label="A venir"
+            count={stats.upcoming}
+          />
+          <TabButton
+            tab="past"
+            label="Passes"
+            count={stats.past}
+          />
+          <TabButton
+            tab="cancelled"
+            label="Annules"
+            count={stats.cancelled}
+          />
+        </View>
 
-      {/* Type Filters */}
-      <View style={styles.filterContainer}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterScroll}
-        >
+        {/* Type Filter Row */}
+        <View style={styles.typeFilterRow}>
           <TouchableOpacity
             style={[
-              styles.filterChip,
-              { backgroundColor: colors.gray50, borderColor: colors.gray200 },
-              typeFilter === 'all' && { backgroundColor: colors.gray700, borderColor: colors.gray700 },
+              styles.typeChip,
+              { backgroundColor: colors.gray100 },
+              typeFilter === 'all' && { backgroundColor: colors.gray700 },
             ]}
             onPress={() => setTypeFilter('all')}
           >
-            <Ionicons
-              name="apps"
-              size={14}
-              color={typeFilter === 'all' ? Colors.white : colors.gray500}
-            />
-            <Text style={[
-              styles.filterChipText,
-              { color: typeFilter === 'all' ? Colors.white : colors.gray600 },
-            ]}>
+            <Ionicons name="apps" size={12} color={typeFilter === 'all' ? Colors.white : colors.gray500} />
+            <Text style={[styles.typeChipText, { color: typeFilter === 'all' ? Colors.white : colors.gray600 }]}>
               Tous ({typeCounts.all})
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[
-              styles.filterChip,
-              { backgroundColor: colors.gray50, borderColor: colors.gray200 },
-              typeFilter === 'billetterie' && { backgroundColor: colors.primary, borderColor: colors.primary },
+              styles.typeChip,
+              { backgroundColor: colors.gray100 },
+              typeFilter === 'billetterie' && { backgroundColor: colors.primary },
             ]}
             onPress={() => setTypeFilter('billetterie')}
           >
-            <Ionicons
-              name="ticket"
-              size={14}
-              color={typeFilter === 'billetterie' ? Colors.white : colors.primary}
-            />
-            <Text style={[
-              styles.filterChipText,
-              { color: typeFilter === 'billetterie' ? Colors.white : colors.primary },
-            ]}>
+            <Ionicons name="ticket" size={12} color={typeFilter === 'billetterie' ? Colors.white : colors.primary} />
+            <Text style={[styles.typeChipText, { color: typeFilter === 'billetterie' ? Colors.white : colors.primary }]}>
               Billets ({typeCounts.billetterie})
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[
-              styles.filterChip,
-              { backgroundColor: colors.gray50, borderColor: colors.gray200 },
-              typeFilter === 'inscription' && { backgroundColor: isDark ? '#A78BFA' : '#8B5CF6', borderColor: isDark ? '#A78BFA' : '#8B5CF6' },
+              styles.typeChip,
+              { backgroundColor: colors.gray100 },
+              typeFilter === 'inscription' && { backgroundColor: isDark ? '#A78BFA' : '#8B5CF6' },
             ]}
             onPress={() => setTypeFilter('inscription')}
           >
-            <Ionicons
-              name="document-text"
-              size={14}
-              color={typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6')}
-            />
-            <Text style={[
-              styles.filterChipText,
-              { color: typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6') },
-            ]}>
+            <Ionicons name="document-text" size={12} color={typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6')} />
+            <Text style={[styles.typeChipText, { color: typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6') }]}>
               Inscriptions ({typeCounts.inscription})
             </Text>
           </TouchableOpacity>
-        </ScrollView>
-      </View>
+        </View>
 
-      {/* Filtres avances (visibles si showFilters = true) */}
-      {showFilters && (
-        <View style={[styles.advancedFiltersContainer, { backgroundColor: colors.gray50 }]}>
-          {/* Filtre par statut */}
-          <View style={styles.filterSection}>
-            <Text style={[styles.filterSectionTitle, { color: colors.gray500 }]}>Statut</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {/* Advanced Filters Toggle */}
+        <TouchableOpacity
+          style={[styles.advancedToggle, { borderTopColor: colors.gray100 }]}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Ionicons name={showFilters ? 'options' : 'options-outline'} size={16} color={showFilters ? colors.primary : colors.gray500} />
+          <Text style={[styles.advancedToggleText, { color: showFilters ? colors.primary : colors.gray500 }]}>
+            Filtres avances
+          </Text>
+          <Ionicons name={showFilters ? 'chevron-up' : 'chevron-down'} size={16} color={showFilters ? colors.primary : colors.gray500} />
+        </TouchableOpacity>
+
+        {/* Advanced Filters (collapsible inside card) */}
+        {showFilters && (
+          <View style={[styles.advancedFiltersInner, { borderTopColor: colors.gray100 }]}>
+            {/* Status filter */}
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterSectionLabel, { color: colors.gray500 }]}>Statut</Text>
               <View style={styles.filterChipsRow}>
                 <TouchableOpacity
-                  style={[
-                    styles.statusChip,
-                    { backgroundColor: colors.card, borderColor: colors.gray200 },
-                    statusFilter === 'all' && { backgroundColor: colors.gray700, borderColor: colors.gray700 },
-                  ]}
+                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'all' && { backgroundColor: colors.gray700 }]}
                   onPress={() => setStatusFilter('all')}
                 >
-                  <Text style={[
-                    styles.statusChipText,
-                    { color: statusFilter === 'all' ? Colors.white : colors.gray600 },
-                  ]}>
+                  <Text style={[styles.statusChipText, { color: statusFilter === 'all' ? Colors.white : colors.gray600 }]}>
                     Tous ({statusCounts.all})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.statusChip,
-                    { backgroundColor: colors.card, borderColor: colors.gray200 },
-                    statusFilter === 'confirmed' && { backgroundColor: colors.success, borderColor: colors.success },
-                  ]}
+                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'confirmed' && { backgroundColor: colors.success }]}
                   onPress={() => setStatusFilter('confirmed')}
                 >
                   <Ionicons name="checkmark-circle" size={12} color={statusFilter === 'confirmed' ? Colors.white : colors.success} />
-                  <Text style={[
-                    styles.statusChipText,
-                    { color: statusFilter === 'confirmed' ? Colors.white : colors.success },
-                  ]}>
+                  <Text style={[styles.statusChipText, { color: statusFilter === 'confirmed' ? Colors.white : colors.success }]}>
                     Confirmes ({statusCounts.confirmed})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.statusChip,
-                    { backgroundColor: colors.card, borderColor: colors.gray200 },
-                    statusFilter === 'pending' && { backgroundColor: colors.warning, borderColor: colors.warning },
-                  ]}
+                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'pending' && { backgroundColor: colors.warning }]}
                   onPress={() => setStatusFilter('pending')}
                 >
                   <Ionicons name="time" size={12} color={statusFilter === 'pending' ? Colors.white : colors.warning} />
-                  <Text style={[
-                    styles.statusChipText,
-                    { color: statusFilter === 'pending' ? Colors.white : colors.warning },
-                  ]}>
+                  <Text style={[styles.statusChipText, { color: statusFilter === 'pending' ? Colors.white : colors.warning }]}>
                     En attente ({statusCounts.pending})
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[
-                    styles.statusChip,
-                    { backgroundColor: colors.card, borderColor: colors.gray200 },
-                    statusFilter === 'checked_in' && { backgroundColor: colors.success, borderColor: colors.success },
-                  ]}
+                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'checked_in' && { backgroundColor: colors.success }]}
                   onPress={() => setStatusFilter('checked_in')}
                 >
                   <Ionicons name="checkmark-done-circle" size={12} color={statusFilter === 'checked_in' ? Colors.white : colors.success} />
-                  <Text style={[
-                    styles.statusChipText,
-                    { color: statusFilter === 'checked_in' ? Colors.white : colors.success },
-                  ]}>
+                  <Text style={[styles.statusChipText, { color: statusFilter === 'checked_in' ? Colors.white : colors.success }]}>
                     Valides ({statusCounts.checked_in})
                   </Text>
                 </TouchableOpacity>
               </View>
-            </ScrollView>
-          </View>
-
-          {/* Tri */}
-          <View style={styles.filterSection}>
-            <Text style={[styles.filterSectionTitle, { color: colors.gray500 }]}>Trier par</Text>
-            <View style={styles.filterChipsRow}>
-              <TouchableOpacity
-                style={[
-                  styles.sortChip,
-                  { backgroundColor: colors.card, borderColor: colors.gray200 },
-                  sortBy === 'event_date' && { backgroundColor: colors.primary, borderColor: colors.primary },
-                ]}
-                onPress={() => setSortBy('event_date')}
-              >
-                <Ionicons name="calendar" size={12} color={sortBy === 'event_date' ? Colors.white : colors.gray600} />
-                <Text style={[
-                  styles.sortChipText,
-                  { color: sortBy === 'event_date' ? Colors.white : colors.gray600 },
-                ]}>
-                  Date evenement
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.sortChip,
-                  { backgroundColor: colors.card, borderColor: colors.gray200 },
-                  sortBy === 'registration_date' && { backgroundColor: colors.primary, borderColor: colors.primary },
-                ]}
-                onPress={() => setSortBy('registration_date')}
-              >
-                <Ionicons name="time" size={12} color={sortBy === 'registration_date' ? Colors.white : colors.gray600} />
-                <Text style={[
-                  styles.sortChipText,
-                  { color: sortBy === 'registration_date' ? Colors.white : colors.gray600 },
-                ]}>
-                  Date inscription
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.sortChip,
-                  { backgroundColor: colors.card, borderColor: colors.gray200 },
-                  sortBy === 'name' && { backgroundColor: colors.primary, borderColor: colors.primary },
-                ]}
-                onPress={() => setSortBy('name')}
-              >
-                <Ionicons name="text" size={12} color={sortBy === 'name' ? Colors.white : colors.gray600} />
-                <Text style={[
-                  styles.sortChipText,
-                  { color: sortBy === 'name' ? Colors.white : colors.gray600 },
-                ]}>
-                  Nom A-Z
-                </Text>
-              </TouchableOpacity>
+            </View>
+            {/* Sort */}
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterSectionLabel, { color: colors.gray500 }]}>Trier par</Text>
+              <View style={styles.filterChipsRow}>
+                <TouchableOpacity
+                  style={[styles.sortChip, { backgroundColor: colors.gray100 }, sortBy === 'event_date' && { backgroundColor: colors.primary }]}
+                  onPress={() => setSortBy('event_date')}
+                >
+                  <Ionicons name="calendar" size={12} color={sortBy === 'event_date' ? Colors.white : colors.gray600} />
+                  <Text style={[styles.sortChipText, { color: sortBy === 'event_date' ? Colors.white : colors.gray600 }]}>Date evenement</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.sortChip, { backgroundColor: colors.gray100 }, sortBy === 'registration_date' && { backgroundColor: colors.primary }]}
+                  onPress={() => setSortBy('registration_date')}
+                >
+                  <Ionicons name="time" size={12} color={sortBy === 'registration_date' ? Colors.white : colors.gray600} />
+                  <Text style={[styles.sortChipText, { color: sortBy === 'registration_date' ? Colors.white : colors.gray600 }]}>Date inscription</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.sortChip, { backgroundColor: colors.gray100 }, sortBy === 'name' && { backgroundColor: colors.primary }]}
+                  onPress={() => setSortBy('name')}
+                >
+                  <Ionicons name="text" size={12} color={sortBy === 'name' ? Colors.white : colors.gray600} />
+                  <Text style={[styles.sortChipText, { color: sortBy === 'name' ? Colors.white : colors.gray600 }]}>Nom A-Z</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
+        )}
+      </View>
+
+      {/* Offline indicator */}
+      {cachedTicketCount > 0 && (
+        <View style={[styles.offlineIndicator, { backgroundColor: colors.successLight }]}>
+          <Ionicons name="cloud-done-outline" size={16} color={colors.success} />
+          <Text style={[styles.offlineIndicatorText, { color: colors.successDark }]}>
+            {cachedTicketCount} billet{cachedTicketCount > 1 ? 's' : ''} disponible{cachedTicketCount > 1 ? 's' : ''} hors-ligne
+          </Text>
         </View>
       )}
 
@@ -824,50 +822,129 @@ export default function MyTicketsScreen() {
           />
         }
       />
-    </SafeAreaView>
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
-  header: {
+
+  // Full-bleed Primary Header
+  headerContainer: {
+    paddingBottom: Spacing['2xl'] + 8,
+    borderBottomLeftRadius: BorderRadius.xl,
+    borderBottomRightRadius: BorderRadius.xl,
+  },
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    gap: Spacing.md,
   },
-  headerTitle: {
-    ...TextStyles.h2,
-    flex: 1,
-  },
-  filterToggleButton: {
+  backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTextContainer: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.white,
+  },
+  headerSubtitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
 
-  // Search
-  searchContainer: {
+  // Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.white,
+  },
+  statLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  statDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+
+  // Floating Filter Card
+  filtersCard: {
+    marginTop: -20,
+    marginHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   searchInputWrapper: {
     flexDirection: 'row',
@@ -884,74 +961,81 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
 
-  // Tabs
-  tabsContainer: {
+  // Tab Chips (inside floating card)
+  tabsRow: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.md,
-    gap: Spacing.sm,
+    gap: Spacing.xs,
   },
   tabButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.lg,
     gap: Spacing.xs,
   },
   tabButtonText: {
-    ...TextStyles.label,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
   },
   tabBadge: {
-    minWidth: 20,
-    height: 20,
-    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 5,
   },
   tabBadgeText: {
-    fontSize: FontSizes.xs,
+    fontSize: 10,
     fontFamily: FontFamily.displayBold,
   },
 
-  // Filters
-  filterContainer: {
-    paddingBottom: Spacing.sm,
+  // Type Filter Row
+  typeFilterRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
   },
-  filterScroll: {
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
-  },
-  filterChip: {
+  typeChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
+    justifyContent: 'center',
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    gap: 6,
+    gap: 4,
   },
-  filterChipText: {
-    ...TextStyles.caption,
+  typeChipText: {
+    fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
   },
 
-  // Advanced Filters
-  advancedFiltersContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.sm,
-    borderRadius: BorderRadius.lg,
+  // Advanced Filters Toggle
+  advancedToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  advancedToggleText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Advanced Filters Inner
+  advancedFiltersInner: {
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
     gap: Spacing.md,
   },
   filterSection: {
     gap: Spacing.xs,
   },
-  filterSectionTitle: {
+  filterSectionLabel: {
     ...TextStyles.eyebrow,
-    color: undefined,
   },
   filterChipsRow: {
     flexDirection: 'row',
@@ -966,7 +1050,6 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
     gap: 4,
   },
   statusChipText: {
@@ -981,11 +1064,27 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
     gap: 4,
   },
   sortChipText: {
     ...TextStyles.caption,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Offline indicator
+  offlineIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  offlineIndicatorText: {
+    fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
   },
 

@@ -283,7 +283,7 @@ export default function RegistrationDetailsScreen() {
           {/* Reminder Button */}
           {isActive && permissionGranted && (
             <TouchableOpacity
-              style={[styles.reminderButton, reminderEnabled && { backgroundColor: colors.primaryLight }]}
+              style={[styles.reminderButton, reminderEnabled && { backgroundColor: colors.primaryBg }]}
               onPress={handleToggleReminder}
             >
               <Ionicons
@@ -534,7 +534,7 @@ export default function RegistrationDetailsScreen() {
                     {/* Transfer button */}
                     {ticket.is_paid && !ticket.is_checked_in && (
                       <TouchableOpacity
-                        style={[styles.transferButton, { backgroundColor: colors.primaryLight }]}
+                        style={[styles.transferButton, { backgroundColor: colors.primaryBg }]}
                         onPress={(e) => {
                           e.stopPropagation();
                           const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
@@ -610,7 +610,7 @@ export default function RegistrationDetailsScreen() {
         {/* Actions */}
         {isActive && (
           <View style={styles.actionsSection}>
-            {/* "J'ai déjà payé" button - for pending registrations with payment */}
+            {/* "J'ai déjà payé" button - for pending registrations with payment (skip if already confirmed) */}
             {registration.status === 'pending' && (registration.payment_info?.id || registration.payment) && (
               <TouchableOpacity
                 style={[styles.alreadyPaidButton, { backgroundColor: colors.card, borderColor: colors.success }]}

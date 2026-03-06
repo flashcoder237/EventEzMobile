@@ -7,6 +7,7 @@ import {
   ScrollView,
   Image,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -294,7 +295,7 @@ export default function RegisterOrganizerScreen() {
           style={[
             styles.typeOption,
             { borderColor: colors.gray200, backgroundColor: colors.card },
-            formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+            formData.organizer_type === 'individual' && { borderColor: colors.primary, backgroundColor: colors.primaryBg },
           ]}
           animationType="scale"
           scaleValue={0.98}
@@ -327,7 +328,7 @@ export default function RegisterOrganizerScreen() {
           style={[
             styles.typeOption,
             { borderColor: colors.gray200, backgroundColor: colors.card },
-            formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryLight },
+            formData.organizer_type === 'organization' && { borderColor: colors.primary, backgroundColor: colors.primaryBg },
           ]}
           animationType="scale"
           scaleValue={0.98}
@@ -477,8 +478,8 @@ export default function RegisterOrganizerScreen() {
       {/* Terms */}
       <Text style={[styles.termsText, { color: colors.gray500 }]}>
         En vous inscrivant, vous acceptez nos{' '}
-        <Text style={[styles.termsLink, { color: colors.primary }]}>Conditions d'utilisation</Text> et notre{' '}
-        <Text style={[styles.termsLink, { color: colors.primary }]}>Politique de confidentialité</Text>
+        <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/terms')}>Conditions d'utilisation</Text> et notre{' '}
+        <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/privacy')}>Politique de confidentialité</Text>
       </Text>
 
       <View style={styles.buttonRow}>
@@ -679,7 +680,7 @@ const styles = StyleSheet.create({
   },
   typeOptionSelected: {
     borderColor: Colors.primary,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.primaryBg,
   },
   typeIconContainer: {
     width: 48,

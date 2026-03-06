@@ -1032,7 +1032,7 @@ export default function PaymentScreen() {
                           style={[
                             styles.savedMethodChip,
                             { borderColor: colors.gray200, backgroundColor: colors.card },
-                            selectedSavedMethod?.id === method.id && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
+                            selectedSavedMethod?.id === method.id && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryBg }],
                           ]}
                           onPress={() => {
                             if (selectedSavedMethod?.id === method.id) {
@@ -1063,7 +1063,7 @@ export default function PaymentScreen() {
                           styles.savedMethodChip,
                           styles.newMethodChip,
                           { borderColor: colors.gray200, backgroundColor: colors.card },
-                          !selectedSavedMethod && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryLight }],
+                          !selectedSavedMethod && [styles.savedMethodChipSelected, { borderColor: colors.primary, backgroundColor: colors.primaryBg }],
                         ]}
                         onPress={() => {
                           setSelectedSavedMethod(null);

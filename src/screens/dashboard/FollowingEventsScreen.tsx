@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -340,53 +340,55 @@ export default function FollowingEventsScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
 
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mes Favoris</Text>
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
-        >
-          <Ionicons name="compass-outline" size={24} color={colors.gray600} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Summary Card */}
-      <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
-        <View style={styles.summaryMain}>
-          <View style={[styles.summaryIconContainer, { backgroundColor: colors.primaryBg }]}>
-            <Ionicons name="heart" size={24} color={colors.primary} />
+      {/* Full-bleed Primary Header */}
+      <View style={[styles.headerContainer, { backgroundColor: colors.primary }]}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          </TouchableOpacity>
+          <View style={styles.headerIconContainer}>
+            <Ionicons name="heart" size={28} color={colors.primary} />
           </View>
-          <View>
-            <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{stats.total}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>evenements suivis</Text>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.headerTitle}>Mes Favoris</Text>
+            <Text style={styles.headerSubtitle}>Gardez un oeil sur vos evenements preferes</Text>
           </View>
         </View>
-        <View style={[styles.summaryDivider, { backgroundColor: colors.gray100 }]} />
-        <View style={styles.summaryStats}>
-          <View style={styles.summaryStatItem}>
-            <Ionicons name="calendar-outline" size={16} color={colors.success} />
-            <Text style={[styles.summaryStatText, { color: colors.gray600 }]}>{stats.upcoming} a venir</Text>
+
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.total}</Text>
+            <Text style={styles.statLabel}>Total</Text>
           </View>
-          <View style={styles.summaryStatItem}>
-            <Ionicons name="notifications-outline" size={16} color={colors.primary} />
-            <Text style={[styles.summaryStatText, { color: colors.gray600 }]}>{stats.withNotifications} notifies</Text>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{stats.upcoming}</Text>
+            <Text style={styles.statLabel}>A venir</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <View style={styles.statValueRow}>
+              <Text style={styles.statValue}>{stats.withNotifications}</Text>
+              {stats.withNotifications > 0 && <View style={styles.statDot} />}
+            </View>
+            <Text style={styles.statLabel}>Notifies</Text>
           </View>
         </View>
       </View>
 
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchInputContainer, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+      {/* Floating Filter Card */}
+      <View style={[styles.filtersContainer, { backgroundColor: colors.card }]}>
+        {/* Search Bar */}
+        <View style={[styles.searchInputContainer, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
           <Ionicons name="search" size={18} color={colors.gray400} />
           <TextInput
             style={[styles.searchInput, { color: colors.gray900 }]}
@@ -401,46 +403,32 @@ export default function FollowingEventsScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </View>
 
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        {([
-          { key: 'upcoming', label: 'A venir', count: stats.upcoming },
-          { key: 'past', label: 'Passes', count: stats.total - stats.upcoming },
-          { key: 'all', label: 'Tous', count: stats.total },
-        ] as { key: TabFilter; label: string; count: number }[]).map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[
-              styles.tab,
-              { backgroundColor: colors.card, borderColor: colors.gray200 },
-              activeTab === tab.key && styles.tabActive,
-            ]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text style={[
-              styles.tabText,
-              { color: colors.gray600 },
-              activeTab === tab.key && styles.tabTextActive,
-            ]}>
-              {tab.label}
-            </Text>
-            <View style={[
-              styles.tabBadge,
-              { backgroundColor: colors.gray100 },
-              activeTab === tab.key && styles.tabBadgeActive,
-            ]}>
+        {/* Filter Tabs */}
+        <View style={styles.filtersRow}>
+          {([
+            { key: 'upcoming', label: 'A venir', count: stats.upcoming },
+            { key: 'past', label: 'Passes', count: stats.total - stats.upcoming },
+            { key: 'all', label: 'Tous', count: stats.total },
+          ] as { key: TabFilter; label: string; count: number }[]).map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              style={[
+                styles.filterButton,
+                activeTab === tab.key && [styles.filterButtonActive, { backgroundColor: colors.primary }],
+              ]}
+              onPress={() => setActiveTab(tab.key)}
+            >
               <Text style={[
-                styles.tabBadgeText,
+                styles.filterText,
                 { color: colors.gray600 },
-                activeTab === tab.key && styles.tabBadgeTextActive,
+                activeTab === tab.key && { color: Colors.white },
               ]}>
-                {tab.count}
+                {tab.label}
               </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* Content */}
@@ -481,26 +469,35 @@ export default function FollowingEventsScreen() {
           keyboardShouldPersistTaps="handled"
         />
       </ContentTransition>
+    </View>
     </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  rootContainer: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,
   },
 
-  // Header
+  // Full-bleed Primary Header
+  headerContainer: {
+    backgroundColor: Colors.primary,
+    paddingBottom: Spacing['2xl'] + 8,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    paddingTop: Spacing.md,
+    gap: Spacing.md,
   },
   backButton: {
     width: 40,
@@ -508,79 +505,86 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
-  },
-  settingsButton: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  // Summary Card
-  summaryCard: {
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    ...Shadows.md,
-  },
-  summaryMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  summaryIconContainer: {
+  headerIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: Colors.primaryLight,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  summaryValue: {
-    fontSize: FontSizes['2xl'],
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+  headerTextContainer: {
+    flex: 1,
   },
-  summaryLabel: {
+  headerTitle: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.white,
+  },
+  headerSubtitle: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: Colors.gray100,
-    marginVertical: Spacing.md,
-  },
-  summaryStats: {
-    flexDirection: 'row',
-    gap: Spacing.xl,
-  },
-  summaryStatItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  summaryStatText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray600,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
   },
 
-  // Search
-  searchContainer: {
+  // Stats Row
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statValue: {
+    fontSize: FontSizes.xl,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.white,
+  },
+  statLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  statDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: Colors.lime,
+  },
+
+  // Floating Filter Card
+  filtersContainer: {
+    marginTop: -20,
+    marginHorizontal: Spacing.lg,
+    backgroundColor: Colors.white,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    gap: Spacing.sm,
+    ...Shadows.md,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
@@ -595,55 +599,25 @@ const styles = StyleSheet.create({
     color: Colors.gray900,
     paddingVertical: 0,
   },
-
-  // Tabs
-  tabsContainer: {
+  filtersRow: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    gap: Spacing.sm,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
     gap: Spacing.xs,
   },
-  tabActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  filterButton: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.gray100,
   },
-  tabText: {
+  filterButtonActive: {
+    backgroundColor: Colors.primary,
+  },
+  filterText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
     color: Colors.gray600,
-  },
-  tabTextActive: {
-    color: Colors.white,
-  },
-  tabBadge: {
-    backgroundColor: Colors.gray100,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-  },
-  tabBadgeActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  tabBadgeText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray600,
-  },
-  tabBadgeTextActive: {
-    color: Colors.white,
   },
 
   // List

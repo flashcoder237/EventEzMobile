@@ -21,7 +21,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import Slider from '@react-native-community/slider';
 
-import { eventsAPI, categoriesAPI, recommendationsAPI, getMediaUrl } from '../../api/client';
+import { eventsAPI, categoriesAPI, tagsAPI, recommendationsAPI, getMediaUrl } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -61,9 +61,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 // Filter types
 type EventTypeFilter = 'all' | 'billetterie' | 'inscription';
 type PriceFilter = 'all' | 'free' | 'paid';
-type DateFilter = 'all' | 'today' | 'weekend' | 'week' | 'month';
+type DateFilter = 'all' | 'today' | 'weekend' | 'week' | 'month' | 'next_3_months';
 type LocationTypeFilter = 'all' | 'in_person' | 'online' | 'hybrid';
 type SortOption = 'date' | 'price_asc' | 'price_desc' | 'popularity' | 'distance';
+type AttendanceFilter = 'all' | 'small' | 'medium' | 'large' | 'xlarge';
+type EventStatusFilter = 'all' | 'upcoming' | 'ongoing' | 'full';
 
 interface Filters {
   eventType: EventTypeFilter;
@@ -74,6 +76,11 @@ interface Filters {
   priceMin: number;
   priceMax: number;
   sortBy: SortOption;
+  category: number | null;
+  tags: number[];
+  attendance: AttendanceFilter;
+  eventStatus: EventStatusFilter;
+  city: string;
 }
 
 const PAGE_SIZE = 20;
@@ -86,6 +93,11 @@ const defaultFilters: Filters = {
   priceMin: 0,
   priceMax: 0,
   sortBy: 'date',
+  category: null,
+  tags: [],
+  attendance: 'all',
+  eventStatus: 'all',
+  city: '',
 };
 
 export default function DiscoverScreen() {
@@ -133,6 +145,28 @@ export default function DiscoverScreen() {
     longitudeDelta: 0.5,
   });
 
+  const [allTags, setAllTags] = useState<any[]>([]);
+  const [tagSearch, setTagSearch] = useState('');
+
+  // Rotating placeholder suggestions
+  const placeholderSuggestions = useMemo(() => [
+    'Concert à Douala...',
+    'Festival ce weekend...',
+    'Conférence tech...',
+    'Atelier cuisine...',
+    'Soirée networking...',
+  ], []);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  useEffect(() => {
+    if (isSearchActive) return;
+    const interval = setInterval(() => {
+      setPlaceholderIndex(prev => (prev + 1) % placeholderSuggestions.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [isSearchActive, placeholderSuggestions]);
+
   const searchInputRef = useRef<TextInput>(null);
   const flatListRef = useRef<FlatList>(null);
   const { history: searchHistory, addQuery: addSearchQuery, removeQuery: removeSearchQuery, clearAll: clearSearchHistory } = useSearchHistory();
@@ -146,6 +180,11 @@ export default function DiscoverScreen() {
     filters.priceMin > 0,
     filters.priceMax > 0,
     filters.sortBy !== 'date',
+    filters.category !== null,
+    filters.tags.length > 0,
+    filters.attendance !== 'all',
+    filters.eventStatus !== 'all',
+    filters.city.trim().length > 0,
   ].filter(Boolean).length;
 
   // === Initial load ===
@@ -153,6 +192,7 @@ export default function DiscoverScreen() {
     fetchDiscoveryData();
     fetchRecommendations();
     requestLocation();
+    fetchTags();
   }, []);
 
   // Category from navigation params
@@ -249,6 +289,15 @@ export default function DiscoverScreen() {
       setNearbyEvents(getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date)));
     } catch (error) {
       console.error('Erreur événements proches:', error);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const response = await tagsAPI.getTags();
+      setAllTags(response.data?.results || response.data || []);
+    } catch (error) {
+      console.error('Error fetching tags:', error);
     }
   };
 
@@ -357,9 +406,63 @@ export default function DiscoverScreen() {
             end.setMonth(todayDate.getMonth() + 1);
             return eventDay >= todayDate && eventDay <= end;
           }
+          case 'next_3_months': {
+            const end = new Date(todayDate);
+            end.setMonth(todayDate.getMonth() + 3);
+            return eventDay >= todayDate && eventDay <= end;
+          }
           default: return true;
         }
       });
+    }
+
+    // Category filter
+    if (filters.category !== null) {
+      result = result.filter(e => {
+        const catId = typeof e.category === 'object' ? (e.category as any)?.id : e.category;
+        return catId === filters.category;
+      });
+    }
+
+    // Tags filter
+    if (filters.tags.length > 0) {
+      result = result.filter(e => {
+        const eventTags = (e.tags || []).map((t: any) => typeof t === 'number' ? t : t.id);
+        return filters.tags.some(tagId => eventTags.includes(tagId));
+      });
+    }
+
+    // Attendance filter
+    if (filters.attendance !== 'all') {
+      result = result.filter(e => {
+        const capacity = (e as any).max_attendees || (e as any).capacity || 0;
+        switch (filters.attendance) {
+          case 'small': return capacity > 0 && capacity < 50;
+          case 'medium': return capacity >= 50 && capacity <= 200;
+          case 'large': return capacity > 200 && capacity <= 1000;
+          case 'xlarge': return capacity > 1000;
+          default: return true;
+        }
+      });
+    }
+
+    // Event status filter
+    if (filters.eventStatus !== 'all') {
+      const now = new Date();
+      result = result.filter(e => {
+        switch (filters.eventStatus) {
+          case 'upcoming': return new Date(e.start_date) > now;
+          case 'ongoing': return new Date(e.start_date) <= now && new Date(e.end_date) >= now;
+          case 'full': return (e as any).is_full || ((e as any).max_attendees && (e.registration_count || 0) >= (e as any).max_attendees);
+          default: return true;
+        }
+      });
+    }
+
+    // City filter
+    if (filters.city.trim()) {
+      const cityQuery = filters.city.toLowerCase().trim();
+      result = result.filter(e => (e as any).location_city?.toLowerCase().includes(cityQuery));
     }
 
     result.sort((a, b) => {
@@ -437,7 +540,7 @@ export default function DiscoverScreen() {
 
   const renderEventCard = useCallback((item: Event, variant: 'default' | 'featured' | 'horizontal' | 'grid' = 'default') => {
     const range = getEventPriceRange(item);
-    const eventImageUrl = getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image);
+    const eventImageUrl = getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image) || undefined;
     return (
       <EventCard
         id={item.id}
@@ -453,7 +556,7 @@ export default function DiscoverScreen() {
         isFeatured={item.is_featured}
         locationType={item.location_type}
         eventType={item.event_type}
-        currency={item.currency || platformCurrency}
+        currency={item.currency || platformCurrency || undefined}
         attendees={item.registration_count || item.registrations_count}
         variant={variant}
         onPress={() => navigateToEvent(item.id, eventImageUrl)}
@@ -463,7 +566,10 @@ export default function DiscoverScreen() {
 
   const SectionHeader = ({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) => (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
+      <View style={styles.sectionTitleRow}>
+        <View style={[styles.sectionAccentLine, { backgroundColor: colors.accent }]} />
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
+      </View>
       {onSeeAll && (
         <TouchableOpacity onPress={onSeeAll} activeOpacity={TOUCH_OPACITY}>
           <Text style={[styles.seeAllText, { color: colors.primary }]}>Voir tout</Text>
@@ -721,11 +827,30 @@ export default function DiscoverScreen() {
     <Modal visible={showFilters} animationType="fade" transparent onRequestClose={() => setShowFilters(false)}>
       <View style={styles.modalOverlay}>
         <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.gray200 }]}>
-            <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Filtres</Text>
-            <TouchableOpacity onPress={() => setShowFilters(false)}>
-              <Ionicons name="close" size={24} color={colors.gray700} />
-            </TouchableOpacity>
+          {/* Primary Header */}
+          <View style={[styles.modalHeader, { backgroundColor: colors.primary }]}>
+            <View style={styles.modalHeaderRow}>
+              <TouchableOpacity
+                style={styles.modalCloseBtn}
+                onPress={() => setShowFilters(false)}
+              >
+                <Ionicons name="close" size={22} color={Colors.white} />
+              </TouchableOpacity>
+              <View style={styles.modalHeaderIcon}>
+                <Ionicons name="options" size={24} color={Colors.white} />
+              </View>
+              <View style={styles.modalHeaderTextContainer}>
+                <Text style={styles.modalHeaderTitle}>Filtres avances</Text>
+                <Text style={styles.modalHeaderSubtitle}>Affinez votre recherche</Text>
+              </View>
+            </View>
+            {activeFiltersCount > 0 && (
+              <View style={styles.modalHeaderBadge}>
+                <Text style={styles.modalHeaderBadgeText}>
+                  {activeFiltersCount} filtre{activeFiltersCount > 1 ? 's' : ''} actif{activeFiltersCount > 1 ? 's' : ''}
+                </Text>
+              </View>
+            )}
           </View>
           <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
             {/* Sort */}
@@ -814,6 +939,7 @@ export default function DiscoverScreen() {
                 {renderFilterOption('Ce weekend', 'weekend', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'weekend' }))}
                 {renderFilterOption('Cette semaine', 'week', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'week' }))}
                 {renderFilterOption('Ce mois', 'month', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'month' }))}
+                {renderFilterOption('3 prochains mois', 'next_3_months', tempFilters.date, () => setTempFilters({ ...tempFilters, date: 'next_3_months' }))}
               </View>
             </View>
             {/* Distance */}
@@ -844,6 +970,93 @@ export default function DiscoverScreen() {
                 </View>
               </View>
             )}
+            {/* Categories */}
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Categorie</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterRow}>
+                  {renderFilterOption('Toutes', 'all' as any, tempFilters.category === null ? 'all' as any : '' as any, () => setTempFilters({ ...tempFilters, category: null }))}
+                  {categories.map((cat: any) => (
+                    renderFilterOption(cat.name, String(cat.id), tempFilters.category === cat.id ? String(cat.id) : '', () => setTempFilters({ ...tempFilters, category: tempFilters.category === cat.id ? null : cat.id }))
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+            {/* Tags */}
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Tags</Text>
+              <TextInput
+                style={[styles.cityInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
+                placeholder="Rechercher un tag..."
+                placeholderTextColor={colors.gray400}
+                value={tagSearch}
+                onChangeText={setTagSearch}
+              />
+              <View style={[styles.filterRow, { marginTop: Spacing.sm }]}>
+                {allTags
+                  .filter(t => !tagSearch || t.name?.toLowerCase().includes(tagSearch.toLowerCase()))
+                  .slice(0, 15)
+                  .map((tag: any) => {
+                    const isSelected = tempFilters.tags.includes(tag.id);
+                    return (
+                      <TouchableOpacity
+                        key={tag.id}
+                        style={[
+                          styles.filterChip,
+                          { borderColor: colors.gray200, backgroundColor: colors.card },
+                          isSelected && { backgroundColor: colors.primary, borderColor: colors.primary },
+                        ]}
+                        onPress={() => {
+                          const newTags = isSelected
+                            ? tempFilters.tags.filter(id => id !== tag.id)
+                            : [...tempFilters.tags, tag.id];
+                          setTempFilters({ ...tempFilters, tags: newTags });
+                        }}
+                      >
+                        <Text style={[
+                          styles.filterChipText,
+                          { color: colors.gray700 },
+                          isSelected && { color: colors.white },
+                        ]}>
+                          {tag.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+              </View>
+            </View>
+            {/* Taille */}
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Taille de l'evenement</Text>
+              <View style={styles.filterRow}>
+                {renderFilterOption('Tous', 'all', tempFilters.attendance, () => setTempFilters({ ...tempFilters, attendance: 'all' }))}
+                {renderFilterOption('Petit (<50)', 'small', tempFilters.attendance, () => setTempFilters({ ...tempFilters, attendance: 'small' }))}
+                {renderFilterOption('Moyen (50-200)', 'medium', tempFilters.attendance, () => setTempFilters({ ...tempFilters, attendance: 'medium' }))}
+                {renderFilterOption('Grand (200-1k)', 'large', tempFilters.attendance, () => setTempFilters({ ...tempFilters, attendance: 'large' }))}
+                {renderFilterOption('Tres grand (1k+)', 'xlarge', tempFilters.attendance, () => setTempFilters({ ...tempFilters, attendance: 'xlarge' }))}
+              </View>
+            </View>
+            {/* Statut */}
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Statut</Text>
+              <View style={styles.filterRow}>
+                {renderFilterOption('Tous', 'all', tempFilters.eventStatus, () => setTempFilters({ ...tempFilters, eventStatus: 'all' }))}
+                {renderFilterOption('A venir', 'upcoming', tempFilters.eventStatus, () => setTempFilters({ ...tempFilters, eventStatus: 'upcoming' }))}
+                {renderFilterOption('En cours', 'ongoing', tempFilters.eventStatus, () => setTempFilters({ ...tempFilters, eventStatus: 'ongoing' }))}
+                {renderFilterOption('Complet', 'full', tempFilters.eventStatus, () => setTempFilters({ ...tempFilters, eventStatus: 'full' }))}
+              </View>
+            </View>
+            {/* Ville */}
+            <View style={styles.filterSection}>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Ville</Text>
+              <TextInput
+                style={[styles.cityInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
+                placeholder="Ex: Douala, Yaounde..."
+                placeholderTextColor={colors.gray400}
+                value={tempFilters.city}
+                onChangeText={(v) => setTempFilters({ ...tempFilters, city: v })}
+              />
+            </View>
             {/* Location Type */}
             <View style={styles.filterSection}>
               <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Lieu</Text>
@@ -855,11 +1068,13 @@ export default function DiscoverScreen() {
               </View>
             </View>
           </ScrollView>
-          <View style={[styles.modalFooter, { borderTopColor: colors.gray200 }]}>
-            <TouchableOpacity style={[styles.resetBtn, { borderColor: colors.gray200 }]} onPress={resetFilters}>
+          <View style={[styles.modalFooter, { borderTopColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.resetBtn, { borderColor: colors.gray200, backgroundColor: colors.gray50 }]} onPress={resetFilters}>
+              <Ionicons name="refresh" size={16} color={colors.gray600} />
               <Text style={[styles.resetBtnText, { color: colors.gray700 }]}>Réinitialiser</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.primary }]} onPress={applyFilterChanges}>
+              <Ionicons name="checkmark" size={18} color={Colors.white} />
               <Text style={styles.applyBtnText}>Appliquer</Text>
             </TouchableOpacity>
           </View>
@@ -898,6 +1113,11 @@ export default function DiscoverScreen() {
               </PulsingBadge>
             )}
           </TouchableOpacity>
+          {user?.role === 'organizer' && (
+            <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('EventCreate' as any)}>
+              <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')}>
             <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
             {unreadNotificationCount > 0 && (
@@ -921,11 +1141,20 @@ export default function DiscoverScreen() {
         </View>
       </FadeInView>
 
-      {/* Search Bar (tap to activate) — pill shape */}
+      {/* Search Bar (tap to activate) — pill shape with rotating placeholder */}
       <FadeInView delay={200} translateY={12}>
-        <TouchableOpacity style={[styles.searchBarTrigger, { backgroundColor: colors.surface }]} onPress={activateSearch} activeOpacity={0.7}>
-          <Ionicons name="search" size={20} color={colors.gray400} />
-          <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>Rechercher un événement</Text>
+        <TouchableOpacity
+          style={[
+            styles.searchBarTrigger,
+            { backgroundColor: colors.surface, borderColor: colors.gray200 },
+          ]}
+          onPress={activateSearch}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="search" size={20} color={colors.primary} />
+          <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
+            {placeholderSuggestions[placeholderIndex]}
+          </Text>
         </TouchableOpacity>
       </FadeInView>
 
@@ -1214,7 +1443,9 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     gap: Spacing.sm,
-    ...Shadows.xs,
+    borderWidth: 1.5,
+    borderColor: Colors.gray200,
+    ...Shadows.sm,
   },
   searchPlaceholder: {
     ...TextStyles.body,
@@ -1254,6 +1485,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     marginBottom: Spacing.lg,
+  },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  sectionAccentLine: {
+    width: 4,
+    height: 22,
+    borderRadius: 2,
+    backgroundColor: Colors.accent,
   },
   sectionTitle: {
     ...TextStyles.h2,
@@ -1468,18 +1710,64 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopLeftRadius: BorderRadius['2xl'],
     borderTopRightRadius: BorderRadius['2xl'],
-    maxHeight: '75%',
+    maxHeight: '80%',
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    backgroundColor: Colors.primary,
+    borderTopLeftRadius: BorderRadius['2xl'],
+    borderTopRightRadius: BorderRadius['2xl'],
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
   },
-  modalTitle: {
-    ...TextStyles.h3,
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  modalCloseBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalHeaderIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalHeaderTextContainer: {
+    flex: 1,
+  },
+  modalHeaderTitle: {
+    fontSize: FontSizes.lg,
+    fontFamily: FontFamily.displayBold,
+    color: Colors.white,
+  },
+  modalHeaderSubtitle: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  modalHeaderBadge: {
+    alignSelf: 'flex-start',
+    marginTop: Spacing.sm,
+    marginLeft: 44 + Spacing.md + 36 + Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  modalHeaderBadgeText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.medium,
+    color: Colors.white,
   },
   modalBody: {
     padding: Spacing.lg,
@@ -1513,6 +1801,17 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: {
     color: Colors.white,
+  },
+  cityInput: {
+    backgroundColor: Colors.gray50,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: Colors.gray900,
   },
   priceInputRow: {
     flexDirection: 'row',
@@ -1556,22 +1855,28 @@ const styles = StyleSheet.create({
   },
   resetBtn: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
     borderColor: Colors.gray200,
-    alignItems: 'center',
   },
   resetBtnText: {
     ...TextStyles.button,
     color: Colors.gray700,
   },
   applyBtn: {
-    flex: 1,
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
     backgroundColor: Colors.primary,
-    alignItems: 'center',
   },
   applyBtnText: {
     ...TextStyles.button,

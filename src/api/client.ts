@@ -174,6 +174,13 @@ api.interceptors.response.use(
           const errorType = isTimeoutError ? 'Timeout' : 'Network Error';
           console.log(`[API] ${errorType} - Retry ${originalRequest._timeoutRetryCount}/${MAX_TIMEOUT_RETRIES} for ${originalRequest.url}`);
 
+          // Émettre un événement pour que l'UI puisse afficher la progression
+          eventBus.emit('api-retry', {
+            attempt: originalRequest._timeoutRetryCount,
+            maxRetries: MAX_TIMEOUT_RETRIES,
+            endpoint: originalRequest.url,
+          });
+
           // Attendre un peu avant de réessayer (backoff exponentiel)
           await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
 

@@ -176,7 +176,7 @@ export default function TransferTicketModal({
             keyboardShouldPersistTaps="handled"
           >
             {/* Ticket Info */}
-            <View style={[styles.ticketInfo, { backgroundColor: colors.primaryLight }]}>
+            <View style={[styles.ticketInfo, { backgroundColor: colors.primaryBg }]}>
               <Ionicons name="ticket-outline" size={24} color={colors.primary} />
               <View style={styles.ticketDetails}>
                 <Text style={[styles.ticketName, { color: colors.gray900 }]}>

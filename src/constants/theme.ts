@@ -101,7 +101,7 @@ export const Colors = {
 // Dark mode palette — inverted, softer violet on dark backgrounds
 export const DarkColors = {
   // Primary - Lighter violet for dark backgrounds
-  primary: '#A78BFA',
+  primary: '#9669ff',
   primaryDark: '#8B5CF6',
   primaryLight: '#C4B5FD',
 
@@ -166,7 +166,7 @@ export const DarkColors = {
   textInverse: '#1A1A2E',
 
   // Primary tints
-  primaryBg: '#1E1540',
+  primaryBg: '#2A2040',
   primaryBgLight: '#160F2E',
 
   // Accent tints
