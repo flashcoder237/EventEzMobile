@@ -4,7 +4,7 @@ import { ACircle, APath, usePulse, useFloatY } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function Empty({ color = '#7C3AED', size = 200 }: Props) {
+export default function Empty({ color = '#4F46E5', size = 200 }: Props) {
   // Floating particles drift upward
   const p1 = useFloatY(75, 6, 2800, 0);
   const p2 = useFloatY(60, 5, 3200, 400);

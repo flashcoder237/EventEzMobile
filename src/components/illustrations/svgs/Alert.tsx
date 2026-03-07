@@ -4,7 +4,7 @@ import { ARect, ACircle, APath, usePulse, useWaveOpacity } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function Alert({ color = '#7C3AED', size = 200 }: Props) {
+export default function Alert({ color = '#4F46E5', size = 200 }: Props) {
   // Exclamation pulses
   const excPulse = useWaveOpacity(0.7, 1, 1200);
   const dotPulse = useWaveOpacity(0.6, 1, 1200, 200);

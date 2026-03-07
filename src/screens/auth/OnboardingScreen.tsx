@@ -50,13 +50,13 @@ const slides: OnboardingSlide[] = [
   {
     id: '1',
     icon: 'sparkles',
-    iconColor: '#7C3AED',
-    bgGradient: ['#F5F3FF', '#EDE9FE'] as const,
+    iconColor: '#4F46E5',
+    bgGradient: ['#EEF2FF', '#E0E7FF'] as const,
     title: 'Bienvenue sur EventEz',
     subtitle: 'Votre compagnon evenementiel',
     description:
       'Decouvrez les meilleurs evenements pres de chez vous et ne manquez plus aucune occasion.',
-    illustration: <EventsIllustration color="#7C3AED" size={160} />,
+    illustration: <EventsIllustration color="#4F46E5" size={160} />,
   },
   {
     id: '2',
@@ -83,13 +83,13 @@ const slides: OnboardingSlide[] = [
   {
     id: '4',
     icon: 'qr-code',
-    iconColor: '#EC4899',
+    iconColor: '#A855F7',
     bgGradient: ['#FDF2F8', '#FCE7F3'] as const,
     title: 'Profitez !',
     subtitle: 'Check-in avec QR code',
     description:
       'Presentez votre QR code a l\'entree et profitez pleinement de votre evenement. C\'est aussi simple que ca !',
-    illustration: <Conference color="#EC4899" size={160} />,
+    illustration: <Conference color="#A855F7" size={160} />,
   },
 ];
 

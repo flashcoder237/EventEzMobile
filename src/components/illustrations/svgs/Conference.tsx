@@ -4,7 +4,7 @@ import { APath, ACircle, useWaveOpacity, usePulse } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function Conference({ color = '#7C3AED', size = 200 }: Props) {
+export default function Conference({ color = '#4F46E5', size = 200 }: Props) {
   // Sound waves pulse outward in sequence
   const wave1 = useWaveOpacity(0.15, 0.5, 1000, 0);
   const wave2 = useWaveOpacity(0.1, 0.4, 1000, 300);

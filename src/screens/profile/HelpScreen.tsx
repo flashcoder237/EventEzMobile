@@ -51,7 +51,7 @@ const FAQ_DATA: FAQCategory[] = [
     id: 'account',
     title: 'Compte & Profil',
     icon: 'person-outline',
-    color: '#7C3AED',
+    color: '#4F46E5',
     items: [
       {
         question: 'Comment creer un compte ?',
@@ -75,7 +75,7 @@ const FAQ_DATA: FAQCategory[] = [
     id: 'events',
     title: 'Evenements',
     icon: 'calendar-outline',
-    color: '#EC4899',
+    color: '#A855F7',
     items: [
       {
         question: 'Comment trouver des evenements ?',
@@ -238,8 +238,8 @@ export default function HelpScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Hero */}
         <View style={[styles.heroCard, { backgroundColor: colors.card }]}>
-          <View style={[styles.heroIcon, { backgroundColor: isDark ? '#2D1B69' : '#EDE9FE' }]}>
-            <Ionicons name="help-buoy" size={32} color="#7C3AED" />
+          <View style={[styles.heroIcon, { backgroundColor: isDark ? '#312E81' : '#E0E7FF' }]}>
+            <Ionicons name="help-buoy" size={32} color="#4F46E5" />
           </View>
           <Text style={[styles.heroTitle, { color: colors.gray900 }]}>
             Comment pouvons-nous vous aider ?
@@ -305,7 +305,7 @@ export default function HelpScreen() {
             Notre equipe est la pour vous aider
           </Text>
           <TouchableOpacity
-            style={[styles.supportButton, { backgroundColor: '#7C3AED' }]}
+            style={[styles.supportButton, { backgroundColor: '#4F46E5' }]}
             onPress={handleContactSupport}
             activeOpacity={0.7}
           >

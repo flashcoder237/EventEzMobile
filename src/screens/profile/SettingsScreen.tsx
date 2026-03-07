@@ -381,7 +381,7 @@ export default function SettingsScreen() {
         {/* Preferences Section */}
         <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
           <View style={[styles.sectionHeader, { borderBottomColor: colors.gray200 }]}>
-            <View style={[styles.sectionIconContainer, { backgroundColor: isDark ? '#2D1B69' : '#F3E8FF' }]}>
+            <View style={[styles.sectionIconContainer, { backgroundColor: isDark ? '#312E81' : '#F3E8FF' }]}>
               <Ionicons name="globe" size={20} color={colors.primary} />
             </View>
             <View>
@@ -636,7 +636,7 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#4F46E5',
   },
   safeArea: {
     flex: 1,

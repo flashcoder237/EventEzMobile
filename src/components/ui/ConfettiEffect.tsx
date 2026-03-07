@@ -4,7 +4,7 @@ import ConfettiCannon from 'react-native-confetti-cannon';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const BRAND_COLORS = ['#7C3AED', '#EC4899', '#A78BFA', '#F472B6', '#BEFF5A', '#FF6B35'];
+const BRAND_COLORS = ['#4F46E5', '#A855F7', '#818CF8', '#C084FC', '#BEFF5A', '#FF6B6B'];
 
 interface ConfettiEffectProps {
   autoStart?: boolean;

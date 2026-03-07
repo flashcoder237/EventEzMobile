@@ -72,7 +72,7 @@ export default function TreasuryShareholdersScreen() {
   const renderShareholder = ({ item }: { item: Shareholder }) => (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
       <View style={styles.cardRow}>
-        <View style={[styles.avatar, { backgroundColor: '#EC4899' }]}>
+        <View style={[styles.avatar, { backgroundColor: '#A855F7' }]}>
           <Text style={styles.avatarText}>
             {(item.name?.[0] || '?').toUpperCase()}
           </Text>
@@ -89,7 +89,7 @@ export default function TreasuryShareholdersScreen() {
       </View>
       {/* Ownership bar */}
       <View style={[styles.barContainer, { backgroundColor: colors.gray100 }]}>
-        <View style={[styles.bar, { width: `${item.ownership_percentage}%`, backgroundColor: '#EC4899' }]} />
+        <View style={[styles.bar, { width: `${item.ownership_percentage}%`, backgroundColor: '#A855F7' }]} />
       </View>
     </View>
   );

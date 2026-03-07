@@ -19,6 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import Slider from '@react-native-community/slider';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { eventsAPI, categoriesAPI, tagsAPI, recommendationsAPI, getMediaUrl } from '../../api/client';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
@@ -1346,6 +1347,18 @@ export default function DiscoverScreen() {
                 <Ionicons name="chevron-down" size={14} color={colors.gray400} />
               </View>
               <View style={styles.headerActions}>
+                {user?.role === 'organizer' && (
+                  <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('EventCreate' as any)}>
+                    <LinearGradient
+                      colors={[colors.primary, colors.primaryDark]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.headerBtnCreate}
+                    >
+                      <Ionicons name="add" size={22} color="#FFFFFF" />
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')}>
                   <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
                   {unreadMessageCount > 0 && (
@@ -1356,11 +1369,6 @@ export default function DiscoverScreen() {
                     </PulsingBadge>
                   )}
                 </TouchableOpacity>
-                {user?.role === 'organizer' && (
-                  <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('EventCreate' as any)}>
-                    <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')}>
                   <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
                   {unreadNotificationCount > 0 && (
@@ -1466,6 +1474,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerBtnCreate: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.coloredPrimary,
   },
   badgeWrapper: {
     position: 'absolute',

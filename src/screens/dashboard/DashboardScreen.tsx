@@ -364,8 +364,8 @@ export default function DashboardScreen() {
                 onPress={() => navigation.navigate('Subscription')}
                 activeOpacity={0.7}
               >
-                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#1E1540' : '#EDE9FE' }]}>
-                  <Ionicons name="diamond-outline" size={24} color={isDark ? '#C4B5FD' : '#7C3AED'} />
+                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#1E1B4B' : '#E0E7FF' }]}>
+                  <Ionicons name="diamond-outline" size={24} color={isDark ? '#A5B4FC' : '#4F46E5'} />
                 </View>
                 <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Abonnement</Text>
                 <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Gerer mon plan</Text>

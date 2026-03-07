@@ -61,8 +61,8 @@ const typeConfig: Record<string, NotificationTypeConfig> = {
   },
   payment_confirmation: {
     icon: 'card',
-    color: '#8B5CF6',
-    bgColor: '#EDE9FE',
+    color: '#6366F1',
+    bgColor: '#E0E7FF',
     label: 'Paiement',
   },
   event_reminder: {
@@ -85,7 +85,7 @@ const typeConfig: Record<string, NotificationTypeConfig> = {
   },
   ticket_purchase: {
     icon: 'ticket',
-    color: '#EC4899',
+    color: '#A855F7',
     bgColor: '#FCE7F3',
     label: 'Billet',
   },

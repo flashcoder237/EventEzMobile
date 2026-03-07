@@ -35,11 +35,11 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'SessionDeta
 type RouteProps = RouteProp<RootStackParamList, 'SessionDetails'>;
 
 const SESSION_TYPE_CONFIG: Record<string, { label: string; color: string; bgColor: string; icon: string }> = {
-  keynote: { label: 'Keynote', color: '#7C3AED', bgColor: '#F5F3FF', icon: 'star' },
+  keynote: { label: 'Keynote', color: '#4F46E5', bgColor: '#EEF2FF', icon: 'star' },
   talk: { label: 'Conference', color: '#2563EB', bgColor: '#DBEAFE', icon: 'chatbubble' },
   panel: { label: 'Table ronde', color: '#D97706', bgColor: '#FEF3C7', icon: 'people' },
   workshop: { label: 'Atelier', color: '#059669', bgColor: '#D1FAE5', icon: 'construct' },
-  networking: { label: 'Networking', color: '#EC4899', bgColor: '#FCE7F3', icon: 'git-network' },
+  networking: { label: 'Networking', color: '#A855F7', bgColor: '#FCE7F3', icon: 'git-network' },
   break: { label: 'Pause', color: '#6B7280', bgColor: '#F3F4F6', icon: 'cafe' },
   lunch: { label: 'Dejeuner', color: '#F59E0B', bgColor: '#FEF3C7', icon: 'restaurant' },
   other: { label: 'Autre', color: '#6B7280', bgColor: '#F3F4F6', icon: 'ellipsis-horizontal' },

@@ -180,7 +180,7 @@ export default function EventAnalyticsScreen() {
             title="Revenus"
             value={formatCurrency(revenue)}
             icon="wallet-outline"
-            color="#8B5CF6"
+            color="#6366F1"
           />
         </View>
 

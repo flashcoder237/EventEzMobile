@@ -4,7 +4,7 @@ import { APath, ACircle, usePulse } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function SaveToBookmarks({ color = '#7C3AED', size = 200 }: Props) {
+export default function SaveToBookmarks({ color = '#4F46E5', size = 200 }: Props) {
   // Heart pulses (heartbeat)
   const heartPulse = usePulse(0.6, 1, 1200);
   // Floating star dots twinkle staggered

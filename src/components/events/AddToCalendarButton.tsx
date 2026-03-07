@@ -197,11 +197,11 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
               disabled={loading !== null}
               activeOpacity={0.7}
             >
-              <View style={[styles.optionIcon, { backgroundColor: isDark ? '#1A1A2E' : '#EDE9FE' }]}>
+              <View style={[styles.optionIcon, { backgroundColor: isDark ? '#111827' : '#E0E7FF' }]}>
                 {loading === 'ical' ? (
-                  <ActivityIndicator size="small" color="#7C3AED" />
+                  <ActivityIndicator size="small" color="#4F46E5" />
                 ) : (
-                  <Ionicons name="calendar" size={24} color="#7C3AED" />
+                  <Ionicons name="calendar" size={24} color="#4F46E5" />
                 )}
               </View>
               <View style={styles.optionText}>

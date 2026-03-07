@@ -34,7 +34,7 @@ function NewsletterIcon({ size = 28, color = Colors.primary }: { size?: number; 
         strokeLinejoin="round"
       />
       {/* Notification dot */}
-      <Circle cx="19" cy="5" r="3.5" fill={Colors.accent || '#FF6B35'} />
+      <Circle cx="19" cy="5" r="3.5" fill={Colors.accent || '#FF6B6B'} />
     </Svg>
   );
 }

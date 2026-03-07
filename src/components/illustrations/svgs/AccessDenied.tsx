@@ -4,7 +4,7 @@ import { ALine, ACircle, APath, usePulse, useWaveOpacity } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function AccessDenied({ color = '#7C3AED', size = 200 }: Props) {
+export default function AccessDenied({ color = '#4F46E5', size = 200 }: Props) {
   // X mark pulses
   const xPulse = useWaveOpacity(0.6, 1, 1200);
   // Shield inner glow

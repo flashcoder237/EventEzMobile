@@ -193,9 +193,9 @@ export default function RefundRequestScreen() {
           bottomOffset={80}
         >
           {/* Payment Summary */}
-          <View style={[styles.paymentSummary, { backgroundColor: isDark ? colors.card : '#EDE9FE' }]}>
+          <View style={[styles.paymentSummary, { backgroundColor: isDark ? colors.card : '#E0E7FF' }]}>
             <View style={[styles.summaryIcon, { backgroundColor: colors.card }]}>
-              <Ionicons name="card" size={24} color="#8B5CF6" />
+              <Ionicons name="card" size={24} color="#6366F1" />
             </View>
             <View style={styles.summaryContent}>
               <Text style={[styles.summaryTitle, { color: isDark ? colors.textSecondary : '#6B21A8' }]}>Paiement #{paymentId.slice(0, 8)}</Text>
@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: '#E0E7FF',
     padding: Spacing.md,
     borderRadius: BorderRadius.xl,
     marginBottom: Spacing.xl,
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   amountOptionActive: {
-    borderColor: '#8B5CF6',
+    borderColor: '#6366F1',
     backgroundColor: '#FAF5FF',
   },
   amountOptionContent: {
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
   amountOptionValue: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: '#8B5CF6',
+    color: '#6366F1',
     marginTop: 4,
   },
   amountInput: {
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: '#6366F1',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#6366F1',
   },
 
   // Reason Options
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   reasonOptionActive: {
-    borderColor: '#8B5CF6',
+    borderColor: '#6366F1',
     backgroundColor: '#FAF5FF',
   },
   reasonContent: {
@@ -570,7 +570,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.xl,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#6366F1',
     borderRadius: BorderRadius.lg,
   },
   submitButtonDisabled: {

@@ -243,7 +243,7 @@ export default function ModerationScreen() {
               <Ionicons
                 name={isBilletterie ? 'ticket' : 'document-text'}
                 size={24}
-                color={isBilletterie ? colors.primary : '#8B5CF6'}
+                color={isBilletterie ? colors.primary : '#6366F1'}
               />
             </View>
           )}
@@ -382,7 +382,7 @@ export default function ModerationScreen() {
         <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
         <View style={styles.statItem}>
           <View style={styles.statRow}>
-            <Ionicons name="ticket" size={14} color="#A78BFA" />
+            <Ionicons name="ticket" size={14} color="#818CF8" />
             <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.billetterie}</Text>
           </View>
           <Text style={[styles.statLabel, { color: colors.gray500 }]}>Billetterie</Text>
@@ -450,12 +450,12 @@ export default function ModerationScreen() {
           <Ionicons
             name="document-text"
             size={12}
-            color={filterType === 'inscription' ? Colors.white : '#8B5CF6'}
+            color={filterType === 'inscription' ? Colors.white : '#6366F1'}
           />
           <Text style={[
             styles.filterChipText,
             filterType === 'inscription' && styles.filterChipTextActive,
-            filterType !== 'inscription' && { color: '#8B5CF6' }
+            filterType !== 'inscription' && { color: '#6366F1' }
           ]}>
             Inscription ({stats.inscription})
           </Text>
@@ -716,8 +716,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   filterChipActiveInscription: {
-    backgroundColor: '#8B5CF6',
-    borderColor: '#8B5CF6',
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
   },
   filterChipText: {
     fontSize: FontSizes.xs,
@@ -790,7 +790,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   typeBadgeInscription: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#6366F1',
   },
   typeBadgeText: {
     fontSize: 10,

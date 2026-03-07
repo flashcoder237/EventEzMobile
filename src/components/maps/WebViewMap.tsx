@@ -23,8 +23,8 @@ interface WebViewMapProps {
 
 // Category → color mapping
 const CATEGORY_COLORS: Record<string, string> = {
-  music: '#7C3AED',
-  musique: '#7C3AED',
+  music: '#4F46E5',
+  musique: '#4F46E5',
   sport: '#10B981',
   art: '#F59E0B',
   food: '#EF4444',
@@ -97,7 +97,7 @@ export default function WebViewMap({
       ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
       : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     const tileAttrib = isDark ? '&copy; CartoDB' : '&copy; OpenStreetMap';
-    const clusterBase = isDark ? '#A78BFA' : '#7C3AED';
+    const clusterBase = isDark ? '#818CF8' : '#4F46E5';
 
     return `<!DOCTYPE html>
 <html>
@@ -114,8 +114,8 @@ export default function WebViewMap({
     #map { width: 100%; height: 100%; }
 
     .leaflet-tooltip {
-      background: ${isDark ? '#1A1A2E' : 'white'};
-      color: ${isDark ? '#E0E0DE' : '#1A1A2E'};
+      background: ${isDark ? '#111827' : 'white'};
+      color: ${isDark ? '#D1D5DB' : '#111827'};
       border: none;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15);
@@ -470,7 +470,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
   },
   containerDark: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: '#111827',
   },
   webView: {
     flex: 1,

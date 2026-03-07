@@ -119,8 +119,8 @@ export default function ReportsScreen() {
     return (
       <View style={[styles.reportCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
         <View style={styles.reportHeader}>
-          <View style={[styles.reportIcon, { backgroundColor: isDark ? '#2D1B69' : '#EDE9FE' }]}>
-            <Ionicons name="document-text" size={20} color="#7C3AED" />
+          <View style={[styles.reportIcon, { backgroundColor: isDark ? '#312E81' : '#E0E7FF' }]}>
+            <Ionicons name="document-text" size={20} color="#4F46E5" />
           </View>
           <View style={styles.reportInfo}>
             <Text style={[styles.reportTitle, { color: colors.gray900 }]} numberOfLines={1}>
@@ -175,7 +175,7 @@ export default function ReportsScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Rapports</Text>
         <TouchableOpacity
-          style={[styles.generateBtn, { backgroundColor: '#7C3AED' }]}
+          style={[styles.generateBtn, { backgroundColor: '#4F46E5' }]}
           onPress={handleGenerate}
           disabled={generating}
         >

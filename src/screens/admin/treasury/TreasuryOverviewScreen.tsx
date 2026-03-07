@@ -64,9 +64,9 @@ export default function TreasuryOverviewScreen() {
   const transactions = overview?.recent_transactions || [];
 
   const menuItems = [
-    { icon: 'people-outline' as const, title: 'Personnel & Paie', screen: 'TreasuryStaff' as const, color: '#7C3AED' },
+    { icon: 'people-outline' as const, title: 'Personnel & Paie', screen: 'TreasuryStaff' as const, color: '#4F46E5' },
     { icon: 'receipt-outline' as const, title: 'Depenses', screen: 'TreasuryExpenses' as const, color: '#F59E0B' },
-    { icon: 'pie-chart-outline' as const, title: 'Actionnaires', screen: 'TreasuryShareholders' as const, color: '#EC4899' },
+    { icon: 'pie-chart-outline' as const, title: 'Actionnaires', screen: 'TreasuryShareholders' as const, color: '#A855F7' },
     { icon: 'document-text-outline' as const, title: 'Rapports financiers', screen: 'TreasuryReports' as const, color: '#10B981' },
   ];
 
@@ -121,8 +121,8 @@ export default function TreasuryOverviewScreen() {
 
         {/* KPI Cards */}
         <View style={styles.kpiRow}>
-          <KPICard title="Commissions" value={formatAmount(wallet?.total_commissions || 0)} icon="trending-up" color="#7C3AED" />
-          <KPICard title="Paie" value={formatAmount(wallet?.total_payroll || 0)} icon="people-outline" color="#EC4899" />
+          <KPICard title="Commissions" value={formatAmount(wallet?.total_commissions || 0)} icon="trending-up" color="#4F46E5" />
+          <KPICard title="Paie" value={formatAmount(wallet?.total_payroll || 0)} icon="people-outline" color="#A855F7" />
         </View>
         <View style={styles.kpiRow}>
           <KPICard title="Depenses" value={formatAmount(wallet?.total_expenses || 0)} icon="card-outline" color="#F59E0B" />

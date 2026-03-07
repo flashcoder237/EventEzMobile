@@ -41,15 +41,15 @@ const categoryImages: Record<string, string> = {
 };
 
 const categoryColors: Record<string, [string, string]> = {
-  music: ['#7C3AED', '#A855F7'],
+  music: ['#4F46E5', '#A855F7'],
   sports: ['#10B981', '#34D399'],
   art: ['#F59E0B', '#FBBF24'],
   food: ['#EF4444', '#F87171'],
   tech: ['#3B82F6', '#60A5FA'],
   business: ['#6366F1', '#818CF8'],
-  education: ['#8B5CF6', '#A78BFA'],
-  health: ['#EC4899', '#F472B6'],
-  default: ['#7C3AED', '#D946EF'],
+  education: ['#6366F1', '#818CF8'],
+  health: ['#A855F7', '#C084FC'],
+  default: ['#4F46E5', '#D946EF'],
 };
 
 function CategoryCard({

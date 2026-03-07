@@ -148,7 +148,7 @@ export default function TreasuryStaffScreen() {
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Personnel & Paie</Text>
         <TouchableOpacity
-          style={[styles.payrollBtn, { backgroundColor: '#7C3AED' }]}
+          style={[styles.payrollBtn, { backgroundColor: '#4F46E5' }]}
           onPress={handleGeneratePayroll}
           disabled={generatingPayroll}
         >

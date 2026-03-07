@@ -4,7 +4,7 @@ import { ACircle, APath, ARect, usePulse, useWaveOpacity } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function WellDone({ color = '#7C3AED', size = 200 }: Props) {
+export default function WellDone({ color = '#4F46E5', size = 200 }: Props) {
   // Trophy checkmark pulses
   const checkPulse = useWaveOpacity(0.7, 1, 1400);
   const checkBg = usePulse(0.1, 0.25, 1600, 200);

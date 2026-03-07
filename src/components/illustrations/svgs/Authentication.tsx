@@ -4,7 +4,7 @@ import { ACircle, APath, usePulse, useWaveOpacity } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function Authentication({ color = '#7C3AED', size = 200 }: Props) {
+export default function Authentication({ color = '#4F46E5', size = 200 }: Props) {
   // Check badge pulses
   const badgePulse = usePulse(0.12, 0.3, 1800, 200);
   // Checkmark appears/fades

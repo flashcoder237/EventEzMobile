@@ -159,7 +159,7 @@ export default function MyEventsScreen() {
     if (event.location_type === 'online') {
       return { icon: 'videocam-outline' as const, text: 'En ligne', color: '#3B82F6' };
     } else if (event.location_type === 'hybrid') {
-      return { icon: 'globe-outline' as const, text: `${event.location_city || 'Hybride'} + En ligne`, color: '#8B5CF6' };
+      return { icon: 'globe-outline' as const, text: `${event.location_city || 'Hybride'} + En ligne`, color: '#6366F1' };
     }
     return { icon: 'location-outline' as const, text: event.location_city || 'Non spécifié', color: colors.gray500 };
   };
@@ -387,19 +387,19 @@ export default function MyEventsScreen() {
   if (loading) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+        <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
         <MyEventsScreenSkeleton />
       </>
     );
   }
 
   return (
-    <View style={[styles.mainContainer, { backgroundColor: '#7C3AED' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+    <View style={[styles.mainContainer, { backgroundColor: '#4F46E5' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
 
       {/* Header with gradient */}
       <LinearGradient
-        colors={isDark ? ['#5B21B6', '#6D28D9', '#4338CA'] : ['#7C3AED', '#8B5CF6', '#6366F1']}
+        colors={isDark ? ['#5B21B6', '#4338CA', '#4338CA'] : ['#4F46E5', '#6366F1', '#6366F1']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + Spacing.md }]}
@@ -416,7 +416,7 @@ export default function MyEventsScreen() {
             style={[styles.addButton, { backgroundColor: colors.card }]}
             onPress={() => navigation.navigate('EventCreate')}
           >
-            <Ionicons name="add" size={24} color="#7C3AED" />
+            <Ionicons name="add" size={24} color="#4F46E5" />
           </TouchableOpacity>
         </View>
 
@@ -502,7 +502,7 @@ export default function MyEventsScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#4F46E5',
   },
   container: {
     flex: 1,
@@ -583,7 +583,7 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   filterTabActive: {
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#4F46E5',
   },
   filterTabText: {
     fontFamily: FontFamily.medium,

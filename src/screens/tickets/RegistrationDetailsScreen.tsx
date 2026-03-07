@@ -305,8 +305,8 @@ export default function RegistrationDetailsScreen() {
           {/* Event Info */}
           <View style={styles.eventInfo}>
             <View style={[styles.typeBadge, { backgroundColor: isBilletterie ? (isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)') : (isDark ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)') }]}>
-              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={isBilletterie ? colors.primary : (isDark ? '#C4B5FD' : '#8B5CF6')} />
-              <Text style={[styles.typeBadgeText, { color: isBilletterie ? colors.primary : (isDark ? '#C4B5FD' : '#8B5CF6') }]}>
+              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={isBilletterie ? colors.primary : (isDark ? '#A5B4FC' : '#6366F1')} />
+              <Text style={[styles.typeBadgeText, { color: isBilletterie ? colors.primary : (isDark ? '#A5B4FC' : '#6366F1') }]}>
                 {isBilletterie ? `${totalTicketQuantity} Billet${totalTicketQuantity > 1 ? 's' : ''}` : 'Inscription'}
               </Text>
             </View>
@@ -452,7 +452,7 @@ export default function RegistrationDetailsScreen() {
               ) : (
                 <View style={styles.qrPlaceholder}>
                   <View style={[styles.qrPlaceholderInner, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-                    <Ionicons name="qr-code" size={80} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
+                    <Ionicons name="qr-code" size={80} color={isDark ? '#A5B4FC' : '#6366F1'} />
                   </View>
                 </View>
               )}
@@ -585,7 +585,7 @@ export default function RegistrationDetailsScreen() {
         <View style={styles.instructions}>
           <View style={styles.instructionItem}>
             <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="scan-outline" size={20} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
+              <Ionicons name="scan-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
             </View>
             <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Le QR code sera scanné à l'entrée
@@ -593,7 +593,7 @@ export default function RegistrationDetailsScreen() {
           </View>
           <View style={styles.instructionItem}>
             <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="phone-portrait-outline" size={20} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
+              <Ionicons name="phone-portrait-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
             </View>
             <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Gardez votre téléphone chargé
@@ -601,7 +601,7 @@ export default function RegistrationDetailsScreen() {
           </View>
           <View style={styles.instructionItem}>
             <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="time-outline" size={20} color={isDark ? '#C4B5FD' : '#8B5CF6'} />
+              <Ionicons name="time-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
             </View>
             <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Arrivez à l'heure pour éviter les files
@@ -850,7 +850,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
-    borderColor: '#8B5CF6',
+    borderColor: '#6366F1',
   },
   qrImage: {
     width: QR_SIZE,

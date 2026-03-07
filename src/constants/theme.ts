@@ -3,44 +3,44 @@
 // Typography: Funnel Display (titles), Montserrat (body)
 
 export const Colors = {
-  // Primary - Violet identity (EventEz signature)
-  primary: '#7C3AED',
-  primaryDark: '#6D28D9',
-  primaryLight: '#A78BFA',
+  // Primary - Indigo profond (EventEz signature)
+  primary: '#4F46E5',
+  primaryDark: '#4338CA',
+  primaryLight: '#818CF8',
 
-  // Accent - Warm orange for energy & CTAs
-  accent: '#FF6B35',
-  accentDark: '#E85D2C',
-  accentLight: '#FF8F66',
+  // Accent - Corail festif pour energy & CTAs
+  accent: '#FF6B6B',
+  accentDark: '#EF4444',
+  accentLight: '#FCA5A5',
 
   // Lime - Energy highlights, badges
   lime: '#BEFF5A',
   limeDark: '#9ED63E',
   limeLight: '#D4FF8A',
 
-  // Secondary - Pink (kept for compatibility)
-  secondary: '#EC4899',
+  // Secondary - Violet (confetti/splash)
+  secondary: '#A855F7',
 
-  // Neutrals - Warm white focused
+  // Neutrals
   white: '#FFFFFF',
   black: '#000000',
 
-  // Grays - Soft warm palette
-  gray50: '#FAFAF8',
-  gray100: '#F5F5F3',
-  gray200: '#EEEEEC',
-  gray300: '#E0E0DE',
-  gray400: '#BDBDBB',
-  gray500: '#9E9E9C',
-  gray600: '#757573',
-  gray700: '#616160',
-  gray800: '#424241',
-  gray900: '#1A1A2E',
+  // Grays - Tailwind slate
+  gray50: '#F9FAFB',
+  gray100: '#F3F4F6',
+  gray200: '#E5E7EB',
+  gray300: '#D1D5DB',
+  gray400: '#9CA3AF',
+  gray500: '#6B7280',
+  gray600: '#4B5563',
+  gray700: '#374151',
+  gray800: '#1F2937',
+  gray900: '#111827',
 
   // Semantic Colors
-  success: '#22C55E',
-  successLight: '#DCFCE7',
-  successDark: '#16A34A',
+  success: '#10B981',
+  successLight: '#D1FAE5',
+  successDark: '#059669',
 
   warning: '#F59E0B',
   warningLight: '#FEF3C7',
@@ -54,26 +54,26 @@ export const Colors = {
   infoLight: '#DBEAFE',
   infoDark: '#2563EB',
 
-  // Background - Warm white
-  background: '#FAFAF8',
-  backgroundSecondary: '#F5F5F3',
+  // Background
+  background: '#FAFAFA',
+  backgroundSecondary: '#F5F5F5',
   surface: '#FFFFFF',
   card: '#FFFFFF',
   border: '#F0F0F0',
 
   // Text - Deep contrast
-  text: '#1A1A2E',
+  text: '#111827',
   textSecondary: '#6B7280',
   textTertiary: '#9CA3AF',
   textLight: '#9CA3AF',
   textInverse: '#FFFFFF',
 
   // Primary tints (very subtle)
-  primaryBg: '#F5F3FF',
-  primaryBgLight: '#FAFAFE',
+  primaryBg: '#EEF2FF',
+  primaryBgLight: '#F5F7FF',
 
   // Accent tints
-  accentBg: '#FFF5F0',
+  accentBg: '#FEF2F2',
   limeBg: '#F8FFE8',
 
   // Semantic backgrounds (for follow states, tags, alerts)
@@ -93,22 +93,22 @@ export const Colors = {
   overlayLight: 'rgba(0, 0, 0, 0.3)',
 
   // Legacy support
-  gradientStart: '#7C3AED',
-  gradientMiddle: '#A855F7',
-  gradientEnd: '#EC4899',
+  gradientStart: '#4F46E5',
+  gradientMiddle: '#6366F1',
+  gradientEnd: '#7C3AED',
 };
 
-// Dark mode palette — inverted, softer violet on dark backgrounds
+// Dark mode palette — indigo on dark slate backgrounds
 export const DarkColors = {
-  // Primary - Lighter violet for dark backgrounds
-  primary: '#9669ff',
-  primaryDark: '#8B5CF6',
-  primaryLight: '#C4B5FD',
+  // Primary - Lighter indigo for dark backgrounds
+  primary: '#818CF8',
+  primaryDark: '#6366F1',
+  primaryLight: '#A5B4FC',
 
   // Accent
-  accent: '#FF8F66',
-  accentDark: '#FF6B35',
-  accentLight: '#FFB899',
+  accent: '#FCA5A5',
+  accentDark: '#F87171',
+  accentLight: '#FECACA',
 
   // Lime
   lime: '#D4FF8A',
@@ -116,23 +116,23 @@ export const DarkColors = {
   limeLight: '#E8FFBB',
 
   // Secondary
-  secondary: '#F472B6',
+  secondary: '#C084FC',
 
   // Neutrals
   white: '#FFFFFF',
   black: '#000000',
 
-  // Grays — reversed for dark mode
-  gray50: '#1A1A2E',
-  gray100: '#1E1E35',
-  gray200: '#2A2A42',
-  gray300: '#3D3D58',
-  gray400: '#5C5C78',
-  gray500: '#8888A0',
-  gray600: '#A8A8BE',
-  gray700: '#C8C8D8',
-  gray800: '#E0E0EA',
-  gray900: '#F0F0F5',
+  // Grays — Tailwind slate reversed for dark mode
+  gray50: '#0F172A',
+  gray100: '#1E293B',
+  gray200: '#334155',
+  gray300: '#475569',
+  gray400: '#64748B',
+  gray500: '#94A3B8',
+  gray600: '#CBD5E1',
+  gray700: '#E2E8F0',
+  gray800: '#F1F5F9',
+  gray900: '#F8FAFC',
 
   // Semantic
   success: '#34D399',
@@ -152,25 +152,25 @@ export const DarkColors = {
   infoDark: '#93C5FD',
 
   // Background
-  background: '#0F0F1A',
-  backgroundSecondary: '#161625',
-  surface: '#1A1A2E',
-  card: '#1E1E35',
-  border: '#2A2A42',
+  background: '#0F172A',
+  backgroundSecondary: '#1E293B',
+  surface: '#0F172A',
+  card: '#1E293B',
+  border: '#334155',
 
   // Text
-  text: '#F0F0F5',
-  textSecondary: '#A8A8BE',
-  textTertiary: '#8888A0',
-  textLight: '#5C5C78',
-  textInverse: '#1A1A2E',
+  text: '#F8FAFC',
+  textSecondary: '#94A3B8',
+  textTertiary: '#64748B',
+  textLight: '#64748B',
+  textInverse: '#0F172A',
 
   // Primary tints
-  primaryBg: '#2A2040',
-  primaryBgLight: '#160F2E',
+  primaryBg: '#1E1B4B',
+  primaryBgLight: '#312E81',
 
   // Accent tints
-  accentBg: '#2A1A14',
+  accentBg: '#450A0A',
   limeBg: '#1A2210',
 
   // Semantic backgrounds
@@ -190,9 +190,9 @@ export const DarkColors = {
   overlayLight: 'rgba(0, 0, 0, 0.5)',
 
   // Legacy support
-  gradientStart: '#A78BFA',
-  gradientMiddle: '#C084FC',
-  gradientEnd: '#F472B6',
+  gradientStart: '#818CF8',
+  gradientMiddle: '#A78BFA',
+  gradientEnd: '#A78BFA',
 };
 
 export const FontFamily = {
@@ -391,14 +391,14 @@ export const Shadows = {
   },
   // Violet-tinted card shadows (web parity)
   cardViolet: {
-    shadowColor: '#7C3AED',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
   cardVioletHover: {
-    shadowColor: '#7C3AED',
+    shadowColor: '#4F46E5',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
@@ -408,17 +408,17 @@ export const Shadows = {
 
 // Card footer background (light/dark)
 export const CardFooterBg = {
-  light: '#FAF8FF',
-  dark: '#1E1540',
+  light: '#EEF2FF',
+  dark: '#1E1B4B',
 };
 
 // Gradients
 export const Gradients = {
   primary: [Colors.primary, Colors.primaryDark] as const,
   // Brand gradient: violet → pink (web parity)
-  brand: ['#7C3AED', '#EC4899'] as const,
-  brandDark: ['#A78BFA', '#F472B6'] as const,
-  subtle: ['rgba(124, 58, 237, 0.03)', 'rgba(124, 58, 237, 0.01)'] as const,
+  brand: ['#4F46E5', '#7C3AED'] as const,
+  brandDark: ['#818CF8', '#A78BFA'] as const,
+  subtle: ['rgba(79, 70, 229, 0.03)', 'rgba(79, 70, 229, 0.01)'] as const,
   dark: ['transparent', 'rgba(0,0,0,0.7)'] as const,
   light: ['rgba(255,255,255,0)', 'rgba(255,255,255,1)'] as const,
   // Energy Auras — vibrant overlays for featured events

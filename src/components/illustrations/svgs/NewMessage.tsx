@@ -4,7 +4,7 @@ import { ACircle, ARect, usePulse, usePulseR } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function NewMessage({ color = '#7C3AED', size = 200 }: Props) {
+export default function NewMessage({ color = '#4F46E5', size = 200 }: Props) {
   // Notification dot pulses (scale)
   const dotPulse = usePulseR(8, 10, 1200);
   // Reply bubble fades gently

@@ -3,7 +3,7 @@
  *
  * Usage:
  *   import { Events, Searching } from '@/components/illustrations';
- *   <Events color="#7C3AED" size={200} />
+ *   <Events color="#4F46E5" size={200} />
  *
  * Each component accepts: color (accent), size (width & height).
  * No external illustration library — pure react-native-svg, zero dep risk.

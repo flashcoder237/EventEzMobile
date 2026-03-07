@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.md,
     fontFamily: FontFamily.semiBold,
-    color: '#7C3AED',
+    color: '#4F46E5',
   },
   headerSubtitle: {
     fontSize: FontSizes.xs,
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#6366F1',
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
   },

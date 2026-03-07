@@ -365,7 +365,7 @@ export default function WalletScreen() {
   if (loading) {
     return (
       <View style={styles.rootContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+        <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={[styles.container, { backgroundColor: colors.background }]}>
             <LoadingSpinner />
@@ -377,12 +377,12 @@ export default function WalletScreen() {
 
   return (
     <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={[styles.container, { backgroundColor: colors.background }]}>
           {/* Header with gradient */}
           <LinearGradient
-        colors={['#7C3AED', '#8B5CF6', '#6366F1']}
+        colors={['#4F46E5', '#6366F1', '#6366F1']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -819,7 +819,7 @@ export default function WalletScreen() {
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#4F46E5',
   },
   safeArea: {
     flex: 1,
@@ -922,7 +922,7 @@ const styles = StyleSheet.create({
   withdrawButtonText: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
-    color: '#7C3AED',
+    color: '#4F46E5',
   },
   commissionInfo: {
     flexDirection: 'row',

@@ -49,7 +49,7 @@ const statusConfig: Record<string, { color: string; bg: string; label: string; i
   processing: { color: '#3B82F6', bg: '#DBEAFE', label: 'En cours', icon: 'sync' },
   completed: { color: '#10B981', bg: '#D1FAE5', label: 'Complete', icon: 'checkmark-circle' },
   failed: { color: '#EF4444', bg: '#FEE2E2', label: 'Echoue', icon: 'close-circle' },
-  refunded: { color: '#8B5CF6', bg: '#EDE9FE', label: 'Rembourse', icon: 'refresh-circle' },
+  refunded: { color: '#6366F1', bg: '#E0E7FF', label: 'Rembourse', icon: 'refresh-circle' },
   cancelled: { color: '#6B7280', bg: '#F3F4F6', label: 'Annule', icon: 'ban' },
 };
 
@@ -265,10 +265,10 @@ export default function MyPaymentsScreen() {
 
             {canRefund && (
               <TouchableOpacity
-                style={[styles.refundButton, { backgroundColor: isDark ? colors.card : '#EDE9FE' }]}
+                style={[styles.refundButton, { backgroundColor: isDark ? colors.card : '#E0E7FF' }]}
                 onPress={() => navigation.navigate('RefundRequest', { paymentId: item.id })}
               >
-                <Ionicons name="refresh-circle-outline" size={16} color="#8B5CF6" />
+                <Ionicons name="refresh-circle-outline" size={16} color="#6366F1" />
                 <Text style={styles.refundButtonText}>Remboursement</Text>
               </TouchableOpacity>
             )}
@@ -385,8 +385,8 @@ export default function MyPaymentsScreen() {
           style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'refunded' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'refunded' ? 'all' : 'refunded')}
         >
-          <View style={[styles.quickStatIcon, { backgroundColor: '#EDE9FE' }]}>
-            <Ionicons name="refresh-circle" size={16} color="#8B5CF6" />
+          <View style={[styles.quickStatIcon, { backgroundColor: '#E0E7FF' }]}>
+            <Ionicons name="refresh-circle" size={16} color="#6366F1" />
           </View>
           <Text style={[styles.quickStatValue, { color: colors.gray900 }]}>{stats.refunded}</Text>
           <Text style={[styles.quickStatLabel, { color: colors.gray500 }]}>Rembourses</Text>
@@ -755,12 +755,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: '#E0E7FF',
   },
   refundButtonText: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
-    color: '#8B5CF6',
+    color: '#6366F1',
   },
   arrowContainer: {
     paddingLeft: Spacing.sm,

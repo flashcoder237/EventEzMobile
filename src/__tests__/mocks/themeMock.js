@@ -3,10 +3,10 @@
  */
 
 const Colors = {
-  primary: '#7C3AED',
-  primaryDark: '#6D28D9',
-  primaryLight: '#A78BFA',
-  secondary: '#EC4899',
+  primary: '#4F46E5',
+  primaryDark: '#4338CA',
+  primaryLight: '#818CF8',
+  secondary: '#A855F7',
   white: '#FFFFFF',
   black: '#000000',
   gray50: '#FAFAFA',
@@ -40,13 +40,13 @@ const Colors = {
   textSecondary: '#757575',
   textLight: '#9E9E9E',
   textInverse: '#FFFFFF',
-  primaryBg: '#F5F3FF',
+  primaryBg: '#EEF2FF',
   primaryBgLight: '#FAFAFE',
   overlay: 'rgba(0, 0, 0, 0.5)',
   overlayLight: 'rgba(0, 0, 0, 0.3)',
-  gradientStart: '#7C3AED',
+  gradientStart: '#4F46E5',
   gradientMiddle: '#A855F7',
-  gradientEnd: '#EC4899',
+  gradientEnd: '#A855F7',
 };
 
 const FontFamily = {

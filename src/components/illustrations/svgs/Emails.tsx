@@ -4,7 +4,7 @@ import { ACircle, APath, usePulse, usePulseR, useWaveOpacity } from '../animated
 
 type Props = { color?: string; size?: number };
 
-export default function Emails({ color = '#7C3AED', size = 200 }: Props) {
+export default function Emails({ color = '#4F46E5', size = 200 }: Props) {
   // Notification badge pulses (scale)
   const badgePulse = usePulseR(12, 14, 1200);
   // Checkmark in badge

@@ -4,7 +4,7 @@ import { ACircle, ARect, usePulse, useFloatY } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function Events({ color = '#7C3AED', size = 200 }: Props) {
+export default function Events({ color = '#4F46E5', size = 200 }: Props) {
   // Highlighted day cell pulses
   const dayPulse = usePulse(0.7, 1, 1400);
   // Accent star pulses

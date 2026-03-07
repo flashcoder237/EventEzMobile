@@ -149,7 +149,7 @@ export default function AnalyticsDashboardScreen() {
             title="Inscriptions"
             value={totalRegistrations}
             icon="people-outline"
-            color="#7C3AED"
+            color="#4F46E5"
             trend={summary?.registration_trend ? { value: summary.registration_trend, label: 'vs prev' } : undefined}
           />
         </View>
@@ -158,7 +158,7 @@ export default function AnalyticsDashboardScreen() {
             title="Evenements"
             value={totalEvents}
             icon="calendar-outline"
-            color="#EC4899"
+            color="#A855F7"
           />
           <KPICard
             title="Taux presence"
@@ -178,7 +178,7 @@ export default function AnalyticsDashboardScreen() {
                   const height = ((item.count || 0) / maxVal) * 100;
                   return (
                     <View key={idx} style={styles.barColumn}>
-                      <View style={[styles.bar, { height, backgroundColor: '#7C3AED' }]} />
+                      <View style={[styles.bar, { height, backgroundColor: '#4F46E5' }]} />
                       <Text style={[styles.barLabel, { color: colors.gray400 }]}>
                         {item.label || idx + 1}
                       </Text>

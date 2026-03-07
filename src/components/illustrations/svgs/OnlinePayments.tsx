@@ -4,7 +4,7 @@ import { ACircle, APath, usePulse, useWaveOpacity } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function OnlinePayments({ color = '#7C3AED', size = 200 }: Props) {
+export default function OnlinePayments({ color = '#4F46E5', size = 200 }: Props) {
   // Checkmark on phone pulses
   const checkCircle = usePulse(0.12, 0.3, 1600, 200);
   const checkMark = useWaveOpacity(0.7, 1, 1400, 400);

@@ -4,7 +4,7 @@ import { APath, ACircle, useWaveOpacity, usePulse } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function MyNotifications({ color = '#7C3AED', size = 200 }: Props) {
+export default function MyNotifications({ color = '#4F46E5', size = 200 }: Props) {
   // Sound waves pulse outward staggered
   const sw1 = useWaveOpacity(0.1, 0.4, 1000, 0);
   const sw2 = useWaveOpacity(0.08, 0.3, 1000, 250);

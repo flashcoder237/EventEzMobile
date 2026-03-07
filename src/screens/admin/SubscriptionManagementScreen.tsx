@@ -76,8 +76,8 @@ export default function SubscriptionManagementScreen() {
   const renderPlan = ({ item }: { item: SubscriptionPlan }) => (
     <View style={[styles.planCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
       <View style={styles.planHeader}>
-        <View style={[styles.planIcon, { backgroundColor: isDark ? '#2D1B69' : '#EDE9FE' }]}>
-          <Ionicons name="diamond-outline" size={24} color="#7C3AED" />
+        <View style={[styles.planIcon, { backgroundColor: isDark ? '#312E81' : '#E0E7FF' }]}>
+          <Ionicons name="diamond-outline" size={24} color="#4F46E5" />
         </View>
         <View style={styles.planInfo}>
           <Text style={[styles.planName, { color: colors.gray900 }]}>{item.name}</Text>

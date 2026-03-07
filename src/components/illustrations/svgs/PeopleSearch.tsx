@@ -4,7 +4,7 @@ import { ACircle, APath, usePulse, useWaveOpacity } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function PeopleSearch({ color = '#7C3AED', size = 200 }: Props) {
+export default function PeopleSearch({ color = '#4F46E5', size = 200 }: Props) {
   // Center person highlight pulses
   const personPulse = usePulse(0.15, 0.35, 2000);
   // Lens glow

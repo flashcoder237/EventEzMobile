@@ -53,7 +53,7 @@ function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel
           <Text style={styles.actionText}>Rejeter</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#7C3AED' }]}
+          style={[styles.actionBtn, { backgroundColor: '#4F46E5' }]}
           onPress={onCheckIn}
           disabled={loading}
         >

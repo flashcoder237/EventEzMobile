@@ -76,7 +76,7 @@ function InputComponent({
     if (error) return colors.error;
     if (success) return colors.success;
     if (focused) return colors.primary;
-    return isDark ? colors.gray300 : '#EDE9FE';
+    return isDark ? colors.gray300 : '#E0E7FF';
   };
 
   const handleFocus = useCallback((e: any) => {

@@ -12,6 +12,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ExportButton from '../../components/common/ExportButton';
 import { useNavigation } from '@react-navigation/native';
@@ -361,7 +362,7 @@ export default function MyTicketsScreen() {
     // Get event ID - handle both object and string cases
     const eventId = event?.id || (typeof item.event === 'string' ? item.event : undefined);
 
-    const inscriptionColor = isDark ? '#A78BFA' : '#8B5CF6';
+    const inscriptionColor = isDark ? '#818CF8' : '#6366F1';
 
     return (
       <StaggeredItem index={index} staggerDelay={50}>
@@ -500,35 +501,81 @@ export default function MyTicketsScreen() {
     </View>
   );
 
-  const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => (
-    <TouchableOpacity
-      style={[
-        styles.tabButton,
-        { backgroundColor: activeTab === tab ? colors.primary : colors.gray100 },
-      ]}
-      onPress={() => setActiveTab(tab)}
-    >
-      <Text style={[
-        styles.tabButtonText,
-        { color: activeTab === tab ? Colors.white : colors.gray600 },
-      ]}>
-        {label}
-      </Text>
-      {count > 0 && (
-        <View style={[
-          styles.tabBadge,
-          { backgroundColor: activeTab === tab ? 'rgba(255,255,255,0.3)' : colors.gray200 },
+  // Active filter count (excluding defaults)
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (typeFilter !== 'all') count++;
+    if (statusFilter !== 'all') count++;
+    if (sortBy !== 'event_date') count++;
+    if (searchQuery.trim()) count++;
+    return count;
+  }, [typeFilter, statusFilter, sortBy, searchQuery]);
+
+  const clearAllFilters = () => {
+    setTypeFilter('all');
+    setStatusFilter('all');
+    setSortBy('event_date');
+    setSearchQuery('');
+    setShowFilters(false);
+  };
+
+  const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => {
+    const isActive = activeTab === tab;
+    return (
+      <TouchableOpacity
+        style={[
+          styles.tabButton,
+          isActive && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
+        ]}
+        onPress={() => setActiveTab(tab)}
+        activeOpacity={0.7}
+      >
+        <Text style={[
+          styles.tabButtonText,
+          { color: isActive ? colors.primary : colors.gray500 },
+          isActive && { fontFamily: FontFamily.semiBold },
         ]}>
-          <Text style={[
-            styles.tabBadgeText,
-            { color: activeTab === tab ? Colors.white : colors.gray600 },
+          {label}
+        </Text>
+        {count > 0 && (
+          <View style={[
+            styles.tabBadge,
+            { backgroundColor: isActive ? colors.primaryBg : colors.gray100 },
           ]}>
-            {count}
-          </Text>
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+            <Text style={[
+              styles.tabBadgeText,
+              { color: isActive ? colors.primary : colors.gray500 },
+            ]}>
+              {count}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  const TypePill = ({ type, label, icon, count }: { type: FilterType; label: string; icon: keyof typeof Ionicons.glyphMap; count: number }) => {
+    const isActive = typeFilter === type;
+    return (
+      <TouchableOpacity
+        style={[
+          styles.typePill,
+          { borderColor: isActive ? colors.primary : colors.gray200 },
+          isActive && { backgroundColor: colors.primaryBg },
+        ]}
+        onPress={() => setTypeFilter(type === typeFilter ? 'all' : type)}
+        activeOpacity={0.7}
+      >
+        <Ionicons name={icon} size={14} color={isActive ? colors.primary : colors.gray500} />
+        <Text style={[styles.typePillText, { color: isActive ? colors.primary : colors.gray600 }]}>
+          {label}
+        </Text>
+        <Text style={[styles.typePillCount, { color: isActive ? colors.primary : colors.gray400 }]}>
+          {count}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
 
   // Stats for header
   const stats = useMemo(() => {
@@ -620,173 +667,139 @@ export default function MyTicketsScreen() {
         </View>
       </View>
 
-      {/* Floating Filter Card */}
-      <View style={[styles.filtersCard, { backgroundColor: colors.card }, Shadows.md]}>
-        {/* Search Bar */}
-        <View style={[styles.searchInputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
-          <Ionicons name="search" size={18} color={colors.gray400} />
-          <TextInput
-            style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Rechercher par evenement, reference..."
-            placeholderTextColor={colors.gray400}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={colors.gray400} />
+      {/* Filter Section */}
+      <View style={[styles.filterSection, { backgroundColor: colors.card }]}>
+        {/* Tab Bar — underlined style */}
+        <View style={[styles.tabsRow, { borderBottomColor: colors.gray200 }]}>
+          <TabButton tab="upcoming" label="A venir" count={stats.upcoming} />
+          <TabButton tab="past" label="Passes" count={stats.past} />
+          <TabButton tab="cancelled" label="Annules" count={stats.cancelled} />
+        </View>
+
+        {/* Search + Filter toggle row */}
+        <View style={styles.searchRow}>
+          <View style={[styles.searchInputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
+            <Ionicons name="search" size={16} color={colors.gray400} />
+            <TextInput
+              style={[styles.searchInput, { color: colors.text }]}
+              placeholder="Rechercher..."
+              placeholderTextColor={colors.gray400}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={16} color={colors.gray400} />
+              </TouchableOpacity>
+            )}
+          </View>
+          <TouchableOpacity
+            style={[
+              styles.filterToggleBtn,
+              { backgroundColor: showFilters ? colors.primaryBg : colors.gray50, borderColor: showFilters ? colors.primary : colors.gray200 },
+            ]}
+            onPress={() => setShowFilters(!showFilters)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="options-outline" size={18} color={showFilters ? colors.primary : colors.gray500} />
+            {activeFilterCount > 0 && (
+              <View style={[styles.filterCountBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.filterCountText}>{activeFilterCount}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Type pills — always visible */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.typePillsRow}>
+          <TypePill type="billetterie" label="Billets" icon="ticket-outline" count={typeCounts.billetterie} />
+          <TypePill type="inscription" label="Inscriptions" icon="document-text-outline" count={typeCounts.inscription} />
+        </ScrollView>
+      </View>
+
+      {/* Expandable advanced filters */}
+      {showFilters && (
+        <Animated.View
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(150)}
+          style={[styles.advancedPanel, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
+        >
+          {/* Status filter */}
+          <View style={styles.advancedSection}>
+            <Text style={[styles.advancedLabel, { color: colors.gray500 }]}>Statut</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.advancedChipsRow}>
+              {([
+                { key: 'all' as StatusFilterType, label: 'Tous', icon: 'apps-outline' as keyof typeof Ionicons.glyphMap, color: colors.gray600 },
+                { key: 'confirmed' as StatusFilterType, label: 'Confirmes', icon: 'checkmark-circle-outline' as keyof typeof Ionicons.glyphMap, color: colors.success },
+                { key: 'pending' as StatusFilterType, label: 'En attente', icon: 'time-outline' as keyof typeof Ionicons.glyphMap, color: colors.warning },
+                { key: 'checked_in' as StatusFilterType, label: 'Valides', icon: 'shield-checkmark-outline' as keyof typeof Ionicons.glyphMap, color: colors.success },
+              ]).map(({ key, label, icon, color }) => {
+                const isActive = statusFilter === key;
+                const count = statusCounts[key];
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.advancedChip,
+                      { borderColor: isActive ? color : colors.gray200 },
+                      isActive && { backgroundColor: color + '14' },
+                    ]}
+                    onPress={() => setStatusFilter(key)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name={icon} size={14} color={isActive ? color : colors.gray400} />
+                    <Text style={[styles.advancedChipText, { color: isActive ? color : colors.gray600 }]}>
+                      {label}
+                    </Text>
+                    <Text style={[styles.advancedChipCount, { color: isActive ? color : colors.gray400 }]}>
+                      {count}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Sort */}
+          <View style={styles.advancedSection}>
+            <Text style={[styles.advancedLabel, { color: colors.gray500 }]}>Trier par</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.advancedChipsRow}>
+              {([
+                { key: 'event_date' as SortType, label: 'Date evenement', icon: 'calendar-outline' as keyof typeof Ionicons.glyphMap },
+                { key: 'registration_date' as SortType, label: 'Inscription', icon: 'time-outline' as keyof typeof Ionicons.glyphMap },
+                { key: 'name' as SortType, label: 'Nom A-Z', icon: 'text-outline' as keyof typeof Ionicons.glyphMap },
+              ]).map(({ key, label, icon }) => {
+                const isActive = sortBy === key;
+                return (
+                  <TouchableOpacity
+                    key={key}
+                    style={[
+                      styles.advancedChip,
+                      { borderColor: isActive ? colors.primary : colors.gray200 },
+                      isActive && { backgroundColor: colors.primaryBg },
+                    ]}
+                    onPress={() => setSortBy(key)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name={icon} size={14} color={isActive ? colors.primary : colors.gray400} />
+                    <Text style={[styles.advancedChipText, { color: isActive ? colors.primary : colors.gray600 }]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Clear all */}
+          {activeFilterCount > 0 && (
+            <TouchableOpacity style={styles.clearAllBtn} onPress={clearAllFilters} activeOpacity={0.7}>
+              <Ionicons name="close-circle-outline" size={14} color={colors.error} />
+              <Text style={[styles.clearAllText, { color: colors.error }]}>Effacer les filtres</Text>
             </TouchableOpacity>
           )}
-        </View>
-
-        {/* Tab Chips */}
-        <View style={styles.tabsRow}>
-          <TabButton
-            tab="upcoming"
-            label="A venir"
-            count={stats.upcoming}
-          />
-          <TabButton
-            tab="past"
-            label="Passes"
-            count={stats.past}
-          />
-          <TabButton
-            tab="cancelled"
-            label="Annules"
-            count={stats.cancelled}
-          />
-        </View>
-
-        {/* Type Filter Row */}
-        <View style={styles.typeFilterRow}>
-          <TouchableOpacity
-            style={[
-              styles.typeChip,
-              { backgroundColor: colors.gray100 },
-              typeFilter === 'all' && { backgroundColor: colors.gray700 },
-            ]}
-            onPress={() => setTypeFilter('all')}
-          >
-            <Ionicons name="apps" size={12} color={typeFilter === 'all' ? Colors.white : colors.gray500} />
-            <Text style={[styles.typeChipText, { color: typeFilter === 'all' ? Colors.white : colors.gray600 }]}>
-              Tous ({typeCounts.all})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.typeChip,
-              { backgroundColor: colors.gray100 },
-              typeFilter === 'billetterie' && { backgroundColor: colors.primary },
-            ]}
-            onPress={() => setTypeFilter('billetterie')}
-          >
-            <Ionicons name="ticket" size={12} color={typeFilter === 'billetterie' ? Colors.white : colors.primary} />
-            <Text style={[styles.typeChipText, { color: typeFilter === 'billetterie' ? Colors.white : colors.primary }]}>
-              Billets ({typeCounts.billetterie})
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.typeChip,
-              { backgroundColor: colors.gray100 },
-              typeFilter === 'inscription' && { backgroundColor: isDark ? '#A78BFA' : '#8B5CF6' },
-            ]}
-            onPress={() => setTypeFilter('inscription')}
-          >
-            <Ionicons name="document-text" size={12} color={typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6')} />
-            <Text style={[styles.typeChipText, { color: typeFilter === 'inscription' ? Colors.white : (isDark ? '#A78BFA' : '#8B5CF6') }]}>
-              Inscriptions ({typeCounts.inscription})
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Advanced Filters Toggle */}
-        <TouchableOpacity
-          style={[styles.advancedToggle, { borderTopColor: colors.gray100 }]}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Ionicons name={showFilters ? 'options' : 'options-outline'} size={16} color={showFilters ? colors.primary : colors.gray500} />
-          <Text style={[styles.advancedToggleText, { color: showFilters ? colors.primary : colors.gray500 }]}>
-            Filtres avances
-          </Text>
-          <Ionicons name={showFilters ? 'chevron-up' : 'chevron-down'} size={16} color={showFilters ? colors.primary : colors.gray500} />
-        </TouchableOpacity>
-
-        {/* Advanced Filters (collapsible inside card) */}
-        {showFilters && (
-          <View style={[styles.advancedFiltersInner, { borderTopColor: colors.gray100 }]}>
-            {/* Status filter */}
-            <View style={styles.filterSection}>
-              <Text style={[styles.filterSectionLabel, { color: colors.gray500 }]}>Statut</Text>
-              <View style={styles.filterChipsRow}>
-                <TouchableOpacity
-                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'all' && { backgroundColor: colors.gray700 }]}
-                  onPress={() => setStatusFilter('all')}
-                >
-                  <Text style={[styles.statusChipText, { color: statusFilter === 'all' ? Colors.white : colors.gray600 }]}>
-                    Tous ({statusCounts.all})
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'confirmed' && { backgroundColor: colors.success }]}
-                  onPress={() => setStatusFilter('confirmed')}
-                >
-                  <Ionicons name="checkmark-circle" size={12} color={statusFilter === 'confirmed' ? Colors.white : colors.success} />
-                  <Text style={[styles.statusChipText, { color: statusFilter === 'confirmed' ? Colors.white : colors.success }]}>
-                    Confirmes ({statusCounts.confirmed})
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'pending' && { backgroundColor: colors.warning }]}
-                  onPress={() => setStatusFilter('pending')}
-                >
-                  <Ionicons name="time" size={12} color={statusFilter === 'pending' ? Colors.white : colors.warning} />
-                  <Text style={[styles.statusChipText, { color: statusFilter === 'pending' ? Colors.white : colors.warning }]}>
-                    En attente ({statusCounts.pending})
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.statusChip, { backgroundColor: colors.gray100 }, statusFilter === 'checked_in' && { backgroundColor: colors.success }]}
-                  onPress={() => setStatusFilter('checked_in')}
-                >
-                  <Ionicons name="checkmark-done-circle" size={12} color={statusFilter === 'checked_in' ? Colors.white : colors.success} />
-                  <Text style={[styles.statusChipText, { color: statusFilter === 'checked_in' ? Colors.white : colors.success }]}>
-                    Valides ({statusCounts.checked_in})
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            {/* Sort */}
-            <View style={styles.filterSection}>
-              <Text style={[styles.filterSectionLabel, { color: colors.gray500 }]}>Trier par</Text>
-              <View style={styles.filterChipsRow}>
-                <TouchableOpacity
-                  style={[styles.sortChip, { backgroundColor: colors.gray100 }, sortBy === 'event_date' && { backgroundColor: colors.primary }]}
-                  onPress={() => setSortBy('event_date')}
-                >
-                  <Ionicons name="calendar" size={12} color={sortBy === 'event_date' ? Colors.white : colors.gray600} />
-                  <Text style={[styles.sortChipText, { color: sortBy === 'event_date' ? Colors.white : colors.gray600 }]}>Date evenement</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.sortChip, { backgroundColor: colors.gray100 }, sortBy === 'registration_date' && { backgroundColor: colors.primary }]}
-                  onPress={() => setSortBy('registration_date')}
-                >
-                  <Ionicons name="time" size={12} color={sortBy === 'registration_date' ? Colors.white : colors.gray600} />
-                  <Text style={[styles.sortChipText, { color: sortBy === 'registration_date' ? Colors.white : colors.gray600 }]}>Date inscription</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.sortChip, { backgroundColor: colors.gray100 }, sortBy === 'name' && { backgroundColor: colors.primary }]}
-                  onPress={() => setSortBy('name')}
-                >
-                  <Ionicons name="text" size={12} color={sortBy === 'name' ? Colors.white : colors.gray600} />
-                  <Text style={[styles.sortChipText, { color: sortBy === 'name' ? Colors.white : colors.gray600 }]}>Nom A-Z</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        )}
-      </View>
+        </Animated.View>
+      )}
 
       {/* Offline indicator */}
       {cachedTicketCount > 0 && (
@@ -942,136 +955,165 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
 
-  // Floating Filter Card
-  filtersCard: {
+  // Filter Section
+  filterSection: {
     marginTop: -20,
-    marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  searchInputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  searchInput: {
-    ...TextStyles.small,
-    flex: 1,
-    paddingVertical: 0,
+    marginHorizontal: Spacing.base,
+    borderRadius: BorderRadius['2xl'],
+    overflow: 'hidden',
+    ...Shadows.md,
   },
 
-  // Tab Chips (inside floating card)
+  // Tab Bar — underlined
   tabsRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    borderBottomWidth: 1,
   },
   tabButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.xs + 2,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    gap: 6,
   },
   tabButtonText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
   },
   tabBadge: {
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 5,
   },
   tabBadgeText: {
     fontSize: 10,
-    fontFamily: FontFamily.displayBold,
+    fontFamily: FontFamily.semiBold,
   },
 
-  // Type Filter Row
-  typeFilterRow: {
+  // Search + filter toggle
+  searchRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    gap: Spacing.sm,
   },
-  typeChip: {
+  searchInputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 6,
-    borderRadius: BorderRadius.full,
-    gap: 4,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.sm,
+    height: 40,
+    borderWidth: 1,
+    gap: Spacing.xs,
   },
-  typeChipText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
+  searchInput: {
+    ...TextStyles.small,
+    flex: 1,
+    paddingVertical: 0,
   },
-
-  // Advanced Filters Toggle
-  advancedToggle: {
-    flexDirection: 'row',
+  filterToggleBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
   },
-  advancedToggleText: {
+  filterCountBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCountText: {
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    color: Colors.white,
+  },
+
+  // Type pills
+  typePillsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    gap: 6,
+  },
+  typePillText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
   },
+  typePillCount: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+  },
 
-  // Advanced Filters Inner
-  advancedFiltersInner: {
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
+  // Advanced panel
+  advancedPanel: {
+    marginHorizontal: Spacing.base,
+    marginTop: Spacing.xs,
+    borderRadius: BorderRadius['2xl'],
+    borderWidth: 1,
+    padding: Spacing.md,
     gap: Spacing.md,
   },
-  filterSection: {
-    gap: Spacing.xs,
+  advancedSection: {
+    gap: Spacing.sm,
   },
-  filterSectionLabel: {
-    ...TextStyles.eyebrow,
+  advancedLabel: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  filterChipsRow: {
+  advancedChipsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
-
-  // Status chips
-  statusChip: {
+  advancedChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: 7,
+    paddingHorizontal: Spacing.md,
     borderRadius: BorderRadius.full,
-    gap: 4,
+    borderWidth: 1,
+    gap: 6,
   },
-  statusChipText: {
-    ...TextStyles.caption,
+  advancedChipText: {
+    fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
   },
-
-  // Sort chips
-  sortChip: {
+  advancedChipCount: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+  },
+  clearAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.full,
+    justifyContent: 'center',
     gap: 4,
+    paddingTop: Spacing.xs,
   },
-  sortChipText: {
-    ...TextStyles.caption,
+  clearAllText: {
+    fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
   },
 

@@ -107,8 +107,8 @@ export default function AdminDashboardScreen() {
       >
         {/* KPI Cards */}
         <View style={styles.kpiRow}>
-          <KPICard title="Utilisateurs" value={stats.totalUsers} icon="people-outline" color="#7C3AED" />
-          <KPICard title="Evenements" value={stats.totalEvents} icon="calendar-outline" color="#EC4899" />
+          <KPICard title="Utilisateurs" value={stats.totalUsers} icon="people-outline" color="#4F46E5" />
+          <KPICard title="Evenements" value={stats.totalEvents} icon="calendar-outline" color="#A855F7" />
         </View>
         <View style={styles.kpiRow}>
           <KPICard title="Revenus" value={`${stats.totalRevenue.toLocaleString()} ${platformCurrency}`} icon="cash-outline" color="#10B981" />

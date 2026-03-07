@@ -116,7 +116,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
 
           {/* Recipients badge */}
           <View style={styles.badge}>
-            <Ionicons name="people" size={16} color="#7C3AED" />
+            <Ionicons name="people" size={16} color="#4F46E5" />
             <Text style={[styles.badgeText, { color: colors.gray600 }]}>
               {registrationIds.length} destinataire{registrationIds.length > 1 ? 's' : ''}
             </Text>
@@ -171,7 +171,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
               <Text style={[styles.cancelText, { color: colors.gray700 }]}>Annuler</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.sendBtn, { backgroundColor: '#7C3AED' }]}
+              style={[styles.sendBtn, { backgroundColor: '#4F46E5' }]}
               onPress={handleSend}
               disabled={sending}
             >
@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
     paddingHorizontal: Spacing.sm,
     paddingVertical: 4,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: '#E0E7FF',
     borderRadius: BorderRadius.full,
     gap: 4,
   },

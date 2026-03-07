@@ -50,11 +50,11 @@ const TOGGLE_WIDTH = SCREEN_WIDTH - Spacing.lg * 2;
 const TOGGLE_ITEM_WIDTH = (TOGGLE_WIDTH - 8) / 2;
 
 // Design colors
-const VIOLET = '#7C3AED';
-const ROSE = '#EC4899';
+const VIOLET = '#4F46E5';
+const ROSE = '#A855F7';
 const SURFACE = '#F8F7FC';
-const INK = '#1A1A2E';
-const BORDER_COLOR = '#EDE9FE';
+const INK = '#111827';
+const BORDER_COLOR = '#E0E7FF';
 
 const getPlanColor = (name: PlanName): string => {
   switch (name) {

@@ -4,7 +4,7 @@ import { ACircle, APath, usePulse } from '../animated';
 
 type Props = { color?: string; size?: number };
 
-export default function Searching({ color = '#7C3AED', size = 200 }: Props) {
+export default function Searching({ color = '#4F46E5', size = 200 }: Props) {
   // Magnifying glass glow pulses
   const glassPulse = usePulse(0.06, 0.18, 2000);
   // Sparkle accents stagger

@@ -51,7 +51,7 @@ const statusConfig: Record<string, { label: string; color: string; bgColor: stri
   rejected: { label: 'Refuse', color: '#EF4444', bgColor: '#FEE2E2' },
   cancelled: { label: 'Annule', color: '#6B7280', bgColor: '#F3F4F6' },
   completed: { label: 'Complete', color: '#3B82F6', bgColor: '#DBEAFE' },
-  checked_in: { label: 'Enregistre', color: '#8B5CF6', bgColor: '#EDE9FE' },
+  checked_in: { label: 'Enregistre', color: '#6366F1', bgColor: '#E0E7FF' },
 };
 
 const approvalStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -392,7 +392,7 @@ export default function EventRegistrationsScreen() {
           styles.registrationCard,
           { backgroundColor: colors.card, borderColor: colors.gray100 },
           isPending && styles.pendingCard,
-          isSelected && { borderColor: '#7C3AED', borderWidth: 2 },
+          isSelected && { borderColor: '#4F46E5', borderWidth: 2 },
         ]}
         onPress={() => {
           if (selectionMode) {
@@ -487,7 +487,7 @@ export default function EventRegistrationsScreen() {
   if (loading) {
     return (
       <View style={styles.rootContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+        <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
         <SafeAreaView style={styles.safeArea} edges={['top']}>
           <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
             <View style={styles.loadingContainer}>
@@ -501,12 +501,12 @@ export default function EventRegistrationsScreen() {
 
   return (
     <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#7C3AED" />
+      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
           {/* Header */}
           <LinearGradient
-            colors={['#7C3AED', '#9333EA', '#D946EF']}
+            colors={['#4F46E5', '#9333EA', '#D946EF']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.header}
@@ -786,7 +786,7 @@ export default function EventRegistrationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  rootContainer: { flex: 1, backgroundColor: '#7C3AED' },
+  rootContainer: { flex: 1, backgroundColor: '#4F46E5' },
   safeArea: { flex: 1 },
   container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -816,8 +816,8 @@ const styles = StyleSheet.create({
   pendingCard: { borderLeftWidth: 3, borderLeftColor: '#F59E0B' },
   registrationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm },
   participantInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#7C3AED', alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
-  checkboxChecked: { backgroundColor: '#7C3AED', borderColor: '#7C3AED' },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#4F46E5', alignItems: 'center', justifyContent: 'center', marginRight: Spacing.sm },
+  checkboxChecked: { backgroundColor: '#4F46E5', borderColor: '#4F46E5' },
   avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm, color: Colors.white },
   participantDetails: { flex: 1, marginLeft: Spacing.sm },
