@@ -126,23 +126,36 @@ export default function LoginScreen() {
     setRetryInfo(null);
     try {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
+
+      // Pré-vérifier avec l'API directement AVANT d'appeler AuthContext.login()
+      // car login() set isLoading=true → RootNavigator unmount AuthNavigator → navigation stale
+      try {
+        await authAPI.login(email.trim().toLowerCase(), password);
+      } catch (apiError: any) {
+        if (apiError.response?.status === 403 &&
+            apiError.response?.data?.code === 'email_not_verified') {
+          showAlert(
+            'Email non vérifié',
+            'Veuillez vérifier votre adresse email avant de vous connecter.',
+            [
+              { text: 'Annuler', style: 'cancel' },
+              {
+                text: 'Vérifier',
+                onPress: () => navigation.navigate('VerifyEmail', { email: email.trim().toLowerCase() }),
+              },
+            ],
+            'warning',
+          );
+          return;
+        }
+        throw apiError;
+      }
+
+      // L'API a réussi → appeler login() qui va re-fetch les tokens + user
       await login(email.trim().toLowerCase(), password, rememberMe);
       setRetryInfo(null);
     } catch (error: any) {
       setRetryInfo(null);
-      if (__DEV__) console.log('[Login] Error:', error.response?.status, error.response?.data);
-      // Email non vérifié → proposer de vérifier l'email
-      if (
-        error.response?.status === 403 &&
-        error.response?.data?.code === 'email_not_verified'
-      ) {
-        const targetEmail = email.trim().toLowerCase();
-        showError(
-          'Email non vérifié',
-          'Veuillez vérifier votre adresse email avant de vous connecter. Consultez votre boîte de réception.'
-        );
-        return;
-      }
       const message = extractErrorMessage(error);
       showError('Erreur de connexion', message);
     }

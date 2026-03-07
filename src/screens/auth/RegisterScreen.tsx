@@ -14,7 +14,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AuthStackParamList } from '../../types';
@@ -27,6 +26,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { authAPI } from '../../api/client';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators } from '../../lib/validation';
 import GradientButton from '../../components/ui/GradientButton';
@@ -57,7 +57,7 @@ interface FormErrors {
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { register, isLoading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { showError } = useAlert();
   const { colors, isDark } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
@@ -109,8 +109,10 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!validate()) return;
+    setIsSubmitting(true);
     try {
-      const result = await register({
+      // Appel API direct (pas AuthContext.register() qui set isLoading → unmount navigator)
+      const response = await authAPI.register({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         username: formData.username.trim().toLowerCase(),
@@ -119,9 +121,12 @@ export default function RegisterScreen() {
         password: formData.password,
         confirm_password: formData.confirm_password,
       });
-      // Inscription reussie — rediriger vers verification email
-      navigation.navigate('VerifyEmail', { email: result.email });
+      setIsSubmitting(false);
+      const targetEmail = response.data?.email ?? formData.email.trim().toLowerCase();
+      // Navigation directe vers VerifyEmail — l'écran expliquera la vérification obligatoire
+      navigation.navigate('VerifyEmail', { email: targetEmail });
     } catch (error: any) {
+      setIsSubmitting(false);
       const message = extractErrorMessage(error);
       showError("Erreur d'inscription", message);
     }
@@ -317,7 +322,7 @@ export default function RegisterScreen() {
             <GradientButton
               onPress={handleRegister}
               title="Créer mon compte"
-              loading={isLoading}
+              loading={isSubmitting}
               icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
               size="xl"
               fullWidth

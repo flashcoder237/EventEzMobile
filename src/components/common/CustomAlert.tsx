@@ -166,7 +166,10 @@ export default function CustomAlert({
 
   const handlePress = useCallback((btn: AlertButton) => {
     onClose();
-    btn.onPress?.();
+    // Exécuter le callback après la fermeture du Modal pour ne pas bloquer la navigation
+    if (btn.onPress) {
+      setTimeout(btn.onPress, EXIT_DELAY + 50);
+    }
   }, [onClose]);
 
   // ── Boutons ────────────────────────────────────────────────────────────────

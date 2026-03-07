@@ -104,6 +104,14 @@ export default function VerifyEmailScreen() {
         </AnimatedPressable>
 
         <View style={styles.content}>
+          {/* Mandatory badge */}
+          <View style={[styles.mandatoryBadge, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
+            <Ionicons name="shield-checkmark" size={16} color={colors.success} />
+            <Text style={[styles.mandatoryText, { color: colors.success }]}>
+              Étape obligatoire pour activer votre compte
+            </Text>
+          </View>
+
           {/* Envelope icon */}
           <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
             <LinearGradient
@@ -227,6 +235,20 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: 'center',
+  },
+  mandatoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    marginBottom: Spacing.xl,
+  },
+  mandatoryText: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
   },
   iconContainer: {
     width: 96,
