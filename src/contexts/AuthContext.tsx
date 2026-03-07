@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { authAPI, usersAPI, setTokens, clearTokens } from '../api/client';
 import CacheService from '../services/CacheService';
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Ecouter les erreurs d'authentification definitives (refresh echoue)
   useEffect(() => {
     const unsub = eventBus.on('api-auth-error', async () => {
-      console.log('[Auth] Received api-auth-error event, clearing session');
+      if (__DEV__) console.log('[Auth] Received api-auth-error event, clearing session');
       await clearTokens();
       // Ne pas toucher REMEMBER_ME_KEY — l'utilisateur devra se reconnecter
       // mais sa préférence "Se souvenir de moi" est préservée
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Si "Se souvenir de moi" explicitement désactivé, effacer les tokens
       if (rememberMe === 'false') {
-        console.log('[Auth] Remember me disabled, clearing tokens');
+        if (__DEV__) console.log('[Auth] Remember me disabled, clearing tokens');
         await clearTokens();
         setState({ user: null, isAuthenticated: false, isLoading: false });
         return;
@@ -76,14 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       });
     } catch (error) {
-      console.error('Erreur de vérification auth:', error);
+      if (__DEV__) console.error('Erreur de vérification auth:', error);
       // Token invalide/expiré, nettoyer
       await clearTokens();
       setState({ user: null, isAuthenticated: false, isLoading: false });
     }
   };
 
-  const login = async (email: string, password: string, rememberMe: boolean = true) => {
+  const login = useCallback(async (email: string, password: string, rememberMe: boolean = true) => {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
       const response = await authAPI.login(email, password);
@@ -103,9 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
     }
-  };
+  }, []);
 
-  const register = async (data: {
+  const register = useCallback(async (data: {
     email: string;
     username: string;
     password: string;
@@ -127,13 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
     }
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await authAPI.logout();
     } catch (error) {
-      console.warn('Logout API call failed:', error);
+      if (__DEV__) console.warn('Logout API call failed:', error);
     }
     // Filet de securite : s'assurer que les tokens sont bien supprimes
     await clearTokens();
@@ -146,9 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: false,
       isLoading: false,
     });
-  };
+  }, []);
 
-  const updateUser = async (data: Partial<User>) => {
+  const updateUser = useCallback(async (data: Partial<User>) => {
     try {
       const response = await usersAPI.updateCurrentUser(data);
       setState((prev) => ({
@@ -158,14 +158,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       throw error;
     }
-  };
+  }, []);
 
   // Pour l'authentification sociale - met à jour l'utilisateur après connexion
-  const setUser = async (user: User) => {
+  const setUserFn = useCallback(async (user: User) => {
     const accessToken = await SecureStore.getItemAsync('eventez_access_token');
     const refreshToken = await SecureStore.getItemAsync('eventez_refresh_token');
     if (!accessToken || !refreshToken) {
-      console.warn('[Auth] setUser called but tokens not found');
+      if (__DEV__) console.warn('[Auth] setUser called but tokens not found');
       setState({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
@@ -176,19 +176,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: true,
       isLoading: false,
     });
-  };
+  }, []);
+
+  const value = useMemo(() => ({
+    ...state,
+    login,
+    register,
+    logout,
+    updateUser,
+    setUser: setUserFn,
+  }), [state, login, register, logout, updateUser, setUserFn]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        ...state,
-        login,
-        register,
-        logout,
-        updateUser,
-        setUser,
-      }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

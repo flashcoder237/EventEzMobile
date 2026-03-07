@@ -59,7 +59,7 @@ export default function ReportsScreen() {
       const data = res.data?.results || res.data || [];
       setReports(data);
     } catch (error) {
-      console.error('Erreur chargement rapports:', error);
+      if (__DEV__) console.error('Erreur chargement rapports:', error);
     } finally {
       setLoading(false);
     }

@@ -262,7 +262,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         case 'error':
-          console.error('WebSocket error from server:', data);
+          if (__DEV__) console.error('WebSocket error from server:', data);
           break;
 
         default:
@@ -271,7 +271,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           }
       }
     } catch (error) {
-      console.error('Error parsing WebSocket message:', error);
+      if (__DEV__) console.error('Error parsing WebSocket message:', error);
     }
   }, [
     onNewMessage,
@@ -305,7 +305,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        console.log('WebSocket connected, authenticating...');
+        if (__DEV__) console.log('WebSocket connected, authenticating...');
         setIsConnected(true);
         reconnectAttemptsRef.current = 0;
         onConnectionChange?.(true);
@@ -318,7 +318,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
       };
 
       ws.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
+        if (__DEV__) console.log('WebSocket closed:', event.code, event.reason);
         setIsConnected(false);
         setIsAuthenticated(false);
         onConnectionChange?.(false);
@@ -327,7 +327,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
           const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
           reconnectAttemptsRef.current++;
-          console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+          if (__DEV__) console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
@@ -338,7 +338,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        if (__DEV__) console.error('WebSocket error:', error);
         setConnectionError('Erreur de connexion');
       };
 
@@ -346,7 +346,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
       wsRef.current = ws;
     } catch (error) {
-      console.error('Error connecting WebSocket:', error);
+      if (__DEV__) console.error('Error connecting WebSocket:', error);
       setConnectionError('Impossible de se connecter');
     }
   }, [handleMessage, onConnectionChange]);

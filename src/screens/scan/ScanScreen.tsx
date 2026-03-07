@@ -8,9 +8,9 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
-  Image,
   ScrollView,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -192,7 +192,7 @@ export default function ScanScreen() {
         setResult({ type: 'error', errorMessage: 'QR code non reconnu' });
       }
     } catch (error: any) {
-      console.error('Scan error:', error);
+      if (__DEV__) console.error('Scan error:', error);
       let msg = 'Impossible de traiter ce QR code';
       if (error.response?.status === 404) msg = 'Élément non trouvé';
       else if (error.response?.data?.detail) msg = error.response.data.detail;
@@ -742,7 +742,7 @@ function UserResult({
     <>
       <View style={styles.userResultHeader}>
         {avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={[styles.userAvatar, { borderColor: colors.gray200 }]} />
+          <Image source={avatarUri} style={[styles.userAvatar, { borderColor: colors.gray200 }]} cachePolicy="disk" transition={200} />
         ) : (
           <View style={[styles.userAvatarPlaceholder, { backgroundColor: colors.gray200, borderColor: colors.white }]}>
             <Text style={[styles.userAvatarText, { color: colors.gray600 }]}>{getUserInitials(userData)}</Text>

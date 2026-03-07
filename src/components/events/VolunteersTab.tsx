@@ -58,7 +58,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
       const appsData = appsRes.data?.results || appsRes.data || [];
       setMyApplications(appsData.map((a: any) => a.role));
     } catch (error) {
-      console.error('Erreur chargement roles benevoles:', error);
+      if (__DEV__) console.error('Erreur chargement roles benevoles:', error);
     } finally {
       setLoading(false);
     }

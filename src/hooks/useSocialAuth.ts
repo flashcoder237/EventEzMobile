@@ -77,7 +77,7 @@ export function useGoogleAuth() {
         return { success: false, error: 'Échec de la connexion Google' };
       }
     } catch (error: any) {
-      console.error('Google Sign-In error:', error);
+      if (__DEV__) console.error('Google Sign-In error:', error);
       const errorMessage =
         error.response?.data?.detail ||
         error.message ||
@@ -196,7 +196,7 @@ export function useAppleAuth() {
         return { success: false, error: 'Connexion annulée' };
       }
 
-      console.error('Apple Sign-In error:', error);
+      if (__DEV__) console.error('Apple Sign-In error:', error);
       const errorMessage =
         error.response?.data?.detail ||
         error.message ||

@@ -11,10 +11,10 @@ import {
   Modal,
   TouchableOpacity,
   FlatList,
-  Image,
   TextInput,
   TouchableWithoutFeedback,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Reanimated from 'react-native-reanimated';
@@ -76,7 +76,7 @@ function ForwardModal({
         onPress={() => onSelectTarget(String(item.id))}
       >
         {avatar ? (
-          <Image source={{ uri: avatar }} style={styles.avatar} />
+          <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
         ) : (
           <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarInitials}>{initials}</Text>

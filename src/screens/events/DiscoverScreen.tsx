@@ -9,7 +9,6 @@ import {
   Dimensions,
   StatusBar,
   TouchableOpacity,
-  Image,
   TextInput,
   Modal,
   ActivityIndicator,
@@ -25,6 +24,7 @@ import { eventsAPI, categoriesAPI, tagsAPI, recommendationsAPI, getMediaUrl } fr
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import CacheService from '../../services/CacheService';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { Searching as SearchingIllustration } from '../../components/illustrations';
 import { SkeletonList, EventCardSkeleton, DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
@@ -53,6 +53,7 @@ import WebViewMap from '../../components/maps/WebViewMap';
 import MapEventCard from '../../components/maps/MapEventCard';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
 import { usePersistedFilters } from '../../hooks/usePersistedFilters';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -147,6 +148,20 @@ export default function DiscoverScreen() {
 
   const [allTags, setAllTags] = useState<any[]>([]);
   const [tagSearch, setTagSearch] = useState('');
+
+  // Search transition animations
+  const searchProgress = useSharedValue(0); // 0 = discovery, 1 = search active
+  const contentOpacity = useSharedValue(1);
+
+  const headerCollapseStyle = useAnimatedStyle(() => ({
+    maxHeight: (1 - searchProgress.value) * 200,
+    opacity: 1 - searchProgress.value,
+    overflow: 'hidden' as const,
+  }));
+
+  const contentAnimStyle = useAnimatedStyle(() => ({
+    opacity: contentOpacity.value,
+  }));
 
   // Rotating placeholder suggestions
   const placeholderSuggestions = useMemo(() => [
@@ -244,12 +259,29 @@ export default function DiscoverScreen() {
         });
       }
     } catch (error) {
-      console.error('Erreur localisation:', error);
+      if (__DEV__) console.error('Erreur localisation:', error);
     }
   };
 
-  const fetchDiscoveryData = async () => {
+  const DISCOVER_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  const fetchDiscoveryData = async (bypassCache: boolean = false) => {
     try {
+      // Serve cached data immediately if available
+      if (!bypassCache) {
+        const [cachedFeatured, cachedCategories, cachedUpcoming, cachedFree] = await Promise.all([
+          CacheService.get<Event[]>('discover:featured'),
+          CacheService.get<Category[]>('discover:categories'),
+          CacheService.get<Event[]>('discover:upcoming'),
+          CacheService.get<Event[]>('discover:free'),
+        ]);
+        if (cachedFeatured) setFeaturedEvents(cachedFeatured.data);
+        if (cachedCategories) setCategories(cachedCategories.data);
+        if (cachedUpcoming) setUpcomingEvents(cachedUpcoming.data);
+        if (cachedFree) setFreeEvents(cachedFree.data);
+      }
+
+      // Fetch fresh data from network
       const [featuredRes, categoriesRes, upcomingRes, freeRes] = await Promise.all([
         eventsAPI.getFeaturedEvents(),
         categoriesAPI.getCategories(),
@@ -258,25 +290,38 @@ export default function DiscoverScreen() {
       ]);
 
       const featuredData = getApiResults<Event>(featuredRes).filter(e => isEventInFuture(e.start_date));
+      const categoriesData = getApiResults<Category>(categoriesRes);
       const upcomingData = getApiResults<Event>(upcomingRes).filter(e => isEventInFuture(e.start_date));
       const freeData = getApiResults<Event>(freeRes).filter(e => isEventInFuture(e.start_date));
 
       setFeaturedEvents(featuredData);
-      setCategories(getApiResults<Category>(categoriesRes));
+      setCategories(categoriesData);
       setUpcomingEvents(upcomingData);
       setFreeEvents(freeData);
+
+      // Update cache
+      CacheService.set('discover:featured', featuredData, DISCOVER_CACHE_TTL);
+      CacheService.set('discover:categories', categoriesData, DISCOVER_CACHE_TTL);
+      CacheService.set('discover:upcoming', upcomingData, DISCOVER_CACHE_TTL);
+      CacheService.set('discover:free', freeData, DISCOVER_CACHE_TTL);
     } catch (error) {
-      console.error('Erreur chargement:', error);
+      if (__DEV__) console.error('Erreur chargement:', error);
     } finally {
       setInitialLoading(false);
     }
   };
 
-  const fetchRecommendations = async () => {
+  const fetchRecommendations = async (bypassCache: boolean = false) => {
     if (!user) return;
     try {
+      if (!bypassCache) {
+        const cached = await CacheService.get<Event[]>('discover:recommendations');
+        if (cached) setRecommendations(cached.data);
+      }
       const response = await recommendationsAPI.getRecommendations({ limit: 10 });
-      setRecommendations(getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date)));
+      const data = getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date));
+      setRecommendations(data);
+      CacheService.set('discover:recommendations', data, DISCOVER_CACHE_TTL);
     } catch {
       // Recommendations may not be available
     }
@@ -288,22 +333,28 @@ export default function DiscoverScreen() {
       const response = await eventsAPI.getNearbyEvents(location.lat, location.lng, 50, 10);
       setNearbyEvents(getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date)));
     } catch (error) {
-      console.error('Erreur événements proches:', error);
+      if (__DEV__) console.error('Erreur événements proches:', error);
     }
   };
 
-  const fetchTags = async () => {
+  const fetchTags = async (bypassCache: boolean = false) => {
     try {
+      if (!bypassCache) {
+        const cached = await CacheService.get<any[]>('discover:tags');
+        if (cached) setAllTags(cached.data);
+      }
       const response = await tagsAPI.getTags();
-      setAllTags(response.data?.results || response.data || []);
+      const data = response.data?.results || response.data || [];
+      setAllTags(data);
+      CacheService.set('discover:tags', data, DISCOVER_CACHE_TTL);
     } catch (error) {
-      console.error('Error fetching tags:', error);
+      if (__DEV__) console.error('Error fetching tags:', error);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([fetchDiscoveryData(), fetchRecommendations(), location && fetchNearbyEvents()]);
+    await Promise.all([fetchDiscoveryData(true), fetchRecommendations(true), location && fetchNearbyEvents()]);
     setRefreshing(false);
   };
 
@@ -329,7 +380,7 @@ export default function DiscoverScreen() {
       setHasNextPage(!!nextPage);
       setCurrentPage(page);
     } catch (error) {
-      console.error('Erreur recherche:', error);
+      if (__DEV__) console.error('Erreur recherche:', error);
     } finally {
       setSearchLoading(false);
       setLoadingMore(false);
@@ -341,7 +392,7 @@ export default function DiscoverScreen() {
       const response = await eventsAPI.getMapEvents();
       setMarkers(response.data.markers || []);
     } catch (error) {
-      console.error('Erreur événements carte:', error);
+      if (__DEV__) console.error('Erreur événements carte:', error);
     }
   };
 
@@ -503,10 +554,18 @@ export default function DiscoverScreen() {
     setIsSearchActive(true);
     fetchSearchResults(1, false);
     fetchMapEvents();
-    setTimeout(() => searchInputRef.current?.focus(), 100);
+    // Animate: collapse header, fade in search content
+    searchProgress.value = withTiming(1, { duration: 350, easing: Easing.out(Easing.cubic) });
+    contentOpacity.value = 0;
+    contentOpacity.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.ease) });
+    setTimeout(() => searchInputRef.current?.focus(), 200);
   };
 
   const deactivateSearch = () => {
+    // Animate: expand header back, fade in discovery content
+    searchProgress.value = withTiming(0, { duration: 350, easing: Easing.out(Easing.cubic) });
+    contentOpacity.value = 0;
+    contentOpacity.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.ease) });
     setIsSearchActive(false);
     setSearchQuery('');
     setDebouncedQuery('');
@@ -751,6 +810,10 @@ export default function DiscoverScreen() {
             </TouchableOpacity>
           ) : null
         }
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews
+        initialNumToRender={8}
       />
     );
   };
@@ -787,20 +850,6 @@ export default function DiscoverScreen() {
       </View>
     );
   };
-
-  const renderSearchMode = () => (
-    <View style={{ flex: 1 }}>
-      {renderSearchHeader()}
-      {viewMode === 'list' && renderCategoryChips()}
-      {searchLoading && searchResults.length === 0 && viewMode === 'list' ? (
-        <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: Spacing.sm }}>
-          <SkeletonList count={4} Component={EventCardSkeleton} />
-        </View>
-      ) : (
-        renderSearchContent()
-      )}
-    </View>
-  );
 
   // === FILTERS MODAL ===
 
@@ -1083,9 +1132,9 @@ export default function DiscoverScreen() {
     </Modal>
   );
 
-  // === DISCOVERY FEED (main view) ===
+  // === DISCOVERY FEED CONTENT (without header/search bar, those are in main render) ===
 
-  const renderDiscoveryFeed = () => (
+  const renderDiscoveryFeedContent = () => (
     <ScrollView
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -1093,71 +1142,6 @@ export default function DiscoverScreen() {
       }
       contentContainerStyle={styles.scrollContent}
     >
-      {/* Header with actions */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="location" size={18} color={colors.accent} />
-          <Text style={[styles.headerLocation, { color: colors.gray900 }]}>
-            {location ? 'Douala' : 'Douala, Cameroun'}
-          </Text>
-          <Ionicons name="chevron-down" size={14} color={colors.gray400} />
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')}>
-            <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
-            {unreadMessageCount > 0 && (
-              <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
-                <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                  <Text style={styles.badgeText}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</Text>
-                </View>
-              </PulsingBadge>
-            )}
-          </TouchableOpacity>
-          {user?.role === 'organizer' && (
-            <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('EventCreate' as any)}>
-              <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
-            {unreadNotificationCount > 0 && (
-              <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
-                <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                  <Text style={styles.badgeText}>{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</Text>
-                </View>
-              </PulsingBadge>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Hero greeting */}
-      <FadeInView delay={100} translateY={20}>
-        <View style={styles.heroSection}>
-          <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
-            {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
-          </Text>
-          <GradientText style={styles.heroTitle}>Discover Events</GradientText>
-        </View>
-      </FadeInView>
-
-      {/* Search Bar (tap to activate) — pill shape with rotating placeholder */}
-      <FadeInView delay={200} translateY={12}>
-        <TouchableOpacity
-          style={[
-            styles.searchBarTrigger,
-            { backgroundColor: colors.surface, borderColor: colors.gray200 },
-          ]}
-          onPress={activateSearch}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="search" size={20} color={colors.primary} />
-          <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
-            {placeholderSuggestions[placeholderIndex]}
-          </Text>
-        </TouchableOpacity>
-      </FadeInView>
-
       {/* Category Chips */}
       {categories.length > 0 && (
         <ScrollView
@@ -1346,13 +1330,97 @@ export default function DiscoverScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+
       {initialLoading && !isSearchActive ? (
         <DiscoverScreenSkeleton />
-      ) : isSearchActive ? (
-        renderSearchMode()
       ) : (
-        renderDiscoveryFeed()
+        <View style={{ flex: 1 }}>
+          {/* Collapsible header (location + greeting) — animates up when search activates */}
+          <Animated.View style={headerCollapseStyle}>
+            <View style={styles.header}>
+              <View style={styles.headerLeft}>
+                <Ionicons name="location" size={18} color={colors.accent} />
+                <Text style={[styles.headerLocation, { color: colors.gray900 }]}>
+                  {location ? 'Douala' : 'Douala, Cameroun'}
+                </Text>
+                <Ionicons name="chevron-down" size={14} color={colors.gray400} />
+              </View>
+              <View style={styles.headerActions}>
+                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')}>
+                  <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
+                  {unreadMessageCount > 0 && (
+                    <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
+                      <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                        <Text style={styles.badgeText}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</Text>
+                      </View>
+                    </PulsingBadge>
+                  )}
+                </TouchableOpacity>
+                {user?.role === 'organizer' && (
+                  <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('EventCreate' as any)}>
+                    <Ionicons name="add-circle-outline" size={22} color={colors.primary} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')}>
+                  <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
+                  {unreadNotificationCount > 0 && (
+                    <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
+                      <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                        <Text style={styles.badgeText}>{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</Text>
+                      </View>
+                    </PulsingBadge>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.heroSection}>
+              <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
+                {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
+              </Text>
+              <GradientText style={styles.heroTitle}>Discover Events</GradientText>
+            </View>
+          </Animated.View>
+
+          {/* Search bar — transforms in-place */}
+          {isSearchActive ? (
+            renderSearchHeader()
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.searchBarTrigger,
+                { backgroundColor: colors.surface, borderColor: colors.gray200 },
+              ]}
+              onPress={activateSearch}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search" size={20} color={colors.primary} />
+              <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
+                {placeholderSuggestions[placeholderIndex]}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Content — fades between discovery feed and search results */}
+          <Animated.View style={[{ flex: 1 }, contentAnimStyle]}>
+            {isSearchActive ? (
+              <View style={{ flex: 1 }}>
+                {viewMode === 'list' && renderCategoryChips()}
+                {searchLoading && searchResults.length === 0 && viewMode === 'list' ? (
+                  <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: Spacing.sm }}>
+                    <SkeletonList count={4} Component={EventCardSkeleton} />
+                  </View>
+                ) : (
+                  renderSearchContent()
+                )}
+              </View>
+            ) : (
+              renderDiscoveryFeedContent()
+            )}
+          </Animated.View>
+        </View>
       )}
+
       {renderFiltersModal()}
     </SafeAreaView>
   );
@@ -1442,6 +1510,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
+    marginBottom: Spacing.lg,
     gap: Spacing.sm,
     borderWidth: 1.5,
     borderColor: Colors.gray200,

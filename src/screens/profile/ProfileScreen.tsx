@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Image,
+  RefreshControl,
   StatusBar,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -74,6 +75,7 @@ export default function ProfileScreen() {
   const { showAlert, showConfirm } = useAlert();
   const { colors, isDark, gradients } = useTheme();
   const [showMyQR, setShowMyQR] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     tickets: 0,
     favorites: 0,
@@ -82,6 +84,12 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     fetchStats();
+  }, []);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchStats();
+    setRefreshing(false);
   }, []);
 
   const fetchStats = async () => {
@@ -93,12 +101,18 @@ export default function ProfileScreen() {
         feedbacksAPI.getFeedbacks({ user: 'me', page_size: 1 }).catch(() => ({ data: { count: 0 } })),
       ]);
 
-      // Registrations = nombre d'inscriptions (inclut deja les billets)
-      const registrationsCount = registrationsRes.data?.count || 0;
-      // Favoris = utiliser count (total) au lieu de results.length (premiere page)
-      const followingCount = followingRes.data?.count
-        ?? (Array.isArray(followingRes.data?.results) ? followingRes.data.results.length : (Array.isArray(followingRes.data) ? followingRes.data.length : 0));
-      const feedbacksCount = feedbacksRes.data?.count || 0;
+      // Extraire le count depuis reponse paginee {count, results} ou tableau direct [...]
+      const extractCount = (res: any) => {
+        const d = res.data;
+        if (d?.count !== undefined) return d.count;
+        if (Array.isArray(d?.results)) return d.results.length;
+        if (Array.isArray(d)) return d.length;
+        return 0;
+      };
+
+      const registrationsCount = extractCount(registrationsRes);
+      const followingCount = extractCount(followingRes);
+      const feedbacksCount = extractCount(feedbacksRes);
 
       setStats({
         tickets: registrationsCount,
@@ -106,7 +120,7 @@ export default function ProfileScreen() {
         reviews: feedbacksCount,
       });
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      if (__DEV__) console.error('Error fetching stats:', error);
     }
   };
 
@@ -136,7 +150,18 @@ export default function ProfileScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+            progressBackgroundColor={colors.card}
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Profil</Text>
@@ -171,8 +196,10 @@ export default function ProfileScreen() {
                   style={styles.avatarGradientRing}
                 />
                 <Image
-                  source={{ uri: user.profile_picture || user.image }}
+                  source={user.profile_picture || user.image}
                   style={[styles.avatar, { borderColor: colors.surface }]}
+                  cachePolicy="disk"
+                  transition={200}
                 />
               </View>
             ) : (

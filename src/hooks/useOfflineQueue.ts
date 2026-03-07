@@ -30,7 +30,7 @@ export function useOfflineQueue({ onSendMessage, isConnected }: UseOfflineQueueO
         setQueue(parsed);
       }
     } catch (error) {
-      console.error('Erreur chargement file offline:', error);
+      if (__DEV__) console.error('Erreur chargement file offline:', error);
     }
   }, []);
 
@@ -39,7 +39,7 @@ export function useOfflineQueue({ onSendMessage, isConnected }: UseOfflineQueueO
     try {
       await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(newQueue));
     } catch (error) {
-      console.error('Erreur sauvegarde file offline:', error);
+      if (__DEV__) console.error('Erreur sauvegarde file offline:', error);
     }
   }, []);
 
@@ -102,7 +102,7 @@ export function useOfflineQueue({ onSendMessage, isConnected }: UseOfflineQueueO
           await incrementRetry(message.id);
         }
       } catch (error) {
-        console.error('Erreur envoi message offline:', error);
+        if (__DEV__) console.error('Erreur envoi message offline:', error);
         await incrementRetry(message.id);
       }
     }

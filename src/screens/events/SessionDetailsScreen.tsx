@@ -7,9 +7,9 @@ import {
   StatusBar,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -74,7 +74,7 @@ export default function SessionDetailsScreen() {
       const response = await sessionsAPI.getSession(sessionId);
       setSession(response.data);
     } catch (err: any) {
-      console.error('[SessionDetails] Error fetching session:', err);
+      if (__DEV__) console.error('[SessionDetails] Error fetching session:', err);
       showError('Erreur', 'Impossible de charger les details de la session.');
     } finally {
       setIsLoading(false);
@@ -352,7 +352,7 @@ export default function SessionDetailsScreen() {
                   activeOpacity={TOUCH_OPACITY}
                 >
                   {speakerPhoto ? (
-                    <Image source={{ uri: speakerPhoto }} style={styles.speakerPhoto} />
+                    <Image source={speakerPhoto} style={styles.speakerPhoto} cachePolicy="disk" transition={200} />
                   ) : (
                     <View style={[styles.speakerPhotoPlaceholder, { backgroundColor: colors.gray200 }]}>
                       <Ionicons name="person" size={20} color={colors.gray400} />
@@ -383,7 +383,7 @@ export default function SessionDetailsScreen() {
               activeOpacity={TOUCH_OPACITY}
             >
               {session.moderator_detail.photo ? (
-                <Image source={{ uri: session.moderator_detail.photo }} style={styles.speakerPhoto} />
+                <Image source={session.moderator_detail.photo} style={styles.speakerPhoto} cachePolicy="disk" transition={200} />
               ) : (
                 <View style={[styles.speakerPhotoPlaceholder, { backgroundColor: colors.gray200 }]}>
                   <Ionicons name="person" size={20} color={colors.gray400} />

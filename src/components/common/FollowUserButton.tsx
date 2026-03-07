@@ -80,7 +80,7 @@ export default function FollowUserButton({
         });
       }
     } catch (error) {
-      console.error('Error checking user follow status:', error);
+      if (__DEV__) console.error('Error checking user follow status:', error);
     }
   };
 
@@ -89,7 +89,7 @@ export default function FollowUserButton({
       const response = await usersAPI.getUserFollowersCount(userId);
       setFollowersCount(response.data.followers_count || 0);
     } catch (error) {
-      console.error('Error loading user followers count:', error);
+      if (__DEV__) console.error('Error loading user followers count:', error);
     }
   };
 
@@ -114,7 +114,7 @@ export default function FollowUserButton({
         onFollowChange?.(true);
       }
     } catch (error) {
-      console.error('Error toggling user follow:', error);
+      if (__DEV__) console.error('Error toggling user follow:', error);
       showError('Erreur', 'Une erreur est survenue');
     } finally {
       setIsLoading(false);
@@ -127,7 +127,7 @@ export default function FollowUserButton({
       await usersAPI.updateUserFollowPreferences(userId, preferences);
       setShowPreferences(false);
     } catch (error) {
-      console.error('Error updating user follow preferences:', error);
+      if (__DEV__) console.error('Error updating user follow preferences:', error);
       showError('Erreur', 'Impossible de mettre a jour les preferences');
     } finally {
       setIsLoading(false);

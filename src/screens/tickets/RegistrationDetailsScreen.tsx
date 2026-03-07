@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Share,
-  Image,
   Dimensions,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -104,7 +104,7 @@ export default function RegistrationDetailsScreen() {
         }
       }
     } catch (error) {
-      console.error('Error fetching registration:', error);
+      if (__DEV__) console.error('Error fetching registration:', error);
       showError('Erreur', 'Impossible de charger les détails de l\'inscription');
     } finally {
       setLoading(false);
@@ -132,7 +132,7 @@ export default function RegistrationDetailsScreen() {
         showError('En cours', 'Le paiement est toujours en cours de traitement. Réessayez dans quelques instants.');
       }
     } catch (error: any) {
-      console.error('[RegistrationDetails] Payment verification error:', error);
+      if (__DEV__) console.error('[RegistrationDetails] Payment verification error:', error);
       showError(
         'Erreur de vérification',
         error?.response?.data?.message || 'Impossible de vérifier le paiement. Vérifiez votre connexion et réessayez.'
@@ -152,7 +152,7 @@ export default function RegistrationDetailsScreen() {
         title: 'Mon inscription EventEz',
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      if (__DEV__) console.error('Error sharing:', error);
     }
   };
 
@@ -443,9 +443,11 @@ export default function RegistrationDetailsScreen() {
             <View style={[styles.qrContainer, { backgroundColor: Colors.white }]}>
               {registration.qr_code ? (
                 <Image
-                  source={{ uri: registration.qr_code }}
+                  source={registration.qr_code}
                   style={styles.qrImage}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  cachePolicy="disk"
+                  transition={200}
                 />
               ) : (
                 <View style={styles.qrPlaceholder}>

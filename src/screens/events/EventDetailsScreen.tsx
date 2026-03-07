@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   FlatList,
-  Image,
   TouchableOpacity,
   Dimensions,
   StatusBar,
@@ -15,6 +14,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -231,7 +231,7 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
 
           {event.banner_image && (
-            <Image source={{ uri: getMediaUrl(event.banner_image)! }} style={visibilityStyles.gateBanner} />
+            <Image source={getMediaUrl(event.banner_image)!} style={visibilityStyles.gateBanner} cachePolicy="disk" transition={200} />
           )}
 
           <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>{event.title}</Text>
@@ -422,8 +422,10 @@ export default function EventDetailsScreen() {
             <View style={[styles.organizerAvatar, { backgroundColor: colors.primary }]}>
               {event.organizer?.profile_picture ? (
                 <Image
-                  source={{ uri: event.organizer.profile_picture }}
+                  source={event.organizer.profile_picture}
                   style={styles.organizerImage}
+                  cachePolicy="disk"
+                  transition={200}
                 />
               ) : (
                 <Text style={styles.organizerInitial}>
@@ -707,8 +709,10 @@ export default function EventDetailsScreen() {
                 renderItem={({ item, index }) => (
                   <TouchableOpacity onPress={() => openViewer(index)} activeOpacity={0.8}>
                     <Image
-                      source={{ uri: item.uri }}
+                      source={item.uri}
                       style={[styles.galleryThumb, { backgroundColor: colors.gray200 }]}
+                      cachePolicy="disk"
+                      transition={200}
                     />
                     {item.caption ? (
                       <Text style={[styles.galleryCaption, { color: colors.gray500 }]} numberOfLines={1}>
@@ -917,9 +921,11 @@ export default function EventDetailsScreen() {
               renderItem={({ item }) => (
                 <View style={styles.imageViewerSlide}>
                   <Image
-                    source={{ uri: item.uri }}
+                    source={item.uri}
                     style={styles.imageViewerImage}
-                    resizeMode="contain"
+                    contentFit="contain"
+                    cachePolicy="disk"
+                    transition={200}
                   />
                   {item.caption ? (
                     <Text style={styles.imageViewerCaption}>{item.caption}</Text>
@@ -931,7 +937,7 @@ export default function EventDetailsScreen() {
             <Image
               source={require('../../../assets/defaults/default-event.png')}
               style={styles.imageViewerImage}
-              resizeMode="contain"
+              contentFit="contain"
             />
           )}
 

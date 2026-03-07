@@ -120,16 +120,12 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
 
   const fetchUserRegistration = async () => {
     try {
-      const response = await registrationsAPI.getMyRegistrations();
+      const response = await registrationsAPI.getRegistrations({ event: eventId, page_size: 1 });
       const registrations = response.data?.results || response.data || [];
-      // Find registration for this event
-      const registration = registrations.find((r: Registration) => {
-        const regEventId = typeof r.event === 'string' ? r.event : (r.event as any)?.id;
-        return regEventId === eventId && r.status !== 'cancelled';
-      });
+      const registration = registrations.find((r: Registration) => r.status !== 'cancelled');
       setUserRegistration(registration || null);
     } catch (error) {
-      console.log('No registration found for this event');
+      if (__DEV__) console.log('No registration found for this event');
     }
   };
 
@@ -144,7 +140,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
       setIsFollowing(followResponse.data?.is_following || eventResponse.data.is_following || false);
       setFollowersCount(countResponse.data?.followers_count || eventResponse.data.followers_count || 0);
     } catch (error) {
-      console.error('Erreur chargement evenement:', error);
+      if (__DEV__) console.error('Erreur chargement evenement:', error);
     } finally {
       setLoading(false);
     }
@@ -157,7 +153,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
       const feedbacksList = response.data?.results || response.data || [];
       setFeedbacks(feedbacksList);
     } catch (error) {
-      console.error('Erreur chargement avis:', error);
+      if (__DEV__) console.error('Erreur chargement avis:', error);
     } finally {
       setLoadingFeedbacks(false);
     }
@@ -174,7 +170,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
       );
       setSessions(sessionsList);
     } catch (error) {
-      console.error('Erreur chargement sessions:', error);
+      if (__DEV__) console.error('Erreur chargement sessions:', error);
     } finally {
       setLoadingSessions(false);
     }
@@ -182,12 +178,11 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
 
   const fetchWaitlistStatus = async () => {
     try {
-      const response = await waitlistAPI.getMyWaitlist();
+      const response = await waitlistAPI.getWaitlist({ event: eventId, page_size: 1 });
       const entries = response.data?.results || response.data || [];
-      const entry = entries.find((e: WaitlistEntry) => e.event === eventId || (e as any).event?.id === eventId);
-      setWaitlistEntry(entry || null);
+      setWaitlistEntry(entries[0] || null);
     } catch (error) {
-      console.log('No waitlist entry found');
+      if (__DEV__) console.log('No waitlist entry found');
     }
   };
 
@@ -241,7 +236,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
         url: shareUrl,
       });
     } catch (error) {
-      console.error('Erreur partage:', error);
+      if (__DEV__) console.error('Erreur partage:', error);
     }
   };
 
@@ -259,7 +254,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
         showError('Erreur', 'WhatsApp n\'est pas installe sur cet appareil');
       }
     } catch (error) {
-      console.error('Erreur partage WhatsApp:', error);
+      if (__DEV__) console.error('Erreur partage WhatsApp:', error);
     }
   };
 
@@ -282,7 +277,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
 
       navigation.navigate('Conversation', { conversationId: response.data.id });
     } catch (error) {
-      console.error('Erreur creation conversation:', error);
+      if (__DEV__) console.error('Erreur creation conversation:', error);
       showError('Erreur', 'Impossible de creer la conversation');
     }
   };

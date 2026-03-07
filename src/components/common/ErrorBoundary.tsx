@@ -53,8 +53,8 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[ErrorBoundary] Uncaught error:', error);
-    console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
+    if (__DEV__) console.error('[ErrorBoundary] Uncaught error:', error);
+    if (__DEV__) console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
   }
 
   handleRetry = () => {

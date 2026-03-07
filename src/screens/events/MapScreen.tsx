@@ -181,7 +181,7 @@ export default function MapScreen() {
         });
       }
     } catch (error) {
-      console.error('Erreur localisation:', error);
+      if (__DEV__) console.error('Erreur localisation:', error);
     }
     fetchMapEvents();
   };
@@ -191,7 +191,7 @@ export default function MapScreen() {
       const response = await categoriesAPI.getCategories();
       setCategories(response.data?.results || response.data || []);
     } catch (error) {
-      console.error('Erreur chargement catégories:', error);
+      if (__DEV__) console.error('Erreur chargement catégories:', error);
     }
   };
 
@@ -201,7 +201,7 @@ export default function MapScreen() {
       const response = await eventsAPI.getMapEvents();
       setAllMarkers(response.data.markers || []);
     } catch (error) {
-      console.error('Erreur chargement événements:', error);
+      if (__DEV__) console.error('Erreur chargement événements:', error);
     } finally {
       setLoading(false);
     }
@@ -221,7 +221,7 @@ export default function MapScreen() {
         longitudeDelta: 0.1,
       });
     } catch (error) {
-      console.error('Erreur localisation:', error);
+      if (__DEV__) console.error('Erreur localisation:', error);
     }
   };
 

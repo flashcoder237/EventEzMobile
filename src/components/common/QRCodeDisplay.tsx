@@ -100,15 +100,15 @@ export default function QRCodeDisplay({
                 width: size + 32,
                 height: size + 32,
                 borderColor: colors.primary,
-                backgroundColor: colors.card,
+                backgroundColor: '#FFFFFF',
               },
             ]}
           >
             <QRCode
               value={data}
               size={size}
-              color={isDark ? colors.primary : '#5B21B6'}
-              backgroundColor={isDark ? colors.white : '#FFFFFF'}
+              color={isDark ? '#4C1D95' : '#5B21B6'}
+              backgroundColor="#FFFFFF"
             />
           </View>
         </View>

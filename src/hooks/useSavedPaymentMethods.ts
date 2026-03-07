@@ -86,7 +86,7 @@ export function useSavedPaymentMethods() {
         setSavedMethods(methods);
       }
     } catch (error) {
-      console.error('Erreur chargement moyens de paiement:', error);
+      if (__DEV__) console.error('Erreur chargement moyens de paiement:', error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export function useSavedPaymentMethods() {
       await SecureStore.setItemAsync(PAYMENT_METHODS_KEY, JSON.stringify(methods));
       setSavedMethods(methods);
     } catch (error) {
-      console.error('Erreur sauvegarde moyens de paiement:', error);
+      if (__DEV__) console.error('Erreur sauvegarde moyens de paiement:', error);
     }
   }, []);
 
@@ -109,7 +109,7 @@ export function useSavedPaymentMethods() {
     // Détecter le type si non fourni
     const methodType = type || detectPaymentType(cleanNumber);
     if (!methodType) {
-      console.warn('Type de paiement non détecté pour:', cleanNumber);
+      if (__DEV__) console.warn('Type de paiement non détecté pour:', cleanNumber);
       return null;
     }
 

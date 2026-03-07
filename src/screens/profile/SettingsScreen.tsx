@@ -153,7 +153,7 @@ export default function SettingsScreen() {
         setPublicProfile(settings.public_profile ?? true);
       }
     } catch (error) {
-      console.error('Erreur chargement paramètres:', error);
+      if (__DEV__) console.error('Erreur chargement paramètres:', error);
     } finally {
       setLoading(false);
     }
@@ -163,7 +163,7 @@ export default function SettingsScreen() {
     try {
       await usersAPI.updateUserSettings({ [key]: value });
     } catch (error) {
-      console.error('Erreur mise à jour:', error);
+      if (__DEV__) console.error('Erreur mise à jour:', error);
       // Revert on error
       fetchSettings();
     }
@@ -201,7 +201,7 @@ export default function SettingsScreen() {
       setShowDeleteModal(false);
       logout();
     } catch (error: any) {
-      console.error('Erreur suppression compte:', error);
+      if (__DEV__) console.error('Erreur suppression compte:', error);
       showError(
         'Erreur',
         error.response?.data?.detail || 'Impossible de supprimer le compte'

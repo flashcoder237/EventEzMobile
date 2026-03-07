@@ -67,7 +67,7 @@ export default function CfpTab({ eventId }: CfpTabProps) {
       const proposalsList = proposalsRes.data?.results || proposalsRes.data || [];
       setProposals(Array.isArray(proposalsList) ? proposalsList : []);
     } catch (error) {
-      console.error('Erreur chargement CFP:', error);
+      if (__DEV__) console.error('Erreur chargement CFP:', error);
     } finally {
       setLoading(false);
     }

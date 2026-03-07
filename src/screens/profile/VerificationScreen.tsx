@@ -6,8 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -71,7 +71,7 @@ export default function VerificationScreen() {
         setStatus('none');
       }
     } catch (error) {
-      console.error('Error loading verification:', error);
+      if (__DEV__) console.error('Error loading verification:', error);
     } finally {
       setIsLoading(false);
     }
@@ -247,7 +247,7 @@ export default function VerificationScreen() {
                   {doc.file ? (
                     <View style={styles.docFileRow}>
                       {doc.file.type.startsWith('image/') ? (
-                        <Image source={{ uri: doc.file.uri }} style={styles.docThumb} />
+                        <Image source={doc.file.uri} style={styles.docThumb} transition={200} />
                       ) : null}
                       <Text style={[styles.docFileName, { color: colors.gray700 }]} numberOfLines={1}>{doc.file.name}</Text>
                       <TouchableOpacity

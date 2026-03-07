@@ -53,7 +53,7 @@ export default function TreasuryReportsScreen() {
       setProfitLoss(plRes.data);
       setSummary(sumRes.data);
     } catch (error) {
-      console.error('Erreur rapports financiers:', error);
+      if (__DEV__) console.error('Erreur rapports financiers:', error);
     } finally {
       setLoading(false);
     }

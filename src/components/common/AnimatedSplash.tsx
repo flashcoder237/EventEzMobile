@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Image, Dimensions, Text } from 'react-native';
+import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import { Image } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -158,7 +159,7 @@ function LogoIcon() {
       <Image
         source={require('../../../assets/icon.png')}
         style={styles.icon}
-        resizeMode="contain"
+        contentFit="contain"
       />
     </Animated.View>
   );

@@ -3,10 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { virtualRoomsAPI, recordingsAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
@@ -62,7 +62,7 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
       setRooms(Array.isArray(roomsList) ? roomsList : []);
       setRecordings(Array.isArray(recordingsList) ? recordingsList : []);
     } catch (error) {
-      console.error('Erreur chargement donnees virtuelles:', error);
+      if (__DEV__) console.error('Erreur chargement donnees virtuelles:', error);
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
       // Refresh rooms after joining
       fetchVirtualData();
     } catch (error) {
-      console.error('Erreur rejoindre la salle:', error);
+      if (__DEV__) console.error('Erreur rejoindre la salle:', error);
     }
   };
 
@@ -82,7 +82,7 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
     try {
       await recordingsAPI.incrementView(recordingId);
     } catch (error) {
-      console.error('Erreur enregistrement vue:', error);
+      if (__DEV__) console.error('Erreur enregistrement vue:', error);
     }
   };
 
@@ -192,7 +192,7 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
             >
               <View style={styles.recordingThumbnailContainer}>
                 {recording.thumbnail ? (
-                  <Image source={{ uri: recording.thumbnail }} style={styles.recordingThumbnail} />
+                  <Image source={recording.thumbnail} style={styles.recordingThumbnail} cachePolicy="disk" transition={200} />
                 ) : (
                   <View style={[styles.recordingThumbnailPlaceholder, { backgroundColor: colors.primaryBg }]}>
                     <Ionicons name="play-circle" size={32} color={colors.primary} />

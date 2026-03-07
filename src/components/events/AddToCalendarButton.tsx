@@ -51,7 +51,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
       }
       setShowModal(false);
     } catch (error) {
-      console.error('Erreur Google Calendar:', error);
+      if (__DEV__) console.error('Erreur Google Calendar:', error);
       // Fallback URL
       const startDate = event.start_date ? new Date(event.start_date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '';
       const endDate = event.end_date ? new Date(event.end_date).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '') : '';
@@ -80,7 +80,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
       }
       setShowModal(false);
     } catch (error) {
-      console.error('Erreur export iCal:', error);
+      if (__DEV__) console.error('Erreur export iCal:', error);
       // Fallback: generate ICS locally
       try {
         const icsContent = generateIcsContent();
@@ -96,7 +96,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
         }
         setShowModal(false);
       } catch (fallbackError) {
-        console.error('Erreur fallback iCal:', fallbackError);
+        if (__DEV__) console.error('Erreur fallback iCal:', fallbackError);
       }
     } finally {
       setLoading(null);

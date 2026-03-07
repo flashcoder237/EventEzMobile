@@ -66,7 +66,7 @@ export default function InvitationsScreen() {
       setReceived(receivedRes.data.results || receivedRes.data || []);
       setSent(sentRes.data.results || sentRes.data || []);
     } catch (error) {
-      console.error('Erreur invitations:', error);
+      if (__DEV__) console.error('Erreur invitations:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -85,7 +85,7 @@ export default function InvitationsScreen() {
       Alert.alert('Succes', 'Invitation acceptee !');
       fetchData();
     } catch (error) {
-      console.error('Erreur accept invitation:', error);
+      if (__DEV__) console.error('Erreur accept invitation:', error);
       Alert.alert('Erreur', 'Impossible d\'accepter l\'invitation.');
     } finally {
       setActionLoading(null);
@@ -108,7 +108,7 @@ export default function InvitationsScreen() {
               Alert.alert('Succes', 'Invitation refusee.');
               fetchData();
             } catch (error) {
-              console.error('Erreur decline invitation:', error);
+              if (__DEV__) console.error('Erreur decline invitation:', error);
               Alert.alert('Erreur', 'Impossible de refuser l\'invitation.');
             } finally {
               setActionLoading(null);

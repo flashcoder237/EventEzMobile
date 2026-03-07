@@ -18,12 +18,12 @@ import {
   FlatList,
   Platform,
   ActivityIndicator,
-  Image,
   StatusBar,
   Alert,
   TouchableOpacity,
   Clipboard,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -253,7 +253,7 @@ export default function ConversationScreen() {
       actions.setHasMore(!!data.next);
       actions.setNextPageUrl(data.next || null);
     } catch (error) {
-      console.error('Erreur chargement messages:', error);
+      if (__DEV__) console.error('Erreur chargement messages:', error);
     } finally {
       actions.setLoading(false);
       actions.setLoadingMore(false);
@@ -283,7 +283,7 @@ export default function ConversationScreen() {
 
       setupHeader(title, avatar);
     } catch (error) {
-      console.error('Erreur chargement details conversation:', error);
+      if (__DEV__) console.error('Erreur chargement details conversation:', error);
     }
   };
 
@@ -292,7 +292,7 @@ export default function ConversationScreen() {
     try {
       await messagesAPI.markConversationAsRead(state.conversationId);
     } catch (error) {
-      console.error('Erreur marquage lu:', error);
+      if (__DEV__) console.error('Erreur marquage lu:', error);
     }
   };
 
@@ -305,7 +305,7 @@ export default function ConversationScreen() {
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
           {avatar ? (
-            <Image source={{ uri: avatar }} style={styles.headerAvatar} />
+            <Image source={avatar} style={styles.headerAvatar} cachePolicy="disk" transition={200} />
           ) : (
             <View style={[styles.headerAvatarPlaceholder, { backgroundColor: colors.primary }]}>
               <Text style={styles.headerAvatarText}>
@@ -497,7 +497,7 @@ export default function ConversationScreen() {
         }]);
       }
     } catch (error) {
-      console.error('Erreur arrêt enregistrement:', error);
+      if (__DEV__) console.error('Erreur arrêt enregistrement:', error);
     }
   };
 
@@ -510,7 +510,7 @@ export default function ConversationScreen() {
       await recorder.stop();
       actions.setRecording(false);
     } catch (error) {
-      console.error('Erreur annulation enregistrement:', error);
+      if (__DEV__) console.error('Erreur annulation enregistrement:', error);
     }
   };
 
@@ -677,7 +677,7 @@ export default function ConversationScreen() {
       }
       actions.addReaction(messageIdStr, emoji, String(user?.id));
     } catch (error) {
-      console.error('Erreur ajout réaction:', error);
+      if (__DEV__) console.error('Erreur ajout réaction:', error);
     }
   };
 
@@ -763,7 +763,7 @@ export default function ConversationScreen() {
             attachmentIds.push(uploadResponse.data.id);
           }
         } catch (uploadError) {
-          console.error('Erreur upload attachment:', uploadError);
+          if (__DEV__) console.error('Erreur upload attachment:', uploadError);
         }
       }
 
@@ -817,7 +817,7 @@ export default function ConversationScreen() {
 
       // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
     } catch (error) {
-      console.error('Erreur envoi message:', error);
+      if (__DEV__) console.error('Erreur envoi message:', error);
       actions.removeTempMessages();
       actions.setNewMessage(messageContent);
       showError('Erreur', 'Impossible d\'envoyer le message');

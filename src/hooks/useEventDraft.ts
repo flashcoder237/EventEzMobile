@@ -229,7 +229,7 @@ export function useEventDraft(): UseEventDraftReturn {
       setDraftTitle(form.title || 'Sans titre');
       showSavedIndicator();
     } catch (error) {
-      console.error('Erreur sauvegarde brouillon:', error);
+      if (__DEV__) console.error('Erreur sauvegarde brouillon:', error);
     }
   }, [showSavedIndicator]);
 
@@ -262,7 +262,7 @@ export function useEventDraft(): UseEventDraftReturn {
 
       return draft;
     } catch (error) {
-      console.error('Erreur chargement brouillon:', error);
+      if (__DEV__) console.error('Erreur chargement brouillon:', error);
       return null;
     }
   }, []);
@@ -274,7 +274,7 @@ export function useEventDraft(): UseEventDraftReturn {
       setHasDraft(false);
       setDraftTitle('');
     } catch (error) {
-      console.error('Erreur suppression brouillon:', error);
+      if (__DEV__) console.error('Erreur suppression brouillon:', error);
     }
   }, []);
 

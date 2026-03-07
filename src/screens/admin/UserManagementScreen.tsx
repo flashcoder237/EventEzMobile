@@ -69,7 +69,7 @@ export default function UserManagementScreen() {
       const data = res.data?.results || res.data || [];
       setUsers(data);
     } catch (error) {
-      console.error('Erreur chargement utilisateurs:', error);
+      if (__DEV__) console.error('Erreur chargement utilisateurs:', error);
     } finally {
       setLoading(false);
     }

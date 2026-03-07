@@ -135,7 +135,7 @@ export default function MapPickerModal({
 
       setSelectedLocation(location);
     } catch (error) {
-      console.error('Reverse geocoding error:', error);
+      if (__DEV__) console.error('Reverse geocoding error:', error);
       setSelectedLocation({ lat: roundedLat, lng: roundedLng });
     }
   };
@@ -177,7 +177,7 @@ export default function MapPickerModal({
       const data = await response.json();
       setSearchResults(data);
     } catch (error) {
-      console.error('Search error:', error);
+      if (__DEV__) console.error('Search error:', error);
     } finally {
       setSearching(false);
     }
@@ -244,7 +244,7 @@ export default function MapPickerModal({
 
       await reverseGeocode(latitude, longitude);
     } catch (error) {
-      console.error('Geolocation error:', error);
+      if (__DEV__) console.error('Geolocation error:', error);
       alert('Impossible de récupérer votre position');
     } finally {
       setLoadingLocation(false);

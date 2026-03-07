@@ -11,12 +11,14 @@ import { eventBus } from '../lib/eventBus';
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api';
 
 // Log de l'URL API pour le debug
-console.log('[API] Base URL:', API_BASE_URL);
-if (!process.env.EXPO_PUBLIC_API_URL) {
-  console.warn('[API] ⚠️ EXPO_PUBLIC_API_URL non défini — fallback sur localhost (ne marchera pas en prod)');
-}
-if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
-  console.warn('[API] ⚠️ API pointe vers localhost — vérifiez votre .env ou eas.json');
+if (__DEV__) {
+  console.log('[API] Base URL:', API_BASE_URL);
+  if (!process.env.EXPO_PUBLIC_API_URL) {
+    console.warn('[API] EXPO_PUBLIC_API_URL non défini — fallback sur localhost (ne marchera pas en prod)');
+  }
+  if (API_BASE_URL.includes('localhost') || API_BASE_URL.includes('127.0.0.1')) {
+    console.warn('[API] API pointe vers localhost — vérifiez votre .env ou eas.json');
+  }
 }
 
 // Base du serveur (sans /api) pour construire les URLs média
@@ -55,7 +57,7 @@ async function fetchUpload(
   let data: any = {};
   try { data = JSON.parse(text); } catch { /* HTML error page */ }
   if (!response.ok) {
-    console.error(`[fetchUpload] ${method} ${path} → ${response.status}:`, text.slice(0, 2000));
+    if (__DEV__) console.error(`[fetchUpload] ${method} ${path} → ${response.status}:`, text.slice(0, 2000));
     const message = data?.detail || data?.non_field_errors?.[0] || JSON.stringify(data) || `HTTP ${response.status}`;
     const error: any = new Error(message);
     error.response = { status: response.status, data };
@@ -87,7 +89,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.warn('Erreur lors de la récupération du token:', error);
+      if (__DEV__) console.warn('Erreur lors de la récupération du token:', error);
     }
     // En React Native, le FormData est un polyfill — Axios peut ne pas le reconnaître
     // et tenter de le JSON.stringify (résultat: {"_parts":[...]} au lieu de multipart).
@@ -103,7 +105,7 @@ api.interceptors.request.use(
     }
 
     // Log de la requête pour debug
-    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+    if (__DEV__) console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
     if (config.data && __DEV__ && !isFormData) {
       // Ne pas logger les FormData ni les mots de passe
       const safeData = { ...config.data };
@@ -152,7 +154,7 @@ api.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean; _timeoutRetryCount?: number };
 
     // Log de l'erreur pour debug
-    console.error(`[API] Error ${error.response?.status || error.code} from ${originalRequest?.url}`);
+    if (__DEV__) console.error(`[API] Error ${error.response?.status || error.code} from ${originalRequest?.url}`);
     if (error.response?.data && __DEV__) {
       console.error('[API] Error data:', JSON.stringify(error.response.data));
     }
@@ -172,7 +174,7 @@ api.interceptors.response.use(
         if (retryCount < MAX_TIMEOUT_RETRIES) {
           originalRequest._timeoutRetryCount = retryCount + 1;
           const errorType = isTimeoutError ? 'Timeout' : 'Network Error';
-          console.log(`[API] ${errorType} - Retry ${originalRequest._timeoutRetryCount}/${MAX_TIMEOUT_RETRIES} for ${originalRequest.url}`);
+          if (__DEV__) console.log(`[API] ${errorType} - Retry ${originalRequest._timeoutRetryCount}/${MAX_TIMEOUT_RETRIES} for ${originalRequest.url}`);
 
           // Émettre un événement pour que l'UI puisse afficher la progression
           eventBus.emit('api-retry', {
@@ -181,15 +183,15 @@ api.interceptors.response.use(
             endpoint: originalRequest.url,
           });
 
-          // Attendre un peu avant de réessayer (backoff exponentiel)
-          await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+          // Backoff exponentiel: 1s, 2s, 4s
+          await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, retryCount)));
 
           return api(originalRequest);
         }
-        console.error(`[API] Max retries reached for ${originalRequest.url}`);
+        if (__DEV__) console.error(`[API] Max retries reached for ${originalRequest.url}`);
         eventBus.emit('api-server-error');
       } else {
-        console.error(`[API] File upload failed for ${originalRequest.url} (no retry for FormData)`);
+        if (__DEV__) console.error(`[API] File upload failed for ${originalRequest.url} (no retry for FormData)`);
         eventBus.emit('api-server-error');
       }
     }
@@ -261,7 +263,7 @@ interface PendingRequest {
 }
 
 const pendingRequests = new Map<string, PendingRequest>();
-const REQUEST_CACHE_TTL = 100; // 100ms - fenêtre de déduplication
+const REQUEST_CACHE_TTL = 2000; // 2s - fenêtre de déduplication (évite double-tap, re-render rapide)
 
 /**
  * Génère une clé unique pour identifier une requête
@@ -386,7 +388,7 @@ export const authAPI = {
       const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
       await api.post('/logout/', { refresh: refreshToken });
     } catch (error) {
-      console.warn('Logout API call failed:', error);
+      if (__DEV__) console.warn('Logout API call failed:', error);
     } finally {
       await clearTokens();
     }
@@ -764,6 +766,9 @@ export const ticketPurchasesAPI = {
 
   getMyTickets: () =>
     api.get('/ticket-purchases/'),
+
+  getMyPurchases: () =>
+    api.get('/ticket-purchases/my_purchases/'),
 };
 
 // Alias for backward compatibility
@@ -1367,7 +1372,7 @@ export const paymentsAPI = {
     } catch (axiosErr: any) {
       // Fallback: use native fetch if axios fails with network error
       if (axiosErr?.code === 'ERR_NETWORK' || axiosErr?.message?.includes('Network Error')) {
-        console.log('[API] Axios network error, falling back to native fetch for payment verification');
+        if (__DEV__) console.log('[API] Axios network error, falling back to native fetch for payment verification');
         const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
         const response = await fetch(`${API_BASE_URL}/payments/${id}/verify_payment/`, {
           method: 'GET',

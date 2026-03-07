@@ -27,8 +27,27 @@ export interface CacheResult<T> {
   isStale: boolean;
 }
 
-// Cache mémoire : évite des lectures AsyncStorage répétées sur la même session
+// Cache mémoire avec LRU : évite des lectures AsyncStorage répétées sur la même session
+const MAX_MEM_ENTRIES = 50;
 const mem = new Map<string, CacheEntry>();
+
+/** Éviction LRU : supprime les entrées les plus anciennes si la Map dépasse la limite */
+const evictIfNeeded = () => {
+  if (mem.size <= MAX_MEM_ENTRIES) return;
+  // Map itère dans l'ordre d'insertion → les premières clés sont les plus anciennes
+  const toRemove = mem.size - MAX_MEM_ENTRIES;
+  const iter = mem.keys();
+  for (let i = 0; i < toRemove; i++) {
+    const { value } = iter.next();
+    if (value) mem.delete(value);
+  }
+};
+
+/** Touche une clé pour la marquer comme récemment utilisée (remonter en fin de Map) */
+const touchKey = (key: string, entry: CacheEntry) => {
+  mem.delete(key);
+  mem.set(key, entry);
+};
 
 const CacheService = {
   /**
@@ -42,6 +61,7 @@ const CacheService = {
     // Mémoire d'abord
     const m = mem.get(key);
     if (m) {
+      touchKey(key, m); // LRU: marquer comme récemment utilisé
       return { data: m.data as T, isStale: now - m.timestamp > m.ttl };
     }
 
@@ -51,6 +71,7 @@ const CacheService = {
       if (!raw) return null;
       const entry: CacheEntry = JSON.parse(raw);
       mem.set(key, entry); // Réchauffer le cache mémoire
+      evictIfNeeded();
       return { data: entry.data as T, isStale: now - entry.timestamp > entry.ttl };
     } catch {
       return null;
@@ -62,7 +83,9 @@ const CacheService = {
    */
   async set<T>(key: string, data: T, ttl = DEFAULT_TTL): Promise<void> {
     const entry: CacheEntry = { data, timestamp: Date.now(), ttl };
+    mem.delete(key); // Supprimer d'abord pour que set le place en fin (LRU)
     mem.set(key, entry);
+    evictIfNeeded();
     try {
       await AsyncStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
     } catch {

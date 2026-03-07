@@ -133,7 +133,7 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
     try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
     } catch (error) {
-      console.error('[Onboarding] Error saving completion state:', error);
+      if (__DEV__) console.error('[Onboarding] Error saving completion state:', error);
     }
     onComplete();
   };

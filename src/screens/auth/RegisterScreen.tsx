@@ -4,10 +4,10 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  Image,
   StatusBar,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
@@ -222,7 +222,7 @@ export default function RegisterScreen() {
             <Image
               source={require('../../../assets/logo.png')}
               style={styles.logo}
-              resizeMode="contain"
+              contentFit="contain"
             />
           </View>
 

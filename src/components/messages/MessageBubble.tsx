@@ -9,8 +9,8 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../../types';
 import {
@@ -95,9 +95,11 @@ function MessageBubble({
       return (
         <Image
           key={attachment.id || index}
-          source={{ uri: attachment.file }}
+          source={attachment.file}
           style={[styles.imageAttachment, { backgroundColor: colors.gray100 }]}
-          resizeMode="cover"
+          contentFit="cover"
+          cachePolicy="disk"
+          transition={200}
         />
       );
     }
@@ -211,7 +213,7 @@ function MessageBubble({
         isGrouped ? (
           <View style={styles.avatarSpacer} />
         ) : avatar ? (
-          <Image source={{ uri: avatar }} style={styles.avatar} />
+          <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
         ) : (
           <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200 }]}>
             <Text style={[styles.avatarInitials, { color: colors.gray600 }]}>{initials}</Text>

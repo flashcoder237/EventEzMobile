@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getMediaUrl } from '../../api/client';
@@ -54,7 +55,7 @@ export default function MapEventCard({
       {/* Image */}
       <View style={styles.imageContainer}>
         {imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+          <Image source={imageUrl} style={styles.image} contentFit="cover" cachePolicy="disk" transition={200} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.gray200 }]}>
             <Ionicons name="calendar-outline" size={28} color={colors.gray400} />

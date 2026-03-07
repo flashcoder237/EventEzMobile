@@ -55,7 +55,7 @@ export default function UserEditScreen() {
       setUser(res.data);
       setSelectedRole(res.data.role || 'user');
     } catch (error) {
-      console.error('Erreur chargement utilisateur:', error);
+      if (__DEV__) console.error('Erreur chargement utilisateur:', error);
       showError('Erreur', 'Impossible de charger l\'utilisateur');
     } finally {
       setLoading(false);

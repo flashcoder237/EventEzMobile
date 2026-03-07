@@ -4,11 +4,11 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
-  Image,
   TextInput,
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { seatingAPI, floorPlansAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
@@ -80,7 +80,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
       setSeatingPlans(seatingRes.data?.results || seatingRes.data || []);
       setFloorPlans(floorRes.data?.results || floorRes.data || []);
     } catch (error) {
-      console.error('Erreur chargement venue:', error);
+      if (__DEV__) console.error('Erreur chargement venue:', error);
     } finally {
       setLoading(false);
     }
@@ -265,9 +265,11 @@ export default function VenueTab({ eventId }: VenueTabProps) {
               )}
               {fp.image && (
                 <Image
-                  source={{ uri: fp.image }}
+                  source={fp.image}
                   style={[styles.floorPlanImage, { backgroundColor: colors.surface }]}
-                  resizeMode="contain"
+                  contentFit="contain"
+                  cachePolicy="disk"
+                  transition={200}
                 />
               )}
               {fp.areas && fp.areas.length > 0 && (

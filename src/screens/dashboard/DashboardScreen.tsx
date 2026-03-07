@@ -89,14 +89,23 @@ export default function DashboardScreen() {
         }
       }
 
+      // Extraire le count depuis reponse paginee {count, results} ou tableau direct [...]
+      const extractCount = (res: any) => {
+        const d = res.data;
+        if (d?.count !== undefined) return d.count;
+        if (Array.isArray(d?.results)) return d.results.length;
+        if (Array.isArray(d)) return d.length;
+        return 0;
+      };
+
       const promises: Promise<any>[] = [
-        ticketPurchasesAPI.getMyTickets().catch(() => ({ data: { count: 0 } })),
+        ticketPurchasesAPI.getMyPurchases().catch(() => ({ data: [] })),
         notificationsAPI.getNotifications({ is_read: false, page_size: 1 }).catch(() => ({ data: { count: 0 } })),
       ];
 
       if (isOrganizer) {
         promises.push(
-          eventsAPI.getEvents({ my_events: true, page_size: 1 }).catch(() => ({ data: { count: 0 } })),
+          eventsAPI.getMyEvents().catch(() => ({ data: [] })),
           walletAPI.getMyWallet().catch(() => ({ data: { available_balance: 0 } }))
         );
       }
@@ -104,15 +113,15 @@ export default function DashboardScreen() {
       const results = await Promise.all(promises);
 
       const newStats = {
-        tickets: results[0].data?.count || results[0].data?.results?.length || 0,
-        notifications: results[1].data?.count || results[1].data?.results?.length || 0,
-        events: isOrganizer ? (results[2]?.data?.count || results[2]?.data?.results?.length || 0) : 0,
+        tickets: extractCount(results[0]),
+        notifications: extractCount(results[1]),
+        events: isOrganizer ? extractCount(results[2]) : 0,
         balance: isOrganizer ? (results[3]?.data?.available_balance || 0) : 0,
       };
       setStats(newStats);
       CacheService.set(cacheKey, newStats, 2 * 60 * 1000); // fraîcheur : 2 minutes
     } catch (error) {
-      console.error('Erreur chargement stats:', error);
+      if (__DEV__) console.error('Erreur chargement stats:', error);
     } finally {
       setRefreshing(false);
     }

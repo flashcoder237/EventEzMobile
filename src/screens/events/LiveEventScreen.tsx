@@ -83,7 +83,7 @@ export default function LiveEventScreen() {
       setQuestions(questionsRes.data.results || questionsRes.data || []);
       setPolls(pollsRes.data.results || pollsRes.data || []);
     } catch (error) {
-      console.error('Erreur live event:', error);
+      if (__DEV__) console.error('Erreur live event:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -110,7 +110,7 @@ export default function LiveEventScreen() {
       setIsAnonymous(false);
       fetchData();
     } catch (error) {
-      console.error('Erreur envoi question:', error);
+      if (__DEV__) console.error('Erreur envoi question:', error);
       Alert.alert('Erreur', 'Impossible d\'envoyer la question.');
     } finally {
       setSubmitting(false);
@@ -132,7 +132,7 @@ export default function LiveEventScreen() {
         )
       );
     } catch (error) {
-      console.error('Erreur upvote:', error);
+      if (__DEV__) console.error('Erreur upvote:', error);
     }
   };
 
@@ -147,7 +147,7 @@ export default function LiveEventScreen() {
         prev.map((p) => (p.id === pollId ? { ...p, ...updatedPoll, has_voted: true, voted_option: optionId } : p))
       );
     } catch (error) {
-      console.error('Erreur vote:', error);
+      if (__DEV__) console.error('Erreur vote:', error);
       Alert.alert('Erreur', 'Impossible de voter.');
     } finally {
       setVotingId(null);

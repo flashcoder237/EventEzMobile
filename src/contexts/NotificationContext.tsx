@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from 'react';
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -51,10 +51,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Handle notification tap navigation
   const handleNotificationNavigation = useCallback((data: PushNotificationData) => {
-    console.log('[Notification] Handling navigation with data:', data);
+    if (__DEV__) console.log('[Notification] Handling navigation with data:', data);
 
     if (!navigation) {
-      console.warn('[Notification] Navigation not available yet');
+      if (__DEV__) console.warn('[Notification] Navigation not available yet');
       return;
     }
 
@@ -125,7 +125,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
       }
     } catch (error) {
-      console.error('[Notification] Navigation error:', error);
+      if (__DEV__) console.error('[Notification] Navigation error:', error);
       // Fallback: try simple navigate to Notifications
       try {
         navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
@@ -150,7 +150,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       if (token) {
         setPushToken(token);
         setPushEnabled(true);
-        console.log('[Notification] Push notifications initialized with token:', token);
+        if (__DEV__) console.log('[Notification] Push notifications initialized with token:', token);
       }
 
       // Check if app was opened from a notification
@@ -161,7 +161,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         setTimeout(() => handleNotificationNavigation(data), 1000);
       }
     } catch (error) {
-      console.error('[Notification] Error initializing push notifications:', error);
+      if (__DEV__) console.error('[Notification] Error initializing push notifications:', error);
     }
   }, [isAuthenticated, handleNotificationNavigation]);
 
@@ -197,10 +197,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }, 0);
         setUnreadMessageCount(unreadMsgs);
       } catch (error) {
-        console.error('Error fetching message count:', error);
+        if (__DEV__) console.error('Error fetching message count:', error);
       }
     } catch (error) {
-      console.error('Error fetching unread counts:', error);
+      if (__DEV__) console.error('Error fetching unread counts:', error);
     }
   }, [isAuthenticated, pushEnabled]);
 
@@ -209,7 +209,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
-      const response = await notificationsAPI.getNotifications({ page_size: 50 });
+      const response = await notificationsAPI.getNotifications({ page_size: 20 });
       const notifs = response.data?.results || response.data || [];
       setNotifications(notifs);
 
@@ -222,7 +222,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await pushNotificationService.setBadgeCount(unread);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      if (__DEV__) console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
@@ -242,7 +242,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await pushNotificationService.setBadgeCount(newCount);
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      if (__DEV__) console.error('Error marking notification as read:', error);
     }
   }, [unreadNotificationCount, pushEnabled]);
 
@@ -257,7 +257,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await pushNotificationService.setBadgeCount(0);
       }
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      if (__DEV__) console.error('Error marking all notifications as read:', error);
     }
   }, [pushEnabled]);
 
@@ -286,7 +286,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       // Show our custom modal first
       setShowPermissionModal(true);
     } catch (error) {
-      console.error('[Notification] Error checking push permission:', error);
+      if (__DEV__) console.error('[Notification] Error checking push permission:', error);
     }
   }, []);
 
@@ -366,24 +366,38 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const value = useMemo(() => ({
+    notifications,
+    unreadNotificationCount,
+    unreadMessageCount,
+    loading,
+    pushToken,
+    pushEnabled,
+    fetchNotifications,
+    fetchUnreadCounts,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    refreshCounts,
+    initializePushNotifications,
+    requestPushPermission,
+  }), [
+    notifications,
+    unreadNotificationCount,
+    unreadMessageCount,
+    loading,
+    pushToken,
+    pushEnabled,
+    fetchNotifications,
+    fetchUnreadCounts,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    refreshCounts,
+    initializePushNotifications,
+    requestPushPermission,
+  ]);
+
   return (
-    <NotificationContext.Provider
-      value={{
-        notifications,
-        unreadNotificationCount,
-        unreadMessageCount,
-        loading,
-        pushToken,
-        pushEnabled,
-        fetchNotifications,
-        fetchUnreadCounts,
-        markNotificationAsRead,
-        markAllNotificationsAsRead,
-        refreshCounts,
-        initializePushNotifications,
-        requestPushPermission,
-      }}
-    >
+    <NotificationContext.Provider value={value}>
       {children}
       <PushPermissionModal
         visible={showPermissionModal}

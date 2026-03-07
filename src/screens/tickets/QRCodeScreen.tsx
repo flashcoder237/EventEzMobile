@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Share,
-  Image,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -62,7 +61,7 @@ export default function QRCodeScreen() {
       const response = await ticketPurchasesAPI.getTicketPurchase(ticketId);
       setTicket(response.data);
     } catch (error) {
-      console.error('Error fetching ticket:', error);
+      if (__DEV__) console.error('Error fetching ticket:', error);
       showError('Erreur', 'Impossible de charger les détails du billet');
     } finally {
       setLoading(false);
@@ -184,7 +183,7 @@ export default function QRCodeScreen() {
         UTI: 'com.adobe.pdf',
       });
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      if (__DEV__) console.error('Error generating PDF:', error);
       showError('Erreur', 'Impossible de générer le PDF');
     }
   };
@@ -195,7 +194,7 @@ export default function QRCodeScreen() {
       const html = generateTicketHTML();
       await Print.printAsync({ html });
     } catch (error) {
-      console.error('Error printing:', error);
+      if (__DEV__) console.error('Error printing:', error);
       showError('Erreur', 'Impossible d\'imprimer le billet');
     }
   };
@@ -209,7 +208,7 @@ export default function QRCodeScreen() {
         title: 'Mon billet EventEz',
       });
     } catch (error) {
-      console.error('Error sharing:', error);
+      if (__DEV__) console.error('Error sharing:', error);
     }
   };
 
@@ -368,11 +367,11 @@ export default function QRCodeScreen() {
 
           {/* QR Code Section */}
           <View style={styles.qrSection}>
-            <View style={[styles.qrContainer, { backgroundColor: Colors.white, borderColor: colors.primary }]}>
+            <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF', borderColor: colors.primary }]}>
               <QRCode
                 value={verificationUrl}
                 size={QR_SIZE}
-                color="#5B21B6"
+                color={isDark ? '#4C1D95' : '#5B21B6'}
                 backgroundColor="#FFFFFF"
               />
             </View>
@@ -515,7 +514,7 @@ export default function QRCodeScreen() {
               }
             }}
           >
-            <Ionicons name="card-outline" size={20} color={Colors.white} />
+            <Ionicons name="card-outline" size={20} color="#FFFFFF" />
             <Text style={styles.completePaymentText}>Finaliser le paiement</Text>
           </TouchableOpacity>
         )}
@@ -523,7 +522,7 @@ export default function QRCodeScreen() {
         {/* Buy more tickets button - for confirmed tickets */}
         {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
           <TouchableOpacity
-            style={[styles.buyMoreButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
+            style={[styles.buyMoreButton, { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 1 }]}
             onPress={() => {
               const eventId = event?.id || ticket.event_id;
               if (eventId) {

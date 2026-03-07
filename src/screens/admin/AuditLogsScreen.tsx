@@ -62,7 +62,7 @@ export default function AuditLogsScreen() {
       setLogs(Array.isArray(data) ? data : []);
       setStats(statsRes.data);
     } catch (error) {
-      console.error('Erreur audit logs:', error);
+      if (__DEV__) console.error('Erreur audit logs:', error);
     } finally {
       setLoading(false);
     }

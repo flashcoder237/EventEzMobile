@@ -64,7 +64,7 @@ export default function AnalyticsDashboardScreen() {
       setRevenueData(revenueRes.data);
       setRegistrationData(registrationRes.data);
     } catch (error) {
-      console.error('Erreur analytics:', error);
+      if (__DEV__) console.error('Erreur analytics:', error);
     } finally {
       setLoading(false);
     }

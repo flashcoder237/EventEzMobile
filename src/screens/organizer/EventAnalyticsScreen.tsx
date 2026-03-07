@@ -81,7 +81,7 @@ export default function EventAnalyticsScreen() {
       setEvent(eventRes.data);
       setAnalytics(analyticsRes.data);
     } catch (error) {
-      console.error('Erreur chargement analytics:', error);
+      if (__DEV__) console.error('Erreur chargement analytics:', error);
     } finally {
       setLoading(false);
     }

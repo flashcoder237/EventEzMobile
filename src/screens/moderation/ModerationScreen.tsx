@@ -8,12 +8,12 @@ import {
   RefreshControl,
   ActivityIndicator,
   StatusBar,
-  Image,
   TextInput,
   Modal,
   Platform,
   Alert,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -92,7 +92,7 @@ export default function ModerationScreen() {
       const data = response.data?.results || response.data || [];
       setEvents(data);
     } catch (error: any) {
-      console.error('Error fetching pending events:', error);
+      if (__DEV__) console.error('Error fetching pending events:', error);
       showError('Erreur', 'Impossible de charger les événements en attente');
     } finally {
       setLoading(false);
@@ -237,7 +237,7 @@ export default function ModerationScreen() {
         {/* Image */}
         <View style={styles.cardImage}>
           {item.banner_image ? (
-            <Image source={{ uri: getMediaUrl(item.banner_image)! }} style={styles.image} />
+            <Image source={getMediaUrl(item.banner_image)!} style={styles.image} cachePolicy="disk" transition={200} />
           ) : (
             <View style={[styles.imagePlaceholder, isBilletterie ? styles.imagePlaceholderBillet : styles.imagePlaceholderInscription]}>
               <Ionicons

@@ -137,7 +137,7 @@ export default function NotificationsScreen() {
       setNotifications(data);
       CacheService.set(cacheKey, data, 60 * 1000); // fraîcheur : 1 minute
     } catch (error) {
-      console.error('Erreur chargement notifications:', error);
+      if (__DEV__) console.error('Erreur chargement notifications:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -228,7 +228,7 @@ export default function NotificationsScreen() {
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
     } catch (error) {
-      console.error('Erreur marquage lu:', error);
+      if (__DEV__) console.error('Erreur marquage lu:', error);
     }
   };
 
@@ -237,7 +237,7 @@ export default function NotificationsScreen() {
       await notificationsAPI.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (error) {
-      console.error('Erreur marquage tous lus:', error);
+      if (__DEV__) console.error('Erreur marquage tous lus:', error);
     }
   };
 
@@ -250,7 +250,7 @@ export default function NotificationsScreen() {
           await notificationsAPI.deleteNotification(id);
           setNotifications(prev => prev.filter(n => n.id !== id));
         } catch (error) {
-          console.error('Erreur suppression:', error);
+          if (__DEV__) console.error('Erreur suppression:', error);
         }
       }
     );

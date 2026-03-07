@@ -6,12 +6,12 @@ import {
   FlatList,
   TouchableOpacity,
   TextInput,
-  Image,
   RefreshControl,
   StatusBar,
   ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -90,7 +90,7 @@ export default function FollowingEventsScreen() {
       setFollows(data);
       CacheService.set(cacheKey, data, 2 * 60 * 1000); // fraîcheur : 2 minutes
     } catch (error) {
-      console.error('Error loading followed events:', error);
+      if (__DEV__) console.error('Error loading followed events:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -112,7 +112,7 @@ export default function FollowingEventsScreen() {
           setFollows(prev => prev.filter(f => f.event !== eventId && f.event_details?.id !== eventId));
           CacheService.invalidate(`following:${user?.id}`);
         } catch (error) {
-          console.error('Error unfollowing:', error);
+          if (__DEV__) console.error('Error unfollowing:', error);
           showError('Erreur', 'Impossible de ne plus suivre cet evenement');
         }
       }
@@ -133,7 +133,7 @@ export default function FollowingEventsScreen() {
         )
       );
     } catch (error) {
-      console.error('Error updating preferences:', error);
+      if (__DEV__) console.error('Error updating preferences:', error);
       showError('Erreur', 'Impossible de mettre a jour les preferences');
     }
   };
@@ -224,10 +224,11 @@ export default function FollowingEventsScreen() {
         <Image
           source={
             getMediaUrl(event.banner_image || event.category?.default_event_image)
-              ? { uri: getMediaUrl(event.banner_image || event.category?.default_event_image)! }
-              : require('../../../assets/defaults/default-event.png')
+              || require('../../../assets/defaults/default-event.png')
           }
           style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
+          cachePolicy="disk"
+          transition={200}
         />
 
         {/* Content */}
@@ -467,6 +468,9 @@ export default function FollowingEventsScreen() {
           ListEmptyComponent={renderEmptyState}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews
         />
       </ContentTransition>
     </View>

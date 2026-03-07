@@ -48,7 +48,7 @@ export default function TreasuryOverviewScreen() {
       const res = await treasuryAPI.getOverview();
       setOverview(res.data);
     } catch (error) {
-      console.error('Erreur tresorerie:', error);
+      if (__DEV__) console.error('Erreur tresorerie:', error);
     } finally {
       setLoading(false);
     }

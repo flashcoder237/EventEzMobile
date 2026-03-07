@@ -126,7 +126,7 @@ export default function WalletScreen() {
         });
       }
     } catch (error) {
-      console.error('Erreur chargement données portefeuille:', error);
+      if (__DEV__) console.error('Erreur chargement données portefeuille:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

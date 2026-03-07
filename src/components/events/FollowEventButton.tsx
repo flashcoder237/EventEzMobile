@@ -86,7 +86,7 @@ export default function FollowEventButton({
         });
       }
     } catch (error) {
-      console.error('Error checking follow status:', error);
+      if (__DEV__) console.error('Error checking follow status:', error);
     }
   };
 
@@ -95,7 +95,7 @@ export default function FollowEventButton({
       const response = await eventsAPI.getFollowersCount(eventId);
       setFollowersCount(response.data.followers_count || 0);
     } catch (error) {
-      console.error('Error loading followers count:', error);
+      if (__DEV__) console.error('Error loading followers count:', error);
     }
   };
 
@@ -120,7 +120,7 @@ export default function FollowEventButton({
         onFollowChange?.(true);
       }
     } catch (error) {
-      console.error('Error toggling follow:', error);
+      if (__DEV__) console.error('Error toggling follow:', error);
       showError('Erreur', 'Une erreur est survenue');
     } finally {
       setIsLoading(false);
@@ -133,7 +133,7 @@ export default function FollowEventButton({
       await eventsAPI.updateFollowPreferences(eventId, preferences);
       setShowPreferences(false);
     } catch (error) {
-      console.error('Error updating preferences:', error);
+      if (__DEV__) console.error('Error updating preferences:', error);
       showError('Erreur', 'Impossible de mettre à jour les préférences');
     } finally {
       setIsLoading(false);

@@ -74,7 +74,7 @@ export default function QRScannerScreen() {
         const response = await eventsAPI.getEvent(eventId);
         setEvent(response.data);
       } catch (error) {
-        console.error('Error fetching event:', error);
+        if (__DEV__) console.error('Error fetching event:', error);
       }
     };
     fetchEvent();
@@ -137,7 +137,7 @@ export default function QRScannerScreen() {
         success: prev.success + 1,
       }));
     } catch (error: any) {
-      console.error('Scan error:', error);
+      if (__DEV__) console.error('Scan error:', error);
 
       let message = 'Code QR invalide ou non reconnu';
       if (error.message === 'Format de QR code non reconnu') {
@@ -258,7 +258,7 @@ export default function QRScannerScreen() {
             <Ionicons
               name={flashOn ? 'flash' : 'flash-outline'}
               size={24}
-              color={flashOn ? '#FBBF24' : colors.white}
+              color={flashOn ? colors.warning : '#FFFFFF'}
             />
           </TouchableOpacity>
         </SafeAreaView>
@@ -294,12 +294,12 @@ export default function QRScannerScreen() {
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: '#10B981' }]}>{stats.success}</Text>
+              <Text style={[styles.statValue, { color: colors.success }]}>{stats.success}</Text>
               <Text style={styles.statLabel}>Validés</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: '#EF4444' }]}>{stats.failed}</Text>
+              <Text style={[styles.statValue, { color: colors.error }]}>{stats.failed}</Text>
               <Text style={styles.statLabel}>Échoués</Text>
             </View>
           </View>
@@ -618,10 +618,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   resultIconSuccess: {
-    backgroundColor: '#D1FAE5',
+    backgroundColor: Colors.successLight,
   },
   resultIconError: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: Colors.errorLight,
   },
   resultTitle: {
     ...TextStyles.h3,
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
   manualCheckInButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#10B981',
+    backgroundColor: Colors.success,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,

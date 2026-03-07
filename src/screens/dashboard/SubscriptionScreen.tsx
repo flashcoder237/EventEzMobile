@@ -199,7 +199,7 @@ export default function SubscriptionScreen() {
         setSubscription(subRes.data);
       }
     } catch (err) {
-      console.error('Erreur chargement abonnement:', err);
+      if (__DEV__) console.error('Erreur chargement abonnement:', err);
     } finally {
       setLoading(false);
     }

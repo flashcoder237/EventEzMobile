@@ -6,10 +6,10 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Image,
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
@@ -144,7 +144,7 @@ export default function EditProfileScreen() {
         await handleUploadImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error('Erreur sélection image:', error);
+      if (__DEV__) console.error('Erreur sélection image:', error);
       showError('Erreur', 'Impossible de sélectionner l\'image');
     }
   };
@@ -179,13 +179,15 @@ export default function EditProfileScreen() {
       }
       showSuccess('Succès', 'Photo de profil mise à jour');
     } catch (error: any) {
-      console.error('Erreur upload image:', error);
-      console.error('Upload error details:', {
-        status: error.response?.status,
-        data: error.response?.data,
-        code: error.code,
-        message: error.message,
-      });
+      if (__DEV__) {
+        console.error('Erreur upload image:', error);
+        console.error('Upload error details:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          code: error.code,
+          message: error.message,
+        });
+      }
       setProfileImage(user?.profile_picture || user?.image || null);
       const detail = error.response?.data?.detail || error.message || '';
       showError('Erreur', `Impossible de mettre à jour la photo de profil. ${detail}`);
@@ -214,7 +216,7 @@ export default function EditProfileScreen() {
 
       showSuccess('Succès', 'Votre profil a été mis à jour');
     } catch (error: any) {
-      console.error('Erreur mise à jour profil:', error);
+      if (__DEV__) console.error('Erreur mise à jour profil:', error);
       showError(
         'Erreur',
         error.response?.data?.detail || 'Impossible de mettre à jour le profil'
@@ -252,7 +254,7 @@ export default function EditProfileScreen() {
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
-      console.error('Erreur changement mot de passe:', error);
+      if (__DEV__) console.error('Erreur changement mot de passe:', error);
       showError(
         'Erreur',
         error.response?.data?.detail || 'Impossible de changer le mot de passe'
@@ -290,8 +292,10 @@ export default function EditProfileScreen() {
             >
               {profileImage ? (
                 <Image
-                  source={{ uri: profileImage }}
+                  source={profileImage}
                   style={[styles.profileImage, { borderColor: colors.primary }]}
+                  cachePolicy="disk"
+                  transition={200}
                 />
               ) : (
                 <View style={[styles.initialsContainer, { backgroundColor: colors.gray200, borderColor: colors.primary }]}>

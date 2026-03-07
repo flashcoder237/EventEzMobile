@@ -84,10 +84,10 @@ export function useEventReminders() {
         setPermissionGranted(finalStatus === 'granted');
 
         if (finalStatus !== 'granted') {
-          console.log('Permission de notification refusée');
+          if (__DEV__) console.log('Permission de notification refusée');
         }
       } else {
-        console.log('Les notifications ne fonctionnent que sur un appareil physique');
+        if (__DEV__) console.log('Les notifications ne fonctionnent que sur un appareil physique');
       }
 
       // Configuration spécifique Android
@@ -100,7 +100,7 @@ export function useEventReminders() {
         });
       }
     } catch (error) {
-      console.error('Erreur initialisation notifications:', error);
+      if (__DEV__) console.error('Erreur initialisation notifications:', error);
     } finally {
       setLoading(false);
     }
@@ -133,7 +133,7 @@ export function useEventReminders() {
     location_city?: string;
   }, registrationId: string): Promise<boolean> => {
     if (!permissionGranted || !settings.enabled) {
-      console.log('Notifications non autorisées ou désactivées');
+      if (__DEV__) console.log('Notifications non autorisées ou désactivées');
       return false;
     }
 
@@ -142,7 +142,7 @@ export function useEventReminders() {
 
     // Vérifier que l'événement est dans le futur
     if (eventDate <= now) {
-      console.log('L\'événement est déjà passé');
+      if (__DEV__) console.log('L\'événement est déjà passé');
       return false;
     }
 
@@ -209,7 +209,7 @@ export function useEventReminders() {
     const newReminders = { ...scheduledReminders, [event.id]: reminder };
     await saveReminders(newReminders);
 
-    console.log(`Rappels programmés pour ${event.title}`);
+    if (__DEV__) console.log(`Rappels programmés pour ${event.title}`);
     return true;
   }, [permissionGranted, settings, scheduledReminders, saveReminders]);
 

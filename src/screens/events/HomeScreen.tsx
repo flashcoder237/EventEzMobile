@@ -9,8 +9,8 @@ import {
   Dimensions,
   StatusBar,
   TouchableOpacity,
-  Image,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -73,7 +73,7 @@ export default function HomeScreen() {
         });
       }
     } catch (error) {
-      console.error('Erreur de localisation:', error);
+      if (__DEV__) console.error('Erreur de localisation:', error);
     }
   };
 
@@ -92,7 +92,7 @@ export default function HomeScreen() {
       setCategories(getApiResults<Category>(categoriesRes));
       setUpcomingEvents(upcomingData);
     } catch (error) {
-      console.error('Erreur de chargement:', error);
+      if (__DEV__) console.error('Erreur de chargement:', error);
     }
   };
 
@@ -102,7 +102,7 @@ export default function HomeScreen() {
       const data = getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date));
       setRecommendations(data);
     } catch (error) {
-      console.log('Recommendations non disponibles:', error);
+      if (__DEV__) console.log('Recommendations non disponibles:', error);
     }
   };
 
@@ -119,7 +119,7 @@ export default function HomeScreen() {
       const nearbyData = getApiResults<Event>(response).filter(e => isEventInFuture(e.start_date));
       setNearbyEvents(nearbyData);
     } catch (error) {
-      console.error('Erreur événements proches:', error);
+      if (__DEV__) console.error('Erreur événements proches:', error);
     }
   };
 
@@ -235,7 +235,7 @@ export default function HomeScreen() {
           <Image
             source={require('../../../assets/logo.png')}
             style={styles.logoImage}
-            resizeMode="contain"
+            contentFit="contain"
           />
           <View style={styles.headerActions}>
             <TouchableOpacity

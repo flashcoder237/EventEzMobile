@@ -84,7 +84,7 @@ export default function DiscountFormScreen() {
         setSelectedTicketTypes(d.applicable_ticket_types || []);
       }
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      if (__DEV__) console.error('Erreur chargement données:', error);
     } finally {
       setFetchingData(false);
     }
@@ -166,7 +166,7 @@ export default function DiscountFormScreen() {
       } else {
         showError(detail || 'Erreur lors de la sauvegarde');
       }
-      console.error('Erreur sauvegarde:', error);
+      if (__DEV__) console.error('Erreur sauvegarde:', error);
     } finally {
       setLoading(false);
     }

@@ -85,7 +85,7 @@ export default function ReferralScreen() {
         setStats({ total_clicks: 0, total_conversions: 0, total_earnings: 0 });
       }
     } catch (error) {
-      console.error('Erreur referrals:', error);
+      if (__DEV__) console.error('Erreur referrals:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -103,7 +103,7 @@ export default function ReferralScreen() {
       setCopiedId(id);
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
-      console.error('Erreur copie:', error);
+      if (__DEV__) console.error('Erreur copie:', error);
       Alert.alert('Erreur', 'Impossible de copier le code.');
     }
   };
@@ -119,7 +119,7 @@ export default function ReferralScreen() {
         title: 'Parrainage EventEz',
       });
     } catch (error) {
-      console.error('Erreur partage:', error);
+      if (__DEV__) console.error('Erreur partage:', error);
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
 import CustomAlert, { AlertType } from '../components/common/CustomAlert';
 
 interface AlertButton {
@@ -78,17 +78,17 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     ], 'confirm');
   }, [showAlert]);
 
+  const value = useMemo(() => ({
+    showAlert,
+    showSuccess,
+    showError,
+    showWarning,
+    showConfirm,
+    hideAlert,
+  }), [showAlert, showSuccess, showError, showWarning, showConfirm, hideAlert]);
+
   return (
-    <AlertContext.Provider
-      value={{
-        showAlert,
-        showSuccess,
-        showError,
-        showWarning,
-        showConfirm,
-        hideAlert,
-      }}
-    >
+    <AlertContext.Provider value={value}>
       {children}
       <CustomAlert
         visible={alertState.visible}

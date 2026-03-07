@@ -97,10 +97,10 @@ export default function MyTicketsScreen() {
             }))
         );
       if (ticketsToCache.length > 0) {
-        cacheMultipleTickets(ticketsToCache).catch(console.error);
+        cacheMultipleTickets(ticketsToCache).catch((e: any) => { if (__DEV__) console.error(e); });
       }
     } catch (error) {
-      console.error('Erreur chargement inscriptions:', error);
+      if (__DEV__) console.error('Erreur chargement inscriptions:', error);
     } finally {
       setLoading(false);
     }
@@ -821,6 +821,10 @@ export default function MyTicketsScreen() {
             tintColor={colors.primary}
           />
         }
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews
+        initialNumToRender={8}
       />
         </View>
       </SafeAreaView>

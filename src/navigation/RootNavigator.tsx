@@ -122,7 +122,7 @@ export default function RootNavigator() {
       const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
       setShowOnboarding(completed !== 'true');
     } catch (error) {
-      console.error('[RootNavigator] Error checking onboarding status:', error);
+      if (__DEV__) console.error('[RootNavigator] Error checking onboarding status:', error);
       setShowOnboarding(false);
     } finally {
       setCheckingOnboarding(false);

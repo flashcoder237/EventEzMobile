@@ -59,7 +59,7 @@ export default function TreasuryStaffScreen() {
       setStaff(staffRes.data?.results || staffRes.data || []);
       setPayments(paymentsRes.data?.results || paymentsRes.data || []);
     } catch (error) {
-      console.error('Erreur staff:', error);
+      if (__DEV__) console.error('Erreur staff:', error);
     } finally {
       setLoading(false);
     }

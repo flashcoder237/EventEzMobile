@@ -54,14 +54,14 @@ class PushNotificationService {
   async initialize(): Promise<string | null> {
     // Check if running on physical device
     if (!Device.isDevice) {
-      console.log('[Push] Must use physical device for push notifications');
+      if (__DEV__) console.log('[Push] Must use physical device for push notifications');
       return null;
     }
 
     // Request permissions
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) {
-      console.log('[Push] Permission not granted');
+      if (__DEV__) console.log('[Push] Permission not granted');
       return null;
     }
 
@@ -75,7 +75,7 @@ class PushNotificationService {
         return token;
       }
     } catch (error) {
-      console.warn('[Push] Firebase not configured, push notifications disabled:', error);
+      if (__DEV__) console.warn('[Push] Firebase not configured, push notifications disabled:', error);
       // Continue without push notifications - app still works
     }
 
@@ -96,7 +96,7 @@ class PushNotificationService {
       }
 
       if (finalStatus !== 'granted') {
-        console.log('[Push] Failed to get push token - permission denied');
+        if (__DEV__) console.log('[Push] Failed to get push token - permission denied');
         return false;
       }
 
@@ -107,7 +107,7 @@ class PushNotificationService {
 
       return true;
     } catch (error) {
-      console.error('[Push] Error requesting permissions:', error);
+      if (__DEV__) console.error('[Push] Error requesting permissions:', error);
       return false;
     }
   }
@@ -167,23 +167,23 @@ class PushNotificationService {
       });
 
       const token = tokenData.data;
-      console.log('[Push] Expo push token:', token);
+      if (__DEV__) console.log('[Push] Expo push token:', token);
 
       // Store token locally
       await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
 
       return token;
     } catch (error) {
-      console.error('[Push] Error getting push token:', error);
+      if (__DEV__) console.error('[Push] Error getting push token:', error);
       // Try without projectId for development builds
       try {
         const tokenData = await Notifications.getExpoPushTokenAsync();
         const token = tokenData.data;
-        console.log('[Push] Expo push token (fallback):', token);
+        if (__DEV__) console.log('[Push] Expo push token (fallback):', token);
         await AsyncStorage.setItem(PUSH_TOKEN_KEY, token);
         return token;
       } catch (fallbackError) {
-        console.error('[Push] Fallback also failed:', fallbackError);
+        if (__DEV__) console.error('[Push] Fallback also failed:', fallbackError);
         return null;
       }
     }
@@ -203,10 +203,10 @@ class PushNotificationService {
       };
 
       await notificationsAPI.registerDevice(deviceInfo);
-      console.log('[Push] Token registered with backend');
+      if (__DEV__) console.log('[Push] Token registered with backend');
       return true;
     } catch (error) {
-      console.error('[Push] Error registering token with backend:', error);
+      if (__DEV__) console.error('[Push] Error registering token with backend:', error);
       return false;
     }
   }
@@ -224,14 +224,14 @@ class PushNotificationService {
           await notificationsAPI.unregisterDevice(token);
         } catch (apiError) {
           // Ignore API errors (401 is expected if called after logout)
-          console.log('[Push] Backend unregister skipped (user may be logged out)');
+          if (__DEV__) console.log('[Push] Backend unregister skipped (user may be logged out)');
         }
         // Always clear local token
         await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
-        console.log('[Push] Device unregistered locally');
+        if (__DEV__) console.log('[Push] Device unregistered locally');
       }
     } catch (error) {
-      console.error('[Push] Error unregistering device:', error);
+      if (__DEV__) console.error('[Push] Error unregistering device:', error);
     }
   }
 
@@ -242,7 +242,7 @@ class PushNotificationService {
     // Listener for notifications received while app is in foreground
     this.notificationListener = Notifications.addNotificationReceivedListener(
       (notification) => {
-        console.log('[Push] Notification received in foreground:', notification);
+        if (__DEV__) console.log('[Push] Notification received in foreground:', notification);
         // The notification will be shown automatically due to setNotificationHandler
       }
     );
@@ -250,7 +250,7 @@ class PushNotificationService {
     // Listener for notification interactions (user tapped notification)
     this.responseListener = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        console.log('[Push] Notification tapped:', response);
+        if (__DEV__) console.log('[Push] Notification tapped:', response);
         const data = response.notification.request.content.data as PushNotificationData;
         this.handleNotificationTap(data);
       }
@@ -261,7 +261,7 @@ class PushNotificationService {
    * Handle notification tap - navigate to relevant screen
    */
   private handleNotificationTap(data: PushNotificationData): void {
-    console.log('[Push] Handling notification tap with data:', data);
+    if (__DEV__) console.log('[Push] Handling notification tap with data:', data);
 
     if (this.navigationCallback) {
       this.navigationCallback(data);

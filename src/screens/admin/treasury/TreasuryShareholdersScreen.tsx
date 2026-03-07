@@ -55,7 +55,7 @@ export default function TreasuryShareholdersScreen() {
       setShareholders(shRes.data?.results || shRes.data || []);
       setDividends(divRes.data?.results || divRes.data || []);
     } catch (error) {
-      console.error('Erreur actionnaires:', error);
+      if (__DEV__) console.error('Erreur actionnaires:', error);
     } finally {
       setLoading(false);
     }

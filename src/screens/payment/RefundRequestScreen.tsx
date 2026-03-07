@@ -90,7 +90,7 @@ export default function RefundRequestScreen() {
       setPayment(response.data);
       setRefundAmount(String(response.data.amount || 0));
     } catch (error) {
-      console.error('Error fetching payment:', error);
+      if (__DEV__) console.error('Error fetching payment:', error);
       showError('Erreur', 'Impossible de charger les détails du paiement');
       navigation.goBack();
     } finally {
@@ -131,7 +131,7 @@ export default function RefundRequestScreen() {
       showSuccess('Succès', 'Votre demande de remboursement a été soumise');
       navigation.goBack();
     } catch (error: any) {
-      console.error('Error creating refund:', error);
+      if (__DEV__) console.error('Error creating refund:', error);
       showError(
         'Erreur',
         error.response?.data?.detail ||

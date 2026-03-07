@@ -78,7 +78,7 @@ export default function PendingTransfersScreen() {
       setTransfers(receivedRes.data || []);
       setSentTransfers(sentRes.data?.results || sentRes.data || []);
     } catch (error) {
-      console.error('Erreur chargement transferts:', error);
+      if (__DEV__) console.error('Erreur chargement transferts:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);

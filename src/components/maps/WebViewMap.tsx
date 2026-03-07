@@ -378,7 +378,7 @@ export default function WebViewMap({
             setCenter(msg.lat, msg.lng, msg.zoom);
             break;
         }
-      } catch(e) { console.error('handleRNMessage:', e); }
+      } catch(e) { if (__DEV__) console.error('handleRNMessage:', e); }
     };
 
     // Both Android and iOS
@@ -417,7 +417,7 @@ export default function WebViewMap({
         onMarkerPress(data.marker);
       }
     } catch (e) {
-      console.error('Error parsing WebView message:', e);
+      if (__DEV__) console.error('Error parsing WebView message:', e);
     }
   }, [markers, userLocation, selectedMarkerId, radiusKm, showRadius, onMarkerPress, sendToWebView, flushPending]);
 

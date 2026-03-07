@@ -84,7 +84,7 @@ export default function VolunteerScreen() {
       setRoles(rolesRes.data.results || rolesRes.data || []);
       setApplications(appsRes.data.results || appsRes.data || []);
     } catch (error) {
-      console.error('Erreur volunteers:', error);
+      if (__DEV__) console.error('Erreur volunteers:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,7 +111,7 @@ export default function VolunteerScreen() {
               Alert.alert('Succes', 'Votre candidature a ete envoyee !');
               fetchData();
             } catch (error: any) {
-              console.error('Erreur apply volunteer:', error);
+              if (__DEV__) console.error('Erreur apply volunteer:', error);
               const message = error?.response?.data?.detail || 'Impossible de postuler.';
               Alert.alert('Erreur', message);
             } finally {
@@ -139,7 +139,7 @@ export default function VolunteerScreen() {
               Alert.alert('Succes', 'Candidature retiree.');
               fetchData();
             } catch (error) {
-              console.error('Erreur withdraw:', error);
+              if (__DEV__) console.error('Erreur withdraw:', error);
               Alert.alert('Erreur', 'Impossible de retirer la candidature.');
             } finally {
               setActionLoading(null);

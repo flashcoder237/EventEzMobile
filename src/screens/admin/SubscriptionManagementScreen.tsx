@@ -61,7 +61,7 @@ export default function SubscriptionManagementScreen() {
       const data = res.data?.results || res.data || [];
       setPlans(data);
     } catch (error) {
-      console.error('Erreur chargement plans:', error);
+      if (__DEV__) console.error('Erreur chargement plans:', error);
     } finally {
       setLoading(false);
     }

@@ -7,9 +7,9 @@ import {
   StatusBar,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -62,12 +62,12 @@ export default function SpeakerDetailsScreen() {
         setSessions(sessionsResponse.data?.results || sessionsResponse.data || []);
       } catch {
         // Sessions endpoint might not be available, not critical
-        console.warn('[SpeakerDetails] Could not fetch speaker sessions');
+        if (__DEV__) console.warn('[SpeakerDetails] Could not fetch speaker sessions');
       } finally {
         setIsLoadingSessions(false);
       }
     } catch (err: any) {
-      console.error('[SpeakerDetails] Error fetching speaker:', err);
+      if (__DEV__) console.error('[SpeakerDetails] Error fetching speaker:', err);
       showError('Erreur', 'Impossible de charger le profil de l\'intervenant.');
     } finally {
       setIsLoading(false);
@@ -169,7 +169,7 @@ export default function SpeakerDetailsScreen() {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           {speaker.photo ? (
-            <Image source={{ uri: speaker.photo }} style={styles.avatar} />
+            <Image source={speaker.photo} style={styles.avatar} cachePolicy="disk" transition={200} />
           ) : (
             <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray100 }]}>
               <Ionicons name="person" size={40} color={colors.gray400} />

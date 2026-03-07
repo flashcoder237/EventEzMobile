@@ -7,11 +7,10 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Image,
-  ImageSourcePropType,
   Linking,
   StatusBar,
 } from 'react-native';
+import { Image, ImageSource } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -50,7 +49,7 @@ import GradientButton from '../../components/ui/GradientButton';
 import { formatPhoneInput, formatPhoneForDisplay, preparePhoneForInput } from '../../lib/utils/phoneFormatters';
 
 // Import des icônes de paiement
-const PaymentIcons: Record<string, ImageSourcePropType> = {
+const PaymentIcons: Record<string, ImageSource> = {
   mtn_money: require('../../../assets/payments/momo.png'),
   orange_money: require('../../../assets/payments/om.png'),
   credit_card: require('../../../assets/payments/bank.png'),
@@ -129,7 +128,7 @@ type PaymentMethodId = 'mtn_money' | 'orange_money' | 'credit_card' | 'wave' | '
 interface PaymentMethodOption {
   id: PaymentMethodId;
   name: string;
-  icon: ImageSourcePropType;
+  icon: ImageSource;
   color: string;
   description: string;
   channel?: string;
@@ -338,7 +337,7 @@ export default function PaymentScreen() {
           setDynamicMethods(methods);
         }
       } catch (error) {
-        console.error('[Payment] Error fetching payment methods:', error);
+        if (__DEV__) console.error('[Payment] Error fetching payment methods:', error);
         // Afficher une erreur au lieu d'un fallback silencieux Cameroun
         showError(
           'Méthodes de paiement',
@@ -375,7 +374,7 @@ export default function PaymentScreen() {
       const response = await registrationsAPI.getRegistration(registrationId);
       setRegistration(response.data);
     } catch (error) {
-      console.error('Error fetching registration:', error);
+      if (__DEV__) console.error('Error fetching registration:', error);
       showError('Erreur', 'Impossible de charger les détails de la commande');
     } finally {
       setLoading(false);
@@ -418,7 +417,7 @@ export default function PaymentScreen() {
   const finalTotal = Math.round((subtotal + serviceFee) * 100) / 100;
 
   // Debug: vérifier que la commission est calculée
-  console.log('[Payment] Commission debug:', {
+  if (__DEV__) console.log('[Payment] Commission debug:', {
     subtotal,
     serviceFee,
     finalTotal,
@@ -477,7 +476,7 @@ export default function PaymentScreen() {
   const handlePayment = async () => {
     // Protection contre double soumission
     if (processing) {
-      console.log('[Payment] Soumission ignorée - déjà en cours');
+      if (__DEV__) console.log('[Payment] Soumission ignorée - déjà en cours');
       return;
     }
 
@@ -529,7 +528,7 @@ export default function PaymentScreen() {
         newPaymentId = responseData.id || responseData.payment_id || responseData.payment?.id || null;
       }
 
-      console.log('[Payment] Created payment:', newPaymentId);
+      if (__DEV__) console.log('[Payment] Created payment:', newPaymentId);
 
       // Validation stricte de l'ID
       if (!newPaymentId || typeof newPaymentId !== 'string' || newPaymentId === 'undefined') {
@@ -549,16 +548,16 @@ export default function PaymentScreen() {
           phone: formattedPhone,
           ...(methodConfig?.channel ? { channel: methodConfig.channel } : {}),
         });
-        console.log('[Payment] Mobile Money processing response:', response.data);
+        if (__DEV__) console.log('[Payment] Mobile Money processing response:', response.data);
       } else {
         // Carte bancaire - redirection vers page de paiement
         const response = await paymentsAPI.initializePayment(newPaymentId);
-        console.log('[Payment] Card initialization response:', response.data);
+        if (__DEV__) console.log('[Payment] Card initialization response:', response.data);
 
         // Si on reçoit une URL d'autorisation, ouvrir dans le navigateur
         const authUrl = response.data?.authorization_url || response.data?.checkout_url || response.data?.payment_url;
         if (authUrl) {
-          console.log('[Payment] Opening authorization URL:', authUrl);
+          if (__DEV__) console.log('[Payment] Opening authorization URL:', authUrl);
 
           // Ouvrir la page de paiement dans le navigateur in-app
           const result = await WebBrowser.openBrowserAsync(authUrl, {
@@ -568,7 +567,7 @@ export default function PaymentScreen() {
             controlsColor: Colors.white,
           });
 
-          console.log('[Payment] WebBrowser result:', result.type);
+          if (__DEV__) console.log('[Payment] WebBrowser result:', result.type);
 
           // Vérifier si l'utilisateur a fermé la page de paiement
           if (result.type === 'dismiss' || result.type === 'cancel') {
@@ -590,7 +589,7 @@ export default function PaymentScreen() {
             return;
           }
         } else {
-          console.warn('[Payment] No authorization URL received');
+          if (__DEV__) console.warn('[Payment] No authorization URL received');
           throw new Error('URL de paiement non reçue. Veuillez réessayer.');
         }
       }
@@ -599,7 +598,7 @@ export default function PaymentScreen() {
       startVerification(newPaymentId);
     } catch (error: any) {
       setProcessing(false);
-      console.error('[Payment] Error:', error.response?.data || error);
+      if (__DEV__) console.error('[Payment] Error:', error.response?.data || error);
 
       // Extraire le message d'erreur via utility partagée
       const errorMessage = extractErrorMessage(
@@ -622,7 +621,7 @@ export default function PaymentScreen() {
 
     try {
       const response = await paymentsAPI.cancelPayment(paymentId);
-      console.log('[Payment] Cancel response:', response.data);
+      if (__DEV__) console.log('[Payment] Cancel response:', response.data);
 
       setProcessing(false);
       setCancelling(false);
@@ -633,7 +632,7 @@ export default function PaymentScreen() {
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error: any) {
-      console.error('[Payment] Cancel error:', error);
+      if (__DEV__) console.error('[Payment] Cancel error:', error);
       setCancelling(false);
 
       // Même si l'annulation échoue côté serveur, on arrête le processing
@@ -657,7 +656,7 @@ export default function PaymentScreen() {
     setVerifyingManually(true);
     stopVerification(); // Arrêter le polling automatique
 
-    console.log('[Payment] Manual verification requested for payment:', paymentId);
+    if (__DEV__) console.log('[Payment] Manual verification requested for payment:', paymentId);
 
     const result = await manualVerify(paymentId, 5, 3000);
 
@@ -764,7 +763,7 @@ export default function PaymentScreen() {
             <Image
               source={selectedMethod ? (PaymentIcons[selectedMethod] || PaymentIcons.credit_card) : PaymentIcons.credit_card}
               style={styles.processingIconImage}
-              resizeMode="contain"
+              contentFit="contain"
             />
           </View>
 
@@ -991,7 +990,7 @@ export default function PaymentScreen() {
                       { backgroundColor: method.color + '20' },
                     ]}
                   >
-                    <Image source={method.icon} style={styles.methodIconImage} resizeMode="contain" />
+                    <Image source={method.icon} style={styles.methodIconImage} contentFit="contain" />
                   </View>
                   <View style={styles.methodInfo}>
                     <Text style={[styles.methodName, { color: colors.gray900 }]}>{method.name}</Text>

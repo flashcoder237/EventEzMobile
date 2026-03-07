@@ -103,7 +103,7 @@ export default function MyPaymentsScreen() {
       const data = response.data?.results || response.data || [];
       setPayments(data);
     } catch (error) {
-      console.error('Error fetching payments:', error);
+      if (__DEV__) console.error('Error fetching payments:', error);
       showError('Erreur', 'Impossible de charger vos paiements');
     } finally {
       setLoading(false);

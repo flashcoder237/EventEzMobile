@@ -3,11 +3,11 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { sponsorsAPI } from '../../api/client';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
@@ -45,7 +45,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
       const data = response.data?.results || response.data || [];
       setSponsors(data);
     } catch (error) {
-      console.error('Erreur chargement sponsors:', error);
+      if (__DEV__) console.error('Erreur chargement sponsors:', error);
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
       const fullUrl = url.startsWith('http') ? url : `https://${url}`;
       await Linking.openURL(fullUrl);
     } catch (error) {
-      console.error('Erreur ouverture URL:', error);
+      if (__DEV__) console.error('Erreur ouverture URL:', error);
     }
   };
 
@@ -107,7 +107,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
         <View key={sponsor.id} style={[styles.sponsorCard, { backgroundColor: colors.gray50 }]}>
           <View style={styles.sponsorHeader}>
             {sponsor.logo ? (
-              <Image source={{ uri: sponsor.logo }} style={[styles.sponsorLogo, { backgroundColor: colors.surface }]} resizeMode="contain" />
+              <Image source={sponsor.logo} style={[styles.sponsorLogo, { backgroundColor: colors.surface }]} contentFit="contain" cachePolicy="disk" transition={200} />
             ) : (
               <View style={[styles.sponsorLogoPlaceholder, { backgroundColor: colors.primaryBg }]}>
                 <Ionicons name="ribbon" size={24} color={colors.primary} />

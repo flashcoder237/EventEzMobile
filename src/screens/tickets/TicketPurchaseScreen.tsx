@@ -126,7 +126,7 @@ export default function TicketPurchaseScreen() {
         setSelections(new Map([[ticketTypeId, 1]]));
       }
     } catch (error) {
-      console.error('Erreur chargement données:', error);
+      if (__DEV__) console.error('Erreur chargement données:', error);
       showError('Erreur', 'Impossible de charger les informations');
     } finally {
       setLoading(false);
@@ -258,7 +258,7 @@ export default function TicketPurchaseScreen() {
   const handleProceed = async () => {
     // Protection contre double soumission
     if (submitting) {
-      console.log('[TicketPurchase] Soumission ignorée - déjà en cours');
+      if (__DEV__) console.log('[TicketPurchase] Soumission ignorée - déjà en cours');
       return;
     }
 
@@ -384,7 +384,7 @@ export default function TicketPurchaseScreen() {
           try {
             await registrationsAPI.patchRegistration(finalRegistrationId, { status: 'confirmed' });
           } catch (e) {
-            console.log('Could not auto-confirm:', e);
+            if (__DEV__) console.log('Could not auto-confirm:', e);
           }
         }
         // Note: Si auto_approve_registrations=false, le backend a déjà mis status='pending_approval'
@@ -398,7 +398,7 @@ export default function TicketPurchaseScreen() {
         });
       }
     } catch (error: any) {
-      console.error('Erreur création inscription:', error);
+      if (__DEV__) console.error('Erreur création inscription:', error);
 
       // Gérer le cas d'une inscription existante confirmée
       const errorData = error.response?.data;

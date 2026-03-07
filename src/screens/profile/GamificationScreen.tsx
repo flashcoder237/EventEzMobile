@@ -43,7 +43,7 @@ export default function GamificationScreen() {
       setPoints(pointsRes.data);
       setLeaderboard(lbRes.data.results || lbRes.data || []);
     } catch (error) {
-      console.error('Erreur gamification:', error);
+      if (__DEV__) console.error('Erreur gamification:', error);
     } finally {
       setLoading(false);
     }

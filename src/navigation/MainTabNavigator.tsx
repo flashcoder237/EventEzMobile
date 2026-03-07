@@ -1,5 +1,6 @@
 import React , {useEffect} from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity, Text, Image } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -122,11 +123,13 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               {route.name === 'Profile' ? (
                 user?.profile_picture || user?.image ? (
                   <Image
-                    source={{ uri: user.profile_picture || user.image }}
+                    source={user.profile_picture || user.image}
                     style={[
                       styles.tabAvatar,
                       { borderColor: isFocused ? activeColor : colors.gray300 },
                     ]}
+                    cachePolicy="disk"
+                    transition={200}
                   />
                 ) : (
                   <View

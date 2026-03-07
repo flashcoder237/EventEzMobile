@@ -8,7 +8,7 @@
  * - Helpers de formatage centralisés
  */
 
-import React, { useState, useEffect, useCallback, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import {
   View,
   Text,
@@ -16,11 +16,11 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Image,
   StatusBar,
   TextInput,
   Modal,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
@@ -87,7 +87,7 @@ const ConversationCard = memo(function ConversationCard({
       activeOpacity={TOUCH_OPACITY}
     >
       {avatar ? (
-        <Image source={{ uri: avatar }} style={styles.avatar} />
+        <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
       ) : (
         <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
           <Text style={styles.avatarInitials}>{initials}</Text>
@@ -148,7 +148,7 @@ const UserItem = memo(function UserItem({ user, onPress }: UserItemProps) {
       activeOpacity={TOUCH_OPACITY}
     >
       {avatar ? (
-        <Image source={{ uri: avatar }} style={styles.userAvatar} />
+        <Image source={avatar} style={styles.userAvatar} cachePolicy="disk" transition={200} />
       ) : (
         <View style={[styles.userAvatarPlaceholder, { backgroundColor: colors.primary }]}>
           <Text style={styles.userAvatarInitials}>{initials}</Text>
@@ -184,11 +184,44 @@ export default function MessagesScreen() {
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userSearch, setUserSearch] = useState('');
+  const userSearchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   useEffect(() => {
     fetchConversations();
-    fetchUsers();
   }, []);
+
+  // Debounced server-side user search
+  useEffect(() => {
+    if (userSearchTimerRef.current) {
+      clearTimeout(userSearchTimerRef.current);
+    }
+
+    if (userSearch.length < 2) {
+      setAvailableUsers([]);
+      setLoadingUsers(false);
+      return;
+    }
+
+    setLoadingUsers(true);
+    userSearchTimerRef.current = setTimeout(async () => {
+      try {
+        const response = await usersAPI.getUsers({ search: userSearch, page_size: 20 });
+        const users = (response.data.results || response.data || [])
+          .filter((u: User) => u.id !== user?.id);
+        setAvailableUsers(users);
+      } catch (error) {
+        if (__DEV__) console.error('Erreur recherche utilisateurs:', error);
+      } finally {
+        setLoadingUsers(false);
+      }
+    }, 300);
+
+    return () => {
+      if (userSearchTimerRef.current) {
+        clearTimeout(userSearchTimerRef.current);
+      }
+    };
+  }, [userSearch, user?.id]);
 
   const fetchConversations = async (bypassCache = false) => {
     const cacheKey = `convos:${user?.id}`;
@@ -207,24 +240,10 @@ export default function MessagesScreen() {
       setConversations(data);
       CacheService.set(cacheKey, data, 30 * 1000); // fraîcheur : 30 secondes
     } catch (error) {
-      console.error('Erreur chargement conversations:', error);
+      if (__DEV__) console.error('Erreur chargement conversations:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    setLoadingUsers(true);
-    try {
-      const response = await usersAPI.getUsers({ page_size: 1000 });
-      const users = (response.data.results || response.data || [])
-        .filter((u: User) => u.id !== user?.id);
-      setAvailableUsers(users);
-    } catch (error) {
-      console.error('Erreur chargement utilisateurs:', error);
-    } finally {
-      setLoadingUsers(false);
     }
   };
 
@@ -265,7 +284,7 @@ export default function MessagesScreen() {
       CacheService.invalidate(`convos:${user?.id}`);
       fetchConversations(true);
     } catch (error) {
-      console.error('Erreur archivage:', error);
+      if (__DEV__) console.error('Erreur archivage:', error);
     }
   };
 
@@ -278,7 +297,7 @@ export default function MessagesScreen() {
           await messagesAPI.deleteConversation(conversationId);
           fetchConversations();
         } catch (error) {
-          console.error('Erreur suppression:', error);
+          if (__DEV__) console.error('Erreur suppression:', error);
         }
       }
     );
@@ -306,13 +325,8 @@ export default function MessagesScreen() {
   // Stats
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived).length;
 
-  // Filtered users for new conversation modal
-  const filteredUsers = availableUsers.filter(u => {
-    const name = getDisplayName(u).toLowerCase();
-    const email = (u.email || '').toLowerCase();
-    const search = userSearch.toLowerCase();
-    return name.includes(search) || email.includes(search);
-  });
+  // Users are now filtered server-side via debounced search
+  const filteredUsers = availableUsers;
 
   const renderConversation = useCallback(({ item, index }: { item: Conversation; index: number }) => {
     const otherUser = item.participants?.find(p => p.id !== user?.id);
@@ -455,6 +469,9 @@ export default function MessagesScreen() {
                 tintColor={colors.primary}
               />
             }
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews
           />
 
           {/* New Conversation Modal */}
@@ -502,7 +519,11 @@ export default function MessagesScreen() {
                     ListEmptyComponent={
                       <View style={styles.noUsers}>
                         <PeopleSearch color={colors.primary} size={120} />
-                        <Text style={[styles.noUsersText, { color: colors.gray500 }]}>Aucun utilisateur trouvé</Text>
+                        <Text style={[styles.noUsersText, { color: colors.gray500 }]}>
+                          {userSearch.length < 2
+                            ? 'Tapez pour rechercher un utilisateur...'
+                            : 'Aucun utilisateur trouvé'}
+                        </Text>
                       </View>
                     }
                   />

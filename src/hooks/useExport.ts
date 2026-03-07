@@ -72,7 +72,7 @@ export function useExport() {
         const msg = err?.message || 'Erreur lors de l\'export';
         setError(msg);
         Alert.alert('Erreur', msg);
-        console.error('[useExport]', err);
+        if (__DEV__) console.error('[useExport]', err);
       } finally {
         setLoading(false);
       }

@@ -372,7 +372,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
       const response = await categoriesAPI.getCategories();
       setCategories(response.data.results || response.data || []);
     } catch (error) {
-      console.error('Erreur chargement catégories:', error);
+      if (__DEV__) console.error('Erreur chargement catégories:', error);
     }
   };
 
@@ -381,7 +381,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
       const response = await tagsAPI.getTags();
       setAvailableTags(response.data.results || response.data || []);
     } catch (error) {
-      console.error('Erreur chargement tags:', error);
+      if (__DEV__) console.error('Erreur chargement tags:', error);
     }
   };
 
@@ -929,7 +929,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
           accessCode: event.access_code || '',
         });
       } catch (error) {
-        console.error('[useEventForm] Error loading event for edit:', error);
+        if (__DEV__) console.error('[useEventForm] Error loading event for edit:', error);
         showError('Erreur', "Impossible de charger les données de l'événement");
       } finally {
         setLoading(false);
@@ -1139,7 +1139,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
 
       return eventId;
     } catch (error: any) {
-      console.error('Erreur création événement:', error);
+      if (__DEV__) console.error('Erreur création événement:', error);
       showError(
         'Erreur',
         error.response?.data?.message || error.response?.data?.detail ||

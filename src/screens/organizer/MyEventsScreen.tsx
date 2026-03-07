@@ -5,11 +5,11 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Image,
   RefreshControl,
   StatusBar,
   TextInput,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -78,7 +78,7 @@ export default function MyEventsScreen() {
       const response = await eventsAPI.getMyEvents();
       setEvents(response.data?.results || response.data || []);
     } catch (error) {
-      console.error('Erreur chargement événements:', error);
+      if (__DEV__) console.error('Erreur chargement événements:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -118,7 +118,7 @@ export default function MyEventsScreen() {
           setEvents(prev => prev.filter(e => e.id !== eventId));
           showSuccess('Succès', 'Événement supprimé');
         } catch (error) {
-          console.error('Erreur suppression:', error);
+          if (__DEV__) console.error('Erreur suppression:', error);
           showError('Erreur', 'Impossible de supprimer l\'événement');
         }
       }
@@ -137,7 +137,7 @@ export default function MyEventsScreen() {
           ));
           showSuccess('Succès', 'Événement soumis pour validation');
         } catch (error: any) {
-          console.error('Erreur soumission:', error);
+          if (__DEV__) console.error('Erreur soumission:', error);
           showError('Erreur', error.response?.data?.detail || 'Impossible de soumettre l\'événement');
         }
       }
@@ -241,10 +241,11 @@ export default function MyEventsScreen() {
         <Image
           source={
             getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)
-              ? { uri: getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)! }
-              : require('../../../assets/defaults/default-event.png')
+              || require('../../../assets/defaults/default-event.png')
           }
           style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
+          cachePolicy="disk"
+          transition={200}
         />
 
         {/* Status Badge */}
@@ -489,6 +490,9 @@ export default function MyEventsScreen() {
             colors={[colors.primary]}
           />
         }
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews
         />
       </View>
     </View>

@@ -4,11 +4,11 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  Image,
   StatusBar,
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
@@ -65,7 +65,7 @@ export default function LoginScreen() {
           setRememberMe(saved === 'true');
         }
       } catch (error) {
-        console.warn('Erreur lors du chargement de la préférence:', error);
+        if (__DEV__) console.warn('Erreur lors du chargement de la préférence:', error);
       }
     };
     loadRememberMe();
@@ -130,7 +130,7 @@ export default function LoginScreen() {
       setRetryInfo(null);
     } catch (error: any) {
       setRetryInfo(null);
-      console.log('[Login] Error:', error.response?.status, error.response?.data);
+      if (__DEV__) console.log('[Login] Error:', error.response?.status, error.response?.data);
       // Email non vérifié → proposer de vérifier l'email
       if (
         error.response?.status === 403 &&
@@ -182,7 +182,7 @@ export default function LoginScreen() {
             <Image
               source={require('../../../assets/logo.png')}
               style={styles.logo}
-              resizeMode="contain"
+              contentFit="contain"
             />
           </View>
 

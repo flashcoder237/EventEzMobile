@@ -56,7 +56,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
       setMessage('');
       onClose();
     } catch (error) {
-      console.error('Erreur envoi email:', error);
+      if (__DEV__) console.error('Erreur envoi email:', error);
       showError('Erreur', "Impossible d'envoyer l'email");
     } finally {
       setSending(false);

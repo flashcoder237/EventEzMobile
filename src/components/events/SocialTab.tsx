@@ -99,7 +99,7 @@ export default function SocialTab({ eventId }: SocialTabProps) {
       const data = response.data?.results || response.data || [];
       setActivities(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Erreur chargement activite:', error);
+      if (__DEV__) console.error('Erreur chargement activite:', error);
     } finally {
       setLoading(false);
     }

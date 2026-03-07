@@ -6,9 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -143,9 +143,10 @@ export default function OfflineTicketsScreen() {
           <View style={styles.expandedContent}>
             <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF', borderColor: colors.primary }]}>
               <Image
-                source={{ uri: item.qrCodeBase64 }}
+                source={item.qrCodeBase64}
                 style={styles.qrImage}
-                resizeMode="contain"
+                contentFit="contain"
+                transition={200}
               />
             </View>
             <View style={styles.referenceContainer}>

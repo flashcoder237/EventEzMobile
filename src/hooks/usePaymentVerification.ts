@@ -239,7 +239,7 @@ export function usePaymentVerification(
 
       const checkStatus = async () => {
         if (stopRef.current) {
-          console.log('[PaymentVerification] Polling stopped');
+          if (__DEV__) console.log('[PaymentVerification] Polling stopped');
           return;
         }
 
@@ -249,7 +249,7 @@ export function usePaymentVerification(
           const currentStatus = extractStatus(data);
           const errorMsg = extractErrorMessage(data);
 
-          console.log(`[PaymentVerification] Poll #${attempts + 1}: status = ${currentStatus}`);
+          if (__DEV__) console.log(`[PaymentVerification] Poll #${attempts + 1}: status = ${currentStatus}`);
 
           // Reset consecutive errors on successful request
           consecutiveErrors = 0;
@@ -257,7 +257,7 @@ export function usePaymentVerification(
 
           // Check again if stopped during the request
           if (stopRef.current) {
-            console.log('[PaymentVerification] Polling stopped');
+            if (__DEV__) console.log('[PaymentVerification] Polling stopped');
             return;
           }
 
@@ -280,11 +280,11 @@ export function usePaymentVerification(
           }
         } catch (err: any) {
           if (stopRef.current) {
-            console.log('[PaymentVerification] Polling stopped');
+            if (__DEV__) console.log('[PaymentVerification] Polling stopped');
             return;
           }
 
-          console.error('[PaymentVerification] Poll error:', err);
+          if (__DEV__) console.error('[PaymentVerification] Poll error:', err);
 
           // Check if the error response contains a definitive failure status
           const errorData = err.response?.data;
@@ -321,7 +321,7 @@ export function usePaymentVerification(
                 }
               }
 
-              console.log(
+              if (__DEV__) console.log(
                 `[PaymentVerification] Temporary error (${consecutiveErrors} consecutive), retrying in ${delay / 1000}s... (${attempts}/${maxAttempts})`
               );
               timeoutRef.current = setTimeout(checkStatus, delay);
@@ -375,7 +375,7 @@ export function usePaymentVerification(
 
       for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
-          console.log(
+          if (__DEV__) console.log(
             `[PaymentVerification] Manual verification attempt ${attempt}/${attempts}`
           );
 
@@ -383,7 +383,7 @@ export function usePaymentVerification(
           const data = response.data;
           const currentStatus = extractStatus(data);
 
-          console.log(
+          if (__DEV__) console.log(
             `[PaymentVerification] Manual verification status: ${currentStatus}`
           );
 
@@ -404,7 +404,7 @@ export function usePaymentVerification(
             await new Promise((resolve) => setTimeout(resolve, delay));
           }
         } catch (err: any) {
-          console.error(
+          if (__DEV__) console.error(
             `[PaymentVerification] Manual verification error (attempt ${attempt}):`,
             err
           );

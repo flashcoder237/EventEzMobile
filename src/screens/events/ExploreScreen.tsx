@@ -400,7 +400,7 @@ export default function ExploreScreen() {
         });
       }
     } catch (error) {
-      console.error('Erreur localisation:', error);
+      if (__DEV__) console.error('Erreur localisation:', error);
     }
     fetchMapEvents();
   };
@@ -410,7 +410,7 @@ export default function ExploreScreen() {
       const response = await categoriesAPI.getCategories();
       setCategories(response.data?.results || response.data || []);
     } catch (error) {
-      console.error('Erreur chargement catégories:', error);
+      if (__DEV__) console.error('Erreur chargement catégories:', error);
     }
   };
 
@@ -450,7 +450,7 @@ export default function ExploreScreen() {
       setHasNextPage(!!nextPage);
       setCurrentPage(page);
     } catch (error) {
-      console.error('Erreur chargement événements:', error);
+      if (__DEV__) console.error('Erreur chargement événements:', error);
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -468,7 +468,7 @@ export default function ExploreScreen() {
       const response = await eventsAPI.getMapEvents();
       setMarkers(response.data.markers || []);
     } catch (error) {
-      console.error('Erreur chargement événements carte:', error);
+      if (__DEV__) console.error('Erreur chargement événements carte:', error);
     }
   };
 
@@ -486,7 +486,7 @@ export default function ExploreScreen() {
         longitudeDelta: 0.1,
       });
     } catch (error) {
-      console.error('Erreur localisation:', error);
+      if (__DEV__) console.error('Erreur localisation:', error);
     }
   };
 

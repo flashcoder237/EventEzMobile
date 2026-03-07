@@ -100,7 +100,7 @@ export default function DiscountManagementScreen() {
       setDiscounts(discountsRes.data?.results || discountsRes.data || []);
       setTicketTypes(ticketTypesRes.data?.results || ticketTypesRes.data || []);
     } catch (error) {
-      console.error('Erreur chargement codes promo:', error);
+      if (__DEV__) console.error('Erreur chargement codes promo:', error);
     } finally {
       setLoading(false);
     }
@@ -140,7 +140,7 @@ export default function DiscountManagementScreen() {
               await discountsAPI.deleteDiscount(String(discount.id));
               setDiscounts(prev => prev.filter(d => d.id !== discount.id));
             } catch (error) {
-              console.error('Erreur suppression:', error);
+              if (__DEV__) console.error('Erreur suppression:', error);
               showError('Échec de la suppression');
             }
           },

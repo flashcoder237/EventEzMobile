@@ -11,11 +11,11 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  Image,
   Animated,
   ActivityIndicator,
   Keyboard,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../../types';
 import { AttachedFile } from '../../hooks/useMessageState';
@@ -165,7 +165,7 @@ function InputToolbar({
         {attachedFiles.map((file, index) => (
           <View key={index} style={styles.attachmentItem}>
             {file.type === 'image' && (
-              <Image source={{ uri: file.uri }} style={styles.attachmentImage} />
+              <Image source={file.uri} style={styles.attachmentImage} transition={200} />
             )}
             {file.type === 'voice' && (
               <View style={[styles.attachmentVoice, { backgroundColor: colors.gray100 }]}>

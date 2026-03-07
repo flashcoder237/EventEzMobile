@@ -67,7 +67,7 @@ export default function AdminDashboardScreen() {
       const logs = auditRes.data?.results || auditRes.data || [];
       setRecentLogs(Array.isArray(logs) ? logs.slice(0, 5) : []);
     } catch (error) {
-      console.error('Erreur admin dashboard:', error);
+      if (__DEV__) console.error('Erreur admin dashboard:', error);
     }
   };
 

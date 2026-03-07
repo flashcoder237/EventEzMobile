@@ -120,7 +120,7 @@ export default function EventRegistrationsScreen() {
       });
       setRegistrations(filteredData);
     } catch (error) {
-      console.error('Erreur chargement inscriptions:', error);
+      if (__DEV__) console.error('Erreur chargement inscriptions:', error);
     } finally {
       setLoading(false);
     }
@@ -309,7 +309,7 @@ export default function EventRegistrationsScreen() {
       setShowDetailModal(false);
       showSuccess('Succes', 'Inscription approuvee avec succes');
     } catch (error) {
-      console.error('Erreur approbation:', error);
+      if (__DEV__) console.error('Erreur approbation:', error);
       showError('Erreur', 'Impossible d\'approuver l\'inscription');
     } finally {
       setProcessing(false);
@@ -338,7 +338,7 @@ export default function EventRegistrationsScreen() {
       setRejectReason('');
       showSuccess('Succes', 'Inscription refusee');
     } catch (error) {
-      console.error('Erreur refus:', error);
+      if (__DEV__) console.error('Erreur refus:', error);
       showError('Erreur', 'Impossible de refuser l\'inscription');
     } finally {
       setProcessing(false);
@@ -611,6 +611,9 @@ export default function EventRegistrationsScreen() {
                 tintColor={colors.primary}
               />
             }
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews
           />
 
           {/* Bulk Action Bar */}

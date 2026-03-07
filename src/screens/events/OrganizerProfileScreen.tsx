@@ -7,10 +7,10 @@ import {
   StatusBar,
   TouchableOpacity,
   ActivityIndicator,
-  Image,
   Linking,
   FlatList,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -67,12 +67,12 @@ export default function OrganizerProfileScreen() {
         });
         setEvents(eventsResponse.data?.results || eventsResponse.data || []);
       } catch {
-        console.warn('[OrganizerProfile] Could not fetch organizer events');
+        if (__DEV__) console.warn('[OrganizerProfile] Could not fetch organizer events');
       } finally {
         setIsLoadingEvents(false);
       }
     } catch (err: any) {
-      console.error('[OrganizerProfile] Error fetching organizer:', err);
+      if (__DEV__) console.error('[OrganizerProfile] Error fetching organizer:', err);
       showError('Erreur', 'Impossible de charger le profil de l\'organisateur.');
     } finally {
       setIsLoading(false);
@@ -180,7 +180,7 @@ export default function OrganizerProfileScreen() {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.avatar} />
+            <Image source={profileImage} style={styles.avatar} cachePolicy="disk" transition={200} />
           ) : (
             <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray100 }]}>
               <Ionicons name="business" size={40} color={colors.gray400} />
@@ -339,7 +339,7 @@ export default function OrganizerProfileScreen() {
                 activeOpacity={TOUCH_OPACITY}
               >
                 {event.banner_image ? (
-                  <Image source={{ uri: getMediaUrl(event.banner_image)! }} style={styles.eventImage} />
+                  <Image source={getMediaUrl(event.banner_image)!} style={styles.eventImage} cachePolicy="disk" transition={200} />
                 ) : (
                   <View style={[styles.eventImagePlaceholder, { backgroundColor: colors.gray200 }]}>
                     <Ionicons name="image-outline" size={24} color={colors.gray300} />

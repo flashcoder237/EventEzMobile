@@ -75,7 +75,7 @@ export function useOfflineTickets() {
         await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(cleanedIndex));
       }
     } catch (error) {
-      console.error('Erreur chargement cache tickets:', error);
+      if (__DEV__) console.error('Erreur chargement cache tickets:', error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +98,7 @@ export function useOfflineTickets() {
     qr_code?: string;
   }) => {
     if (!ticket.qr_code) {
-      console.warn('Pas de QR code à mettre en cache');
+      if (__DEV__) console.warn('Pas de QR code à mettre en cache');
       return false;
     }
 
@@ -128,7 +128,7 @@ export function useOfflineTickets() {
       }
 
       if (!qrCodeBase64) {
-        console.warn('Impossible de convertir le QR code en base64');
+        if (__DEV__) console.warn('Impossible de convertir le QR code en base64');
         return false;
       }
 
@@ -166,10 +166,10 @@ export function useOfflineTickets() {
       await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(newIndex));
       setCachedTickets(newIndex);
 
-      console.log(`Ticket ${ticket.id} mis en cache avec succès`);
+      if (__DEV__) console.log(`Ticket ${ticket.id} mis en cache avec succès`);
       return true;
     } catch (error) {
-      console.error('Erreur mise en cache ticket:', error);
+      if (__DEV__) console.error('Erreur mise en cache ticket:', error);
       return false;
     }
   }, [cachedTickets]);
@@ -183,7 +183,7 @@ export function useOfflineTickets() {
       }
       return null;
     } catch (error) {
-      console.error('Erreur récupération ticket cache:', error);
+      if (__DEV__) console.error('Erreur récupération ticket cache:', error);
       return null;
     }
   }, []);
@@ -205,7 +205,7 @@ export function useOfflineTickets() {
 
       return tickets;
     } catch (error) {
-      console.error('Erreur récupération tous les tickets:', error);
+      if (__DEV__) console.error('Erreur récupération tous les tickets:', error);
       return [];
     }
   }, [cachedTickets, getCachedTicket]);
@@ -223,7 +223,7 @@ export function useOfflineTickets() {
 
       return true;
     } catch (error) {
-      console.error('Erreur suppression ticket cache:', error);
+      if (__DEV__) console.error('Erreur suppression ticket cache:', error);
       return false;
     }
   }, [cachedTickets]);
@@ -240,7 +240,7 @@ export function useOfflineTickets() {
 
       return true;
     } catch (error) {
-      console.error('Erreur vidage cache:', error);
+      if (__DEV__) console.error('Erreur vidage cache:', error);
       return false;
     }
   }, [cachedTickets]);

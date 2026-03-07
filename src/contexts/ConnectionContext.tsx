@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo, ReactNode } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import { AppState, AppStateStatus } from 'react-native';
 import { eventBus } from '../lib/eventBus';
@@ -137,8 +137,15 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     return () => sub.remove();
   }, [isServerReachable, checkServer]);
 
+  const value = useMemo(() => ({
+    isOnline,
+    isServerReachable,
+    status,
+    retry,
+  }), [isOnline, isServerReachable, status, retry]);
+
   return (
-    <ConnectionContext.Provider value={{ isOnline, isServerReachable, status, retry }}>
+    <ConnectionContext.Provider value={value}>
       {children}
     </ConnectionContext.Provider>
   );

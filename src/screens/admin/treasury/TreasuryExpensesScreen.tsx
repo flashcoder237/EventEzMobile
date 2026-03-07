@@ -69,7 +69,7 @@ export default function TreasuryExpensesScreen() {
       const data = res.data?.results || res.data || [];
       setExpenses(data);
     } catch (error) {
-      console.error('Erreur depenses:', error);
+      if (__DEV__) console.error('Erreur depenses:', error);
     } finally {
       setLoading(false);
     }
