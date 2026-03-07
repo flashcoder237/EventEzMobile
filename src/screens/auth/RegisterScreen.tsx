@@ -110,7 +110,7 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     if (!validate()) return;
     try {
-      await register({
+      const result = await register({
         first_name: formData.first_name.trim(),
         last_name: formData.last_name.trim(),
         username: formData.username.trim().toLowerCase(),
@@ -119,11 +119,9 @@ export default function RegisterScreen() {
         password: formData.password,
         confirm_password: formData.confirm_password,
       });
+      // Inscription reussie — rediriger vers verification email
+      navigation.navigate('VerifyEmail', { email: result.email });
     } catch (error: any) {
-      if (error.code === 'EMAIL_VERIFICATION_REQUIRED') {
-        navigation.navigate('VerifyEmail', { email: error.email });
-        return;
-      }
       const message = extractErrorMessage(error);
       showError("Erreur d'inscription", message);
     }

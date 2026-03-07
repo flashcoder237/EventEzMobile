@@ -22,6 +22,7 @@ import { Notification, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { MyNotifications } from '../../components/illustrations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -108,6 +109,7 @@ export default function NotificationsScreen() {
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { markAllNotificationsAsRead, markNotificationAsRead: markOneReadGlobal } = useNotifications();
   const insets = useSafeAreaInsets();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,7 +225,7 @@ export default function NotificationsScreen() {
 
   const handleMarkAsRead = async (id: string) => {
     try {
-      await notificationsAPI.markAsRead(id);
+      await markOneReadGlobal(id);
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, is_read: true } : n)
       );
@@ -234,8 +236,11 @@ export default function NotificationsScreen() {
 
   const handleMarkAllAsRead = async () => {
     try {
-      await notificationsAPI.markAllAsRead();
+      await markAllNotificationsAsRead();
+      // Sync local state with context
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      // Invalidate cache so next fetch gets fresh data
+      CacheService.invalidate(`notifs:${user?.id}`);
     } catch (error) {
       if (__DEV__) console.error('Erreur marquage tous lus:', error);
     }

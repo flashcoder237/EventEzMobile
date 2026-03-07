@@ -17,7 +17,7 @@ interface AuthContextType extends AuthState {
     first_name: string;
     last_name: string;
     phone_number?: string;
-  }) => Promise<void>;
+  }) => Promise<{ requires_verification: boolean; email: string }>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
   setUser: (user: User) => Promise<void>;  // Pour l'authentification sociale
@@ -113,16 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     first_name: string;
     last_name: string;
     phone_number?: string;
-  }) => {
+  }): Promise<{ requires_verification: boolean; email: string }> => {
     setState((prev) => ({ ...prev, isLoading: true }));
     try {
-      await authAPI.register(data);
+      const response = await authAPI.register(data);
       setState((prev) => ({ ...prev, isLoading: false }));
-      // Le backend envoie un email de vérification — signaler à l'UI
-      const err = new Error('Vérification email requise') as any;
-      err.code = 'EMAIL_VERIFICATION_REQUIRED';
-      err.email = data.email;
-      throw err;
+      return {
+        requires_verification: response.data?.requires_verification ?? true,
+        email: response.data?.email ?? data.email,
+      };
     } catch (error: any) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
