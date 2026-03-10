@@ -54,7 +54,8 @@ import WebViewMap from '../../components/maps/WebViewMap';
 import MapEventCard from '../../components/maps/MapEventCard';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
 import { usePersistedFilters } from '../../hooks/usePersistedFilters';
-import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, Easing, interpolate, Extrapolation, useAnimatedScrollHandler } from 'react-native-reanimated';
+import { Image } from 'expo-image';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -153,12 +154,45 @@ export default function DiscoverScreen() {
   // Search transition animations
   const searchProgress = useSharedValue(0); // 0 = discovery, 1 = search active
   const contentOpacity = useSharedValue(1);
+  const scrollY = useSharedValue(0);
+
+  const HEADER_SCROLL_THRESHOLD = 80; // px to fully collapse
 
   const headerCollapseStyle = useAnimatedStyle(() => ({
     maxHeight: (1 - searchProgress.value) * 200,
     opacity: 1 - searchProgress.value,
     overflow: 'hidden' as const,
   }));
+
+  // Expanded header fades out as user scrolls
+  const expandedHeaderStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [1, 0], Extrapolation.CLAMP),
+    maxHeight: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [200, 0], Extrapolation.CLAMP),
+    overflow: 'hidden' as const,
+  }));
+
+  // Compact header fades in as user scrolls
+  const compactHeaderStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(scrollY.value, [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD], [0, 1], Extrapolation.CLAMP);
+    const translateY = interpolate(scrollY.value, [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD], [-10, 0], Extrapolation.CLAMP);
+    return {
+      opacity,
+      transform: [{ translateY }],
+      pointerEvents: opacity > 0.5 ? 'auto' as const : 'none' as const,
+    };
+  });
+
+  // Search bar slides up when scrolling
+  const searchBarScrollStyle = useAnimatedStyle(() => ({
+    marginTop: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [Spacing.lg, Spacing.sm], Extrapolation.CLAMP),
+    marginBottom: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [Spacing.lg, Spacing.sm], Extrapolation.CLAMP),
+  }));
+
+  const onDiscoveryScroll = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
   const contentAnimStyle = useAnimatedStyle(() => ({
     opacity: contentOpacity.value,
@@ -1155,8 +1189,10 @@ export default function DiscoverScreen() {
   // === DISCOVERY FEED CONTENT (without header/search bar, those are in main render) ===
 
   const renderDiscoveryFeedContent = () => (
-    <ScrollView
+    <Animated.ScrollView
       showsVerticalScrollIndicator={false}
+      onScroll={onDiscoveryScroll}
+      scrollEventThrottle={16}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} colors={[colors.primary]} />
       }
@@ -1344,7 +1380,7 @@ export default function DiscoverScreen() {
       )}
 
       <View style={{ height: 120 }} />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 
   // === MAIN RENDER ===
@@ -1357,8 +1393,50 @@ export default function DiscoverScreen() {
         <DiscoverScreenSkeleton />
       ) : (
         <View style={{ flex: 1 }}>
-          {/* Collapsible header (location + greeting) — animates up when search activates */}
-          <Animated.View style={headerCollapseStyle}>
+          {/* === COMPACT HEADER (appears on scroll) === */}
+          {!isSearchActive && (
+            <Animated.View style={[styles.compactHeader, { backgroundColor: colors.background, borderBottomColor: colors.gray100 }, compactHeaderStyle]}>
+              <Image
+                source={require('../../../assets/icon.png')}
+                style={styles.compactLogo}
+                contentFit="contain"
+                cachePolicy="memory"
+              />
+              <TouchableOpacity
+                style={[styles.compactSearchBar, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}
+                onPress={activateSearch}
+                activeOpacity={0.7}
+                accessibilityRole="search"
+                accessibilityLabel="Rechercher des evenements"
+              >
+                <Ionicons name="search" size={18} color={colors.primary} />
+                <Text style={[styles.compactSearchText, { color: colors.gray400 }]} numberOfLines={1}>
+                  {placeholderSuggestions[placeholderIndex]}
+                </Text>
+              </TouchableOpacity>
+              <View style={styles.compactActions}>
+                <TouchableOpacity style={[styles.compactBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')} accessibilityRole="button" accessibilityLabel="Messages">
+                  <Ionicons name="chatbubble-outline" size={18} color={colors.gray800} />
+                  {unreadMessageCount > 0 && (
+                    <View style={[styles.compactBadge, { backgroundColor: colors.error }]}>
+                      <Text style={styles.compactBadgeText}>{unreadMessageCount > 9 ? '9+' : unreadMessageCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.compactBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')} accessibilityRole="button" accessibilityLabel="Notifications">
+                  <Ionicons name="notifications-outline" size={18} color={colors.gray800} />
+                  {unreadNotificationCount > 0 && (
+                    <View style={[styles.compactBadge, { backgroundColor: colors.error }]}>
+                      <Text style={styles.compactBadgeText}>{unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          )}
+
+          {/* === EXPANDED HEADER (location + greeting) — collapses on scroll & search === */}
+          <Animated.View style={[headerCollapseStyle, !isSearchActive && expandedHeaderStyle]}>
             <View style={styles.header}>
               <View style={styles.headerLeft}>
                 <Ionicons name="location" size={18} color={colors.accent} />
@@ -1415,21 +1493,23 @@ export default function DiscoverScreen() {
           {isSearchActive ? (
             renderSearchHeader()
           ) : (
-            <TouchableOpacity
-              style={[
-                styles.searchBarTrigger,
-                { backgroundColor: colors.surface, borderColor: colors.gray200 },
-              ]}
-              onPress={activateSearch}
-              activeOpacity={0.7}
-              accessibilityRole="search"
-              accessibilityLabel="Rechercher des evenements"
-            >
-              <Ionicons name="search" size={20} color={colors.primary} />
-              <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
-                {placeholderSuggestions[placeholderIndex]}
-              </Text>
-            </TouchableOpacity>
+            <Animated.View style={searchBarScrollStyle}>
+              <TouchableOpacity
+                style={[
+                  styles.searchBarTrigger,
+                  { backgroundColor: colors.surface, borderColor: colors.gray200 },
+                ]}
+                onPress={activateSearch}
+                activeOpacity={0.7}
+                accessibilityRole="search"
+                accessibilityLabel="Rechercher des evenements"
+              >
+                <Ionicons name="search" size={20} color={colors.primary} />
+                <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
+                  {placeholderSuggestions[placeholderIndex]}
+                </Text>
+              </TouchableOpacity>
+            </Animated.View>
           )}
 
           {/* Content — fades between discovery feed and search results */}
@@ -1526,6 +1606,70 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
+  // === COMPACT HEADER (on scroll) ===
+  compactHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    borderBottomWidth: 1,
+    ...Shadows.header,
+  },
+  compactLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  compactSearchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.full,
+    paddingVertical: 10,
+    paddingHorizontal: Spacing.md,
+    gap: Spacing.xs,
+    borderWidth: 1,
+  },
+  compactSearchText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+  },
+  compactActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  compactBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    minWidth: 14,
+    height: 14,
+    borderRadius: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  compactBadgeText: {
+    fontSize: 8,
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
+  },
+
   // === HERO SECTION ===
   heroSection: {
     paddingHorizontal: Spacing.lg,
@@ -1548,8 +1692,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: Spacing.lg,
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.lg,
     gap: Spacing.sm,
     borderWidth: 1.5,
     borderColor: Colors.gray200,
