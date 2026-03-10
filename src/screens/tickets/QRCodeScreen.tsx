@@ -24,7 +24,6 @@ import { ticketPurchasesAPI, registrationsAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import { getVerificationUrl } from '../../constants/urls';
 import {
-  Colors,
   FontSizes,
   FontFamily,
   BorderRadius,
@@ -544,13 +543,11 @@ export default function QRCodeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
   },
   errorContainer: {
     flex: 1,
@@ -560,7 +557,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FontSizes.base,
-    color: Colors.gray500,
   },
 
   // Header
@@ -570,9 +566,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   backButton: {
     width: 40,
@@ -584,7 +578,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   headerActions: {
     flexDirection: 'row',
@@ -605,12 +598,10 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     borderRadius: BorderRadius['2xl'],
     borderWidth: 1,
-    borderColor: Colors.gray200,
     overflow: 'hidden',
   },
 
@@ -635,7 +626,6 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   eventMeta: {
@@ -648,13 +638,11 @@ const styles = StyleSheet.create({
   },
   eventMetaText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
   },
   viewEventButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
@@ -665,7 +653,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
   },
 
   // Divider
@@ -678,7 +665,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.background,
     marginLeft: -12,
   },
   dividerLine: {
@@ -686,13 +672,11 @@ const styles = StyleSheet.create({
     height: 2,
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: Colors.gray200,
   },
   dividerCircleRight: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.background,
     marginRight: -12,
   },
 
@@ -702,11 +686,10 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   qrContainer: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
-    borderColor: Colors.primary,
   },
   qrImage: {
     width: QR_SIZE,
@@ -722,13 +705,11 @@ const styles = StyleSheet.create({
     width: QR_SIZE - 40,
     height: QR_SIZE - 40,
     borderRadius: BorderRadius.lg,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrHint: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
     marginTop: Spacing.md,
     textAlign: 'center',
   },
@@ -736,7 +717,6 @@ const styles = StyleSheet.create({
   // Details Section
   detailsSection: {
     padding: Spacing.lg,
-    backgroundColor: Colors.gray50,
     gap: Spacing.sm,
   },
   detailRow: {
@@ -746,15 +726,12 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
   },
   detailValue: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   totalPrice: {
-    color: Colors.primary,
     fontSize: FontSizes.base,
   },
   statusBadge: {
@@ -772,18 +749,15 @@ const styles = StyleSheet.create({
 
   // Attendee Card
   attendeeCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.gray200,
   },
   sectionTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   attendeeRow: {
@@ -794,7 +768,6 @@ const styles = StyleSheet.create({
   },
   attendeeText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray700,
   },
 
   // Instructions
@@ -813,13 +786,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   instructionText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     flex: 1,
   },
 
@@ -828,13 +799,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.successLight,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.success,
   },
   checkedInText: {
     flex: 1,
@@ -842,11 +811,9 @@ const styles = StyleSheet.create({
   checkedInTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.success,
   },
   checkedInDate: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     marginTop: 2,
   },
 
@@ -855,13 +822,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.warningLight,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.warning,
   },
   paymentRequiredText: {
     flex: 1,
@@ -869,11 +834,9 @@ const styles = StyleSheet.create({
   paymentRequiredTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.warning,
   },
   paymentRequiredDesc: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     marginTop: 2,
   },
 
@@ -882,7 +845,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
     padding: Spacing.lg,
@@ -892,7 +854,7 @@ const styles = StyleSheet.create({
   completePaymentText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
 
   // Buy More Tickets Button
@@ -900,18 +862,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.md,
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    borderColor: Colors.primary,
     gap: Spacing.sm,
   },
   buyMoreButtonText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
   },
 });

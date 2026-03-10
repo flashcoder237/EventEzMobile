@@ -22,12 +22,10 @@ import { TransferTicketModal } from '../../components/tickets';
 import { useOfflineTickets, useEventReminders } from '../../hooks';
 import { isPaymentSuccess, isPaymentFailed } from '../../hooks/usePaymentVerification';
 import {
-  Colors,
   FontSizes,
   FontFamily,
   BorderRadius,
   Spacing,
-  Shadows,
 } from '../../constants/theme';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
@@ -304,9 +302,9 @@ export default function RegistrationDetailsScreen() {
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
           {/* Event Info */}
           <View style={styles.eventInfo}>
-            <View style={[styles.typeBadge, { backgroundColor: isBilletterie ? (isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)') : (isDark ? 'rgba(139, 92, 246, 0.15)' : 'rgba(139, 92, 246, 0.1)') }]}>
-              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={isBilletterie ? colors.primary : (isDark ? '#A5B4FC' : '#6366F1')} />
-              <Text style={[styles.typeBadgeText, { color: isBilletterie ? colors.primary : (isDark ? '#A5B4FC' : '#6366F1') }]}>
+            <View style={[styles.typeBadge, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={colors.primary} />
+              <Text style={[styles.typeBadgeText, { color: colors.primary }]}>
                 {isBilletterie ? `${totalTicketQuantity} Billet${totalTicketQuantity > 1 ? 's' : ''}` : 'Inscription'}
               </Text>
             </View>
@@ -402,14 +400,14 @@ export default function RegistrationDetailsScreen() {
                 )}
                 {event.online_url ? (
                   <TouchableOpacity
-                    style={styles.joinOnlineButton}
+                    style={[styles.joinOnlineButton, { backgroundColor: colors.info }]}
                     onPress={() => {
                       Linking.openURL(event.online_url!).catch(() => {
                         showError('Erreur', 'Impossible d\'ouvrir le lien de l\'événement');
                       });
                     }}
                   >
-                    <Ionicons name="videocam" size={18} color={Colors.white} />
+                    <Ionicons name="videocam" size={18} color="#FFFFFF" />
                     <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
                   </TouchableOpacity>
                 ) : event.online_platform?.toLowerCase() === 'eventez_visio' || event.online_platform?.toLowerCase() === 'eventez visio' ? (
@@ -440,7 +438,7 @@ export default function RegistrationDetailsScreen() {
 
           {/* QR Code Section */}
           <View style={styles.qrSection}>
-            <View style={[styles.qrContainer, { backgroundColor: Colors.white }]}>
+            <View style={[styles.qrContainer, { borderColor: colors.primary }]}>
               {registration.qr_code ? (
                 <Image
                   source={registration.qr_code}
@@ -451,8 +449,8 @@ export default function RegistrationDetailsScreen() {
                 />
               ) : (
                 <View style={styles.qrPlaceholder}>
-                  <View style={[styles.qrPlaceholderInner, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-                    <Ionicons name="qr-code" size={80} color={isDark ? '#A5B4FC' : '#6366F1'} />
+                  <View style={[styles.qrPlaceholderInner, { backgroundColor: colors.primaryBg }]}>
+                    <Ionicons name="qr-code" size={80} color={colors.primary} />
                   </View>
                 </View>
               )}
@@ -584,24 +582,24 @@ export default function RegistrationDetailsScreen() {
         {/* Instructions */}
         <View style={styles.instructions}>
           <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="scan-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
+            <View style={[styles.instructionIcon, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name="scan-outline" size={20} color={colors.primary} />
             </View>
             <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Le QR code sera scanné à l'entrée
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="phone-portrait-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
+            <View style={[styles.instructionIcon, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name="phone-portrait-outline" size={20} color={colors.primary} />
             </View>
             <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Gardez votre téléphone chargé
             </Text>
           </View>
           <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(139, 92, 246, 0.1)' }]}>
-              <Ionicons name="time-outline" size={20} color={isDark ? '#A5B4FC' : '#6366F1'} />
+            <View style={[styles.instructionIcon, { backgroundColor: colors.primaryBg }]}>
+              <Ionicons name="time-outline" size={20} color={colors.primary} />
             </View>
             <Text style={[styles.instructionText, { color: colors.gray600 }]}>
               Arrivez à l'heure pour éviter les files
@@ -678,13 +676,11 @@ export default function RegistrationDetailsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.background,
   },
   errorContainer: {
     flex: 1,
@@ -694,7 +690,6 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FontSizes.base,
-    color: Colors.gray500,
   },
 
   // Header
@@ -704,9 +699,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   backButton: {
     width: 40,
@@ -718,7 +711,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   shareButton: {
     width: 40,
@@ -740,7 +732,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reminderButtonActive: {
-    backgroundColor: Colors.primaryLight,
   },
 
   scrollView: {
@@ -749,12 +740,10 @@ const styles = StyleSheet.create({
 
   // Card
   card: {
-    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     borderRadius: BorderRadius['2xl'],
     borderWidth: 1,
-    borderColor: Colors.gray200,
     overflow: 'hidden',
   },
 
@@ -779,7 +768,6 @@ const styles = StyleSheet.create({
   eventTitle: {
     fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   eventMeta: {
@@ -792,13 +780,11 @@ const styles = StyleSheet.create({
   },
   eventMetaText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
   },
   viewEventButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primaryBg,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
@@ -809,7 +795,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
   },
 
   // Divider
@@ -822,7 +807,6 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.background,
     marginLeft: -12,
   },
   dividerLine: {
@@ -830,13 +814,11 @@ const styles = StyleSheet.create({
     height: 2,
     borderStyle: 'dashed',
     borderWidth: 1,
-    borderColor: Colors.gray200,
   },
   dividerCircleRight: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: Colors.background,
     marginRight: -12,
   },
 
@@ -846,11 +828,10 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   qrContainer: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#FFFFFF',
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     borderWidth: 2,
-    borderColor: '#6366F1',
   },
   qrImage: {
     width: QR_SIZE,
@@ -866,13 +847,11 @@ const styles = StyleSheet.create({
     width: QR_SIZE - 40,
     height: QR_SIZE - 40,
     borderRadius: BorderRadius.lg,
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   qrHint: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
     marginTop: Spacing.md,
     textAlign: 'center',
   },
@@ -880,7 +859,6 @@ const styles = StyleSheet.create({
   // Details Section
   detailsSection: {
     padding: Spacing.lg,
-    backgroundColor: Colors.gray50,
     gap: Spacing.sm,
   },
   detailRow: {
@@ -890,12 +868,10 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
   },
   detailValue: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   statusBadge: {
     flexDirection: 'row',
@@ -912,13 +888,11 @@ const styles = StyleSheet.create({
 
   // Tickets List
   ticketsCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.gray200,
   },
   ticketItem: {
     flexDirection: 'row',
@@ -926,7 +900,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   ticketItemLeft: {
     flexDirection: 'row',
@@ -937,7 +910,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.primaryBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -948,7 +920,6 @@ const styles = StyleSheet.create({
   ticketItemName: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   ticketItemMeta: {
     flexDirection: 'row',
@@ -958,7 +929,6 @@ const styles = StyleSheet.create({
   },
   ticketItemQuantity: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
   },
   ticketItemStatusBadge: {
     paddingHorizontal: Spacing.sm,
@@ -977,13 +947,11 @@ const styles = StyleSheet.create({
   ticketItemPrice: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
   },
   transferButton: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -997,28 +965,23 @@ const styles = StyleSheet.create({
   ticketsTotalLabel: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.medium,
-    color: Colors.gray700,
   },
   ticketsTotalValue: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
-    color: Colors.primary,
   },
 
   // Form Data
   formDataCard: {
-    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     padding: Spacing.lg,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.gray200,
   },
   sectionTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   formDataRow: {
@@ -1027,17 +990,14 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   formDataLabel: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
     flex: 1,
   },
   formDataValue: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
-    color: Colors.gray900,
     flex: 2,
     textAlign: 'right',
   },
@@ -1063,7 +1023,6 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     flex: 1,
   },
 
@@ -1092,44 +1051,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.white,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.primary,
   },
   buyMoreButtonText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
   },
   cancelButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.errorLight,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.error,
   },
   cancelButtonText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.error,
   },
 
   // Online Access Card
   onlineAccessCard: {
-    backgroundColor: '#EFF6FF',
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginTop: Spacing.lg,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
   },
   onlineAccessHeader: {
     flexDirection: 'row',
@@ -1140,21 +1091,17 @@ const styles = StyleSheet.create({
   onlineAccessTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: '#1D4ED8',
   },
   onlinePlatform: {
     fontSize: FontSizes.sm,
-    color: '#3B82F6',
     marginBottom: Spacing.xs,
   },
   onlineInstructions: {
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     lineHeight: 20,
     marginBottom: Spacing.md,
   },
   onlineMeetingDetails: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     marginBottom: Spacing.md,
@@ -1167,18 +1114,15 @@ const styles = StyleSheet.create({
   },
   meetingDetailLabel: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
   },
   meetingDetailValue: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
-    color: Colors.gray900,
   },
   joinOnlineButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3B82F6',
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
@@ -1186,12 +1130,11 @@ const styles = StyleSheet.create({
   joinOnlineButtonText: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   eventezVisioInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F0F9FF',
     borderRadius: BorderRadius.md,
     padding: Spacing.md,
     gap: Spacing.sm,
@@ -1199,7 +1142,6 @@ const styles = StyleSheet.create({
   eventezVisioText: {
     flex: 1,
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
     lineHeight: 20,
   },
 });
