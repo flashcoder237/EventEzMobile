@@ -1,0 +1,197 @@
+// ============================================
+// EventEz Mobile API — Authentication, Users & Verification
+// ============================================
+
+import api, { clearTokens } from './instance';
+import { fetchUpload, REFRESH_TOKEN_KEY } from './config';
+import * as SecureStore from 'expo-secure-store';
+
+// ============================================
+// AUTHENTICATION API
+// ============================================
+
+export const authAPI = {
+  login: (email: string, password: string) =>
+    api.post('/token/', { email, password }),
+
+  register: (data: {
+    email: string;
+    username: string;
+    password: string;
+    confirm_password: string;
+    first_name: string;
+    last_name: string;
+    phone_number?: string;
+  }) => api.post('/register/', data),
+
+  registerOrganizer: (data: any) =>
+    api.post('/register/organizer/', data),
+
+  refreshToken: (refreshToken: string) =>
+    api.post('/token/refresh/', { refresh: refreshToken }),
+
+  requestPasswordReset: (email: string) =>
+    api.post('/password-reset/request/', { email }),
+
+  validateResetToken: (token: string) =>
+    api.get(`/password-reset/validate/${token}/`),
+
+  resetPassword: (token: string, password: string) =>
+    api.post('/password-reset/confirm/', { token, password }),
+
+  logout: async () => {
+    try {
+      const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+      await api.post('/logout/', { refresh: refreshToken });
+    } catch (error) {
+      if (__DEV__) console.warn('Logout API call failed:', error);
+    } finally {
+      await clearTokens();
+    }
+  },
+
+  // Authentification sociale
+  googleSignIn: (token: string) =>
+    api.post('/social-auth/google/', { token }),
+
+  appleSignIn: (data: {
+    identity_token: string;
+    user?: {
+      email?: string;
+      name?: {
+        firstName?: string;
+        lastName?: string;
+      };
+    };
+  }) => api.post('/social-auth/apple/', data),
+
+  // Vérification email
+  verifyEmail: (token: string) =>
+    api.get(`/verify-email/${token}/`),
+
+  resendVerificationEmail: (email: string) =>
+    api.post('/verify-email/resend/', { email }),
+};
+
+// ============================================
+// USERS API
+// ============================================
+
+export const usersAPI = {
+  // CRUD de base
+  getUsers: (params?: any) =>
+    api.get('/users/', { params }),
+
+  getUser: (id: string) =>
+    api.get(`/users/${id}/`),
+
+  // Utilisateur courant
+  getCurrentUser: () =>
+    api.get('/users/me/'),
+
+  updateCurrentUser: (data: any) =>
+    api.patch('/users/me/', data),
+
+  // Backend n'accepte que PUT pour update_profile
+  updateProfile: (data: any) =>
+    api.put('/users/update_profile/', data),
+
+  updateProfileImage: (formData: FormData) =>
+    fetchUpload('PATCH', '/users/me/upload_profile_image/', formData),
+
+  getUserSettings: () =>
+    api.get('/users/me/settings/'),
+
+  updateUserSettings: (settings: any) =>
+    api.put('/users/me/settings/', settings),
+
+  deleteAccount: (data: { password: string; reason?: string }) =>
+    api.post('/users/me/delete_account/', data),
+
+  // Organisateurs
+  getOrganizers: (params?: any) =>
+    api.get('/users/organizers/', { params }),
+
+  becomeOrganizer: (data?: {
+    organizer_type: 'individual' | 'organization';
+    company_name?: string;
+    registration_number?: string;
+    phone?: string;
+  }) => api.post('/users/become_organizer/', data || {}),
+
+  // Authentification & Sécurité
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    api.post('/users/change_password/', data),
+
+  // Notifications
+  updateNotificationSettings: (data: any) =>
+    api.patch('/users/notification_settings/', data),
+
+  // Analytics
+  getUserAnalytics: () =>
+    api.get('/users/analytics/'),
+
+  // Admin: CRUD utilisateurs
+  updateUser: (id: string, data: any) =>
+    api.patch(`/users/${id}/`, data),
+
+  deleteUser: (id: string) =>
+    api.delete(`/users/${id}/`),
+
+  createUser: (data: any) =>
+    api.post('/users/create_user/', data),
+
+  // Admin/Modérateur: Vérification de profils
+  getPendingVerification: () =>
+    api.get('/users/pending_verification/'),
+
+  verifyProfile: (id: string, data?: { verified_status?: boolean; note?: string }) =>
+    api.post(`/users/${id}/verify_profile/`, data || {}),
+
+  rejectProfile: (id: string, data: { reason: string }) =>
+    api.post(`/users/${id}/reject_profile/`, data),
+
+  // User Following
+  followUser: (id: number, preferences?: {
+    notification_preference?: 'all' | 'important' | 'none';
+    notify_email?: boolean;
+    notify_push?: boolean;
+    notify_new_event?: boolean;
+  }) => api.post(`/users/${id}/follow/`, preferences || {}),
+
+  unfollowUser: (id: number) =>
+    api.post(`/users/${id}/unfollow/`),
+
+  isFollowingUser: (id: number) =>
+    api.get(`/users/${id}/is_following/`),
+
+  getUserFollowersCount: (id: number) =>
+    api.get(`/users/${id}/followers_count/`),
+
+  updateUserFollowPreferences: (id: number, preferences: any) =>
+    api.patch(`/users/${id}/update_follow_preferences/`, preferences),
+
+  getFollowingUsers: () =>
+    api.get('/users/following_users/'),
+};
+
+// ============================================
+// VERIFICATION API
+// ============================================
+
+export const verificationAPI = {
+  submit: (formData: FormData) =>
+    fetchUpload('POST', '/verifications/submit/', formData),
+
+  getMyRequest: () =>
+    api.get('/verifications/my_request/'),
+
+  getPending: () =>
+    api.get('/verifications/pending/'),
+
+  approve: (id: number) =>
+    api.post(`/verifications/${id}/approve/`),
+
+  reject: (id: number, reason: string) =>
+    api.post(`/verifications/${id}/reject/`, { reason }),
+};

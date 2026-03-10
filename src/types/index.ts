@@ -174,6 +174,7 @@ export interface Event {
   form_active_days?: number;
   // Gestion des inscriptions
   auto_approve_registrations?: boolean;
+  fee_bearer?: 'participant' | 'organizer';
   max_participants?: number;
   // Prix (SerializerMethodField)
   ticket_price_range?: string;

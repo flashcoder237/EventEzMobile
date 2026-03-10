@@ -29,6 +29,7 @@ interface EventStep3PricingProps {
   isFree: boolean;
   maxParticipants: string;
   autoApproveRegistrations: boolean;
+  feeBearer: 'participant' | 'organizer';
   startDate: Date;
 
   // Ticket types (billetterie)
@@ -52,6 +53,7 @@ interface EventStep3PricingProps {
   onIsFreeChange: (value: boolean) => void;
   onMaxParticipantsChange: (value: string) => void;
   onAutoApproveChange: (value: boolean) => void;
+  onFeeBearerChange: (value: 'participant' | 'organizer') => void;
   onAddTicketType: () => void;
   onUpdateTicketType: (index: number, field: string, value: any) => void;
   onRemoveTicketType: (index: number) => void;
@@ -224,6 +226,7 @@ export default function EventStep3Pricing({
   isFree,
   maxParticipants,
   autoApproveRegistrations,
+  feeBearer,
   startDate,
   ticketTypes,
   showFormFieldsForBilletterie,
@@ -237,6 +240,7 @@ export default function EventStep3Pricing({
   onIsFreeChange,
   onMaxParticipantsChange,
   onAutoApproveChange,
+  onFeeBearerChange,
   onAddTicketType,
   onUpdateTicketType,
   onRemoveTicketType,
@@ -523,6 +527,25 @@ export default function EventStep3Pricing({
             thumbColor={autoApproveRegistrations ? colors.primary : colors.gray400}
           />
         </View>
+
+        {eventType === 'billetterie' && !isFree && (
+          <View style={[styles.switchRow, themed.switchRow]}>
+            <View style={styles.switchContent}>
+              <Text style={[styles.switchLabel, themed.switchLabel]}>Absorber les frais de service</Text>
+              <Text style={[styles.switchDescription, themed.switchDescription]}>
+                {feeBearer === 'organizer'
+                  ? 'Les frais seront déduits de vos revenus'
+                  : 'Les frais sont ajoutés au prix payé par le participant'}
+              </Text>
+            </View>
+            <Switch
+              value={feeBearer === 'organizer'}
+              onValueChange={(val) => onFeeBearerChange(val ? 'organizer' : 'participant')}
+              trackColor={{ false: colors.gray200, true: colors.primaryLight }}
+              thumbColor={feeBearer === 'organizer' ? colors.primary : colors.gray400}
+            />
+          </View>
+        )}
       </View>
 
       {/* Summary */}

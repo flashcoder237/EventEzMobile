@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import type { EventFormState, TicketTypeForm, SessionForm, FormFieldForm } from './useEventForm';
 
 const DRAFT_KEY = '@eventez_event_draft';

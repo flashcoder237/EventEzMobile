@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import {
   eventsAPI,
@@ -102,6 +102,7 @@ export interface EventFormState {
   isFree: boolean;
   maxParticipants: string;
   autoApproveRegistrations: boolean;
+  feeBearer: 'participant' | 'organizer';
   ticketTypes: TicketTypeForm[];
   formFields: FormFieldForm[];
   showFormFieldsForBilletterie: boolean;
@@ -191,6 +192,7 @@ export interface UseEventFormReturn {
   setIsFree: (value: boolean) => void;
   setMaxParticipants: (value: string) => void;
   setAutoApproveRegistrations: (value: boolean) => void;
+  setFeeBearer: (value: 'participant' | 'organizer') => void;
   addTicketType: () => void;
   updateTicketType: (index: number, field: string, value: any) => void;
   removeTicketType: (index: number) => void;
@@ -335,6 +337,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const [isFree, setIsFree] = useState(false);
   const [maxParticipants, setMaxParticipants] = useState('');
   const [autoApproveRegistrations, setAutoApproveRegistrations] = useState(true);
+  const [feeBearer, setFeeBearer] = useState<'participant' | 'organizer'>('participant');
   const [ticketTypes, setTicketTypes] = useState<TicketTypeForm[]>([]);
   const [formFields, setFormFields] = useState<FormFieldForm[]>([]);
   const [showFormFieldsForBilletterie, setShowFormFieldsForBilletterie] = useState(false);
@@ -879,6 +882,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     if (data.isFree !== undefined) setIsFree(data.isFree);
     if (data.maxParticipants !== undefined) setMaxParticipants(data.maxParticipants);
     if (data.autoApproveRegistrations !== undefined) setAutoApproveRegistrations(data.autoApproveRegistrations);
+    if (data.feeBearer !== undefined) setFeeBearer(data.feeBearer);
     if (data.ticketTypes !== undefined) setTicketTypes(data.ticketTypes);
     if (data.formFields !== undefined) setFormFields(data.formFields);
     if (data.showFormFieldsForBilletterie !== undefined) setShowFormFieldsForBilletterie(data.showFormFieldsForBilletterie);
@@ -925,6 +929,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
           bannerImage: event.banner_image || null,
           maxParticipants: event.max_participants ? String(event.max_participants) : '',
           autoApproveRegistrations: event.auto_approve_registrations ?? true,
+          feeBearer: event.fee_bearer || 'participant',
           visibility: event.visibility || 'public',
           accessCode: event.access_code || '',
         });
@@ -968,6 +973,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     setOnlineMeetingId('');
     setOnlinePasscode('');
     setIsFree(false);
+    setFeeBearer('participant');
     setMaxParticipants('');
     setTicketTypes([]);
     setFormFields([]);
@@ -1038,6 +1044,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
         formData.append('max_participants', maxParticipants);
       }
       formData.append('auto_approve_registrations', String(autoApproveRegistrations));
+      formData.append('fee_bearer', feeBearer);
       formData.append('visibility', visibility);
       if (accessCode) {
         formData.append('access_code', accessCode);
@@ -1209,6 +1216,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     isFree,
     maxParticipants,
     autoApproveRegistrations,
+    feeBearer,
     ticketTypes,
     formFields,
     showFormFieldsForBilletterie,
@@ -1272,6 +1280,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     setIsFree,
     setMaxParticipants,
     setAutoApproveRegistrations,
+    setFeeBearer,
     addTicketType,
     updateTicketType,
     removeTicketType,

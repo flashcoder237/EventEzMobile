@@ -412,7 +412,8 @@ export default function PaymentScreen() {
   const { config: commissionConfig } = useCommissionConfig(eventCountryCode);
 
   const subtotal = calculateSubtotal();
-  const serviceFee = calculateServiceFee(subtotal, commissionConfig);
+  const feeBearer = (eventObj as any)?.fee_bearer || 'participant';
+  const serviceFee = feeBearer === 'organizer' ? 0 : calculateServiceFee(subtotal, commissionConfig);
   const serviceFeeLabel = getServiceFeeLabel(commissionConfig);
   const finalTotal = Math.round((subtotal + serviceFee) * 100) / 100;
 

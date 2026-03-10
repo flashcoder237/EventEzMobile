@@ -199,7 +199,10 @@ export default function TicketPurchaseScreen() {
   };
 
   // Frais de service via config dynamique du backend
+  // Si l'organisateur absorbe les frais, pas de frais pour le participant
+  const feeBearer = (event as any)?.fee_bearer || 'participant';
   const getServiceFee = () => {
+    if (feeBearer === 'organizer') return 0;
     return calculateServiceFee(getTotalPrice(), commissionConfig);
   };
 
@@ -770,12 +773,14 @@ export default function TicketPurchaseScreen() {
                       {getTotalPrice().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
-                  <View style={styles.summaryRow}>
-                    <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Frais de service ({getServiceFeeLabel(commissionConfig)})</Text>
-                    <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
-                      {getServiceFee().toLocaleString()} {commissionCurrency}
-                    </Text>
-                  </View>
+                  {getServiceFee() > 0 && (
+                    <View style={styles.summaryRow}>
+                      <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Frais de service ({getServiceFeeLabel(commissionConfig)})</Text>
+                      <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
+                        {getServiceFee().toLocaleString()} {commissionCurrency}
+                      </Text>
+                    </View>
+                  )}
                   <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
                 </>
               )}

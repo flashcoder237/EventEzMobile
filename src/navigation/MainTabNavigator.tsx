@@ -172,7 +172,7 @@ export default function MainTabNavigator() {
       tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        sceneContainerStyle: { backgroundColor: colors.background },
+        sceneStyle: { backgroundColor: colors.background },
       }}
     >
       <Tab.Screen

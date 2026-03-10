@@ -86,6 +86,7 @@ export default function EventEditScreen() {
     setIsFree,
     setMaxParticipants,
     setAutoApproveRegistrations,
+    setFeeBearer,
     addTicketType,
     updateTicketType,
     removeTicketType,
@@ -293,6 +294,7 @@ export default function EventEditScreen() {
               isFree={form.isFree}
               maxParticipants={form.maxParticipants}
               autoApproveRegistrations={form.autoApproveRegistrations}
+              feeBearer={form.feeBearer}
               startDate={form.startDate}
               ticketTypes={form.ticketTypes}
               showFormFieldsForBilletterie={form.showFormFieldsForBilletterie}
@@ -306,6 +308,7 @@ export default function EventEditScreen() {
               onIsFreeChange={setIsFree}
               onMaxParticipantsChange={setMaxParticipants}
               onAutoApproveChange={setAutoApproveRegistrations}
+              onFeeBearerChange={setFeeBearer}
               onAddTicketType={addTicketType}
               onUpdateTicketType={updateTicketType}
               onRemoveTicketType={removeTicketType}
