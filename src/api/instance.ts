@@ -158,14 +158,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+        let refreshToken: string | null = null;
+        try {
+          refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+        } catch (secureStoreError) {
+          if (__DEV__) console.warn('SecureStore failed to get refresh token:', secureStoreError);
+        }
+
         if (refreshToken) {
           const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
             refresh: refreshToken,
           });
 
           const { access } = response.data;
-          await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, access);
+          try {
+            await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, access);
+          } catch (secureStoreError) {
+            if (__DEV__) console.warn('SecureStore failed to save access token:', secureStoreError);
+          }
 
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${access}`;
@@ -276,21 +286,44 @@ export const deduplicatedGet = async <T = any>(url: string, config?: any): Promi
 // ============================================
 
 export const setTokens = async (accessToken: string, refreshToken: string) => {
-  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  try {
+    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+    await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  } catch (error) {
+    if (__DEV__) console.error('SecureStore failed to save tokens:', error);
+    throw new Error('Failed to securely store authentication tokens');
+  }
 };
 
 export const clearTokens = async () => {
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  try {
+    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+  } catch (error) {
+    if (__DEV__) console.warn('SecureStore failed to delete access token:', error);
+  }
+  try {
+    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  } catch (error) {
+    if (__DEV__) console.warn('SecureStore failed to delete refresh token:', error);
+  }
 };
 
 export const getAccessToken = async () => {
-  return SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  try {
+    return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  } catch (error) {
+    if (__DEV__) console.warn('SecureStore failed to get access token:', error);
+    return null;
+  }
 };
 
 export const getRefreshToken = async () => {
-  return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  try {
+    return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  } catch (error) {
+    if (__DEV__) console.warn('SecureStore failed to get refresh token:', error);
+    return null;
+  }
 };
 
 export default api;

@@ -920,7 +920,10 @@ export default function EventDetailsScreen() {
         animationType="fade"
         onRequestClose={() => setShowImageViewer(false)}
         onShow={() => {
-          viewerFlatListRef.current?.scrollToIndex({ index: viewerImageIndex, animated: false });
+          const safeIndex = Math.min(Math.max(viewerImageIndex, 0), Math.max(0, allImages.length - 1));
+          if (allImages.length > 0) {
+            viewerFlatListRef.current?.scrollToIndex({ index: safeIndex, animated: false });
+          }
         }}
       >
         <View style={styles.imageViewerContainer}>
@@ -941,10 +944,10 @@ export default function EventDetailsScreen() {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              initialScrollIndex={viewerImageIndex}
+              initialScrollIndex={Math.min(Math.max(viewerImageIndex, 0), Math.max(0, allImages.length - 1))}
               getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
               onMomentumScrollEnd={e => {
-                const idx = Math.round(e.nativeEvent.contentOffset.x / width);
+                const idx = width > 0 ? Math.round(e.nativeEvent.contentOffset.x / width) : 0;
                 setViewerImageIndex(idx);
               }}
               renderItem={({ item }) => (

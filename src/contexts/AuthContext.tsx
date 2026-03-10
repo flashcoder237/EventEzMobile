@@ -43,7 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsub = eventBus.on('api-auth-error', async () => {
       if (__DEV__) console.log('[Auth] Received api-auth-error event, clearing session');
-      await clearTokens();
+      try {
+        await clearTokens();
+      } catch (clearError) {
+        if (__DEV__) console.warn('Failed to clear tokens on auth error:', clearError);
+      }
       // Ne pas toucher REMEMBER_ME_KEY — l'utilisateur devra se reconnecter
       // mais sa préférence "Se souvenir de moi" est préservée
       setState({ user: null, isAuthenticated: false, isLoading: false });
@@ -83,7 +87,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       if (__DEV__) console.error('Erreur de vérification auth:', error);
       // Token invalide/expiré, nettoyer
-      await clearTokens();
+      try {
+        await clearTokens();
+      } catch (clearError) {
+        if (__DEV__) console.warn('Failed to clear tokens during auth check:', clearError);
+      }
       setState({ user: null, isAuthenticated: false, isLoading: false });
     }
   };
@@ -152,7 +160,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearSentryUser();
 
     // Filet de securite : s'assurer que les tokens sont bien supprimes
-    await clearTokens();
+    try {
+      await clearTokens();
+    } catch (clearError) {
+      if (__DEV__) console.warn('Failed to clear tokens during logout:', clearError);
+    }
     // Vider le cache mémoire — les données AsyncStorage restent pour le prochain login
     CacheService.clearMemory();
     // Ne PAS réinitialiser REMEMBER_ME_KEY — la préférence est conservée

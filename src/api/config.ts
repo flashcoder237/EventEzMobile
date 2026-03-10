@@ -47,7 +47,12 @@ export async function fetchUpload(
   path: string,
   formData: FormData
 ): Promise<{ data: any }> {
-  const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  let token: string | null = null;
+  try {
+    token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  } catch (error) {
+    if (__DEV__) console.warn('SecureStore failed to get token for upload:', error);
+  }
   const url = `${API_BASE_URL}${path}`;
   const response = await fetch(url, {
     method,

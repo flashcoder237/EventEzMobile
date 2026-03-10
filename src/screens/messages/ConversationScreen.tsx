@@ -718,7 +718,7 @@ export default function ConversationScreen() {
       // Nouvelle conversation : créer avec le premier message atomiquement
       if (state.isNewConversation && userId && !state.conversationId) {
         const convResponse = await messagesAPI.createConversation({
-          participant_ids: [Number(user?.id), Number(userId)],
+          participant_ids: [Number(user?.id || 0), Number(userId)],
           message: messageContent,
         } as any);
         conversationIdToUse = convResponse.data.id;
@@ -768,7 +768,7 @@ export default function ConversationScreen() {
       const tempMessage: Message = {
         id: `temp-${Date.now()}`,
         conversation: conversationIdToUse,
-        sender: user!.id as any,
+        sender: (user?.id ?? '') as any,
         sender_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email || '',
         content: messageContent,
         message_type: 'text',
