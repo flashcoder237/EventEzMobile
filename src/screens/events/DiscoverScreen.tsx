@@ -158,30 +158,14 @@ export default function DiscoverScreen() {
 
   const HEADER_SCROLL_THRESHOLD = 80; // px to fully collapse
 
-  const headerCollapseStyle = useAnimatedStyle(() => ({
-    maxHeight: (1 - searchProgress.value) * 200,
-    opacity: 1 - searchProgress.value,
-    overflow: 'hidden' as const,
-  }));
-
-  // Expanded header: only fade opacity, NO height/margin changes (prevents jitter)
-  const expandedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD * 0.6], [1, 0], Extrapolation.CLAMP),
-  }));
-
-  // Compact header fades in as user scrolls (absolute positioned, no layout impact)
+  // Compact header fades in as user scrolls past the inline header (absolute positioned overlay)
   const compactHeaderStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(scrollY.value, [HEADER_SCROLL_THRESHOLD * 0.4, HEADER_SCROLL_THRESHOLD], [0, 1], Extrapolation.CLAMP);
+    const opacity = interpolate(scrollY.value, [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD], [0, 1], Extrapolation.CLAMP);
     return {
       opacity,
       pointerEvents: opacity > 0.5 ? 'auto' as const : 'none' as const,
     };
   });
-
-  // Search bar: only fade, no margin animation (prevents layout jitter)
-  const searchBarScrollStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD * 0.6], [1, 0], Extrapolation.CLAMP),
-  }));
 
   const onDiscoveryScroll = useAnimatedScrollHandler({
     onScroll: (event) => {
@@ -1193,6 +1177,72 @@ export default function DiscoverScreen() {
       }
       contentContainerStyle={styles.scrollContent}
     >
+      {/* === INLINE EXPANDED HEADER (scrolls with content) === */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <Ionicons name="location" size={18} color={colors.accent} />
+          <Text style={[styles.headerLocation, { color: colors.gray900 }]}>
+            {location ? 'Douala' : 'Douala, Cameroun'}
+          </Text>
+          <Ionicons name="chevron-down" size={14} color={colors.gray400} />
+        </View>
+        <View style={styles.headerActions}>
+          {user?.role === 'organizer' && (
+            <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('EventCreate' as any)} accessibilityRole="button" accessibilityLabel="Creer un evenement">
+              <LinearGradient
+                colors={[colors.primary, colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.headerBtnCreate}
+              >
+                <Ionicons name="add" size={22} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')} accessibilityRole="button" accessibilityLabel="Messages">
+            <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
+            {unreadMessageCount > 0 && (
+              <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
+                <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                  <Text style={styles.badgeText}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</Text>
+                </View>
+              </PulsingBadge>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')} accessibilityRole="button" accessibilityLabel="Notifications">
+            <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
+            {unreadNotificationCount > 0 && (
+              <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
+                <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                  <Text style={styles.badgeText}>{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</Text>
+                </View>
+              </PulsingBadge>
+            )}
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={styles.heroSection}>
+        <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
+          {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
+        </Text>
+        <GradientText style={styles.heroTitle}>Discover Events</GradientText>
+      </View>
+
+      {/* Inline search bar (scrolls away) */}
+      <TouchableOpacity
+        style={[styles.searchBarTrigger, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}
+        onPress={activateSearch}
+        activeOpacity={0.7}
+        accessibilityRole="search"
+        accessibilityLabel="Rechercher des evenements"
+      >
+        <Ionicons name="search" size={20} color={colors.primary} />
+        <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
+          {placeholderSuggestions[placeholderIndex]}
+        </Text>
+      </TouchableOpacity>
+
       {/* Category Chips */}
       {categories.length > 0 && (
         <ScrollView
@@ -1430,82 +1480,8 @@ export default function DiscoverScreen() {
             </Animated.View>
           )}
 
-          {/* === EXPANDED HEADER (location + greeting) — collapses on scroll & search === */}
-          <Animated.View style={[headerCollapseStyle, !isSearchActive && expandedHeaderStyle]}>
-            <View style={styles.header}>
-              <View style={styles.headerLeft}>
-                <Ionicons name="location" size={18} color={colors.accent} />
-                <Text style={[styles.headerLocation, { color: colors.gray900 }]}>
-                  {location ? 'Douala' : 'Douala, Cameroun'}
-                </Text>
-                <Ionicons name="chevron-down" size={14} color={colors.gray400} />
-              </View>
-              <View style={styles.headerActions}>
-                {user?.role === 'organizer' && (
-                  <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('EventCreate' as any)} accessibilityRole="button" accessibilityLabel="Creer un evenement">
-                    <LinearGradient
-                      colors={[colors.primary, colors.primaryDark]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.headerBtnCreate}
-                    >
-                      <Ionicons name="add" size={22} color="#FFFFFF" />
-                    </LinearGradient>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')} accessibilityRole="button" accessibilityLabel="Messages">
-                  <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
-                  {unreadMessageCount > 0 && (
-                    <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
-                      <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                        <Text style={styles.badgeText}>{unreadMessageCount > 99 ? '99+' : unreadMessageCount}</Text>
-                      </View>
-                    </PulsingBadge>
-                  )}
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')} accessibilityRole="button" accessibilityLabel="Notifications">
-                  <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
-                  {unreadNotificationCount > 0 && (
-                    <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
-                      <View style={[styles.badge, { backgroundColor: colors.error }]}>
-                        <Text style={styles.badgeText}>{unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}</Text>
-                      </View>
-                    </PulsingBadge>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.heroSection}>
-              <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
-                {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
-              </Text>
-              <GradientText style={styles.heroTitle}>Discover Events</GradientText>
-            </View>
-          </Animated.View>
-
-          {/* Search bar — transforms in-place */}
-          {isSearchActive ? (
-            renderSearchHeader()
-          ) : (
-            <Animated.View style={searchBarScrollStyle}>
-              <TouchableOpacity
-                style={[
-                  styles.searchBarTrigger,
-                  { backgroundColor: colors.surface, borderColor: colors.gray200 },
-                ]}
-                onPress={activateSearch}
-                activeOpacity={0.7}
-                accessibilityRole="search"
-                accessibilityLabel="Rechercher des evenements"
-              >
-                <Ionicons name="search" size={20} color={colors.primary} />
-                <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
-                  {placeholderSuggestions[placeholderIndex]}
-                </Text>
-              </TouchableOpacity>
-            </Animated.View>
-          )}
+          {/* Search header (only when search is active) */}
+          {isSearchActive && renderSearchHeader()}
 
           {/* Content — fades between discovery feed and search results */}
           <Animated.View style={[{ flex: 1 }, contentAnimStyle]}>
