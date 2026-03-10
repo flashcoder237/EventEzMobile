@@ -164,28 +164,23 @@ export default function DiscoverScreen() {
     overflow: 'hidden' as const,
   }));
 
-  // Expanded header fades out as user scrolls
+  // Expanded header: only fade opacity, NO height/margin changes (prevents jitter)
   const expandedHeaderStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [1, 0], Extrapolation.CLAMP),
-    maxHeight: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [200, 0], Extrapolation.CLAMP),
-    overflow: 'hidden' as const,
+    opacity: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD * 0.6], [1, 0], Extrapolation.CLAMP),
   }));
 
-  // Compact header fades in as user scrolls
+  // Compact header fades in as user scrolls (absolute positioned, no layout impact)
   const compactHeaderStyle = useAnimatedStyle(() => {
-    const opacity = interpolate(scrollY.value, [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD], [0, 1], Extrapolation.CLAMP);
-    const translateY = interpolate(scrollY.value, [HEADER_SCROLL_THRESHOLD * 0.5, HEADER_SCROLL_THRESHOLD], [-10, 0], Extrapolation.CLAMP);
+    const opacity = interpolate(scrollY.value, [HEADER_SCROLL_THRESHOLD * 0.4, HEADER_SCROLL_THRESHOLD], [0, 1], Extrapolation.CLAMP);
     return {
       opacity,
-      transform: [{ translateY }],
       pointerEvents: opacity > 0.5 ? 'auto' as const : 'none' as const,
     };
   });
 
-  // Search bar slides up when scrolling
+  // Search bar: only fade, no margin animation (prevents layout jitter)
   const searchBarScrollStyle = useAnimatedStyle(() => ({
-    marginTop: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [Spacing.lg, Spacing.sm], Extrapolation.CLAMP),
-    marginBottom: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD], [Spacing.lg, Spacing.sm], Extrapolation.CLAMP),
+    opacity: interpolate(scrollY.value, [0, HEADER_SCROLL_THRESHOLD * 0.6], [1, 0], Extrapolation.CLAMP),
   }));
 
   const onDiscoveryScroll = useAnimatedScrollHandler({
@@ -1616,22 +1611,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 6,
     gap: Spacing.sm,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     ...Shadows.header,
   },
   compactLogo: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 6,
   },
   compactSearchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: BorderRadius.full,
-    paddingVertical: 10,
+    paddingVertical: 7,
     paddingHorizontal: Spacing.md,
     gap: Spacing.xs,
     borderWidth: 1,
@@ -1647,9 +1642,9 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   compactBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1692,6 +1687,8 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: Spacing.lg,
     marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.lg,
     gap: Spacing.sm,
     borderWidth: 1.5,
     borderColor: Colors.gray200,
