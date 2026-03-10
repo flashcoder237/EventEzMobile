@@ -21,7 +21,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { subscriptionsAPI } from '../../api/client';
+import { subscriptionsAPI } from '../../api';
 import { usePaymentVerification } from '../../hooks/usePaymentVerification';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';

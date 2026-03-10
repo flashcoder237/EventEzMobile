@@ -1,0 +1,60 @@
+appId: ${APP_ID}
+name: "Organizer - Analytics evenement"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: Event Analytics (Organizer)
+# Teste le dashboard analytique d'un evenement
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil → Mes evenements
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*v.nements.*|.*Mes .v.nements.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*v.nements.*"
+    timeout: 10000
+
+# Taper sur "Voir les statistiques" du premier evenement
+- tapOn:
+    text: ".*statistiques.*|.*analytics.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Statistiques.*|.*Analytics.*|.*Tableau.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les metriques principales
+- assertVisible:
+    text: ".*inscrip.*|.*billet.*|.*vue.*|.*revenu.*"
+    optional: true
+
+# Scroll pour voir plus de stats
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Verifier les actions disponibles
+- assertVisible:
+    text: ".*inscription.*|.*Scanner.*|.*Modifier.*"
+    optional: true
+
+# Scroll encore
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

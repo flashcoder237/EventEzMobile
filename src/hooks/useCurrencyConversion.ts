@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { currencyAPI } from '../api/client';
+import { currencyAPI } from '../api';
 
 // Map navigator locale to currency code
 const localeToCurrency: Record<string, string> = {

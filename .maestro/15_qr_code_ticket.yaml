@@ -1,0 +1,56 @@
+appId: ${APP_ID}
+name: "Tickets - QR Code billet"
+---
+
+# Flow: QR Code Display
+# Teste l'affichage du QR code d'un billet
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers l'onglet Billets
+- tapOn:
+    text: "Billets"
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Billets.*|.*tickets.*"
+    timeout: 10000
+
+# Verifier le filtre "A venir"
+- tapOn:
+    text: ".*venir.*"
+    optional: true
+
+# Si des billets existent, taper sur le premier
+- tapOn:
+    id: "ticket-card-.*"
+    optional: true
+
+# Verifier les details du billet
+- extendedWaitUntil:
+    visible:
+      text: ".*QR.*|.*billet.*|.*ticket.*|.*inscription.*"
+    timeout: 10000
+    optional: true
+
+# Taper sur "Afficher QR code" ou equivalent
+- tapOn:
+    text: ".*QR.*code.*|.*Afficher.*QR.*"
+    optional: true
+
+# Verifier que le QR code est visible
+- extendedWaitUntil:
+    visible:
+      text: ".*QR.*code.*|.*scanner.*|.*billet.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les actions disponibles (partager, telecharger, imprimer)
+- assertVisible:
+    text: ".*Partager.*|.*T.l.charger.*|.*Imprimer.*"
+    optional: true
+
+# Fermer le modal
+- tapOn:
+    text: ".*Fermer.*|.*Retour.*"
+    optional: true

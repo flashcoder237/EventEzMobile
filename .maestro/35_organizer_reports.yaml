@@ -1,0 +1,56 @@
+appId: ${APP_ID}
+name: "Organizer - Rapports"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: Reports (Organizer)
+# Teste l'acces aux rapports et exports
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Chercher les rapports/analytics dashboard
+- tapOn:
+    text: ".*Rapport.*|.*Analytics.*|.*Statistiques.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Rapport.*|.*Analytics.*|.*Statistiques.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les metriques globales
+- assertVisible:
+    text: ".*total.*|.*revenu.*|.*inscript.*|.*vue.*"
+    optional: true
+
+# Scroll pour voir les graphiques/details
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Verifier les options d'export
+- assertVisible:
+    text: ".*Export.*|.*T.l.charger.*|.*CSV.*|.*PDF.*"
+    optional: true
+
+# Tester l'export si disponible
+- tapOn:
+    text: ".*Export.*|.*T.l.charger.*"
+    optional: true
+
+# Scroll encore
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

@@ -137,7 +137,7 @@ export default function PaymentSuccessScreen() {
           </View>
         </Animated.View>
 
-        <Animated.View style={[styles.textContainer, contentStyle]}>
+        <Animated.View style={[styles.textContainer, contentStyle]} accessibilityRole="alert">
           {/* Gradient text for title */}
           <GradientText style={styles.title}>
             {content.title}
@@ -168,6 +168,7 @@ export default function PaymentSuccessScreen() {
           onPress={handleViewTicket}
           icon={<Ionicons name={content.primaryButtonIcon} size={20} color={colors.white} />}
           fullWidth
+          accessibilityLabel="Voir mon billet"
         />
         <View style={{ height: Spacing.md }} />
         <GradientButton
@@ -175,6 +176,7 @@ export default function PaymentSuccessScreen() {
           onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
           variant="outline"
           fullWidth
+          accessibilityLabel="Retour a l'accueil"
         />
       </View>
     </SafeAreaView>

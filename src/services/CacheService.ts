@@ -73,7 +73,8 @@ const CacheService = {
       mem.set(key, entry); // Réchauffer le cache mémoire
       evictIfNeeded();
       return { data: entry.data as T, isStale: now - entry.timestamp > entry.ttl };
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.warn(`[CacheService] get("${key}") failed:`, e instanceof Error ? e.message : e);
       return null;
     }
   },
@@ -88,7 +89,8 @@ const CacheService = {
     evictIfNeeded();
     try {
       await AsyncStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.warn(`[CacheService] set("${key}") failed:`, e instanceof Error ? e.message : e);
       // Le cache mémoire reste fonctionnel
     }
   },
@@ -102,7 +104,9 @@ const CacheService = {
     arr.forEach(k => mem.delete(k));
     try {
       await AsyncStorage.multiRemove(arr.map(k => STORAGE_PREFIX + k));
-    } catch {}
+    } catch (e) {
+      if (__DEV__) console.warn(`[CacheService] invalidate(${JSON.stringify(arr)}) failed:`, e instanceof Error ? e.message : e);
+    }
   },
 
   /**
@@ -117,7 +121,9 @@ const CacheService = {
       const allKeys = await AsyncStorage.getAllKeys();
       const toRemove = allKeys.filter(k => k.startsWith(STORAGE_PREFIX + prefix));
       if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
-    } catch {}
+    } catch (e) {
+      if (__DEV__) console.warn(`[CacheService] clearByPrefix("${prefix}") failed:`, e instanceof Error ? e.message : e);
+    }
   },
 
   /**

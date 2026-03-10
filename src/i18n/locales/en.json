@@ -1,0 +1,223 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "retry": "Retry",
+    "seeAll": "See all",
+    "noResults": "No results",
+    "refresh": "Refresh",
+    "share": "Share",
+    "copy": "Copy",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "apply": "Apply",
+    "free": "Free",
+    "required": "Required"
+  },
+
+  "auth": {
+    "login": "Login",
+    "register": "Sign up",
+    "logout": "Logout",
+    "email": "Email address",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "loginButton": "Sign in",
+    "registerButton": "Create account",
+    "loginWith": "Sign in with {{provider}}",
+    "orContinueWith": "Or continue with",
+    "welcomeBack": "Welcome back!",
+    "createAccount": "Create your account",
+    "invalidCredentials": "Invalid email or password",
+    "accountCreated": "Account created successfully"
+  },
+
+  "tabs": {
+    "discover": "Discover",
+    "saved": "Saved",
+    "tickets": "Tickets",
+    "profile": "Profile"
+  },
+
+  "discover": {
+    "title": "Discover",
+    "searchPlaceholder": "Search for an event...",
+    "nearYou": "Near you",
+    "popular": "Popular",
+    "upcoming": "Upcoming",
+    "categories": "Categories",
+    "allCategories": "All categories",
+    "noEvents": "No events found",
+    "noEventsMessage": "Try adjusting your filters or check back later"
+  },
+
+  "events": {
+    "details": "Details",
+    "description": "Description",
+    "dateAndTime": "Date and time",
+    "location": "Location",
+    "organizer": "Organizer",
+    "tickets": "Tickets",
+    "sessions": "Sessions",
+    "goodToKnow": "Good to know",
+    "whoIsGoing": "Who's going?",
+    "register": "Register",
+    "buyTickets": "Buy tickets",
+    "getTickets": "Get tickets",
+    "soldOut": "Sold out",
+    "eventEnded": "Event ended",
+    "startingFrom": "Starting from",
+    "participants": "{{count}} participant",
+    "participants_other": "{{count}} participants",
+    "share": "Share event",
+    "follow": "Follow",
+    "unfollow": "Unfollow",
+    "online": "Online",
+    "inPerson": "In person",
+    "hybrid": "Hybrid",
+    "draft": "Draft",
+    "published": "Published",
+    "cancelled": "Cancelled",
+    "completed": "Completed"
+  },
+
+  "tickets": {
+    "myTickets": "My tickets",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "noTickets": "No tickets",
+    "noTicketsMessage": "Your purchased tickets will appear here",
+    "scanQR": "Scan QR code",
+    "showQR": "Show QR code",
+    "ticketDetails": "Ticket details",
+    "transferTicket": "Transfer ticket",
+    "downloadTicket": "Download ticket"
+  },
+
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit profile",
+    "settings": "Settings",
+    "myEvents": "My events",
+    "myPayments": "My payments",
+    "wallet": "Wallet",
+    "help": "Help",
+    "about": "About",
+    "notifications": "Notifications",
+    "language": "Language",
+    "theme": "Theme",
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "systemMode": "System"
+  },
+
+  "messages": {
+    "title": "Messages",
+    "newMessage": "New message",
+    "typeMessage": "Type a message...",
+    "noMessages": "No messages",
+    "noMessagesDescription": "Your conversations will appear here",
+    "messageDeleted": "This message was deleted",
+    "edited": "edited",
+    "typing": "is typing...",
+    "online": "Online",
+    "offline": "Offline"
+  },
+
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "noNotificationsMessage": "You're all caught up!",
+    "all": "All",
+    "unread": "Unread"
+  },
+
+  "payments": {
+    "title": "Payments",
+    "paymentMethod": "Payment method",
+    "amount": "Amount",
+    "processing": "Processing...",
+    "success": "Payment successful!",
+    "failed": "Payment failed",
+    "successMessage": "Your payment has been processed successfully",
+    "failedMessage": "Your payment could not be processed",
+    "retry": "Retry payment",
+    "refund": "Request a refund",
+    "mtnMoney": "MTN Mobile Money",
+    "orangeMoney": "Orange Money",
+    "creditCard": "Credit card",
+    "phoneNumber": "Phone number"
+  },
+
+  "eventCreate": {
+    "title": "Create event",
+    "editTitle": "Edit event",
+    "step1": "Information",
+    "step2": "Date & Location",
+    "step3": "Pricing",
+    "step4": "Sessions",
+    "eventTitle": "Event title",
+    "eventDescription": "Description",
+    "shortDescription": "Short description",
+    "category": "Category",
+    "tags": "Tags",
+    "bannerImage": "Cover image",
+    "gallery": "Gallery",
+    "startDate": "Start date",
+    "endDate": "End date",
+    "locationType": "Location type",
+    "ticketType": "Ticketing",
+    "registrationType": "Registration",
+    "addTicket": "Add ticket",
+    "addField": "Add field",
+    "addSession": "Add session",
+    "publish": "Publish",
+    "saveDraft": "Save draft",
+    "createSuccess": "Event created successfully!",
+    "updateSuccess": "Event updated successfully!"
+  },
+
+  "errors": {
+    "network": "Connection error. Check your internet connection.",
+    "server": "Server error. Please try again later.",
+    "unauthorized": "Session expired. Please sign in again.",
+    "notFound": "Resource not found.",
+    "generic": "An error occurred. Please try again.",
+    "permissionDenied": "Permission denied",
+    "noInternet": "No internet connection",
+    "connectionLost": "Connection lost. Please refresh."
+  },
+
+  "empty": {
+    "events": "No events",
+    "eventsMessage": "There are no events to display yet",
+    "savedEvents": "No saved events",
+    "savedEventsMessage": "Events you follow will appear here"
+  },
+
+  "time": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
+  }
+}

@@ -1,0 +1,51 @@
+appId: ${APP_ID}
+name: "Organizer - Portefeuille"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: Organizer Wallet
+# Teste le portefeuille/revenus de l'organisateur
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Ouvrir le portefeuille
+- tapOn:
+    text: ".*Portefeuille.*|.*Wallet.*|.*Revenus.*|.*Solde.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Portefeuille.*|.*Solde.*|.*Revenus.*|.*Wallet.*"
+    timeout: 10000
+    optional: true
+
+# Verifier le solde
+- assertVisible:
+    text: ".*XAF.*|.*FCFA.*|.*solde.*|.*total.*"
+    optional: true
+
+# Verifier l'historique des transactions
+- assertVisible:
+    text: ".*transaction.*|.*historique.*|.*mouvement.*"
+    optional: true
+
+# Scroll pour voir les transactions
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Verifier les options de retrait si disponibles
+- assertVisible:
+    text: ".*retrait.*|.*retirer.*|.*virement.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

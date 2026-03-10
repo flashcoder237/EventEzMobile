@@ -1,0 +1,56 @@
+# Flow: Acheter un billet
+# Vérifie le parcours d'achat complet (billetterie)
+
+appId: com.eventez.mobile
+name: "Ticket - Purchase Flow"
+
+---
+
+# Pré-requis : être connecté
+- runFlow: 01_auth_login.yaml
+
+# Aller sur un événement billetterie
+# (Chercher un événement avec des billets disponibles)
+- tapOn: "Rechercher un événement"
+- inputText: "billetterie"
+- pressKey: Enter
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 10000
+
+# Taper sur le premier résultat
+- tapOn:
+    index: 0
+    id: "event-card-.*"
+
+# Attendre la page détails
+- extendedWaitUntil:
+    visible: ".*Acheter.*|.*Obtenir.*"
+    timeout: 10000
+
+# Taper sur le bouton d'achat
+- tapOn:
+    text: ".*Acheter.*|.*Obtenir.*"
+
+# Vérifier l'écran d'achat de billets
+- assertVisible:
+    text: ".*billet.*|.*ticket.*"
+    timeout: 10000
+
+# Sélectionner un billet (taper sur le +)
+- tapOn:
+    text: "+"
+    index: 0
+
+# Continuer vers le paiement
+- tapOn:
+    text: ".*Continuer.*|.*Payer.*|.*Valider.*"
+
+# Vérifier l'écran de paiement
+- assertVisible:
+    text: ".*paiement.*|.*Montant.*"
+    timeout: 10000
+
+# Vérifier les méthodes de paiement
+- assertVisible:
+    text: ".*MTN.*|.*Orange.*|.*Carte.*"

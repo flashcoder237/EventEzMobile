@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { usersAPI } from '../../api/client';
+import { usersAPI } from '../../api';
 import {
   Colors,
   FontFamily,

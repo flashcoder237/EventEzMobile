@@ -114,3 +114,27 @@ export function mergeResults<T extends Record<string, any>>(
   const uniqueNewData = newData.filter(item => !existingIds.has(item[idField]));
   return [...existingData, ...uniqueNewData];
 }
+
+/**
+ * Extract data from Django REST Framework paginated responses.
+ * Handles both paginated ({ results: T[] }) and non-paginated (T[]) responses.
+ */
+export function extractPaginatedData<T>(response: any): T[] {
+  if (!response) return [];
+  const data = response.data ?? response;
+  if (Array.isArray(data)) return data;
+  if (data?.results && Array.isArray(data.results)) return data.results;
+  return [];
+}
+
+/**
+ * Extract pagination metadata from a Django REST Framework response.
+ */
+export function extractPaginationMeta(response: any): { count: number; next: string | null; previous: string | null } {
+  const data = response?.data ?? response;
+  return {
+    count: data?.count ?? 0,
+    next: data?.next ?? null,
+    previous: data?.previous ?? null,
+  };
+}

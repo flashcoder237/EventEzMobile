@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
-import { analyticsAPI } from '../../api/client';
+import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
 import {

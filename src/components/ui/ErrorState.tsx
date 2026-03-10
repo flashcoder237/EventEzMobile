@@ -20,6 +20,8 @@ interface ErrorStateProps {
   style?: ViewStyle;
   withCard?: boolean;
   showRetry?: boolean;
+  /** Label d'accessibilite personnalise */
+  accessibilityLabel?: string;
 }
 
 function ErrorStateComponent({
@@ -32,6 +34,7 @@ function ErrorStateComponent({
   style,
   withCard = false,
   showRetry = true,
+  accessibilityLabel: a11yLabel,
 }: ErrorStateProps) {
   const { colors } = useTheme();
 
@@ -58,14 +61,22 @@ function ErrorStateComponent({
 
   if (withCard) {
     return (
-      <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.error + '20' }, style]}>
+      <View
+        accessibilityRole="alert"
+        accessibilityLabel={a11yLabel || `${title}. ${message}`}
+        style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.error + '20' }, style]}
+      >
         {content}
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, style]}>
+    <View
+      accessibilityRole="alert"
+      accessibilityLabel={a11yLabel || `${title}. ${message}`}
+      style={[styles.container, style]}
+    >
       {content}
     </View>
   );

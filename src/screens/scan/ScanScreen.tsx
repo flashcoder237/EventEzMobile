@@ -21,7 +21,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { ticketTransfersAPI, usersAPI, registrationsAPI } from '../../api/client';
+import { ticketTransfersAPI, usersAPI, registrationsAPI } from '../../api';
 import { RootStackParamList, Registration } from '../../types';
 import {
   Colors,

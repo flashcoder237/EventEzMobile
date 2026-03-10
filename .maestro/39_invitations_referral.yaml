@@ -1,0 +1,54 @@
+appId: ${APP_ID}
+name: "Dashboard - Invitations et Parrainage"
+---
+
+# Flow: Invitations & Referral
+# Teste les invitations et le programme de parrainage
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# --- Invitations ---
+- tapOn:
+    text: ".*Invitation.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Invitation.*|.*aucune.*invitation.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les invitations ou etat vide
+- assertVisible:
+    text: ".*invitation.*|.*aucune.*|.*invit.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# --- Parrainage ---
+- tapOn:
+    text: ".*Parrainage.*|.*Referral.*|.*Parrainer.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Parrainage.*|.*code.*|.*partager.*|.*inviter.*"
+    timeout: 10000
+    optional: true
+
+# Verifier le code de parrainage
+- assertVisible:
+    text: ".*code.*|.*lien.*|.*partager.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

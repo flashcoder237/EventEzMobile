@@ -14,7 +14,7 @@ import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { eventsAPI } from '../../api/client';
+import { eventsAPI } from '../../api';
 import { Event } from '../../types';
 import {
   FontFamily,

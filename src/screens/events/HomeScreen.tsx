@@ -17,7 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 
-import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api/client';
+import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api';
 import { Event, Category, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNotifications } from '../../contexts/NotificationContext';

@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Events as EventsIllustration } from '../../components/illustrations';
-import { eventsAPI, getMediaUrl } from '../../api/client';
+import { eventsAPI, getMediaUrl } from '../../api';
 import { Event, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -237,6 +237,8 @@ export default function MyEventsScreen() {
         onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
         onLongPress={() => showEventActions(item)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Evenement ${item.title}`}
       >
         <Image
           source={
@@ -293,6 +295,8 @@ export default function MyEventsScreen() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+              accessibilityRole="button"
+              accessibilityLabel="Voir l'evenement"
             >
               <Ionicons name="eye-outline" size={16} color={colors.gray600} />
               <Text style={[styles.actionText, { color: colors.gray600 }]}>Voir</Text>
@@ -303,6 +307,8 @@ export default function MyEventsScreen() {
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: '#10B981' }]}
                   onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scanner QR code"
                 >
                   <Ionicons name="qr-code" size={16} color={Colors.white} />
                   <Text style={[styles.actionText, { color: Colors.white }]}>Scanner</Text>
@@ -310,6 +316,8 @@ export default function MyEventsScreen() {
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voir les inscrits"
                 >
                   <Ionicons name="people" size={16} color={colors.primary} />
                   <Text style={[styles.actionText, { color: colors.primary }]}>Inscrits</Text>
@@ -317,12 +325,16 @@ export default function MyEventsScreen() {
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voir les statistiques"
                 >
                   <Ionicons name="stats-chart" size={16} color={colors.gray600} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                   onPress={() => navigation.navigate('Volunteers', { eventId: item.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Gerer les benevoles"
                 >
                   <Ionicons name="people-outline" size={16} color={colors.gray600} />
                   <Text style={[styles.actionText, { color: colors.gray600 }]}>Bénévoles</Text>
@@ -334,6 +346,8 @@ export default function MyEventsScreen() {
               <TouchableOpacity
                 style={[styles.actionButton, styles.actionButtonPrimary]}
                 onPress={() => handleSubmitForValidation(item.id)}
+                accessibilityRole="button"
+                accessibilityLabel="Publier l'evenement"
               >
                 <Ionicons name="send" size={16} color={Colors.white} />
                 <Text style={[styles.actionText, { color: Colors.white }]}>Publier</Text>
@@ -344,6 +358,8 @@ export default function MyEventsScreen() {
               <TouchableOpacity
                 style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
                 onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
+                accessibilityRole="button"
+                accessibilityLabel="Modifier l'evenement"
               >
                 <Ionicons name="create-outline" size={16} color={colors.gray600} />
               </TouchableOpacity>
@@ -352,6 +368,8 @@ export default function MyEventsScreen() {
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
               onPress={() => showEventActions(item)}
+              accessibilityRole="button"
+              accessibilityLabel="Plus d'actions"
             >
               <Ionicons name="ellipsis-vertical" size={16} color={colors.gray600} />
             </TouchableOpacity>
@@ -376,6 +394,8 @@ export default function MyEventsScreen() {
         <TouchableOpacity
           style={styles.createButton}
           onPress={() => navigation.navigate('EventCreate')}
+          accessibilityRole="button"
+          accessibilityLabel="Creer un evenement"
         >
           <Ionicons name="add" size={20} color={Colors.white} />
           <Text style={styles.createButtonText}>Créer mon premier événement</Text>
@@ -408,6 +428,8 @@ export default function MyEventsScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
           </TouchableOpacity>
@@ -415,6 +437,8 @@ export default function MyEventsScreen() {
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: colors.card }]}
             onPress={() => navigation.navigate('EventCreate')}
+            accessibilityRole="button"
+            accessibilityLabel="Creer un evenement"
           >
             <Ionicons name="add" size={24} color="#4F46E5" />
           </TouchableOpacity>
@@ -437,6 +461,7 @@ export default function MyEventsScreen() {
               placeholderTextColor={colors.gray400}
               value={searchQuery}
               onChangeText={setSearchQuery}
+              accessibilityLabel="Rechercher mes evenements"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
@@ -458,6 +483,9 @@ export default function MyEventsScreen() {
               <TouchableOpacity
                 style={[styles.filterTab, { backgroundColor: colors.gray100 }, filter === item.value && styles.filterTabActive]}
                 onPress={() => setFilter(item.value)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: filter === item.value }}
+                accessibilityLabel={`Filtre ${item.label}`}
               >
                 <Text style={[styles.filterTabText, { color: colors.gray600 }, filter === item.value && styles.filterTabTextActive]}>
                   {item.label}

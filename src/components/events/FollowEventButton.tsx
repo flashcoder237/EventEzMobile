@@ -9,7 +9,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { eventsAPI } from '../../api/client';
+import { eventsAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -183,6 +183,10 @@ export default function FollowEventButton({
         onPress={handleToggleFollow}
         disabled={isLoading}
         activeOpacity={TOUCH_OPACITY}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={isFollowing ? "Ne plus suivre l'\u00e9v\u00e9nement" : "Suivre l'\u00e9v\u00e9nement"}
+        accessibilityState={{ selected: isFollowing }}
         style={[
           styles.iconButton,
           { backgroundColor: colors.gray100 },
@@ -209,6 +213,10 @@ export default function FollowEventButton({
         onPress={handleToggleFollow}
         disabled={isLoading}
         activeOpacity={TOUCH_OPACITY}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={isFollowing ? "Ne plus suivre l'\u00e9v\u00e9nement" : "Suivre l'\u00e9v\u00e9nement"}
+        accessibilityState={{ selected: isFollowing }}
         style={[
           styles.compactButton,
           { backgroundColor: colors.gray100 },
@@ -241,6 +249,10 @@ export default function FollowEventButton({
           onPress={handleToggleFollow}
           disabled={isLoading}
           activeOpacity={TOUCH_OPACITY}
+          accessible={true}
+          accessibilityRole="button"
+          accessibilityLabel={isFollowing ? "Ne plus suivre l'\u00e9v\u00e9nement" : "Suivre l'\u00e9v\u00e9nement"}
+          accessibilityState={{ selected: isFollowing }}
           style={[
             styles.mainButton,
             isFollowing ? [styles.mainButtonFollowing, { backgroundColor: colors.errorBg, borderColor: colors.errorBorder }] : styles.mainButtonDefault,

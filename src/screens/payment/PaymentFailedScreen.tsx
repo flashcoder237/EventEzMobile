@@ -37,7 +37,7 @@ export default function PaymentFailedScreen() {
           <AlertIllustration color={colors.error} size={180} />
         </View>
 
-        <View style={styles.textContainer}>
+        <View style={styles.textContainer} accessibilityRole="alert">
           <Text style={[styles.title, { color: colors.gray900 }]}>Paiement échoué</Text>
           <Text style={[styles.subtitle, { color: colors.gray600 }]}>
             {error || 'Une erreur est survenue lors du paiement.\nVeuillez réessayer.'}
@@ -60,6 +60,7 @@ export default function PaymentFailedScreen() {
           onPress={() => navigation.goBack()}
           icon={<Ionicons name="refresh" size={20} color={colors.white} />}
           fullWidth
+          accessibilityLabel="Reessayer le paiement"
         />
         <View style={{ height: Spacing.md }} />
         <GradientButton
@@ -67,6 +68,7 @@ export default function PaymentFailedScreen() {
           onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
           variant="outline"
           fullWidth
+          accessibilityLabel="Retour a l'accueil"
         />
       </View>
     </SafeAreaView>

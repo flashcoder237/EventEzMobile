@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
-import { newslettersAPI } from '../../api/client';
+import { newslettersAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 

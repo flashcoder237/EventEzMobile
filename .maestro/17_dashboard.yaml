@@ -1,0 +1,48 @@
+appId: ${APP_ID}
+name: "Dashboard - Tableau de bord"
+---
+
+# Flow: Dashboard
+# Teste le tableau de bord utilisateur
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Chercher le lien vers le dashboard
+- tapOn:
+    text: ".*Tableau de bord.*|.*Dashboard.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Tableau.*bord.*|.*Dashboard.*|.*Statistiques.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les sections du dashboard
+- assertVisible:
+    text: ".*billets.*|.*inscriptions.*|.*evenements.*"
+    optional: true
+
+# Scroll pour voir plus de contenu
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Verifier les widgets d'activite recente
+- assertVisible:
+    text: ".*recent.*|.*activit.*|.*historique.*"
+    optional: true
+
+# Scroll encore
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

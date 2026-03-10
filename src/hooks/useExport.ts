@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert } from 'react-native';
-import { exportAPI } from '../api/client';
+import { exportAPI } from '../api';
 
 export type ExportFormat = 'csv' | 'excel' | 'pdf';
 

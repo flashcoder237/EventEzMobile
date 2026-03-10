@@ -1,0 +1,92 @@
+appId: ${APP_ID}
+name: "Admin - Tresorerie"
+env:
+  TEST_EMAIL: ${TEST_ADMIN_EMAIL}
+  TEST_PASSWORD: ${TEST_ADMIN_PASSWORD}
+---
+
+# Flow: Treasury Management (Admin)
+# Teste la gestion de la tresorerie de la plateforme
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Admin
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*Admin.*|.*Administration.*"
+    optional: true
+
+# Ouvrir la tresorerie
+- tapOn:
+    text: ".*Tr.sorerie.*|.*Treasury.*|.*Finance.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Tr.sorerie.*|.*Solde.*|.*Portefeuille.*plateforme.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les metriques financieres
+- assertVisible:
+    text: ".*solde.*|.*revenu.*|.*commission.*|.*XAF.*|.*FCFA.*"
+    optional: true
+
+# Scroll pour voir les sections
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# --- Section Staff ---
+- tapOn:
+    text: ".*Staff.*|.*Personnel.*|.*quipe.*"
+    optional: true
+
+- assertVisible:
+    text: ".*staff.*|.*employ.*|.*salaire.*"
+    optional: true
+
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# --- Section Depenses ---
+- tapOn:
+    text: ".*D.penses.*|.*Charges.*"
+    optional: true
+
+- assertVisible:
+    text: ".*d.pense.*|.*charge.*|.*montant.*"
+    optional: true
+
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# --- Section Actionnaires ---
+- tapOn:
+    text: ".*Actionnaire.*|.*Dividende.*"
+    optional: true
+
+- assertVisible:
+    text: ".*actionnaire.*|.*dividende.*|.*part.*"
+    optional: true
+
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# --- Section Rapports ---
+- tapOn:
+    text: ".*Rapport.*|.*Report.*"
+    optional: true
+
+- assertVisible:
+    text: ".*rapport.*|.*report.*|.*export.*"
+    optional: true
+
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

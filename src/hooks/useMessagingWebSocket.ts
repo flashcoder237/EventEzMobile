@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-import { Message } from '../types';
+import { Message, WebSocketIncomingMessage } from '../types';
 
 // Dériver l'URL WebSocket à partir de EXPO_PUBLIC_API_URL
 // pour que le WS pointe toujours vers le même serveur que l'API REST
@@ -37,17 +37,9 @@ function getWebSocketBaseUrl(): string {
 
 const WS_BASE_URL = getWebSocketBaseUrl();
 
-interface WebSocketMessage {
-  type: string;
-  message?: any;
-  conversation_id?: string | number;
-  message_id?: string | number;
-  user_id?: number;
-  user_name?: string;
-  emoji?: string;
-  is_typing?: boolean;
-  read_at?: string;
-  reaction_id?: string | number;
+// Legacy interface kept for the generic 'error' case not in the discriminated union
+interface WebSocketErrorMessage {
+  type: 'error';
   error?: string;
 }
 
@@ -116,7 +108,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   // Handle incoming WebSocket messages
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
-      const data: WebSocketMessage = JSON.parse(event.data);
+      const data: WebSocketIncomingMessage | WebSocketErrorMessage = JSON.parse(event.data);
 
       switch (data.type) {
         case 'auth.success':
@@ -150,8 +142,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           if (data.message_id && onMessageUpdated) {
             onMessageUpdated({
               messageId: data.message_id,
-              content: (data as any).content || '',
-              editedAt: (data as any).edited_at || new Date().toISOString(),
+              content: data.content || '',
+              editedAt: data.edited_at || new Date().toISOString(),
               userId: data.user_id || 0,
             });
           }
@@ -255,8 +247,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           if (onPresenceChanged && data.user_id) {
             onPresenceChanged({
               userId: data.user_id,
-              status: (data as any).status || 'offline',
-              lastSeen: (data as any).last_seen || new Date().toISOString(),
+              status: data.status || 'offline',
+              lastSeen: data.last_seen || new Date().toISOString(),
             });
           }
           break;
@@ -267,7 +259,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
         default:
           if (__DEV__) {
-            console.log('Unknown WebSocket message type:', data.type);
+            console.log('Unknown WebSocket message type:', (data as { type: string }).type);
           }
       }
     } catch (error) {

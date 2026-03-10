@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { usersAPI, auditAPI, analyticsAPI } from '../../api/client';
+import { usersAPI, auditAPI, analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { KPICard } from '../../components/charts';
 import {

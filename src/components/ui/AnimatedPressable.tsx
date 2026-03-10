@@ -23,6 +23,8 @@ interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {
   animationType?: 'scale' | 'opacity' | 'both' | 'lift' | 'editorial';
   disabled?: boolean;
   haptic?: boolean | 'light' | 'medium' | 'heavy';
+  /** Label d'accessibilite personnalise */
+  accessibilityLabel?: string;
 }
 
 export default function AnimatedPressable({
@@ -34,6 +36,7 @@ export default function AnimatedPressable({
   haptic = false,
   onPressIn,
   onPressOut,
+  accessibilityLabel,
   ...props
 }: AnimatedPressableProps) {
   const pressed = useSharedValue(0);
@@ -108,6 +111,9 @@ export default function AnimatedPressable({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       {...props}
     >
       {children}

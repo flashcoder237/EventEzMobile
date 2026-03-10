@@ -211,7 +211,7 @@ export function usePaymentVerification(
   const getVerifyFn = useCallback(() => {
     if (verifyFnRef.current) return verifyFnRef.current;
     // Lazy import to avoid circular dependency issues
-    const { paymentsAPI } = require('../api/client');
+    const { paymentsAPI } = require('../api');
     return (paymentId: string) => paymentsAPI.getPayment(paymentId);
   }, []);
 
@@ -368,7 +368,7 @@ export function usePaymentVerification(
     }> => {
       // Use verifyPayment (NotchPay re-check) for manual verification,
       // NOT getPayment (DB read) — so backend can re-verify with payment provider
-      const { paymentsAPI } = require('../api/client');
+      const { paymentsAPI } = require('../api');
       const verify = verifyFnRef.current
         ? verifyFnRef.current
         : (id: string) => paymentsAPI.verifyPayment(id);

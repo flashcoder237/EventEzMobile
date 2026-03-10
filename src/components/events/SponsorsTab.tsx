@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { sponsorsAPI } from '../../api/client';
+import { sponsorsAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';

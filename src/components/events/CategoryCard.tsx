@@ -22,6 +22,8 @@ interface CategoryCardProps {
   eventCount?: number;
   onPress?: () => void;
   variant?: 'default' | 'large' | 'compact';
+  /** Label d'accessibilite personnalise */
+  accessibilityLabel?: string;
 }
 
 // Images par defaut pour les categories (comme sur le web)
@@ -61,6 +63,7 @@ function CategoryCard({
   eventCount,
   onPress,
   variant = 'default',
+  accessibilityLabel: a11yLabel,
 }: CategoryCardProps) {
   const { colors, isDark } = useTheme();
 
@@ -78,6 +81,9 @@ function CategoryCard({
         style={styles.largeCard}
         animationType="lift"
         scaleValue={0.96}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel || `Cat\u00e9gorie ${name}`}
       >
         {imageUrl ? (
           <ImageBackground
@@ -119,6 +125,9 @@ function CategoryCard({
         style={[styles.compactCard, { backgroundColor: colors.card }]}
         animationType="scale"
         scaleValue={0.95}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel || `Cat\u00e9gorie ${name}`}
       >
         <View style={[styles.compactIconBg, { backgroundColor: `${gradientColors[0]}15` }]}>
           <CategoryIcon name={name} size={18} color={gradientColors[0]} strokeWidth={2} />
@@ -137,6 +146,9 @@ function CategoryCard({
       style={styles.card}
       animationType="lift"
       scaleValue={0.95}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel || `Cat\u00e9gorie ${name}`}
     >
       <LinearGradient
         colors={gradientColors}

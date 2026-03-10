@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { registrationsAPI, eventsAPI } from '../../api/client';
+import { registrationsAPI, eventsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
 import {
   Colors,
@@ -207,12 +207,19 @@ export default function QRScannerScreen() {
         <Text style={[styles.permissionText, { color: colors.gray500 }]}>
           Pour scanner les QR codes, autorisez l'accès à la caméra
         </Text>
-        <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
+        <TouchableOpacity
+          style={[styles.permissionButton, { backgroundColor: colors.primary }]}
+          onPress={requestPermission}
+          accessibilityRole="button"
+          accessibilityLabel="Autoriser l'acces a la camera"
+        >
           <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.backLink}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
         >
           <Text style={[styles.backLinkText, { color: colors.gray500 }]}>Retour</Text>
         </TouchableOpacity>
@@ -240,6 +247,8 @@ export default function QRScannerScreen() {
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Fermer le scanner"
           >
             <Ionicons name="close" size={24} color={colors.white} />
           </TouchableOpacity>
@@ -254,6 +263,8 @@ export default function QRScannerScreen() {
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => setFlashOn(!flashOn)}
+            accessibilityRole="button"
+            accessibilityLabel={flashOn ? 'Desactiver le flash' : 'Activer le flash'}
           >
             <Ionicons
               name={flashOn ? 'flash' : 'flash-outline'}
@@ -308,6 +319,9 @@ export default function QRScannerScreen() {
           <TouchableOpacity
             style={styles.autoCheckInToggle}
             onPress={() => setAutoCheckIn(!autoCheckIn)}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: autoCheckIn }}
+            accessibilityLabel="Check-in automatique apres scan"
           >
             <View style={[styles.checkbox, autoCheckIn && [styles.checkboxActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}>
               {autoCheckIn && <Ionicons name="checkmark" size={14} color={colors.white} />}
@@ -373,6 +387,8 @@ export default function QRScannerScreen() {
                     style={styles.manualCheckInButton}
                     onPress={handleManualCheckIn}
                     disabled={processing}
+                    accessibilityRole="button"
+                    accessibilityLabel="Effectuer le check-in"
                   >
                     {processing ? (
                       <ActivityIndicator size="small" color={colors.white} />
@@ -398,6 +414,8 @@ export default function QRScannerScreen() {
             <TouchableOpacity
               style={[styles.continueButton, { backgroundColor: colors.primary }]}
               onPress={handleContinueScan}
+              accessibilityRole="button"
+              accessibilityLabel="Scanner un autre QR code"
             >
               <Ionicons name="scan-outline" size={20} color={colors.white} />
               <Text style={styles.continueButtonText}>Scanner un autre</Text>

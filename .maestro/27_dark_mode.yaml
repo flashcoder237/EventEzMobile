@@ -1,0 +1,58 @@
+appId: ${APP_ID}
+name: "Settings - Mode sombre"
+---
+
+# Flow: Dark Mode Toggle
+# Teste le basculement entre mode clair et mode sombre
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Ouvrir les parametres
+- tapOn:
+    text: ".*Param.tres.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Param.tres.*|.*Apparence.*|.*Th.me.*"
+    timeout: 10000
+
+# Chercher la section Apparence/Theme
+- scroll:
+    direction: DOWN
+    duration: 300
+
+# Taper sur le theme sombre
+- tapOn:
+    text: ".*Sombre.*|.*Dark.*|.*Nuit.*"
+    optional: true
+
+# Attendre le changement visuel
+- extendedWaitUntil:
+    visible:
+      text: ".*Param.tres.*"
+    timeout: 5000
+
+# Revenir au mode clair
+- tapOn:
+    text: ".*Clair.*|.*Light.*|.*Jour.*"
+    optional: true
+
+# Tester le mode systeme
+- tapOn:
+    text: ".*Syst.me.*|.*Auto.*"
+    optional: true
+
+# Retour au profil
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# Verifier que l'app fonctionne normalement
+- assertVisible:
+    text: ".*Profil.*"
+    optional: true

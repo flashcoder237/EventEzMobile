@@ -25,7 +25,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { walletAPI, payoutsAPI } from '../../api/client';
+import { walletAPI, payoutsAPI } from '../../api';
 import {
   OrganizerWallet,
   WalletTransaction,

@@ -22,8 +22,8 @@ export function useSearchHistory(): UseSearchHistoryReturn {
         if (raw) {
           setHistory(JSON.parse(raw));
         }
-      } catch {
-        // ignore
+      } catch (e) {
+        if (__DEV__) console.warn('[useSearchHistory] Failed to load history:', e instanceof Error ? e.message : e);
       }
     })();
   }, []);
@@ -31,8 +31,8 @@ export function useSearchHistory(): UseSearchHistoryReturn {
   const persist = useCallback(async (items: string[]) => {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch {
-      // ignore
+    } catch (e) {
+      if (__DEV__) console.warn('[useSearchHistory] Failed to persist history:', e instanceof Error ? e.message : e);
     }
   }, []);
 
@@ -58,7 +58,9 @@ export function useSearchHistory(): UseSearchHistoryReturn {
 
   const clearAll = useCallback(() => {
     setHistory([]);
-    AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+    AsyncStorage.removeItem(STORAGE_KEY).catch((e) => {
+      if (__DEV__) console.warn('[useSearchHistory] Failed to clear history:', e instanceof Error ? e.message : e);
+    });
   }, []);
 
   return { history, addQuery, removeQuery, clearAll };

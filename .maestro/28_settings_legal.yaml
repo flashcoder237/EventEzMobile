@@ -1,0 +1,86 @@
+appId: ${APP_ID}
+name: "Settings - Pages legales et aide"
+---
+
+# Flow: Terms, Privacy, Help
+# Teste l'acces aux pages legales et centre d'aide
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil → Parametres
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*Param.tres.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Param.tres.*"
+    timeout: 10000
+
+# --- Conditions d'utilisation ---
+- scroll:
+    direction: DOWN
+    duration: 300
+
+- tapOn:
+    text: ".*Conditions.*utilisation.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Conditions.*|.*CGU.*|.*utilisation.*"
+    timeout: 10000
+    optional: true
+
+# Scroll dans le contenu
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# --- Politique de confidentialite ---
+- tapOn:
+    text: ".*Politique.*confidentialit.*|.*Vie priv.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*confidentialit.*|.*donn.es.*personnelles.*|.*vie priv.*"
+    timeout: 10000
+    optional: true
+
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# --- Centre d'aide ---
+- tapOn:
+    text: ".*Centre.*aide.*|.*Aide.*|.*FAQ.*|.*Support.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*aide.*|.*FAQ.*|.*question.*|.*support.*"
+    timeout: 10000
+    optional: true
+
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

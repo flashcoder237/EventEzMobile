@@ -1,0 +1,38 @@
+# Flow: Inscription utilisateur
+# Vérifie le parcours d'inscription complet
+
+appId: com.eventez.mobile
+name: "Auth - Register"
+
+---
+
+# Depuis l'écran de connexion, aller à l'inscription
+- assertVisible: "Connexion"
+- tapOn: "S'inscrire"
+
+# Vérifier l'écran d'inscription
+- assertVisible: "Inscription"
+
+# Remplir le formulaire
+- tapOn: "Prénom"
+- inputText: "Jean"
+
+- tapOn: "Nom"
+- inputText: "Test"
+
+- tapOn: "Email"
+- inputText: "newuser_${Date.now()}@eventez.com"
+
+- tapOn: "Mot de passe"
+- inputText: "SecurePass123!"
+
+- tapOn: "Confirmer le mot de passe"
+- inputText: "SecurePass123!"
+
+# Soumettre
+- tapOn: "Créer un compte"
+
+# Vérifier le succès (message de vérification email ou redirection)
+- assertVisible:
+    text: ".*vérification.*|.*succès.*|Découvrir"
+    timeout: 15000

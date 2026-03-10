@@ -1,7 +1,21 @@
 /**
- * Composants Skeleton
- * Placeholders de chargement animes avec shimmer gradient
- * Chaque skeleton reproduit fidelement la forme et disposition du vrai composant
+ * Skeleton Loading Components
+ *
+ * CONVENTION:
+ * - Use Skeleton loaders for INITIAL page loads (first time seeing the screen)
+ * - Use ActivityIndicator for IN-PAGE actions (loading more, submitting, refreshing)
+ * - Use LoadingOverlay for BLOCKING operations (payments, form submissions)
+ *
+ * Available skeletons:
+ * - SkeletonList: Generic list of items
+ * - EventCardSkeleton: Single event card placeholder
+ * - DiscoverScreenSkeleton: Full discover page skeleton
+ * - DetailScreenSkeleton: Event detail page skeleton
+ * - MyTicketsScreenSkeleton: Tickets list skeleton
+ * - NotificationsScreenSkeleton: Notifications list skeleton
+ * - MessageSkeleton: Single message bubble skeleton
+ * - PaymentCardSkeleton: Payment item skeleton
+ * - DashboardSkeleton: Dashboard overview skeleton
  */
 
 import React, { useEffect, memo } from 'react';

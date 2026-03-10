@@ -14,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { usersAPI } from '../../api/client';
+import { usersAPI } from '../../api';
 import { User, RootStackParamList } from '../../types';
 import RegistrationSearchBar from '../../components/organizer/RegistrationSearchBar';
 import Badge from '../../components/ui/Badge';

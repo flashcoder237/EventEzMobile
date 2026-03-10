@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { socialAPI } from '../../api/client';
+import { socialAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';

@@ -16,7 +16,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Platform,
   ActivityIndicator,
   StatusBar,
   Alert,
@@ -27,7 +26,6 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useHeaderHeight } from '@react-navigation/elements';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as ImagePicker from 'expo-image-picker';
@@ -43,7 +41,7 @@ import {
 // AudioPlayer is exported as a type-only from expo-audio, need runtime reference
 const AudioPlayerClass = require('expo-audio').AudioPlayer;
 
-import { messagesAPI } from '../../api/client';
+import { messagesAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -91,7 +89,6 @@ export default function ConversationScreen() {
   const { user } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
-  const headerHeight = useHeaderHeight();
 
   // State centralisé
   const { state, actions } = useMessageState(initialConversationId, userName);
@@ -949,8 +946,6 @@ export default function ConversationScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior="padding"
-        keyboardVerticalOffset={headerHeight}
       >
         <View style={{ flex: 1 }}>
           <FlatList

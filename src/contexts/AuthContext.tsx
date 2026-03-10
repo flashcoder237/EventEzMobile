@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { authAPI, usersAPI, setTokens, clearTokens } from '../api/client';
+import { authAPI, usersAPI, setTokens, clearTokens } from '../api';
 import CacheService from '../services/CacheService';
 import { eventBus } from '../lib/eventBus';
 import { User, AuthState } from '../types';
+import { EventEzAnalytics, setAnalyticsUser, clearAnalyticsUser } from '../services/analyticsService';
+import { setUser as setSentryUser, clearUser as clearSentryUser } from '../services/sentryService';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
 
@@ -70,11 +72,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // rememberMe est 'true' ou null (jamais configuré = auto-connexion par défaut)
       const response = await usersAPI.getCurrentUser();
+      const user = response.data;
       setState({
-        user: response.data,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
+      setAnalyticsUser(user.id, { role: user.role || 'user' });
+      setSentryUser({ id: user.id, email: user.email, role: user.role });
     } catch (error) {
       if (__DEV__) console.error('Erreur de vérification auth:', error);
       // Token invalide/expiré, nettoyer
@@ -94,11 +99,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
 
       const userResponse = await usersAPI.getCurrentUser();
+      const user = userResponse.data;
       setState({
-        user: userResponse.data,
+        user,
         isAuthenticated: true,
         isLoading: false,
       });
+
+      // Track login in analytics & error monitoring
+      EventEzAnalytics.login('email');
+      setAnalyticsUser(user.id, { role: user.role || 'user' });
+      setSentryUser({ id: user.id, email: user.email, role: user.role });
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
@@ -118,6 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authAPI.register(data);
       setState((prev) => ({ ...prev, isLoading: false }));
+      EventEzAnalytics.signup('email');
       return {
         requires_verification: response.data?.requires_verification ?? true,
         email: response.data?.email ?? data.email,
@@ -134,6 +146,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       if (__DEV__) console.warn('Logout API call failed:', error);
     }
+    // Track logout in analytics & error monitoring
+    EventEzAnalytics.logout();
+    clearAnalyticsUser();
+    clearSentryUser();
+
     // Filet de securite : s'assurer que les tokens sont bien supprimes
     await clearTokens();
     // Vider le cache mémoire — les données AsyncStorage restent pour le prochain login
@@ -175,6 +192,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: true,
       isLoading: false,
     });
+    EventEzAnalytics.login('social');
+    setAnalyticsUser(user.id, { role: user.role || 'user' });
+    setSentryUser({ id: user.id, email: user.email, role: user.role });
   }, []);
 
   const value = useMemo(() => ({

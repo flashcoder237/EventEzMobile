@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { paymentsAPI } from '../../api/client';
+import { paymentsAPI } from '../../api';
 import { Payment, RootStackParamList } from '../../types';
 import { SkeletonList, PaymentCardSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
@@ -228,6 +228,8 @@ export default function MyPaymentsScreen() {
           // Navigate to payment details if needed
         }}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${getEventTitle(item)}, ${formatAmount(item.amount)} ${item.currency || 'XAF'}, ${status.label}`}
       >
         {/* Method Icon */}
         <View style={[styles.methodIcon, { backgroundColor: `${method.color}20` }]}>
@@ -318,6 +320,8 @@ export default function MyPaymentsScreen() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityLabel="Retour"
+          accessibilityRole="button"
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
@@ -351,6 +355,9 @@ export default function MyPaymentsScreen() {
         <TouchableOpacity
           style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'completed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'completed' ? 'all' : 'completed')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: statusFilter === 'completed' }}
+          accessibilityLabel="Completes"
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#D1FAE5' }]}>
             <Ionicons name="checkmark-circle" size={16} color="#10B981" />
@@ -362,6 +369,9 @@ export default function MyPaymentsScreen() {
         <TouchableOpacity
           style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'pending' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: statusFilter === 'pending' }}
+          accessibilityLabel="En attente"
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEF3C7' }]}>
             <Ionicons name="time" size={16} color="#F59E0B" />
@@ -373,6 +383,9 @@ export default function MyPaymentsScreen() {
         <TouchableOpacity
           style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'failed' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'failed' ? 'all' : 'failed')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: statusFilter === 'failed' }}
+          accessibilityLabel="Echoues"
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#FEE2E2' }]}>
             <Ionicons name="close-circle" size={16} color="#EF4444" />
@@ -384,6 +397,9 @@ export default function MyPaymentsScreen() {
         <TouchableOpacity
           style={[styles.quickStatItem, { backgroundColor: colors.card, borderColor: colors.gray100 }, statusFilter === 'refunded' && [styles.quickStatItemActive, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]]}
           onPress={() => setStatusFilter(statusFilter === 'refunded' ? 'all' : 'refunded')}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: statusFilter === 'refunded' }}
+          accessibilityLabel="Rembourses"
         >
           <View style={[styles.quickStatIcon, { backgroundColor: '#E0E7FF' }]}>
             <Ionicons name="refresh-circle" size={16} color="#6366F1" />
@@ -403,6 +419,7 @@ export default function MyPaymentsScreen() {
             placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
+            accessibilityLabel="Rechercher des paiements"
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>

@@ -14,9 +14,11 @@ const RETRY_DELAY_MS = 5000;
 interface UseOfflineQueueOptions {
   onSendMessage: (message: QueuedMessage) => Promise<boolean>;
   isConnected: boolean;
+  /** Called when a message is permanently abandoned after MAX_RETRY_COUNT failures */
+  onMessageFailed?: (message: QueuedMessage) => void;
 }
 
-export function useOfflineQueue({ onSendMessage, isConnected }: UseOfflineQueueOptions) {
+export function useOfflineQueue({ onSendMessage, isConnected, onMessageFailed }: UseOfflineQueueOptions) {
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -90,6 +92,8 @@ export function useOfflineQueue({ onSendMessage, isConnected }: UseOfflineQueueO
     for (const message of queue) {
       if (message.retryCount >= MAX_RETRY_COUNT) {
         // Abandonner après trop de tentatives
+        if (__DEV__) console.warn(`[OfflineQueue] Message ${message.id} abandoned after ${MAX_RETRY_COUNT} retries`);
+        onMessageFailed?.(message);
         await dequeue(message.id);
         continue;
       }

@@ -17,7 +17,7 @@ import ExportButton from '../../components/common/ExportButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api/client';
+import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { RootStackParamList, Event } from '../../types';
 import EventCard from '../../components/events/EventCard';
@@ -44,7 +44,7 @@ interface QuickActionProps {
 const QuickAction = ({ icon, title, onPress, badge }: QuickActionProps) => {
   const { colors } = useTheme();
   return (
-    <TouchableOpacity style={[styles.quickAction, { backgroundColor: colors.gray50 }]} onPress={onPress} activeOpacity={0.6}>
+    <TouchableOpacity style={[styles.quickAction, { backgroundColor: colors.gray50 }]} onPress={onPress} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel={title}>
       <View style={[styles.quickActionIcon, { backgroundColor: colors.card }]}>
         <Ionicons name={icon} size={22} color={colors.gray700} />
         {badge !== undefined && badge > 0 && (
@@ -160,6 +160,8 @@ export default function DashboardScreen() {
             <TouchableOpacity
               style={[styles.backButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.goBack()}
+              accessibilityRole="button"
+              accessibilityLabel="Retour"
             >
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
@@ -171,6 +173,8 @@ export default function DashboardScreen() {
           <TouchableOpacity
             style={[styles.notificationButton, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Notifications')}
+            accessibilityRole="button"
+            accessibilityLabel="Notifications"
           >
             <Ionicons name="notifications-outline" size={24} color={colors.gray700} />
             {stats.notifications > 0 && (
@@ -189,6 +193,8 @@ export default function DashboardScreen() {
             style={[styles.balanceCard, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Wallet')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Portefeuille - Solde disponible"
           >
             <View>
               <Text style={[styles.balanceLabel, { color: colors.gray500 }]}>Solde disponible</Text>
@@ -208,6 +214,8 @@ export default function DashboardScreen() {
             style={[styles.statCard, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Main', { screen: 'MyTickets' } as any)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`${stats.tickets} Billets`}
           >
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.tickets}</Text>
             <Text style={[styles.statLabel, { color: colors.gray500 }]}>Billets</Text>
@@ -218,6 +226,8 @@ export default function DashboardScreen() {
               style={[styles.statCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('MyEvents')}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel={`${stats.events} Evenements`}
             >
               <Text style={[styles.statValue, { color: colors.text }]}>{stats.events}</Text>
               <Text style={[styles.statLabel, { color: colors.gray500 }]}>Événements</Text>
@@ -228,6 +238,8 @@ export default function DashboardScreen() {
             style={[styles.statCard, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Explorer les evenements"
           >
             <Ionicons name="compass-outline" size={24} color={colors.primary} />
             <Text style={[styles.statLabel, { color: colors.gray500 }]}>Explorer</Text>
@@ -309,6 +321,8 @@ export default function DashboardScreen() {
                 style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('EventCreate')}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Creer un evenement"
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
                   <Ionicons name="add" size={24} color={colors.primary} />
@@ -321,6 +335,8 @@ export default function DashboardScreen() {
                 style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('MyEvents')}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Mes evenements"
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
                   <Ionicons name="calendar-outline" size={24} color={colors.primary} />
@@ -336,6 +352,8 @@ export default function DashboardScreen() {
                 style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('Wallet')}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Portefeuille"
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#064E3B' : '#F0FDF4' }]}>
                   <Ionicons name="wallet-outline" size={24} color="#10B981" />
@@ -348,6 +366,8 @@ export default function DashboardScreen() {
                 style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('MyEvents')}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Analytiques"
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#78350F' : '#FEF3C7' }]}>
                   <Ionicons name="stats-chart-outline" size={24} color="#F59E0B" />
@@ -363,6 +383,8 @@ export default function DashboardScreen() {
                 style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('Subscription')}
                 activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel="Abonnement"
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#1E1B4B' : '#E0E7FF' }]}>
                   <Ionicons name="diamond-outline" size={24} color={isDark ? '#A5B4FC' : '#4F46E5'} />
@@ -390,6 +412,8 @@ export default function DashboardScreen() {
         <TouchableOpacity
           style={[styles.settingsLink, { borderTopColor: colors.gray100 }]}
           onPress={() => navigation.navigate('Settings')}
+          accessibilityRole="link"
+          accessibilityLabel="Parametres"
         >
           <View style={styles.settingsLinkLeft}>
             <Ionicons name="settings-outline" size={20} color={colors.gray600} />

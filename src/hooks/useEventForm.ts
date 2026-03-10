@@ -11,10 +11,15 @@ import {
   sessionsAPI,
   aiAssistAPI,
   siteSettingsAPI,
-} from '../api/client';
+} from '../api';
 import { Category, LocationType, Tag, AIUsage, AIGeneratedEvent } from '../types';
 import type { AlertType } from '../components/common/CustomAlert';
 import { useCommissionConfig } from './useCommissionConfig';
+import { useEventFormValidation } from './useEventFormValidation';
+import { useEventFormSubmit } from './useEventFormSubmit';
+
+// Re-export constants from dedicated file
+export { STEPS, LOCATION_TYPES, FIELD_TYPES, SESSION_TYPES } from './useEventFormConstants';
 
 // ============================================
 // Types
@@ -145,16 +150,11 @@ export interface MapLocation {
 }
 
 export interface UseEventFormReturn {
-  // State
   form: EventFormState;
-
-  // Step Navigation
   goToNextStep: () => void;
   goToPrevStep: () => void;
   goToStep: (step: number) => void;
   validateStep: (step: number) => boolean;
-
-  // Step 1 handlers
   setTitle: (value: string) => void;
   setDescription: (value: string) => void;
   setShortDescription: (value: string) => void;
@@ -169,8 +169,6 @@ export interface UseEventFormReturn {
   removeGalleryImage: (index: number) => void;
   setVisibility: (value: 'public' | 'unlisted' | 'invite_only') => void;
   setAccessCode: (value: string) => void;
-
-  // Step 2 handlers
   setStartDate: (date: Date) => void;
   setEndDate: (date: Date) => void;
   setRegistrationDeadline: (date: Date | null) => void;
@@ -187,8 +185,6 @@ export interface UseEventFormReturn {
   setOnlinePasscode: (value: string) => void;
   handleMapLocationSelect: (location: MapLocation) => void;
   setShowMapPicker: (value: boolean) => void;
-
-  // Step 3 handlers
   setIsFree: (value: boolean) => void;
   setMaxParticipants: (value: string) => void;
   setAutoApproveRegistrations: (value: boolean) => void;
@@ -202,30 +198,18 @@ export interface UseEventFormReturn {
   setShowFormFieldsForBilletterie: (value: boolean) => void;
   setFormFields: (value: FormFieldForm[]) => void;
   setTicketTypes: (value: TicketTypeForm[]) => void;
-
-  // Step 4 handlers
   addSession: () => void;
   updateSession: (index: number, field: string, value: any) => void;
   removeSession: (index: number) => void;
-
-  // AI handlers
   handleAIGenerate: (prompt: string) => Promise<void>;
   handleAIApply: (data: AIGeneratedEvent) => void;
   handleOptimizeTitle: () => Promise<void>;
   handleGenerateDescription: () => Promise<void>;
   handleSuggestPricing: () => Promise<void>;
-
-  // Submit
   handleSubmit: () => Promise<string | null>;
   resetForm: () => void;
-
-  // Draft hydration
   hydrateForm: (data: Partial<EventFormState>) => void;
-
-  // Edit mode
   isEditMode: boolean;
-
-  // Util
   formatDate: (date: Date) => string;
 }
 
@@ -244,48 +228,9 @@ async function persistImageToDisk(uri: string): Promise<string> {
     await FileSystem.copyAsync({ from: uri, to: dest });
     return dest;
   } catch {
-    return uri; // fallback to original if copy fails
+    return uri;
   }
 }
-
-// ============================================
-// Constants
-// ============================================
-
-export const STEPS = [
-  { id: 1, title: 'Informations', icon: 'information-circle-outline' },
-  { id: 2, title: 'Date & Lieu', icon: 'calendar-outline' },
-  { id: 3, title: 'Tarification', icon: 'pricetag-outline' },
-  { id: 4, title: 'Sessions', icon: 'layers-outline' },
-] as const;
-
-export const LOCATION_TYPES: { value: LocationType; label: string; icon: string; description: string }[] = [
-  { value: 'in_person', label: 'Présentiel', icon: 'location-outline', description: 'Événement physique' },
-  { value: 'online', label: 'En ligne', icon: 'videocam-outline', description: 'Événement virtuel' },
-  { value: 'hybrid', label: 'Hybride', icon: 'globe-outline', description: 'Physique + Virtuel' },
-];
-
-export const FIELD_TYPES = [
-  { value: 'text', label: 'Texte' },
-  { value: 'textarea', label: 'Texte long' },
-  { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Téléphone' },
-  { value: 'number', label: 'Nombre' },
-  { value: 'date', label: 'Date' },
-  { value: 'select', label: 'Liste déroulante' },
-  { value: 'checkbox', label: 'Cases à cocher' },
-  { value: 'radio', label: 'Boutons radio' },
-];
-
-export const SESSION_TYPES = [
-  { value: 'keynote', label: 'Keynote' },
-  { value: 'talk', label: 'Présentation' },
-  { value: 'panel', label: 'Panel' },
-  { value: 'workshop', label: 'Atelier' },
-  { value: 'networking', label: 'Networking' },
-  { value: 'break', label: 'Pause' },
-  { value: 'lunch', label: 'Déjeuner' },
-];
 
 // ============================================
 // Hook
@@ -361,6 +306,42 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`);
 
   // ============================================
+  // Compose form state object
+  // ============================================
+
+  const form: EventFormState = {
+    currentStep, loading, title, description, shortDescription, eventType,
+    categoryId, selectedTagIds, customTags, bannerImage, galleryImages,
+    startDate, endDate, registrationDeadline, hasRegistrationDeadline,
+    locationType, locationName, locationCity, locationAddress, locationCountry,
+    onlineUrl, onlinePlatform, onlineInstructions, onlineMeetingId, onlinePasscode,
+    locationLatitude, locationLongitude, showMapPicker,
+    isFree, maxParticipants, autoApproveRegistrations, feeBearer,
+    ticketTypes, formFields, showFormFieldsForBilletterie,
+    visibility, accessCode, sessions, categories, availableTags,
+    aiEnabled, aiLoading, aiResult, aiError, aiUsage,
+    aiTitleLoading, aiDescLoading, aiPricingLoading,
+  };
+
+  // ============================================
+  // Delegated: Validation & Submit
+  // ============================================
+
+  const validateStep = useEventFormValidation(form, showError);
+
+  const handleSubmit = useEventFormSubmit(form, validateStep, showError, editEventId);
+
+  // Wrap handleSubmit with loading state
+  const handleSubmitWithLoading = useCallback(async (): Promise<string | null> => {
+    setLoading(true);
+    try {
+      return await handleSubmit();
+    } finally {
+      setLoading(false);
+    }
+  }, [handleSubmit]);
+
+  // ============================================
   // Data Fetching
   // ============================================
 
@@ -422,11 +403,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
       if (data.result) {
         setAiResult(typeof data.result === 'string' ? JSON.parse(data.result) : data.result);
       } else if (data.text) {
-        try {
-          setAiResult(JSON.parse(data.text));
-        } catch {
-          setAiError('Format de réponse inattendu');
-        }
+        try { setAiResult(JSON.parse(data.text)); } catch { setAiError('Format de réponse inattendu'); }
       } else {
         setAiResult(data);
       }
@@ -483,19 +460,13 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   }, [title, categories, categoryId, eventType, sessionId, showAlert, showError]);
 
   const handleGenerateDescription = useCallback(async () => {
-    if (!title.trim()) {
-      showError('Erreur', 'Veuillez d\'abord entrer un titre');
-      return;
-    }
+    if (!title.trim()) { showError('Erreur', 'Veuillez d\'abord entrer un titre'); return; }
     setAiDescLoading(true);
     try {
       const categoryName = categories.find(c => c.id === categoryId)?.name || '';
       const res = await aiAssistAPI.description(title, '', eventType, categoryName, sessionId);
       const text = res.data.text || res.data.description || '';
-      if (text) {
-        setDescription(text);
-        showSuccess('Succès', 'Description générée par l\'IA');
-      }
+      if (text) { setDescription(text); showSuccess('Succès', 'Description générée par l\'IA'); }
       refreshAIUsage();
     } catch (err: any) {
       showError('Erreur', err.response?.data?.detail || 'Impossible de générer la description');
@@ -520,15 +491,10 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
               text: 'Appliquer',
               onPress: () => {
                 const newTickets = suggestions.map((s: any) => ({
-                  name: s.name,
-                  description: s.reasoning || '',
-                  price: String(s.price),
-                  quantity_total: '100',
-                  sales_start: startDate,
+                  name: s.name, description: s.reasoning || '', price: String(s.price),
+                  quantity_total: '100', sales_start: startDate,
                   sales_end: new Date(startDate.getTime() - 86400000),
-                  is_visible: true,
-                  max_per_order: '10',
-                  min_per_order: '1',
+                  is_visible: true, max_per_order: '10', min_per_order: '1',
                 }));
                 setTicketTypes(newTickets);
                 showSuccess('Succès', 'Tickets créés à partir des suggestions IA');
@@ -550,9 +516,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   // ============================================
 
   const handleCustomTagAdd = useCallback((tag: string) => {
-    if (!customTags.includes(tag)) {
-      setCustomTags(prev => [...prev, tag]);
-    }
+    if (!customTags.includes(tag)) setCustomTags(prev => [...prev, tag]);
   }, [customTags]);
 
   const handleCustomTagRemove = useCallback((tag: string) => {
@@ -582,29 +546,19 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
       showAlert('Permission requise', 'Veuillez autoriser l\'accès à la galerie', undefined, 'warning');
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.8,
+      allowsEditing: true, aspect: [16, 9], quality: 0.8,
     });
-
     if (!result.canceled && result.assets[0]) {
       try {
-        // Compress and convert to JPEG (max 1920px wide, quality 0.7)
         const compressed = await ImageManipulator.manipulateAsync(
-          result.assets[0].uri,
-          [{ resize: { width: 1920 } }],
+          result.assets[0].uri, [{ resize: { width: 1920 } }],
           { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG }
         );
-        // Copy to permanent storage so the URI survives app restarts
-        const persistent = await persistImageToDisk(compressed.uri);
-        setBannerImage(persistent);
+        setBannerImage(await persistImageToDisk(compressed.uri));
       } catch {
-        // Fallback to original if compression fails; still persist
-        const persistent = await persistImageToDisk(result.assets[0].uri);
-        setBannerImage(persistent);
+        setBannerImage(await persistImageToDisk(result.assets[0].uri));
       }
     }
   }, [showAlert]);
@@ -617,15 +571,10 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-      selectionLimit: 10,
+      allowsMultipleSelection: true, quality: 0.8, selectionLimit: 10,
     });
     if (!result.canceled && result.assets.length > 0) {
-      // Copy each image to permanent storage so URIs survive app restarts
-      const persistedUris = await Promise.all(
-        result.assets.map(a => persistImageToDisk(a.uri))
-      );
+      const persistedUris = await Promise.all(result.assets.map(a => persistImageToDisk(a.uri)));
       setGalleryImages(prev => [...prev, ...persistedUris].slice(0, 10));
     }
   }, [showAlert]);
@@ -635,98 +584,55 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   }, []);
 
   // ============================================
-  // Ticket Type Helpers
+  // Collection Helpers
   // ============================================
 
   const addTicketType = useCallback(() => {
     const salesStart = new Date(startDate);
     salesStart.setDate(salesStart.getDate() - 7);
     setTicketTypes(prev => [...prev, {
-      name: '',
-      description: '',
-      price: '0',
-      quantity_total: '100',
-      sales_start: salesStart,
-      sales_end: new Date(startDate),
-      is_visible: true,
-      max_per_order: '10',
-      min_per_order: '1',
+      name: '', description: '', price: '0', quantity_total: '100',
+      sales_start: salesStart, sales_end: new Date(startDate),
+      is_visible: true, max_per_order: '10', min_per_order: '1',
     }]);
   }, [startDate]);
 
   const updateTicketType = useCallback((index: number, field: string, value: any) => {
-    setTicketTypes(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
+    setTicketTypes(prev => { const u = [...prev]; u[index] = { ...u[index], [field]: value }; return u; });
   }, []);
 
   const removeTicketType = useCallback((index: number) => {
     setTicketTypes(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  // ============================================
-  // Form Field Helpers
-  // ============================================
-
   const addFormField = useCallback(() => {
     setFormFields(prev => [...prev, {
-      label: '',
-      field_type: 'text',
-      required: false,
-      placeholder: '',
-      help_text: '',
-      options: '',
-      order: prev.length,
+      label: '', field_type: 'text', required: false,
+      placeholder: '', help_text: '', options: '', order: prev.length,
     }]);
   }, []);
 
   const updateFormField = useCallback((index: number, field: string, value: any) => {
-    setFormFields(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
+    setFormFields(prev => { const u = [...prev]; u[index] = { ...u[index], [field]: value }; return u; });
   }, []);
 
   const removeFormField = useCallback((index: number) => {
     setFormFields(prev => prev.filter((_, i) => i !== index));
   }, []);
 
-  // ============================================
-  // Session Helpers
-  // ============================================
-
   const addSession = useCallback(() => {
     setSessions(prev => [...prev, {
-      title: '',
-      description: '',
-      session_type: 'talk',
-      start_time: null,
-      end_time: null,
-      location: '',
-      room: '',
-      max_capacity: '',
-      is_virtual: false,
-      virtual_link: '',
-      requires_registration: true,
-      is_featured: false,
-      slides_url: '',
-      recording_url: '',
-      resources: [],
-      tags: [],
-      level: 'all',
-      language: 'fr',
+      title: '', description: '', session_type: 'talk',
+      start_time: null, end_time: null, location: '', room: '',
+      max_capacity: '', is_virtual: false, virtual_link: '',
+      requires_registration: true, is_featured: false,
+      slides_url: '', recording_url: '', resources: [], tags: [],
+      level: 'all', language: 'fr',
     }]);
   }, []);
 
   const updateSession = useCallback((index: number, field: string, value: any) => {
-    setSessions(prev => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
+    setSessions(prev => { const u = [...prev]; u[index] = { ...u[index], [field]: value }; return u; });
   }, []);
 
   const removeSession = useCallback((index: number) => {
@@ -734,108 +640,13 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   }, []);
 
   // ============================================
-  // Validation
-  // ============================================
-
-  const validateStep = useCallback((step: number): boolean => {
-    switch (step) {
-      case 1:
-        if (!title.trim()) {
-          showError('Erreur', 'Le titre est requis');
-          return false;
-        }
-        if (!description.trim()) {
-          showError('Erreur', 'La description est requise');
-          return false;
-        }
-        if (!categoryId) {
-          showError('Erreur', 'Veuillez sélectionner une catégorie');
-          return false;
-        }
-        return true;
-      case 2:
-        if (endDate <= startDate) {
-          showError('Erreur', 'La date de fin doit être après la date de début');
-          return false;
-        }
-        if (locationType === 'in_person' || locationType === 'hybrid') {
-          if (!locationCity.trim()) {
-            showError('Erreur', 'La ville est requise pour un événement présentiel');
-            return false;
-          }
-        }
-        if (locationType === 'online' || locationType === 'hybrid') {
-          if (!onlineUrl.trim() && !onlinePlatform.trim()) {
-            showError('Erreur', 'Veuillez indiquer une URL ou une plateforme pour l\'événement en ligne');
-            return false;
-          }
-        }
-        return true;
-      case 3:
-        if (eventType === 'billetterie') {
-          if (!isFree && ticketTypes.length === 0) {
-            showError('Erreur', 'Veuillez ajouter au moins un type de billet');
-            return false;
-          }
-          for (let i = 0; i < ticketTypes.length; i++) {
-            const ticket = ticketTypes[i];
-            if (!ticket.name.trim()) {
-              showError('Erreur', `Le nom du billet #${i + 1} est requis`);
-              return false;
-            }
-            if (parseInt(ticket.quantity_total) <= 0) {
-              showError('Erreur', `La quantité du billet "${ticket.name}" doit être supérieure à 0`);
-              return false;
-            }
-          }
-          if (showFormFieldsForBilletterie && formFields.length > 0) {
-            for (let i = 0; i < formFields.length; i++) {
-              const field = formFields[i];
-              if (!field.label.trim()) {
-                showError('Erreur', `L'intitulé du champ #${i + 1} est requis`);
-                return false;
-              }
-              if (['select', 'checkbox', 'radio'].includes(field.field_type) && !field.options.trim()) {
-                showError('Erreur', `Les options sont requises pour le champ "${field.label}"`);
-                return false;
-              }
-            }
-          }
-        } else {
-          if (formFields.length === 0) {
-            showError('Erreur', 'Veuillez ajouter au moins un champ de formulaire');
-            return false;
-          }
-          for (let i = 0; i < formFields.length; i++) {
-            const field = formFields[i];
-            if (!field.label.trim()) {
-              showError('Erreur', `L'intitulé du champ #${i + 1} est requis`);
-              return false;
-            }
-            if (['select', 'checkbox', 'radio'].includes(field.field_type) && !field.options.trim()) {
-              showError('Erreur', `Les options sont requises pour le champ "${field.label}"`);
-              return false;
-            }
-          }
-        }
-        return true;
-      default:
-        return true;
-    }
-  }, [
-    title, description, categoryId, startDate, endDate, locationType,
-    locationCity, onlineUrl, onlinePlatform, eventType, isFree,
-    ticketTypes, formFields, showFormFieldsForBilletterie, showError,
-  ]);
-
-  // ============================================
   // Step Navigation
   // ============================================
 
+  const { STEPS } = require('./useEventFormConstants');
+
   const goToNextStep = useCallback(() => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
-    }
+    if (validateStep(currentStep)) setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
   }, [currentStep, validateStep]);
 
   const goToPrevStep = useCallback(() => {
@@ -843,9 +654,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   }, []);
 
   const goToStep = useCallback((step: number) => {
-    if (step < currentStep || validateStep(currentStep)) {
-      setCurrentStep(step);
-    }
+    if (step < currentStep || validateStep(currentStep)) setCurrentStep(step);
   }, [currentStep, validateStep]);
 
   // ============================================
@@ -950,222 +759,20 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
 
   const resetForm = useCallback(() => {
     setCurrentStep(1);
-    setTitle('');
-    setDescription('');
-    setShortDescription('');
-    setCategoryId(null);
-    setSelectedTagIds([]);
-    setCustomTags([]);
+    setTitle(''); setDescription(''); setShortDescription('');
+    setCategoryId(null); setSelectedTagIds([]); setCustomTags([]);
     setBannerImage(null);
-    setStartDate(new Date());
-    setEndDate(new Date(Date.now() + 3600000));
-    setRegistrationDeadline(null);
-    setHasRegistrationDeadline(false);
+    setStartDate(new Date()); setEndDate(new Date(Date.now() + 3600000));
+    setRegistrationDeadline(null); setHasRegistrationDeadline(false);
     setLocationType('in_person');
-    setLocationName('');
-    setLocationCity('');
-    setLocationAddress('');
-    setLocationLatitude('');
-    setLocationLongitude('');
-    setOnlineUrl('');
-    setOnlinePlatform('');
-    setOnlineInstructions('');
-    setOnlineMeetingId('');
-    setOnlinePasscode('');
-    setIsFree(false);
-    setFeeBearer('participant');
-    setMaxParticipants('');
-    setTicketTypes([]);
-    setFormFields([]);
-    setSessions([]);
+    setLocationName(''); setLocationCity(''); setLocationAddress('');
+    setLocationLatitude(''); setLocationLongitude('');
+    setOnlineUrl(''); setOnlinePlatform(''); setOnlineInstructions('');
+    setOnlineMeetingId(''); setOnlinePasscode('');
+    setIsFree(false); setFeeBearer('participant'); setMaxParticipants('');
+    setTicketTypes([]); setFormFields([]); setSessions([]);
     setShowFormFieldsForBilletterie(false);
   }, []);
-
-  // ============================================
-  // Submit
-  // ============================================
-
-  const handleSubmit = useCallback(async () => {
-    if (!validateStep(currentStep)) return;
-
-    setLoading(true);
-    try {
-      const formData = new FormData();
-
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('short_description', shortDescription);
-      formData.append('event_type', eventType);
-      formData.append('category', String(categoryId));
-      formData.append('start_date', startDate.toISOString());
-      formData.append('end_date', endDate.toISOString());
-      formData.append('location_type', locationType);
-      formData.append('location_country', locationCountry);
-
-      // Tags
-      const allTags: string[] = [];
-      selectedTagIds.forEach(tagId => {
-        const tag = availableTags.find(t => t.id === tagId);
-        if (tag) allTags.push(tag.name);
-      });
-      customTags.forEach(tag => allTags.push(tag));
-      allTags.forEach(tag => {
-        formData.append('tags', tag);
-      });
-
-      if (hasRegistrationDeadline && registrationDeadline) {
-        formData.append('registration_deadline', registrationDeadline.toISOString());
-      }
-
-      if (locationType === 'in_person' || locationType === 'hybrid') {
-        formData.append('location_name', locationName);
-        formData.append('location_city', locationCity);
-        formData.append('location_address', locationAddress);
-
-        if (locationLatitude && locationLongitude) {
-          formData.append('location_latitude', parseFloat(locationLatitude).toFixed(6));
-          formData.append('location_longitude', parseFloat(locationLongitude).toFixed(6));
-        }
-      }
-
-      if (locationType === 'online' || locationType === 'hybrid') {
-        formData.append('online_url', onlineUrl);
-        formData.append('online_platform', onlinePlatform);
-        formData.append('online_instructions', onlineInstructions);
-        if (onlineMeetingId) {
-          formData.append('online_meeting_id', onlineMeetingId);
-        }
-        if (onlinePasscode) {
-          formData.append('online_passcode', onlinePasscode);
-        }
-      }
-
-      if (maxParticipants) {
-        formData.append('max_participants', maxParticipants);
-      }
-      formData.append('auto_approve_registrations', String(autoApproveRegistrations));
-      formData.append('fee_bearer', feeBearer);
-      formData.append('visibility', visibility);
-      if (accessCode) {
-        formData.append('access_code', accessCode);
-      }
-      formData.append('status', 'draft');
-
-      if (bannerImage) {
-        const filename = bannerImage.split('/').pop() || 'banner.jpg';
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : 'image/jpeg';
-        formData.append('banner_image', {
-          uri: bannerImage,
-          name: filename,
-          type,
-        } as any);
-      }
-
-      const response = editEventId
-        ? await eventsAPI.updateEvent(editEventId, formData)
-        : await eventsAPI.createEvent(formData);
-      const eventId = response.data.id;
-
-      // Upload gallery images
-      if (galleryImages.length > 0) {
-        const galleryFormData = new FormData();
-        galleryImages.forEach((uri, idx) => {
-          const filename = uri.split('/').pop() || `gallery_${idx}.jpg`;
-          const match = /\.(\w+)$/.exec(filename);
-          const type = match ? `image/${match[1]}` : 'image/jpeg';
-          galleryFormData.append('images', { uri, name: filename, type } as any);
-        });
-        await eventsAPI.uploadImages(eventId, galleryFormData);
-      }
-
-      // Create ticket types for billetterie events
-      if (eventType === 'billetterie' && ticketTypes.length > 0) {
-        await Promise.all(ticketTypes.map(ticket =>
-          ticketTypesAPI.createTicketType({
-            event: eventId,
-            name: ticket.name,
-            description: ticket.description,
-            price: parseFloat(ticket.price) || 0,
-            quantity_total: parseInt(ticket.quantity_total) || 100,
-            sales_start: ticket.sales_start.toISOString(),
-            sales_end: ticket.sales_end.toISOString(),
-            is_visible: ticket.is_visible,
-            max_per_order: parseInt(ticket.max_per_order) || 10,
-            min_per_order: parseInt(ticket.min_per_order) || 1,
-          })
-        ));
-      }
-
-      // Create form fields
-      const shouldCreateFormFields =
-        (eventType === 'inscription' && formFields.length > 0) ||
-        (eventType === 'billetterie' && showFormFieldsForBilletterie && formFields.length > 0);
-
-      if (shouldCreateFormFields) {
-        await Promise.all(formFields.map((field, index) =>
-          eventsAPI.createFormField({
-            event: eventId,
-            label: field.label,
-            field_type: field.field_type,
-            required: field.required,
-            placeholder: field.placeholder,
-            help_text: field.help_text,
-            options: field.options,
-            order: index,
-          })
-        ));
-      }
-
-      // Create sessions
-      if (sessions.length > 0) {
-        await Promise.all(sessions.map(session =>
-          sessionsAPI.createSession({
-            event: eventId,
-            title: session.title,
-            description: session.description,
-            session_type: session.session_type,
-            start_time: session.start_time ? session.start_time.toISOString() : null,
-            end_time: session.end_time ? session.end_time.toISOString() : null,
-            location: session.location,
-            room: session.room || '',
-            max_capacity: session.max_capacity ? parseInt(session.max_capacity) : null,
-            is_virtual: session.is_virtual || false,
-            virtual_link: session.virtual_link || '',
-            requires_registration: session.requires_registration ?? true,
-            is_featured: session.is_featured || false,
-            slides_url: session.slides_url || '',
-            recording_url: session.recording_url || '',
-            resources: session.resources || [],
-            tags: session.tags || [],
-            level: session.level || 'all',
-            language: session.language || 'fr',
-          })
-        ));
-      }
-
-      return eventId;
-    } catch (error: any) {
-      if (__DEV__) console.error('Erreur création événement:', error);
-      showError(
-        'Erreur',
-        error.response?.data?.message || error.response?.data?.detail ||
-          (editEventId ? "Impossible de modifier l'événement" : "Impossible de créer l'événement")
-      );
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [
-    currentStep, validateStep, title, description, shortDescription, eventType,
-    categoryId, startDate, endDate, locationType, locationCountry,
-    selectedTagIds, availableTags, customTags, hasRegistrationDeadline,
-    registrationDeadline, locationName, locationCity, locationAddress,
-    locationLatitude, locationLongitude, onlineUrl, onlinePlatform,
-    onlineInstructions, onlineMeetingId, onlinePasscode, maxParticipants,
-    autoApproveRegistrations, bannerImage, ticketTypes, formFields,
-    showFormFieldsForBilletterie, sessions, showError,
-  ]);
 
   // ============================================
   // Utilities
@@ -1173,151 +780,30 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
 
   const formatDate = useCallback((date: Date) => {
     return date.toLocaleDateString('fr-FR', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
+      weekday: 'short', day: 'numeric', month: 'long', year: 'numeric',
     });
   }, []);
 
-  // ============================================
-  // Compose state object
-  // ============================================
-
-  const form: EventFormState = {
-    currentStep,
-    loading,
-    title,
-    description,
-    shortDescription,
-    eventType,
-    categoryId,
-    selectedTagIds,
-    customTags,
-    bannerImage,
-    galleryImages,
-    startDate,
-    endDate,
-    registrationDeadline,
-    hasRegistrationDeadline,
-    locationType,
-    locationName,
-    locationCity,
-    locationAddress,
-    locationCountry,
-    onlineUrl,
-    onlinePlatform,
-    onlineInstructions,
-    onlineMeetingId,
-    onlinePasscode,
-    locationLatitude,
-    locationLongitude,
-    showMapPicker,
-    isFree,
-    maxParticipants,
-    autoApproveRegistrations,
-    feeBearer,
-    ticketTypes,
-    formFields,
-    showFormFieldsForBilletterie,
-    visibility,
-    accessCode,
-    sessions,
-    categories,
-    availableTags,
-    aiEnabled,
-    aiLoading,
-    aiResult,
-    aiError,
-    aiUsage,
-    aiTitleLoading,
-    aiDescLoading,
-    aiPricingLoading,
-  };
-
   return {
     form,
-
-    // Step Navigation
-    goToNextStep,
-    goToPrevStep,
-    goToStep,
-    validateStep,
-
-    // Step 1
-    setTitle,
-    setDescription,
-    setShortDescription,
-    setEventType,
-    setCategoryId,
-    setSelectedTagIds,
-    handleCustomTagAdd,
-    handleCustomTagRemove,
-    pickImage,
-    setBannerImage,
-    pickGalleryImages,
-    removeGalleryImage,
-
-    // Step 2
-    setStartDate,
-    setEndDate,
-    setRegistrationDeadline,
-    setHasRegistrationDeadline,
-    setLocationType,
-    setLocationName,
-    setLocationCity,
-    setLocationAddress,
-    setLocationCountry,
-    setOnlineUrl,
-    setOnlinePlatform,
-    setOnlineInstructions,
-    setOnlineMeetingId,
-    setOnlinePasscode,
-    handleMapLocationSelect,
-    setShowMapPicker,
-
-    // Step 3
-    setIsFree,
-    setMaxParticipants,
-    setAutoApproveRegistrations,
-    setFeeBearer,
-    addTicketType,
-    updateTicketType,
-    removeTicketType,
-    addFormField,
-    updateFormField,
-    removeFormField,
-    setShowFormFieldsForBilletterie,
-    setFormFields,
-    setTicketTypes,
-
-    // Visibility
-    setVisibility,
-    setAccessCode,
-
-    // Step 4
-    addSession,
-    updateSession,
-    removeSession,
-
-    // AI
-    handleAIGenerate,
-    handleAIApply,
-    handleOptimizeTitle,
-    handleGenerateDescription,
-    handleSuggestPricing,
-
-    // Submit
-    handleSubmit,
-    resetForm,
-
-    // Draft hydration
-    hydrateForm,
-
-    // Edit mode
+    goToNextStep, goToPrevStep, goToStep, validateStep,
+    setTitle, setDescription, setShortDescription, setEventType,
+    setCategoryId, setSelectedTagIds, handleCustomTagAdd, handleCustomTagRemove,
+    pickImage, setBannerImage, pickGalleryImages, removeGalleryImage,
+    setVisibility, setAccessCode,
+    setStartDate, setEndDate, setRegistrationDeadline, setHasRegistrationDeadline,
+    setLocationType, setLocationName, setLocationCity, setLocationAddress, setLocationCountry,
+    setOnlineUrl, setOnlinePlatform, setOnlineInstructions, setOnlineMeetingId, setOnlinePasscode,
+    handleMapLocationSelect, setShowMapPicker,
+    setIsFree, setMaxParticipants, setAutoApproveRegistrations, setFeeBearer,
+    addTicketType, updateTicketType, removeTicketType,
+    addFormField, updateFormField, removeFormField,
+    setShowFormFieldsForBilletterie, setFormFields, setTicketTypes,
+    addSession, updateSession, removeSession,
+    handleAIGenerate, handleAIApply, handleOptimizeTitle, handleGenerateDescription, handleSuggestPricing,
+    handleSubmit: handleSubmitWithLoading,
+    resetForm, hydrateForm,
     isEditMode: !!editEventId,
-
-    // Util
     formatDate,
   };
 }

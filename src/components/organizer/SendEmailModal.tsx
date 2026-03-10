@@ -16,7 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
-import { registrationsAPI } from '../../api/client';
+import { registrationsAPI } from '../../api';
 import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 

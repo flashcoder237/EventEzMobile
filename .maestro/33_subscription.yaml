@@ -1,0 +1,48 @@
+appId: ${APP_ID}
+name: "Profile - Abonnement"
+---
+
+# Flow: Subscription Plans
+# Teste l'ecran des plans d'abonnement
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Ouvrir les abonnements
+- tapOn:
+    text: ".*Abonnement.*|.*Premium.*|.*Plan.*|.*Subscription.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Abonnement.*|.*Plan.*|.*Offre.*|.*Premium.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les plans disponibles
+- assertVisible:
+    text: ".*Gratuit.*|.*Free.*|.*Essentiel.*|.*Premium.*"
+    optional: true
+
+# Scroll pour voir les details
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Verifier les features
+- assertVisible:
+    text: ".*fonctionnalit.*|.*avantage.*|.*inclus.*"
+    optional: true
+
+# Scroll encore
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

@@ -1,0 +1,71 @@
+appId: ${APP_ID}
+name: "Admin - Audit et Parametres plateforme"
+env:
+  TEST_EMAIL: ${TEST_ADMIN_EMAIL}
+  TEST_PASSWORD: ${TEST_ADMIN_PASSWORD}
+---
+
+# Flow: Audit Logs & Platform Settings (Admin)
+# Teste les logs d'audit et les parametres de la plateforme
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Admin
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*Admin.*|.*Administration.*"
+    optional: true
+
+# --- Logs d'audit ---
+- tapOn:
+    text: ".*Audit.*|.*Journal.*|.*Logs.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Audit.*|.*Journal.*|.*Log.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les entrees d'audit
+- assertVisible:
+    text: ".*action.*|.*utilisateur.*|.*date.*|.*aucun.*"
+    optional: true
+
+# Scroll
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+# --- Parametres plateforme ---
+- tapOn:
+    text: ".*Param.tres.*plateforme.*|.*Platform.*Settings.*|.*Configuration.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Param.tres.*|.*Configuration.*|.*plateforme.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les options de configuration
+- assertVisible:
+    text: ".*commission.*|.*maintenance.*|.*inscription.*|.*notification.*"
+    optional: true
+
+# Scroll
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

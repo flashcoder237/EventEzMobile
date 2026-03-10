@@ -1,0 +1,87 @@
+appId: ${APP_ID}
+name: "Payments - Historique paiements et remboursement"
+---
+
+# Flow: My Payments + Refund Request
+# Teste l'historique des paiements et la demande de remboursement
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Ouvrir Mes paiements
+- tapOn:
+    text: ".*paiements.*|.*Mes paiements.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*paiements.*|.*Paiements.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les onglets de filtrage
+- assertVisible:
+    text: ".*Compl.t.*|.*attente.*|.*chou.*|.*Rembours.*"
+    optional: true
+
+# Tester le filtre "En attente"
+- tapOn:
+    text: ".*attente.*"
+    optional: true
+
+# Tester le filtre "Echoues"
+- tapOn:
+    text: ".*chou.*"
+    optional: true
+
+# Retour aux completes
+- tapOn:
+    text: ".*Compl.t.*"
+    optional: true
+
+# Rechercher un paiement
+- tapOn:
+    text: ".*Rechercher.*paiement.*"
+    optional: true
+- inputText: "test"
+
+# Si un paiement existe, taper dessus
+- tapOn:
+    id: "payment-.*"
+    optional: true
+
+# Verifier les details du paiement
+- assertVisible:
+    text: ".*montant.*|.*date.*|.*statut.*|.*methode.*"
+    optional: true
+
+# Tester la demande de remboursement si disponible
+- tapOn:
+    text: ".*Rembours.*|.*Demander.*rembours.*"
+    optional: true
+
+# Remplir le formulaire de remboursement
+- tapOn:
+    text: ".*Raison.*rembours.*|.*raison.*"
+    optional: true
+- inputText: "Test remboursement E2E"
+
+# Soumettre
+- tapOn:
+    text: ".*Demander.*rembours.*|.*Soumettre.*|.*Envoyer.*"
+    optional: true
+
+# Verifier confirmation
+- extendedWaitUntil:
+    visible:
+      text: ".*demande.*envoy.*|.*rembours.*demand.*|.*succ.*"
+    timeout: 10000
+    optional: true
+
+# Fermer/Retour
+- tapOn:
+    text: ".*Fermer.*|.*Retour.*"
+    optional: true

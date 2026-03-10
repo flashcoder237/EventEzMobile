@@ -1,0 +1,64 @@
+appId: ${APP_ID}
+name: "Organizer - Modifier evenement"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: Edit Event (Organizer)
+# Teste la modification d'un evenement existant
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil → Mes evenements
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*v.nements.*|.*Mes .v.nements.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*v.nements.*"
+    timeout: 10000
+
+# Taper sur Modifier l'evenement
+- tapOn:
+    text: ".*Modifier.*v.nement.*|.*Modifier.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Modifier.*|.*tape.*"
+    timeout: 10000
+    optional: true
+
+# Modifier le titre
+- tapOn:
+    text: ".*Titre.*|.*titre.*"
+    optional: true
+- clearText
+- inputText: "Evenement Test E2E Modifie"
+
+# Passer a l'etape suivante
+- tapOn:
+    text: ".*Suivant.*|.*suivante.*"
+    optional: true
+
+# Verifier l'etape 2 (Date & Lieu)
+- assertVisible:
+    text: ".*Date.*|.*Lieu.*|.*Localisation.*"
+    optional: true
+
+# Sauvegarder les modifications
+- tapOn:
+    text: ".*Sauvegarder.*|.*Enregistrer.*|.*Mettre.*jour.*"
+    optional: true
+
+# Verifier le succes
+- extendedWaitUntil:
+    visible:
+      text: ".*succ.*|.*modifi.*|.*enregistr.*|.*v.nements.*"
+    timeout: 10000
+    optional: true

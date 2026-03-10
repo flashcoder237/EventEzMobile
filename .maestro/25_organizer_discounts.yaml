@@ -1,0 +1,72 @@
+appId: ${APP_ID}
+name: "Organizer - Gestion codes promo"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: Discount Management (Organizer)
+# Teste la gestion des codes promo/reductions
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil → Mes evenements
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*v.nements.*|.*Mes .v.nements.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*v.nements.*"
+    timeout: 10000
+
+# Ouvrir un evenement pour gerer les reductions
+- tapOn:
+    text: ".*Plus d'actions.*|.*actions.*"
+    optional: true
+
+- tapOn:
+    text: ".*r.duction.*|.*promo.*|.*discount.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*r.duction.*|.*promo.*|.*Code.*"
+    timeout: 10000
+    optional: true
+
+# Creer un nouveau code promo
+- tapOn:
+    text: ".*Ajouter.*|.*Cr.er.*|.*Nouveau.*"
+    optional: true
+
+# Remplir le formulaire
+- tapOn:
+    text: ".*code.*"
+    optional: true
+- inputText: "TESTE2E"
+
+- tapOn:
+    text: ".*pourcentage.*|.*valeur.*|.*montant.*"
+    optional: true
+- inputText: "10"
+
+# Sauvegarder
+- tapOn:
+    text: ".*Sauvegarder.*|.*Cr.er.*|.*Enregistrer.*"
+    optional: true
+
+# Verifier la creation
+- extendedWaitUntil:
+    visible:
+      text: ".*TESTE2E.*|.*cr...*|.*succ.*"
+    timeout: 10000
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

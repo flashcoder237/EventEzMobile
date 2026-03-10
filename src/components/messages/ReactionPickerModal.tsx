@@ -53,7 +53,7 @@ function ReactionPickerModal({
     >
       {/* Backdrop */}
       <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
-      <TouchableWithoutFeedback onPress={onClose}>
+      <TouchableWithoutFeedback onPress={onClose} accessibilityLabel="Fermer les reactions">
         <View style={StyleSheet.absoluteFill} />
       </TouchableWithoutFeedback>
 
@@ -73,16 +73,28 @@ function ReactionPickerModal({
         <Text style={[styles.title, { color: colors.gray600 }]}>Réagir au message</Text>
 
         <View style={styles.emojiRow}>
-          {REACTION_EMOJIS.map((emoji) => (
-            <TouchableOpacity
-              key={emoji}
-              style={[styles.emojiButton, { backgroundColor: colors.gray50 }]}
-              onPress={() => handleSelect(emoji)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.emoji}>{emoji}</Text>
-            </TouchableOpacity>
-          ))}
+          {REACTION_EMOJIS.map((emoji) => {
+            const emojiLabels: Record<string, string> = {
+              '\u{1F44D}': 'Pouce en haut',
+              '\u{2764}\u{FE0F}': 'Coeur',
+              '\u{1F602}': 'Rire',
+              '\u{1F62E}': 'Surpris',
+              '\u{1F622}': 'Triste',
+              '\u{1F389}': 'Celebration',
+            };
+            return (
+              <TouchableOpacity
+                key={emoji}
+                style={[styles.emojiButton, { backgroundColor: colors.gray50 }]}
+                onPress={() => handleSelect(emoji)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={emojiLabels[emoji] || emoji}
+              >
+                <Text style={styles.emoji}>{emoji}</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </Reanimated.View>
     </Modal>

@@ -1,0 +1,31 @@
+# Flow: Déconnexion
+# Vérifie le parcours de déconnexion
+
+appId: com.eventez.mobile
+name: "Auth - Logout"
+
+---
+
+# Pré-requis : être connecté
+- runFlow: 01_auth_login.yaml
+
+# Aller au profil
+- tapOn: "Profil"
+
+# Scroll pour trouver le bouton de déconnexion
+- scrollDown
+- scrollDown
+
+# Taper sur Déconnexion
+- tapOn:
+    text: ".*Déconnexion.*|.*Se déconnecter.*"
+
+# Confirmer si une boîte de dialogue apparaît
+- tapOn:
+    text: ".*Oui.*|.*Confirmer.*|.*Déconnexion.*"
+    optional: true
+
+# Vérifier le retour à l'écran de connexion
+- assertVisible:
+    text: "Connexion"
+    timeout: 10000

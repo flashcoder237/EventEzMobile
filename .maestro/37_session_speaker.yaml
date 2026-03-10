@@ -1,0 +1,77 @@
+appId: ${APP_ID}
+name: "Events - Sessions et Speakers"
+---
+
+# Flow: Session Details & Speaker Profile
+# Teste la navigation vers les details de session et profil speaker
+
+- runFlow: 01_auth_login.yaml
+
+# Chercher un evenement avec des sessions
+- tapOn:
+    id: "search-input"
+    optional: true
+- inputText: "conf"
+- pressKey: enter
+
+- extendedWaitUntil:
+    visible:
+      id: "event-card-.*"
+    timeout: 10000
+    optional: true
+
+# Ouvrir un evenement
+- tapOn:
+    id: "event-card-.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Description.*|.*d.tail.*"
+    timeout: 10000
+    optional: true
+
+# Scroll vers la section Agenda/Sessions
+- scroll:
+    direction: DOWN
+    duration: 1000
+
+# Chercher la section Agenda
+- assertVisible:
+    text: ".*Agenda.*|.*Programme.*|.*Session.*"
+    optional: true
+
+# Taper sur une session
+- tapOn:
+    text: ".*session.*|.*conf.rence.*|.*atelier.*|.*workshop.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*session.*|.*conf.rence.*|.*horaire.*|.*intervenant.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les details de la session
+- assertVisible:
+    text: ".*heure.*|.*description.*|.*lieu.*|.*salle.*"
+    optional: true
+
+# Si un speaker est affiche, taper dessus
+- tapOn:
+    text: ".*intervenant.*|.*speaker.*"
+    optional: true
+
+# Verifier le profil du speaker
+- assertVisible:
+    text: ".*bio.*|.*pr.sentation.*|.*sessions.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true
+
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

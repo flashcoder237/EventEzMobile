@@ -23,6 +23,8 @@ interface EmptyStateProps {
   iconColor?: string;
   style?: ViewStyle;
   withCard?: boolean;
+  /** Label d'accessibilite personnalise */
+  accessibilityLabel?: string;
 }
 
 function EmptyStateComponent({
@@ -37,6 +39,7 @@ function EmptyStateComponent({
   iconColor,
   style,
   withCard = false,
+  accessibilityLabel: a11yLabel,
 }: EmptyStateProps) {
   const { colors } = useTheme();
   const resolvedIconColor = iconColor || colors.gray300;
@@ -67,14 +70,22 @@ function EmptyStateComponent({
 
   if (withCard) {
     return (
-      <View style={[styles.card, { backgroundColor: colors.surface }, Shadows.md, style]}>
+      <View
+        accessibilityRole="text"
+        accessibilityLabel={a11yLabel || `${title}${description ? `. ${description}` : ''}`}
+        style={[styles.card, { backgroundColor: colors.surface }, Shadows.md, style]}
+      >
         {content}
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, style]}>
+    <View
+      accessibilityRole="text"
+      accessibilityLabel={a11yLabel || `${title}${description ? `. ${description}` : ''}`}
+      style={[styles.container, style]}
+    >
       {content}
     </View>
   );

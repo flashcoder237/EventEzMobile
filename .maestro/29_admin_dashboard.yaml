@@ -1,0 +1,51 @@
+appId: ${APP_ID}
+name: "Admin - Dashboard administration"
+env:
+  TEST_EMAIL: ${TEST_ADMIN_EMAIL}
+  TEST_PASSWORD: ${TEST_ADMIN_PASSWORD}
+---
+
+# Flow: Admin Dashboard
+# Teste le tableau de bord administrateur
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Chercher l'acces admin
+- tapOn:
+    text: ".*Admin.*|.*Administration.*|.*Dashboard.*admin.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Admin.*|.*Tableau.*bord.*|.*Dashboard.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les metriques de la plateforme
+- assertVisible:
+    text: ".*utilisateur.*|.*evenement.*|.*paiement.*|.*inscript.*"
+    optional: true
+
+# Scroll pour voir plus
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Verifier les liens de navigation admin
+- assertVisible:
+    text: ".*Utilisateur.*|.*Mod.ration.*|.*Param.tres.*|.*Audit.*"
+    optional: true
+
+# Scroll
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

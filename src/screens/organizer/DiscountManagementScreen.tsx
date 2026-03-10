@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { discountsAPI, ticketTypesAPI } from '../../api/client';
+import { discountsAPI, ticketTypesAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
   Colors,

@@ -1,0 +1,112 @@
+/**
+ * Formatting helpers extracted from EventCard component.
+ * Pure functions — no dependency on React or theme colors.
+ */
+
+import { formatPriceRange } from './priceFormatters';
+
+// ---------- Types ----------
+
+export interface CardPriceParams {
+  isFree: boolean;
+  price?: string | number;
+  priceMax?: number;
+  currency: string;
+  eventType?: 'billetterie' | 'inscription';
+}
+
+// ---------- Price formatting ----------
+
+/**
+ * Build the display string for an event card price.
+ *
+ * Examples:
+ *  - free event → "Gratuit"
+ *  - range 5000–10000 FCFA → "5 000 - 10 000 FCFA"
+ *  - single price 3000 → "Des 3 000 FCFA"
+ *  - inscription without price → "Gratuit"
+ *  - fallback → "Prix variable"
+ */
+export function formatCardPrice(params: CardPriceParams): string {
+  const { isFree, price, priceMax, currency, eventType } = params;
+
+  if (isFree) return 'Gratuit';
+
+  if (
+    typeof price === 'number' &&
+    typeof priceMax === 'number' &&
+    price > 0 &&
+    priceMax > price
+  ) {
+    return formatPriceRange(price, priceMax, currency);
+  }
+
+  if (typeof price === 'number' && price > 0)
+    return `Des ${price.toLocaleString()} ${currency}`;
+
+  if (typeof price === 'number' && price === 0) return 'Gratuit';
+
+  if (typeof price === 'string' && price.trim()) return price;
+
+  if (eventType === 'inscription') return 'Gratuit';
+
+  return 'Prix variable';
+}
+
+/**
+ * Short price string (currently identical to `formatCardPrice`
+ * but kept as a separate entry-point for future divergence).
+ */
+export function formatPriceShort(params: CardPriceParams): string {
+  return formatCardPrice(params);
+}
+
+// ---------- Date formatting ----------
+
+/**
+ * Full accent date string used in most card variants.
+ *
+ * Example: "MAR. 15 JAN · 19:30"
+ */
+export function formatDateAccent(date: string): string {
+  try {
+    const eventDate = new Date(date);
+    const day = eventDate
+      .toLocaleDateString('fr-FR', { weekday: 'short' })
+      .slice(0, 3)
+      .toUpperCase();
+    const dayNum = eventDate.getDate();
+    const month = eventDate
+      .toLocaleDateString('fr-FR', { month: 'short' })
+      .toUpperCase();
+    const timeStr = eventDate.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    return `${day}. ${dayNum} ${month} · ${timeStr}`;
+  } catch {
+    return 'Date TBA';
+  }
+}
+
+/**
+ * Shorter date without the time component.
+ *
+ * Example: "MAR 15 JAN"
+ */
+export function formatDateShort(date: string): string {
+  try {
+    const eventDate = new Date(date);
+    const day = eventDate
+      .toLocaleDateString('fr-FR', { weekday: 'short' })
+      .slice(0, 3)
+      .toUpperCase();
+    const dayNum = eventDate.getDate();
+    const month = eventDate
+      .toLocaleDateString('fr-FR', { month: 'short' })
+      .toUpperCase();
+    return `${day} ${dayNum} ${month}`;
+  } catch {
+    return 'Date TBA';
+  }
+}

@@ -1,0 +1,32 @@
+# Flow: Messagerie
+# Vérifie l'accès et l'affichage de la messagerie
+
+appId: com.eventez.mobile
+name: "Messages - Conversations"
+
+---
+
+# Pré-requis : être connecté
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers les messages depuis le profil
+- tapOn: "Profil"
+
+# Trouver et taper sur Messages
+- scrollDown
+- tapOn:
+    text: ".*Messages.*"
+    timeout: 5000
+
+# Vérifier l'écran messages
+- assertVisible:
+    text: ".*Messages.*|.*Conversations.*"
+    timeout: 5000
+
+# Vérifier l'état (conversations ou empty state)
+- assertVisible:
+    text: ".*message.*|.*conversation.*|.*Aucun.*"
+    timeout: 5000
+
+# Revenir
+- back

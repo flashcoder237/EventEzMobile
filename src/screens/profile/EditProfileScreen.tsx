@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { usersAPI } from '../../api/client';
+import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
 import {

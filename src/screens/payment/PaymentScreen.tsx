@@ -18,7 +18,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 
-import { registrationsAPI, paymentsAPI } from '../../api/client';
+import { registrationsAPI, paymentsAPI } from '../../api';
 import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
@@ -740,6 +740,8 @@ export default function PaymentScreen() {
             if (!processing) navigation.goBack();
           }}
           disabled={processing}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
         >
           <Ionicons name="arrow-back" size={24} color={processing ? colors.gray400 : colors.gray900} />
         </TouchableOpacity>
@@ -984,6 +986,9 @@ export default function PaymentScreen() {
                   onPress={() => setSelectedMethod(method.id)}
                   animationType="scale"
                   scaleValue={0.98}
+                  accessibilityRole="radio"
+                  accessibilityState={{ selected: selectedMethod === method.id }}
+                  accessibilityLabel={method.name}
                 >
                   <View
                     style={[
@@ -1107,6 +1112,7 @@ export default function PaymentScreen() {
                     }}
                     keyboardType="phone-pad"
                     maxLength={(countryConfig?.phone_digits || 9) + 2}
+                    accessibilityLabel="Numero de telephone"
                   />
                 </View>
                 {(!countryConfig || countryConfig.country_code === 'CM') && (
@@ -1124,7 +1130,7 @@ export default function PaymentScreen() {
 
           {/* Bottom CTA */}
           <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
-            <View style={styles.totalContainer}>
+            <View style={styles.totalContainer} accessibilityRole="text" accessibilityLabel={`Total a payer: ${finalTotal.toLocaleString()} ${countryConfig?.currency || 'FCFA'}`}>
               <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
               <Text style={[styles.totalValue, { color: colors.gray900 }]}>
                 {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
@@ -1139,6 +1145,7 @@ export default function PaymentScreen() {
               disabled={!selectedMethod}
               icon={<Ionicons name="lock-closed" size={18} color={Colors.white} />}
               style={styles.payButton}
+              accessibilityLabel="Payer"
             />
           </View>
         </>

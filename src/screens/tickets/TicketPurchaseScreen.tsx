@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api/client';
+import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api';
 import { Event, TicketType, RootStackParamList, FormField, Discount } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
 import DynamicFormFields from '../../components/forms/DynamicFormFields';
@@ -452,6 +452,8 @@ export default function TicketPurchaseScreen() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityLabel="Retour"
+          accessibilityRole="button"
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
@@ -626,6 +628,8 @@ export default function TicketPurchaseScreen() {
                         style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }, quantity === 0 && [styles.quantityButtonDisabled, { borderColor: colors.gray100 }]]}
                         onPress={() => updateQuantity(String(ticketType.id), -1)}
                         disabled={quantity === 0}
+                        accessibilityLabel="Retirer un billet"
+                        accessibilityRole="button"
                       >
                         <Ionicons
                           name="remove"
@@ -637,6 +641,8 @@ export default function TicketPurchaseScreen() {
                       <TouchableOpacity
                         style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
                         onPress={() => updateQuantity(String(ticketType.id), 1)}
+                        accessibilityLabel="Ajouter un billet"
+                        accessibilityRole="button"
                       >
                         <Ionicons name="add" size={20} color={colors.primary} />
                       </TouchableOpacity>
@@ -683,6 +689,7 @@ export default function TicketPurchaseScreen() {
                   style={[styles.discountInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }, discountError && [styles.discountInputError, { borderColor: colors.error }]]}
                   placeholder="Entrer le code promo"
                   placeholderTextColor={colors.gray400}
+                  accessibilityLabel="Code promo"
                   value={discountCode}
                   onChangeText={(text) => {
                     setDiscountCode(text.toUpperCase());
@@ -695,6 +702,8 @@ export default function TicketPurchaseScreen() {
                   style={[styles.applyDiscountButton, { backgroundColor: colors.primary }, validatingDiscount && styles.applyDiscountButtonDisabled]}
                   onPress={handleApplyDiscount}
                   disabled={validatingDiscount}
+                  accessibilityLabel="Appliquer le code promo"
+                  accessibilityRole="button"
                 >
                   {validatingDiscount ? (
                     <ActivityIndicator size="small" color={Colors.white} />
@@ -784,7 +793,7 @@ export default function TicketPurchaseScreen() {
                   <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
                 </>
               )}
-              <View style={styles.summaryRow}>
+              <View style={styles.summaryRow} accessibilityRole="text" accessibilityLabel={`Total: ${getGrandTotal().toLocaleString()} ${commissionCurrency}`}>
                 <Text style={[styles.totalLabel, { color: colors.gray900 }]}>Total</Text>
                 <Text style={[styles.totalValue, { color: colors.primary }]}>
                   {getGrandTotal().toLocaleString()} {commissionCurrency}
@@ -840,6 +849,7 @@ export default function TicketPurchaseScreen() {
             )
           }
           style={styles.ctaButton}
+          accessibilityLabel="Continuer vers le paiement"
         />
       </View>
     </SafeAreaView>

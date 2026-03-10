@@ -127,6 +127,8 @@ function MessageActionModal({
               ]}
               onPress={() => handleAction(action.type)}
               activeOpacity={TOUCH_OPACITY}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
             >
               <View style={[styles.actionIcon, { backgroundColor: action.destructive ? `${colors.error}12` : colors.gray50 }]}>
                 <Ionicons
@@ -152,6 +154,8 @@ function MessageActionModal({
           style={[styles.cancelButton, { backgroundColor: colors.gray100 }]}
           onPress={onClose}
           activeOpacity={TOUCH_OPACITY}
+          accessibilityLabel="Fermer"
+          accessibilityRole="button"
         >
           <Text style={[styles.cancelText, { color: colors.gray600 }]}>Annuler</Text>
         </TouchableOpacity>

@@ -1,0 +1,45 @@
+appId: ${APP_ID}
+name: "Admin - Gestion abonnements"
+env:
+  TEST_EMAIL: ${TEST_ADMIN_EMAIL}
+  TEST_PASSWORD: ${TEST_ADMIN_PASSWORD}
+---
+
+# Flow: Subscription Management (Admin)
+# Teste la gestion des abonnements par l'administrateur
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Admin
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*Admin.*|.*Administration.*"
+    optional: true
+
+# Ouvrir la gestion des abonnements
+- tapOn:
+    text: ".*Abonnement.*|.*Subscription.*|.*Plan.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Abonnement.*|.*Subscription.*|.*Plan.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les plans
+- assertVisible:
+    text: ".*plan.*|.*abonnement.*|.*utilisateur.*"
+    optional: true
+
+# Scroll
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

@@ -1,0 +1,223 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "cancel": "Annuler",
+    "confirm": "Confirmer",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "search": "Rechercher",
+    "retry": "Réessayer",
+    "seeAll": "Voir tout",
+    "noResults": "Aucun résultat",
+    "refresh": "Actualiser",
+    "share": "Partager",
+    "copy": "Copier",
+    "yes": "Oui",
+    "no": "Non",
+    "ok": "OK",
+    "apply": "Appliquer",
+    "free": "Gratuit",
+    "required": "Requis"
+  },
+
+  "auth": {
+    "login": "Connexion",
+    "register": "Inscription",
+    "logout": "Déconnexion",
+    "email": "Adresse e-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas encore de compte ?",
+    "hasAccount": "Déjà un compte ?",
+    "loginButton": "Se connecter",
+    "registerButton": "Créer un compte",
+    "loginWith": "Se connecter avec {{provider}}",
+    "orContinueWith": "Ou continuer avec",
+    "welcomeBack": "Bon retour !",
+    "createAccount": "Créer votre compte",
+    "invalidCredentials": "Email ou mot de passe incorrect",
+    "accountCreated": "Compte créé avec succès"
+  },
+
+  "tabs": {
+    "discover": "Découvrir",
+    "saved": "Favoris",
+    "tickets": "Billets",
+    "profile": "Profil"
+  },
+
+  "discover": {
+    "title": "Découvrir",
+    "searchPlaceholder": "Rechercher un événement...",
+    "nearYou": "Près de chez vous",
+    "popular": "Populaires",
+    "upcoming": "À venir",
+    "categories": "Catégories",
+    "allCategories": "Toutes les catégories",
+    "noEvents": "Aucun événement trouvé",
+    "noEventsMessage": "Essayez de modifier vos filtres ou revenez plus tard"
+  },
+
+  "events": {
+    "details": "Détails",
+    "description": "Description",
+    "dateAndTime": "Date et heure",
+    "location": "Lieu",
+    "organizer": "Organisateur",
+    "tickets": "Billets",
+    "sessions": "Sessions",
+    "goodToKnow": "Bon à savoir",
+    "whoIsGoing": "Qui y va ?",
+    "register": "S'inscrire",
+    "buyTickets": "Acheter des billets",
+    "getTickets": "Obtenir des billets",
+    "soldOut": "Complet",
+    "eventEnded": "Événement terminé",
+    "startingFrom": "À partir de",
+    "participants": "{{count}} participant",
+    "participants_other": "{{count}} participants",
+    "share": "Partager l'événement",
+    "follow": "Suivre",
+    "unfollow": "Ne plus suivre",
+    "online": "En ligne",
+    "inPerson": "Présentiel",
+    "hybrid": "Hybride",
+    "draft": "Brouillon",
+    "published": "Publié",
+    "cancelled": "Annulé",
+    "completed": "Terminé"
+  },
+
+  "tickets": {
+    "myTickets": "Mes billets",
+    "upcoming": "À venir",
+    "past": "Passés",
+    "noTickets": "Aucun billet",
+    "noTicketsMessage": "Vos billets achetés apparaîtront ici",
+    "scanQR": "Scanner le QR code",
+    "showQR": "Afficher le QR code",
+    "ticketDetails": "Détails du billet",
+    "transferTicket": "Transférer le billet",
+    "downloadTicket": "Télécharger le billet"
+  },
+
+  "profile": {
+    "title": "Profil",
+    "editProfile": "Modifier le profil",
+    "settings": "Paramètres",
+    "myEvents": "Mes événements",
+    "myPayments": "Mes paiements",
+    "wallet": "Portefeuille",
+    "help": "Aide",
+    "about": "À propos",
+    "notifications": "Notifications",
+    "language": "Langue",
+    "theme": "Thème",
+    "darkMode": "Mode sombre",
+    "lightMode": "Mode clair",
+    "systemMode": "Système"
+  },
+
+  "messages": {
+    "title": "Messages",
+    "newMessage": "Nouveau message",
+    "typeMessage": "Écrire un message...",
+    "noMessages": "Aucun message",
+    "noMessagesDescription": "Vos conversations apparaîtront ici",
+    "messageDeleted": "Ce message a été supprimé",
+    "edited": "modifié",
+    "typing": "est en train d'écrire...",
+    "online": "En ligne",
+    "offline": "Hors ligne"
+  },
+
+  "notifications": {
+    "title": "Notifications",
+    "markAllRead": "Tout marquer comme lu",
+    "noNotifications": "Aucune notification",
+    "noNotificationsMessage": "Vous êtes à jour !",
+    "all": "Toutes",
+    "unread": "Non lues"
+  },
+
+  "payments": {
+    "title": "Paiements",
+    "paymentMethod": "Moyen de paiement",
+    "amount": "Montant",
+    "processing": "Traitement en cours...",
+    "success": "Paiement réussi !",
+    "failed": "Paiement échoué",
+    "successMessage": "Votre paiement a été traité avec succès",
+    "failedMessage": "Votre paiement n'a pas pu être traité",
+    "retry": "Réessayer le paiement",
+    "refund": "Demander un remboursement",
+    "mtnMoney": "MTN Mobile Money",
+    "orangeMoney": "Orange Money",
+    "creditCard": "Carte bancaire",
+    "phoneNumber": "Numéro de téléphone"
+  },
+
+  "eventCreate": {
+    "title": "Créer un événement",
+    "editTitle": "Modifier l'événement",
+    "step1": "Informations",
+    "step2": "Date & Lieu",
+    "step3": "Tarification",
+    "step4": "Sessions",
+    "eventTitle": "Titre de l'événement",
+    "eventDescription": "Description",
+    "shortDescription": "Description courte",
+    "category": "Catégorie",
+    "tags": "Tags",
+    "bannerImage": "Image de couverture",
+    "gallery": "Galerie",
+    "startDate": "Date de début",
+    "endDate": "Date de fin",
+    "locationType": "Type de lieu",
+    "ticketType": "Billetterie",
+    "registrationType": "Inscription",
+    "addTicket": "Ajouter un billet",
+    "addField": "Ajouter un champ",
+    "addSession": "Ajouter une session",
+    "publish": "Publier",
+    "saveDraft": "Enregistrer le brouillon",
+    "createSuccess": "Événement créé avec succès !",
+    "updateSuccess": "Événement modifié avec succès !"
+  },
+
+  "errors": {
+    "network": "Erreur de connexion. Vérifiez votre connexion internet.",
+    "server": "Erreur du serveur. Veuillez réessayer plus tard.",
+    "unauthorized": "Session expirée. Veuillez vous reconnecter.",
+    "notFound": "Ressource introuvable.",
+    "generic": "Une erreur est survenue. Veuillez réessayer.",
+    "permissionDenied": "Permission refusée",
+    "noInternet": "Pas de connexion internet",
+    "connectionLost": "Connexion perdue. Veuillez rafraîchir."
+  },
+
+  "empty": {
+    "events": "Aucun événement",
+    "eventsMessage": "Il n'y a pas encore d'événements à afficher",
+    "savedEvents": "Aucun événement sauvegardé",
+    "savedEventsMessage": "Les événements que vous suivez apparaîtront ici"
+  },
+
+  "time": {
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain",
+    "yesterday": "Hier",
+    "daysAgo": "Il y a {{count}} jour",
+    "daysAgo_other": "Il y a {{count}} jours"
+  }
+}

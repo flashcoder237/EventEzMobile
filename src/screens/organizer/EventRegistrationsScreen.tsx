@@ -22,7 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { registrationsAPI, eventsAPI } from '../../api/client';
+import { registrationsAPI, eventsAPI } from '../../api';
 import { Registration, RootStackParamList } from '../../types';
 import {
   Colors,

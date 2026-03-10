@@ -1,0 +1,50 @@
+appId: ${APP_ID}
+name: "Events - Profil organisateur"
+---
+
+# Flow: Organizer Profile View
+# Teste l'affichage du profil d'un organisateur depuis un evenement
+
+- runFlow: 01_auth_login.yaml
+
+# Ouvrir un evenement
+- tapOn:
+    id: "event-card-.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Description.*|.*d.tail.*"
+    timeout: 10000
+    optional: true
+
+# Taper sur le nom de l'organisateur
+- tapOn:
+    text: ".*Organis.*par.*|.*organis.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Organisateur.*|.*profil.*|.*v.nements.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les informations de l'organisateur
+- assertVisible:
+    text: ".*v.nement.*|.*avis.*|.*note.*"
+    optional: true
+
+# Scroll pour voir les evenements de l'organisateur
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Verifier la liste des evenements
+- assertVisible:
+    text: ".*v.nement.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

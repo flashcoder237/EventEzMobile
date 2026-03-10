@@ -21,7 +21,7 @@ import * as Location from 'expo-location';
 import Slider from '@react-native-community/slider';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { eventsAPI, categoriesAPI, tagsAPI, recommendationsAPI, getMediaUrl } from '../../api/client';
+import { eventsAPI, categoriesAPI, tagsAPI, recommendationsAPI, getMediaUrl } from '../../api';
 import { Event, Category, MapMarker, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -631,7 +631,7 @@ export default function DiscoverScreen() {
         <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
       </View>
       {onSeeAll && (
-        <TouchableOpacity onPress={onSeeAll} activeOpacity={TOUCH_OPACITY}>
+        <TouchableOpacity onPress={onSeeAll} activeOpacity={TOUCH_OPACITY} accessibilityRole="link" accessibilityLabel={`Voir tout - ${title}`}>
           <Text style={[styles.seeAllText, { color: colors.primary }]}>Voir tout</Text>
         </TouchableOpacity>
       )}
@@ -642,7 +642,7 @@ export default function DiscoverScreen() {
 
   const renderSearchHeader = () => (
     <View style={[styles.searchHeader, { backgroundColor: colors.background }]}>
-      <TouchableOpacity onPress={deactivateSearch} style={styles.backButton}>
+      <TouchableOpacity onPress={deactivateSearch} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Retour">
         <Ionicons name="arrow-back" size={24} color={colors.gray800} />
       </TouchableOpacity>
       <View style={[styles.searchInputContainer, { backgroundColor: colors.surface }]}>
@@ -654,9 +654,10 @@ export default function DiscoverScreen() {
           placeholderTextColor={colors.gray400}
           value={searchQuery}
           onChangeText={setSearchQuery}
+          accessibilityLabel="Rechercher des evenements"
         />
         {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery('')}>
+          <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityRole="button" accessibilityLabel="Effacer la recherche">
             <Ionicons name="close-circle" size={18} color={colors.gray400} />
           </TouchableOpacity>
         )}
@@ -664,12 +665,16 @@ export default function DiscoverScreen() {
       <TouchableOpacity
         style={[styles.iconButton, { backgroundColor: colors.gray100 }, activeFiltersCount > 0 && { backgroundColor: colors.primary }]}
         onPress={openFilters}
+        accessibilityRole="button"
+        accessibilityLabel={`Filtres${activeFiltersCount > 0 ? `, ${activeFiltersCount} actifs` : ''}`}
       >
         <Ionicons name="options-outline" size={20} color={activeFiltersCount > 0 ? colors.white : colors.gray700} />
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.iconButton, { backgroundColor: colors.gray100 }]}
         onPress={() => setViewMode(v => v === 'list' ? 'map' : 'list')}
+        accessibilityRole="button"
+        accessibilityLabel={viewMode === 'list' ? 'Afficher la carte' : 'Afficher la liste'}
       >
         <Ionicons name={viewMode === 'list' ? 'map-outline' : 'list-outline'} size={20} color={colors.gray700} />
       </TouchableOpacity>
@@ -687,6 +692,9 @@ export default function DiscoverScreen() {
         style={[styles.chip, { backgroundColor: colors.gray100 }, !selectedCategory && { backgroundColor: colors.primary }]}
         onPress={() => setSelectedCategory(null)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Toutes les categories"
+        accessibilityState={{ selected: !selectedCategory }}
       >
         <CategoryIcon name="sparkles" size={14} color={!selectedCategory ? colors.white : colors.gray600} strokeWidth={2} />
         <Text style={[styles.chipText, { color: colors.gray600 }, !selectedCategory && { color: colors.white }]}>Tous</Text>
@@ -699,6 +707,9 @@ export default function DiscoverScreen() {
             style={[styles.chip, { backgroundColor: colors.gray100 }, isActive && { backgroundColor: colors.primary }]}
             onPress={() => setSelectedCategory(isActive ? null : cat.id)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Categorie ${cat.name}`}
+            accessibilityState={{ selected: isActive }}
           >
             <CategoryIcon name={cat.name} size={14} color={isActive ? colors.white : colors.gray600} strokeWidth={2} />
             <Text style={[styles.chipText, { color: colors.gray600 }, isActive && { color: colors.white }]}>
@@ -782,7 +793,7 @@ export default function DiscoverScreen() {
                   {filteredResults.length} événement{filteredResults.length !== 1 ? 's' : ''}
                 </Text>
                 {activeFiltersCount > 0 && (
-                  <TouchableOpacity onPress={resetFilters}>
+                  <TouchableOpacity onPress={resetFilters} accessibilityRole="button" accessibilityLabel="Effacer les filtres">
                     <Text style={[styles.clearFilters, { color: colors.primary }]}>Effacer filtres</Text>
                   </TouchableOpacity>
                 )}
@@ -806,6 +817,8 @@ export default function DiscoverScreen() {
             <TouchableOpacity
               style={[styles.loadMoreBtn, { borderColor: colors.primary }]}
               onPress={() => fetchSearchResults(currentPage + 1, true)}
+              accessibilityRole="button"
+              accessibilityLabel="Voir plus de resultats"
             >
               <Text style={[styles.loadMoreText, { color: colors.primary }]}>Voir plus</Text>
             </TouchableOpacity>
@@ -827,7 +840,7 @@ export default function DiscoverScreen() {
       <View style={styles.historyContainer}>
         <View style={styles.historyHeader}>
           <Text style={[styles.historyTitle, { color: colors.gray700 }]}>Recherches récentes</Text>
-          <TouchableOpacity onPress={clearSearchHistory}>
+          <TouchableOpacity onPress={clearSearchHistory} accessibilityRole="button" accessibilityLabel="Effacer l'historique de recherche">
             <Text style={[styles.historyClear, { color: colors.primary }]}>Tout effacer</Text>
           </TouchableOpacity>
         </View>
@@ -837,12 +850,16 @@ export default function DiscoverScreen() {
             style={styles.historyItem}
             onPress={() => setSearchQuery(query)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Rechercher ${query}`}
           >
             <Ionicons name="time-outline" size={18} color={colors.gray400} />
             <Text style={[styles.historyText, { color: colors.gray800 }]} numberOfLines={1}>{query}</Text>
             <TouchableOpacity
               onPress={() => removeSearchQuery(query)}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              accessibilityRole="button"
+              accessibilityLabel={`Supprimer ${query} de l'historique`}
             >
               <Ionicons name="close" size={16} color={colors.gray400} />
             </TouchableOpacity>
@@ -883,6 +900,8 @@ export default function DiscoverScreen() {
               <TouchableOpacity
                 style={styles.modalCloseBtn}
                 onPress={() => setShowFilters(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Fermer les filtres"
               >
                 <Ionicons name="close" size={22} color={Colors.white} />
               </TouchableOpacity>
@@ -1119,11 +1138,11 @@ export default function DiscoverScreen() {
             </View>
           </ScrollView>
           <View style={[styles.modalFooter, { borderTopColor: colors.gray100 }]}>
-            <TouchableOpacity style={[styles.resetBtn, { borderColor: colors.gray200, backgroundColor: colors.gray50 }]} onPress={resetFilters}>
+            <TouchableOpacity style={[styles.resetBtn, { borderColor: colors.gray200, backgroundColor: colors.gray50 }]} onPress={resetFilters} accessibilityRole="button" accessibilityLabel="Reinitialiser les filtres">
               <Ionicons name="refresh" size={16} color={colors.gray600} />
               <Text style={[styles.resetBtnText, { color: colors.gray700 }]}>Réinitialiser</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.primary }]} onPress={applyFilterChanges}>
+            <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.primary }]} onPress={applyFilterChanges} accessibilityRole="button" accessibilityLabel="Appliquer les filtres">
               <Ionicons name="checkmark" size={18} color={Colors.white} />
               <Text style={styles.applyBtnText}>Appliquer</Text>
             </TouchableOpacity>
@@ -1158,6 +1177,8 @@ export default function DiscoverScreen() {
                 setSelectedCategory(cat.id);
                 activateSearch();
               }}
+              accessibilityRole="button"
+              accessibilityLabel={`Categorie ${cat.name}`}
             >
               <CategoryIcon name={cat.name} size={16} color={colors.primary} strokeWidth={2} />
               <Text style={[styles.discoverChipText, { color: colors.gray700 }]}>{cat.name}</Text>
@@ -1348,7 +1369,7 @@ export default function DiscoverScreen() {
               </View>
               <View style={styles.headerActions}>
                 {user?.role === 'organizer' && (
-                  <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('EventCreate' as any)}>
+                  <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('EventCreate' as any)} accessibilityRole="button" accessibilityLabel="Creer un evenement">
                     <LinearGradient
                       colors={[colors.primary, colors.primaryDark]}
                       start={{ x: 0, y: 0 }}
@@ -1359,7 +1380,7 @@ export default function DiscoverScreen() {
                     </LinearGradient>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')}>
+                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')} accessibilityRole="button" accessibilityLabel="Messages">
                   <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
                   {unreadMessageCount > 0 && (
                     <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
@@ -1369,7 +1390,7 @@ export default function DiscoverScreen() {
                     </PulsingBadge>
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')}>
+                <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')} accessibilityRole="button" accessibilityLabel="Notifications">
                   <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
                   {unreadNotificationCount > 0 && (
                     <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
@@ -1401,6 +1422,8 @@ export default function DiscoverScreen() {
               ]}
               onPress={activateSearch}
               activeOpacity={0.7}
+              accessibilityRole="search"
+              accessibilityLabel="Rechercher des evenements"
             >
               <Ionicons name="search" size={20} color={colors.primary} />
               <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>

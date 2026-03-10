@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { commissionsAPI } from '../api/client';
+import { commissionsAPI } from '../api';
 import { CommissionConfigResponse } from '../types';
 import {
   COMMISSION_RATE as DEFAULT_RATE,

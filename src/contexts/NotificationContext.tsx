@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { notificationsAPI, messagesAPI } from '../api/client';
+import { notificationsAPI, messagesAPI } from '../api';
 import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
 import PushPermissionModal from '../components/common/PushPermissionModal';

@@ -34,7 +34,7 @@ import {
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
 import { eventBus } from '../../lib/eventBus';
-import { authAPI } from '../../api/client';
+import { authAPI } from '../../api';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
@@ -235,6 +235,7 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoComplete="email"
+                  accessibilityLabel="Adresse email"
                 />
               </View>
               {errors.email && (
@@ -253,6 +254,8 @@ export default function LoginScreen() {
                   onPress={() => navigation.navigate('ForgotPassword')}
                   animationType="scale"
                   scaleValue={0.95}
+                  accessibilityRole="link"
+                  accessibilityLabel="Mot de passe oublie"
                 >
                   <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Oublié ?</Text>
                 </AnimatedPressable>
@@ -278,12 +281,15 @@ export default function LoginScreen() {
                   onBlur={() => setFocusedField(null)}
                   secureTextEntry={!showPassword}
                   autoComplete="password"
+                  accessibilityLabel="Mot de passe"
                 />
                 <AnimatedPressable
                   onPress={() => setShowPassword(!showPassword)}
                   style={styles.eyeButton}
                   animationType="scale"
                   scaleValue={0.9}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -306,6 +312,9 @@ export default function LoginScreen() {
               style={styles.rememberMeContainer}
               animationType="scale"
               scaleValue={0.98}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: rememberMe }}
+              accessibilityLabel="Se souvenir de moi"
             >
               <View style={[styles.checkbox, { borderColor: colors.gray300, backgroundColor: isDark ? colors.gray100 : colors.white }, rememberMe && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                 {rememberMe && (
@@ -357,6 +366,8 @@ export default function LoginScreen() {
               animationType="lift"
               scaleValue={0.98}
               haptic="light"
+              accessibilityRole="button"
+              accessibilityLabel="Connexion avec Google"
             >
               {googleLoading ? (
                 <ActivityIndicator size="small" color="#DB4437" />
@@ -380,6 +391,8 @@ export default function LoginScreen() {
                 animationType="lift"
                 scaleValue={0.98}
                 haptic="light"
+                accessibilityRole="button"
+                accessibilityLabel="Connexion avec Apple"
               >
                 {appleLoading ? (
                   <ActivityIndicator size="small" color={Colors.gray900} />
@@ -407,6 +420,8 @@ export default function LoginScreen() {
               onPress={() => navigation.navigate('Register')}
               animationType="scale"
               scaleValue={0.95}
+              accessibilityRole="link"
+              accessibilityLabel="Creer un compte"
             >
               <Text style={[styles.registerLink, { color: colors.primary }]}> Créer un compte</Text>
             </AnimatedPressable>

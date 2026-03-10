@@ -1,0 +1,35 @@
+# Flow: Voir les détails d'un événement
+# Vérifie l'affichage complet d'un événement
+
+appId: com.eventez.mobile
+name: "Event - View Details"
+
+---
+
+# Pré-requis : être connecté
+- runFlow: 01_auth_login.yaml
+
+# Taper sur le premier événement visible
+- tapOn:
+    index: 0
+    id: "event-card-.*"
+
+# Vérifier les sections de la page événement
+- assertVisible:
+    text: ".*"
+    timeout: 10000
+
+# Scroll pour voir toutes les sections
+- scrollDown
+- assertVisible:
+    text: ".*Description.*|.*Lieu.*|.*Date.*|.*Bon à savoir.*"
+
+- scrollDown
+- scrollDown
+
+# Vérifier le bouton d'action en bas (acheter/s'inscrire)
+- assertVisible:
+    text: ".*Acheter.*|.*S'inscrire.*|.*Obtenir.*|.*Complet.*|.*Terminé.*"
+
+# Revenir en arrière
+- back

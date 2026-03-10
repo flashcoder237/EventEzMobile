@@ -231,6 +231,8 @@ export default function EventCreateScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
           >
             <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
@@ -262,6 +264,9 @@ export default function EventCreateScreen() {
                   form.currentStep === step.id && styles.stepIndicatorCurrent,
                 ]}
                 onPress={() => goToStep(step.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Etape ${step.id} sur ${STEPS.length}`}
+                accessibilityState={{ selected: form.currentStep === step.id }}
               >
                 <Ionicons
                   name={step.icon as any}
@@ -407,7 +412,12 @@ export default function EventCreateScreen() {
         {/* Navigation Buttons */}
         <View style={[styles.navigationButtons, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
           {form.currentStep > 1 && (
-            <TouchableOpacity style={[styles.prevButton, { backgroundColor: colors.gray100 }]} onPress={goToPrevStep}>
+            <TouchableOpacity
+              style={[styles.prevButton, { backgroundColor: colors.gray100 }]}
+              onPress={goToPrevStep}
+              accessibilityRole="button"
+              accessibilityLabel="Etape precedente"
+            >
               <Ionicons name="arrow-back" size={20} color={colors.gray600} />
               <Text style={[styles.prevButtonText, { color: colors.gray600 }]}>Précédent</Text>
             </TouchableOpacity>
@@ -417,6 +427,8 @@ export default function EventCreateScreen() {
             <TouchableOpacity
               style={[styles.nextButton, form.currentStep === 1 && { flex: 1 }]}
               onPress={goToNextStep}
+              accessibilityRole="button"
+              accessibilityLabel="Etape suivante"
             >
               <Text style={styles.nextButtonText}>Suivant</Text>
               <Ionicons name="arrow-forward" size={20} color={Colors.white} />
@@ -426,6 +438,8 @@ export default function EventCreateScreen() {
               style={[styles.submitButton, form.loading && styles.submitButtonDisabled]}
               onPress={onSubmit}
               disabled={form.loading}
+              accessibilityRole="button"
+              accessibilityLabel="Creer l'evenement"
             >
               {form.loading ? (
                 <ActivityIndicator size="small" color={Colors.white} />

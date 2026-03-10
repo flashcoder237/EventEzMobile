@@ -11,9 +11,11 @@ interface BadgeProps {
   size?: 'sm' | 'md';
   style?: ViewStyle;
   textStyle?: TextStyle;
+  /** Label d'accessibilite personnalise */
+  accessibilityLabel?: string;
 }
 
-function BadgeComponent({ label, variant = 'default', size = 'md', style, textStyle }: BadgeProps) {
+function BadgeComponent({ label, variant = 'default', size = 'md', style, textStyle, accessibilityLabel }: BadgeProps) {
   const { colors, isDark } = useTheme();
 
   const getVariantStyles = (): { bg: string; text: string; border?: string } => {
@@ -40,6 +42,9 @@ function BadgeComponent({ label, variant = 'default', size = 'md', style, textSt
 
   return (
     <View
+      accessible={true}
+      accessibilityRole="text"
+      accessibilityLabel={accessibilityLabel || label}
       style={[
         styles.badge,
         {

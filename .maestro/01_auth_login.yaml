@@ -1,0 +1,30 @@
+# Flow: Login utilisateur
+# Vérifie le parcours de connexion complet
+
+appId: com.eventez.mobile
+name: "Auth - Login"
+
+---
+
+# L'app devrait afficher l'écran de connexion
+- assertVisible: "Connexion"
+
+# Remplir le formulaire de login
+- tapOn: "Email"
+- inputText: ${TEST_EMAIL}
+
+- tapOn: "Mot de passe"
+- inputText: ${TEST_PASSWORD}
+
+# Valider
+- tapOn: "Se connecter"
+
+# Attendre la navigation vers le home (tab Découvrir)
+- assertVisible:
+    text: "Découvrir"
+    timeout: 15000
+
+# Vérifier que les tabs sont visibles
+- assertVisible: "Favoris"
+- assertVisible: "Billets"
+- assertVisible: "Profil"

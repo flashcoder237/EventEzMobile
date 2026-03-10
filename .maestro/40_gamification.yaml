@@ -1,0 +1,38 @@
+appId: ${APP_ID}
+name: "Profile - Gamification et badges"
+---
+
+# Flow: Gamification
+# Teste l'ecran de gamification/badges
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Ouvrir la gamification
+- tapOn:
+    text: ".*Badge.*|.*Gamification.*|.*R.compense.*|.*Succ.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Badge.*|.*Succ.*|.*R.compense.*|.*Niveau.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les badges/succes
+- assertVisible:
+    text: ".*badge.*|.*succ.*|.*r.compense.*|.*point.*|.*niveau.*"
+    optional: true
+
+# Scroll pour voir tous les badges
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

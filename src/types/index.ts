@@ -1657,3 +1657,28 @@ export interface AICategorySuggestion {
   category_id: number;
   tag_ids: number[];
 }
+
+// ============================================
+// WEBSOCKET MESSAGE TYPES (Discriminated Union)
+// ============================================
+
+export type WebSocketIncomingMessage =
+  | { type: 'auth.success' }
+  | { type: 'auth.error'; error?: string }
+  | { type: 'message.new'; message: Message; conversation_id?: string | number }
+  | { type: 'message.edited'; message_id: string | number; content: string; edited_at: string; user_id: number }
+  | { type: 'message.deleted'; message_id: string | number; user_id: number }
+  | { type: 'typing.indicator'; conversation_id: string | number; user_id: number; user_name: string; is_typing: boolean }
+  | { type: 'message.read'; message_id: string | number; user_id: number; read_at: string }
+  | { type: 'reaction.add'; message_id: string | number; user_id: number; emoji: string; reaction_id?: string | number }
+  | { type: 'reaction.remove'; message_id: string | number; user_id: number; emoji: string; reaction_id?: string | number }
+  | { type: 'presence.changed'; user_id: number; status: string; last_seen: string };
+
+export type WebSocketOutgoingMessage =
+  | { type: 'authenticate'; token: string }
+  | { type: 'message.send'; conversation_id: string | number; content: string; reply_to?: string | number }
+  | { type: 'typing.start'; conversation_id: string | number }
+  | { type: 'typing.stop'; conversation_id: string | number }
+  | { type: 'message.read'; message_id: string | number }
+  | { type: 'reaction.add'; message_id: string | number; emoji: string }
+  | { type: 'reaction.remove'; message_id: string | number; emoji: string };

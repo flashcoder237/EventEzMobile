@@ -17,7 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { analyticsAPI } from '../../api/client';
+import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { KPICard, ChartWrapper } from '../../components/charts';
 import {

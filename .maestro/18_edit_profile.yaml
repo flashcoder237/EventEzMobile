@@ -1,0 +1,63 @@
+appId: ${APP_ID}
+name: "Profile - Modifier le profil"
+---
+
+# Flow: Edit Profile
+# Teste la modification du profil utilisateur
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Profil.*"
+    timeout: 10000
+
+# Taper sur Modifier le profil
+- tapOn:
+    text: ".*Modifier.*profil.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Modifier.*profil.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les champs editables
+- assertVisible:
+    text: ".*Pr.nom.*|.*Nom.*"
+    optional: true
+
+# Modifier le prenom
+- tapOn:
+    text: ".*Pr.nom.*"
+    optional: true
+- clearText
+- inputText: "TestUpdate"
+
+# Modifier la bio ou description
+- tapOn:
+    text: ".*bio.*|.*description.*|.*propos.*"
+    optional: true
+- inputText: "Test bio mise a jour"
+
+# Scroll pour voir plus de champs
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Sauvegarder
+- tapOn:
+    text: ".*Sauvegarder.*|.*Enregistrer.*|.*Mettre.*jour.*"
+    optional: true
+
+# Verifier le succes
+- extendedWaitUntil:
+    visible:
+      text: ".*succ.*|.*enregistr.*|.*mis.*jour.*|.*Profil.*"
+    timeout: 10000
+    optional: true

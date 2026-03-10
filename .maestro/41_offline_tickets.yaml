@@ -1,0 +1,38 @@
+appId: ${APP_ID}
+name: "Tickets - Mode hors ligne"
+---
+
+# Flow: Offline Tickets
+# Teste l'acces aux billets en mode hors ligne
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Billets
+- tapOn:
+    text: "Billets"
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Billets.*|.*tickets.*"
+    timeout: 10000
+
+# Chercher l'option billets hors ligne
+- tapOn:
+    text: ".*hors ligne.*|.*Offline.*|.*sauvegard.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*hors ligne.*|.*offline.*|.*disponible.*sans.*connexion.*|.*aucun.*"
+    timeout: 10000
+    optional: true
+
+# Verifier l'affichage des billets caches ou etat vide
+- assertVisible:
+    text: ".*billet.*|.*ticket.*|.*aucun.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

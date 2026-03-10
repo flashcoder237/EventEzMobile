@@ -22,7 +22,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import * as Location from 'expo-location';
 import Slider from '@react-native-community/slider';
 
-import { eventsAPI, categoriesAPI } from '../../api/client';
+import { eventsAPI, categoriesAPI } from '../../api';
 import { Event, MapMarker, Category, RootStackParamList, MainTabParamList } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
 import EventCard from '../../components/events/EventCard';

@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { usersAPI } from '../../api/client';
+import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -64,6 +64,9 @@ const ToggleItem = ({ icon, title, subtitle, value, onToggle, disabled = false }
         trackColor={{ false: colors.gray200, true: colors.primaryLight }}
         thumbColor={value ? colors.primary : colors.gray400}
         disabled={disabled}
+        accessibilityRole="switch"
+        accessibilityLabel={title}
+        accessibilityState={{ checked: value }}
       />
     </View>
   );
@@ -86,6 +89,8 @@ const SelectItem = ({ icon, title, value, onPress, disabled = false, isActive }:
       onPress={onPress}
       activeOpacity={0.7}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${value}`}
     >
       <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
         <Ionicons name={icon} size={20} color={disabled ? colors.gray400 : colors.gray600} />
@@ -303,6 +308,8 @@ export default function SettingsScreen() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
         >
           <Ionicons name="arrow-back" size={24} color={Colors.white} />
         </TouchableOpacity>
@@ -466,7 +473,7 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.sectionContent}>
-            <TouchableOpacity style={[styles.settingItem, { borderBottomColor: colors.gray100 }]} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.settingItem, { borderBottomColor: colors.gray100 }]} activeOpacity={0.7} accessibilityRole="link" accessibilityLabel="Centre d'aide">
               <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
                 <Ionicons name="help-circle-outline" size={20} color={colors.gray600} />
               </View>
@@ -481,6 +488,8 @@ export default function SettingsScreen() {
               style={[styles.settingItem, { borderBottomColor: colors.gray100 }]}
               activeOpacity={0.7}
               onPress={() => navigation.navigate('Terms')}
+              accessibilityRole="link"
+              accessibilityLabel="Conditions d'utilisation"
             >
               <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
                 <Ionicons name="document-text-outline" size={20} color={colors.gray600} />
@@ -491,7 +500,7 @@ export default function SettingsScreen() {
               <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={[styles.settingItem, { borderBottomColor: colors.gray100 }]} activeOpacity={0.7}>
+            <TouchableOpacity style={[styles.settingItem, { borderBottomColor: colors.gray100 }]} activeOpacity={0.7} accessibilityRole="link" accessibilityLabel="Politique de confidentialite">
               <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
                 <Ionicons name="shield-outline" size={20} color={colors.gray600} />
               </View>
@@ -530,6 +539,8 @@ export default function SettingsScreen() {
               style={[styles.settingItem, { borderBottomColor: colors.gray100 }]}
               onPress={handleLogout}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Deconnexion"
             >
               <View style={[styles.settingIcon, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}>
                 <Ionicons name="log-out-outline" size={20} color={colors.error} />
@@ -543,6 +554,8 @@ export default function SettingsScreen() {
               style={[styles.settingItem, { borderBottomColor: colors.gray100 }]}
               onPress={() => setShowDeleteModal(true)}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Supprimer mon compte"
             >
               <View style={[styles.settingIcon, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}>
                 <Ionicons name="trash-outline" size={20} color={colors.error} />
@@ -608,6 +621,8 @@ export default function SettingsScreen() {
                   setDeletePassword('');
                   setDeleteReason('');
                 }}
+                accessibilityRole="button"
+                accessibilityLabel="Annuler"
               >
                 <Text style={[styles.cancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
               </TouchableOpacity>
@@ -615,6 +630,8 @@ export default function SettingsScreen() {
                 style={styles.deleteButton}
                 onPress={handleDeleteAccount}
                 disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel="Supprimer definitivement"
               >
                 {saving ? (
                   <ActivityIndicator size="small" color={colors.white} />

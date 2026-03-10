@@ -26,7 +26,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { messagesAPI, usersAPI } from '../../api/client';
+import { messagesAPI, usersAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -85,6 +85,8 @@ const ConversationCard = memo(function ConversationCard({
       onPress={onPress}
       onLongPress={onLongPress}
       activeOpacity={TOUCH_OPACITY}
+      accessibilityRole="button"
+      accessibilityLabel={`Conversation avec ${displayName}${hasUnread ? `, ${conversation.unread_count} non lu${conversation.unread_count > 1 ? 's' : ''}` : ''}`}
     >
       {avatar ? (
         <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
@@ -409,7 +411,12 @@ export default function MessagesScreen() {
                   </Text>
                 </View>
               </View>
-              <TouchableOpacity style={styles.newButton} onPress={handleOpenNewModal}>
+              <TouchableOpacity
+                style={styles.newButton}
+                onPress={handleOpenNewModal}
+                accessibilityLabel="Nouvelle conversation"
+                accessibilityRole="button"
+              >
                 <Ionicons name="create-outline" size={22} color={Colors.white} />
               </TouchableOpacity>
             </View>
@@ -423,6 +430,7 @@ export default function MessagesScreen() {
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
+                accessibilityLabel="Rechercher une conversation"
               />
             </View>
 

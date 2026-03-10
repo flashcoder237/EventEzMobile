@@ -14,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { auditAPI } from '../../api/client';
+import { auditAPI } from '../../api';
 import { AuditLog, AuditSeverity, RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
 import {

@@ -1,0 +1,38 @@
+appId: ${APP_ID}
+name: "Events - Vue carte"
+---
+
+# Flow: Map View
+# Teste la vue carte des evenements
+
+- runFlow: 01_auth_login.yaml
+
+# Sur l'ecran Decouvrir, chercher le toggle carte
+- assertVisible:
+    text: ".*D.couvrir.*"
+
+# Taper sur l'icone carte/map
+- tapOn:
+    text: ".*carte.*|.*map.*"
+    optional: true
+
+# Verifier que la carte s'affiche
+- extendedWaitUntil:
+    visible:
+      text: ".*Carte.*|.*carte.*"
+    timeout: 10000
+    optional: true
+
+# Scroll pour voir les marqueurs
+- scroll:
+    direction: UP
+    duration: 500
+
+# Verifier qu'on peut revenir a la liste
+- tapOn:
+    text: ".*liste.*|.*retour.*|.*Retour.*"
+    optional: true
+
+- assertVisible:
+    text: ".*D.couvrir.*"
+    optional: true

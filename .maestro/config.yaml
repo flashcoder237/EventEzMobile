@@ -1,0 +1,18 @@
+# Maestro E2E Test Configuration for EventEz Mobile
+# https://maestro.mobile.dev/
+
+appId: com.eventez.mobile
+name: EventEz Mobile E2E Tests
+
+# Timeouts
+launchTimeout: 30000
+defaultTimeout: 10000
+
+# Environment variables for test accounts
+env:
+  TEST_EMAIL: "test@eventez.com"
+  TEST_PASSWORD: "Test1234!"
+  TEST_ORGANIZER_EMAIL: "organizer@eventez.com"
+  TEST_ORGANIZER_PASSWORD: "Org1234!"
+  TEST_ADMIN_EMAIL: "admin@eventez.com"
+  TEST_ADMIN_PASSWORD: "Admin1234!"

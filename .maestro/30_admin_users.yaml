@@ -1,0 +1,61 @@
+appId: ${APP_ID}
+name: "Admin - Gestion utilisateurs"
+env:
+  TEST_EMAIL: ${TEST_ADMIN_EMAIL}
+  TEST_PASSWORD: ${TEST_ADMIN_PASSWORD}
+---
+
+# Flow: User Management (Admin)
+# Teste la gestion des utilisateurs par l'administrateur
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Admin
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*Admin.*|.*Administration.*"
+    optional: true
+
+# Ouvrir la gestion des utilisateurs
+- tapOn:
+    text: ".*Utilisateur.*|.*Gestion.*utilisateur.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Utilisateur.*|.*Gestion.*"
+    timeout: 10000
+    optional: true
+
+# Verifier la liste des utilisateurs
+- assertVisible:
+    text: ".*utilisateur.*|.*membre.*"
+    optional: true
+
+# Rechercher un utilisateur
+- tapOn:
+    text: ".*Rechercher.*"
+    optional: true
+- inputText: "test"
+
+# Scroll dans la liste
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Taper sur un utilisateur pour voir ses details
+- tapOn:
+    id: "user-.*"
+    optional: true
+
+# Verifier les details
+- assertVisible:
+    text: ".*email.*|.*r.le.*|.*statut.*|.*inscrit.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

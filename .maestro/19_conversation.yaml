@@ -1,0 +1,65 @@
+appId: ${APP_ID}
+name: "Messages - Conversation"
+---
+
+# Flow: Conversation (envoi de messages)
+# Teste l'envoi et la reception de messages dans une conversation
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil puis Messages
+- tapOn:
+    text: "Profil"
+
+- scroll:
+    direction: DOWN
+    duration: 300
+
+- tapOn:
+    text: ".*Messages.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Messages.*|.*Conversations.*"
+    timeout: 10000
+
+# Si des conversations existent, ouvrir la premiere
+- tapOn:
+    id: "conversation-.*"
+    optional: true
+
+# Attendre l'ecran de conversation
+- extendedWaitUntil:
+    visible:
+      text: ".*message.*|.*taper.*|.*ecrire.*"
+    timeout: 10000
+    optional: true
+
+# Saisir un message
+- tapOn:
+    text: ".*message.*|.*ecrire.*|.*taper.*"
+    optional: true
+- inputText: "Test E2E message"
+
+# Envoyer le message
+- tapOn:
+    id: "send-button"
+    optional: true
+
+# Verifier que le message apparait
+- extendedWaitUntil:
+    visible:
+      text: "Test E2E message"
+    timeout: 10000
+    optional: true
+
+# Scroll dans la conversation
+- scroll:
+    direction: UP
+    duration: 500
+
+# Retour a la liste des conversations
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

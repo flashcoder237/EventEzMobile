@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
-import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions, NavigationContainerRef } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
@@ -35,6 +35,14 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
 import { RootStackParamList } from './src/types';
 
+// Services
+import { initSentry, SentryWrapper } from './src/services/sentryService';
+import { initAnalytics, trackScreenView } from './src/services/analyticsService';
+import './src/i18n';
+
+// Initialize Sentry as early as possible
+initSentry();
+
 // Keep native splash visible while we load fonts
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -65,6 +73,13 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 function AppContent() {
   const { isDark } = useTheme();
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
+  const routeNameRef = useRef<string | undefined>(undefined);
+
+  // Initialize analytics on mount
+  useEffect(() => {
+    initAnalytics();
+  }, []);
 
   // Barre de navigation Android : fond semi-transparent adapté au thème
   useEffect(() => {
@@ -75,9 +90,26 @@ function AppContent() {
     NavigationBar.setButtonStyleAsync(isDark ? 'light' : 'dark');
   }, [isDark]);
 
+  const onNavigationReady = useCallback(() => {
+    routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
+  }, []);
+
+  const onNavigationStateChange = useCallback(() => {
+    const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
+    if (currentRouteName && currentRouteName !== routeNameRef.current) {
+      trackScreenView(currentRouteName);
+      routeNameRef.current = currentRouteName;
+    }
+  }, []);
+
   return (
     <ConnectionProvider>
-      <NavigationContainer linking={linking}>
+      <NavigationContainer
+        ref={navigationRef}
+        linking={linking}
+        onReady={onNavigationReady}
+        onStateChange={onNavigationStateChange}
+      >
         <ErrorBoundary>
           <AuthProvider>
             <NotificationProvider>
@@ -93,7 +125,7 @@ function AppContent() {
   );
 }
 
-export default function App() {
+function App() {
   const [fontsLoaded] = useFonts({
     Montserrat_300Light,
     Montserrat_400Regular,
@@ -138,3 +170,5 @@ export default function App() {
     </GestureHandlerRootView>
   );
 }
+
+export default SentryWrapper(App);

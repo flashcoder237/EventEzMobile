@@ -1,0 +1,33 @@
+# Flow: Mes billets
+# Vérifie l'onglet Billets avec ses filtres
+
+appId: com.eventez.mobile
+name: "Tickets - My Tickets"
+
+---
+
+# Pré-requis : être connecté
+- runFlow: 01_auth_login.yaml
+
+# Aller sur l'onglet Billets
+- tapOn: "Billets"
+
+# Vérifier l'écran billets
+- assertVisible:
+    text: ".*Mes billets.*|.*Billets.*"
+    timeout: 5000
+
+# Vérifier les filtres (à venir / passés)
+- assertVisible: "À venir"
+- assertVisible: "Passés"
+
+# Tester le filtre "Passés"
+- tapOn: "Passés"
+
+# Vérifier l'affichage (billets ou état vide)
+- assertVisible:
+    text: ".*billet.*|.*Aucun.*|.*apparaîtront.*"
+    timeout: 5000
+
+# Revenir aux billets à venir
+- tapOn: "À venir"

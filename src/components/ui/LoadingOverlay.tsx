@@ -1,6 +1,8 @@
 /**
- * Composant LoadingOverlay
- * Affiche un overlay de chargement plein ecran ou inline
+ * LoadingOverlay - Full-screen loading overlay for blocking operations.
+ *
+ * USAGE: Only for operations where the user MUST wait (payments, form submissions).
+ * For non-blocking loading, prefer Skeleton or inline ActivityIndicator.
  */
 
 import React, { memo } from 'react';

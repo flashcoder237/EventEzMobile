@@ -20,7 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { eventsAPI, getMediaUrl } from '../../api/client';
+import { eventsAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
 import { SaveToBookmarks, Authentication } from '../../components/illustrations';
 import { RootStackParamList, Event } from '../../types';

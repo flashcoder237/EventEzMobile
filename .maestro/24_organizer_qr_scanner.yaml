@@ -1,0 +1,63 @@
+appId: ${APP_ID}
+name: "Organizer - Scanner QR check-in"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: QR Scanner for Check-in (Organizer)
+# Teste le scanner QR pour le check-in des participants
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil → Mes evenements
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*v.nements.*|.*Mes .v.nements.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*v.nements.*"
+    timeout: 10000
+
+# Taper sur "Scanner QR code"
+- tapOn:
+    text: ".*Scanner.*QR.*|.*scanner.*"
+    optional: true
+
+# Verifier la demande de permission camera
+- extendedWaitUntil:
+    visible:
+      text: ".*cam.ra.*|.*autoriser.*|.*Scanner.*"
+    timeout: 10000
+    optional: true
+
+# Autoriser la camera si demande
+- tapOn:
+    text: ".*Autoriser.*|.*Permettre.*|.*Allow.*"
+    optional: true
+
+# Verifier que le scanner est actif
+- extendedWaitUntil:
+    visible:
+      text: ".*scanner.*|.*QR.*|.*code.*"
+    timeout: 10000
+    optional: true
+
+# Verifier le toggle flash
+- assertVisible:
+    text: ".*flash.*|.*lampe.*"
+    optional: true
+
+# Verifier l'option auto check-in
+- assertVisible:
+    text: ".*automatique.*|.*auto.*check.*"
+    optional: true
+
+# Fermer le scanner
+- tapOn:
+    text: ".*Fermer.*|.*Retour.*"
+    optional: true

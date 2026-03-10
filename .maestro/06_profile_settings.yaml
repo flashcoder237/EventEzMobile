@@ -1,0 +1,41 @@
+# Flow: Profil et paramètres
+# Vérifie la navigation dans le profil utilisateur
+
+appId: com.eventez.mobile
+name: "Profile - View & Settings"
+
+---
+
+# Pré-requis : être connecté
+- runFlow: 01_auth_login.yaml
+
+# Aller sur l'onglet Profil
+- tapOn: "Profil"
+
+# Vérifier les éléments du profil
+- assertVisible:
+    text: ".*Profil.*"
+    timeout: 5000
+
+# Vérifier les liens du profil
+- assertVisible: "Paramètres"
+- assertVisible: "Mes paiements"
+
+# Aller dans les paramètres
+- tapOn: "Paramètres"
+
+# Vérifier les sections de paramètres
+- assertVisible:
+    text: ".*Paramètres.*"
+    timeout: 5000
+
+# Vérifier les options de thème
+- assertVisible:
+    text: ".*Thème.*|.*Apparence.*"
+
+# Vérifier les options de notifications
+- assertVisible:
+    text: ".*Notification.*"
+
+# Retour au profil
+- back

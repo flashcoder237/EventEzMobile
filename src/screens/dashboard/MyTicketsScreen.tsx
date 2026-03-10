@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useReducer, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,7 @@ import ExportButton from '../../components/common/ExportButton';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { registrationsAPI } from '../../api/client';
+import { registrationsAPI } from '../../api';
 import { Searching, Empty } from '../../components/illustrations';
 import { Registration, RootStackParamList, Event } from '../../types';
 import {
@@ -46,21 +46,87 @@ type SortType = 'registration_date' | 'event_date' | 'name';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
+// --- Reducer state management ---
+
+interface TicketsState {
+  registrations: Registration[];
+  loading: boolean;
+  refreshing: boolean;
+  activeTab: TabType;
+  typeFilter: FilterType;
+  searchQuery: string;
+  statusFilter: StatusFilterType;
+  sortBy: SortType;
+  showFilters: boolean;
+}
+
+type TicketsAction =
+  | { type: 'SET_REGISTRATIONS'; payload: Registration[] }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_REFRESHING'; payload: boolean }
+  | { type: 'SET_ACTIVE_TAB'; payload: TabType }
+  | { type: 'SET_TYPE_FILTER'; payload: FilterType }
+  | { type: 'SET_SEARCH_QUERY'; payload: string }
+  | { type: 'SET_STATUS_FILTER'; payload: StatusFilterType }
+  | { type: 'SET_SORT_BY'; payload: SortType }
+  | { type: 'SET_SHOW_FILTERS'; payload: boolean }
+  | { type: 'RESET_FILTERS' };
+
+const initialState: TicketsState = {
+  registrations: [],
+  loading: true,
+  refreshing: false,
+  activeTab: 'upcoming',
+  typeFilter: 'all',
+  searchQuery: '',
+  statusFilter: 'all',
+  sortBy: 'event_date',
+  showFilters: false,
+};
+
+function ticketsReducer(state: TicketsState, action: TicketsAction): TicketsState {
+  switch (action.type) {
+    case 'SET_REGISTRATIONS':
+      return { ...state, registrations: action.payload };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_REFRESHING':
+      return { ...state, refreshing: action.payload };
+    case 'SET_ACTIVE_TAB':
+      return { ...state, activeTab: action.payload };
+    case 'SET_TYPE_FILTER':
+      return { ...state, typeFilter: action.payload };
+    case 'SET_SEARCH_QUERY':
+      return { ...state, searchQuery: action.payload };
+    case 'SET_STATUS_FILTER':
+      return { ...state, statusFilter: action.payload };
+    case 'SET_SORT_BY':
+      return { ...state, sortBy: action.payload };
+    case 'SET_SHOW_FILTERS':
+      return { ...state, showFilters: action.payload };
+    case 'RESET_FILTERS':
+      return {
+        ...state,
+        typeFilter: 'all',
+        statusFilter: 'all',
+        sortBy: 'event_date',
+        searchQuery: '',
+        showFilters: false,
+      };
+    default:
+      return state;
+  }
+}
+
+// --- Component ---
+
 export default function MyTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('upcoming');
-  const [typeFilter, setTypeFilter] = useState<FilterType>('all');
-  // Nouveaux filtres
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all');
-  const [sortBy, setSortBy] = useState<SortType>('event_date');
-  const [showFilters, setShowFilters] = useState(false);
+  const [state, dispatch] = useReducer(ticketsReducer, initialState);
+  const { registrations, loading, refreshing, activeTab, typeFilter, searchQuery, statusFilter, sortBy, showFilters } = state;
 
   useEffect(() => {
     fetchRegistrations();
@@ -74,7 +140,7 @@ export default function MyTicketsScreen() {
       if (__DEV__ && data.length > 0) {
         console.log('[MyTickets] Sample registration:', JSON.stringify(data[0], null, 2));
       }
-      setRegistrations(data);
+      dispatch({ type: 'SET_REGISTRATIONS', payload: data });
       // Auto-cache confirmed tickets for offline access
       const ticketsToCache = data
         .filter((r: any) => r.status === 'confirmed' && r.tickets?.length > 0)
@@ -103,7 +169,7 @@ export default function MyTicketsScreen() {
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement inscriptions:', error);
     } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
@@ -121,9 +187,9 @@ export default function MyTicketsScreen() {
   }, []);
 
   const onRefresh = async () => {
-    setRefreshing(true);
+    dispatch({ type: 'SET_REFRESHING', payload: true });
     await fetchRegistrations();
-    setRefreshing(false);
+    dispatch({ type: 'SET_REFRESHING', payload: false });
   };
 
   const formatDate = (dateString: string) => {
@@ -373,6 +439,8 @@ export default function MyTicketsScreen() {
           navigation.navigate('RegistrationDetails', { registrationId: item.id });
         }}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${event?.title || 'Evenement'}${dateInfo ? `, ${dateInfo.full}` : ''}`}
       >
         <View style={styles.cardRow}>
           {/* Date badge a gauche */}
@@ -512,11 +580,7 @@ export default function MyTicketsScreen() {
   }, [typeFilter, statusFilter, sortBy, searchQuery]);
 
   const clearAllFilters = () => {
-    setTypeFilter('all');
-    setStatusFilter('all');
-    setSortBy('event_date');
-    setSearchQuery('');
-    setShowFilters(false);
+    dispatch({ type: 'RESET_FILTERS' });
   };
 
   const TabButton = ({ tab, label, count }: { tab: TabType; label: string; count: number }) => {
@@ -527,8 +591,11 @@ export default function MyTicketsScreen() {
           styles.tabButton,
           isActive && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
         ]}
-        onPress={() => setActiveTab(tab)}
+        onPress={() => dispatch({ type: 'SET_ACTIVE_TAB', payload: tab })}
         activeOpacity={0.7}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: isActive }}
+        accessibilityLabel={label}
       >
         <Text style={[
           styles.tabButtonText,
@@ -563,8 +630,11 @@ export default function MyTicketsScreen() {
           { borderColor: isActive ? colors.primary : colors.gray200 },
           isActive && { backgroundColor: colors.primaryBg },
         ]}
-        onPress={() => setTypeFilter(type === typeFilter ? 'all' : type)}
+        onPress={() => dispatch({ type: 'SET_TYPE_FILTER', payload: type === typeFilter ? 'all' : type })}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Filtre ${label}`}
+        accessibilityState={{ selected: isActive }}
       >
         <Ionicons name={icon} size={14} color={isActive ? colors.primary : colors.gray500} />
         <Text style={[styles.typePillText, { color: isActive ? colors.primary : colors.gray600 }]}>
@@ -606,6 +676,8 @@ export default function MyTicketsScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
           </TouchableOpacity>
@@ -685,10 +757,11 @@ export default function MyTicketsScreen() {
               placeholder="Rechercher..."
               placeholderTextColor={colors.gray400}
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(text: string) => dispatch({ type: 'SET_SEARCH_QUERY', payload: text })}
+              accessibilityLabel="Rechercher un billet"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TouchableOpacity onPress={() => dispatch({ type: 'SET_SEARCH_QUERY', payload: '' })} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Ionicons name="close-circle" size={16} color={colors.gray400} />
               </TouchableOpacity>
             )}
@@ -698,8 +771,11 @@ export default function MyTicketsScreen() {
               styles.filterToggleBtn,
               { backgroundColor: showFilters ? colors.primaryBg : colors.gray50, borderColor: showFilters ? colors.primary : colors.gray200 },
             ]}
-            onPress={() => setShowFilters(!showFilters)}
+            onPress={() => dispatch({ type: 'SET_SHOW_FILTERS', payload: !showFilters })}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Filtres avances"
+            accessibilityState={{ expanded: showFilters }}
           >
             <Ionicons name="options-outline" size={18} color={showFilters ? colors.primary : colors.gray500} />
             {activeFilterCount > 0 && (
@@ -744,7 +820,7 @@ export default function MyTicketsScreen() {
                       { borderColor: isActive ? color : colors.gray200 },
                       isActive && { backgroundColor: color + '14' },
                     ]}
-                    onPress={() => setStatusFilter(key)}
+                    onPress={() => dispatch({ type: 'SET_STATUS_FILTER', payload: key })}
                     activeOpacity={0.7}
                   >
                     <Ionicons name={icon} size={14} color={isActive ? color : colors.gray400} />
@@ -778,7 +854,7 @@ export default function MyTicketsScreen() {
                       { borderColor: isActive ? colors.primary : colors.gray200 },
                       isActive && { backgroundColor: colors.primaryBg },
                     ]}
-                    onPress={() => setSortBy(key)}
+                    onPress={() => dispatch({ type: 'SET_SORT_BY', payload: key })}
                     activeOpacity={0.7}
                   >
                     <Ionicons name={icon} size={14} color={isActive ? colors.primary : colors.gray400} />

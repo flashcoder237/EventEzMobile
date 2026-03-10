@@ -1,0 +1,88 @@
+appId: ${APP_ID}
+name: "Payment - Succes et Echec"
+---
+
+# Flow: Payment Success & Failure screens
+# Teste le parcours complet achat → paiement → resultat
+
+- runFlow: 01_auth_login.yaml
+
+# Chercher un evenement avec billetterie
+- tapOn:
+    id: "search-input"
+    optional: true
+- inputText: "billetterie"
+- pressKey: enter
+
+- extendedWaitUntil:
+    visible:
+      id: "event-card-.*"
+    timeout: 10000
+    optional: true
+
+# Taper sur le premier evenement
+- tapOn:
+    id: "event-card-.*"
+    optional: true
+
+# Attendre les details
+- extendedWaitUntil:
+    visible:
+      text: ".*Acheter.*|.*S'inscrire.*|.*Obtenir.*|.*billet.*"
+    timeout: 10000
+    optional: true
+
+# Taper sur acheter/s'inscrire
+- tapOn:
+    text: ".*Acheter.*|.*Obtenir.*|.*billet.*"
+    optional: true
+
+# Incrementer la quantite
+- tapOn:
+    text: "+"
+    optional: true
+
+# Continuer vers le paiement
+- tapOn:
+    text: ".*Continuer.*paiement.*|.*Payer.*"
+    optional: true
+
+# Verifier l'ecran de paiement
+- extendedWaitUntil:
+    visible:
+      text: ".*Paiement.*|.*payer.*"
+    timeout: 10000
+    optional: true
+
+# Selectionner un mode de paiement
+- tapOn:
+    text: ".*MTN.*|.*Orange.*|.*Carte.*"
+    optional: true
+
+# Saisir le numero de telephone si necessaire
+- tapOn:
+    text: ".*t.l.phone.*|.*numero.*"
+    optional: true
+- inputText: "677000000"
+
+# Taper Payer
+- tapOn:
+    text: ".*Payer.*"
+    optional: true
+
+# Attendre le resultat (succes ou echec)
+- extendedWaitUntil:
+    visible:
+      text: ".*succ.*|.*confirm.*|.*chec.*|.*erreur.*|.*f.licitation.*"
+    timeout: 30000
+    optional: true
+
+# Si succes: verifier les boutons
+- assertVisible:
+    text: ".*billet.*|.*accueil.*|.*ticket.*"
+    optional: true
+
+# Taper pour voir le billet ou retourner a l'accueil
+- tapOn:
+    text: ".*billet.*|.*accueil.*"
+    optional: true

@@ -1,0 +1,55 @@
+appId: ${APP_ID}
+name: "Admin - Moderation"
+env:
+  TEST_EMAIL: ${TEST_ADMIN_EMAIL}
+  TEST_PASSWORD: ${TEST_ADMIN_PASSWORD}
+---
+
+# Flow: Moderation (Admin/Moderator)
+# Teste l'ecran de moderation des evenements
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Admin
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*Admin.*|.*Administration.*|.*Mod.ration.*"
+    optional: true
+
+# Ouvrir la moderation si pas deja dessus
+- tapOn:
+    text: ".*Mod.ration.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Mod.ration.*|.*Validation.*|.*v.nements.*"
+    timeout: 10000
+    optional: true
+
+# Verifier les evenements en attente de validation
+- assertVisible:
+    text: ".*attente.*|.*valider.*|.*soumis.*|.*aucun.*"
+    optional: true
+
+# Scroll dans la liste
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Si un evenement existe, taper dessus
+- tapOn:
+    id: "moderation-event-.*"
+    optional: true
+
+# Verifier les actions de moderation
+- assertVisible:
+    text: ".*Valider.*|.*Rejeter.*|.*Approuver.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

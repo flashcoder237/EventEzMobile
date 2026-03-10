@@ -56,6 +56,8 @@ interface GradientButtonProps {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   /** Prendre toute la largeur disponible */
   fullWidth?: boolean;
+  /** Label d'accessibilite personnalise */
+  accessibilityLabel?: string;
 }
 
 function GradientButtonComponent({
@@ -72,6 +74,7 @@ function GradientButtonComponent({
   variant = 'primary',
   size = 'md',
   fullWidth = false,
+  accessibilityLabel: a11yLabel,
 }: GradientButtonProps) {
   const { colors, isDark } = useTheme();
   const isDisabled = disabled || loading;
@@ -233,6 +236,10 @@ function GradientButtonComponent({
         onPress={onPress}
         disabled={isDisabled}
         activeOpacity={TOUCH_OPACITY}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={a11yLabel || title}
+        accessibilityState={{ disabled: isDisabled }}
         style={[
           fullWidth && styles.fullWidth,
           isDisabled && styles.buttonDisabled,
@@ -262,6 +269,10 @@ function GradientButtonComponent({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={TOUCH_OPACITY}
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={a11yLabel || title}
+      accessibilityState={{ disabled: isDisabled }}
       style={[
         buttonStyle,
         sizeStyle,

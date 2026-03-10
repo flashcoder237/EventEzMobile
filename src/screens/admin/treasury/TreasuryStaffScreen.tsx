@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
-import { treasuryAPI } from '../../../api/client';
+import { treasuryAPI } from '../../../api';
 import { RootStackParamList, StaffMember, StaffPayment } from '../../../types';
 import Badge from '../../../components/ui/Badge';
 import {

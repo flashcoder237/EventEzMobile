@@ -1,0 +1,91 @@
+# Flow: Créer un événement (organisateur)
+# Vérifie le parcours de création d'événement multi-étapes
+
+appId: com.eventez.mobile
+name: "Organizer - Create Event"
+
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+
+---
+
+# Login en tant qu'organisateur
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers la création d'événement
+- tapOn: "Profil"
+- tapOn: "Mes événements"
+- tapOn:
+    text: ".*Créer.*|.*Nouveau.*|.*\\+.*"
+    timeout: 5000
+
+# ÉTAPE 1 : Informations de base
+- assertVisible: "Informations"
+
+- tapOn: "Titre de l'événement"
+- inputText: "Événement Test E2E"
+
+- tapOn:
+    text: ".*Description.*"
+    index: 0
+- inputText: "Description de test pour les tests E2E Maestro"
+
+# Sélectionner une catégorie
+- tapOn:
+    text: ".*Catégorie.*"
+- tapOn:
+    index: 0
+    text: ".*"
+
+# Passer à l'étape suivante
+- tapOn: "Suivant"
+
+# ÉTAPE 2 : Date & Lieu
+- assertVisible:
+    text: ".*Date.*|.*Lieu.*"
+    timeout: 5000
+
+# Sélectionner "Présentiel"
+- tapOn: "Présentiel"
+
+# Remplir la ville
+- tapOn:
+    text: ".*Ville.*"
+- inputText: "Douala"
+
+# Passer à l'étape suivante
+- tapOn: "Suivant"
+
+# ÉTAPE 3 : Tarification
+- assertVisible:
+    text: ".*Tarification.*|.*Prix.*"
+    timeout: 5000
+
+# Ajouter un billet
+- tapOn:
+    text: ".*Ajouter un billet.*"
+
+# Remplir le nom du billet
+- tapOn:
+    text: ".*Nom du billet.*|.*Nom.*"
+    index: 0
+- inputText: "Standard"
+
+# Passer à l'étape suivante
+- tapOn: "Suivant"
+
+# ÉTAPE 4 : Sessions (optionnel, on sauvegarde)
+- assertVisible:
+    text: ".*Sessions.*"
+    timeout: 5000
+
+# Enregistrer le brouillon
+- tapOn:
+    text: ".*Enregistrer.*|.*brouillon.*|.*Publier.*"
+    timeout: 5000
+
+# Vérifier le succès
+- assertVisible:
+    text: ".*succès.*|.*créé.*|.*Mes événements.*"
+    timeout: 15000

@@ -1,0 +1,67 @@
+appId: ${APP_ID}
+name: "Profile - Devenir organisateur"
+---
+
+# Flow: Become Organizer
+# Teste le parcours pour devenir organisateur
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Taper sur "Devenir Organisateur"
+- tapOn:
+    text: ".*Devenir.*Organisateur.*|.*organisateur.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Organisateur.*|.*entreprise.*|.*organis.*"
+    timeout: 10000
+    optional: true
+
+# Verifier le formulaire
+- assertVisible:
+    text: ".*nom.*entreprise.*|.*soci.t.*|.*organisation.*"
+    optional: true
+
+# Remplir les champs
+- tapOn:
+    text: ".*nom.*entreprise.*|.*organisation.*"
+    optional: true
+- inputText: "Test Organisation E2E"
+
+# Scroll pour voir plus de champs
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Remplir le numero d'enregistrement si present
+- tapOn:
+    text: ".*enregistrement.*|.*RCCM.*|.*registre.*"
+    optional: true
+- inputText: "RC/DLA/2024/TEST"
+
+# Scroll encore
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Soumettre la demande
+- tapOn:
+    text: ".*Soumettre.*|.*Envoyer.*|.*Devenir.*|.*Cr.er.*"
+    optional: true
+
+# Verifier le resultat
+- extendedWaitUntil:
+    visible:
+      text: ".*succ.*|.*soumis.*|.*trait.*|.*demand.*"
+    timeout: 10000
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

@@ -11,8 +11,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
 import { AnimatedBookmark } from '../ui/Animations';
-import { formatPriceRange } from '../../lib/utils/priceFormatters';
-import { getMediaUrl } from '../../api/client';
+import {
+  formatCardPrice,
+  formatPriceShort,
+  formatDateAccent,
+  formatDateShort,
+} from '../../lib/utils/eventCardFormatters';
+import { getMediaUrl } from '../../api';
 import {
   FontFamily,
   FontSizes,
@@ -74,53 +79,18 @@ function EventCard({
   // Résoudre l'URL image (relative → absolue) et utiliser le fallback local si absente
   const resolvedImageUrl = getMediaUrl(imageUrl);
 
-  // === Helpers ===
+  // === Derived values ===
 
-  const formatCardPrice = () => {
-    if (isFree) return 'Gratuit';
-    if (typeof price === 'number' && typeof priceMax === 'number' && price > 0 && priceMax > price) {
-      return formatPriceRange(price, priceMax, currency);
-    }
-    if (typeof price === 'number' && price > 0) return `Des ${price.toLocaleString()} ${currency}`;
-    if (typeof price === 'number' && price === 0) return 'Gratuit';
-    if (typeof price === 'string' && price.trim()) return price;
-    if (eventType === 'inscription') return 'Gratuit';
-    return 'Prix variable';
-  };
+  const priceParams = { isFree, price, priceMax, currency, eventType };
+  const cardPriceText = formatCardPrice(priceParams);
+  const shortPriceText = formatPriceShort(priceParams);
+  const dateAccentText = formatDateAccent(date);
+  const dateShortText = formatDateShort(date);
 
-  const formatPriceShort = () => {
-    const p = formatCardPrice();
-    if (p === 'Gratuit' || p === 'Prix variable') return p;
-    return p;
-  };
-
-  const formatDateAccent = () => {
-    try {
-      const eventDate = new Date(date);
-      const day = eventDate.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3).toUpperCase();
-      const dayNum = eventDate.getDate();
-      const month = eventDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
-      const timeStr = eventDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-      return `${day}. ${dayNum} ${month} · ${timeStr}`;
-    } catch {
-      return 'Date TBA';
-    }
-  };
-
-  const formatDateShort = () => {
-    try {
-      const eventDate = new Date(date);
-      const day = eventDate.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3).toUpperCase();
-      const dayNum = eventDate.getDate();
-      const month = eventDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase();
-      return `${day} ${dayNum} ${month}`;
-    } catch {
-      return 'Date TBA';
-    }
-  };
-
-  const isGratuit = isFree || formatCardPrice() === 'Gratuit';
+  const isGratuit = isFree || cardPriceText === 'Gratuit';
   const cardShadow = isDark ? Shadows.md : Shadows.cardViolet;
+  const eventAccessibilityLabel = `${title}, ${dateAccentText}, ${location}`;
+  const eventAccessibilityHint = "Appuyez pour voir les d\u00e9tails de l'\u00e9v\u00e9nement";
 
   // ===== HORIZONTAL VARIANT =====
   if (variant === 'horizontal') {
@@ -131,6 +101,10 @@ function EventCard({
         animationType="both"
         scaleValue={0.98}
         haptic="light"
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={eventAccessibilityLabel}
+        accessibilityHint={eventAccessibilityHint}
       >
         <Animated.Image
           source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
@@ -138,14 +112,14 @@ function EventCard({
           resizeMode="cover"
         />
         <View style={styles.horizontalContent}>
-          <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+          <Text style={[styles.dateAccent, { color: colors.accent }]}>{dateAccentText}</Text>
           <Text style={[styles.horizontalTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
             <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{location}</Text>
           </View>
           <Text style={isGratuit ? [styles.priceGratuit, { color: colors.success }] : [styles.priceText, { color: colors.gray900 }]}>
-            {formatCardPrice()}
+            {cardPriceText}
           </Text>
         </View>
         <TouchableOpacity
@@ -168,17 +142,25 @@ function EventCard({
   // ===== COMPACT VARIANT =====
   if (variant === 'compact') {
     return (
-      <TouchableOpacity onPress={onPress} style={[styles.compactCard, { backgroundColor: colors.card }, cardShadow]} activeOpacity={0.7}>
+      <TouchableOpacity
+        onPress={onPress}
+        style={[styles.compactCard, { backgroundColor: colors.card }, cardShadow]}
+        activeOpacity={0.7}
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={eventAccessibilityLabel}
+        accessibilityHint={eventAccessibilityHint}
+      >
         <Animated.Image
           source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
           style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
           resizeMode="cover"
         />
         <View style={styles.compactContent}>
-          <Text style={[styles.dateAccentSmall, { color: colors.accent }]}>{formatDateShort()}</Text>
+          <Text style={[styles.dateAccentSmall, { color: colors.accent }]}>{dateShortText}</Text>
           <Text style={[styles.compactTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
           <Text style={isGratuit ? [styles.compactPriceGratuit, { color: colors.success }] : [styles.compactPrice, { color: colors.gray800 }]}>
-            {formatCardPrice()}
+            {cardPriceText}
           </Text>
         </View>
       </TouchableOpacity>
@@ -193,6 +175,10 @@ function EventCard({
         style={[styles.featuredCard, { backgroundColor: colors.card }, Shadows.glass]}
         animationType="editorial"
         haptic="light"
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={eventAccessibilityLabel}
+        accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.featuredImageContainer}>
           <Animated.Image
@@ -205,7 +191,7 @@ function EventCard({
             style={styles.featuredGradient}
           />
           <View style={[styles.featuredDateBadge, { backgroundColor: isDark ? 'rgba(26,26,46,0.9)' : 'rgba(255,255,255,0.95)' }]}>
-            <Text style={[styles.featuredDateBadgeText, { color: colors.accent }]}>{formatDateShort()}</Text>
+            <Text style={[styles.featuredDateBadgeText, { color: colors.accent }]}>{dateShortText}</Text>
           </View>
           <TouchableOpacity
             onPress={onLikePress}
@@ -222,7 +208,7 @@ function EventCard({
           </TouchableOpacity>
         </View>
         <View style={[styles.featuredContent, { backgroundColor: cardFooterBg }]}>
-          <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+          <Text style={[styles.dateAccent, { color: colors.accent }]}>{dateAccentText}</Text>
           <Text style={[styles.featuredTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
@@ -234,7 +220,7 @@ function EventCard({
                 <Text style={[styles.freeBadgeText, { color: colors.success }]}>Gratuit</Text>
               </View>
             ) : (
-              <Text style={[styles.featuredPrice, { color: colors.gray900 }]}>{formatPriceShort()}</Text>
+              <Text style={[styles.featuredPrice, { color: colors.gray900 }]}>{shortPriceText}</Text>
             )}
             {attendees != null && attendees > 0 && (
               <View style={styles.attendeesRow}>
@@ -257,6 +243,10 @@ function EventCard({
         animationType="both"
         scaleValue={0.98}
         haptic="light"
+        accessible={true}
+        accessibilityRole="button"
+        accessibilityLabel={eventAccessibilityLabel}
+        accessibilityHint={eventAccessibilityHint}
       >
         <View style={{ position: 'relative' }}>
           <Animated.Image
@@ -270,7 +260,7 @@ function EventCard({
           />
         </View>
         <View style={styles.gridContent}>
-          <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+          <Text style={[styles.dateAccent, { color: colors.accent }]}>{dateAccentText}</Text>
           <Text style={[styles.gridTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
           <View style={styles.locationRow}>
             <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
@@ -278,7 +268,7 @@ function EventCard({
           </View>
           <View style={styles.gridFooter}>
             <Text style={isGratuit ? [styles.priceGratuit, { color: colors.success }] : [styles.gridPrice, { color: colors.gray900 }]}>
-              {isGratuit ? 'Gratuit' : formatPriceShort()}
+              {isGratuit ? 'Gratuit' : shortPriceText}
             </Text>
             <TouchableOpacity
               onPress={onLikePress}
@@ -306,6 +296,10 @@ function EventCard({
       animationType="both"
       scaleValue={0.97}
       haptic="light"
+      accessible={true}
+      accessibilityRole="button"
+      accessibilityLabel={eventAccessibilityLabel}
+      accessibilityHint={eventAccessibilityHint}
     >
       <Animated.Image
         source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
@@ -313,14 +307,14 @@ function EventCard({
         resizeMode="cover"
       />
       <View style={styles.defaultContent}>
-        <Text style={[styles.dateAccent, { color: colors.accent }]}>{formatDateAccent()}</Text>
+        <Text style={[styles.dateAccent, { color: colors.accent }]}>{dateAccentText}</Text>
         <Text style={[styles.defaultTitle, { color: colors.gray900 }]} numberOfLines={2}>{title}</Text>
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={13} color={colors.textSecondary} />
           <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>{location}</Text>
         </View>
         <Text style={isGratuit ? [styles.priceGratuit, { color: colors.success }] : [styles.priceText, { color: colors.gray900 }]}>
-          {isGratuit ? 'Gratuit' : formatPriceShort()}
+          {isGratuit ? 'Gratuit' : shortPriceText}
         </Text>
       </View>
     </AnimatedPressable>

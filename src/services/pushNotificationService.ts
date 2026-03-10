@@ -4,9 +4,10 @@ import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { notificationsAPI } from '../api/client';
+import { notificationsAPI } from '../api';
 
 const PUSH_TOKEN_KEY = '@eventez_push_token';
+const MAX_REGISTER_RETRIES = 3;
 
 // Get project ID from app config
 const getProjectId = (): string => {
@@ -190,25 +191,44 @@ class PushNotificationService {
   }
 
   /**
+   * Register device with retry logic and exponential backoff
+   */
+  private async registerDeviceWithRetry(deviceInfo: {
+    push_token: string;
+    device_type: 'ios' | 'android' | 'web';
+    device_name: string;
+    app_version: string;
+  }): Promise<boolean> {
+    for (let attempt = 0; attempt < MAX_REGISTER_RETRIES; attempt++) {
+      try {
+        await notificationsAPI.registerDevice(deviceInfo);
+        if (__DEV__) console.log('[Push] Device registered successfully');
+        return true;
+      } catch (error) {
+        if (__DEV__) console.warn(`[Push] Device registration failed (attempt ${attempt + 1}/${MAX_REGISTER_RETRIES}):`, error);
+        if (attempt < MAX_REGISTER_RETRIES - 1) {
+          const delay = 2000 * Math.pow(2, attempt);
+          if (__DEV__) console.log(`[Push] Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    if (__DEV__) console.error('[Push] Device registration failed after all retries');
+    return false;
+  }
+
+  /**
    * Register push token with backend
    */
   async registerTokenWithBackend(token: string): Promise<boolean> {
-    try {
-      // Register device with backend
-      const deviceInfo = {
-        push_token: token,
-        device_type: Platform.OS as 'ios' | 'android' | 'web',
-        device_name: Device.deviceName || `${Platform.OS} device`,
-        app_version: '1.0.0',
-      };
+    const deviceInfo = {
+      push_token: token,
+      device_type: Platform.OS as 'ios' | 'android' | 'web',
+      device_name: Device.deviceName || `${Platform.OS} device`,
+      app_version: '1.0.0',
+    };
 
-      await notificationsAPI.registerDevice(deviceInfo);
-      if (__DEV__) console.log('[Push] Token registered with backend');
-      return true;
-    } catch (error) {
-      if (__DEV__) console.error('[Push] Error registering token with backend:', error);
-      return false;
-    }
+    return this.registerDeviceWithRetry(deviceInfo);
   }
 
   /**

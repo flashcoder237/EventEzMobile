@@ -8,7 +8,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
-import { authAPI, setTokens } from '../api/client';
+import { authAPI, setTokens } from '../api';
 import { User } from '../types';
 
 // Fermer le navigateur web après l'authentification

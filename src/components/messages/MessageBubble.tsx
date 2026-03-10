@@ -180,6 +180,7 @@ function MessageBubble({
       <TouchableOpacity
         style={[styles.messageRow, isMine && styles.messageRowMine, isGrouped && styles.messageRowGrouped]}
         activeOpacity={1}
+        accessibilityLabel="Message supprime"
       >
         {!isMine && (
           <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200 }]}>
@@ -227,7 +228,7 @@ function MessageBubble({
 
         {/* Attachments */}
         {hasAttachments && (
-          <View style={styles.attachmentsContainer}>
+          <View style={styles.attachmentsContainer} accessibilityLabel="Piece jointe">
             {message.attachments?.map((att, i) => renderAttachment(att, i))}
           </View>
         )}
@@ -241,7 +242,11 @@ function MessageBubble({
               hasAttachments && styles.bubbleWithAttachment,
             ]}
           >
-            <Text style={[styles.messageText, { color: colors.gray900 }, isMine && styles.messageTextMine]}>
+            <Text
+              accessibilityRole="text"
+              accessibilityLabel={`${message.sender_name || 'Utilisateur'}: ${message.content}`}
+              style={[styles.messageText, { color: colors.gray900 }, isMine && styles.messageTextMine]}
+            >
               {message.content}
             </Text>
           </View>

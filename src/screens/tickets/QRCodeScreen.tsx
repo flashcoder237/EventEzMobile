@@ -20,7 +20,7 @@ import QRCode from 'react-native-qrcode-svg';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { ticketPurchasesAPI, registrationsAPI } from '../../api/client';
+import { ticketPurchasesAPI, registrationsAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import { getVerificationUrl } from '../../constants/urls';
 import {
@@ -266,7 +266,7 @@ export default function QRCodeScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Retour" accessibilityRole="button">
             <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
@@ -288,18 +288,18 @@ export default function QRCodeScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Retour" accessibilityRole="button">
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handlePrint}>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handlePrint} accessibilityLabel="Imprimer le billet" accessibilityRole="button">
             <Ionicons name="print-outline" size={22} color={colors.gray900} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handleDownloadPDF}>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handleDownloadPDF} accessibilityLabel="Telecharger le billet" accessibilityRole="button">
             <Ionicons name="download-outline" size={22} color={colors.gray900} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handleShare}>
+          <TouchableOpacity style={styles.headerActionButton} onPress={handleShare} accessibilityLabel="Partager le billet" accessibilityRole="button">
             <Ionicons name="share-outline" size={22} color={colors.gray900} />
           </TouchableOpacity>
         </View>
@@ -367,7 +367,7 @@ export default function QRCodeScreen() {
 
           {/* QR Code Section */}
           <View style={styles.qrSection}>
-            <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF', borderColor: colors.primary }]}>
+            <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF', borderColor: colors.primary }]} accessibilityLabel="QR code du billet" accessibilityRole="image">
               <QRCode
                 value={verificationUrl}
                 size={QR_SIZE}

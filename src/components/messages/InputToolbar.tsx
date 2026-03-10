@@ -232,6 +232,8 @@ function InputToolbar({
           style={styles.actionButton}
           onPress={onPickImage}
           activeOpacity={TOUCH_OPACITY}
+          accessibilityLabel="Joindre un fichier"
+          accessibilityRole="button"
         >
           <Ionicons name="image-outline" size={22} color={colors.primary} />
         </TouchableOpacity>
@@ -247,6 +249,7 @@ function InputToolbar({
             placeholderTextColor={colors.gray400}
             multiline
             maxLength={1000}
+            accessibilityLabel="Ecrire un message"
           />
         </View>
 
@@ -257,6 +260,8 @@ function InputToolbar({
             onPress={handleSend}
             disabled={sending}
             activeOpacity={TOUCH_OPACITY}
+            accessibilityLabel="Envoyer"
+            accessibilityRole="button"
           >
             {sending ? (
               <ActivityIndicator size="small" color={Colors.white} />
@@ -269,6 +274,8 @@ function InputToolbar({
             style={[styles.micButton, { backgroundColor: colors.gray100 }]}
             onPress={onStartRecording}
             activeOpacity={TOUCH_OPACITY}
+            accessibilityLabel="Enregistrer un message vocal"
+            accessibilityRole="button"
           >
             <Ionicons name="mic" size={22} color={colors.primary} />
           </TouchableOpacity>

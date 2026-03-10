@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { getMediaUrl } from '../../api/client';
+import { getMediaUrl } from '../../api';
 import { formatDate } from '../../lib/utils/dateFormatters';
 import CategoryIcon from '../icons/CategoryIcons';
 import { MapMarker } from '../../types';

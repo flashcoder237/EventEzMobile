@@ -1,0 +1,47 @@
+appId: ${APP_ID}
+name: "Dashboard - Notifications"
+---
+
+# Flow: Notifications
+# Teste l'ecran de notifications
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil
+- tapOn:
+    text: "Profil"
+
+# Chercher l'icone/bouton notifications
+- tapOn:
+    text: ".*Notification.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Notification.*"
+    timeout: 10000
+
+# Verifier la liste ou l'etat vide
+- assertVisible:
+    text: ".*notification.*|.*aucune.*|.*vide.*"
+    optional: true
+
+# Si des notifications existent, taper sur une
+- tapOn:
+    id: "notification-.*"
+    optional: true
+
+# Verifier le detail de la notification
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Tester le marquage comme lu
+- tapOn:
+    text: ".*lu.*|.*marquer.*"
+    optional: true
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

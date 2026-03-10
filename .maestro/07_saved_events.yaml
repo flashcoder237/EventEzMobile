@@ -1,0 +1,36 @@
+# Flow: Événements sauvegardés (favoris)
+# Vérifie l'onglet Favoris et le suivi d'événements
+
+appId: com.eventez.mobile
+name: "Saved - Follow Events"
+
+---
+
+# Pré-requis : être connecté
+- runFlow: 01_auth_login.yaml
+
+# Aller sur l'onglet Favoris
+- tapOn: "Favoris"
+
+# Vérifier l'écran favoris
+- assertVisible:
+    text: ".*Favoris.*|.*sauvegardé.*|.*Aucun événement.*"
+    timeout: 5000
+
+# Retourner à Découvrir pour suivre un événement
+- tapOn: "Découvrir"
+
+# Attendre les événements
+- extendedWaitUntil:
+    visible: ".*"
+    timeout: 10000
+
+# Scroll pour voir des événements
+- scrollDown
+
+# Retourner aux favoris et vérifier
+- tapOn: "Favoris"
+
+- assertVisible:
+    text: ".*Favoris.*|.*sauvegardé.*|.*Aucun événement.*"
+    timeout: 5000

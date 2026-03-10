@@ -33,6 +33,10 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
   iconRight?: keyof typeof Ionicons.glyphMap;
   disabled?: boolean;
   containerStyle?: ViewStyle;
+  /** Label d'accessibilite personnalise */
+  accessibilityLabel?: string;
+  /** Indice d'accessibilite */
+  accessibilityHint?: string;
 }
 
 const AnimatedView = Animated.View;
@@ -47,6 +51,8 @@ function InputComponent({
   disabled = false,
   secureTextEntry,
   containerStyle,
+  accessibilityLabel: a11yLabel,
+  accessibilityHint: a11yHint,
   ...textInputProps
 }: InputProps) {
   const { colors, isDark } = useTheme();
@@ -120,6 +126,10 @@ function InputComponent({
           onFocus={handleFocus}
           onBlur={handleBlur}
           placeholderTextColor={colors.textTertiary}
+          accessible={true}
+          accessibilityLabel={a11yLabel || label || textInputProps.placeholder}
+          accessibilityHint={a11yHint || (hint ? hint : undefined)}
+          accessibilityState={disabled ? { disabled: true } : undefined}
           style={[
             styles.input,
             { color: colors.text },

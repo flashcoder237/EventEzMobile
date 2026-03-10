@@ -1,0 +1,56 @@
+appId: ${APP_ID}
+name: "Organizer - Inscriptions evenement"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: Event Registrations (Organizer)
+# Teste la gestion des inscriptions d'un evenement
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil → Mes evenements
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*v.nements.*|.*Mes .v.nements.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*v.nements.*"
+    timeout: 10000
+
+# Taper sur "Voir les inscrits"
+- tapOn:
+    text: ".*inscrit.*|.*Voir.*inscrit.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Inscription.*|.*inscrit.*|.*Participant.*"
+    timeout: 10000
+    optional: true
+
+# Verifier la liste des inscrits ou etat vide
+- assertVisible:
+    text: ".*participant.*|.*inscrit.*|.*aucun.*|.*vide.*"
+    optional: true
+
+# Rechercher un participant
+- tapOn:
+    text: ".*Rechercher.*"
+    optional: true
+- inputText: "test"
+
+# Scroll dans la liste
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

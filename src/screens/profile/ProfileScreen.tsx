@@ -20,7 +20,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
-import { eventsAPI, feedbacksAPI, registrationsAPI } from '../../api/client';
+import { eventsAPI, feedbacksAPI, registrationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -50,6 +50,8 @@ const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, danger }: 
       style={[styles.menuItem, { borderBottomColor: colors.gray100 }]}
       onPress={onPress}
       activeOpacity={0.6}
+      accessibilityRole="button"
+      accessibilityLabel={subtitle ? `${title} - ${subtitle}` : title}
     >
       <View style={[styles.menuIconContainer, { backgroundColor: colors.gray50 }, danger && { backgroundColor: colors.errorBg }]}>
         <Ionicons
@@ -169,12 +171,16 @@ export default function ProfileScreen() {
             <TouchableOpacity
               style={[styles.settingsButton, { backgroundColor: colors.gray50 }]}
               onPress={() => setShowMyQR(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Afficher mon QR code"
             >
               <Ionicons name="qr-code-outline" size={22} color={colors.gray700} />
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.settingsButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('Settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Parametres"
             >
               <Ionicons name="settings-outline" size={24} color={colors.gray700} />
             </TouchableOpacity>
@@ -187,6 +193,8 @@ export default function ProfileScreen() {
           style={[styles.userCard, { backgroundColor: colors.card }, Shadows.cardViolet]}
           onPress={() => navigation.navigate('EditProfile')}
           activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Modifier le profil"
         >
           <View style={styles.userCardLeft}>
             {user?.profile_picture || user?.image ? (
@@ -254,6 +262,8 @@ export default function ProfileScreen() {
             style={styles.becomeOrganizerCard}
             onPress={() => navigation.navigate('BecomeOrganizer')}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Devenir Organisateur"
           >
             <View style={styles.becomeOrganizerIcon}>
               <Ionicons name="megaphone" size={28} color={Colors.white} />

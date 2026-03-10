@@ -14,7 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { paymentsAPI, refundsAPI } from '../../api/client';
+import { paymentsAPI, refundsAPI } from '../../api';
 import { Payment, RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
@@ -179,6 +179,8 @@ export default function RefundRequestScreen() {
           <TouchableOpacity
             style={styles.closeButton}
             onPress={() => navigation.goBack()}
+            accessibilityLabel="Fermer"
+            accessibilityRole="button"
           >
             <Ionicons name="close" size={24} color={colors.gray700} />
           </TouchableOpacity>
@@ -244,6 +246,7 @@ export default function RefundRequestScreen() {
                     keyboardType="numeric"
                     placeholder="Montant"
                     placeholderTextColor={colors.gray400}
+                    accessibilityLabel="Montant du remboursement"
                   />
                 )}
               </View>
@@ -287,6 +290,7 @@ export default function RefundRequestScreen() {
               multiline
               numberOfLines={4}
               textAlignVertical="top"
+              accessibilityLabel="Raison du remboursement"
             />
           </View>
 
@@ -311,6 +315,8 @@ export default function RefundRequestScreen() {
             ]}
             onPress={handleSubmit}
             disabled={!selectedReason || submitting}
+            accessibilityLabel="Demander le remboursement"
+            accessibilityRole="button"
           >
             {submitting ? (
               <ActivityIndicator size="small" color={Colors.white} />

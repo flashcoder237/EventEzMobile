@@ -1,0 +1,43 @@
+# Flow: Parcourir les événements
+# Vérifie la navigation et l'affichage des événements
+
+appId: com.eventez.mobile
+name: "Discover - Browse Events"
+
+---
+
+# Pré-requis : être connecté (login flow)
+- runFlow: 01_auth_login.yaml
+
+# Vérifier qu'on est sur l'écran Découvrir
+- assertVisible: "Découvrir"
+
+# Vérifier la barre de recherche
+- assertVisible: "Rechercher un événement"
+
+# Scroll pour voir les événements
+- scrollDown
+
+# Tester la recherche
+- tapOn: "Rechercher un événement"
+- inputText: "concert"
+- pressKey: Enter
+
+# Attendre les résultats
+- extendedWaitUntil:
+    visible: ".*concert.*|Aucun résultat.*"
+    timeout: 10000
+
+# Revenir à l'accueil
+- tapOn: "Découvrir"
+
+# Vérifier les catégories
+- assertVisible: "Catégories"
+
+# Scroll pour voir les sections
+- scrollDown
+- scrollDown
+
+# Vérifier la section "Populaires" ou "À venir"
+- assertVisible:
+    text: ".*Populaires.*|.*À venir.*|.*Près de.*"

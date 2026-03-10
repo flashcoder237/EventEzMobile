@@ -1,0 +1,36 @@
+import { LocationType } from '../types';
+
+export const STEPS = [
+  { id: 1, title: 'Informations', icon: 'information-circle-outline' },
+  { id: 2, title: 'Date & Lieu', icon: 'calendar-outline' },
+  { id: 3, title: 'Tarification', icon: 'pricetag-outline' },
+  { id: 4, title: 'Sessions', icon: 'layers-outline' },
+] as const;
+
+export const LOCATION_TYPES: { value: LocationType; label: string; icon: string; description: string }[] = [
+  { value: 'in_person', label: 'Présentiel', icon: 'location-outline', description: 'Événement physique' },
+  { value: 'online', label: 'En ligne', icon: 'videocam-outline', description: 'Événement virtuel' },
+  { value: 'hybrid', label: 'Hybride', icon: 'globe-outline', description: 'Physique + Virtuel' },
+];
+
+export const FIELD_TYPES = [
+  { value: 'text', label: 'Texte' },
+  { value: 'textarea', label: 'Texte long' },
+  { value: 'email', label: 'Email' },
+  { value: 'phone', label: 'Téléphone' },
+  { value: 'number', label: 'Nombre' },
+  { value: 'date', label: 'Date' },
+  { value: 'select', label: 'Liste déroulante' },
+  { value: 'checkbox', label: 'Cases à cocher' },
+  { value: 'radio', label: 'Boutons radio' },
+];
+
+export const SESSION_TYPES = [
+  { value: 'keynote', label: 'Keynote' },
+  { value: 'talk', label: 'Présentation' },
+  { value: 'panel', label: 'Panel' },
+  { value: 'workshop', label: 'Atelier' },
+  { value: 'networking', label: 'Networking' },
+  { value: 'break', label: 'Pause' },
+  { value: 'lunch', label: 'Déjeuner' },
+];

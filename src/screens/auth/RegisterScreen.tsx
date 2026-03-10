@@ -26,7 +26,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
-import { authAPI } from '../../api/client';
+import { authAPI } from '../../api';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators } from '../../lib/validation';
 import GradientButton from '../../components/ui/GradientButton';
@@ -181,6 +181,8 @@ export default function RegisterScreen() {
           style={styles.eyeButton}
           animationType="scale"
           scaleValue={0.9}
+          accessibilityRole="button"
+          accessibilityLabel={options.showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
         >
           <Ionicons
             name={options.showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -216,6 +218,8 @@ export default function RegisterScreen() {
             style={[styles.backButton, { backgroundColor: colors.gray50 }]}
             animationType="scale"
             scaleValue={0.9}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
           >
             <Ionicons name="arrow-back" size={24} color={colors.gray800} />
           </AnimatedPressable>
@@ -337,6 +341,8 @@ export default function RegisterScreen() {
               style={styles.organizerButton}
               animationType="lift"
               scaleValue={0.98}
+              accessibilityRole="link"
+              accessibilityLabel="Inscription organisateur"
             >
               <View style={[styles.organizerIconContainer, { backgroundColor: colors.background }]}>
                 <Ionicons name="megaphone" size={24} color={Colors.secondary} />
@@ -356,6 +362,8 @@ export default function RegisterScreen() {
               onPress={() => navigation.navigate('Login')}
               animationType="scale"
               scaleValue={0.95}
+              accessibilityRole="link"
+              accessibilityLabel="Se connecter"
             >
               <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
             </AnimatedPressable>

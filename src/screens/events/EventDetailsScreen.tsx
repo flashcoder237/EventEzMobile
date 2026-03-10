@@ -47,7 +47,7 @@ import AgendaTab from '../../components/events/AgendaTab';
 import ReviewsTab from '../../components/events/ReviewsTab';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
-import { eventsAPI, getMediaUrl } from '../../api/client';
+import { eventsAPI, getMediaUrl } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
@@ -188,6 +188,8 @@ export default function EventDetailsScreen() {
         <TouchableOpacity
           style={[styles.backButtonError, { backgroundColor: colors.primary }]}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
         >
           <Text style={styles.backButtonErrorText}>Retour</Text>
         </TouchableOpacity>
@@ -298,6 +300,8 @@ export default function EventDetailsScreen() {
           <TouchableOpacity
             style={[styles.blurHeaderBtn, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
           >
             <Ionicons name="arrow-back" size={22} color={colors.gray900} />
           </TouchableOpacity>
@@ -306,6 +310,8 @@ export default function EventDetailsScreen() {
           <TouchableOpacity
             style={[styles.blurHeaderBtn, { backgroundColor: colors.gray100 }]}
             onPress={handleShare}
+            accessibilityRole="button"
+            accessibilityLabel="Partager l'evenement"
           >
             <Ionicons name="share-outline" size={20} color={colors.gray900} />
           </TouchableOpacity>
@@ -351,6 +357,8 @@ export default function EventDetailsScreen() {
               <TouchableOpacity
                 style={styles.backButton}
                 onPress={() => navigation.goBack()}
+                accessibilityRole="button"
+                accessibilityLabel="Retour"
               >
                 <Ionicons name="arrow-back" size={24} color={colors.white} />
               </TouchableOpacity>
@@ -361,7 +369,12 @@ export default function EventDetailsScreen() {
                   initialFollowing={isFollowing}
                   onFollowChange={handleFollowChange}
                 />
-                <TouchableOpacity style={styles.actionButton} onPress={handleShare}>
+                <TouchableOpacity
+                  style={styles.actionButton}
+                  onPress={handleShare}
+                  accessibilityRole="button"
+                  accessibilityLabel="Partager l'evenement"
+                >
                   <Ionicons name="share-outline" size={22} color={colors.white} />
                 </TouchableOpacity>
               </View>
@@ -442,6 +455,8 @@ export default function EventDetailsScreen() {
             <TouchableOpacity
               style={[styles.contactOrgButton, { borderColor: colors.primary }]}
               onPress={handleContactOrganizer}
+              accessibilityRole="button"
+              accessibilityLabel="Contacter l'organisateur"
             >
               <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
               <Text style={[styles.contactOrgText, { color: colors.primary }]}>Contacter</Text>
@@ -452,10 +467,20 @@ export default function EventDetailsScreen() {
           <View style={styles.shareRow}>
             <Text style={[styles.shareLabel, { color: colors.gray500 }]}>Partager :</Text>
             <View style={styles.shareButtons}>
-              <TouchableOpacity style={[styles.shareButton, { backgroundColor: colors.gray100 }]} onPress={handleShare}>
+              <TouchableOpacity
+                style={[styles.shareButton, { backgroundColor: colors.gray100 }]}
+                onPress={handleShare}
+                accessibilityRole="button"
+                accessibilityLabel="Partager l'evenement"
+              >
                 <Ionicons name="share-social-outline" size={20} color={colors.gray600} />
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.shareButton, { backgroundColor: isDark ? '#1A3D1A' : '#E7F5E7' }]} onPress={handleShareToWhatsApp}>
+              <TouchableOpacity
+                style={[styles.shareButton, { backgroundColor: isDark ? '#1A3D1A' : '#E7F5E7' }]}
+                onPress={handleShareToWhatsApp}
+                accessibilityRole="button"
+                accessibilityLabel="Partager sur WhatsApp"
+              >
                 <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
               </TouchableOpacity>
               <AddToCalendarButton event={event} size="sm" />
@@ -876,6 +901,8 @@ export default function EventDetailsScreen() {
             style={[styles.ctaButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.navigate('TicketPurchase', { eventId })}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel={event.event_type === 'billetterie' ? 'Acheter des billets' : "S'inscrire"}
           >
             <Text style={styles.ctaButtonText}>
               {event.event_type === 'billetterie' ? 'Acheter des billets' : 'S\'inscrire'}
@@ -900,6 +927,8 @@ export default function EventDetailsScreen() {
           <TouchableOpacity
             style={styles.imageViewerClose}
             onPress={() => setShowImageViewer(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Fermer la visionneuse"
           >
             <Ionicons name="close" size={28} color={colors.white} />
           </TouchableOpacity>

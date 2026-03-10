@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { analyticsAPI, eventsAPI } from '../../api/client';
+import { analyticsAPI, eventsAPI } from '../../api';
 import { RootStackParamList, Event, AnalyticsDashboardSummary } from '../../types';
 import {
   Colors,
@@ -44,7 +44,11 @@ interface StatCardProps {
 const StatCard = ({ title, value, icon, color, subtitle }: StatCardProps) => {
   const { colors } = useTheme();
   return (
-    <View style={[styles.statCard, { backgroundColor: colors.gray50 }]}>
+    <View
+      style={[styles.statCard, { backgroundColor: colors.gray50 }]}
+      accessibilityRole="summary"
+      accessibilityLabel={`${title}: ${value}${subtitle ? `, ${subtitle}` : ''}`}
+    >
       <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
         <Ionicons name={icon} size={24} color={color} />
       </View>
@@ -128,6 +132,8 @@ export default function EventAnalyticsScreen() {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
@@ -216,6 +222,8 @@ export default function EventAnalyticsScreen() {
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('EventRegistrations', { eventId })}
+              accessibilityRole="button"
+              accessibilityLabel="Voir les inscriptions"
             >
               <Ionicons name="list-outline" size={24} color={colors.primary} />
               <Text style={[styles.actionText, { color: colors.gray700 }]}>Inscriptions</Text>
@@ -224,6 +232,8 @@ export default function EventAnalyticsScreen() {
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('QRScanner', { eventId })}
+              accessibilityRole="button"
+              accessibilityLabel="Scanner un QR code"
             >
               <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
               <Text style={[styles.actionText, { color: colors.gray700 }]}>Scanner</Text>
@@ -232,6 +242,8 @@ export default function EventAnalyticsScreen() {
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.navigate('EventEdit', { eventId })}
+              accessibilityRole="button"
+              accessibilityLabel="Modifier l'evenement"
             >
               <Ionicons name="create-outline" size={24} color={colors.primary} />
               <Text style={[styles.actionText, { color: colors.gray700 }]}>Modifier</Text>

@@ -1,0 +1,50 @@
+appId: ${APP_ID}
+name: "Organizer - Gestion benevoles"
+env:
+  TEST_EMAIL: ${TEST_ORGANIZER_EMAIL}
+  TEST_PASSWORD: ${TEST_ORGANIZER_PASSWORD}
+---
+
+# Flow: Volunteer Management (Organizer)
+# Teste la gestion des benevoles d'un evenement
+
+- runFlow: 01_auth_login.yaml
+
+# Naviguer vers Profil → Mes evenements
+- tapOn:
+    text: "Profil"
+
+- tapOn:
+    text: ".*v.nements.*|.*Mes .v.nements.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*v.nements.*"
+    timeout: 10000
+
+# Taper sur "Gerer les benevoles"
+- tapOn:
+    text: ".*b.n.vol.*|.*Gerer.*b.n.vol.*|.*Volunteer.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*b.n.vol.*|.*Volunteer.*"
+    timeout: 10000
+    optional: true
+
+# Verifier la liste ou etat vide
+- assertVisible:
+    text: ".*b.n.vol.*|.*aucun.*|.*inviter.*"
+    optional: true
+
+# Scroll
+- scroll:
+    direction: DOWN
+    duration: 500
+
+# Retour
+- tapOn:
+    text: ".*Retour.*"
+    optional: true

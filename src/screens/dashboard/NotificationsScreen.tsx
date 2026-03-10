@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useReducer, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { notificationsAPI } from '../../api/client';
+import { notificationsAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { Notification, RootStackParamList } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
@@ -39,6 +39,85 @@ import { NotificationsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 
 type FilterType = 'all' | 'unread' | 'read' | 'event' | 'payment' | 'ticket';
+
+// --- Reducer ---
+
+interface NotificationsState {
+  notifications: Notification[];
+  loading: boolean;
+  refreshing: boolean;
+  filter: FilterType;
+  selectedNotification: Notification | null;
+  showDetailModal: boolean;
+}
+
+type NotificationsAction =
+  | { type: 'SET_NOTIFICATIONS'; payload: Notification[] }
+  | { type: 'SET_LOADING'; payload: boolean }
+  | { type: 'SET_REFRESHING'; payload: boolean }
+  | { type: 'SET_FILTER'; payload: FilterType }
+  | { type: 'SET_SELECTED_NOTIFICATION'; payload: Notification | null }
+  | { type: 'SET_SHOW_DETAIL_MODAL'; payload: boolean }
+  | { type: 'MARK_AS_READ'; payload: string }
+  | { type: 'MARK_ALL_AS_READ' }
+  | { type: 'DELETE_NOTIFICATION'; payload: string }
+  | { type: 'OPEN_DETAIL'; payload: Notification }
+  | { type: 'CLOSE_DETAIL' }
+  | { type: 'FETCH_COMPLETE'; payload: { notifications: Notification[] } }
+  | { type: 'REFRESH_COMPLETE'; payload: { notifications: Notification[] } };
+
+const initialState: NotificationsState = {
+  notifications: [],
+  loading: true,
+  refreshing: false,
+  filter: 'all',
+  selectedNotification: null,
+  showDetailModal: false,
+};
+
+function notificationsReducer(state: NotificationsState, action: NotificationsAction): NotificationsState {
+  switch (action.type) {
+    case 'SET_NOTIFICATIONS':
+      return { ...state, notifications: action.payload };
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+    case 'SET_REFRESHING':
+      return { ...state, refreshing: action.payload };
+    case 'SET_FILTER':
+      return { ...state, filter: action.payload };
+    case 'SET_SELECTED_NOTIFICATION':
+      return { ...state, selectedNotification: action.payload };
+    case 'SET_SHOW_DETAIL_MODAL':
+      return { ...state, showDetailModal: action.payload };
+    case 'MARK_AS_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map(n =>
+          n.id === action.payload ? { ...n, is_read: true } : n
+        ),
+      };
+    case 'MARK_ALL_AS_READ':
+      return {
+        ...state,
+        notifications: state.notifications.map(n => ({ ...n, is_read: true })),
+      };
+    case 'DELETE_NOTIFICATION':
+      return {
+        ...state,
+        notifications: state.notifications.filter(n => n.id !== action.payload),
+      };
+    case 'OPEN_DETAIL':
+      return { ...state, selectedNotification: action.payload, showDetailModal: true };
+    case 'CLOSE_DETAIL':
+      return { ...state, showDetailModal: false };
+    case 'FETCH_COMPLETE':
+      return { ...state, notifications: action.payload.notifications, loading: false, refreshing: false };
+    case 'REFRESH_COMPLETE':
+      return { ...state, notifications: action.payload.notifications, refreshing: false };
+    default:
+      return state;
+  }
+}
 
 interface NotificationTypeConfig {
   icon: keyof typeof Ionicons.glyphMap;
@@ -111,12 +190,8 @@ export default function NotificationsScreen() {
   const { colors, isDark } = useTheme();
   const { markAllNotificationsAsRead, markNotificationAsRead: markOneReadGlobal } = useNotifications();
   const insets = useSafeAreaInsets();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<FilterType>('all');
-  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [state, dispatch] = useReducer(notificationsReducer, initialState);
+  const { notifications, loading, refreshing, filter, selectedNotification, showDetailModal } = state;
 
   useEffect(() => {
     fetchNotifications();
@@ -128,26 +203,25 @@ export default function NotificationsScreen() {
       if (!bypassCache) {
         const cached = await CacheService.get<Notification[]>(cacheKey);
         if (cached) {
-          setNotifications(cached.data);
-          setLoading(false);
+          dispatch({ type: 'SET_NOTIFICATIONS', payload: cached.data });
+          dispatch({ type: 'SET_LOADING', payload: false });
           if (!cached.isStale) return; // Données fraîches : pas d'appel réseau
           // Données périmées : refresh silencieux en arrière-plan
         }
       }
       const response = await notificationsAPI.getNotifications({ page_size: 100 });
       const data = response.data.results || response.data || [];
-      setNotifications(data);
+      dispatch({ type: 'FETCH_COMPLETE', payload: { notifications: data } });
       CacheService.set(cacheKey, data, 60 * 1000); // fraîcheur : 1 minute
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement notifications:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      dispatch({ type: 'SET_LOADING', payload: false });
+      dispatch({ type: 'SET_REFRESHING', payload: false });
     }
   };
 
   const onRefresh = async () => {
-    setRefreshing(true);
+    dispatch({ type: 'SET_REFRESHING', payload: true });
     await fetchNotifications(true);
   };
 
@@ -226,9 +300,7 @@ export default function NotificationsScreen() {
   const handleMarkAsRead = async (id: string) => {
     try {
       await markOneReadGlobal(id);
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-      );
+      dispatch({ type: 'MARK_AS_READ', payload: id });
     } catch (error) {
       if (__DEV__) console.error('Erreur marquage lu:', error);
     }
@@ -237,8 +309,7 @@ export default function NotificationsScreen() {
   const handleMarkAllAsRead = async () => {
     try {
       await markAllNotificationsAsRead();
-      // Sync local state with context
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      dispatch({ type: 'MARK_ALL_AS_READ' });
       // Invalidate cache so next fetch gets fresh data
       CacheService.invalidate(`notifs:${user?.id}`);
     } catch (error) {
@@ -253,7 +324,7 @@ export default function NotificationsScreen() {
       async () => {
         try {
           await notificationsAPI.deleteNotification(id);
-          setNotifications(prev => prev.filter(n => n.id !== id));
+          dispatch({ type: 'DELETE_NOTIFICATION', payload: id });
         } catch (error) {
           if (__DEV__) console.error('Erreur suppression:', error);
         }
@@ -267,14 +338,13 @@ export default function NotificationsScreen() {
       await handleMarkAsRead(notification.id);
     }
     // Show detail modal
-    setSelectedNotification(notification);
-    setShowDetailModal(true);
+    dispatch({ type: 'OPEN_DETAIL', payload: notification });
   };
 
   const handleNavigateToRelated = () => {
     if (!selectedNotification) return;
 
-    setShowDetailModal(false);
+    dispatch({ type: 'CLOSE_DETAIL' });
 
     // Navigate based on notification type or related object
     const { notification_type, related_object_type, related_object_id, event, data } = selectedNotification;
@@ -368,6 +438,9 @@ export default function NotificationsScreen() {
         onPress={() => handleNotificationPress(item)}
         onLongPress={() => handleDelete(item.id)}
         activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={item.title}
+        accessibilityHint="Appui long pour supprimer"
       >
         <View style={[styles.iconContainer, { backgroundColor: config.bgColor }]}>
           <Ionicons name={config.icon} size={20} color={config.color} />
@@ -441,6 +514,8 @@ export default function NotificationsScreen() {
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
           </TouchableOpacity>
@@ -482,7 +557,10 @@ export default function NotificationsScreen() {
             <TouchableOpacity
               key={f.key}
               style={[styles.filterButton, filter === f.key && [styles.filterButtonActive, { backgroundColor: colors.primary }]]}
-              onPress={() => setFilter(f.key)}
+              onPress={() => dispatch({ type: 'SET_FILTER', payload: f.key })}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: filter === f.key }}
+              accessibilityLabel={f.label}
             >
               <Text style={[styles.filterText, { color: colors.gray600 }, filter === f.key && { color: Colors.white }]}>
                 {f.label}
@@ -494,6 +572,8 @@ export default function NotificationsScreen() {
           <TouchableOpacity
             style={[styles.markAllButton, { borderTopColor: colors.gray100 }]}
             onPress={handleMarkAllAsRead}
+            accessibilityRole="button"
+            accessibilityLabel="Tout marquer comme lu"
           >
             <Ionicons name="checkmark-done" size={16} color={colors.primary} />
             <Text style={[styles.markAllText, { color: colors.primary }]}>Tout marquer lu</Text>
@@ -528,7 +608,7 @@ export default function NotificationsScreen() {
             visible={showDetailModal}
             transparent
             animationType="fade"
-            onRequestClose={() => setShowDetailModal(false)}
+            onRequestClose={() => dispatch({ type: 'CLOSE_DETAIL' })}
           >
             <View style={styles.modalOverlay}>
               <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
@@ -547,7 +627,9 @@ export default function NotificationsScreen() {
                       </View>
                       <TouchableOpacity
                         style={[styles.modalCloseButton, { backgroundColor: colors.gray100 }]}
-                        onPress={() => setShowDetailModal(false)}
+                        onPress={() => dispatch({ type: 'CLOSE_DETAIL' })}
+                        accessibilityRole="button"
+                        accessibilityLabel="Fermer"
                       >
                         <Ionicons name="close" size={24} color={colors.gray500} />
                       </TouchableOpacity>
@@ -586,7 +668,9 @@ export default function NotificationsScreen() {
                     <View style={[styles.modalFooter, { borderTopColor: colors.gray100 }]}>
                       <TouchableOpacity
                         style={[styles.modalSecondaryButton, { backgroundColor: colors.gray100 }]}
-                        onPress={() => setShowDetailModal(false)}
+                        onPress={() => dispatch({ type: 'CLOSE_DETAIL' })}
+                        accessibilityRole="button"
+                        accessibilityLabel="Fermer"
                       >
                         <Text style={[styles.modalSecondaryButtonText, { color: colors.gray700 }]}>Fermer</Text>
                       </TouchableOpacity>
@@ -594,6 +678,8 @@ export default function NotificationsScreen() {
                         <TouchableOpacity
                           style={[styles.modalPrimaryButton, { backgroundColor: colors.primary }]}
                           onPress={handleNavigateToRelated}
+                          accessibilityRole="button"
+                          accessibilityLabel="Voir les details"
                         >
                           <Text style={styles.modalPrimaryButtonText}>Voir les détails</Text>
                           <Ionicons name="arrow-forward" size={18} color={Colors.white} />
