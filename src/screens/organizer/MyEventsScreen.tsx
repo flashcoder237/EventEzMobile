@@ -22,7 +22,6 @@ import { Events as EventsIllustration } from '../../components/illustrations';
 import { eventsAPI, getMediaUrl } from '../../api';
 import { Event, RootStackParamList } from '../../types';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
@@ -310,8 +309,8 @@ export default function MyEventsScreen() {
                   accessibilityRole="button"
                   accessibilityLabel="Scanner QR code"
                 >
-                  <Ionicons name="qr-code" size={16} color={Colors.white} />
-                  <Text style={[styles.actionText, { color: Colors.white }]}>Scanner</Text>
+                  <Ionicons name="qr-code" size={16} color="#FFFFFF" />
+                  <Text style={[styles.actionText, { color: '#FFFFFF' }]}>Scanner</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
@@ -344,13 +343,13 @@ export default function MyEventsScreen() {
 
             {item.status === 'draft' && (
               <TouchableOpacity
-                style={[styles.actionButton, styles.actionButtonPrimary]}
+                style={[styles.actionButton, { backgroundColor: colors.primary }]}
                 onPress={() => handleSubmitForValidation(item.id)}
                 accessibilityRole="button"
                 accessibilityLabel="Publier l'evenement"
               >
-                <Ionicons name="send" size={16} color={Colors.white} />
-                <Text style={[styles.actionText, { color: Colors.white }]}>Publier</Text>
+                <Ionicons name="send" size={16} color="#FFFFFF" />
+                <Text style={[styles.actionText, { color: '#FFFFFF' }]}>Publier</Text>
               </TouchableOpacity>
             )}
 
@@ -392,12 +391,12 @@ export default function MyEventsScreen() {
       </Text>
       {!searchQuery && filter === 'all' && (
         <TouchableOpacity
-          style={styles.createButton}
+          style={[styles.createButton, { backgroundColor: colors.primary }]}
           onPress={() => navigation.navigate('EventCreate')}
           accessibilityRole="button"
           accessibilityLabel="Creer un evenement"
         >
-          <Ionicons name="add" size={20} color={Colors.white} />
+          <Ionicons name="add" size={20} color="#FFFFFF" />
           <Text style={styles.createButtonText}>Créer mon premier événement</Text>
         </TouchableOpacity>
       )}
@@ -407,19 +406,19 @@ export default function MyEventsScreen() {
   if (loading) {
     return (
       <>
-        <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
+        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
         <MyEventsScreenSkeleton />
       </>
     );
   }
 
   return (
-    <View style={[styles.mainContainer, { backgroundColor: '#4F46E5' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
+    <View style={[styles.mainContainer, { backgroundColor: colors.primary }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
 
       {/* Header with gradient */}
       <LinearGradient
-        colors={isDark ? ['#5B21B6', '#4338CA', '#4338CA'] : ['#4F46E5', '#6366F1', '#6366F1']}
+        colors={isDark ? [colors.primaryDark, colors.primaryDark, colors.primaryDark] : [colors.primary, '#6366F1', '#6366F1']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + Spacing.md }]}
@@ -431,7 +430,7 @@ export default function MyEventsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Retour"
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Mes événements</Text>
           <TouchableOpacity
@@ -440,7 +439,7 @@ export default function MyEventsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Creer un evenement"
           >
-            <Ionicons name="add" size={24} color="#4F46E5" />
+            <Ionicons name="add" size={24} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
@@ -481,13 +480,13 @@ export default function MyEventsScreen() {
             contentContainerStyle={styles.filterList}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={[styles.filterTab, { backgroundColor: colors.gray100 }, filter === item.value && styles.filterTabActive]}
+                style={[styles.filterTab, { backgroundColor: filter === item.value ? colors.primary : colors.gray100 }]}
                 onPress={() => setFilter(item.value)}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: filter === item.value }}
                 accessibilityLabel={`Filtre ${item.label}`}
               >
-                <Text style={[styles.filterTabText, { color: colors.gray600 }, filter === item.value && styles.filterTabTextActive]}>
+                <Text style={[styles.filterTabText, { color: filter === item.value ? '#FFFFFF' : colors.gray600 }]}>
                   {item.label}
                 </Text>
               </TouchableOpacity>
@@ -530,11 +529,9 @@ export default function MyEventsScreen() {
 const styles = StyleSheet.create({
   mainContainer: {
     flex: 1,
-    backgroundColor: '#4F46E5',
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   header: {
     padding: Spacing.lg,
@@ -542,7 +539,6 @@ const styles = StyleSheet.create({
   },
   contentArea: {
     flex: 1,
-    backgroundColor: Colors.white,
     borderTopLeftRadius: BorderRadius.xl,
     borderTopRightRadius: BorderRadius.xl,
     marginTop: -Spacing.md,
@@ -562,13 +558,12 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...TextStyles.h2,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
   addButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -585,7 +580,6 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
     paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
@@ -594,7 +588,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: Spacing.md,
     fontSize: FontSizes.base,
-    color: Colors.gray900,
   },
   filterContainer: {
     paddingBottom: Spacing.sm,
@@ -607,20 +600,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray100,
     marginRight: Spacing.sm,
   },
-  filterTabActive: {
-    backgroundColor: '#4F46E5',
-  },
+  filterTabActive: {},
   filterTabText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
   },
-  filterTabTextActive: {
-    color: Colors.white,
-  },
+  filterTabTextActive: {},
   listContent: {
     padding: Spacing.lg,
     paddingTop: Spacing.sm,
@@ -628,17 +615,14 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   eventCard: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     marginBottom: Spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: Colors.gray100,
   },
   eventImage: {
     width: '100%',
     height: 160,
-    backgroundColor: Colors.gray200,
   },
   statusBadge: {
     position: 'absolute',
@@ -673,7 +657,6 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
     flex: 1,
   },
   eventStats: {
@@ -682,7 +665,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
     marginBottom: Spacing.sm,
   },
   statItem: {
@@ -695,19 +677,16 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: FontSizes.sm,
-    color: Colors.gray500,
   },
   priceText: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.base,
-    color: Colors.primary,
   },
   actionsRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   actionButton: {
     flexDirection: 'row',
@@ -715,16 +694,12 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.gray50,
     gap: Spacing.xs,
   },
-  actionButtonPrimary: {
-    backgroundColor: Colors.primary,
-  },
+  actionButtonPrimary: {},
   actionText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    color: Colors.gray600,
   },
   emptyContainer: {
     flex: 1,
@@ -736,7 +711,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
@@ -747,7 +721,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: FontSizes.base,
-    color: Colors.gray500,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: Spacing.xl,
@@ -756,7 +729,6 @@ const styles = StyleSheet.create({
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,

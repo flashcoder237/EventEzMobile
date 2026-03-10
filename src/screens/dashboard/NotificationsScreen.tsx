@@ -700,18 +700,15 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   rootContainer: {
     flex: 1,
-    backgroundColor: Colors.primary,
   },
   safeArea: {
     flex: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: Colors.gray50,
   },
   // Header
   headerContainer: {
-    backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
@@ -792,7 +789,6 @@ const styles = StyleSheet.create({
 
   // Filters
   filtersContainer: {
-    backgroundColor: Colors.white,
     marginHorizontal: Spacing.lg,
     marginTop: -Spacing.md,
     borderRadius: BorderRadius.lg,
@@ -810,16 +806,11 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.md,
     alignItems: 'center',
   },
-  filterButtonActive: {
-    backgroundColor: Colors.primary,
-  },
+  filterButtonActive: {},
   filterText: {
     ...TextStyles.label,
-    color: Colors.gray600,
   },
-  filterTextActive: {
-    color: Colors.white,
-  },
+  filterTextActive: {},
   markAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -828,11 +819,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     marginTop: Spacing.xs,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   markAllText: {
     ...TextStyles.label,
-    color: Colors.primary,
   },
 
   // Section
@@ -843,7 +832,6 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     ...TextStyles.dateAccent,
-    color: Colors.gray500,
   },
 
   // List
@@ -856,17 +844,13 @@ const styles = StyleSheet.create({
   notificationCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.gray100,
   },
   unreadCard: {
     borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
-    backgroundColor: Colors.white,
   },
   iconContainer: {
     width: 44,
@@ -892,7 +876,6 @@ const styles = StyleSheet.create({
   },
   unreadText: {
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
   },
   typeBadge: {
     paddingHorizontal: Spacing.sm,
@@ -905,7 +888,6 @@ const styles = StyleSheet.create({
   },
   notificationMessage: {
     ...TextStyles.small,
-    color: Colors.gray500,
     lineHeight: 18,
     marginBottom: Spacing.sm,
   },
@@ -921,13 +903,11 @@ const styles = StyleSheet.create({
   },
   notificationTime: {
     ...TextStyles.caption,
-    color: Colors.gray400,
   },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.primary,
   },
 
   // Empty
@@ -941,7 +921,6 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: Colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,
@@ -953,7 +932,6 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     ...TextStyles.body,
-    color: Colors.gray500,
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -967,7 +945,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
     width: '100%',
     maxWidth: 400,
@@ -992,7 +969,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1018,7 +994,6 @@ const styles = StyleSheet.create({
   },
   modalMessage: {
     ...TextStyles.body,
-    color: Colors.gray600,
     lineHeight: 24,
     marginBottom: Spacing.md,
   },
@@ -1028,11 +1003,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   modalTime: {
     ...TextStyles.small,
-    color: Colors.gray500,
   },
   modalFooter: {
     flexDirection: 'row',
@@ -1040,24 +1013,20 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     gap: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   modalSecondaryButton: {
     flex: 1,
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.gray100,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
   },
   modalSecondaryButtonText: {
     ...TextStyles.button,
-    color: Colors.gray700,
   },
   modalPrimaryButton: {
     flex: 1,
     flexDirection: 'row',
     paddingVertical: Spacing.md,
-    backgroundColor: Colors.primary,
     borderRadius: BorderRadius.lg,
     alignItems: 'center',
     justifyContent: 'center',

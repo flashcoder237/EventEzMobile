@@ -259,7 +259,7 @@ export default function ProfileScreen() {
         {/* Become Organizer CTA - Only for regular users */}
         {!isOrganizer && !isModerator && (
           <TouchableOpacity
-            style={styles.becomeOrganizerCard}
+            style={[styles.becomeOrganizerCard, { backgroundColor: colors.secondary + '15', borderColor: colors.secondary + '30' }]}
             onPress={() => navigation.navigate('BecomeOrganizer')}
             activeOpacity={0.8}
             accessibilityRole="button"
@@ -496,7 +496,6 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   header: {
     flexDirection: 'row',
@@ -517,7 +516,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.gray50,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -527,7 +525,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginHorizontal: Spacing.lg,
     padding: Spacing.xl,
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius['4xl'],
     ...Shadows.glass,
   },
@@ -598,7 +595,6 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius['3xl'],
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.sm,
@@ -618,10 +614,8 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.xl,
     padding: Spacing.md,
-    backgroundColor: Colors.secondary + '15',
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.secondary + '30',
   },
   becomeOrganizerIcon: {
     width: 52,
@@ -654,10 +648,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   menuCard: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius['3xl'],
     borderWidth: 1,
-    borderColor: Colors.gray100,
     ...Shadows.xs,
   },
   menuItem: {
@@ -665,13 +657,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   menuIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
   },

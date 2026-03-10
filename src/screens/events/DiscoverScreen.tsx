@@ -903,10 +903,10 @@ export default function DiscoverScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Fermer les filtres"
               >
-                <Ionicons name="close" size={22} color={Colors.white} />
+                <Ionicons name="close" size={22} color={colors.white} />
               </TouchableOpacity>
               <View style={styles.modalHeaderIcon}>
-                <Ionicons name="options" size={24} color={Colors.white} />
+                <Ionicons name="options" size={24} color={colors.white} />
               </View>
               <View style={styles.modalHeaderTextContainer}>
                 <Text style={styles.modalHeaderTitle}>Filtres avances</Text>
@@ -1143,7 +1143,7 @@ export default function DiscoverScreen() {
               <Text style={[styles.resetBtnText, { color: colors.gray700 }]}>Réinitialiser</Text>
             </TouchableOpacity>
             <TouchableOpacity style={[styles.applyBtn, { backgroundColor: colors.primary }]} onPress={applyFilterChanges} accessibilityRole="button" accessibilityLabel="Appliquer les filtres">
-              <Ionicons name="checkmark" size={18} color={Colors.white} />
+              <Ionicons name="checkmark" size={18} color={colors.white} />
               <Text style={styles.applyBtnText}>Appliquer</Text>
             </TouchableOpacity>
           </View>

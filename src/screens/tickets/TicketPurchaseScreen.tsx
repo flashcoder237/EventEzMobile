@@ -706,9 +706,9 @@ export default function TicketPurchaseScreen() {
                   accessibilityRole="button"
                 >
                   {validatingDiscount ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
+                    <ActivityIndicator size="small" color={colors.white} />
                   ) : (
-                    <Text style={styles.applyDiscountText}>Appliquer</Text>
+                    <Text style={[styles.applyDiscountText, { color: colors.white }]}>Appliquer</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -843,9 +843,9 @@ export default function TicketPurchaseScreen() {
           disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || (!isEditMode && !isAdditionalMode && !!existingRegistration)}
           icon={
             submitting ? (
-              <ActivityIndicator size="small" color={Colors.white} />
+              <ActivityIndicator size="small" color={colors.white} />
             ) : (
-              <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+              <Ionicons name="arrow-forward" size={20} color={colors.white} />
             )
           }
           style={styles.ctaButton}

@@ -65,8 +65,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   });
 
   const bottomPadding = Math.max(insets.bottom, 16);
-  const pillBg = isDark ? '#1E1B4B' : '#E0E7FF';
-  const barBg = isDark ? 'rgba(26,26,46,0.95)' : 'rgba(255,255,255,0.95)';
+  const pillBg = colors.primaryBg;
+  const barBg = isDark ? `${colors.card}F2` : `${colors.card}F2`;
 
   return (
     <View style={[styles.floatingBarOuter, { paddingBottom: bottomPadding }]}>

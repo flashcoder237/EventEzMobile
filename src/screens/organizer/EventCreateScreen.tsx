@@ -29,7 +29,6 @@ import {
 import { useEventForm, STEPS } from '../../hooks/useEventForm';
 import { useEventDraft } from '../../hooks/useEventDraft';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
@@ -244,8 +243,8 @@ export default function EventCreateScreen() {
                 exiting={FadeOut.duration(300)}
                 style={styles.savedBadge}
               >
-                <Ionicons name="cloud-done-outline" size={12} color={Colors.success} />
-                <Text style={styles.savedBadgeText}>Sauvegardé</Text>
+                <Ionicons name="cloud-done-outline" size={12} color={colors.success} />
+                <Text style={[styles.savedBadgeText, { color: colors.success }]}>Sauvegardé</Text>
               </Animated.View>
             )}
           </View>
@@ -260,8 +259,8 @@ export default function EventCreateScreen() {
                 style={[
                   styles.stepIndicator,
                   { backgroundColor: colors.gray200 },
-                  form.currentStep >= step.id && styles.stepIndicatorActive,
-                  form.currentStep === step.id && styles.stepIndicatorCurrent,
+                  form.currentStep >= step.id && { backgroundColor: colors.primary },
+                  form.currentStep === step.id && { backgroundColor: colors.primary, transform: [{ scale: 1.1 }] },
                 ]}
                 onPress={() => goToStep(step.id)}
                 accessibilityRole="button"
@@ -271,11 +270,11 @@ export default function EventCreateScreen() {
                 <Ionicons
                   name={step.icon as any}
                   size={18}
-                  color={form.currentStep >= step.id ? Colors.white : colors.gray400}
+                  color={form.currentStep >= step.id ? '#FFFFFF' : colors.gray400}
                 />
               </TouchableOpacity>
               {index < STEPS.length - 1 && (
-                <View style={[styles.stepLine, { backgroundColor: colors.gray200 }, form.currentStep > step.id && styles.stepLineActive]} />
+                <View style={[styles.stepLine, { backgroundColor: colors.gray200 }, form.currentStep > step.id && { backgroundColor: colors.primary }]} />
               )}
             </React.Fragment>
           ))}
@@ -425,26 +424,26 @@ export default function EventCreateScreen() {
 
           {form.currentStep < STEPS.length ? (
             <TouchableOpacity
-              style={[styles.nextButton, form.currentStep === 1 && { flex: 1 }]}
+              style={[styles.nextButton, { backgroundColor: colors.primary }, form.currentStep === 1 && { flex: 1 }]}
               onPress={goToNextStep}
               accessibilityRole="button"
               accessibilityLabel="Etape suivante"
             >
               <Text style={styles.nextButtonText}>Suivant</Text>
-              <Ionicons name="arrow-forward" size={20} color={Colors.white} />
+              <Ionicons name="arrow-forward" size={20} color={'#FFFFFF'} />
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.submitButton, form.loading && styles.submitButtonDisabled]}
+              style={[styles.submitButton, { backgroundColor: colors.success }, form.loading && styles.submitButtonDisabled]}
               onPress={onSubmit}
               disabled={form.loading}
               accessibilityRole="button"
               accessibilityLabel="Creer l'evenement"
             >
               {form.loading ? (
-                <ActivityIndicator size="small" color={Colors.white} />
+                <ActivityIndicator size="small" color={'#FFFFFF'} />
               ) : (
-                <Ionicons name="checkmark-circle" size={20} color={Colors.white} />
+                <Ionicons name="checkmark-circle" size={20} color={'#FFFFFF'} />
               )}
               <Text style={styles.submitButtonText}>
                 {form.loading ? 'Création...' : 'Créer l\'événement'}
@@ -472,7 +471,6 @@ export default function EventCreateScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
   },
   keyboardView: {
     flex: 1,
@@ -484,8 +482,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-    backgroundColor: Colors.white,
   },
   backButton: {
     width: 40,
@@ -501,7 +497,6 @@ const styles = StyleSheet.create({
   headerBarTitle: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
-    color: Colors.gray900,
   },
   savedBadge: {
     flexDirection: 'row',
@@ -512,7 +507,6 @@ const styles = StyleSheet.create({
   savedBadgeText: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.xs,
-    color: Colors.success,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -520,33 +514,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
   stepIndicator: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  stepIndicatorActive: {
-    backgroundColor: Colors.primary,
-  },
-  stepIndicatorCurrent: {
-    backgroundColor: Colors.primary,
-    transform: [{ scale: 1.1 }],
   },
   stepLine: {
     flex: 1,
     height: 2,
-    backgroundColor: Colors.gray200,
     marginHorizontal: Spacing.sm,
-  },
-  stepLineActive: {
-    backgroundColor: Colors.primary,
   },
   scrollView: {
     flex: 1,
@@ -559,8 +539,6 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     gap: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    backgroundColor: Colors.white,
   },
   prevButton: {
     flex: 1,
@@ -569,13 +547,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.gray100,
     gap: Spacing.sm,
   },
   prevButtonText: {
     fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
-    color: Colors.gray600,
   },
   nextButton: {
     flex: 2,
@@ -584,7 +560,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.primary,
     gap: Spacing.sm,
   },
   nextButtonText: {
@@ -597,7 +572,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.success,
     gap: Spacing.sm,
   },
   submitButtonDisabled: {

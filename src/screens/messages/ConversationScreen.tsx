@@ -1038,7 +1038,6 @@ export default function ConversationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.gray50,
   },
   loadingContainer: {
     flex: 1,
@@ -1064,7 +1063,6 @@ const styles = StyleSheet.create({
     width: MESSAGE_AVATAR_SIZE,
     height: MESSAGE_AVATAR_SIZE,
     borderRadius: MESSAGE_AVATAR_SIZE / 2,
-    backgroundColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
@@ -1097,7 +1095,6 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: FontSizes.xs,
     color: Colors.gray500,
-    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
@@ -1115,7 +1112,6 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: Colors.gray100,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
@@ -1139,7 +1135,6 @@ const styles = StyleSheet.create({
 
   // Connection Status
   connectionStatus: {
-    backgroundColor: Colors.warning,
     paddingVertical: 4,
     alignItems: 'center',
   },
@@ -1157,7 +1152,6 @@ const styles = StyleSheet.create({
   systemMessageText: {
     fontSize: FontSizes.xs,
     color: Colors.gray500,
-    backgroundColor: Colors.gray100,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
@@ -1173,11 +1167,9 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
     ...Shadows.lg,
     borderWidth: 1,
-    borderColor: Colors.gray200,
   },
 });

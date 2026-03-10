@@ -355,8 +355,8 @@ export default function DashboardScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Portefeuille"
               >
-                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#064E3B' : '#F0FDF4' }]}>
-                  <Ionicons name="wallet-outline" size={24} color="#10B981" />
+                <View style={[styles.organizerActionIcon, { backgroundColor: colors.successLight }]}>
+                  <Ionicons name="wallet-outline" size={24} color={colors.success} />
                 </View>
                 <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Portefeuille</Text>
                 <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Revenus & paiements</Text>
@@ -369,8 +369,8 @@ export default function DashboardScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Analytiques"
               >
-                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#78350F' : '#FEF3C7' }]}>
-                  <Ionicons name="stats-chart-outline" size={24} color="#F59E0B" />
+                <View style={[styles.organizerActionIcon, { backgroundColor: colors.warningLight }]}>
+                  <Ionicons name="stats-chart-outline" size={24} color={colors.warning} />
                 </View>
                 <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Analytiques</Text>
                 <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Voir les stats</Text>
@@ -386,16 +386,16 @@ export default function DashboardScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Abonnement"
               >
-                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#1E1B4B' : '#E0E7FF' }]}>
-                  <Ionicons name="diamond-outline" size={24} color={isDark ? '#A5B4FC' : '#4F46E5'} />
+                <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
+                  <Ionicons name="diamond-outline" size={24} color={colors.primary} />
                 </View>
                 <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Abonnement</Text>
                 <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Gerer mon plan</Text>
               </TouchableOpacity>
 
               <View style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
-                <View style={[styles.organizerActionIcon, { backgroundColor: isDark ? '#10182D' : '#E0E7FF' }]}>
-                  <Ionicons name="download-outline" size={24} color={isDark ? '#93C5FD' : '#6366F1'} />
+                <View style={[styles.organizerActionIcon, { backgroundColor: colors.infoBg }]}>
+                  <Ionicons name="download-outline" size={24} color={colors.infoDark} />
                 </View>
                 <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Exporter</Text>
                 <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Vos donnees</Text>

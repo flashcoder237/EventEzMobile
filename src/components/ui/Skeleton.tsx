@@ -925,9 +925,9 @@ export const MyEventCardSkeleton = memo(function MyEventCardSkeleton() {
 export const MyEventsScreenSkeleton = memo(function MyEventsScreenSkeleton() {
   const { colors } = useTheme();
   return (
-    <View style={{ flex: 1, backgroundColor: '#4F46E5' }}>
+    <View style={{ flex: 1, backgroundColor: colors.primary }}>
       {/* Header */}
-      <View style={{ backgroundColor: '#4F46E5', paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xl }}>
+      <View style={{ backgroundColor: colors.primary, paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, paddingBottom: Spacing.xl }}>
         {/* Top row: back + title + add */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
           <PrimarySkeleton width={40} height={40} borderRadius={20} />

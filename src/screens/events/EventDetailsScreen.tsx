@@ -476,7 +476,7 @@ export default function EventDetailsScreen() {
                 <Ionicons name="share-social-outline" size={20} color={colors.gray600} />
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.shareButton, { backgroundColor: isDark ? '#1A3D1A' : '#E7F5E7' }]}
+                style={[styles.shareButton, { backgroundColor: colors.successLight }]}
                 onPress={handleShareToWhatsApp}
                 accessibilityRole="button"
                 accessibilityLabel="Partager sur WhatsApp"
@@ -489,9 +489,9 @@ export default function EventDetailsScreen() {
 
           {/* Location Card */}
           {event.location_type === 'online' ? (
-            <View style={[styles.onlineEventCard, { backgroundColor: colors.card, borderColor: isDark ? colors.border : '#DBEAFE' }]}>
+            <View style={[styles.onlineEventCard, { backgroundColor: colors.card, borderColor: colors.infoLight }]}>
               <View style={styles.onlineEventHeader}>
-                <View style={[styles.infoIconContainer, { backgroundColor: isDark ? colors.infoLight : '#DBEAFE' }]}>
+                <View style={[styles.infoIconContainer, { backgroundColor: colors.infoLight }]}>
                   <Ionicons name="videocam" size={22} color={colors.info} />
                 </View>
                 <View style={styles.infoContent}>
@@ -539,14 +539,14 @@ export default function EventDetailsScreen() {
                       <Text style={styles.joinOnlineButtonText}>Rejoindre l'evenement</Text>
                     </TouchableOpacity>
                   ) : event.online_platform?.toLowerCase().includes('eventez') ? (
-                    <View style={[styles.eventezVisioNotice, { backgroundColor: isDark ? colors.infoLight : '#F0F9FF' }]}>
+                    <View style={[styles.eventezVisioNotice, { backgroundColor: colors.infoBg }]}>
                       <Ionicons name="information-circle" size={18} color={colors.info} />
                       <Text style={[styles.eventezVisioNoticeText, { color: colors.gray600 }]}>
                         La visioconference EventEz sera disponible le jour de l'evenement
                       </Text>
                     </View>
                   ) : !event.online_meeting_id && !event.online_passcode ? (
-                    <View style={[styles.eventezVisioNotice, { backgroundColor: isDark ? colors.infoLight : '#F0F9FF' }]}>
+                    <View style={[styles.eventezVisioNotice, { backgroundColor: colors.infoBg }]}>
                       <Ionicons name="time-outline" size={18} color={colors.gray500} />
                       <Text style={[styles.eventezVisioNoticeText, { color: colors.gray600 }]}>
                         Les informations de connexion seront communiquees avant l'evenement
@@ -579,9 +579,9 @@ export default function EventDetailsScreen() {
                 <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
               </TouchableOpacity>
               {/* Online option */}
-              <View style={[styles.hybridOnlineOption, { backgroundColor: isDark ? colors.infoLight : '#EFF6FF' }]}>
+              <View style={[styles.hybridOnlineOption, { backgroundColor: colors.infoBg }]}>
                 <Ionicons name="videocam" size={18} color={colors.info} />
-                <Text style={[styles.hybridOnlineText, { color: isDark ? colors.infoDark : '#1D4ED8' }]}>
+                <Text style={[styles.hybridOnlineText, { color: colors.infoDark }]}>
                   Egalement disponible en ligne via {event.online_platform || 'visioconference'}
                 </Text>
               </View>
@@ -689,7 +689,7 @@ export default function EventDetailsScreen() {
               )}
               {event.visibility === 'unlisted' && (
                 <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="link-outline" size={20} color="#F97316" />
+                  <Ionicons name="link-outline" size={20} color={colors.warning} />
                   <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Non listé (accessible via le lien)</Text>
                 </View>
               )}
@@ -806,7 +806,7 @@ export default function EventDetailsScreen() {
         style={styles.bottomBar}
       >
         {Platform.OS === 'android' && (
-          <View style={[styles.bottomBarAndroidBg, { backgroundColor: isDark ? 'rgba(15,15,26,0.95)' : 'rgba(255,255,255,0.95)' }]} />
+          <View style={[styles.bottomBarAndroidBg, { backgroundColor: `${colors.card}F2` }]} />
         )}
       <View style={[styles.bottomBarContent, { borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
         <View style={styles.priceContainer}>
