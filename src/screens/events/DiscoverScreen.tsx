@@ -1253,7 +1253,7 @@ export default function DiscoverScreen() {
           {categories.slice(0, 8).map(cat => (
             <TouchableOpacity
               key={cat.id}
-              style={[styles.discoverChip, { backgroundColor: colors.surface }]}
+              style={[styles.discoverChip, { borderColor: colors.gray200 }]}
               onPress={() => {
                 setSelectedCategory(cat.id);
                 activateSearch();
@@ -1261,8 +1261,7 @@ export default function DiscoverScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Categorie ${cat.name}`}
             >
-              <CategoryIcon name={cat.name} size={16} color={colors.primary} strokeWidth={2} />
-              <Text style={[styles.discoverChipText, { color: colors.gray700 }]}>{cat.name}</Text>
+              <Text style={[styles.discoverChipText, { color: colors.gray600 }]}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -1684,13 +1683,12 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   discoverChip: {
-    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surface,
-    paddingHorizontal: Spacing.sm,
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.md,
     height: 30,
     borderRadius: BorderRadius.full,
-    gap: 4,
+    borderWidth: 1,
     marginRight: Spacing.xs,
     ...Shadows.xs,
   },
