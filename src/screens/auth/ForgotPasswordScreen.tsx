@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { authAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AuthStackParamList } from '../../types';
+import { RootStackParamList } from '../../types';
 import {
   Colors,
   FontSizes,
@@ -29,7 +29,7 @@ import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import DotPattern from '../../components/ui/DotPattern';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ForgotPassword'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();

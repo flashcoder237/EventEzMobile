@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AuthStackParamList } from '../../types';
+import { RootStackParamList } from '../../types';
 import {
   Colors,
   FontFamily,
@@ -33,7 +33,7 @@ import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import DotPattern from '../../components/ui/DotPattern';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
 interface FormData {
   first_name: string;

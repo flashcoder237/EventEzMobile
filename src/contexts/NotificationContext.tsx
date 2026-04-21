@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { AppState, AppStateStatus, Platform } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { notificationsAPI, messagesAPI } from '../api';
+import { notificationsAPI, messagesAPI, invitationsAPI, ticketTransfersAPI } from '../api';
 import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
 import PushPermissionModal from '../components/common/PushPermissionModal';
@@ -23,6 +23,10 @@ interface NotificationContextType {
   notifications: Notification[];
   unreadNotificationCount: number;
   unreadMessageCount: number;
+  pendingInvitationCount: number;
+  pendingTransferCount: number;
+  /** Total items awaiting user action (notifs + messages + invitations + transfers) */
+  totalPendingCount: number;
   loading: boolean;
   pushToken: string | null;
   pushEnabled: boolean;
@@ -42,6 +46,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [unreadMessageCount, setUnreadMessageCount] = useState(0);
+  const [pendingInvitationCount, setPendingInvitationCount] = useState(0);
+  const [pendingTransferCount, setPendingTransferCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -188,16 +194,35 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await pushNotificationService.setBadgeCount(notifCount);
       }
 
-      // Fetch message count
-      try {
-        const msgResponse = await messagesAPI.getConversations();
-        const conversations = msgResponse.data?.results || msgResponse.data || [];
+      // Fetch message count, invitations, transfers in parallel
+      const [msgResult, invResult, transferResult] = await Promise.allSettled([
+        messagesAPI.getConversations(),
+        invitationsAPI.getMyInvitations(),
+        ticketTransfersAPI.getPendingTransfers(),
+      ]);
+
+      // Messages
+      if (msgResult.status === 'fulfilled') {
+        const conversations = msgResult.value.data?.results || msgResult.value.data || [];
         const unreadMsgs = conversations.reduce((acc: number, conv: any) => {
           return acc + (conv.unread_count || 0);
         }, 0);
         setUnreadMessageCount(unreadMsgs);
-      } catch (error) {
-        if (__DEV__) console.error('Error fetching message count:', error);
+      }
+
+      // Pending invitations
+      if (invResult.status === 'fulfilled') {
+        const invitations = invResult.value.data?.results || invResult.value.data || [];
+        const pending = Array.isArray(invitations)
+          ? invitations.filter((inv: any) => inv.status === 'pending').length
+          : 0;
+        setPendingInvitationCount(pending);
+      }
+
+      // Pending ticket transfers
+      if (transferResult.status === 'fulfilled') {
+        const transfers = transferResult.value.data?.results || transferResult.value.data || [];
+        setPendingTransferCount(Array.isArray(transfers) ? transfers.length : 0);
       }
     } catch (error) {
       if (__DEV__) console.error('Error fetching unread counts:', error);
@@ -320,6 +345,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setNotifications([]);
       setUnreadNotificationCount(0);
       setUnreadMessageCount(0);
+      setPendingInvitationCount(0);
+      setPendingTransferCount(0);
       setPushToken(null);
       setPushEnabled(false);
 
@@ -366,10 +393,15 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const totalPendingCount = unreadNotificationCount + unreadMessageCount + pendingInvitationCount + pendingTransferCount;
+
   const value = useMemo(() => ({
     notifications,
     unreadNotificationCount,
     unreadMessageCount,
+    pendingInvitationCount,
+    pendingTransferCount,
+    totalPendingCount,
     loading,
     pushToken,
     pushEnabled,
@@ -384,6 +416,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     notifications,
     unreadNotificationCount,
     unreadMessageCount,
+    pendingInvitationCount,
+    pendingTransferCount,
+    totalPendingCount,
     loading,
     pushToken,
     pushEnabled,

@@ -46,6 +46,7 @@ import TicketsTab from '../../components/events/TicketsTab';
 import AgendaTab from '../../components/events/AgendaTab';
 import ReviewsTab from '../../components/events/ReviewsTab';
 import { useEventDetails } from '../../hooks/useEventDetails';
+import { useAuthGuard } from '../../hooks/useAuthGuard';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { eventsAPI, getMediaUrl } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -60,6 +61,7 @@ export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
   const { eventId, imageUrl: routeImageUrl } = route.params;
   const { colors, isDark, gradients } = useTheme();
+  const { requireAuth } = useAuthGuard();
   const insets = useSafeAreaInsets();
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
   const viewerFlatListRef = useRef<FlatList>(null);
@@ -899,7 +901,7 @@ export default function EventDetailsScreen() {
         ) : (
           <TouchableOpacity
             style={[styles.ctaButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('TicketPurchase', { eventId })}
+            onPress={requireAuth(() => navigation.navigate('TicketPurchase', { eventId }))}
             activeOpacity={0.8}
             accessibilityRole="button"
             accessibilityLabel={event.event_type === 'billetterie' ? 'Acheter des billets' : "S'inscrire"}

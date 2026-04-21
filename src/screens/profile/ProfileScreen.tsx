@@ -7,6 +7,7 @@ import {
   ScrollView,
   RefreshControl,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import { eventsAPI, feedbacksAPI, registrationsAPI } from '../../api';
@@ -41,41 +43,56 @@ interface MenuItemProps {
   onPress?: () => void;
   showArrow?: boolean;
   danger?: boolean;
+  badge?: number;
+  loading?: boolean;
 }
 
-const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, danger }: MenuItemProps) => {
+const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, danger, badge, loading }: MenuItemProps) => {
   const { colors } = useTheme();
   return (
     <TouchableOpacity
       style={[styles.menuItem, { borderBottomColor: colors.gray100 }]}
-      onPress={onPress}
-      activeOpacity={0.6}
+      onPress={loading ? undefined : onPress}
+      activeOpacity={loading ? 1 : 0.6}
+      disabled={loading}
       accessibilityRole="button"
       accessibilityLabel={subtitle ? `${title} - ${subtitle}` : title}
     >
       <View style={[styles.menuIconContainer, { backgroundColor: colors.gray50 }, danger && { backgroundColor: colors.errorBg }]}>
-        <Ionicons
-          name={icon}
-          size={20}
-          color={danger ? colors.error : colors.gray700}
-        />
+        {loading ? (
+          <ActivityIndicator size="small" color={danger ? colors.error : colors.gray700} />
+        ) : (
+          <Ionicons
+            name={icon}
+            size={20}
+            color={danger ? colors.error : colors.gray700}
+          />
+        )}
+        {badge != null && badge > 0 && (
+          <View style={[styles.menuBadge, { backgroundColor: colors.error }]}>
+            <Text style={styles.menuBadgeText}>{badge > 99 ? '99+' : badge}</Text>
+          </View>
+        )}
       </View>
       <View style={styles.menuTextContainer}>
         <Text style={[styles.menuTitle, { color: colors.gray900 }, danger && { color: colors.error }]}>{title}</Text>
         {subtitle && <Text style={[styles.menuSubtitle, { color: colors.gray500 }]}>{subtitle}</Text>}
       </View>
-      {showArrow && (
+      {loading ? (
+        <ActivityIndicator size="small" color={colors.gray300} />
+      ) : showArrow ? (
         <Ionicons name="chevron-forward" size={20} color={colors.gray300} />
-      )}
+      ) : null}
     </TouchableOpacity>
   );
 };
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { user, logout } = useAuth();
+  const { user, logout, isLoading: authLoading } = useAuth();
   const { showAlert, showConfirm } = useAlert();
   const { colors, isDark, gradients } = useTheme();
+  const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount } = useNotifications();
   const [showMyQR, setShowMyQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
@@ -232,6 +249,17 @@ export default function ProfileScreen() {
                   <Text style={styles.organizerBadgeText}>Organisateur</Text>
                 </View>
               )}
+              {user?.is_verified ? (
+                <View style={[styles.verificationBadge, { backgroundColor: colors.successLight }]}>
+                  <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+                  <Text style={[styles.verificationText, { color: colors.success }]}>Vérifié</Text>
+                </View>
+              ) : (
+                <View style={[styles.verificationBadge, { backgroundColor: colors.warningBg }]}>
+                  <Ionicons name="time-outline" size={12} color={colors.warning} />
+                  <Text style={[styles.verificationText, { color: colors.warning }]}>Non vérifié</Text>
+                </View>
+              )}
             </View>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.gray300} />
@@ -347,11 +375,13 @@ export default function ProfileScreen() {
             <MenuItem
               icon="notifications-outline"
               title="Notifications"
+              badge={unreadNotificationCount}
               onPress={() => navigation.navigate('Notifications')}
             />
             <MenuItem
               icon="chatbubbles-outline"
               title="Messages"
+              badge={unreadMessageCount}
               onPress={() => navigation.navigate('Messages')}
             />
             <MenuItem
@@ -363,6 +393,7 @@ export default function ProfileScreen() {
             <MenuItem
               icon="mail-outline"
               title="Invitations"
+              badge={pendingInvitationCount}
               onPress={() => navigation.navigate('Invitations')}
             />
           </View>
@@ -465,10 +496,11 @@ export default function ProfileScreen() {
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="log-out-outline"
-              title="Déconnexion"
+              title={authLoading ? 'Déconnexion en cours...' : 'Déconnexion'}
               onPress={handleLogout}
               showArrow={false}
               danger
+              loading={authLoading}
             />
           </View>
         </View>
@@ -586,6 +618,20 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     color: Colors.white,
   },
+  verificationBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.full,
+    gap: 4,
+  },
+  verificationText: {
+    ...TextStyles.caption,
+    fontFamily: FontFamily.medium,
+  },
   statsContainer: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
@@ -664,6 +710,23 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  menuBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  menuBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    lineHeight: 14,
   },
   menuIconDanger: {
     backgroundColor: Colors.errorLight,

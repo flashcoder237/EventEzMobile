@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGoogleAuth, useAppleAuth } from '../../hooks/useSocialAuth';
-import { AuthStackParamList } from '../../types';
+import { RootStackParamList } from '../../types';
 import {
   Colors,
   Gradients,
@@ -42,7 +42,7 @@ import DotPattern from '../../components/ui/DotPattern';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -55,6 +55,7 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors<'email' | 'password'>>({});
+  const [loginInProgress, setLoginInProgress] = useState(false);
   const [retryInfo, setRetryInfo] = useState<{ attempt: number; maxRetries: number } | null>(null);
 
   useEffect(() => {
@@ -124,11 +125,11 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     if (!validate()) return;
     setRetryInfo(null);
+    setLoginInProgress(true);
     try {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
 
-      // Pré-vérifier avec l'API directement AVANT d'appeler AuthContext.login()
-      // car login() set isLoading=true → RootNavigator unmount AuthNavigator → navigation stale
+      // Pré-vérifier avec l'API directement pour gérer les erreurs spécifiques (email non vérifié)
       try {
         await authAPI.login(email.trim().toLowerCase(), password);
       } catch (apiError: any) {
@@ -154,10 +155,16 @@ export default function LoginScreen() {
       // L'API a réussi → appeler login() qui va re-fetch les tokens + user
       await login(email.trim().toLowerCase(), password, rememberMe);
       setRetryInfo(null);
+      // Dismiss login modal — tabs will update reactively via auth state
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
     } catch (error: any) {
       setRetryInfo(null);
       const message = extractErrorMessage(error);
       showError('Erreur de connexion', message);
+    } finally {
+      setLoginInProgress(false);
     }
   };
 
@@ -328,7 +335,8 @@ export default function LoginScreen() {
             <GradientButton
               onPress={handleLogin}
               title="Se connecter"
-              loading={isLoading}
+              loading={loginInProgress || isLoading}
+              disabled={loginInProgress || isLoading}
               icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
               size="xl"
               fullWidth
@@ -362,7 +370,7 @@ export default function LoginScreen() {
                 (!googleReady || googleLoading) && styles.socialButtonDisabled,
               ]}
               onPress={handleGoogleSignIn}
-              disabled={!googleReady || googleLoading || isLoading}
+              disabled={!googleReady || googleLoading || isLoading || loginInProgress}
               animationType="lift"
               scaleValue={0.98}
               haptic="light"
@@ -387,7 +395,7 @@ export default function LoginScreen() {
                   appleLoading && styles.socialButtonDisabled,
                 ]}
                 onPress={handleAppleSignIn}
-                disabled={appleLoading || isLoading}
+                disabled={appleLoading || isLoading || loginInProgress}
                 animationType="lift"
                 scaleValue={0.98}
                 haptic="light"

@@ -139,7 +139,7 @@ export function resetTo(navigation: Navigation, routeName: keyof RootStackParamL
  * Reset vers l'ecran d'authentification
  */
 export function resetToAuth(navigation: Navigation) {
-  resetTo(navigation, 'Auth');
+  resetTo(navigation, 'Login');
 }
 
 /**

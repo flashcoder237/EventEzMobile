@@ -1455,6 +1455,13 @@ export type RootStackParamList = {
   Main: undefined;
   Auth: undefined;
   Onboarding: undefined;
+  // Auth screens (accessible from anywhere for browse-first flow)
+  Login: undefined;
+  Register: undefined;
+  RegisterOrganizer: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: { token: string };
+  VerifyEmail: { email: string };
   EventDetails: { eventId: string; imageUrl?: string };
   TicketPurchase: {
     eventId: string;

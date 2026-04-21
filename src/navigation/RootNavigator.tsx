@@ -1,17 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { RootStackParamList } from '../types';
-import { Colors } from '../constants/theme';
 import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 
 // Navigators
-import AuthNavigator from './AuthNavigator';
 import MainTabNavigator from './MainTabNavigator';
+
+// Auth Screens (accessible from anywhere)
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
+import RegisterOrganizerScreen from '../screens/auth/RegisterOrganizerScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
+import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
+import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
+import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
 // Event Screens
 import EventDetailsScreen from '../screens/events/EventDetailsScreen';
@@ -97,13 +103,10 @@ import TreasuryExpensesScreen from '../screens/admin/treasury/TreasuryExpensesSc
 import TreasuryShareholdersScreen from '../screens/admin/treasury/TreasuryShareholdersScreen';
 import TreasuryReportsScreen from '../screens/admin/treasury/TreasuryReportsScreen';
 
-// Onboarding Screen
-import OnboardingScreen from '../screens/auth/OnboardingScreen';
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isInitializing } = useAuth();
   const { colors } = useTheme();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
@@ -133,13 +136,11 @@ export default function RootNavigator() {
     setShowOnboarding(false);
   }, []);
 
-  if (isLoading || checkingOnboarding) {
-    return (
-<LoadingSpinner />
-    );
+  if (isInitializing || checkingOnboarding) {
+    return <LoadingSpinner />;
   }
 
-  // Show onboarding as a full-screen overlay for first-time users
+  // Show onboarding as a full-screen overlay for first-time authenticated users
   if (isAuthenticated && showOnboarding) {
     return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
@@ -149,419 +150,168 @@ export default function RootNavigator() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.background },
-        // Transition push standard : slide depuis la droite (lisible sur iOS & Android)
         animation: 'slide_from_right',
         animationDuration: 320,
       }}
     >
-      {!isAuthenticated ? (
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-      ) : (
-        <>
-          <Stack.Screen name="Main" component={MainTabNavigator} />
+      {/* Main tabs — always accessible (guest & authenticated) */}
+      <Stack.Screen name="Main" component={MainTabNavigator} />
 
-          {/* Event Screens */}
-          <Stack.Screen
-            name="EventDetails"
-            component={EventDetailsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Map"
-            component={MapScreen}
-            options={{
-              headerShown: true,
-              headerTitle: 'Carte',
-              headerBackTitle: 'Retour',
-              headerTintColor: colors.primary,
-              headerStyle: { backgroundColor: colors.background },
-              headerShadowVisible: false,
-            }}
-          />
-          <Stack.Screen
-            name="SessionDetails"
-            component={SessionDetailsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="SpeakerDetails"
-            component={SpeakerDetailsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="OrganizerProfile"
-            component={OrganizerProfileScreen}
-            options={{ headerShown: false }}
-          />
+      {/* Auth Screens — accessible as modal from anywhere */}
+      <Stack.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="Register"
+        component={RegisterScreen}
+        options={{ animation: 'slide_from_bottom', presentation: 'modal' }}
+      />
+      <Stack.Screen name="RegisterOrganizer" component={RegisterOrganizerScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <Stack.Screen
+        name="ResetPassword"
+        component={ResetPasswordScreen}
+      />
+      <Stack.Screen
+        name="VerifyEmail"
+        component={VerifyEmailScreen}
+      />
 
-          {/* Payment Screens */}
-          <Stack.Screen
-            name="Payment"
-            component={PaymentScreen}
-            options={{
-              headerShown: false,
-              gestureEnabled: false,
-              presentation: 'modal',
-            }}
-          />
-          <Stack.Screen
-            name="PaymentSuccess"
-            component={PaymentSuccessScreen}
-            options={{
-              headerShown: false,
-              gestureEnabled: false,
-            }}
-          />
-          <Stack.Screen
-            name="PaymentFailed"
-            component={PaymentFailedScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
+      {/* Event Screens (public — browsable without auth) */}
+      <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
+      <Stack.Screen
+        name="Map"
+        component={MapScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Carte',
+          headerBackTitle: 'Retour',
+          headerTintColor: colors.primary,
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen name="SessionDetails" component={SessionDetailsScreen} />
+      <Stack.Screen name="SpeakerDetails" component={SpeakerDetailsScreen} />
+      <Stack.Screen name="OrganizerProfile" component={OrganizerProfileScreen} />
 
-          {/* Ticket Screens */}
-          <Stack.Screen
-            name="TicketPurchase"
-            component={TicketPurchaseScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="QRCode"
-            component={QRCodeScreen}
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-            }}
-          />
-          <Stack.Screen
-            name="RegistrationDetails"
-            component={RegistrationDetailsScreen}
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-            }}
-          />
-          <Stack.Screen
-            name="PendingTransfers"
-            component={PendingTransfersScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="OfflineTickets"
-            component={OfflineTicketsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="Scan"
-            component={ScanScreen}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-            }}
-          />
+      {/* Payment Screens */}
+      <Stack.Screen
+        name="Payment"
+        component={PaymentScreen}
+        options={{ gestureEnabled: false, presentation: 'modal' }}
+      />
+      <Stack.Screen
+        name="PaymentSuccess"
+        component={PaymentSuccessScreen}
+        options={{ gestureEnabled: false }}
+      />
+      <Stack.Screen name="PaymentFailed" component={PaymentFailedScreen} />
 
-          {/* Dashboard & Profile Screens */}
-          <Stack.Screen
-            name="Notifications"
-            component={NotificationsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="UserDashboard"
-            component={DashboardScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="Settings"
-            component={SettingsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="EditProfile"
-            component={EditProfileScreen}
-            options={{
-              headerShown: true,
-              headerTitle: 'Modifier le profil',
-              headerBackTitle: 'Retour',
-              headerTintColor: colors.primary,
-              headerStyle: { backgroundColor: colors.background },
-              headerShadowVisible: false,
-            }}
-          />
-          <Stack.Screen
-            name="Terms"
-            component={TermsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="Privacy"
-            component={PrivacyScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="BecomeOrganizer"
-            component={BecomeOrganizerScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="Verification"
-            component={VerificationScreen}
-            options={{
-              headerShown: true,
-              headerTitle: 'Vérification',
-              headerBackTitle: 'Retour',
-              headerTintColor: colors.primary,
-              headerStyle: { backgroundColor: colors.background },
-              headerShadowVisible: false,
-            }}
-          />
+      {/* Ticket Screens */}
+      <Stack.Screen name="TicketPurchase" component={TicketPurchaseScreen} />
+      <Stack.Screen name="QRCode" component={QRCodeScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="RegistrationDetails" component={RegistrationDetailsScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="PendingTransfers" component={PendingTransfersScreen} />
+      <Stack.Screen name="OfflineTickets" component={OfflineTicketsScreen} />
+      <Stack.Screen name="Scan" component={ScanScreen} options={{ presentation: 'fullScreenModal' }} />
 
-          {/* Messages Screens */}
-          <Stack.Screen
-            name="Messages"
-            component={MessagesScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="Conversation"
-            component={ConversationScreen}
-            options={{
-              headerShown: true,
-              headerTitle: '',
-              headerBackTitle: 'Retour',
-              headerTintColor: colors.primary,
-              headerStyle: { backgroundColor: colors.background },
-              headerShadowVisible: false,
-            }}
-          />
+      {/* Dashboard & Profile Screens */}
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="UserDashboard" component={DashboardScreen} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Modifier le profil',
+          headerBackTitle: 'Retour',
+          headerTintColor: colors.primary,
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+        }}
+      />
+      <Stack.Screen name="Terms" component={TermsScreen} />
+      <Stack.Screen name="Privacy" component={PrivacyScreen} />
+      <Stack.Screen name="BecomeOrganizer" component={BecomeOrganizerScreen} />
+      <Stack.Screen
+        name="Verification"
+        component={VerificationScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Verification',
+          headerBackTitle: 'Retour',
+          headerTintColor: colors.primary,
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+        }}
+      />
 
-          {/* Organizer Screens */}
-          <Stack.Screen
-            name="EventCreate"
-            component={EventCreateScreen}
-            options={{
-              headerShown: false,
-              // Formulaire de création : slide du bas → ressemble à un "nouveau flux"
-              animation: 'slide_from_bottom',
-            }}
-          />
-          <Stack.Screen
-            name="EventEdit"
-            component={EventEditScreen}
-            options={{
-              headerShown: false,
-              animation: 'slide_from_right',
-            }}
-          />
-          <Stack.Screen
-            name="Wallet"
-            component={WalletScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="MyEvents"
-            component={MyEventsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="QRScanner"
-            component={QRScannerScreen}
-            options={{
-              headerShown: false,
-              presentation: 'fullScreenModal',
-            }}
-          />
-          <Stack.Screen
-            name="EventAnalytics"
-            component={EventAnalyticsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="EventRegistrations"
-            component={EventRegistrationsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="DiscountManagement"
-            component={DiscountManagementScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="DiscountForm"
-            component={DiscountFormScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
+      {/* Messages Screens */}
+      <Stack.Screen name="Messages" component={MessagesScreen} />
+      <Stack.Screen
+        name="Conversation"
+        component={ConversationScreen}
+        options={{
+          headerShown: true,
+          headerTitle: '',
+          headerBackTitle: 'Retour',
+          headerTintColor: colors.primary,
+          headerStyle: { backgroundColor: colors.background },
+          headerShadowVisible: false,
+        }}
+      />
 
-          {/* Moderation Screens */}
-          <Stack.Screen
-            name="Moderation"
-            component={ModerationScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
+      {/* Organizer Screens */}
+      <Stack.Screen name="EventCreate" component={EventCreateScreen} options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="EventEdit" component={EventEditScreen} />
+      <Stack.Screen name="Wallet" component={WalletScreen} />
+      <Stack.Screen name="MyEvents" component={MyEventsScreen} />
+      <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ presentation: 'fullScreenModal' }} />
+      <Stack.Screen name="EventAnalytics" component={EventAnalyticsScreen} />
+      <Stack.Screen name="EventRegistrations" component={EventRegistrationsScreen} />
+      <Stack.Screen name="DiscountManagement" component={DiscountManagementScreen} />
+      <Stack.Screen name="DiscountForm" component={DiscountFormScreen} />
 
-          {/* Payment Management Screens */}
-          <Stack.Screen
-            name="MyPayments"
-            component={MyPaymentsScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="RefundRequest"
-            component={RefundRequestScreen}
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-            }}
-          />
+      {/* Moderation Screens */}
+      <Stack.Screen name="Moderation" component={ModerationScreen} />
 
-          {/* New Feature Screens */}
-          <Stack.Screen
-            name="Gamification"
-            component={GamificationScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Invitations"
-            component={InvitationsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="LiveEvent"
-            component={LiveEventScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Referrals"
-            component={ReferralScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Volunteers"
-            component={VolunteerScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Subscription"
-            component={SubscriptionScreen}
-            options={{ headerShown: false }}
-          />
+      {/* Payment Management Screens */}
+      <Stack.Screen name="MyPayments" component={MyPaymentsScreen} />
+      <Stack.Screen name="RefundRequest" component={RefundRequestScreen} options={{ presentation: 'modal' }} />
 
-          {/* Help Screen */}
-          <Stack.Screen
-            name="Help"
-            component={HelpScreen}
-            options={{ headerShown: false }}
-          />
+      {/* New Feature Screens */}
+      <Stack.Screen name="Gamification" component={GamificationScreen} />
+      <Stack.Screen name="Invitations" component={InvitationsScreen} />
+      <Stack.Screen name="LiveEvent" component={LiveEventScreen} />
+      <Stack.Screen name="Referrals" component={ReferralScreen} />
+      <Stack.Screen name="Volunteers" component={VolunteerScreen} />
+      <Stack.Screen name="Subscription" component={SubscriptionScreen} />
 
-          {/* Analytics Screens */}
-          <Stack.Screen
-            name="AnalyticsDashboard"
-            component={AnalyticsDashboardScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="Reports"
-            component={ReportsScreen}
-            options={{ headerShown: false }}
-          />
+      {/* Help Screen */}
+      <Stack.Screen name="Help" component={HelpScreen} />
 
-          {/* Admin Screens */}
-          <Stack.Screen
-            name="AdminDashboard"
-            component={AdminDashboardScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="UserManagement"
-            component={UserManagementScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="UserEdit"
-            component={UserEditScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="SubscriptionManagement"
-            component={SubscriptionManagementScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="AuditLogs"
-            component={AuditLogsScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PlatformSettings"
-            component={PlatformSettingsScreen}
-            options={{ headerShown: false }}
-          />
+      {/* Analytics Screens */}
+      <Stack.Screen name="AnalyticsDashboard" component={AnalyticsDashboardScreen} />
+      <Stack.Screen name="Reports" component={ReportsScreen} />
 
-          {/* Treasury Screens */}
-          <Stack.Screen
-            name="TreasuryOverview"
-            component={TreasuryOverviewScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="TreasuryStaff"
-            component={TreasuryStaffScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="TreasuryExpenses"
-            component={TreasuryExpensesScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="TreasuryShareholders"
-            component={TreasuryShareholdersScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="TreasuryReports"
-            component={TreasuryReportsScreen}
-            options={{ headerShown: false }}
-          />
-        </>
-      )}
+      {/* Admin Screens */}
+      <Stack.Screen name="AdminDashboard" component={AdminDashboardScreen} />
+      <Stack.Screen name="UserManagement" component={UserManagementScreen} />
+      <Stack.Screen name="UserEdit" component={UserEditScreen} />
+      <Stack.Screen name="SubscriptionManagement" component={SubscriptionManagementScreen} />
+      <Stack.Screen name="AuditLogs" component={AuditLogsScreen} />
+      <Stack.Screen name="PlatformSettings" component={PlatformSettingsScreen} />
+
+      {/* Treasury Screens */}
+      <Stack.Screen name="TreasuryOverview" component={TreasuryOverviewScreen} />
+      <Stack.Screen name="TreasuryStaff" component={TreasuryStaffScreen} />
+      <Stack.Screen name="TreasuryExpenses" component={TreasuryExpensesScreen} />
+      <Stack.Screen name="TreasuryShareholders" component={TreasuryShareholdersScreen} />
+      <Stack.Screen name="TreasuryReports" component={TreasuryReportsScreen} />
     </Stack.Navigator>
   );
 }

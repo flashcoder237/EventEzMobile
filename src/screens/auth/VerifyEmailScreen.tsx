@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { authAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AuthStackParamList } from '../../types';
+import { RootStackParamList } from '../../types';
 import {
   Colors,
   FontFamily,
@@ -29,8 +29,8 @@ import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import DotPattern from '../../components/ui/DotPattern';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'VerifyEmail'>;
-type RoutePropType = RouteProp<AuthStackParamList, 'VerifyEmail'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'VerifyEmail'>;
+type RoutePropType = RouteProp<RootStackParamList, 'VerifyEmail'>;
 
 const RESEND_COOLDOWN = 60;
 

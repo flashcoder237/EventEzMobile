@@ -10,8 +10,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { eventsAPI } from '../../api';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -47,6 +50,7 @@ export default function FollowEventButton({
   initialFollowing = false,
 }: FollowEventButtonProps) {
   const { user } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { showAlert, showError, showWarning } = useAlert();
   const { colors, isDark } = useTheme();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
@@ -101,7 +105,7 @@ export default function FollowEventButton({
 
   const handleToggleFollow = async () => {
     if (!user) {
-      showWarning('Connexion requise', 'Vous devez être connecté pour suivre un événement');
+      navigation.navigate('Login');
       return;
     }
 

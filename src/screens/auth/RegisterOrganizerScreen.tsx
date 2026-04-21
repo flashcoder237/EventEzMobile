@@ -19,7 +19,7 @@ import { usersAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AuthStackParamList } from '../../types';
+import { RootStackParamList } from '../../types';
 import {
   Colors,
   FontFamily,
@@ -33,7 +33,7 @@ import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import DotPattern from '../../components/ui/DotPattern';
 
-type NavigationProp = NativeStackNavigationProp<AuthStackParamList, 'RegisterOrganizer'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'RegisterOrganizer'>;
 
 type OrganizerType = 'individual' | 'organization';
 

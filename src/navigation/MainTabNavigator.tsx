@@ -16,12 +16,58 @@ import { MainTabParamList } from '../types';
 import { FontFamily, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useNotifications } from '../contexts/NotificationContext';
+
+import AuthGuardScreen from '../components/auth/AuthGuardScreen';
 
 // Screens
 import DiscoverScreen from '../screens/events/DiscoverScreen';
 import FollowingEventsScreen from '../screens/dashboard/FollowingEventsScreen';
 import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
+
+// Auth-guarded tab wrappers
+function SavedTabScreen() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return (
+      <AuthGuardScreen
+        illustration="bookmark"
+        title="Vos evenements sauvegardes"
+        subtitle="Connectez-vous pour retrouver les evenements que vous suivez et ne rien manquer."
+      />
+    );
+  }
+  return <FollowingEventsScreen />;
+}
+
+function TicketsTabScreen() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return (
+      <AuthGuardScreen
+        illustration="ticket"
+        title="Vos billets"
+        subtitle="Connectez-vous pour acceder a vos billets, inscriptions et QR codes."
+      />
+    );
+  }
+  return <MyTicketsScreen />;
+}
+
+function ProfileTabScreen() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return (
+      <AuthGuardScreen
+        illustration="profile"
+        title="Votre profil"
+        subtitle="Connectez-vous pour gerer votre profil, vos preferences et acceder a toutes les fonctionnalites."
+      />
+    );
+  }
+  return <ProfileScreen />;
+}
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
@@ -46,6 +92,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const tabCount = state.routes.length;
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { totalPendingCount } = useNotifications();
 
   useEffect(() => {
     indicatorPosition.value = withSpring(state.index, {
@@ -120,32 +167,41 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               style={styles.tabItem}
               activeOpacity={0.7}
             >
-              {route.name === 'Profile' ? (
-                user?.profile_picture || user?.image ? (
-                  <Image
-                    source={user.profile_picture || user.image}
-                    style={[
-                      styles.tabAvatar,
-                      { borderColor: isFocused ? activeColor : colors.gray300 },
-                    ]}
-                    cachePolicy="disk"
-                    transition={200}
-                  />
-                ) : (
-                  <View
-                    style={[
-                      styles.tabAvatarInitial,
-                      {
-                        backgroundColor: isDark ? colors.gray200 : colors.gray200,
-                        borderColor: isFocused ? activeColor : colors.gray300,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.tabAvatarInitialText, { color: isFocused ? activeColor : colors.gray600 }]}>
-                      {(user?.first_name?.[0] || user?.email?.[0] || 'U').toUpperCase()}
-                    </Text>
-                  </View>
-                )
+              {route.name === 'Profile' && user ? (
+                <View>
+                  {user.profile_picture || user.image ? (
+                    <Image
+                      source={user.profile_picture || user.image}
+                      style={[
+                        styles.tabAvatar,
+                        { borderColor: isFocused ? activeColor : colors.gray300 },
+                      ]}
+                      cachePolicy="disk"
+                      transition={200}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.tabAvatarInitial,
+                        {
+                          backgroundColor: isDark ? colors.gray200 : colors.gray200,
+                          borderColor: isFocused ? activeColor : colors.gray300,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.tabAvatarInitialText, { color: isFocused ? activeColor : colors.gray600 }]}>
+                        {(user.first_name?.[0] || user.email?.[0] || 'U').toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  {totalPendingCount > 0 && (
+                    <View style={[styles.profileBadge, { backgroundColor: colors.error }]}>
+                      <Text style={styles.profileBadgeText}>
+                        {totalPendingCount > 99 ? '99+' : totalPendingCount}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               ) : (
                 <Ionicons
                   name={isFocused ? config.iconFocused : config.icon}
@@ -182,17 +238,17 @@ export default function MainTabNavigator() {
       />
       <Tab.Screen
         name="Saved"
-        component={FollowingEventsScreen}
+        component={SavedTabScreen}
         options={{ tabBarLabel: 'Saved' }}
       />
       <Tab.Screen
         name="MyTickets"
-        component={MyTicketsScreen}
+        component={TicketsTabScreen}
         options={{ tabBarLabel: 'Tickets' }}
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={ProfileTabScreen}
         options={{ tabBarLabel: 'Profil' }}
       />
     </Tab.Navigator>
@@ -261,5 +317,24 @@ const styles = StyleSheet.create({
   tabAvatarInitialText: {
     fontFamily: FontFamily.bold,
     fontSize: 13,
+  },
+  profileBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  profileBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    lineHeight: 12,
   },
 });

@@ -1199,7 +1199,7 @@ export default function DiscoverScreen() {
               </LinearGradient>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')} accessibilityRole="button" accessibilityLabel="Messages">
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => user ? navigation.navigate('Messages') : navigation.navigate('Login' as any)} accessibilityRole="button" accessibilityLabel="Messages">
             <Ionicons name="chatbubble-outline" size={20} color={colors.gray800} />
             {unreadMessageCount > 0 && (
               <PulsingBadge active={unreadMessageCount > 0} style={styles.badgeWrapper}>
@@ -1209,7 +1209,7 @@ export default function DiscoverScreen() {
               </PulsingBadge>
             )}
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')} accessibilityRole="button" accessibilityLabel="Notifications">
+          <TouchableOpacity style={[styles.headerBtn, { backgroundColor: colors.gray50 }]} onPress={() => user ? navigation.navigate('Notifications') : navigation.navigate('Login' as any)} accessibilityRole="button" accessibilityLabel="Notifications">
             <Ionicons name="notifications-outline" size={22} color={colors.gray800} />
             {unreadNotificationCount > 0 && (
               <PulsingBadge active={unreadNotificationCount > 0} style={styles.badgeWrapper}>
@@ -1336,7 +1336,7 @@ export default function DiscoverScreen() {
           <View style={[styles.section, { paddingHorizontal: Spacing.lg }]}>
             <TouchableOpacity
               style={[styles.loginCta, { backgroundColor: colors.surface, borderColor: colors.primary }]}
-              onPress={() => navigation.navigate('Auth')}
+              onPress={() => navigation.navigate('Login' as any)}
               activeOpacity={TOUCH_OPACITY}
             >
               <Ionicons name="sparkles" size={20} color={colors.primary} />
@@ -1459,7 +1459,7 @@ export default function DiscoverScreen() {
                 </Text>
               </TouchableOpacity>
               <View style={styles.compactActions}>
-                <TouchableOpacity style={[styles.compactBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Messages')} accessibilityRole="button" accessibilityLabel="Messages">
+                <TouchableOpacity style={[styles.compactBtn, { backgroundColor: colors.gray50 }]} onPress={() => user ? navigation.navigate('Messages') : navigation.navigate('Login' as any)} accessibilityRole="button" accessibilityLabel="Messages">
                   <Ionicons name="chatbubble-outline" size={18} color={colors.gray800} />
                   {unreadMessageCount > 0 && (
                     <View style={[styles.compactBadge, { backgroundColor: colors.error }]}>
@@ -1467,7 +1467,7 @@ export default function DiscoverScreen() {
                     </View>
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.compactBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.navigate('Notifications')} accessibilityRole="button" accessibilityLabel="Notifications">
+                <TouchableOpacity style={[styles.compactBtn, { backgroundColor: colors.gray50 }]} onPress={() => user ? navigation.navigate('Notifications') : navigation.navigate('Login' as any)} accessibilityRole="button" accessibilityLabel="Notifications">
                   <Ionicons name="notifications-outline" size={18} color={colors.gray800} />
                   {unreadNotificationCount > 0 && (
                     <View style={[styles.compactBadge, { backgroundColor: colors.error }]}>

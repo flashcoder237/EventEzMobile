@@ -10,6 +10,8 @@ import { setUser as setSentryUser, clearUser as clearSentryUser } from '../servi
 const REMEMBER_ME_KEY = 'eventez_remember_me';
 
 interface AuthContextType extends AuthState {
+  /** True only during initial app startup auth check (splash screen) */
+  isInitializing: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (data: {
     email: string;
@@ -28,10 +30,12 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  // isInitializing: true only during the first auth check at app start
+  const [isInitializing, setIsInitializing] = useState(true);
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    isLoading: true,
+    isLoading: false,
   });
 
   // Vérifier l'authentification au démarrage
@@ -48,8 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (clearError) {
         if (__DEV__) console.warn('Failed to clear tokens on auth error:', clearError);
       }
-      // Ne pas toucher REMEMBER_ME_KEY — l'utilisateur devra se reconnecter
-      // mais sa préférence "Se souvenir de moi" est préservée
       setState({ user: null, isAuthenticated: false, isLoading: false });
     });
     return unsub;
@@ -61,12 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const token = await SecureStore.getItemAsync('eventez_access_token');
 
       if (!token) {
-        // Pas de token : pas d'auto-connexion possible
         setState({ user: null, isAuthenticated: false, isLoading: false });
         return;
       }
 
-      // Si "Se souvenir de moi" explicitement désactivé, effacer les tokens
       if (rememberMe === 'false') {
         if (__DEV__) console.log('[Auth] Remember me disabled, clearing tokens');
         await clearTokens();
@@ -74,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // rememberMe est 'true' ou null (jamais configuré = auto-connexion par défaut)
       const response = await usersAPI.getCurrentUser();
       const user = response.data;
       setState({
@@ -86,13 +85,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSentryUser({ id: user.id, email: user.email, role: user.role });
     } catch (error) {
       if (__DEV__) console.error('Erreur de vérification auth:', error);
-      // Token invalide/expiré, nettoyer
       try {
         await clearTokens();
       } catch (clearError) {
         if (__DEV__) console.warn('Failed to clear tokens during auth check:', clearError);
       }
       setState({ user: null, isAuthenticated: false, isLoading: false });
+    } finally {
+      setIsInitializing(false);
     }
   };
 
@@ -103,7 +103,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { access, refresh } = response.data;
       await setTokens(access, refresh);
 
-      // Sauvegarder la préférence "Se souvenir de moi"
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
 
       const userResponse = await usersAPI.getCurrentUser();
@@ -114,7 +113,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       });
 
-      // Track login in analytics & error monitoring
       EventEzAnalytics.login('email');
       setAnalyticsUser(user.id, { role: user.role || 'user' });
       setSentryUser({ id: user.id, email: user.email, role: user.role });
@@ -149,26 +147,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    setState((prev) => ({ ...prev, isLoading: true }));
     try {
       await authAPI.logout();
     } catch (error) {
       if (__DEV__) console.warn('Logout API call failed:', error);
     }
-    // Track logout in analytics & error monitoring
     EventEzAnalytics.logout();
     clearAnalyticsUser();
     clearSentryUser();
 
-    // Filet de securite : s'assurer que les tokens sont bien supprimes
     try {
       await clearTokens();
     } catch (clearError) {
       if (__DEV__) console.warn('Failed to clear tokens during logout:', clearError);
     }
-    // Vider le cache mémoire — les données AsyncStorage restent pour le prochain login
     CacheService.clearMemory();
-    // Ne PAS réinitialiser REMEMBER_ME_KEY — la préférence est conservée
-    // pour le prochain login. Les tokens effacés empêchent l'auto-connexion.
     setState({
       user: null,
       isAuthenticated: false,
@@ -197,7 +191,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState({ user: null, isAuthenticated: false, isLoading: false });
       return;
     }
-    // Activer "Se souvenir de moi" par défaut pour l'authentification sociale
     await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'true');
     setState({
       user,
@@ -211,12 +204,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo(() => ({
     ...state,
+    isInitializing,
     login,
     register,
     logout,
     updateUser,
     setUser: setUserFn,
-  }), [state, login, register, logout, updateUser, setUserFn]);
+  }), [state, isInitializing, login, register, logout, updateUser, setUserFn]);
 
   return (
     <AuthContext.Provider value={value}>

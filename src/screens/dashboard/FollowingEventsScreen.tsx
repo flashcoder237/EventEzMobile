@@ -416,15 +416,14 @@ export default function FollowingEventsScreen() {
               key={tab.key}
               style={[
                 styles.filterButton,
-                { backgroundColor: colors.gray100 },
-                activeTab === tab.key && { backgroundColor: colors.primary },
+                activeTab === tab.key && [styles.filterButtonActive, { backgroundColor: colors.primary }],
               ]}
               onPress={() => setActiveTab(tab.key)}
             >
               <Text style={[
                 styles.filterText,
                 { color: colors.gray600 },
-                activeTab === tab.key && { color: '#FFFFFF' },
+                activeTab === tab.key && { color: Colors.white },
               ]}>
                 {tab.label}
               </Text>
@@ -556,7 +555,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.medium,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.7)',
     marginTop: 2,
   },
   statDivider: {
@@ -614,10 +613,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: Spacing.xs + 2,
     borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.gray100,
+  },
+  filterButtonActive: {
+    backgroundColor: Colors.primary,
   },
   filterText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
+    color: Colors.gray600,
   },
 
   // List
