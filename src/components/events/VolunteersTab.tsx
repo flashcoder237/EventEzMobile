@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { volunteersAPI } from '../../api';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
@@ -137,9 +137,9 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
               </View>
               <View style={styles.roleStatus}>
                 {hasApplied ? (
-                  <View style={[styles.statusBadge, { backgroundColor: '#DBEAFE' }]}>
-                    <Ionicons name="time-outline" size={12} color="#3B82F6" />
-                    <Text style={[styles.statusBadgeText, { color: '#3B82F6' }]}>Envoye</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: Colors.infoBg }]}>
+                    <Ionicons name="time-outline" size={12} color={Colors.info} />
+                    <Text style={[styles.statusBadgeText, { color: Colors.info }]}>Envoye</Text>
                   </View>
                 ) : isFull ? (
                   <View style={[styles.statusBadge, { backgroundColor: Colors.errorLight }]}>
@@ -276,10 +276,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
+    ...TextStyles.h3,
     letterSpacing: -0.3,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   subsectionTitle: {

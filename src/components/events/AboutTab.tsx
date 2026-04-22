@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Event } from '../../types';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import FollowEventButton from './FollowEventButton';
 
@@ -30,19 +30,18 @@ export default function AboutTab({
 
   return (
     <>
-      {/* About Section */}
+      {/* About Section — primary */}
       <View style={styles.section}>
         <Text style={[styles.eyebrow, { color: colors.accent }]}>À propos</Text>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Description</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>De l'événement</Text>
         <Text style={[styles.description, { color: colors.gray600 }]}>
           {event.description || event.short_description || 'Aucune description disponible pour cet evenement.'}
         </Text>
       </View>
 
-      {/* Follow Section */}
+      {/* Follow Section — primary CTA */}
       <View style={styles.section}>
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>Reste connecté</Text>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sauvegarder cet événement</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Reste connecté</Text>
         <Text style={[styles.followDescription, { color: colors.gray500 }]}>
           Reçois des notifications pour les mises à jour, rappels et annonces.
         </Text>
@@ -55,11 +54,10 @@ export default function AboutTab({
         />
       </View>
 
-      {/* Tags */}
+      {/* Tags — secondary (subsection) */}
       {event.tags && event.tags.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>Thématiques</Text>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Tags</Text>
+          <Text style={[styles.subsectionTitle, { color: colors.gray900 }]}>Thématiques</Text>
           <View style={styles.tagsRow}>
             {event.tags.map((tag) => (
               <View key={tag.id} style={[styles.tag, { backgroundColor: colors.gray100 }]}>
@@ -70,7 +68,7 @@ export default function AboutTab({
         </View>
       )}
 
-      {/* Volunteers Section */}
+      {/* Volunteers Section — list-item CTA */}
       <View style={styles.section}>
         <TouchableOpacity
           style={[styles.volunteerButton, { backgroundColor: colors.gray50 }]}
@@ -95,29 +93,27 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  // Hierarchie typo :
+  // eyebrow (11px accent uppercase) > sectionTitle (h3 20px) > subsectionTitle (h4 18px) > body
   eyebrow: {
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    ...TextStyles.eyebrow,
     marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.md,
     letterSpacing: -0.3,
   },
+  subsectionTitle: {
+    ...TextStyles.h4,
+    marginBottom: Spacing.sm,
+  },
   description: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
+    ...TextStyles.body,
     lineHeight: 24,
   },
   followDescription: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
+    ...TextStyles.small,
     marginBottom: Spacing.md,
   },
   tagsRow: {
@@ -126,19 +122,16 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   tag: {
-    backgroundColor: Colors.gray100,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.full,
   },
   tagText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray600,
+    ...TextStyles.small,
   },
   volunteerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
   },
@@ -146,7 +139,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: Colors.primaryBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -155,13 +147,10 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
   },
   volunteerTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   volunteerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
+    ...TextStyles.small,
     marginTop: 2,
   },
 });

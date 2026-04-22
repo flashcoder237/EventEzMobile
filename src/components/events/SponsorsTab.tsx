@@ -10,7 +10,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { sponsorsAPI } from '../../api';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
@@ -91,8 +91,8 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   if (!sponsors || sponsors.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>Ils soutiennent l'événement</Text>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sponsors</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>Sponsors</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Ils soutiennent l'événement</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="ribbon-outline" size={40} color={colors.gray300} />
           <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun sponsor pour cet evenement</Text>
@@ -151,16 +151,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   eyebrow: {
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    ...TextStyles.eyebrow,
     marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.md,
     letterSpacing: -0.3,
   },

@@ -16,8 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { discountsAPI, ticketTypesAPI } from '../../api';
+import { discountsAPI, ticketTypesAPI, eventsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -80,10 +79,12 @@ export default function DiscountManagementScreen() {
   const { eventId } = route.params;
   const { showAlert, showError } = useAlert();
   const { colors, isDark } = useTheme();
-  const { currency: platformCurrency } = useCommissionConfig();
 
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
+  // Strategie "Event mono-devise" : les codes promo s'affichent dans la devise de l'evenement
+  const [eventCurrency, setEventCurrency] = useState<string>('XAF');
+  const platformCurrency = eventCurrency === 'XAF' || eventCurrency === 'XOF' ? 'FCFA' : eventCurrency;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -93,11 +94,14 @@ export default function DiscountManagementScreen() {
 
   const fetchData = async () => {
     try {
-      const [discountsRes, ticketTypesRes] = await Promise.all([
+      const [discountsRes, ticketTypesRes, eventRes] = await Promise.all([
         discountsAPI.getDiscounts({ event: eventId }),
         ticketTypesAPI.getTicketTypes({ event: eventId }),
+        eventsAPI.getEvent(eventId).catch(() => null),
       ]);
       setDiscounts(discountsRes.data?.results || discountsRes.data || []);
+      const ev: any = eventRes?.data;
+      if (ev?.currency) setEventCurrency(String(ev.currency).toUpperCase());
       setTicketTypes(ticketTypesRes.data?.results || ticketTypesRes.data || []);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement codes promo:', error);

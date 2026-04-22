@@ -21,6 +21,8 @@ import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
 // Event Screens
 import EventDetailsScreen from '../screens/events/EventDetailsScreen';
+import EventReviewsScreen from '../screens/events/EventReviewsScreen';
+import EventSearchScreen from '../screens/events/EventSearchScreen';
 import MapScreen from '../screens/events/MapScreen';
 import SessionDetailsScreen from '../screens/events/SessionDetailsScreen';
 import SpeakerDetailsScreen from '../screens/events/SpeakerDetailsScreen';
@@ -196,6 +198,12 @@ export default function RootNavigator() {
       <Stack.Screen name="SessionDetails" component={SessionDetailsScreen} />
       <Stack.Screen name="SpeakerDetails" component={SpeakerDetailsScreen} />
       <Stack.Screen name="OrganizerProfile" component={OrganizerProfileScreen} />
+      <Stack.Screen name="EventReviews" component={EventReviewsScreen} />
+      <Stack.Screen
+        name="EventSearch"
+        component={EventSearchScreen}
+        options={{ animation: 'slide_from_bottom' }}
+      />
 
       {/* Payment Screens */}
       <Stack.Screen

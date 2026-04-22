@@ -100,7 +100,7 @@ export default function QRCodeDisplay({
                 width: size + 32,
                 height: size + 32,
                 borderColor: colors.primary,
-                backgroundColor: '#FFFFFF',
+                backgroundColor: Colors.white,
               },
             ]}
           >

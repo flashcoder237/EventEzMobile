@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,10 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Feedback, User } from '../../types';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Feedback, User, RootStackParamList } from '../../types';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
@@ -25,6 +27,8 @@ export interface ReviewsTabProps {
   setReviewComment: (comment: string) => void;
   submittingReview: boolean;
   onSubmitReview: () => void;
+  eventId?: string;
+  eventTitle?: string;
 }
 
 export default function ReviewsTab({
@@ -39,24 +43,35 @@ export default function ReviewsTab({
   setReviewComment,
   submittingReview,
   onSubmitReview,
+  eventId,
+  eventTitle,
 }: ReviewsTabProps) {
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+
+  // Pagination locale : on affiche INITIAL_COUNT avis, puis tous au clic sur "Voir plus".
+  // Au-dela de BACKEND_CAP avis, on redirige vers l'ecran dedie (scroll infini serveur).
+  const INITIAL_COUNT = 3;
+  const BACKEND_CAP = 20; // correspond au [:20] dans EventDetailSerializer
+  const [showAll, setShowAll] = useState(false);
+
+  const visibleFeedbacks = useMemo(() => {
+    if (!feedbacks) return [];
+    return showAll ? feedbacks : feedbacks.slice(0, INITIAL_COUNT);
+  }, [feedbacks, showAll]);
+
+  const hiddenCount = feedbacks ? Math.max(0, feedbacks.length - INITIAL_COUNT) : 0;
+  const mightHaveMore = feedbacks && feedbacks.length >= BACKEND_CAP && !!eventId;
+
+  const goToFullList = () => {
+    if (!eventId) return;
+    navigation.navigate('EventReviews', { eventId, eventTitle });
+  };
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>Parole aux participants</Text>
-      <View style={styles.reviewsHeader}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Avis des participants</Text>
-        {user && !showReviewForm && (
-          <TouchableOpacity
-            style={[styles.addReviewButton, { backgroundColor: colors.primaryBg }]}
-            onPress={() => setShowReviewForm(true)}
-          >
-            <Ionicons name="add" size={18} color={colors.primary} />
-            <Text style={[styles.addReviewText, { color: colors.primary }]}>Laisser un avis</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>Avis</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Parole aux participants</Text>
 
       {/* Review Form */}
       {showReviewForm && (
@@ -128,35 +143,87 @@ export default function ReviewsTab({
           <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement des avis...</Text>
         </View>
       ) : feedbacks && feedbacks.length > 0 ? (
-        feedbacks.map((feedback, index) => (
-          <View key={index} style={[styles.reviewCard, { backgroundColor: colors.gray50 }]}>
-            <View style={styles.reviewHeader}>
-              <View style={styles.reviewAvatar}>
-                <Text style={styles.reviewAvatarText}>
-                  {feedback.user_name?.[0] || (feedback.user as any)?.first_name?.[0] || 'U'}
-                </Text>
-              </View>
-              <View style={styles.reviewUserInfo}>
-                <Text style={[styles.reviewUserName, { color: colors.gray900 }]}>
-                  {feedback.user_name || `${(feedback.user as any)?.first_name || ''} ${(feedback.user as any)?.last_name || ''}`.trim() || 'Utilisateur'}
-                </Text>
-                <View style={styles.reviewRating}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Ionicons
-                      key={star}
-                      name={star <= feedback.rating ? 'star' : 'star-outline'}
-                      size={14}
-                      color={star <= feedback.rating ? '#FBBF24' : colors.gray300}
-                    />
-                  ))}
+        <>
+          {visibleFeedbacks.map((feedback, index) => (
+            <View key={index} style={[styles.reviewCard, { backgroundColor: colors.gray50 }]}>
+              <View style={styles.reviewHeader}>
+                <View style={[styles.reviewAvatar, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.reviewAvatarText}>
+                    {feedback.user_name?.[0] || (feedback.user as any)?.first_name?.[0] || 'U'}
+                  </Text>
+                </View>
+                <View style={styles.reviewUserInfo}>
+                  <Text style={[styles.reviewUserName, { color: colors.gray900 }]}>
+                    {feedback.user_name || `${(feedback.user as any)?.first_name || ''} ${(feedback.user as any)?.last_name || ''}`.trim() || 'Utilisateur'}
+                  </Text>
+                  <View style={styles.reviewRating}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <Ionicons
+                        key={star}
+                        name={star <= feedback.rating ? 'star' : 'star-outline'}
+                        size={14}
+                        color={star <= feedback.rating ? Colors.warning : colors.gray300}
+                      />
+                    ))}
+                  </View>
                 </View>
               </View>
+              {feedback.comment && (
+                <Text style={[styles.reviewComment, { color: colors.gray700 }]}>{feedback.comment}</Text>
+              )}
             </View>
-            {feedback.comment && (
-              <Text style={[styles.reviewComment, { color: colors.gray600 }]}>{feedback.comment}</Text>
-            )}
-          </View>
-        ))
+          ))}
+
+          {/* Toggle "Voir plus" / "Voir moins" si > INITIAL_COUNT */}
+          {hiddenCount > 0 && (
+            <TouchableOpacity
+              style={[styles.showMoreBtn, { borderColor: colors.gray200 }]}
+              onPress={() => setShowAll((v) => !v)}
+              accessibilityRole="button"
+              accessibilityLabel={showAll ? 'Reduire la liste' : `Voir les ${hiddenCount} avis restants`}
+            >
+              <Text style={[styles.showMoreText, { color: colors.primary }]}>
+                {showAll ? 'Voir moins' : `Voir ${hiddenCount} avis de plus`}
+              </Text>
+              <Ionicons
+                name={showAll ? 'chevron-up' : 'chevron-down'}
+                size={16}
+                color={colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+
+          {/* Lien vers l'ecran dedie si on a atteint le cap backend (20) — il y en a peut-etre plus */}
+          {showAll && mightHaveMore && (
+            <TouchableOpacity
+              style={[styles.showAllBtn, { backgroundColor: colors.primaryBg }]}
+              onPress={goToFullList}
+              accessibilityRole="button"
+              accessibilityLabel="Voir tous les avis"
+            >
+              <Ionicons name="list-outline" size={18} color={colors.primary} />
+              <Text style={[styles.showAllText, { color: colors.primary }]}>
+                Voir tous les avis
+              </Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+
+          {/* CTA "Laisser un avis" en BAS, apres les avis */}
+          {user && !showReviewForm && (
+            <TouchableOpacity
+              style={[styles.bottomReviewCta, { backgroundColor: colors.primaryBg }]}
+              onPress={() => setShowReviewForm(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Laisser un avis"
+            >
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+              <Text style={[styles.bottomReviewCtaText, { color: colors.primary }]}>
+                Laisser un avis
+              </Text>
+            </TouchableOpacity>
+          )}
+        </>
       ) : !showReviewForm ? (
         <View style={styles.emptyTab}>
           <Ionicons name="star-outline" size={40} color={colors.gray300} />
@@ -180,16 +247,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   eyebrow: {
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    ...TextStyles.eyebrow,
     marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.md,
     letterSpacing: -0.3,
   },
@@ -203,26 +265,49 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginTop: Spacing.md,
   },
-  // Reviews Header
-  reviewsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  addReviewButton: {
+  // CTA "Laisser un avis" en bas de liste
+  bottomReviewCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.md,
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.md,
   },
-  addReviewText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
+  bottomReviewCtaText: {
+    ...TextStyles.bodyBold,
+  },
+  // Toggle "Voir plus"
+  showMoreBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginTop: Spacing.xs,
+  },
+  showMoreText: {
+    ...TextStyles.smallBold,
+  },
+  // Lien "Voir tous les avis" -> ecran dedie
+  showAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    marginTop: Spacing.sm,
+  },
+  showAllText: {
+    ...TextStyles.bodyBold,
+    flex: 1,
+    textAlign: 'center',
   },
   // Review Form
   reviewFormCard: {
@@ -308,47 +393,45 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     color: Colors.primary,
   },
-  // Review Card
+  // Review Card — hiérarchie typo claire :
+  // userName (bodyBold 16px) > comment (body 15px) > avatar initial/rating (small bold 14px)
   reviewCard: {
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    padding: Spacing.lg,
     marginBottom: Spacing.sm,
   },
   reviewHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   reviewAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.primary,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reviewAvatarText: {
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.base,
     fontFamily: FontFamily.bold,
     color: Colors.white,
   },
   reviewUserInfo: {
-    marginLeft: Spacing.sm,
+    flex: 1,
+    marginLeft: Spacing.md,
   },
   reviewUserName: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+    ...TextStyles.bodyBold,
   },
   reviewRating: {
     flexDirection: 'row',
     gap: 2,
-    marginTop: 2,
+    marginTop: 4,
   },
   reviewComment: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray600,
-    lineHeight: 20,
+    fontFamily: FontFamily.regular,
+    fontSize: 15,
+    lineHeight: 22,
   },
 });

@@ -70,8 +70,11 @@ export const paymentsAPI = {
   cancelPayment: (id: string) =>
     api.post(`/payments/${id}/cancel_payment/`),
 
-  getPaymentMethods: (countryCode: string) =>
-    api.get('/payments/methods/', { params: { country: countryCode } }),
+  getPaymentMethods: (countryCode: string, currency?: string) => {
+    const params: Record<string, string> = { country: countryCode };
+    if (currency) params.currency = currency;
+    return api.get('/payments/methods/', { params });
+  },
 
   processMobileMoney: (id: string, data: { phone: string; channel?: string }) =>
     api.post(`/payments/${id}/process_mobile_money/`, data),
@@ -223,4 +226,8 @@ export const commissionsAPI = {
 
   getStats: () =>
     api.get('/commissions/stats/'),
+
+  // Conversion indicative (non contractuelle) - taux hardcodes backend
+  convert: (amount: number, from: string, to: string) =>
+    api.get('/commissions/convert/', { params: { amount, from, to } }),
 };

@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
 import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { KPICard, ChartWrapper } from '../../components/charts';
@@ -39,7 +39,10 @@ type TimeRange = '7d' | '30d' | '90d' | '1y';
 export default function AnalyticsDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
-  const { currency: platformCurrency } = useCommissionConfig();
+  // Strategie "Event mono-devise" : tous les events de l'organisateur sont
+  // dans la devise de son wallet → on lit directement celle-ci.
+  const { currency: walletCurrency } = useOrganizerWallet();
+  const platformCurrency = walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');

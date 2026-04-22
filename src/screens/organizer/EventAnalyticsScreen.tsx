@@ -16,7 +16,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { analyticsAPI, eventsAPI } from '../../api';
 import { RootStackParamList, Event, AnalyticsDashboardSummary } from '../../types';
 import {
@@ -64,9 +63,11 @@ export default function EventAnalyticsScreen() {
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
   const { colors, isDark } = useTheme();
-  const { currency: platformCurrency } = useCommissionConfig();
 
   const [event, setEvent] = useState<Event | null>(null);
+  // Strategie "Event mono-devise" : analytics s'affichent dans la devise de l'evenement
+  const eventCurrencyCode = (event?.currency || 'XAF').toUpperCase();
+  const platformCurrency = eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF' ? 'FCFA' : eventCurrencyCode;
   const [analytics, setAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

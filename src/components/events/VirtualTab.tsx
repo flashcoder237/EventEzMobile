@@ -9,7 +9,7 @@ import {
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { virtualRoomsAPI, recordingsAPI } from '../../api';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 
@@ -227,10 +227,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
+    ...TextStyles.h3,
     letterSpacing: -0.3,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   emptyTab: {

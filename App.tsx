@@ -1,6 +1,38 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { Platform, Text as RNText, TextInput as RNTextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+// Clamp le font scaling global : l'accessibilite reste active (zoom jusqu'a 1.3x)
+// mais pas assez pour casser les layouts sur les appareils avec reglages extremes.
+// Affecte TOUS les <Text> et <TextInput> de l'app (sauf override explicite par prop).
+const MAX_FONT_SIZE_MULTIPLIER = 1.3;
+// @ts-expect-error defaultProps est supporte mais absent des types RN
+RNText.defaultProps = RNText.defaultProps || {};
+// @ts-expect-error
+RNText.defaultProps.maxFontSizeMultiplier = MAX_FONT_SIZE_MULTIPLIER;
+// @ts-expect-error
+RNTextInput.defaultProps = RNTextInput.defaultProps || {};
+// @ts-expect-error
+RNTextInput.defaultProps.maxFontSizeMultiplier = MAX_FONT_SIZE_MULTIPLIER;
+
+// Police par defaut = Montserrat Regular pour tout <Text> / <TextInput> qui ne specifie pas fontFamily.
+// On patch Text.render pour injecter le style AVANT le style user (donc user override possible).
+// Le style injecte ne s'applique que si le style user n'a pas de fontFamily.
+const DEFAULT_FONT_FAMILY = 'Montserrat_400Regular';
+const patchDefaultFont = (Component: any) => {
+  const orig = Component.render;
+  if (!orig || Component.__fontPatched) return;
+  Component.__fontPatched = true;
+  Component.render = function (...args: any[]) {
+    const element = orig.apply(this, args);
+    if (!element || !element.props) return element;
+    return React.cloneElement(element, {
+      style: [{ fontFamily: DEFAULT_FONT_FAMILY }, element.props.style],
+    });
+  };
+};
+patchDefaultFont(RNText);
+patchDefaultFont(RNTextInput);
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import { NavigationContainer, LinkingOptions, NavigationContainerRef } from '@react-navigation/native';

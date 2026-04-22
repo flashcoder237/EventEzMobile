@@ -229,8 +229,9 @@ export default function ProfileScreen() {
                 <Image
                   source={user.profile_picture || user.image}
                   style={[styles.avatar, { borderColor: colors.surface }]}
-                  cachePolicy="disk"
-                  transition={200}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={300}
                 />
               </View>
             ) : (
@@ -305,12 +306,12 @@ export default function ProfileScreen() {
               <Ionicons name="megaphone" size={28} color={Colors.white} />
             </View>
             <View style={styles.becomeOrganizerText}>
-              <Text style={styles.becomeOrganizerTitle}>Devenir Organisateur</Text>
-              <Text style={styles.becomeOrganizerSubtitle}>
+              <Text style={[styles.becomeOrganizerTitle, { color: colors.gray900 }]}>Devenir Organisateur</Text>
+              <Text style={[styles.becomeOrganizerSubtitle, { color: colors.gray600 }]}>
                 Créez et gérez vos propres événements
               </Text>
             </View>
-            <Ionicons name="chevron-forward" size={24} color={Colors.secondary} />
+            <Ionicons name="chevron-forward" size={24} color={colors.secondary} />
           </TouchableOpacity>
         )}
 
@@ -545,10 +546,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   headerEyebrow: {
-    fontFamily: FontFamily.bold,
-    fontSize: 10,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+    ...TextStyles.eyebrow,
     marginBottom: 2,
   },
   headerTitle: {
@@ -631,9 +629,9 @@ const styles = StyleSheet.create({
   proLimeBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
-    backgroundColor: '#BEFF5A',
+    backgroundColor: Colors.lime,
     borderRadius: BorderRadius.full,
-    shadowColor: '#BEFF5A',
+    shadowColor: Colors.lime,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.4,
     shadowRadius: 6,
@@ -642,21 +640,8 @@ const styles = StyleSheet.create({
   proLimeBadgeText: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    color: '#0F172A',
+    color: Colors.gray900,
     letterSpacing: 1,
-  },
-  organizerBadge: {
-    alignSelf: 'flex-start',
-    marginTop: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.full,
-  },
-  organizerBadgeText: {
-    ...TextStyles.caption,
-    fontFamily: FontFamily.medium,
-    color: Colors.white,
   },
   verificationBadge: {
     alignSelf: 'flex-start',
@@ -763,13 +748,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   menuBadgeText: {
-    color: '#FFFFFF',
+    color: Colors.white,
     fontSize: 10,
     fontFamily: FontFamily.bold,
     lineHeight: 14,
-  },
-  menuIconDanger: {
-    backgroundColor: Colors.errorLight,
   },
   menuTextContainer: {
     flex: 1,
@@ -778,9 +760,6 @@ const styles = StyleSheet.create({
   menuTitle: {
     ...TextStyles.bodyBold,
     fontFamily: FontFamily.medium,
-  },
-  menuTitleDanger: {
-    color: Colors.error,
   },
   menuSubtitle: {
     ...TextStyles.small,

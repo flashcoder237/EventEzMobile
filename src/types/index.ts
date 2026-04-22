@@ -1468,6 +1468,8 @@ export type RootStackParamList = {
   ResetPassword: { token: string };
   VerifyEmail: { email: string };
   EventDetails: { eventId: string; imageUrl?: string };
+  EventReviews: { eventId: string; eventTitle?: string };
+  EventSearch: { query?: string; category?: number } | undefined;
   TicketPurchase: {
     eventId: string;
     ticketTypeId?: string;

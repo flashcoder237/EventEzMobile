@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -6,15 +6,16 @@ import {
   ScrollView,
   FlatList,
   TouchableOpacity,
+  Pressable,
   Dimensions,
   StatusBar,
   Linking,
-  Modal,
   Platform,
   TextInput,
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
+import ImageView from 'react-native-image-viewing';
 import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
@@ -68,7 +69,6 @@ export default function EventDetailsScreen() {
   const { requireAuth } = useAuthGuard();
   const insets = useSafeAreaInsets();
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
-  const viewerFlatListRef = useRef<FlatList>(null);
 
   const {
     event,
@@ -244,7 +244,15 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
 
           {event.banner_image && (
-            <Image source={getMediaUrl(event.banner_image)!} style={visibilityStyles.gateBanner} cachePolicy="disk" transition={200} />
+            <Image
+              source={getMediaUrl(event.banner_image)!}
+              placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
+              placeholderContentFit="cover"
+              contentFit="cover"
+              style={visibilityStyles.gateBanner}
+              cachePolicy="memory-disk"
+              transition={300}
+            />
           )}
 
           <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>{event.title}</Text>
@@ -336,40 +344,64 @@ export default function EventDetailsScreen() {
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
-        {/* Banner Image with parallax */}
+        {/* Banner Image with parallax — structure en couches :
+            1. Image (fond, plein cadre 360px)
+            2. Gradient (overlay visuel, ne capture pas les touches)
+            3. Pressable absoluteFill (capture le tap → ouvre viewer)
+            4. Hint visuel "1/N" ou "Agrandir" (pointerEvents none, laisse passer)
+            5. Header overlay (boutons back/share/follow, box-none pour les zones vides) */}
         <View style={styles.bannerContainer}>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            onPress={() => openViewer(0)}
-          >
-            <AnimatedExpoImage
-              source={
+          {/* 1. Image */}
+          <AnimatedExpoImage
+            source={
               getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)
                 ? { uri: getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)! }
                 : require('../../../assets/defaults/default-event.png')
             }
-              placeholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
-              placeholderContentFit="cover"
-              contentFit="cover"
-              transition={400}
-              cachePolicy="memory-disk"
-              style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
-            />
-            {/* Triple gradient overlay */}
-            <LinearGradient
-              colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.5)']}
-              locations={[0, 0.4, 1]}
-              style={StyleSheet.absoluteFill}
-            />
-            {/* Image zoom hint */}
-            <View style={styles.imageZoomHint}>
-              <Ionicons name="expand-outline" size={16} color={colors.white} />
-            </View>
-          </TouchableOpacity>
+            placeholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
+            placeholderContentFit="cover"
+            contentFit="cover"
+            transition={400}
+            cachePolicy="memory-disk"
+            style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
+          />
 
-          {/* Header Overlay — fades out as BlurHeader fades in */}
-          <Animated.View style={[StyleSheet.absoluteFill, bannerOverlayOpacity]}>
-            <SafeAreaView style={styles.headerOverlay} edges={['top']}>
+          {/* 2. Triple gradient overlay (visuel uniquement) */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.3)', 'transparent', 'rgba(0,0,0,0.5)']}
+            locations={[0, 0.4, 1]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+
+          {/* 3. Couche tap (absoluteFill) — ouvre le viewer au tap sur la banniere */}
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            onPress={() => openViewer(0)}
+            accessibilityRole="button"
+            accessibilityLabel="Voir les photos en plein ecran"
+          />
+
+          {/* 4. Hint visuel "1/N" ou "Agrandir" — pointerEvents none pour laisser passer */}
+          <View style={styles.imageZoomHint} pointerEvents="none">
+            <Ionicons
+              name={allImages.length > 1 ? 'images-outline' : 'expand-outline'}
+              size={14}
+              color={Colors.white}
+            />
+            <Text style={styles.imageZoomHintText}>
+              {allImages.length > 1 ? `1 / ${allImages.length}` : 'Agrandir'}
+            </Text>
+          </View>
+
+          {/* 5. Header overlay — fades out as BlurHeader fades in.
+              box-none : laisse passer les touches des zones vides vers le Pressable en dessous.
+              Les boutons (back/share/follow) restent interactifs. */}
+          <Animated.View
+            pointerEvents="box-none"
+            style={[StyleSheet.absoluteFill, bannerOverlayOpacity]}
+          >
+            <SafeAreaView pointerEvents="box-none" style={styles.headerOverlay} edges={['top']}>
               <TouchableOpacity
                 style={styles.floatingHeaderBtn}
                 onPress={() => navigation.goBack()}
@@ -378,7 +410,7 @@ export default function EventDetailsScreen() {
               >
                 <Ionicons name="arrow-back" size={22} color="#0F172A" />
               </TouchableOpacity>
-              <View style={styles.headerActions}>
+              <View pointerEvents="box-none" style={styles.headerActions}>
                 <FollowEventButton
                   eventId={eventId}
                   variant="icon-only"
@@ -456,8 +488,9 @@ export default function EventDetailsScreen() {
                 <Image
                   source={event.organizer.profile_picture}
                   style={styles.organizerImage}
-                  cachePolicy="disk"
-                  transition={200}
+                  contentFit="cover"
+                  cachePolicy="memory-disk"
+                  transition={300}
                 />
               ) : (
                 <Text style={styles.organizerInitial}>
@@ -824,6 +857,8 @@ export default function EventDetailsScreen() {
             setReviewComment={setReviewComment}
             submittingReview={submittingReview}
             onSubmitReview={handleSubmitReview}
+            eventId={event?.id}
+            eventTitle={event?.title}
           />
 
           {/* Section: Sponsors */}
@@ -958,76 +993,57 @@ export default function EventDetailsScreen() {
       </View>
       </BlurView> : null}
 
-      {/* Image Viewer Modal */}
-      <Modal
-        visible={showImageViewer}
-        transparent={true}
-        animationType="fade"
+      {/* Image Viewer — pinch-to-zoom + swipe-to-close natifs via react-native-image-viewing */}
+      <ImageView
+        images={allImages.length > 0
+          ? allImages.map(img => ({ uri: img.uri }))
+          : [{ uri: '' }]}
+        imageIndex={Math.min(Math.max(viewerImageIndex, 0), Math.max(0, allImages.length - 1))}
+        visible={showImageViewer && allImages.length > 0}
         onRequestClose={() => setShowImageViewer(false)}
-        onShow={() => {
-          const safeIndex = Math.min(Math.max(viewerImageIndex, 0), Math.max(0, allImages.length - 1));
-          if (allImages.length > 0) {
-            viewerFlatListRef.current?.scrollToIndex({ index: safeIndex, animated: false });
-          }
-        }}
-      >
-        <View style={styles.imageViewerContainer}>
-          <TouchableOpacity
-            style={styles.imageViewerClose}
-            onPress={() => setShowImageViewer(false)}
-            accessibilityRole="button"
-            accessibilityLabel="Fermer la visionneuse"
-          >
-            <Ionicons name="close" size={28} color={colors.white} />
-          </TouchableOpacity>
-
-          {allImages.length > 0 ? (
-            <FlatList
-              ref={viewerFlatListRef}
-              data={allImages}
-              keyExtractor={(_, i) => i.toString()}
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              initialScrollIndex={Math.min(Math.max(viewerImageIndex, 0), Math.max(0, allImages.length - 1))}
-              getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
-              onMomentumScrollEnd={e => {
-                const idx = width > 0 ? Math.round(e.nativeEvent.contentOffset.x / width) : 0;
-                setViewerImageIndex(idx);
-              }}
-              renderItem={({ item }) => (
-                <View style={styles.imageViewerSlide}>
-                  <Image
-                    source={item.uri}
-                    placeholder={item.placeholder}
-                    placeholderContentFit="contain"
-                    style={styles.imageViewerImage}
-                    contentFit="contain"
-                    cachePolicy="memory-disk"
-                    transition={300}
-                  />
-                  {item.caption ? (
-                    <Text style={styles.imageViewerCaption}>{item.caption}</Text>
-                  ) : null}
-                </View>
+        onImageIndexChange={setViewerImageIndex}
+        swipeToCloseEnabled
+        doubleTapToZoomEnabled
+        backgroundColor="rgba(0, 0, 0, 0.95)"
+        HeaderComponent={({ imageIndex }) => (
+          <SafeAreaView edges={['top']} style={styles.imageViewerHeader}>
+            <TouchableOpacity
+              style={styles.imageViewerClose}
+              onPress={() => setShowImageViewer(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer la visionneuse"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="close" size={26} color={Colors.white} />
+            </TouchableOpacity>
+            {allImages.length > 1 && (
+              <View style={styles.imageViewerCounterPill}>
+                <Text style={styles.imageViewerCounterText}>
+                  {imageIndex + 1} / {allImages.length}
+                </Text>
+              </View>
+            )}
+            <View style={{ width: 40 }} />
+          </SafeAreaView>
+        )}
+        FooterComponent={({ imageIndex }) => {
+          const caption = allImages[imageIndex]?.caption;
+          return (
+            <SafeAreaView edges={['bottom']} style={styles.imageViewerFooter}>
+              {event?.title && (
+                <Text style={styles.imageViewerTitle} numberOfLines={1}>
+                  {event.title}
+                </Text>
               )}
-            />
-          ) : (
-            <Image
-              source={require('../../../assets/defaults/default-event.png')}
-              style={styles.imageViewerImage}
-              contentFit="contain"
-            />
-          )}
-
-          {allImages.length > 1 && (
-            <Text style={styles.imageViewerCounter}>
-              {viewerImageIndex + 1} / {allImages.length}
-            </Text>
-          )}
-          <Text style={styles.imageViewerTitle} numberOfLines={2}>{event?.title}</Text>
-        </View>
-      </Modal>
+              {caption ? (
+                <Text style={styles.imageViewerCaption} numberOfLines={2}>
+                  {caption}
+                </Text>
+              ) : null}
+            </SafeAreaView>
+          );
+        }}
+      />
     </View>
   );
 }
@@ -1068,7 +1084,7 @@ const styles = StyleSheet.create({
     height: 360,
     position: 'relative',
     overflow: 'hidden',
-    backgroundColor: '#000',
+    backgroundColor: Colors.black,
   },
   bannerImage: {
     width: '100%',
@@ -1148,7 +1164,7 @@ const styles = StyleSheet.create({
   datePillText: {
     fontFamily: FontFamily.bold,
     fontSize: 11,
-    color: '#FFFFFF',
+    color: Colors.white,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
@@ -1191,7 +1207,7 @@ const styles = StyleSheet.create({
   organizerFollowText: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.sm,
-    color: '#FFFFFF',
+    color: Colors.white,
     letterSpacing: 0.2,
   },
   organizerAvatar: {
@@ -1462,7 +1478,7 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: '#DBEAFE',
+    borderColor: Colors.infoBg,
   },
   onlineEventHeader: {
     flexDirection: 'row',
@@ -1503,7 +1519,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#3B82F6',
+    backgroundColor: Colors.info,
     borderRadius: BorderRadius.lg,
     paddingVertical: Spacing.md,
     gap: Spacing.sm,
@@ -1636,17 +1652,24 @@ const styles = StyleSheet.create({
   pendingPaymentButtonText: {
     ...TextStyles.button,
   },
-  // Image Zoom Hint
+  // Image Zoom Hint — pastille en bas a droite de la banniere
   imageZoomHint: {
     position: 'absolute',
     bottom: 12,
     right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  imageZoomHintText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    color: Colors.white,
+    letterSpacing: 0.3,
   },
   // Gallery section
   gallerySection: {
@@ -1670,57 +1693,50 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Image Viewer Modal
-  imageViewerContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.95)',
-    justifyContent: 'center',
+  // Image Viewer (react-native-image-viewing) — overlays custom header/footer
+  imageViewerHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
   },
   imageViewerClose: {
-    position: 'absolute',
-    top: 50,
-    right: 20,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 10,
   },
-  imageViewerSlide: {
-    width,
-    justifyContent: 'center',
-    alignItems: 'center',
+  imageViewerCounterPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
-  imageViewerImage: {
-    width: width,
-    height: width * 0.75,
-  },
-  imageViewerCaption: {
-    color: 'rgba(255,255,255,0.7)',
+  imageViewerCounterText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
+    color: Colors.white,
+    letterSpacing: 0.3,
+  },
+  imageViewerFooter: {
     paddingHorizontal: Spacing.lg,
-  },
-  imageViewerCounter: {
-    position: 'absolute',
-    bottom: 100,
-    alignSelf: 'center',
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+    gap: 4,
   },
   imageViewerTitle: {
-    position: 'absolute',
-    bottom: 60,
-    left: 20,
-    right: 20,
     color: Colors.white,
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
+    textAlign: 'center',
+  },
+  imageViewerCaption: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
     textAlign: 'center',
   },
   // ===== BON À SAVOIR =====
@@ -1816,11 +1832,12 @@ const visibilityStyles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   gateTitle: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['2xl'],
     color: Colors.gray900,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+    letterSpacing: -0.5,
   },
   gateDate: {
     fontFamily: FontFamily.regular,
@@ -1862,7 +1879,7 @@ const visibilityStyles = StyleSheet.create({
     ...Shadows.md,
   },
   codeTitle: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displaySemiBold,
     fontSize: FontSizes.lg,
     color: Colors.gray900,
     marginTop: Spacing.sm,

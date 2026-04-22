@@ -10,7 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
 import { Spacing } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { TicketTypeForm, FormFieldForm, FIELD_TYPES } from '../../hooks/useEventForm';
@@ -252,7 +252,11 @@ export default function EventStep3Pricing({
   onSuggestPricing,
 }: EventStep3PricingProps) {
   const { colors, isDark } = useTheme();
-  const { currency: platformCurrency } = useCommissionConfig();
+  // Strategie "Event mono-devise" : la devise est celle du wallet de l'organisateur,
+  // heritee par l'evenement au create et verrouillee ensuite (cf. docs/CURRENCY_STRATEGY.md)
+  const { currency: walletCurrency } = useOrganizerWallet();
+  const displayCurrency =
+    walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
   const themed = useEventCreateThemedStyles();
   return (
     <View style={styles.stepContent}>
@@ -264,6 +268,33 @@ export default function EventStep3Pricing({
           ? 'Créez les différents types de billets pour votre événement'
           : 'Définissez les champs du formulaire d\'inscription'}
       </Text>
+
+      {eventType === 'billetterie' && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.xs,
+            padding: Spacing.sm,
+            borderRadius: 10,
+            backgroundColor: isDark ? 'rgba(129,140,248,0.12)' : 'rgba(79,70,229,0.08)',
+            borderWidth: 1,
+            borderColor: isDark ? 'rgba(129,140,248,0.25)' : 'rgba(79,70,229,0.18)',
+            marginBottom: Spacing.md,
+          }}
+        >
+          <Ionicons
+            name="lock-closed-outline"
+            size={14}
+            color={isDark ? '#A5B4FC' : '#4F46E5'}
+          />
+          <Text style={{ fontSize: 12, color: isDark ? '#C7D2FE' : '#4338CA', flex: 1 }}>
+            Devise : <Text style={{ fontWeight: '700' }}>{walletCurrency}</Text>
+            {displayCurrency !== walletCurrency ? ` (${displayCurrency})` : ''}
+            {' '}— heritee de votre compte, verrouillee pour cet evenement.
+          </Text>
+        </View>
+      )}
 
       {aiEnabled && eventType === 'billetterie' && (
         <AIAssistButton
@@ -359,7 +390,7 @@ export default function EventStep3Pricing({
 
                   <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>Prix ({platformCurrency}) *</Text>
+                      <Text style={[styles.label, themed.label]}>Prix ({displayCurrency}) *</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.price}

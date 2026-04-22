@@ -87,9 +87,9 @@ export default function AIQuickCreatePanel({
             disabled={disabled || isLoading || prompt.trim().length < 10}
           >
             {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              <Ionicons name="sparkles" size={18} color="#fff" />
+              <Ionicons name="sparkles" size={18} color={Colors.white} />
             )}
             <Text style={styles.generateButtonText}>
               {isLoading ? 'Génération...' : 'Générer avec l\'IA'}
@@ -119,7 +119,7 @@ export default function AIQuickCreatePanel({
                 </Text>
               )}
               <TouchableOpacity style={styles.applyButton} onPress={() => onApply(result)}>
-                <Ionicons name="checkmark-circle" size={18} color="#fff" />
+                <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
                 <Text style={styles.applyButtonText}>Appliquer au formulaire</Text>
               </TouchableOpacity>
             </View>
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   headerEyebrow: {
     fontSize: 10,
     fontFamily: FontFamily.bold,
-    color: '#A855F7',
+    color: Colors.secondary,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 2,
@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: FontSizes.md,
     fontFamily: FontFamily.displayBold,
-    color: '#4F46E5',
+    color: Colors.primary,
     letterSpacing: -0.3,
   },
   headerSubtitle: {
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     fontSize: FontSizes.sm,
     color: Colors.gray900,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.white,
     minHeight: 80,
     fontFamily: FontFamily.regular,
   },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    backgroundColor: '#6366F1',
+    backgroundColor: Colors.primary,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.md,
   },
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   generateButtonText: {
-    color: '#fff',
+    color: Colors.white,
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
   },
@@ -216,7 +216,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.sm,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: Colors.errorBg,
     borderRadius: BorderRadius.sm,
   },
   errorText: {
@@ -226,16 +226,16 @@ const styles = StyleSheet.create({
   },
   resultBox: {
     padding: Spacing.sm,
-    backgroundColor: '#fff',
+    backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: '#D1FAE5',
+    borderColor: Colors.successLight,
     gap: Spacing.xs,
   },
   resultTitle: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: '#059669',
+    color: Colors.successDark,
   },
   resultField: {
     fontSize: FontSizes.xs,
@@ -249,13 +249,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
-    backgroundColor: '#059669',
+    backgroundColor: Colors.successDark,
     paddingVertical: Spacing.xs,
     borderRadius: BorderRadius.sm,
     marginTop: Spacing.xs,
   },
   applyButtonText: {
-    color: '#fff',
+    color: Colors.white,
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.semiBold,
   },

@@ -18,8 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { discountsAPI, ticketTypesAPI } from '../../api';
+import { discountsAPI, ticketTypesAPI, eventsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -46,13 +45,15 @@ export default function DiscountFormScreen() {
   const { eventId, discountId } = route.params;
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
-  const { currency: platformCurrency } = useCommissionConfig();
 
   const isEditing = !!discountId;
 
   const [loading, setLoading] = useState(false);
   const [fetchingData, setFetchingData] = useState(isEditing);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
+  // Strategie "Event mono-devise" : la devise du code promo = devise de l'evenement
+  const [eventCurrency, setEventCurrency] = useState<string>('XAF');
+  const platformCurrency = eventCurrency === 'XAF' || eventCurrency === 'XOF' ? 'FCFA' : eventCurrency;
 
   const [code, setCode] = useState('');
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>('percentage');
@@ -69,8 +70,13 @@ export default function DiscountFormScreen() {
 
   const loadData = async () => {
     try {
-      const ticketTypesRes = await ticketTypesAPI.getTicketTypes({ event: eventId });
+      const [ticketTypesRes, eventRes] = await Promise.all([
+        ticketTypesAPI.getTicketTypes({ event: eventId }),
+        eventsAPI.getEvent(eventId).catch(() => null),
+      ]);
       setTicketTypes(ticketTypesRes.data?.results || ticketTypesRes.data || []);
+      const ev: any = eventRes?.data;
+      if (ev?.currency) setEventCurrency(String(ev.currency).toUpperCase());
 
       if (isEditing && discountId) {
         const discountRes = await discountsAPI.getDiscount(String(discountId));

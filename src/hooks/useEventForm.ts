@@ -14,7 +14,7 @@ import {
 } from '../api';
 import { Category, LocationType, Tag, AIUsage, AIGeneratedEvent } from '../types';
 import type { AlertType } from '../components/common/CustomAlert';
-import { useCommissionConfig } from './useCommissionConfig';
+import { useOrganizerWallet } from './useOrganizerWallet';
 import { useEventFormValidation } from './useEventFormValidation';
 import { useEventFormSubmit } from './useEventFormSubmit';
 
@@ -238,7 +238,10 @@ async function persistImageToDisk(uri: string): Promise<string> {
 
 export function useEventForm(alertActions: AlertActions, editEventId?: string): UseEventFormReturn {
   const { showAlert, showSuccess, showError } = alertActions;
-  const { currency: platformCurrency } = useCommissionConfig();
+  // Strategie "Event mono-devise" : la devise provient du wallet de l'organisateur
+  // (l'event herite de wallet.currency a sa creation, docs/CURRENCY_STRATEGY.md).
+  const { currency: walletCurrency } = useOrganizerWallet();
+  const platformCurrency = walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
 
   // Step navigation
   const [currentStep, setCurrentStep] = useState(1);

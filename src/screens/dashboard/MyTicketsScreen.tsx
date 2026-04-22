@@ -428,7 +428,7 @@ export default function MyTicketsScreen() {
     // Get event ID - handle both object and string cases
     const eventId = event?.id || (typeof item.event === 'string' ? item.event : undefined);
 
-    const inscriptionColor = isDark ? '#818CF8' : '#6366F1';
+    const inscriptionColor = colors.primary;
 
     return (
       <StaggeredItem index={index} staggerDelay={50}>
@@ -734,7 +734,7 @@ export default function MyTicketsScreen() {
           <View style={styles.statItem}>
             <View style={styles.statValueRow}>
               <Text style={styles.statValue}>{stats.cancelled}</Text>
-              {stats.cancelled > 0 && <View style={[styles.statDot, { backgroundColor: '#FCD34D' }]} />}
+              {stats.cancelled > 0 && <View style={[styles.statDot, { backgroundColor: colors.warning }]} />}
             </View>
             <Text style={styles.statLabel}>Annules</Text>
           </View>
@@ -967,9 +967,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['2xl'],
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.white,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: FontSizes.sm,

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows } from '../../constants/theme';
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -31,33 +31,33 @@ function BulkActionBar({ selectedCount, onApprove, onReject, onCheckIn, onCancel
       </View>
       <View style={styles.actions}>
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#10B981' }]}
+          style={[styles.actionBtn, { backgroundColor: Colors.success }]}
           onPress={onApprove}
           disabled={loading}
         >
           {loading ? (
-            <ActivityIndicator size="small" color="#FFFFFF" />
+            <ActivityIndicator size="small" color={Colors.white} />
           ) : (
             <>
-              <Ionicons name="checkmark-circle" size={18} color="#FFFFFF" />
+              <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
               <Text style={styles.actionText}>Approuver</Text>
             </>
           )}
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#EF4444' }]}
+          style={[styles.actionBtn, { backgroundColor: Colors.error }]}
           onPress={onReject}
           disabled={loading}
         >
-          <Ionicons name="close-circle" size={18} color="#FFFFFF" />
+          <Ionicons name="close-circle" size={18} color={Colors.white} />
           <Text style={styles.actionText}>Rejeter</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.actionBtn, { backgroundColor: '#4F46E5' }]}
+          style={[styles.actionBtn, { backgroundColor: Colors.primary }]}
           onPress={onCheckIn}
           disabled={loading}
         >
-          <Ionicons name="qr-code" size={18} color="#FFFFFF" />
+          <Ionicons name="qr-code" size={18} color={Colors.white} />
           <Text style={styles.actionText}>Check-in</Text>
         </TouchableOpacity>
       </View>
@@ -104,6 +104,6 @@ const styles = StyleSheet.create({
   actionText: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.xs,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
 });

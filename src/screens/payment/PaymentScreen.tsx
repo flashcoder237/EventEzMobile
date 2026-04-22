@@ -46,7 +46,17 @@ import {
 import { extractErrorMessage } from '../../constants/payment';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import GradientButton from '../../components/ui/GradientButton';
+import CountryBadgeSelector, {
+  SUPPORTED_COUNTRIES,
+  INTL_CODE,
+  getEventCurrency,
+} from '../../components/payment/CountryBadgeSelector';
+import FXIndicator from '../../components/payment/FXIndicator';
 import { formatPhoneInput, formatPhoneForDisplay, preparePhoneForInput } from '../../lib/utils/phoneFormatters';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const SUPPORTED_CODES = new Set(SUPPORTED_COUNTRIES.map((c) => c.code));
+const PAYER_COUNTRY_STORAGE_KEY = 'eventez:payer_country';
 
 // Import des icônes de paiement
 const PaymentIcons: Record<string, ImageSource> = {
@@ -188,6 +198,14 @@ export default function PaymentScreen() {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
   const [countryConfig, setCountryConfig] = useState<CountryPaymentConfig | null>(null);
   const [dynamicMethods, setDynamicMethods] = useState<PaymentMethodOption[]>(FALLBACK_METHODS);
+  // Pays du payeur : choix manuel (AsyncStorage) > locale device > pays événement
+  const [payerCountry, setPayerCountry] = useState<string>(() => {
+    const detected = detectUserCountry();
+    return detected || 'CM';
+  });
+  // Flag : on sait si l'utilisateur a explicitement choisi (pour ne pas laisser
+  // l'événement écraser son choix lorsque registration est chargée)
+  const [countryHydrated, setCountryHydrated] = useState(false);
   // Préremplir avec le numéro de téléphone de l'utilisateur (sans le préfixe 237)
   const [phoneNumber, setPhoneNumber] = useState(() => {
     const userPhone = user?.phone || user?.phone_number || '';
@@ -316,19 +334,70 @@ export default function PaymentScreen() {
     };
   }, []);
 
+  // Hydrate le choix de pays depuis AsyncStorage (si déjà persisté) au mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const saved = await AsyncStorage.getItem(PAYER_COUNTRY_STORAGE_KEY);
+        if (saved && SUPPORTED_CODES.has(saved.toUpperCase())) {
+          setPayerCountry(saved.toUpperCase());
+        }
+      } catch {
+        // ignore
+      } finally {
+        setCountryHydrated(true);
+      }
+    })();
+  }, []);
+
+  // Si l'utilisateur n'a PAS encore choisi (pas de valeur persistée), et que la
+  // locale n'a rien donné, on tombe sur le pays de l'événement comme fallback
+  // intelligent. Ne s'applique qu'une fois, avant le premier choix manuel.
+  const manualCountryChoiceRef = useRef(false);
+  useEffect(() => {
+    if (!countryHydrated) return;
+    if (manualCountryChoiceRef.current) return;
+    if (!registration) return;
+    const eventObj = typeof registration.event === 'object' ? registration.event : null;
+    const eventCountry = eventObj?.location_country_code || eventObj?.location_country;
+    if (eventCountry) {
+      const upper = String(eventCountry).toUpperCase();
+      // On ne remplace que si la locale n'a rien donné (payerCountry par défaut = 'CM')
+      // et qu'on n'a pas déjà une valeur persistée, ce qui est déjà filtré par hydratation.
+      if (SUPPORTED_CODES.has(upper) && !detectUserCountry()) {
+        setPayerCountry(upper);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countryHydrated, registration]);
+
+  // Callback pour changer le pays depuis la UI
+  const handleCountryChange = useCallback(async (code: string) => {
+    const upper = code.toUpperCase();
+    if (!SUPPORTED_CODES.has(upper)) return;
+    manualCountryChoiceRef.current = true;
+    setPayerCountry(upper);
+    setSelectedMethod(null);
+    setSelectedSavedMethod(null);
+    setPhoneNumber('');
+    try {
+      await AsyncStorage.setItem(PAYER_COUNTRY_STORAGE_KEY, upper);
+    } catch {
+      // ignore
+    }
+  }, []);
+
   // Fetch dynamic payment methods based on payer's country (not event's country)
   useEffect(() => {
+    if (!countryHydrated) return;
     const fetchPaymentMethods = async () => {
-      if (!registration) return;
-      const eventObj = typeof registration.event === 'object' ? registration.event : null;
-      // Utiliser le pays du payeur (locale du device) pour les méthodes de paiement
-      // Fallback: pays de l'événement si la locale ne correspond à aucun pays supporté
-      const userCountry = detectUserCountry();
-      const eventCountry = eventObj?.location_country || 'Cameroun';
-      const payerCountry = userCountry || eventCountry;
-
       try {
-        const response = await paymentsAPI.getPaymentMethods(payerCountry);
+        // Si 'Autre pays', on passe la devise de l'événement pour que le backend
+        // décide si PayPal est disponible (dépend de la devise).
+        const eventObj = registration && typeof registration.event === 'object' ? registration.event : null;
+        const eventCountry = eventObj?.location_country_code || eventObj?.location_country;
+        const currency = payerCountry === INTL_CODE ? getEventCurrency(eventCountry) : undefined;
+        const response = await paymentsAPI.getPaymentMethods(payerCountry, currency);
         const config: CountryPaymentConfig = response.data;
         setCountryConfig(config);
 
@@ -356,7 +425,7 @@ export default function PaymentScreen() {
     };
 
     fetchPaymentMethods();
-  }, [registration]);
+  }, [payerCountry, countryHydrated, registration]);
 
   // Auto-select last used payment method for the selected type
   useEffect(() => {
@@ -418,6 +487,11 @@ export default function PaymentScreen() {
   const eventObj = typeof registration?.event === 'object' ? registration?.event : null;
   const eventCountryCode = (eventObj as any)?.location_country_code || (eventObj as any)?.location_country || 'CM';
   const { config: commissionConfig } = useCommissionConfig(eventCountryCode);
+
+  // Strategie "Event mono-devise" (docs/CURRENCY_STRATEGY.md) :
+  // la devise d'affichage vient de l'evenement, PAS du pays du payeur.
+  const eventCurrencyCode = ((eventObj as any)?.currency || 'XAF').toUpperCase();
+  const eventCurrencyLabel = eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF' ? 'FCFA' : eventCurrencyCode;
 
   const subtotal = calculateSubtotal();
   const feeBearer = (eventObj as any)?.fee_bearer || 'participant';
@@ -521,7 +595,7 @@ export default function PaymentScreen() {
       const paymentResponse = await paymentsAPI.createPayment({
         registration: registrationId,
         amount: finalTotal,
-        currency: countryConfig?.currency || 'XAF',
+        currency: eventCurrencyCode,
         payment_method: selectedMethod,
         billing_phone: formattedPhone,
         billing_email: userEmail,
@@ -800,7 +874,7 @@ export default function PaymentScreen() {
 
           {/* Amount reminder */}
           <Text style={[styles.processingAmount, { color: colors.gray600 }]}>
-            {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+            {finalTotal.toLocaleString()} {eventCurrencyLabel}
           </Text>
 
           {/* Instructions détaillées pour Mobile Money */}
@@ -954,7 +1028,7 @@ export default function PaymentScreen() {
                       <Text style={[styles.orderItemQty, { color: colors.gray500, backgroundColor: colors.gray100 }]}>x{ticket.quantity || 1}</Text>
                     </View>
                     <Text style={[styles.orderItemPrice, { color: colors.gray900 }]}>
-                      {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                      {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                 ))}
@@ -963,7 +1037,7 @@ export default function PaymentScreen() {
                 <View style={[styles.orderSubtotalRow, { borderTopColor: colors.gray100 }]}>
                   <Text style={[styles.orderSubtotalLabel, { color: colors.gray600 }]}>Sous-total</Text>
                   <Text style={[styles.orderSubtotalValue, { color: colors.gray700 }]}>
-                    {subtotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                    {subtotal.toLocaleString()} {eventCurrencyLabel}
                   </Text>
                 </View>
 
@@ -974,7 +1048,7 @@ export default function PaymentScreen() {
                       Frais de service ({serviceFeeLabel})
                     </Text>
                     <Text style={[styles.orderFeeValue, { color: colors.gray500 }]}>
-                      {serviceFee.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                      {serviceFee.toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                 )}
@@ -984,10 +1058,10 @@ export default function PaymentScreen() {
                   <Text style={[styles.orderTotalLabel, { color: colors.gray700 }]}>Total à payer</Text>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={[styles.orderTotalValue, { color: colors.primary }]}>
-                      {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                      {finalTotal.toLocaleString()} {eventCurrencyLabel}
                     </Text>
                     {finalTotal > 0 && (
-                      <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} />
+                      <ConvertedPrice amount={finalTotal} eventCurrency={eventCurrencyCode} />
                     )}
                   </View>
                 </View>
@@ -997,6 +1071,20 @@ export default function PaymentScreen() {
             {/* Payment Methods */}
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Mode de paiement</Text>
+
+              <CountryBadgeSelector
+                countryCode={payerCountry}
+                onChange={handleCountryChange}
+                disabled={processing || cancelling}
+              />
+
+              {payerCountry === INTL_CODE && finalTotal > 0 && (
+                <FXIndicator
+                  amount={finalTotal}
+                  fromCurrency={eventCurrencyCode}
+                />
+              )}
+
               {dynamicMethods.map((method) => (
                 <AnimatedPressable
                   key={method.id}
@@ -1152,13 +1240,13 @@ export default function PaymentScreen() {
 
           {/* Bottom CTA */}
           <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
-            <View style={styles.totalContainer} accessibilityRole="text" accessibilityLabel={`Total a payer: ${finalTotal.toLocaleString()} ${countryConfig?.currency || 'FCFA'}`}>
+            <View style={styles.totalContainer} accessibilityRole="text" accessibilityLabel={`Total a payer: ${finalTotal.toLocaleString()} ${eventCurrencyLabel}`}>
               <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
               <Text style={[styles.totalValue, { color: colors.gray900 }]}>
-                {finalTotal.toLocaleString()} {countryConfig?.currency || 'FCFA'}
+                {finalTotal.toLocaleString()} {eventCurrencyLabel}
               </Text>
               {finalTotal > 0 && (
-                <ConvertedPrice amount={finalTotal} eventCurrency={countryConfig?.currency || 'XAF'} style={{ fontSize: 10 }} />
+                <ConvertedPrice amount={finalTotal} eventCurrency={eventCurrencyCode} style={{ fontSize: 10 }} />
               )}
             </View>
             <GradientButton

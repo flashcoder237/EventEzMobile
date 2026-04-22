@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Event, WaitlistEntry } from '../../types';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import ConvertedPrice from '../common/ConvertedPrice';
 
@@ -131,16 +131,11 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   eyebrow: {
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    ...TextStyles.eyebrow,
     marginBottom: 6,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    ...TextStyles.h3,
     marginBottom: Spacing.md,
     letterSpacing: -0.3,
   },

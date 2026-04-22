@@ -13,7 +13,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventBus } from '../../lib/eventBus';
 import { authAPI } from '../../api';
-import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import GradientButton from '../ui/GradientButton';
 
 /**
@@ -81,7 +81,7 @@ export default function VerificationGuardModal() {
           style={[styles.card, { backgroundColor: colors.card }]}
           onPress={() => {}}
         >
-          <View style={[styles.iconWrap, { backgroundColor: '#FEF3C7' }]}>
+          <View style={[styles.iconWrap, { backgroundColor: Colors.warningBg }]}>
             <Ionicons name="shield-checkmark" size={32} color="#B45309" />
           </View>
 

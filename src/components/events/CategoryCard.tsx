@@ -240,9 +240,10 @@ const styles = StyleSheet.create({
   },
   largeName: {
     fontSize: FontSizes.xl,
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.white,
     marginBottom: Spacing.xs,
+    letterSpacing: -0.5,
   },
   largeCount: {
     fontSize: FontSizes.sm,

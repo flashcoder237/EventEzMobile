@@ -95,10 +95,17 @@ export function useCurrencyConversion(eventCurrency: string): ConversionResult {
     let cancelled = false;
     setIsLoading(true);
 
+    // On lit `rate` (precision complete) et PAS `converted_amount` qui est quantize
+    // a 2 decimales cote backend. Pour XAF->EUR (rate=0.00152), converted_amount de
+    // 1 XAF arrondi donne 0.00, ce qui casse ensuite le calcul pour tous les prix.
     currencyAPI
       .convert(1, eventCurrency, userCurrency)
       .then((res) => {
-        if (!cancelled) setRate(res.data.converted_amount);
+        if (cancelled) return;
+        const rateValue = Number(res.data?.rate);
+        if (Number.isFinite(rateValue) && rateValue > 0) {
+          setRate(rateValue);
+        }
       })
       .catch(() => {
         /* silently fail — conversion is informational only */
@@ -114,9 +121,13 @@ export function useCurrencyConversion(eventCurrency: string): ConversionResult {
 
   const convertedPrice = useCallback(
     (amount: number): string | null => {
-      if (!shouldConvert || rate == null || amount <= 0) return null;
+      if (!shouldConvert || rate == null || rate <= 0 || amount <= 0) return null;
 
       const converted = amount * rate;
+      // Si le montant converti arrondi est 0 (montant negligeable),
+      // on n'affiche rien plutot que "≈ 0 EUR".
+      if (converted < 0.01) return null;
+
       const formatted = new Intl.NumberFormat('fr-FR', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 2,

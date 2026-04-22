@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
-import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { authAPI } from '../../api';
 
 interface VerificationBannerProps {
@@ -45,7 +45,7 @@ export default function VerificationBanner({ compact = false }: VerificationBann
       style={[
         styles.container,
         compact && styles.compactContainer,
-        { backgroundColor: '#FEF3C7', borderColor: '#FCD34D' },
+        { backgroundColor: Colors.warningBg, borderColor: '#FCD34D' },
       ]}
     >
       <Ionicons name="warning-outline" size={20} color="#B45309" />

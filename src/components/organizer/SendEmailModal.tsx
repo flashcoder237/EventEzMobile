@@ -17,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { registrationsAPI } from '../../api';
-import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
 interface SendEmailModalProps {
@@ -116,7 +116,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
 
           {/* Recipients badge */}
           <View style={styles.badge}>
-            <Ionicons name="people" size={16} color="#4F46E5" />
+            <Ionicons name="people" size={16} color={Colors.primary} />
             <Text style={[styles.badgeText, { color: colors.gray600 }]}>
               {registrationIds.length} destinataire{registrationIds.length > 1 ? 's' : ''}
             </Text>
@@ -171,15 +171,15 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
               <Text style={[styles.cancelText, { color: colors.gray700 }]}>Annuler</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.sendBtn, { backgroundColor: '#4F46E5' }]}
+              style={[styles.sendBtn, { backgroundColor: Colors.primary }]}
               onPress={handleSend}
               disabled={sending}
             >
               {sending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={Colors.white} />
               ) : (
                 <>
-                  <Ionicons name="send" size={16} color="#FFFFFF" />
+                  <Ionicons name="send" size={16} color={Colors.white} />
                   <Text style={styles.sendText}>Envoyer</Text>
                 </>
               )}
@@ -295,6 +295,6 @@ const styles = StyleSheet.create({
   sendText: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
-    color: '#FFFFFF',
+    color: Colors.white,
   },
 });

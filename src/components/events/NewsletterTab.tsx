@@ -11,7 +11,7 @@ import {
 import Svg, { Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { newslettersAPI } from '../../api';
-import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 
 function NewsletterIcon({ size = 28, color = Colors.primary }: { size?: number; color?: string }) {
@@ -154,10 +154,8 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displayBold,
+    ...TextStyles.h3,
     letterSpacing: -0.3,
-    color: Colors.gray900,
     marginBottom: Spacing.md,
   },
   newsletterCard: {
