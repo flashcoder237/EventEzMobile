@@ -544,9 +544,10 @@ export default function RegisterOrganizerScreen() {
 
             {/* Header */}
             <View style={styles.headerContainer}>
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>Passe pro</Text>
               <Text style={[styles.title, { color: colors.gray900 }]}>Devenir Organisateur</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                Créez et gérez vos propres événements sur EventEz
+                Crée et gère tes propres événements sur EventEz
               </Text>
             </View>
 
@@ -622,6 +623,13 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: Spacing.lg,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   title: {
     ...TextStyles.h1,

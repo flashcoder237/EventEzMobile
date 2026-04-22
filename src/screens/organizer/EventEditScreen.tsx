@@ -146,6 +146,7 @@ export default function EventEditScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
+            <Text style={[styles.headerBarEyebrow, { color: colors.accent }]}>Peaufine le détail</Text>
             <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Modifier l'événement</Text>
           </View>
           <View style={{ width: 40 }} />
@@ -168,6 +169,7 @@ export default function EventEditScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
+            <Text style={[styles.headerBarEyebrow, { color: colors.accent }]}>Peaufine le détail</Text>
             <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Modifier l'événement</Text>
           </View>
           <View style={{ width: 40 }} />
@@ -415,9 +417,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  headerBarEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerBarTitle: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
   },
   progressContainer: {
     flexDirection: 'row',

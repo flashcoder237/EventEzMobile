@@ -22,6 +22,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
+import VerificationBanner from '../../components/auth/VerificationBanner';
 import { eventsAPI, feedbacksAPI, registrationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
@@ -181,9 +182,14 @@ export default function ProfileScreen() {
           />
         }
       >
+        <VerificationBanner />
+
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Profil</Text>
+          <View>
+            <Text style={[styles.headerEyebrow, { color: colors.gray400 }]}>Ton compte</Text>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Profil</Text>
+          </View>
           <View style={styles.headerRight}>
             <TouchableOpacity
               style={[styles.settingsButton, { backgroundColor: colors.gray50 }]}
@@ -239,16 +245,18 @@ export default function ProfileScreen() {
               </View>
             )}
             <View style={styles.userInfo}>
-              <Text style={[styles.userName, { color: colors.gray900 }]}>
-                {user?.first_name || ''} {user?.last_name || ''}
-                {!user?.first_name && !user?.last_name && 'Utilisateur'}
-              </Text>
+              <View style={styles.userNameRow}>
+                <Text style={[styles.userName, { color: colors.gray900 }]} numberOfLines={1}>
+                  {user?.first_name || ''} {user?.last_name || ''}
+                  {!user?.first_name && !user?.last_name && 'Utilisateur'}
+                </Text>
+                {isOrganizer && (
+                  <View style={styles.proLimeBadge}>
+                    <Text style={styles.proLimeBadgeText}>PRO</Text>
+                  </View>
+                )}
+              </View>
               <Text style={[styles.userEmail, { color: colors.gray500 }]}>{user?.email}</Text>
-              {isOrganizer && (
-                <View style={styles.organizerBadge}>
-                  <Text style={styles.organizerBadgeText}>Organisateur</Text>
-                </View>
-              )}
               {user?.is_verified ? (
                 <View style={[styles.verificationBadge, { backgroundColor: colors.successLight }]}>
                   <Ionicons name="checkmark-circle" size={12} color={colors.success} />
@@ -536,6 +544,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     ...TextStyles.h2,
   },
@@ -597,13 +612,38 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.md,
     flex: 1,
   },
+  userNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   userName: {
-    ...TextStyles.h4,
+    ...TextStyles.h3,
+    flexShrink: 1,
   },
   userEmail: {
     ...TextStyles.small,
     color: Colors.gray500,
     marginTop: 2,
+  },
+  // PRO lime badge (AIDesigner editorial)
+  proLimeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#BEFF5A',
+    borderRadius: BorderRadius.full,
+    shadowColor: '#BEFF5A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  proLimeBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: '#0F172A',
+    letterSpacing: 1,
   },
   organizerBadge: {
     alignSelf: 'flex-start',

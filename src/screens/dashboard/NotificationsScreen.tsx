@@ -23,7 +23,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotifications } from '../../contexts/NotificationContext';
-import { MyNotifications } from '../../components/illustrations';
+import { MyNotifications, AnimatedIllustration } from '../../components/illustrations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 import {
@@ -480,7 +480,9 @@ export default function NotificationsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <MyNotifications color={colors.primary} size={160} />
+      <AnimatedIllustration entry="fadeIn" idle="sway">
+        <MyNotifications color={colors.primary} size={160} />
+      </AnimatedIllustration>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
         {filter === 'unread' ? 'Aucune notification non lue' : 'Aucune notification'}
       </Text>

@@ -100,7 +100,10 @@ export default function AnalyticsDashboardScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Analytics</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Ta performance</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Analytics</Text>
+        </View>
         <TouchableOpacity
           style={[styles.backButton, { backgroundColor: colors.gray50 }]}
           onPress={() => navigation.navigate('Reports')}
@@ -257,7 +260,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   backButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...TextStyles.h3 },
+  headerTitleWrap: { alignItems: 'center' },
+  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
   scrollContent: { paddingHorizontal: Spacing.lg },
   timeRangeContainer: { flexDirection: 'row', borderRadius: BorderRadius.xl, padding: 4, marginBottom: Spacing.lg },
   timeRangeButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.lg, alignItems: 'center' },

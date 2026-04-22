@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { volunteersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { Colors, FontSizes, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -330,7 +330,10 @@ export default function VolunteerScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Benevoles</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>L'équipe derrière</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Bénévoles</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
@@ -414,7 +417,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: FontSizes.lg, fontWeight: '700', color: Colors.text },
+  headerTitleWrap: { alignItems: 'center' },
+  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { fontSize: FontSizes.lg, fontFamily: FontFamily.displayBold, color: Colors.text, letterSpacing: -0.3 },
   tabs: { flexDirection: 'row', marginHorizontal: Spacing.md, backgroundColor: Colors.gray100, borderRadius: BorderRadius.lg, padding: 4, marginBottom: Spacing.md },
   tab: { flex: 1, flexDirection: 'row', paddingVertical: Spacing.sm, alignItems: 'center', justifyContent: 'center', borderRadius: BorderRadius.md },
   activeTab: { backgroundColor: Colors.white, ...Shadows.md },

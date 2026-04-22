@@ -141,6 +141,19 @@ api.interceptors.response.use(
       }
     }
 
+    // 403 email_verification_required → notifier l'UI pour afficher le modal
+    const responseData = error.response?.data as { code?: string; detail?: string } | undefined;
+    if (
+      error.response?.status === 403 &&
+      responseData?.code === 'email_verification_required'
+    ) {
+      eventBus.emit('api-verification-required', {
+        message: responseData.detail,
+        url: originalRequest?.url,
+      });
+      return Promise.reject(error);
+    }
+
     // Ne pas intercepter les 401 sur les endpoints d'auth (login, register, etc.)
     // Ces erreurs sont des réponses légitimes (mauvais identifiants), pas des tokens expirés
     const authEndpoints = ['/token/', '/token/refresh/', '/register/', '/register/organizer/'];

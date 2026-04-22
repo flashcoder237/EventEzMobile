@@ -298,15 +298,22 @@ export default function RegistrationDetailsScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Registration Card */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+        {/* Registration Card — editorial ticket (AIDesigner) */}
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }]}>
           {/* Event Info */}
           <View style={styles.eventInfo}>
-            <View style={[styles.typeBadge, { backgroundColor: colors.primaryBg }]}>
-              <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={14} color={colors.primary} />
-              <Text style={[styles.typeBadgeText, { color: colors.primary }]}>
-                {isBilletterie ? `${totalTicketQuantity} Billet${totalTicketQuantity > 1 ? 's' : ''}` : 'Inscription'}
-              </Text>
+            <View style={styles.topRow}>
+              <View style={[styles.typeBadge, { backgroundColor: colors.accent }]}>
+                <Ionicons name={isBilletterie ? "ticket" : "document-text"} size={12} color="#FFFFFF" />
+                <Text style={styles.typeBadgeText}>
+                  {isBilletterie ? `${totalTicketQuantity} Billet${totalTicketQuantity > 1 ? 's' : ''}` : 'Inscription'}
+                </Text>
+              </View>
+              {event?.start_date && (
+                <Text style={[styles.dateEyebrow, { color: colors.accent }]}>
+                  {formatDate(event.start_date)}
+                </Text>
+              )}
             </View>
 
             <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
@@ -316,7 +323,7 @@ export default function RegistrationDetailsScreen() {
             <View style={styles.eventMeta}>
               {event?.start_date && (
                 <View style={styles.eventMetaItem}>
-                  <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                  <Ionicons name="calendar-outline" size={16} color={colors.accent} />
                   <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>{formatDate(event.start_date)}</Text>
                 </View>
               )}
@@ -436,28 +443,38 @@ export default function RegistrationDetailsScreen() {
             <View style={[styles.dividerCircleRight, { backgroundColor: colors.background }]} />
           </View>
 
-          {/* QR Code Section */}
+          {/* QR Code Section — scanner-style frame (AIDesigner) */}
           <View style={styles.qrSection}>
-            <View style={[styles.qrContainer, { borderColor: colors.primary }]}>
-              {registration.qr_code ? (
-                <Image
-                  source={registration.qr_code}
-                  style={styles.qrImage}
-                  contentFit="contain"
-                  cachePolicy="disk"
-                  transition={200}
-                />
-              ) : (
-                <View style={styles.qrPlaceholder}>
-                  <View style={[styles.qrPlaceholderInner, { backgroundColor: colors.primaryBg }]}>
-                    <Ionicons name="qr-code" size={80} color={colors.primary} />
+            <View style={styles.qrFrame}>
+              <View style={[styles.qrContainer, { borderColor: colors.gray100, backgroundColor: '#FFFFFF' }]}>
+                {registration.qr_code ? (
+                  <Image
+                    source={registration.qr_code}
+                    style={styles.qrImage}
+                    contentFit="contain"
+                    cachePolicy="disk"
+                    transition={200}
+                  />
+                ) : (
+                  <View style={styles.qrPlaceholder}>
+                    <View style={[styles.qrPlaceholderInner, { backgroundColor: colors.primaryBg }]}>
+                      <Ionicons name="qr-code" size={80} color={colors.primary} />
+                    </View>
                   </View>
-                </View>
-              )}
+                )}
+              </View>
+              {/* Scanner corners (editorial QR frame) */}
+              <View style={[styles.qrCorner, styles.qrCornerTL, { borderColor: colors.primary }]} />
+              <View style={[styles.qrCorner, styles.qrCornerTR, { borderColor: colors.primary }]} />
+              <View style={[styles.qrCorner, styles.qrCornerBL, { borderColor: colors.primary }]} />
+              <View style={[styles.qrCorner, styles.qrCornerBR, { borderColor: colors.primary }]} />
             </View>
-            <Text style={[styles.qrHint, { color: colors.gray500 }]}>
-              Présentez ce QR code à l'entrée de l'événement
-            </Text>
+            <View style={styles.qrHintRow}>
+              <Ionicons name="scan-outline" size={14} color={colors.gray500} />
+              <Text style={[styles.qrHint, { color: colors.gray500 }]}>
+                Présentez ce code à l'entrée
+              </Text>
+            </View>
           </View>
 
           {/* Registration Details */}
@@ -745,30 +762,47 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius['2xl'],
     borderWidth: 1,
     overflow: 'hidden',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 26,
+    elevation: 6,
   },
 
   // Event Info
   eventInfo: {
     padding: Spacing.lg,
   },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
   typeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
     gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
-    marginBottom: Spacing.sm,
   },
   typeBadgeText: {
     fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
+  },
+  dateEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   eventTitle: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['2xl'],
+    fontFamily: FontFamily.displayExtraBold,
     marginBottom: Spacing.md,
+    letterSpacing: -0.5,
   },
   eventMeta: {
     gap: Spacing.sm,
@@ -827,11 +861,50 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.lg,
   },
+  qrFrame: {
+    position: 'relative',
+    padding: 14,
+  },
   qrContainer: {
     backgroundColor: '#FFFFFF',
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    borderWidth: 2,
+    borderWidth: 1,
+  },
+  // Scanner corners
+  qrCorner: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
+    borderColor: '#4F46E5',
+  },
+  qrCornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 6,
+  },
+  qrCornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 6,
+  },
+  qrCornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 6,
+  },
+  qrCornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 6,
   },
   qrImage: {
     width: QR_SIZE,
@@ -850,10 +923,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  qrHintRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.md,
+  },
   qrHint: {
     fontSize: FontSizes.sm,
-    marginTop: Spacing.md,
     textAlign: 'center',
+    fontFamily: FontFamily.medium,
   },
 
   // Details Section

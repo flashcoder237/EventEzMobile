@@ -353,7 +353,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
@@ -523,7 +524,8 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
     marginBottom: 4,
   },

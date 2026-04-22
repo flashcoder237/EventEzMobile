@@ -161,6 +161,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     textAlign: 'center',
     marginTop: Spacing.sm,
   },

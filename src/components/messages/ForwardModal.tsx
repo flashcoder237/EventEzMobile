@@ -214,7 +214,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
   },
   closeButton: {
     padding: Spacing.xs,

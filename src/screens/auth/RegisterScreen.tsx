@@ -235,9 +235,10 @@ export default function RegisterScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>Inscription</Text>
             <Text style={[styles.title, { color: colors.gray900 }]}>Créer un compte</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-              Rejoignez EventEz et découvrez les meilleurs événements
+              Rejoins EventEz et découvre les meilleurs événements
             </Text>
           </View>
 
@@ -416,6 +417,13 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: Spacing.xl,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   title: {
     fontSize: FontSizes['4xl'],

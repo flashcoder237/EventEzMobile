@@ -519,6 +519,7 @@ export default function EventRegistrationsScreen() {
                 <Ionicons name="arrow-back" size={24} color={Colors.white} />
               </TouchableOpacity>
               <View style={styles.headerTitleContainer}>
+                <Text style={styles.headerEyebrow}>La file d'entrée</Text>
                 <Text style={styles.headerTitle}>Inscriptions</Text>
                 {eventTitle && (
                   <Text style={styles.headerSubtitle} numberOfLines={1}>{eventTitle}</Text>
@@ -794,7 +795,8 @@ const styles = StyleSheet.create({
   headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.lg },
   backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
   headerTitleContainer: { flex: 1 },
-  headerTitle: { fontFamily: FontFamily.displayBold, fontSize: FontSizes['2xl'], color: Colors.white },
+  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, color: 'rgba(255,255,255,0.85)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { fontFamily: FontFamily.displayBold, fontSize: FontSizes['2xl'], color: Colors.white, letterSpacing: -0.3 },
   headerSubtitle: { fontSize: FontSizes.sm, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
   headerActions: { flexDirection: 'row', gap: Spacing.sm },
   headerActionBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },

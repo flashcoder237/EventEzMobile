@@ -62,6 +62,7 @@ export default function PushPermissionModal({
         </View>
 
         {/* Title */}
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>Ne manque rien</Text>
         <Text style={[styles.title, { color: colors.gray900 }]}>Restez informé</Text>
 
         {/* Description */}
@@ -135,9 +136,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: Spacing.lg,
   },
-  title: {
+  eyebrow: {
     fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  title: {
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.xl,
+    letterSpacing: -0.3,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },

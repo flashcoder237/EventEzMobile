@@ -91,6 +91,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   if (!sponsors || sponsors.length === 0) {
     return (
       <View style={styles.section}>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>Ils soutiennent l'événement</Text>
         <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sponsors</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="ribbon-outline" size={40} color={colors.gray300} />
@@ -149,11 +150,19 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  eyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
+    letterSpacing: -0.3,
   },
   emptyTab: {
     alignItems: 'center',
@@ -196,9 +205,10 @@ const styles = StyleSheet.create({
   },
   sponsorName: {
     fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: 4,
+    letterSpacing: -0.2,
   },
   levelBadge: {
     alignSelf: 'flex-start',

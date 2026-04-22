@@ -49,7 +49,7 @@ import {
 } from '../../lib/utils/messagingHelpers';
 import { ConversationItemSkeleton, MessagesScreenSkeleton } from '../../components/ui/Skeleton';
 import { EmptyState } from '../../components/ui';
-import { NewMessage, PeopleSearch } from '../../components/illustrations';
+import { NewMessage, PeopleSearch, AnimatedIllustration } from '../../components/illustrations';
 import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -355,7 +355,11 @@ export default function MessagesScreen() {
 
   const renderEmpty = () => (
     <EmptyState
-      illustration={<NewMessage color={colors.primary} size={160} />}
+      illustration={
+        <AnimatedIllustration entry="fadeIn" idle="sway">
+          <NewMessage color={colors.primary} size={160} />
+        </AnimatedIllustration>
+      }
       icon={activeTab === 'archived' ? 'archive-outline' : 'chatbubbles-outline'}
       title={activeTab === 'archived' ? 'Aucune archive' : 'Aucune conversation'}
       description={
@@ -403,11 +407,12 @@ export default function MessagesScreen() {
                   <Ionicons name="chatbubbles" size={24} color={Colors.white} />
                 </View>
                 <View>
+                  <Text style={styles.headerEyebrow}>Tes discussions</Text>
                   <Text style={styles.headerTitle}>Messages</Text>
                   <Text style={styles.headerSubtitle}>
                     {unreadCount > 0
                       ? `${unreadCount} non lu${unreadCount > 1 ? 's' : ''}`
-                      : 'Toutes vos conversations'}
+                      : 'Toutes tes conversations'}
                   </Text>
                 </View>
               </View>
@@ -526,7 +531,9 @@ export default function MessagesScreen() {
                     keyboardShouldPersistTaps="handled"
                     ListEmptyComponent={
                       <View style={styles.noUsers}>
-                        <PeopleSearch color={colors.primary} size={120} />
+                        <AnimatedIllustration entry="fadeIn" idle="breathe">
+                          <PeopleSearch color={colors.primary} size={120} />
+                        </AnimatedIllustration>
                         <Text style={[styles.noUsersText, { color: colors.gray500 }]}>
                           {userSearch.length < 2
                             ? 'Tapez pour rechercher un utilisateur...'
@@ -595,9 +602,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: Spacing.md,
   },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     ...TextStyles.h3,
     color: Colors.white,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     ...TextStyles.small,

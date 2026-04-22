@@ -109,8 +109,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   title: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
     textAlign: 'center',
     marginBottom: Spacing.sm,
   },

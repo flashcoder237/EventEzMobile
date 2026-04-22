@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useVerificationGuard } from '../../hooks/useVerificationGuard';
 import { RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -50,6 +51,7 @@ export default function FollowEventButton({
   initialFollowing = false,
 }: FollowEventButtonProps) {
   const { user } = useAuth();
+  const { requireVerification } = useVerificationGuard();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { showAlert, showError, showWarning } = useAlert();
   const { colors, isDark } = useTheme();
@@ -109,26 +111,28 @@ export default function FollowEventButton({
       return;
     }
 
-    setIsLoading(true);
+    requireVerification(async () => {
+      setIsLoading(true);
 
-    try {
-      if (isFollowing) {
-        await eventsAPI.unfollowEvent(eventId);
-        setIsFollowing(false);
-        if (showFollowerCount) setFollowersCount(prev => Math.max(0, prev - 1));
-        onFollowChange?.(false);
-      } else {
-        await eventsAPI.followEvent(eventId, preferences);
-        setIsFollowing(true);
-        if (showFollowerCount) setFollowersCount(prev => prev + 1);
-        onFollowChange?.(true);
+      try {
+        if (isFollowing) {
+          await eventsAPI.unfollowEvent(eventId);
+          setIsFollowing(false);
+          if (showFollowerCount) setFollowersCount(prev => Math.max(0, prev - 1));
+          onFollowChange?.(false);
+        } else {
+          await eventsAPI.followEvent(eventId, preferences);
+          setIsFollowing(true);
+          if (showFollowerCount) setFollowersCount(prev => prev + 1);
+          onFollowChange?.(true);
+        }
+      } catch (error) {
+        if (__DEV__) console.error('Error toggling follow:', error);
+        showError('Erreur', 'Une erreur est survenue');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      if (__DEV__) console.error('Error toggling follow:', error);
-      showError('Erreur', 'Une erreur est survenue');
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   const handleUpdatePreferences = async () => {
@@ -194,16 +198,16 @@ export default function FollowEventButton({
         style={[
           styles.iconButton,
           { backgroundColor: colors.gray100 },
-          isFollowing && { backgroundColor: colors.errorBg },
+          isFollowing && { backgroundColor: colors.accent + '1A' },
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? colors.error : colors.gray500} />
+          <ActivityIndicator size="small" color={isFollowing ? colors.accent : colors.gray500} />
         ) : (
           <Ionicons
-            name={isFollowing ? 'heart' : 'heart-outline'}
+            name={isFollowing ? 'bookmark' : 'bookmark-outline'}
             size={22}
-            color={isFollowing ? colors.error : colors.gray600}
+            color={isFollowing ? colors.accent : colors.gray600}
           />
         )}
       </TouchableOpacity>
@@ -224,20 +228,20 @@ export default function FollowEventButton({
         style={[
           styles.compactButton,
           { backgroundColor: colors.gray100 },
-          isFollowing && { backgroundColor: colors.errorBg },
+          isFollowing && { backgroundColor: colors.accent + '1A' },
         ]}
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isFollowing ? colors.error : colors.gray600} />
+          <ActivityIndicator size="small" color={isFollowing ? colors.accent : colors.gray600} />
         ) : (
           <>
             <Ionicons
-              name={isFollowing ? 'heart' : 'heart-outline'}
+              name={isFollowing ? 'bookmark' : 'bookmark-outline'}
               size={16}
-              color={isFollowing ? colors.error : colors.gray600}
+              color={isFollowing ? colors.accent : colors.gray600}
             />
-            <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && { color: colors.error }]}>
-              {isFollowing ? 'Suivi' : 'Suivre'}
+            <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && { color: colors.accent }]}>
+              {isFollowing ? 'Sauvegardé' : 'Sauvegarder'}
             </Text>
           </>
         )}
@@ -259,24 +263,24 @@ export default function FollowEventButton({
           accessibilityState={{ selected: isFollowing }}
           style={[
             styles.mainButton,
-            isFollowing ? [styles.mainButtonFollowing, { backgroundColor: colors.errorBg, borderColor: colors.errorBorder }] : styles.mainButtonDefault,
+            isFollowing ? [styles.mainButtonFollowing, { backgroundColor: colors.accent + '1A', borderColor: colors.accent + '40' }] : [styles.mainButtonDefault, { backgroundColor: colors.primary }],
           ]}
         >
           {isLoading ? (
-            <ActivityIndicator size="small" color={isFollowing ? colors.error : Colors.white} />
+            <ActivityIndicator size="small" color={isFollowing ? colors.accent : Colors.white} />
           ) : (
             <>
               <Ionicons
-                name={isFollowing ? 'heart' : 'heart-outline'}
+                name={isFollowing ? 'bookmark' : 'bookmark-outline'}
                 size={20}
-                color={isFollowing ? colors.error : Colors.white}
+                color={isFollowing ? colors.accent : Colors.white}
               />
-              <Text style={[styles.mainButtonText, isFollowing && { color: colors.error }]}>
-                {isFollowing ? 'Vous suivez cet événement' : 'Suivre cet événement'}
+              <Text style={[styles.mainButtonText, isFollowing && { color: colors.accent }]}>
+                {isFollowing ? 'Événement sauvegardé' : 'Sauvegarder cet événement'}
               </Text>
               {showFollowerCount && followersCount > 0 && (
-                <View style={[styles.badge, isFollowing && { backgroundColor: colors.errorLight }]}>
-                  <Text style={[styles.badgeText, isFollowing && { color: colors.error }]}>
+                <View style={[styles.badge, isFollowing && { backgroundColor: colors.accent + '26' }]}>
+                  <Text style={[styles.badgeText, isFollowing && { color: colors.accent }]}>
                     {followersCount}
                   </Text>
                 </View>
@@ -490,7 +494,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
   },
   modalCancel: {
@@ -509,13 +514,13 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
     color: Colors.gray500,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
   },
   levelSelector: {
     flexDirection: 'row',

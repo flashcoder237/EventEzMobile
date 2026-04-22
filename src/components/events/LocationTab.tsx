@@ -267,10 +267,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   venueName: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
     color: Colors.gray900,
     marginBottom: 2,
+    letterSpacing: -0.3,
   },
   venueAddress: {
     fontFamily: FontFamily.regular,

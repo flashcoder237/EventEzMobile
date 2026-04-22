@@ -96,7 +96,10 @@ export default function AdminDashboardScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Administration</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Cockpit</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Administration</Text>
+        </View>
         <View style={{ width: 44 }} />
       </View>
 
@@ -179,7 +182,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...TextStyles.h3 },
+  headerTitleWrap: { alignItems: 'center' },
+  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
   scrollContent: { paddingHorizontal: Spacing.lg },
   kpiRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
   sectionTitle: { ...TextStyles.h4, marginTop: Spacing.xl, marginBottom: Spacing.sm },

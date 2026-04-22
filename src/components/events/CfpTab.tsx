@@ -227,6 +227,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },

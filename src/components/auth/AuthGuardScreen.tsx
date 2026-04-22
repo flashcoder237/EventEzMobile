@@ -11,6 +11,7 @@ import {
   SaveToBookmarks,
   OnlinePayments,
   Authentication,
+  AnimatedIllustration,
 } from '../illustrations';
 
 type IllustrationKey = 'bookmark' | 'ticket' | 'profile';
@@ -37,10 +38,13 @@ export default function AuthGuardScreen({ illustration = 'profile', title, subti
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
       <View style={styles.content}>
-        <View style={[styles.illustrationContainer, { backgroundColor: colors.primaryBg }]}>
-          <Illustration color={colors.primary} size={140} />
-        </View>
+        <AnimatedIllustration entry="scaleIn" idle="float">
+          <View style={[styles.illustrationContainer, { backgroundColor: colors.primaryBg }]}>
+            <Illustration color={colors.primary} size={140} />
+          </View>
+        </AnimatedIllustration>
 
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>Accès réservé</Text>
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
         <Text style={[styles.subtitle, { color: colors.gray500 }]}>{subtitle}</Text>
 
@@ -84,11 +88,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.xl,
   },
-  title: {
+  eyebrow: {
     fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  title: {
+    fontFamily: FontFamily.displayBold,
     fontSize: 22,
     textAlign: 'center',
     marginBottom: Spacing.sm,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: FontFamily.regular,

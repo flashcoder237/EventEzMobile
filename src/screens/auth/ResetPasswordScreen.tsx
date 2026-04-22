@@ -221,6 +221,7 @@ export default function ResetPasswordScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>Réinitialisation</Text>
             <Text style={[styles.title, { color: colors.gray900 }]}>Nouveau mot de passe</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
               Choisissez un nouveau mot de passe securise pour votre compte.
@@ -438,12 +439,21 @@ const styles = StyleSheet.create({
   headerContainer: {
     marginBottom: Spacing.xl,
   },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   title: {
     fontSize: FontSizes['3xl'],
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: FontSizes.base,

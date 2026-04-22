@@ -37,24 +37,24 @@ export default function AIAssistButton({
   if (variant === 'compact') {
     return (
       <TouchableOpacity
-        style={[styles.compactButton, disabled && styles.disabled]}
+        style={[styles.compactButton, { backgroundColor: colors.primary + '15' }, disabled && styles.disabled]}
         onPress={onPress}
         disabled={disabled || isLoading}
         activeOpacity={TOUCH_OPACITY}
       >
         {isLoading ? (
-          <ActivityIndicator size={12} color={colors.primaryLight} />
+          <ActivityIndicator size={12} color={colors.primary} />
         ) : (
-          <Ionicons name="sparkles" size={12} color={colors.primaryLight} />
+          <Ionicons name="sparkles" size={12} color={colors.primary} />
         )}
-        <Text style={styles.compactText}>{label}</Text>
+        <Text style={[styles.compactText, { color: colors.primary }]}>{label}</Text>
       </TouchableOpacity>
     );
   }
 
   return (
     <TouchableOpacity
-      style={[styles.fullButton, disabled && styles.disabled]}
+      style={[styles.fullButton, { backgroundColor: colors.primary }, disabled && styles.disabled]}
       onPress={onPress}
       disabled={disabled || isLoading}
       activeOpacity={TOUCH_OPACITY}
@@ -81,9 +81,11 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   compactText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
     color: Colors.primaryLight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
   fullButton: {
     flexDirection: 'row',

@@ -25,7 +25,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { AccessDenied, WellDone } from '../../components/illustrations';
+import { AccessDenied, WellDone, AnimatedIllustration } from '../../components/illustrations';
 import {
   Colors,
   FontFamily,
@@ -212,7 +212,9 @@ export default function ModerationScreen() {
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
         <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
         <View style={styles.accessDenied}>
-          <AccessDenied color={colors.primary} size={160} />
+          <AnimatedIllustration entry="scaleIn" idle="float">
+            <AccessDenied color={colors.primary} size={160} />
+          </AnimatedIllustration>
           <Text style={[styles.accessDeniedTitle, { color: colors.gray700 }]}>Accès restreint</Text>
           <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
             Cette section est réservée aux modérateurs et administrateurs.
@@ -331,7 +333,9 @@ export default function ModerationScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <WellDone color={colors.success} size={160} />
+      <AnimatedIllustration entry="bounce" idle="breathe">
+        <WellDone color={colors.success} size={160} />
+      </AnimatedIllustration>
       <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement en attente</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filterType !== 'all'
@@ -367,6 +371,7 @@ export default function ModerationScreen() {
             <Ionicons name="shield-checkmark" size={24} color={Colors.white} />
           </View>
           <View>
+            <Text style={styles.headerEyebrow}>Garde le cap</Text>
             <Text style={styles.headerTitle}>Modération</Text>
             <Text style={styles.headerSubtitle}>Événements en attente de validation</Text>
           </View>
@@ -617,10 +622,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
     color: Colors.white,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: FontSizes.xs,
@@ -802,8 +816,9 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
+    letterSpacing: -0.2,
     marginBottom: 4,
   },
   cardDescription: {

@@ -32,6 +32,7 @@ import { AlertProvider } from './src/contexts/AlertContext';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
+import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
 import { RootStackParamList } from './src/types';
 
@@ -116,6 +117,7 @@ function AppContent() {
               <AlertProvider>
                 <StatusBar style={isDark ? 'light' : 'dark'} />
                 <RootNavigator />
+                <VerificationGuardModal />
               </AlertProvider>
             </NotificationProvider>
           </AuthProvider>

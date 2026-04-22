@@ -79,11 +79,14 @@ const styles = StyleSheet.create({
   value: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes['2xl'],
+    letterSpacing: -0.5,
   },
   title: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    marginTop: 2,
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: 4,
   },
   subtitle: {
     fontFamily: FontFamily.regular,

@@ -35,6 +35,9 @@ export default function TicketsTab({
 
   return (
     <View style={styles.section}>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>
+        {event.event_type === 'billetterie' ? 'Choisis ta formule' : 'Rejoins l’événement'}
+      </Text>
       <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
         {event.event_type === 'billetterie' ? 'Types de billets' : 'Inscription'}
       </Text>
@@ -127,11 +130,19 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  eyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
+    letterSpacing: -0.3,
   },
   emptyTab: {
     alignItems: 'center',
@@ -159,10 +170,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   ticketName: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.md,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: 2,
+    letterSpacing: -0.2,
   },
   ticketDescription: {
     fontSize: FontSizes.sm,

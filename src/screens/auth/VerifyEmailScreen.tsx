@@ -123,8 +123,9 @@ export default function VerifyEmailScreen() {
           </View>
 
           {/* Title */}
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Confirme ton adresse</Text>
           <Text style={[styles.title, { color: colors.gray900 }]}>
-            Vérifiez votre email
+            Vérifie ton email
           </Text>
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
             Nous avons envoyé un lien de vérification à
@@ -264,6 +265,14 @@ const styles = StyleSheet.create({
     height: 96,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 8,
   },
   title: {
     fontSize: FontSizes['3xl'],

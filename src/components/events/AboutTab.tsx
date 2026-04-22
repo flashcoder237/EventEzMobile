@@ -32,6 +32,7 @@ export default function AboutTab({
     <>
       {/* About Section */}
       <View style={styles.section}>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>À propos</Text>
         <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Description</Text>
         <Text style={[styles.description, { color: colors.gray600 }]}>
           {event.description || event.short_description || 'Aucune description disponible pour cet evenement.'}
@@ -40,9 +41,10 @@ export default function AboutTab({
 
       {/* Follow Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Suivre cet evenement</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>Reste connecté</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sauvegarder cet événement</Text>
         <Text style={[styles.followDescription, { color: colors.gray500 }]}>
-          Recevez des notifications pour les mises a jour, rappels et annonces.
+          Reçois des notifications pour les mises à jour, rappels et annonces.
         </Text>
         <FollowEventButton
           eventId={eventId}
@@ -56,6 +58,7 @@ export default function AboutTab({
       {/* Tags */}
       {event.tags && event.tags.length > 0 && (
         <View style={styles.section}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Thématiques</Text>
           <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Tags</Text>
           <View style={styles.tagsRow}>
             {event.tags.map((tag) => (
@@ -92,11 +95,19 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  eyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
+    letterSpacing: -0.3,
   },
   description: {
     fontSize: FontSizes.base,

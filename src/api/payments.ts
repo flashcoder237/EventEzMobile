@@ -190,11 +190,16 @@ export const payoutsAPI = {
 
   requestPayout: (data: {
     amount: number;
-    payout_method: 'bank_transfer' | 'mtn_money' | 'orange_money';
+    payout_method: string;
   }) => api.post('/payouts/request_payout/', data),
 
   processPayout: (id: string, processData: any) =>
     api.post(`/payouts/${id}/process/`, processData),
+
+  getAvailableMethods: (country?: string) => {
+    const params = country ? { country } : {};
+    return api.get('/payouts/methods/', { params });
+  },
 };
 
 // ============================================

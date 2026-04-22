@@ -143,7 +143,10 @@ export default function UserManagementScreen() {
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Utilisateurs</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>La communauté</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Utilisateurs</Text>
+        </View>
         <View style={[styles.countBadge, { backgroundColor: colors.primary + '15' }]}>
           <Text style={[styles.countText, { color: colors.primary }]}>{filteredUsers.length}</Text>
         </View>
@@ -189,7 +192,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...TextStyles.h3, flex: 1, textAlign: 'center' },
+  headerTitleWrap: { flex: 1, alignItems: 'center' },
+  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { ...TextStyles.h3, textAlign: 'center', letterSpacing: -0.3 },
   countBadge: { paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: BorderRadius.full },
   countText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
   searchSection: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1 },

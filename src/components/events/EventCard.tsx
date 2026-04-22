@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
 } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import AnimatedPressable from '../ui/AnimatedPressable';
@@ -18,6 +18,7 @@ import {
   formatDateShort,
 } from '../../lib/utils/eventCardFormatters';
 import { getMediaUrl } from '../../api';
+import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
 import {
   FontFamily,
   FontSizes,
@@ -38,6 +39,7 @@ interface EventCardProps {
   time?: string;
   location: string;
   imageUrl?: string;
+  imagePlaceholder?: string; // Data URI LQIP (blur progressif)
   category?: string;
   price?: string | number;
   priceMax?: number;
@@ -60,6 +62,7 @@ function EventCard({
   time,
   location,
   imageUrl,
+  imagePlaceholder,
   category,
   price,
   priceMax,
@@ -78,6 +81,7 @@ function EventCard({
 
   // Résoudre l'URL image (relative → absolue) et utiliser le fallback local si absente
   const resolvedImageUrl = getMediaUrl(imageUrl);
+  const blurPlaceholder = imagePlaceholder || DEFAULT_BLUR_DATA_URL;
 
   // === Derived values ===
 
@@ -106,10 +110,14 @@ function EventCard({
         accessibilityLabel={eventAccessibilityLabel}
         accessibilityHint={eventAccessibilityHint}
       >
-        <Animated.Image
+        <ExpoImage
           source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
+          placeholder={blurPlaceholder}
+          placeholderContentFit="cover"
+          contentFit="cover"
+          transition={300}
+          cachePolicy="memory-disk"
           style={[styles.horizontalImage, { backgroundColor: colors.gray100 }]}
-          resizeMode="cover"
         />
         <View style={styles.horizontalContent}>
           <Text style={[styles.dateAccent, { color: colors.accent }]}>{dateAccentText}</Text>
@@ -151,10 +159,14 @@ function EventCard({
         accessibilityLabel={eventAccessibilityLabel}
         accessibilityHint={eventAccessibilityHint}
       >
-        <Animated.Image
+        <ExpoImage
           source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
+          placeholder={blurPlaceholder}
+          placeholderContentFit="cover"
+          contentFit="cover"
+          transition={300}
+          cachePolicy="memory-disk"
           style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
-          resizeMode="cover"
         />
         <View style={styles.compactContent}>
           <Text style={[styles.dateAccentSmall, { color: colors.accent }]}>{dateShortText}</Text>
@@ -181,10 +193,14 @@ function EventCard({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.featuredImageContainer}>
-          <Animated.Image
+          <ExpoImage
             source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
+            placeholder={blurPlaceholder}
+            placeholderContentFit="cover"
+            contentFit="cover"
+            transition={300}
+            cachePolicy="memory-disk"
             style={[styles.featuredImage, { backgroundColor: colors.gray100 }]}
-            resizeMode="cover"
             />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.5)']}
@@ -249,10 +265,14 @@ function EventCard({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={{ position: 'relative' }}>
-          <Animated.Image
+          <ExpoImage
             source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
+            placeholder={blurPlaceholder}
+            placeholderContentFit="cover"
+            contentFit="cover"
+            transition={300}
+            cachePolicy="memory-disk"
             style={[styles.gridImage, { backgroundColor: colors.gray100 }]}
-            resizeMode="cover"
             />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.3)']}
@@ -301,10 +321,14 @@ function EventCard({
       accessibilityLabel={eventAccessibilityLabel}
       accessibilityHint={eventAccessibilityHint}
     >
-      <Animated.Image
+      <ExpoImage
         source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
+        placeholder={blurPlaceholder}
+        placeholderContentFit="cover"
+        contentFit="cover"
+        transition={300}
+        cachePolicy="memory-disk"
         style={[styles.defaultImage, { backgroundColor: colors.gray100 }]}
-        resizeMode="cover"
       />
       <View style={styles.defaultContent}>
         <Text style={[styles.dateAccent, { color: colors.accent }]}>{dateAccentText}</Text>

@@ -137,7 +137,10 @@ export default function EventAnalyticsScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Analytiques</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Ton impact</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Analytiques</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
@@ -307,10 +310,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerTitleWrap: {
+    alignItems: 'center',
+  },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
+    letterSpacing: -0.3,
   },
   scrollContent: {
     paddingBottom: Spacing.xl,

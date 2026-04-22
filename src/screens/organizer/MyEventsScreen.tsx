@@ -18,7 +18,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Events as EventsIllustration } from '../../components/illustrations';
+import { Events as EventsIllustration, AnimatedIllustration } from '../../components/illustrations';
 import { eventsAPI, getMediaUrl } from '../../api';
 import { Event, RootStackParamList } from '../../types';
 import {
@@ -244,9 +244,11 @@ export default function MyEventsScreen() {
             getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)
               || require('../../../assets/defaults/default-event.png')
           }
+          placeholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder || undefined}
+          placeholderContentFit="cover"
           style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
-          cachePolicy="disk"
-          transition={200}
+          cachePolicy="memory-disk"
+          transition={300}
         />
 
         {/* Status Badge */}
@@ -380,7 +382,9 @@ export default function MyEventsScreen() {
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
-      <EventsIllustration color={colors.primary} size={160} />
+      <AnimatedIllustration entry="fadeIn" idle="sway">
+        <EventsIllustration color={colors.primary} size={160} />
+      </AnimatedIllustration>
       <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
         {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Aucun événement'}
       </Text>
@@ -432,7 +436,10 @@ export default function MyEventsScreen() {
           >
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mes événements</Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerEyebrow}>Ton catalogue</Text>
+            <Text style={styles.headerTitle}>Mes événements</Text>
+          </View>
           <TouchableOpacity
             style={[styles.addButton, { backgroundColor: colors.card }]}
             onPress={() => navigation.navigate('EventCreate')}
@@ -556,9 +563,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerTitleWrap: {
+    alignItems: 'center',
+  },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     ...TextStyles.h2,
     color: '#FFFFFF',
+    letterSpacing: -0.3,
   },
   addButton: {
     width: 40,

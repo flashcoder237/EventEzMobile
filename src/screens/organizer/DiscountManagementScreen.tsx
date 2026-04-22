@@ -303,6 +303,7 @@ export default function DiscountManagementScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
+            <Text style={styles.headerEyebrow}>Dope tes ventes</Text>
             <Text style={[styles.headerTitle, { color: colors.white }]}>Codes promo</Text>
           </View>
           <TouchableOpacity
@@ -364,10 +365,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     fontSize: FontSizes.xl,
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.white,
+    letterSpacing: -0.3,
   },
   addButton: {
     width: 40,

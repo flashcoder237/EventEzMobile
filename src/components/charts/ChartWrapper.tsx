@@ -51,8 +51,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   title: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.md,
+    letterSpacing: -0.2,
   },
   subtitle: {
     fontFamily: FontFamily.regular,

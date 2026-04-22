@@ -455,8 +455,9 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   headerTitle: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
     color: Colors.white,
   },
   searchContainer: {
@@ -553,10 +554,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   selectedLocationLabel: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
     color: Colors.gray500,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   selectedLocationName: {
     fontFamily: FontFamily.semiBold,

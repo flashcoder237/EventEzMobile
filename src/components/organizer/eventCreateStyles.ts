@@ -18,6 +18,7 @@ const styles = StyleSheet.create({
   },
   stepTitle: {
     ...TextStyles.h3,
+    letterSpacing: -0.3,
     marginBottom: Spacing.xs,
   },
   stepDescription: {
@@ -336,8 +337,9 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray100,
   },
   cardTitle: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.base,
+    letterSpacing: -0.2,
     color: Colors.gray900,
   },
   chipContainer: {

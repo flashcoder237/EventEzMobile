@@ -24,6 +24,7 @@ export default function AgendaTab({
 
   return (
     <View style={styles.section}>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>Déroulé de la journée</Text>
       <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Programme</Text>
       {loadingSessions ? (
         <View style={styles.emptyTab}>
@@ -88,11 +89,19 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: Spacing.lg,
   },
+  eyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
+    letterSpacing: -0.3,
   },
   emptyTab: {
     alignItems: 'center',

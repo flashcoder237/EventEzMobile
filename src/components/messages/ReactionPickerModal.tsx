@@ -130,8 +130,10 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   title: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
     marginBottom: Spacing.md,
   },
   emojiRow: {

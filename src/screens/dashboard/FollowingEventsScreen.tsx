@@ -22,7 +22,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
-import { SaveToBookmarks, Authentication } from '../../components/illustrations';
+import { SaveToBookmarks, Authentication, AnimatedIllustration } from '../../components/illustrations';
 import { RootStackParamList, Event } from '../../types';
 import {
   Colors,
@@ -148,6 +148,14 @@ export default function FollowingEventsScreen() {
     withNotifications: follows.filter(f => f.notification_preference !== 'none').length,
   };
 
+  // Events starting within 7 days — fuels lime urgency alert
+  const soonCount = follows.filter(f => {
+    const eventDate = f.event_details?.start_date;
+    if (!eventDate) return false;
+    const d = new Date(eventDate).getTime() - Date.now();
+    return d > 0 && d <= 7 * 24 * 60 * 60 * 1000;
+  }).length;
+
   // Filtered follows
   const filteredFollows = follows.filter(follow => {
     const event = follow.event_details;
@@ -226,9 +234,11 @@ export default function FollowingEventsScreen() {
             getMediaUrl(event.banner_image || event.category?.default_event_image)
               || require('../../../assets/defaults/default-event.png')
           }
+          placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
+          placeholderContentFit="cover"
           style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
-          cachePolicy="disk"
-          transition={200}
+          cachePolicy="memory-disk"
+          transition={300}
         />
 
         {/* Content */}
@@ -294,7 +304,9 @@ export default function FollowingEventsScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <SaveToBookmarks color={colors.primary} size={160} />
+      <AnimatedIllustration entry="fadeIn" idle="sway">
+        <SaveToBookmarks color={colors.primary} size={160} />
+      </AnimatedIllustration>
       <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
         {follows.length === 0 ? 'Aucun evenement suivi' : 'Aucun resultat'}
       </Text>
@@ -317,7 +329,9 @@ export default function FollowingEventsScreen() {
 
   const renderAuthRequired = () => (
     <View style={styles.authContainer}>
-      <Authentication color={colors.primary} size={160} />
+      <AnimatedIllustration entry="scaleIn" idle="float">
+        <Authentication color={colors.primary} size={160} />
+      </AnimatedIllustration>
       <Text style={[styles.authTitle, { color: colors.gray900 }]}>Connectez-vous</Text>
       <Text style={[styles.authSubtitle, { color: colors.gray500 }]}>
         Vous devez etre connecte pour voir vos evenements suivis
@@ -359,8 +373,9 @@ export default function FollowingEventsScreen() {
             <Ionicons name="heart" size={28} color={colors.primary} />
           </View>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.headerTitle}>Mes Favoris</Text>
-            <Text style={styles.headerSubtitle}>Gardez un oeil sur vos evenements preferes</Text>
+            <Text style={styles.headerEyebrow}>Sauvegardés</Text>
+            <Text style={styles.headerTitle}>Tes Sauvegardes</Text>
+            <Text style={styles.headerSubtitle}>Les évènements que tu veux pas rater</Text>
           </View>
         </View>
 
@@ -408,8 +423,8 @@ export default function FollowingEventsScreen() {
         {/* Filter Tabs */}
         <View style={styles.filtersRow}>
           {([
-            { key: 'upcoming', label: 'A venir', count: stats.upcoming },
-            { key: 'past', label: 'Passes', count: stats.total - stats.upcoming },
+            { key: 'upcoming', label: 'À venir', count: stats.upcoming },
+            { key: 'past', label: 'Passés', count: stats.total - stats.upcoming },
             { key: 'all', label: 'Tous', count: stats.total },
           ] as { key: TabFilter; label: string; count: number }[]).map((tab) => (
             <TouchableOpacity
@@ -431,6 +446,21 @@ export default function FollowingEventsScreen() {
           ))}
         </View>
       </View>
+
+      {/* Lime urgency alert — AIDesigner pattern */}
+      {soonCount > 0 && (
+        <View style={styles.limeAlert}>
+          <View style={styles.limeAlertIcon}>
+            <Ionicons name="flash" size={16} color="#0F172A" />
+          </View>
+          <View style={styles.limeAlertBody}>
+            <Text style={styles.limeAlertTitle}>
+              {soonCount} évènement{soonCount > 1 ? 's' : ''} cette semaine
+            </Text>
+            <Text style={styles.limeAlertSub}>Active les notifs pour pas les rater</Text>
+          </View>
+        </View>
+      )}
 
       {/* Content */}
       <ContentTransition
@@ -520,15 +550,64 @@ const styles = StyleSheet.create({
   headerTextContainer: {
     flex: 1,
   },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 3,
+  },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['2xl'],
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.white,
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
     color: 'rgba(255,255,255,0.7)',
+    marginTop: 2,
+  },
+  // Lime urgency alert (AIDesigner)
+  limeAlert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: '#BEFF5A',
+    gap: Spacing.md,
+    shadowColor: '#BEFF5A',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 3,
+  },
+  limeAlertIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  limeAlertBody: {
+    flex: 1,
+  },
+  limeAlertTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.base,
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  limeAlertSub: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    color: '#0F172A',
+    opacity: 0.7,
     marginTop: 2,
   },
 

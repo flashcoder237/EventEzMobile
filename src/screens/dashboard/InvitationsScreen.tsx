@@ -18,7 +18,7 @@ import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
-import { Emails } from '../../components/illustrations';
+import { Emails, AnimatedIllustration } from '../../components/illustrations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -274,7 +274,9 @@ export default function InvitationsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Emails color={colors.primary} size={150} />
+            <AnimatedIllustration entry="fadeIn" idle="float">
+              <Emails color={colors.primary} size={150} />
+            </AnimatedIllustration>
             <Text style={[styles.emptyText, { color: colors.textLight }]}>
               {activeTab === 'received' ? 'Aucune invitation recue' : 'Aucune invitation envoyee'}
             </Text>

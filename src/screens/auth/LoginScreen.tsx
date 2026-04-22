@@ -34,7 +34,6 @@ import {
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
 import { eventBus } from '../../lib/eventBus';
-import { authAPI } from '../../api';
 import { LinearGradient } from 'expo-linear-gradient';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
@@ -47,7 +46,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { login, isLoading, setUser } = useAuth();
-  const { showError, showAlert, showSuccess } = useAlert();
+  const { showError, showSuccess } = useAlert();
   const { colors, isDark, gradients } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -129,30 +128,8 @@ export default function LoginScreen() {
     try {
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
 
-      // Pré-vérifier avec l'API directement pour gérer les erreurs spécifiques (email non vérifié)
-      try {
-        await authAPI.login(email.trim().toLowerCase(), password);
-      } catch (apiError: any) {
-        if (apiError.response?.status === 403 &&
-            apiError.response?.data?.code === 'email_not_verified') {
-          showAlert(
-            'Email non vérifié',
-            'Veuillez vérifier votre adresse email avant de vous connecter.',
-            [
-              { text: 'Annuler', style: 'cancel' },
-              {
-                text: 'Vérifier',
-                onPress: () => navigation.navigate('VerifyEmail', { email: email.trim().toLowerCase() }),
-              },
-            ],
-            'warning',
-          );
-          return;
-        }
-        throw apiError;
-      }
-
-      // L'API a réussi → appeler login() qui va re-fetch les tokens + user
+      // Les comptes non vérifiés peuvent se connecter — les restrictions sont
+      // appliquées côté backend (IsEmailVerified) avec un bandeau UI.
       await login(email.trim().toLowerCase(), password, rememberMe);
       setRetryInfo(null);
       // Dismiss login modal — tabs will update reactively via auth state
@@ -208,9 +185,10 @@ export default function LoginScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>Connexion</Text>
             <Text style={[styles.title, { color: colors.gray900 }]}>Bon retour !</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-              Connectez-vous pour découvrir les meilleurs événements
+              Connecte-toi pour découvrir les meilleurs événements
             </Text>
           </View>
 
@@ -474,6 +452,13 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginBottom: Spacing.xl,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
   },
   title: {
     fontSize: FontSizes['4xl'],

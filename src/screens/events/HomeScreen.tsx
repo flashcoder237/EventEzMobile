@@ -141,6 +141,7 @@ export default function HomeScreen() {
             time={item.start_time}
             location={item.location_city || item.location_address || 'Lieu à confirmer'}
             imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
+            imagePlaceholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder}
             category={item.category?.name}
             price={range?.min}
             priceMax={range?.max}
@@ -169,6 +170,7 @@ export default function HomeScreen() {
             time={item.start_time}
             location={item.location_city || 'Lieu à confirmer'}
             imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
+            imagePlaceholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder}
             category={item.category?.name}
             price={range?.min}
             priceMax={range?.max}

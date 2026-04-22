@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
     marginBottom: Spacing.md,
   },
@@ -181,6 +182,7 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
     textAlign: 'center',
     marginBottom: Spacing.xs,

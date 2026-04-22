@@ -32,7 +32,6 @@ import {
   Payout,
   PendingEarning,
   RootStackParamList,
-  PayoutMethod,
 } from '../../types';
 import {
   Colors,
@@ -82,8 +81,14 @@ export default function WalletScreen() {
   // Payout modal states
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState('');
-  const [payoutMethod, setPayoutMethod] = useState<PayoutMethod>('mtn_money');
+  const [payoutMethod, setPayoutMethod] = useState<string>('');
   const [processingPayout, setProcessingPayout] = useState(false);
+  const [availableMethods, setAvailableMethods] = useState<Array<{
+    id: string;
+    name: string;
+    channel: string;
+    type: string;
+  }>>([]);
 
   // Bank modal states
   const [showBankModal, setShowBankModal] = useState(false);
@@ -124,6 +129,19 @@ export default function WalletScreen() {
           mobile_money_number: walletData.mobile_money_number || '',
           mobile_money_provider: walletData.mobile_money_provider || '',
         });
+
+        // Charger les méthodes de retrait disponibles pour le pays du wallet
+        try {
+          const methodsRes = await payoutsAPI.getAvailableMethods();
+          const methods = methodsRes.data?.methods || [];
+          setAvailableMethods(methods);
+          if (methods.length && !payoutMethod) {
+            const firstMM = methods.find((m: any) => m.type === 'mobile_money');
+            setPayoutMethod(firstMM?.id || methods[0].id);
+          }
+        } catch (err) {
+          if (__DEV__) console.error('Erreur chargement méthodes:', err);
+        }
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement données portefeuille:', error);
@@ -153,7 +171,7 @@ export default function WalletScreen() {
     }
 
     if (amount < wallet.minimum_payout) {
-      showError('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} {wallet?.currency || 'FCFA'}`);
+      showError('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} ${wallet?.currency || 'FCFA'}`);
       return;
     }
 
@@ -394,7 +412,10 @@ export default function WalletScreen() {
           >
             <Ionicons name="arrow-back" size={24} color={Colors.white} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mon Portefeuille</Text>
+          <View style={styles.headerTitleWrap}>
+            <Text style={styles.headerEyebrow}>Ta caisse</Text>
+            <Text style={styles.headerTitle}>Mon Portefeuille</Text>
+          </View>
           <TouchableOpacity
             style={styles.settingsButton}
             onPress={() => setShowBankModal(true)}
@@ -438,7 +459,7 @@ export default function WalletScreen() {
           style={[styles.withdrawButton, { backgroundColor: colors.card }, !wallet?.can_withdraw && styles.withdrawButtonDisabled]}
           onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
             'Retrait impossible',
-            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} {wallet?.currency || 'FCFA'}`,
+            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} ${wallet?.currency || 'FCFA'}`,
             undefined,
             'warning'
           )}
@@ -605,32 +626,38 @@ export default function WalletScreen() {
             <View style={styles.inputGroup}>
               <Text style={styles.inputLabel}>Méthode de retrait</Text>
               <View style={styles.methodsRow}>
-                {[
-                  { value: 'mtn_money' as PayoutMethod, label: 'MTN', icon: 'phone-portrait', color: '#FBBF24' },
-                  { value: 'orange_money' as PayoutMethod, label: 'Orange', icon: 'phone-portrait', color: '#F97316' },
-                  { value: 'bank_transfer' as PayoutMethod, label: 'Banque', icon: 'business', color: '#3B82F6' },
-                ].map((method) => (
-                  <TouchableOpacity
-                    key={method.value}
-                    style={[
-                      styles.methodButton,
-                      payoutMethod === method.value && styles.methodButtonActive,
-                    ]}
-                    onPress={() => setPayoutMethod(method.value)}
-                  >
-                    <Ionicons
-                      name={method.icon as any}
-                      size={20}
-                      color={payoutMethod === method.value ? colors.primary : colors.gray400}
-                    />
-                    <Text style={[
-                      styles.methodText,
-                      payoutMethod === method.value && styles.methodTextActive,
-                    ]}>
-                      {method.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {availableMethods.length === 0 ? (
+                  <Text style={{ color: colors.gray500, fontSize: 13 }}>
+                    Aucune méthode de retrait disponible pour votre pays.
+                  </Text>
+                ) : (
+                  availableMethods.map((method: any) => {
+                    const isActive = payoutMethod === method.id;
+                    const iconName = method.type === 'bank_transfer' ? 'business' : 'phone-portrait';
+                    return (
+                      <TouchableOpacity
+                        key={method.id}
+                        style={[
+                          styles.methodButton,
+                          isActive && styles.methodButtonActive,
+                        ]}
+                        onPress={() => setPayoutMethod(method.id)}
+                      >
+                        <Ionicons
+                          name={iconName as any}
+                          size={20}
+                          color={isActive ? colors.primary : colors.gray400}
+                        />
+                        <Text style={[
+                          styles.methodText,
+                          isActive && styles.methodTextActive,
+                        ]}>
+                          {method.name}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
               </View>
             </View>
 
@@ -719,26 +746,25 @@ export default function WalletScreen() {
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>Opérateur</Text>
                   <View style={styles.pickerRow}>
-                    {[
-                      { value: 'mtn_money', label: 'MTN Mobile Money' },
-                      { value: 'orange_money', label: 'Orange Money' },
-                    ].map((option) => (
-                      <TouchableOpacity
-                        key={option.value}
-                        style={[
-                          styles.pickerOption,
-                          bankDetails.mobile_money_provider === option.value && styles.pickerOptionActive,
-                        ]}
-                        onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.value })}
-                      >
-                        <Text style={[
-                          styles.pickerOptionText,
-                          bankDetails.mobile_money_provider === option.value && styles.pickerOptionTextActive,
-                        ]}>
-                          {option.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {availableMethods
+                      .filter((m: any) => m.type === 'mobile_money')
+                      .map((option: any) => (
+                        <TouchableOpacity
+                          key={option.id}
+                          style={[
+                            styles.pickerOption,
+                            bankDetails.mobile_money_provider === option.id && styles.pickerOptionActive,
+                          ]}
+                          onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.id })}
+                        >
+                          <Text style={[
+                            styles.pickerOptionText,
+                            bankDetails.mobile_money_provider === option.id && styles.pickerOptionTextActive,
+                          ]}>
+                            {option.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
                   </View>
                 </View>
               </View>
@@ -850,10 +876,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerTitleWrap: {
+    alignItems: 'center',
+  },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.xl,
     color: Colors.white,
+    letterSpacing: -0.3,
   },
   settingsButton: {
     width: 40,

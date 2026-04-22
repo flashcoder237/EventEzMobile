@@ -32,3 +32,7 @@ export { default as OnlinePayments } from './svgs/OnlinePayments';
 // ─── Status ──────────────────────────────────────────────────────────────────
 export { default as Alert } from './svgs/Alert';
 export { default as WellDone } from './svgs/WellDone';
+
+// ─── Animation wrapper ───────────────────────────────────────────────────────
+export { default as AnimatedIllustration } from './AnimatedIllustration';
+export type { EntryPreset, IdlePreset } from './AnimatedIllustration';

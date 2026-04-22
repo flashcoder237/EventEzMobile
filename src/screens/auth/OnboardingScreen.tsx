@@ -28,7 +28,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Events as EventsIllustration, Searching as SearchingIllustration, OnlinePayments, Conference } from '../../components/illustrations';
+import { Events as EventsIllustration, Searching as SearchingIllustration, OnlinePayments, Conference, AnimatedIllustration } from '../../components/illustrations';
 import GradientButton from '../../components/ui/GradientButton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -151,15 +151,17 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
           <View style={styles.decorCircleMid} />
 
           {/* Illustration */}
-          <View style={styles.iconWrapper}>
-            {item.illustration}
-          </View>
+          <AnimatedIllustration entry="scaleIn" idle="float" delay={120}>
+            <View style={styles.iconWrapper}>
+              {item.illustration}
+            </View>
+          </AnimatedIllustration>
         </LinearGradient>
       </View>
 
       {/* Text content */}
       <View style={styles.textContent}>
-        <Text style={[styles.slideSubtitle, { color: colors.primary }]}>{item.subtitle}</Text>
+        <Text style={[styles.slideSubtitle, { color: colors.accent }]}>{item.subtitle}</Text>
         <Text style={[styles.slideTitle, { color: colors.gray900 }]}>{item.title}</Text>
         <Text style={[styles.slideDescription, { color: colors.gray500 }]}>{item.description}</Text>
       </View>

@@ -27,11 +27,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import CacheService from '../../services/CacheService';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { Searching as SearchingIllustration } from '../../components/illustrations';
+import { Searching as SearchingIllustration, AnimatedIllustration } from '../../components/illustrations';
 import { SkeletonList, EventCardSkeleton, DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
 import { FadeInView, SectionEntrance, PulsingBadge, StaggeredItem } from '../../components/ui/Animations';
 import { useNotifications } from '../../contexts/NotificationContext';
-import GradientText from '../../components/ui/GradientText';
 import {
   Colors,
   FontFamily,
@@ -622,6 +621,7 @@ export default function DiscoverScreen() {
         time={item.start_time}
         location={item.location_city || item.location_address || 'Lieu à confirmer'}
         imageUrl={eventImageUrl}
+        imagePlaceholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder}
         category={item.category?.name}
         price={range?.min}
         priceMax={range?.max}
@@ -817,7 +817,9 @@ export default function DiscoverScreen() {
         ListEmptyComponent={
           !searchLoading ? (
             <View style={styles.emptySearch}>
-              <SearchingIllustration color={colors.primary} size={150} />
+              <AnimatedIllustration entry="fadeIn" idle="sway">
+                <SearchingIllustration color={colors.primary} size={150} />
+              </AnimatedIllustration>
               <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement trouvé</Text>
               <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>Essayez de modifier vos critères</Text>
             </View>
@@ -1179,12 +1181,14 @@ export default function DiscoverScreen() {
     >
       {/* === INLINE EXPANDED HEADER (scrolls with content) === */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="location" size={18} color={colors.accent} />
-          <Text style={[styles.headerLocation, { color: colors.gray900 }]}>
-            {location ? 'Douala' : 'Douala, Cameroun'}
-          </Text>
-          <Ionicons name="chevron-down" size={14} color={colors.gray400} />
+        <View>
+          <Text style={[styles.headerEyebrow, { color: colors.gray400 }]}>Localisation</Text>
+          <View style={styles.headerLocationRow}>
+            <Text style={[styles.headerLocationBig, { color: colors.gray900 }]}>
+              {location ? 'Douala, CMR' : 'Douala, CMR'}
+            </Text>
+            <Ionicons name="chevron-down" size={16} color={colors.primary} />
+          </View>
         </View>
         <View style={styles.headerActions}>
           {user?.role === 'organizer' && (
@@ -1222,26 +1226,34 @@ export default function DiscoverScreen() {
         </View>
       </View>
 
-      <View style={styles.heroSection}>
-        <Text style={[styles.heroEyebrow, { color: colors.accent }]}>
-          {user?.first_name ? `Bonjour ${user.first_name}` : 'Bienvenue'}
-        </Text>
-        <GradientText style={styles.heroTitle}>Discover Events</GradientText>
+      {/* Inline search bar with integrated filter (scrolls away) */}
+      <View style={[styles.searchBarTrigger, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}>
+        <TouchableOpacity
+          style={styles.searchBarBody}
+          onPress={activateSearch}
+          activeOpacity={0.7}
+          accessibilityRole="search"
+          accessibilityLabel="Rechercher des evenements"
+        >
+          <Ionicons name="search-outline" size={20} color={colors.gray500} />
+          <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
+            {placeholderSuggestions[placeholderIndex]}
+          </Text>
+        </TouchableOpacity>
+        <View style={[styles.searchDivider, { backgroundColor: colors.gray200 }]} />
+        <TouchableOpacity
+          style={styles.searchFilterBtn}
+          onPress={() => {
+            activateSearch();
+            setTimeout(openFilters, 350);
+          }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Filtres avances"
+        >
+          <Ionicons name="options-outline" size={20} color={colors.primary} />
+        </TouchableOpacity>
       </View>
-
-      {/* Inline search bar (scrolls away) */}
-      <TouchableOpacity
-        style={[styles.searchBarTrigger, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}
-        onPress={activateSearch}
-        activeOpacity={0.7}
-        accessibilityRole="search"
-        accessibilityLabel="Rechercher des evenements"
-      >
-        <Ionicons name="search" size={20} color={colors.primary} />
-        <Text style={[styles.searchPlaceholder, { color: colors.gray400 }]}>
-          {placeholderSuggestions[placeholderIndex]}
-        </Text>
-      </TouchableOpacity>
 
       {/* Category Chips */}
       {categories.length > 0 && (
@@ -1250,10 +1262,18 @@ export default function DiscoverScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.discoverChips}
         >
+          <TouchableOpacity
+            style={[styles.discoverChipAll, { backgroundColor: colors.gray900 }]}
+            onPress={activateSearch}
+            accessibilityRole="button"
+            accessibilityLabel="Tout explorer"
+          >
+            <Text style={[styles.discoverChipAllText, { color: colors.background }]}>Tout</Text>
+          </TouchableOpacity>
           {categories.slice(0, 8).map(cat => (
             <TouchableOpacity
               key={cat.id}
-              style={[styles.discoverChip, { borderColor: colors.gray200 }]}
+              style={[styles.discoverChip, { backgroundColor: colors.surface, borderColor: colors.gray200 }]}
               onPress={() => {
                 setSelectedCategory(cat.id);
                 activateSearch();
@@ -1261,7 +1281,7 @@ export default function DiscoverScreen() {
               accessibilityRole="button"
               accessibilityLabel={`Categorie ${cat.name}`}
             >
-              <Text style={[styles.discoverChipText, { color: colors.gray600 }]}>{cat.name}</Text>
+              <Text style={[styles.discoverChipText, { color: colors.gray700 }]}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -1527,6 +1547,23 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
+  headerEyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerLocationBig: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.5,
+  },
   headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1640,34 +1677,40 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
 
-  // === HERO SECTION ===
-  heroSection: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-  },
-  heroEyebrow: {
-    ...TextStyles.eyebrow,
-    marginBottom: Spacing.xs,
-  },
-  heroTitle: {
-    ...TextStyles.heroSm,
-  },
-
-  // === SEARCH BAR (discovery) — pill shape ===
+  // === SEARCH BAR (discovery) — soft rounded with inline filter ===
   searchBarTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.full,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.lg,
+    borderRadius: 14,
+    paddingLeft: Spacing.base,
+    paddingRight: 6,
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
-    marginBottom: Spacing.lg,
-    gap: Spacing.sm,
-    borderWidth: 1.5,
+    marginBottom: Spacing.base,
+    borderWidth: 1,
     borderColor: Colors.gray200,
-    ...Shadows.sm,
+    height: 52,
+    ...Shadows.xs,
+  },
+  searchBarBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+  },
+  searchDivider: {
+    width: StyleSheet.hairlineWidth,
+    height: 24,
+    backgroundColor: Colors.gray200,
+    marginHorizontal: Spacing.sm,
+  },
+  searchFilterBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   searchPlaceholder: {
     ...TextStyles.body,
@@ -1678,22 +1721,35 @@ const styles = StyleSheet.create({
   // === DISCOVER CHIPS ===
   discoverChips: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xs,
-    paddingBottom: 0,
-    gap: Spacing.xs,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    gap: 8,
+  },
+  discoverChipAll: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    height: 38,
+    borderRadius: BorderRadius.full,
+    marginRight: 8,
+  },
+  discoverChipAllText: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.sm,
+    letterSpacing: 0.2,
   },
   discoverChip: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.md,
-    height: 30,
+    paddingHorizontal: 18,
+    height: 38,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    marginRight: Spacing.xs,
-    ...Shadows.xs,
+    marginRight: 8,
   },
   discoverChipText: {
-    ...TextStyles.label,
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
   },
 
   // === SECTIONS ===

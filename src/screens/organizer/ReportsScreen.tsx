@@ -173,7 +173,10 @@ export default function ReportsScreen() {
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Rapports</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Tes chiffres</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Rapports</Text>
+        </View>
         <TouchableOpacity
           style={[styles.generateBtn, { backgroundColor: '#4F46E5' }]}
           onPress={handleGenerate}
@@ -209,7 +212,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   backButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...TextStyles.h3, flex: 1, textAlign: 'center' },
+  headerTitleWrap: { flex: 1, alignItems: 'center' },
+  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { ...TextStyles.h3, textAlign: 'center', letterSpacing: -0.3 },
   generateBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderRadius: BorderRadius.full, gap: 4 },
   generateBtnText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, color: '#FFFFFF' },
   listContent: { padding: Spacing.lg, flexGrow: 1 },

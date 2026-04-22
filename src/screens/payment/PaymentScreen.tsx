@@ -57,6 +57,7 @@ const PaymentIcons: Record<string, ImageSource> = {
   wave: require('../../../assets/payments/bank.png'),
   mpesa: require('../../../assets/payments/bank.png'),
   airtel_money: require('../../../assets/payments/bank.png'),
+  paypal: require('../../../assets/payments/bank.png'),
 };
 
 // Couleurs par méthode de paiement
@@ -67,6 +68,7 @@ const METHOD_COLORS: Record<string, string> = {
   wave: '#1DA1F2',
   mpesa: '#4CAF50',
   airtel_money: '#E53935',
+  paypal: '#003087',
 };
 
 // Descriptions par méthode
@@ -77,11 +79,17 @@ const METHOD_DESCRIPTIONS: Record<string, string> = {
   wave: 'Payez avec votre compte Wave',
   mpesa: 'Payez avec M-Pesa',
   airtel_money: 'Payez avec Airtel Money',
+  paypal: 'Payez avec votre compte PayPal',
 };
 
 // Méthodes de type mobile money
 const MOBILE_MONEY_METHODS = new Set([
   'mtn_money', 'orange_money', 'wave', 'mpesa', 'airtel_money',
+]);
+
+// Méthodes qui utilisent une redirection navigateur (pas de saisie téléphone)
+const REDIRECT_METHODS = new Set([
+  'credit_card', 'paypal',
 ]);
 
 // Map locale → code pays NotchPay (pour afficher les méthodes de paiement du payeur)
@@ -123,7 +131,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
 
 // Les valeurs doivent correspondre aux choix backend (multi-pays)
-type PaymentMethodId = 'mtn_money' | 'orange_money' | 'credit_card' | 'wave' | 'mpesa' | 'airtel_money';
+type PaymentMethodId = 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal' | 'wave' | 'mpesa' | 'airtel_money';
 
 interface PaymentMethodOption {
   id: PaymentMethodId;
@@ -202,7 +210,7 @@ export default function PaymentScreen() {
 
   // Helper to save payment method on success
   const savePaymentMethodOnSuccess = useCallback(() => {
-    if (selectedMethod && selectedMethod !== 'credit_card' && phoneNumber) {
+    if (selectedMethod && !REDIRECT_METHODS.has(selectedMethod) && phoneNumber) {
       const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
       savePaymentMethod(cleanNumber, selectedMethod);
       if (selectedSavedMethod) {
@@ -352,7 +360,7 @@ export default function PaymentScreen() {
 
   // Auto-select last used payment method for the selected type
   useEffect(() => {
-    if (selectedMethod && selectedMethod !== 'credit_card') {
+    if (selectedMethod && !REDIRECT_METHODS.has(selectedMethod)) {
       const methodsOfType = getMethodsByType(selectedMethod);
       if (methodsOfType.length > 0 && !selectedSavedMethod) {
         // Don't auto-select, but keep for display
@@ -431,7 +439,7 @@ export default function PaymentScreen() {
   });
 
   const validatePhoneNumber = (method: PaymentMethodId): { valid: boolean; formatted?: string } => {
-    if (method === 'credit_card') return { valid: true };
+    if (REDIRECT_METHODS.has(method)) return { valid: true };
     if (!MOBILE_MONEY_METHODS.has(method)) return { valid: true };
 
     const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
@@ -551,9 +559,9 @@ export default function PaymentScreen() {
         });
         if (__DEV__) console.log('[Payment] Mobile Money processing response:', response.data);
       } else {
-        // Carte bancaire - redirection vers page de paiement
+        // Carte bancaire ou PayPal - redirection vers page de paiement (NotchPay ou Stripe Checkout)
         const response = await paymentsAPI.initializePayment(newPaymentId);
-        if (__DEV__) console.log('[Payment] Card initialization response:', response.data);
+        if (__DEV__) console.log('[Payment] Redirect initialization response:', response.data);
 
         // Si on reçoit une URL d'autorisation, ouvrir dans le navigateur
         const authUrl = response.data?.authorization_url || response.data?.checkout_url || response.data?.payment_url;
@@ -745,11 +753,23 @@ export default function PaymentScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={processing ? colors.gray400 : colors.gray900} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>
-          {processing ? 'Traitement' : 'Paiement'}
-        </Text>
+        <View style={{ alignItems: 'center' }}>
+          <Text style={[styles.headerEyebrow, { color: colors.gray500 }]}>Étape 3 / 3</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>
+            {processing ? 'Traitement' : 'Paiement'}
+          </Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
+
+      {/* Step indicator bars (AIDesigner editorial) */}
+      {!processing && (
+        <View style={styles.stepBarsContainer}>
+          <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+          <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+          <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+        </View>
+      )}
 
       {processing ? (
         /* ===== Processing Status Screen (replaces form) ===== */
@@ -824,8 +844,8 @@ export default function PaymentScreen() {
             </View>
           )}
 
-          {/* Instructions pour carte bancaire */}
-          {selectedMethod === 'credit_card' && (
+          {/* Instructions pour carte bancaire ou PayPal (redirections) */}
+          {selectedMethod && REDIRECT_METHODS.has(selectedMethod) && (
             <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
               <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Paiement sécurisé :</Text>
 
@@ -843,7 +863,9 @@ export default function PaymentScreen() {
                   <Text style={styles.stepNumberText}>2</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Entrez les informations de votre carte bancaire
+                  {selectedMethod === 'paypal'
+                    ? 'Connectez-vous à votre compte PayPal'
+                    : 'Entrez les informations de votre carte bancaire'}
                 </Text>
               </View>
 
@@ -859,7 +881,7 @@ export default function PaymentScreen() {
               <View style={[styles.securityNote, { borderTopColor: colors.gray200 }]}>
                 <Ionicons name="shield-checkmark" size={16} color={colors.success} />
                 <Text style={[styles.securityNoteText, { color: colors.success }]}>
-                  Paiement sécurisé par NotchPay
+                  Paiement sécurisé
                 </Text>
               </View>
             </View>
@@ -1140,12 +1162,12 @@ export default function PaymentScreen() {
               )}
             </View>
             <GradientButton
-              title="Payer maintenant"
+              title="Confirmer"
               onPress={handlePayment}
               disabled={!selectedMethod}
               icon={<Ionicons name="lock-closed" size={18} color={Colors.white} />}
               style={styles.payButton}
-              accessibilityLabel="Payer"
+              accessibilityLabel="Confirmer le paiement"
             />
           </View>
         </>
@@ -1182,10 +1204,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
+  },
+  // Step indicator bars (AIDesigner)
+  stepBarsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    gap: 6,
+  },
+  stepBar: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
   },
 
   // Content

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Alert as AlertIllustration } from '../illustrations';
+import { Alert as AlertIllustration, AnimatedIllustration } from '../illustrations';
 import {
   Colors,
   FontFamily,
@@ -101,11 +101,14 @@ function ErrorFallbackUI({
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           {/* Illustration */}
-          <View style={styles.illustrationContainer}>
-            <AlertIllustration color={colors.primary} size={200} />
-          </View>
+          <AnimatedIllustration entry="bounce" idle="breathe">
+            <View style={styles.illustrationContainer}>
+              <AlertIllustration color={colors.primary} size={200} />
+            </View>
+          </AnimatedIllustration>
 
           {/* Title */}
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Pépin</Text>
           <Text style={[styles.title, { color: colors.gray900 }]}>
             Oups ! Quelque chose s'est mal passe
           </Text>
@@ -207,9 +210,18 @@ const styles = StyleSheet.create({
     top: 30,
     left: 15,
   },
+  eyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   title: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.xl,
+    letterSpacing: -0.3,
     color: Colors.gray900,
     textAlign: 'center',
     marginBottom: Spacing.md,

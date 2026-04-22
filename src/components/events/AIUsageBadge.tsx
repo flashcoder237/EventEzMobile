@@ -54,7 +54,9 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.lg,
   },
   text: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
   },
 });

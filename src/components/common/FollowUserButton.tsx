@@ -453,7 +453,8 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
   },
   modalCancel: {
@@ -472,13 +473,13 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
     color: Colors.gray500,
     marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
   },
   levelSelector: {
     flexDirection: 'row',

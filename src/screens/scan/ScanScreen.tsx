@@ -354,6 +354,7 @@ export default function ScanScreen() {
             <Ionicons name="close" size={24} color={Colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
+            <Text style={styles.headerEyebrow}>Vise et scanne</Text>
             <Text style={styles.headerTitle}>Scanner QR</Text>
             <Text style={styles.headerSubtitle}>Transfert de billet ou profil utilisateur</Text>
           </View>
@@ -869,10 +870,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
   },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
-    fontFamily: FontFamily.displaySemiBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
     color: Colors.white,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: FontSizes.xs,

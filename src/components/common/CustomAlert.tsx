@@ -318,7 +318,8 @@ const styles = StyleSheet.create({
   // Textes
   title: {
     fontSize: FontSizes.xl,
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     textAlign: 'center',
     marginBottom: Spacing.sm,
     lineHeight: 28,

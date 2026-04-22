@@ -236,6 +236,7 @@ export default function EventCreateScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.gray900} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
+            <Text style={[styles.headerBarEyebrow, { color: colors.accent }]}>Donne vie à ton idée</Text>
             <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Créer un événement</Text>
             {draftJustSaved && (
               <Animated.View
@@ -494,9 +495,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
+  headerBarEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerBarTitle: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
   },
   savedBadge: {
     flexDirection: 'row',

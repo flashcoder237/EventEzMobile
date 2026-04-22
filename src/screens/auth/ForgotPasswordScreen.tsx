@@ -138,6 +138,7 @@ export default function ForgotPasswordScreen() {
 
             {/* Header */}
             <View style={styles.headerContainer}>
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>Réinitialisation</Text>
               <Text style={[styles.title, { color: colors.gray900 }]}>Mot de passe oublié ?</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
                 Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
@@ -250,12 +251,21 @@ const styles = StyleSheet.create({
   headerContainer: {
     marginBottom: Spacing.xl,
   },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
   title: {
     fontSize: FontSizes['3xl'],
     fontFamily: FontFamily.displayBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: FontSizes.base,

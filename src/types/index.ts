@@ -147,7 +147,9 @@ export interface Event {
   online_passcode?: string;
   // Medias
   banner_image?: string;
+  banner_placeholder?: string; // Data URI JPEG blurre (LQIP) pour chargement progressif
   display_image?: string; // SerializerMethodField
+  display_placeholder?: string; // LQIP correspondant a display_image
   gallery_images?: EventImage[];
   // Relations
   category?: Category;
@@ -221,6 +223,7 @@ export interface Event {
 export interface EventImage {
   id: string | number; // Backend: AutoField (integer)
   image: string;
+  image_placeholder?: string;
   caption?: string;
   // --- Client-side ---
   order?: number; // Client-only
@@ -232,7 +235,9 @@ export interface Category {
   name: string;
   description?: string;
   image?: string;
+  image_placeholder?: string;
   default_event_image?: string;
+  default_event_image_placeholder?: string;
   event_count?: number; // SerializerMethodField
   // Admin serializer only
   is_active?: boolean;

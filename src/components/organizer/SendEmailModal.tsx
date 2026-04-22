@@ -229,6 +229,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
   },
   badge: {
     flexDirection: 'row',

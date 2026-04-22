@@ -64,7 +64,10 @@ export default function PlatformSettingsScreen() {
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Parametres plateforme</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Le moteur</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Paramètres plateforme</Text>
+        </View>
         <View style={{ width: 44 }} />
       </View>
 
@@ -171,7 +174,9 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
   backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitle: { ...TextStyles.h3 },
+  headerTitleWrap: { alignItems: 'center' },
+  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
+  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
   scrollContent: { paddingHorizontal: Spacing.lg },
   sectionTitle: { ...TextStyles.eyebrow, letterSpacing: 1.2, marginTop: Spacing.xl, marginBottom: Spacing.sm },
   card: { borderRadius: BorderRadius['2xl'], ...Shadows.card, overflow: 'hidden' },

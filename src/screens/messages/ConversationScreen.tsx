@@ -1074,6 +1074,8 @@ const styles = StyleSheet.create({
   },
   headerTitleText: {
     ...TextStyles.bodyBold,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.2,
     maxWidth: 180,
   },
   headerMenuButton: {

@@ -163,6 +163,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
         >
           <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
+            <Text style={[styles.sheetEyebrow, { color: colors.accent }]}>N’oublie rien</Text>
             <Text style={[styles.sheetTitle, { color: colors.gray900 }]}>
               Ajouter au calendrier
             </Text>
@@ -271,10 +272,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: Spacing.lg,
   },
+  sheetEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    marginBottom: 6,
+  },
   sheetTitle: {
     ...TextStyles.h3,
     textAlign: 'center',
     marginBottom: Spacing.xl,
+    letterSpacing: -0.3,
   },
   option: {
     flexDirection: 'row',

@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import ExportButton from '../../components/common/ExportButton';
+import VerificationBanner from '../../components/auth/VerificationBanner';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -154,6 +155,8 @@ export default function DashboardScreen() {
         }
         contentContainerStyle={styles.scrollContent}
       >
+        <VerificationBanner />
+
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>

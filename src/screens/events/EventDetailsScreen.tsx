@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -28,6 +29,9 @@ import Animated, {
   Extrapolation,
   FadeInUp,
 } from 'react-native-reanimated';
+
+// Wrapper anime autour d'expo-image pour garder parallax + placeholder LQIP
+const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
 import BlurHeader from '../../components/ui/BlurHeader';
@@ -111,12 +115,17 @@ export default function EventDetailsScreen() {
 
   // Toutes les images : banner en premier, puis gallery_images
   const allImages = useMemo(() => {
-    const imgs: { uri: string; caption?: string }[] = [];
+    const imgs: { uri: string; caption?: string; placeholder?: string }[] = [];
     const bannerUrl = getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl);
-    if (bannerUrl) imgs.push({ uri: bannerUrl });
+    if (bannerUrl) {
+      imgs.push({
+        uri: bannerUrl,
+        placeholder: event?.banner_placeholder || event?.category?.default_event_image_placeholder || undefined,
+      });
+    }
     event?.gallery_images?.forEach(g => {
       const url = getMediaUrl(g.image);
-      if (url) imgs.push({ uri: url, caption: g.caption });
+      if (url) imgs.push({ uri: url, caption: g.caption, placeholder: g.image_placeholder || undefined });
     });
     return imgs;
   }, [event, routeImageUrl]);
@@ -333,12 +342,17 @@ export default function EventDetailsScreen() {
             activeOpacity={0.9}
             onPress={() => openViewer(0)}
           >
-            <Animated.Image
+            <AnimatedExpoImage
               source={
               getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)
                 ? { uri: getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)! }
                 : require('../../../assets/defaults/default-event.png')
             }
+              placeholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
+              placeholderContentFit="cover"
+              contentFit="cover"
+              transition={400}
+              cachePolicy="memory-disk"
               style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
             />
             {/* Triple gradient overlay */}
@@ -357,12 +371,12 @@ export default function EventDetailsScreen() {
           <Animated.View style={[StyleSheet.absoluteFill, bannerOverlayOpacity]}>
             <SafeAreaView style={styles.headerOverlay} edges={['top']}>
               <TouchableOpacity
-                style={styles.backButton}
+                style={styles.floatingHeaderBtn}
                 onPress={() => navigation.goBack()}
                 accessibilityRole="button"
                 accessibilityLabel="Retour"
               >
-                <Ionicons name="arrow-back" size={24} color={colors.white} />
+                <Ionicons name="arrow-back" size={22} color="#0F172A" />
               </TouchableOpacity>
               <View style={styles.headerActions}>
                 <FollowEventButton
@@ -372,12 +386,12 @@ export default function EventDetailsScreen() {
                   onFollowChange={handleFollowChange}
                 />
                 <TouchableOpacity
-                  style={styles.actionButton}
+                  style={styles.floatingHeaderBtn}
                   onPress={handleShare}
                   accessibilityRole="button"
                   accessibilityLabel="Partager l'evenement"
                 >
-                  <Ionicons name="share-outline" size={22} color={colors.white} />
+                  <Ionicons name="share-outline" size={20} color="#0F172A" />
                 </TouchableOpacity>
               </View>
             </SafeAreaView>
@@ -419,12 +433,15 @@ export default function EventDetailsScreen() {
             </View>
           )}
 
-          {/* Date — Accent orange (Eventbrite pattern) */}
-          <Text style={[styles.dateAccent, { color: colors.accent }]}>
-            {formatDate(event.start_date)} · {formatTime(event.start_date)}
-          </Text>
+          {/* Date pill — coral, floating at top edge of content (AIDesigner editorial) */}
+          <View style={[styles.datePill, { backgroundColor: colors.accent }]}>
+            <Ionicons name="calendar-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.datePillText}>
+              {formatDate(event.start_date)} · {formatTime(event.start_date)}
+            </Text>
+          </View>
 
-          {/* Title — Large & bold */}
+          {/* Title — Oversized, uppercase, editorial */}
           <Text style={[styles.title, { color: colors.gray900 }]}>{event.title}</Text>
 
           {/* Category Badge */}
@@ -432,8 +449,8 @@ export default function EventDetailsScreen() {
             <Badge label={event.category.name} variant="default" size="md" style={{ marginBottom: Spacing.lg }} />
           )}
 
-          {/* Organizer Card */}
-          <View style={[styles.organizerCard, { backgroundColor: colors.gray50 }]}>
+          {/* Organizer Card — with Suivre CTA */}
+          <View style={[styles.organizerCard, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
             <View style={[styles.organizerAvatar, { backgroundColor: colors.primary }]}>
               {event.organizer?.profile_picture ? (
                 <Image
@@ -449,19 +466,18 @@ export default function EventDetailsScreen() {
               )}
             </View>
             <View style={styles.organizerInfo}>
-              <Text style={[styles.organizerLabel, { color: colors.gray500 }]}>Organise par</Text>
+              <Text style={[styles.organizerLabel, { color: colors.gray500 }]}>Organisé par</Text>
               <Text style={[styles.organizerName, { color: colors.gray900 }]}>
                 {event.organizer?.first_name} {event.organizer?.last_name}
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.contactOrgButton, { borderColor: colors.primary }]}
+              style={[styles.organizerFollowBtn, { backgroundColor: colors.gray900 }]}
               onPress={handleContactOrganizer}
               accessibilityRole="button"
-              accessibilityLabel="Contacter l'organisateur"
+              accessibilityLabel="Suivre l'organisateur"
             >
-              <Ionicons name="chatbubble-outline" size={16} color={colors.primary} />
-              <Text style={[styles.contactOrgText, { color: colors.primary }]}>Contacter</Text>
+              <Text style={styles.organizerFollowText}>Suivre</Text>
             </TouchableOpacity>
           </View>
 
@@ -649,56 +665,72 @@ export default function EventDetailsScreen() {
             onNavigateVolunteers={() => navigation.navigate('Volunteers', { eventId: event.id })}
           />
 
-          {/* Section: Good to Know */}
+          {/* Section: Good to Know — 2-col icon grid (AIDesigner editorial) */}
           <View style={[styles.goodToKnowSection, { borderTopColor: colors.gray100 }]}>
             <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Bon à savoir</Text>
             <View style={styles.goodToKnowGrid}>
               {event.start_date && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="time-outline" size={20} color={colors.primary} />
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.primary}18` }]}>
+                    <Ionicons name="time-outline" size={18} color={colors.primary} />
+                  </View>
                   <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Check-in dès {formatTime(event.start_date)}</Text>
                 </View>
               )}
               {event.location_type === 'in_person' && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="navigate-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Événement présentiel</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.secondary}18` }]}>
+                    <Ionicons name="navigate-outline" size={18} color={colors.secondary} />
+                  </View>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Présentiel</Text>
                 </View>
               )}
               {event.location_type === 'online' && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="videocam-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Événement en ligne</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.info}18` }]}>
+                    <Ionicons name="videocam-outline" size={18} color={colors.info} />
+                  </View>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>En ligne</Text>
                 </View>
               )}
               {event.location_type === 'hybrid' && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="globe-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Hybride (présentiel + en ligne)</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.info}18` }]}>
+                    <Ionicons name="globe-outline" size={18} color={colors.info} />
+                  </View>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Hybride</Text>
                 </View>
               )}
               {(event as any).max_attendees && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="people-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{(event as any).max_attendees} places max</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.accent}18` }]}>
+                    <Ionicons name="people-outline" size={18} color={colors.accent} />
+                  </View>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{(event as any).max_attendees} places</Text>
                 </View>
               )}
               {event.is_free && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="pricetag-outline" size={20} color={colors.success} />
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Événement gratuit</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.success}18` }]}>
+                    <Ionicons name="pricetag-outline" size={18} color={colors.success} />
+                  </View>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Gratuit</Text>
                 </View>
               )}
               {event.visibility === 'unlisted' && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="link-outline" size={20} color={colors.warning} />
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Non listé (accessible via le lien)</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.warning}18` }]}>
+                    <Ionicons name="link-outline" size={18} color={colors.warning} />
+                  </View>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Accessible via lien</Text>
                 </View>
               )}
               {event.visibility === 'invite_only' && (
-                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="lock-closed-outline" size={20} color={colors.primary} />
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Sur invitation uniquement</Text>
+                <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+                  <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.primary}18` }]}>
+                    <Ionicons name="lock-closed-outline" size={18} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Sur invitation</Text>
                 </View>
               )}
             </View>
@@ -737,9 +769,12 @@ export default function EventDetailsScreen() {
                   <TouchableOpacity onPress={() => openViewer(index)} activeOpacity={0.8}>
                     <Image
                       source={item.uri}
+                      placeholder={item.placeholder}
+                      placeholderContentFit="cover"
+                      contentFit="cover"
                       style={[styles.galleryThumb, { backgroundColor: colors.gray200 }]}
-                      cachePolicy="disk"
-                      transition={200}
+                      cachePolicy="memory-disk"
+                      transition={300}
                     />
                     {item.caption ? (
                       <Text style={[styles.galleryCaption, { color: colors.gray500 }]} numberOfLines={1}>
@@ -900,16 +935,24 @@ export default function EventDetailsScreen() {
           )
         ) : (
           <TouchableOpacity
-            style={[styles.ctaButton, { backgroundColor: colors.primary }]}
             onPress={requireAuth(() => navigation.navigate('TicketPurchase', { eventId }))}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel={event.event_type === 'billetterie' ? 'Acheter des billets' : "S'inscrire"}
+            style={styles.ctaGradientWrap}
           >
-            <Text style={styles.ctaButtonText}>
-              {event.event_type === 'billetterie' ? 'Acheter des billets' : 'S\'inscrire'}
-            </Text>
-            <Ionicons name="arrow-forward" size={18} color={colors.white} />
+            <LinearGradient
+              colors={[colors.primary, colors.secondary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.ctaGradient}
+            >
+              <Ionicons name="lock-closed" size={14} color={colors.white} />
+              <Text style={styles.ctaButtonText}>
+                {event.event_type === 'billetterie' ? 'Acheter des billets' : 'S\'inscrire'}
+              </Text>
+              <Ionicons name="arrow-forward" size={18} color={colors.white} />
+            </LinearGradient>
           </TouchableOpacity>
         )}
       </View>
@@ -956,10 +999,12 @@ export default function EventDetailsScreen() {
                 <View style={styles.imageViewerSlide}>
                   <Image
                     source={item.uri}
+                    placeholder={item.placeholder}
+                    placeholderContentFit="contain"
                     style={styles.imageViewerImage}
                     contentFit="contain"
-                    cachePolicy="disk"
-                    transition={200}
+                    cachePolicy="memory-disk"
+                    transition={300}
                   />
                   {item.caption ? (
                     <Text style={styles.imageViewerCaption}>{item.caption}</Text>
@@ -1061,6 +1106,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Floating white header button — editorial look on hero
+  floatingHeaderBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.14,
+    shadowRadius: 12,
+    elevation: 4,
+  },
   content: {
     padding: Spacing.lg,
     marginTop: -Spacing['2xl'],
@@ -1068,15 +1127,34 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius['4xl'],
     borderTopRightRadius: BorderRadius['4xl'],
   },
-  // Date accent — orange, uppercase (Eventbrite pattern)
-  dateAccent: {
-    ...TextStyles.dateAccent,
-    fontSize: FontSizes.base,
-    marginBottom: Spacing.sm,
+  // Date pill — coral, floating (AIDesigner editorial)
+  datePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    gap: 6,
+    marginTop: -Spacing.md,
+    marginBottom: Spacing.md,
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  datePillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
   title: {
-    ...TextStyles.editorial,
-    marginBottom: Spacing.sm,
+    ...TextStyles.heroSm,
+    marginBottom: Spacing.md,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
@@ -1094,9 +1172,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
+    borderRadius: BorderRadius.full,
+    paddingLeft: 6,
+    paddingRight: 6,
+    paddingVertical: 6,
     marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+  },
+  organizerFollowBtn: {
+    paddingHorizontal: 18,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.full,
+    backgroundColor: Colors.gray900,
+  },
+  organizerFollowText: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.sm,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
   organizerAvatar: {
     width: 48,
@@ -1275,6 +1371,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.md,
+    gap: Spacing.sm,
+  },
+  // Gradient CTA (sticky bottom, AIDesigner editorial)
+  ctaGradientWrap: {
+    borderRadius: BorderRadius.lg,
+    overflow: 'hidden',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  ctaGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: 14,
     gap: Spacing.sm,
   },
   ctaButtonText: {
@@ -1618,20 +1731,35 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.gray100,
   },
   goodToKnowGrid: {
-    gap: Spacing.md,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
   },
   goodToKnowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
     backgroundColor: Colors.gray50,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.base,
     borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    flexGrow: 1,
+    flexBasis: '47%',
+    minWidth: '47%',
+  },
+  goodToKnowIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   goodToKnowText: {
     ...TextStyles.label,
     flex: 1,
+    fontSize: 13,
   },
   // ===== QUI Y VA =====
   whoIsGoingSection: {

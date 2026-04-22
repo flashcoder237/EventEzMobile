@@ -253,6 +253,7 @@ export default function QRScannerScreen() {
             <Ionicons name="close" size={24} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
+            <Text style={styles.headerEyebrow}>Check-in</Text>
             <Text style={styles.headerTitle}>Scanner QR</Text>
             {event && (
               <Text style={styles.headerSubtitle} numberOfLines={1}>
@@ -491,10 +492,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: Spacing.sm,
   },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
-    fontFamily: FontFamily.displaySemiBold,
+    fontFamily: FontFamily.displayBold,
     fontSize: FontSizes.lg,
     color: Colors.white,
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: FontSizes.xs,

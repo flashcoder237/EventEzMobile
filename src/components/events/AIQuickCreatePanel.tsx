@@ -53,8 +53,8 @@ export default function AIQuickCreatePanel({
             <Ionicons name="sparkles" size={18} color="#A855F7" />
           </View>
           <View>
-            <Text style={styles.headerTitle}>Création rapide par IA</Text>
-            <Text style={styles.headerSubtitle}>Décrivez votre événement en quelques mots</Text>
+            <Text style={styles.headerEyebrow}>Propulsé par l'IA</Text>
+            <Text style={styles.headerTitle}>Création rapide</Text>
           </View>
         </View>
         <Ionicons
@@ -159,10 +159,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    color: '#A855F7',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
     fontSize: FontSizes.md,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displayBold,
     color: '#4F46E5',
+    letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: FontSizes.xs,
