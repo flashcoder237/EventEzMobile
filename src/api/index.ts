@@ -49,3 +49,6 @@ export { auditAPI, treasuryAPI, siteSettingsAPI } from './admin';
 
 // Misc — Waitlist, Seating, Volunteers, Currency, Comparison, Export, AI & UTM
 export { waitlistAPI, waitlistSettingsAPI, seatingAPI, floorPlansAPI, volunteersAPI, currencyAPI, comparisonAPI, exportAPI, aiAssistAPI, utmAPI } from './misc';
+
+// System Status / Incidents
+export { statusAPI } from './status';

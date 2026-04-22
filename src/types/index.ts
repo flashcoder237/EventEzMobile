@@ -1550,6 +1550,10 @@ export type RootStackParamList = {
   TreasuryExpenses: undefined;
   TreasuryShareholders: undefined;
   TreasuryReports: undefined;
+  // System Status
+  SystemStatus: undefined;
+  Maintenance: undefined;
+  IncidentDetails: { incidentId: string };
 };
 
 export type AuthStackParamList = {
@@ -1696,3 +1700,80 @@ export type WebSocketOutgoingMessage =
   | { type: 'message.read'; message_id: string | number }
   | { type: 'reaction.add'; message_id: string | number; emoji: string }
   | { type: 'reaction.remove'; message_id: string | number; emoji: string };
+
+// ============================================
+// System Status / Incidents
+// ============================================
+
+export type IncidentScope = 'global' | 'service';
+export type IncidentStatus = 'scheduled' | 'investigating' | 'identified' | 'monitoring' | 'resolved';
+export type IncidentSeverity = 'minor' | 'major' | 'critical';
+export type IncidentImpact = 'none' | 'degraded' | 'partial_outage' | 'major_outage';
+export type ServiceHealthStatus = 'operational' | 'degraded' | 'partial' | 'major' | 'maintenance';
+
+export interface IncidentUpdateEntry {
+  id: string;
+  status: IncidentStatus;
+  status_display: string;
+  message: string;
+  created_at: string;
+  created_by_name: string | null;
+}
+
+export interface Incident {
+  id: string;
+  title: string;
+  public_message: string;
+  scope: IncidentScope;
+  affected_services: string[];
+  affected_services_labels: { key: string; label: string }[];
+  status: IncidentStatus;
+  status_display: string;
+  severity: IncidentSeverity;
+  severity_display: string;
+  impact: IncidentImpact;
+  impact_display: string;
+  is_blocking: boolean;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  started_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+  updates: IncidentUpdateEntry[];
+  latest_update: IncidentUpdateEntry | null;
+}
+
+export interface ServiceDef {
+  key: string;
+  label: string;
+  category: string;
+  description: string;
+}
+
+export interface ServiceStatus extends ServiceDef {
+  current_status: ServiceHealthStatus;
+  active_incident_id: string | null;
+}
+
+export interface StatusSnapshot {
+  services: ServiceStatus[];
+  active_incidents: Incident[];
+  recent_resolved: Incident[];
+  has_global_outage: boolean;
+  overall_status: ServiceHealthStatus;
+}
+
+export interface ServiceUnavailablePayload {
+  id: string;
+  scope: IncidentScope;
+  affected_services: string[];
+  is_blocking: boolean;
+  status: IncidentStatus;
+  severity: IncidentSeverity;
+  impact: IncidentImpact;
+  title: string;
+  public_message: string;
+  started_at: string | null;
+  latest_update: { message: string; created_at: string } | null;
+}

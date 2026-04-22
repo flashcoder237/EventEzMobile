@@ -61,7 +61,9 @@ import { ConnectionProvider } from './src/contexts/ConnectionContext';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
+import { StatusProvider } from './src/contexts/StatusContext';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
+import MaintenanceGate from './src/components/common/MaintenanceGate';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
@@ -147,9 +149,13 @@ function AppContent() {
           <AuthProvider>
             <NotificationProvider>
               <AlertProvider>
-                <StatusBar style={isDark ? 'light' : 'dark'} />
-                <RootNavigator />
-                <VerificationGuardModal />
+                <StatusProvider>
+                  <StatusBar style={isDark ? 'light' : 'dark'} />
+                  <MaintenanceGate>
+                    <RootNavigator />
+                  </MaintenanceGate>
+                  <VerificationGuardModal />
+                </StatusProvider>
               </AlertProvider>
             </NotificationProvider>
           </AuthProvider>

@@ -105,6 +105,11 @@ import TreasuryExpensesScreen from '../screens/admin/treasury/TreasuryExpensesSc
 import TreasuryShareholdersScreen from '../screens/admin/treasury/TreasuryShareholdersScreen';
 import TreasuryReportsScreen from '../screens/admin/treasury/TreasuryReportsScreen';
 
+// System Status Screens
+import MaintenanceScreen from '../screens/status/MaintenanceScreen';
+import StatusScreen from '../screens/status/StatusScreen';
+import IncidentDetailsScreen from '../screens/status/IncidentDetailsScreen';
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
@@ -320,6 +325,11 @@ export default function RootNavigator() {
       <Stack.Screen name="TreasuryExpenses" component={TreasuryExpensesScreen} />
       <Stack.Screen name="TreasuryShareholders" component={TreasuryShareholdersScreen} />
       <Stack.Screen name="TreasuryReports" component={TreasuryReportsScreen} />
+
+      {/* System Status */}
+      <Stack.Screen name="SystemStatus" component={StatusScreen} />
+      <Stack.Screen name="IncidentDetails" component={IncidentDetailsScreen} />
+      <Stack.Screen name="Maintenance" component={MaintenanceScreen} options={{ presentation: 'fullScreenModal' }} />
     </Stack.Navigator>
   );
 }

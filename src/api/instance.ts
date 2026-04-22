@@ -141,6 +141,14 @@ api.interceptors.response.use(
       }
     }
 
+    // 503 service_unavailable → notifier l'UI pour afficher la page de maintenance
+    if (error.response?.status === 503) {
+      const data = error.response.data as any;
+      if (data?.error === 'service_unavailable' && data?.incident) {
+        eventBus.emit('service-unavailable', { incident: data.incident });
+      }
+    }
+
     // 403 email_verification_required → notifier l'UI pour afficher le modal
     const responseData = error.response?.data as { code?: string; detail?: string } | undefined;
     if (

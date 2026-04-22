@@ -493,6 +493,12 @@ export default function ProfileScreen() {
               onPress={() => navigation.navigate('Help')}
             />
             <MenuItem
+              icon="pulse-outline"
+              title="Etat du systeme"
+              subtitle="Incidents & maintenance"
+              onPress={() => navigation.navigate('SystemStatus')}
+            />
+            <MenuItem
               icon="document-text-outline"
               title="Conditions d'utilisation"
               onPress={() => navigation.navigate('Terms')}
