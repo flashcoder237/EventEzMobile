@@ -30,7 +30,7 @@ import { eventsAPI, categoriesAPI, recommendationsAPI, getMediaUrl } from '../..
 import { Event, Category, RootStackParamList, MainTabParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import CacheService from '../../services/CacheService';
 import { DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
@@ -63,7 +63,7 @@ export default function DiscoverScreen() {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
-  const { unreadNotificationCount, unreadMessageCount } = useNotifications();
+  const { unreadNotificationCount, unreadMessageCount } = useUnreadCounts();
 
   // === State ===
   const [initialLoading, setInitialLoading] = useState(true);
@@ -307,6 +307,42 @@ export default function DiscoverScreen() {
       );
     },
     [platformCurrency, navigation],
+  );
+
+  const renderFeaturedItem = useCallback(
+    ({ item, index }: { item: Event; index: number }) => (
+      <View
+        style={[styles.featuredCardWrap, index === 0 && { marginLeft: Spacing.lg }]}
+      >
+        {renderEventCard(item, 'featured')}
+      </View>
+    ),
+    [renderEventCard, styles.featuredCardWrap],
+  );
+
+  const renderHorizontalEventItem = useCallback(
+    ({ item, index }: { item: Event; index: number }) => (
+      <View style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+        {renderEventCard(item, 'default')}
+      </View>
+    ),
+    [renderEventCard, styles.cardWrap],
+  );
+
+  const renderCategoryItem = useCallback(
+    ({ item, index }: { item: any; index: number }) => (
+      <View style={[styles.categoryWrap, index === 0 && { marginLeft: Spacing.lg }]}>
+        <CategoryCard
+          id={item.id.toString()}
+          name={item.name}
+          image={item.image}
+          eventCount={item.event_count || item.events_count}
+          variant="large"
+          onPress={() => activateSearch(item.id)}
+        />
+      </View>
+    ),
+    [styles.categoryWrap, activateSearch],
   );
 
   const SectionHeader = ({ title, onSeeAll }: { title: string; onSeeAll?: () => void }) => (
@@ -570,16 +606,7 @@ export default function DiscoverScreen() {
                   <FlatList
                     horizontal
                     data={featuredEvents}
-                    renderItem={({ item, index }) => (
-                      <View
-                        style={[
-                          styles.featuredCardWrap,
-                          index === 0 && { marginLeft: Spacing.lg },
-                        ]}
-                      >
-                        {renderEventCard(item, 'featured')}
-                      </View>
-                    )}
+                    renderItem={renderFeaturedItem}
                     keyExtractor={(item) => item.id}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingRight: Spacing.lg }}
@@ -601,13 +628,7 @@ export default function DiscoverScreen() {
                   <FlatList
                     horizontal
                     data={nearbyEvents}
-                    renderItem={({ item, index }) => (
-                      <View
-                        style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}
-                      >
-                        {renderEventCard(item, 'default')}
-                      </View>
-                    )}
+                    renderItem={renderHorizontalEventItem}
                     keyExtractor={(item) => item.id}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingRight: Spacing.lg }}
@@ -627,13 +648,7 @@ export default function DiscoverScreen() {
                   <FlatList
                     horizontal
                     data={recommendations}
-                    renderItem={({ item, index }) => (
-                      <View
-                        style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}
-                      >
-                        {renderEventCard(item, 'default')}
-                      </View>
-                    )}
+                    renderItem={renderHorizontalEventItem}
                     keyExtractor={(item) => `rec-${item.id}`}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingRight: Spacing.lg }}
@@ -678,13 +693,7 @@ export default function DiscoverScreen() {
                   <FlatList
                     horizontal
                     data={upcomingEvents.slice(0, 6)}
-                    renderItem={({ item, index }) => (
-                      <View
-                        style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}
-                      >
-                        {renderEventCard(item, 'default')}
-                      </View>
-                    )}
+                    renderItem={renderHorizontalEventItem}
                     keyExtractor={(item) => `wk-${item.id}`}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingRight: Spacing.lg }}
@@ -704,13 +713,7 @@ export default function DiscoverScreen() {
                   <FlatList
                     horizontal
                     data={freeEvents.slice(0, 6)}
-                    renderItem={({ item, index }) => (
-                      <View
-                        style={[styles.cardWrap, index === 0 && { marginLeft: Spacing.lg }]}
-                      >
-                        {renderEventCard(item, 'default')}
-                      </View>
-                    )}
+                    renderItem={renderHorizontalEventItem}
                     keyExtractor={(item) => `free-${item.id}`}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingRight: Spacing.lg }}
@@ -730,20 +733,7 @@ export default function DiscoverScreen() {
                   <FlatList
                     horizontal
                     data={categories}
-                    renderItem={({ item, index }) => (
-                      <View
-                        style={[styles.categoryWrap, index === 0 && { marginLeft: Spacing.lg }]}
-                      >
-                        <CategoryCard
-                          id={item.id.toString()}
-                          name={item.name}
-                          image={item.image}
-                          eventCount={item.event_count || item.events_count}
-                          variant="large"
-                          onPress={() => activateSearch(item.id)}
-                        />
-                      </View>
-                    )}
+                    renderItem={renderCategoryItem}
                     keyExtractor={(item) => item.id.toString()}
                     showsHorizontalScrollIndicator={false}
                     contentContainerStyle={{ paddingRight: Spacing.lg }}

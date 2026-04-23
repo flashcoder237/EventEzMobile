@@ -20,7 +20,7 @@ import * as Location from 'expo-location';
 import { eventsAPI, categoriesAPI, recommendationsAPI } from '../../api';
 import { Event, Category, RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -46,7 +46,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
-  const { unreadNotificationCount, unreadMessageCount } = useNotifications();
+  const { unreadNotificationCount, unreadMessageCount } = useUnreadCounts();
   const { colors, isDark } = useTheme();
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);

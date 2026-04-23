@@ -159,6 +159,7 @@ export default function RootNavigator() {
         contentStyle: { backgroundColor: colors.background },
         animation: 'slide_from_right',
         animationDuration: 320,
+        freezeOnBlur: true,
       }}
     >
       {/* Main tabs — always accessible (guest & authenticated) */}

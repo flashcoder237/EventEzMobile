@@ -19,7 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useNotifications } from '../../contexts/NotificationContext';
+import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import VerificationBanner from '../../components/auth/VerificationBanner';
@@ -93,7 +93,7 @@ export default function ProfileScreen() {
   const { user, logout, isLoading: authLoading } = useAuth();
   const { showAlert, showConfirm } = useAlert();
   const { colors, isDark, gradients } = useTheme();
-  const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount } = useNotifications();
+  const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount } = useUnreadCounts();
   const [showMyQR, setShowMyQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({

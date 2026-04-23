@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import {
   View,
   Text,
@@ -43,7 +43,7 @@ interface FollowPreferences {
   notify_cancellation: boolean;
 }
 
-export default function FollowEventButton({
+function FollowEventButtonImpl({
   eventId,
   variant = 'default',
   showFollowerCount = false,
@@ -390,6 +390,9 @@ export default function FollowEventButton({
     </View>
   );
 }
+
+const FollowEventButton = memo(FollowEventButtonImpl);
+export default FollowEventButton;
 
 const styles = StyleSheet.create({
   container: {},

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   StatusBar,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -75,7 +76,10 @@ export default function DashboardScreen() {
   const isOrganizer = user?.role === 'organizer';
 
   useEffect(() => {
-    fetchStats();
+    const task = InteractionManager.runAfterInteractions(() => {
+      fetchStats();
+    });
+    return () => task.cancel();
   }, []);
 
   const fetchStats = async (bypassCache = false) => {

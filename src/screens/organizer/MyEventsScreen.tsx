@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -17,9 +17,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Events as EventsIllustration, AnimatedIllustration } from '../../components/illustrations';
 import { eventsAPI, getMediaUrl } from '../../api';
+import CacheService from '../../services/CacheService';
 import { Event, RootStackParamList } from '../../types';
 import {
   FontFamily,
@@ -58,6 +60,7 @@ export default function MyEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const [events, setEvents] = useState<Event[]>([]);
@@ -69,13 +72,26 @@ export default function MyEventsScreen() {
   useFocusEffect(
     React.useCallback(() => {
       fetchEvents();
-    }, [])
+    }, [user?.id])
   );
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (bypassCache = false) => {
+    const cacheKey = `my-events:${user?.id}`;
     try {
+      if (!bypassCache && user?.id) {
+        const cached = await CacheService.get<Event[]>(cacheKey);
+        if (cached) {
+          setEvents(cached.data);
+          setLoading(false);
+          if (!cached.isStale) return;
+        }
+      }
       const response = await eventsAPI.getMyEvents();
-      setEvents(response.data?.results || response.data || []);
+      const data = response.data?.results || response.data || [];
+      setEvents(data);
+      if (user?.id) {
+        CacheService.set(cacheKey, data, 2 * 60 * 1000);
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement événements:', error);
     } finally {
@@ -86,7 +102,7 @@ export default function MyEventsScreen() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchEvents();
+    fetchEvents(true);
   };
 
   const filteredEvents = useMemo(() => {
@@ -115,6 +131,7 @@ export default function MyEventsScreen() {
         try {
           await eventsAPI.deleteEvent(eventId);
           setEvents(prev => prev.filter(e => e.id !== eventId));
+          if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
           showSuccess('Succès', 'Événement supprimé');
         } catch (error) {
           if (__DEV__) console.error('Erreur suppression:', error);
@@ -380,6 +397,32 @@ export default function MyEventsScreen() {
     );
   };
 
+  const renderEventItem = useCallback(
+    ({ item }: { item: Event }) => (
+      <View style={columns > 1 ? { flex: 1 } : undefined}>
+        {renderEvent({ item })}
+      </View>
+    ),
+    [columns, renderEvent],
+  );
+
+  const renderFilterItem = useCallback(
+    ({ item }: { item: { value: FilterStatus; label: string } }) => (
+      <TouchableOpacity
+        style={[styles.filterTab, { backgroundColor: filter === item.value ? colors.primary : colors.gray100 }]}
+        onPress={() => setFilter(item.value)}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: filter === item.value }}
+        accessibilityLabel={`Filtre ${item.label}`}
+      >
+        <Text style={[styles.filterTabText, { color: filter === item.value ? '#FFFFFF' : colors.gray600 }]}>
+          {item.label}
+        </Text>
+      </TouchableOpacity>
+    ),
+    [filter, colors.primary, colors.gray100, colors.gray600],
+  );
+
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <AnimatedIllustration entry="fadeIn" idle="sway">
@@ -485,19 +528,7 @@ export default function MyEventsScreen() {
             keyExtractor={(item) => item.value}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.filterList}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={[styles.filterTab, { backgroundColor: filter === item.value ? colors.primary : colors.gray100 }]}
-                onPress={() => setFilter(item.value)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: filter === item.value }}
-                accessibilityLabel={`Filtre ${item.label}`}
-              >
-                <Text style={[styles.filterTabText, { color: filter === item.value ? '#FFFFFF' : colors.gray600 }]}>
-                  {item.label}
-                </Text>
-              </TouchableOpacity>
-            )}
+            renderItem={renderFilterItem}
           />
         </View>
 
@@ -507,11 +538,7 @@ export default function MyEventsScreen() {
         numColumns={columns}
         columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
         data={filteredEvents}
-        renderItem={({ item }) => (
-          <View style={columns > 1 ? { flex: 1 } : undefined}>
-            {renderEvent({ item })}
-          </View>
-        )}
+        renderItem={renderEventItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={[styles.listContent, { paddingHorizontal: containerPadding }]}
         showsVerticalScrollIndicator={false}

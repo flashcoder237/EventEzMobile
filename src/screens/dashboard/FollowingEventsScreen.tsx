@@ -302,6 +302,20 @@ export default function FollowingEventsScreen() {
     );
   };
 
+  const renderFollowItem = useCallback(
+    ({ item, index }: { item: FollowData; index: number }) => (
+      <View style={columns > 1 ? { flex: 1 } : undefined}>
+        {renderEventCard({ item, index })}
+      </View>
+    ),
+    [columns, renderEventCard],
+  );
+
+  const keyExtractor = useCallback(
+    (item: FollowData) => item.id || `${item.event}-${item.created_at}`,
+    [],
+  );
+
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
       <AnimatedIllustration entry="fadeIn" idle="sway">
@@ -480,12 +494,8 @@ export default function FollowingEventsScreen() {
           numColumns={columns}
           columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
           data={filteredFollows}
-          keyExtractor={(item) => item.id || `${item.event}-${item.created_at}`}
-          renderItem={({ item, index }) => (
-            <View style={columns > 1 ? { flex: 1 } : undefined}>
-              {renderEventCard({ item, index })}
-            </View>
-          )}
+          keyExtractor={keyExtractor}
+          renderItem={renderFollowItem}
           contentContainerStyle={[styles.listContent, { paddingHorizontal: containerPadding }]}
           refreshControl={
             <RefreshControl

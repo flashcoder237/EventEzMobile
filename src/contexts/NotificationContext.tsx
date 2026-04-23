@@ -41,6 +41,16 @@ interface NotificationContextType {
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
+interface UnreadCountsContextType {
+  unreadNotificationCount: number;
+  unreadMessageCount: number;
+  pendingInvitationCount: number;
+  pendingTransferCount: number;
+  totalPendingCount: number;
+}
+
+const UnreadCountsContext = createContext<UnreadCountsContextType | undefined>(undefined);
+
 export function NotificationProvider({ children }: { children: ReactNode }) {
   const { isAuthenticated, logout } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -431,16 +441,40 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     requestPushPermission,
   ]);
 
+  const countsValue = useMemo<UnreadCountsContextType>(() => ({
+    unreadNotificationCount,
+    unreadMessageCount,
+    pendingInvitationCount,
+    pendingTransferCount,
+    totalPendingCount,
+  }), [
+    unreadNotificationCount,
+    unreadMessageCount,
+    pendingInvitationCount,
+    pendingTransferCount,
+    totalPendingCount,
+  ]);
+
   return (
     <NotificationContext.Provider value={value}>
-      {children}
-      <PushPermissionModal
-        visible={showPermissionModal}
-        onAccept={handleAcceptPushPermission}
-        onDecline={handleDeclinePushPermission}
-      />
+      <UnreadCountsContext.Provider value={countsValue}>
+        {children}
+        <PushPermissionModal
+          visible={showPermissionModal}
+          onAccept={handleAcceptPushPermission}
+          onDecline={handleDeclinePushPermission}
+        />
+      </UnreadCountsContext.Provider>
     </NotificationContext.Provider>
   );
+}
+
+export function useUnreadCounts() {
+  const context = useContext(UnreadCountsContext);
+  if (context === undefined) {
+    throw new Error('useUnreadCounts must be used within a NotificationProvider');
+  }
+  return context;
 }
 
 export function useNotifications() {

@@ -31,11 +31,13 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Badge } from '../../components/ui/Badge';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 import { useOfflineTickets } from '../../hooks/useOfflineTickets';
+import CacheService from '../../services/CacheService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'upcoming' | 'past' | 'cancelled';
@@ -122,6 +124,7 @@ function ticketsReducer(state: TicketsState, action: TicketsAction): TicketsStat
 
 export default function MyTicketsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
   const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
@@ -130,12 +133,24 @@ export default function MyTicketsScreen() {
 
   useEffect(() => {
     fetchRegistrations();
-  }, []);
+  }, [user?.id]);
 
-  const fetchRegistrations = async () => {
+  const fetchRegistrations = async (bypassCache = false) => {
+    const cacheKey = `my-tickets:${user?.id}`;
     try {
+      if (!bypassCache && user?.id) {
+        const cached = await CacheService.get<Registration[]>(cacheKey);
+        if (cached) {
+          dispatch({ type: 'SET_REGISTRATIONS', payload: cached.data });
+          dispatch({ type: 'SET_LOADING', payload: false });
+          if (!cached.isStale) return;
+        }
+      }
       const response = await registrationsAPI.getMyRegistrations();
       const data = response.data?.results || response.data || [];
+      if (user?.id) {
+        CacheService.set(cacheKey, data, 2 * 60 * 1000);
+      }
       // Debug: log data structure
       if (__DEV__ && data.length > 0) {
         console.log('[MyTickets] Sample registration:', JSON.stringify(data[0], null, 2));
@@ -188,7 +203,7 @@ export default function MyTicketsScreen() {
 
   const onRefresh = async () => {
     dispatch({ type: 'SET_REFRESHING', payload: true });
-    await fetchRegistrations();
+    await fetchRegistrations(true);
     dispatch({ type: 'SET_REFRESHING', payload: false });
   };
 
@@ -571,6 +586,17 @@ export default function MyTicketsScreen() {
     </View>
   );
 
+  const renderTicketItem = useCallback(
+    ({ item, index }: { item: Registration; index: number }) => (
+      <View style={columns > 1 ? { flex: 1 } : undefined}>
+        {renderRegistration({ item, index })}
+      </View>
+    ),
+    [columns, renderRegistration],
+  );
+
+  const keyExtractor = useCallback((item: Registration) => item.id, []);
+
   // Active filter count (excluding defaults)
   const activeFilterCount = useMemo(() => {
     let count = 0;
@@ -895,12 +921,8 @@ export default function MyTicketsScreen() {
         numColumns={columns}
         columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
         data={filteredRegistrations}
-        renderItem={({ item, index }) => (
-          <View style={columns > 1 ? { flex: 1 } : undefined}>
-            {renderRegistration({ item, index })}
-          </View>
-        )}
-        keyExtractor={(item) => item.id}
+        renderItem={renderTicketItem}
+        keyExtractor={keyExtractor}
         contentContainerStyle={[styles.listContent, { paddingHorizontal: containerPadding }]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}

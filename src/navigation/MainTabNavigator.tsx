@@ -16,7 +16,7 @@ import { MainTabParamList } from '../types';
 import { FontFamily, Spacing, Shadows, BorderRadius } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { useNotifications } from '../contexts/NotificationContext';
+import { useUnreadCounts } from '../contexts/NotificationContext';
 
 import AuthGuardScreen from '../components/auth/AuthGuardScreen';
 
@@ -92,7 +92,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const tabCount = state.routes.length;
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
-  const { totalPendingCount } = useNotifications();
+  const { totalPendingCount } = useUnreadCounts();
 
   useEffect(() => {
     indicatorPosition.value = withSpring(state.index, {
@@ -229,6 +229,8 @@ export default function MainTabNavigator() {
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.background },
+        freezeOnBlur: true,
+        lazy: true,
       }}
     >
       <Tab.Screen
