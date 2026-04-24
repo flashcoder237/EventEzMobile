@@ -76,7 +76,7 @@ export default function ReportsScreen() {
     setGenerating(true);
     try {
       await analyticsAPI.generateReport({
-        report_type: 'general',
+        report_type: 'custom',
         title: `Rapport ${new Date().toLocaleDateString('fr-FR')}`,
       });
       showSuccess('Succes', 'Rapport genere avec succes');
