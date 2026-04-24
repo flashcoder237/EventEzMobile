@@ -7,11 +7,10 @@ import {
   FlatList,
   RefreshControl,
   Dimensions,
-  StatusBar,
   TouchableOpacity,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -47,7 +46,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { unreadNotificationCount, unreadMessageCount } = useUnreadCounts();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [nearbyEvents, setNearbyEvents] = useState<Event[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
@@ -217,10 +216,11 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>EZ</WatermarkNumeral>
 
       <ScrollView
+        style={{ flex: 1, zIndex: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -398,7 +398,7 @@ export default function HomeScreen() {
         {/* Bottom Spacing for Tab Bar */}
         <View style={styles.bottomSpacing} />
       </ScrollView>
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 

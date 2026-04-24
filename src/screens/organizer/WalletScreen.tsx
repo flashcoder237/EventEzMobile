@@ -39,6 +39,7 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
   TextStyles,
 } from '../../constants/theme';
 import { StaggeredItem } from '../../components/ui/Animations';
@@ -380,96 +381,133 @@ export default function WalletScreen() {
     </StaggeredItem>
   );
 
+  const softBorder = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+
   if (loading) {
     return (
-      <View style={styles.rootContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <LoadingSpinner />
-          </View>
-        </SafeAreaView>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <LoadingSpinner />
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          {/* Header with gradient */}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={{ flex: 1 }}>
+        {/* Soft header */}
+        <View style={[styles.softHeader, { backgroundColor: colors.card }]}>
+          <View style={styles.softHeaderRow}>
+            <TouchableOpacity
+              style={[styles.iconDisc, { backgroundColor: colors.gray50, borderColor: softBorder }]}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={18} color={colors.text} />
+            </TouchableOpacity>
+            <View style={styles.softHeaderTitleCol}>
+              <Text style={[styles.softHeaderEyebrow, { color: colors.textSecondary }]}>
+                MON PORTEFEUILLE
+              </Text>
+              <Text style={[styles.softHeaderTitle, { color: colors.text }]}>Solde</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.iconDisc, { backgroundColor: colors.gray50, borderColor: softBorder }]}
+              onPress={() => setShowBankModal(true)}
+            >
+              <Ionicons name="settings-outline" size={18} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Soft gradient credit card */}
+        <View style={styles.creditCardWrap}>
           <LinearGradient
-        colors={['#4F46E5', '#6366F1', '#6366F1']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
+            colors={[colors.primary, colors.secondary]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.creditCard}
           >
-            <Ionicons name="arrow-back" size={24} color={Colors.white} />
-          </TouchableOpacity>
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerEyebrow}>Ta caisse</Text>
-            <Text style={styles.headerTitle}>Mon Portefeuille</Text>
-          </View>
+            <View style={styles.creditCardTopRow}>
+              <Text style={styles.creditCardEyebrow}>
+                WALLET · {wallet?.currency || 'FCFA'}
+              </Text>
+              <View style={styles.creditCardLiveBadge}>
+                <View style={styles.liveDot} />
+                <Text style={styles.creditCardLiveText}>LIVE</Text>
+              </View>
+            </View>
+            <View style={styles.creditCardBody}>
+              <Text style={styles.creditCardBalance} numberOfLines={1} adjustsFontSizeToFit>
+                {formatPrice(wallet?.available_balance || 0)}
+              </Text>
+              <Text style={styles.creditCardCaption}>FONDS DISPONIBLES</Text>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Quick action grid */}
+        <View style={styles.quickActionGrid}>
           <TouchableOpacity
-            style={styles.settingsButton}
-            onPress={() => setShowBankModal(true)}
+            style={[
+              styles.quickActionCard,
+              { backgroundColor: colors.card, borderColor: softBorder },
+              !wallet?.can_withdraw && { opacity: 0.55 },
+            ]}
+            onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
+              'Retrait impossible',
+              `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} ${wallet?.currency || 'FCFA'}`,
+              undefined,
+              'warning'
+            )}
+            disabled={!wallet?.can_withdraw}
           >
-            <Ionicons name="settings-outline" size={22} color={Colors.white} />
+            <View style={[styles.quickActionIcon, { backgroundColor: `${colors.primary}15` }]}>
+              <Ionicons name="arrow-up" size={18} color={colors.primary} />
+            </View>
+            <Text style={[styles.quickActionLabel, { color: colors.text }]}>Retirer</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: colors.card, borderColor: softBorder }]}
+            onPress={() => setActiveTab('pending')}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: `${colors.accent}15` }]}>
+              <Ionicons name="time-outline" size={18} color={colors.accent} />
+            </View>
+            <Text style={[styles.quickActionLabel, { color: colors.text }]}>En attente</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.quickActionCard, { backgroundColor: colors.card, borderColor: softBorder }]}
+            onPress={() => setActiveTab('transactions')}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: `${colors.secondary}15` }]}>
+              <Ionicons name="swap-horizontal" size={18} color={colors.secondary} />
+            </View>
+            <Text style={[styles.quickActionLabel, { color: colors.text }]}>Historique</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Balance Display */}
-        <View style={styles.balanceSection}>
-          <Text style={styles.balanceLabel}>Solde disponible</Text>
-          <Text style={styles.balanceAmount}>
-            {formatPrice(wallet?.available_balance || 0)}
-            <Text style={styles.balanceCurrency}> {wallet?.currency || 'FCFA'}</Text>
-          </Text>
-        </View>
-
-        {/* Quick Stats */}
-        <View style={styles.quickStats}>
-          <View style={styles.quickStatItem}>
-            <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.quickStatLabel}>En attente</Text>
-            <Text style={styles.quickStatValue}>{formatPrice(wallet?.pending_balance || 0)}</Text>
+        {/* Soft mini stats */}
+        <View style={[styles.miniStatRow, { backgroundColor: colors.card, borderColor: softBorder }]}>
+          <View style={[styles.miniStatCell, { borderRightColor: colors.gray100 }]}>
+            <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
+              {formatPrice(wallet?.pending_balance || 0)}
+            </Text>
+            <Text style={[styles.miniStatEyebrow, { color: colors.textSecondary }]}>EN ATTENTE</Text>
           </View>
-          <View style={styles.quickStatDivider} />
-          <View style={styles.quickStatItem}>
-            <Ionicons name="trending-up" size={16} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.quickStatLabel}>Total gagné</Text>
-            <Text style={styles.quickStatValue}>{formatPrice(wallet?.total_earnings || 0)}</Text>
+          <View style={[styles.miniStatCell, { borderRightColor: colors.gray100 }]}>
+            <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
+              {formatPrice(wallet?.total_earnings || 0)}
+            </Text>
+            <Text style={[styles.miniStatEyebrow, { color: colors.textSecondary }]}>TOTAL GAGNÉ</Text>
           </View>
-          <View style={styles.quickStatDivider} />
-          <View style={styles.quickStatItem}>
-            <Ionicons name="wallet-outline" size={16} color="rgba(255,255,255,0.7)" />
-            <Text style={styles.quickStatLabel}>Retiré</Text>
-            <Text style={styles.quickStatValue}>{formatPrice(wallet?.total_withdrawn || 0)}</Text>
+          <View style={styles.miniStatCell}>
+            <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
+              {formatPrice(wallet?.total_withdrawn || 0)}
+            </Text>
+            <Text style={[styles.miniStatEyebrow, { color: colors.textSecondary }]}>RETIRÉ</Text>
           </View>
         </View>
-
-        {/* Withdraw Button */}
-        <TouchableOpacity
-          style={[styles.withdrawButton, { backgroundColor: colors.card }, !wallet?.can_withdraw && styles.withdrawButtonDisabled]}
-          onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
-            'Retrait impossible',
-            `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} ${wallet?.currency || 'FCFA'}`,
-            undefined,
-            'warning'
-          )}
-        >
-          <Ionicons name="arrow-up-circle" size={20} color={wallet?.can_withdraw ? colors.primary : colors.gray400} />
-          <Text style={[styles.withdrawButtonText, !wallet?.can_withdraw && { color: colors.gray400 }]}>
-            Demander un retrait
-          </Text>
-        </TouchableOpacity>
-      </LinearGradient>
 
       {/* Commission Info */}
       <View style={styles.commissionInfo}>
@@ -836,9 +874,8 @@ export default function WalletScreen() {
         </View>
         </KeyboardAvoidingView>
           </Modal>
-        </View>
-      </SafeAreaView>
-    </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -859,6 +896,170 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // Soft header
+  softHeader: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    ...Shadows.sm,
+  },
+  softHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  softHeaderTitleCol: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+  },
+  softHeaderEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  softHeaderTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    lineHeight: 32,
+    letterSpacing: -0.9,
+  },
+
+  // Soft credit card
+  creditCardWrap: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+  },
+  creditCard: {
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+    height: 180,
+    position: 'relative',
+    overflow: 'hidden',
+    justifyContent: 'space-between',
+    ...Shadows.md,
+  },
+  creditCardTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  creditCardEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    color: 'rgba(255,255,255,0.75)',
+  },
+  creditCardLiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  creditCardLiveText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    color: '#FFFFFF',
+  },
+  creditCardBody: {
+    justifyContent: 'flex-end',
+  },
+  creditCardBalance: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 40,
+    lineHeight: 44,
+    letterSpacing: -1.2,
+    color: '#FFFFFF',
+  },
+  creditCardCaption: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 6,
+  },
+
+  // Quick action grid
+  quickActionGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  quickActionCard: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    ...Shadows.sm,
+  },
+  quickActionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+
+  // Mini stat row
+  miniStatRow: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderWidth: 1,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    ...Shadows.sm,
+  },
+  miniStatCell: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    borderRightWidth: 1,
+  },
+  miniStatNumber: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    lineHeight: 20,
+    letterSpacing: -0.4,
+  },
+  miniStatEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    marginTop: 4,
+  },
+
   header: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xl,

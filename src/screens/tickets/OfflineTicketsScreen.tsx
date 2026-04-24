@@ -9,7 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -184,7 +184,9 @@ export default function OfflineTicketsScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>OFF</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -245,7 +247,8 @@ export default function OfflineTicketsScreen() {
           </Text>
         </View>
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

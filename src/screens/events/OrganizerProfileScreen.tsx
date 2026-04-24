@@ -4,14 +4,13 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  StatusBar,
   TouchableOpacity,
   ActivityIndicator,
   Linking,
   FlatList,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +37,7 @@ export default function OrganizerProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { organizerId } = route.params;
 
   const [organizer, setOrganizer] = useState<User | null>(null);
@@ -117,36 +116,40 @@ export default function OrganizerProfileScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
-          <View style={styles.headerRight} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>ORG</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
+            <View style={styles.headerRight} />
+          </View>
+          <ProfileSkeleton />
         </View>
-        <ProfileSkeleton />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   if (!organizer) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
-          <View style={styles.headerRight} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>NO</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
+            <View style={styles.headerRight} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>Organisateur introuvable</Text>
+          </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>Organisateur introuvable</Text>
-        </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -160,8 +163,9 @@ export default function OrganizerProfileScreen() {
   const socialLinks = profile?.social_links;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>ORG</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
@@ -385,7 +389,8 @@ export default function OrganizerProfileScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

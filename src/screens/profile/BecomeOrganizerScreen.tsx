@@ -5,12 +5,10 @@ import {
   TextInput,
   StyleSheet,
   ScrollView,
-  StatusBar,
   Animated,
   Dimensions,
   ViewStyle,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +27,7 @@ import {
 } from '../../constants/theme';
 import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 const { width } = Dimensions.get('window');
 
@@ -72,7 +71,7 @@ export default function BecomeOrganizerScreen() {
   const navigation = useNavigation();
   const { user, updateUser } = useAuth();
   const { showError, showSuccess } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -334,8 +333,8 @@ export default function BecomeOrganizerScreen() {
           <>
             {/* Company Name */}
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Nom de l'entreprise</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('company_name', !!errors.company_name)]}>
+              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>Nom de l'entreprise</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('company_name', !!errors.company_name)]}>
                 <Ionicons
                   name="business-outline"
                   size={20}
@@ -362,8 +361,8 @@ export default function BecomeOrganizerScreen() {
 
             {/* Registration Number */}
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Numero SIRET / RC</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('registration_number', !!errors.registration_number)]}>
+              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>Numero SIRET / RC</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('registration_number', !!errors.registration_number)]}>
                 <Ionicons
                   name="document-text-outline"
                   size={20}
@@ -391,8 +390,8 @@ export default function BecomeOrganizerScreen() {
 
         {/* Phone */}
         <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Telephone</Text>
-          <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('phone', !!errors.phone)]}>
+          <Text style={[styles.inputLabel, { color: colors.gray600 }]}>Telephone</Text>
+          <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('phone', !!errors.phone)]}>
             <Ionicons
               name="call-outline"
               size={20}
@@ -514,9 +513,9 @@ export default function BecomeOrganizerScreen() {
   });
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>PRO</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <AnimatedPressable
@@ -606,7 +605,8 @@ export default function BecomeOrganizerScreen() {
           style={StyleSheet.flatten([styles.nextButton, currentStep === 1 && { flex: 1 }]) as ViewStyle}
         />
       </View>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 
@@ -635,7 +635,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displaySemiBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
   },
 
@@ -682,21 +683,22 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
   stepNumber: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
     color: Colors.gray500,
   },
   stepNumberActive: {
     color: Colors.primary,
   },
   stepLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    fontSize: 10,
+    fontFamily: FontFamily.medium,
+    letterSpacing: 0.3,
     color: Colors.gray400,
   },
   stepLabelActive: {
     color: Colors.gray700,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.bold,
   },
 
   // Content
@@ -722,6 +724,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: FontSizes['2xl'],
     fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.5,
     color: Colors.gray900,
     textAlign: 'center',
     marginBottom: Spacing.sm,
@@ -729,6 +732,7 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
+    lineHeight: 22,
     color: Colors.gray500,
     textAlign: 'center',
     marginBottom: Spacing.xl,
@@ -755,11 +759,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: FontSizes.md,
     fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.3,
     color: Colors.gray900,
   },
   statLabel: {
     fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.medium,
+    lineHeight: 14,
     color: Colors.gray500,
     textAlign: 'center',
   },
@@ -788,19 +794,23 @@ const styles = StyleSheet.create({
   },
   benefitTitle: {
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
+    letterSpacing: -0.1,
     color: Colors.gray900,
   },
   benefitDesc: {
     fontSize: FontSizes.xs,
     fontFamily: FontFamily.regular,
+    lineHeight: 15,
     color: Colors.gray500,
+    marginTop: 2,
   },
 
   // Step 2 - Type Selection
   stepTitle: {
     fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.5,
     color: Colors.gray900,
     textAlign: 'center',
     marginBottom: Spacing.sm,
@@ -808,6 +818,7 @@ const styles = StyleSheet.create({
   stepSubtitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
+    lineHeight: 22,
     color: Colors.gray500,
     textAlign: 'center',
     marginBottom: Spacing.xl,
@@ -842,16 +853,19 @@ const styles = StyleSheet.create({
   },
   typeTitle: {
     fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.displaySemiBold,
+    letterSpacing: -0.3,
     color: Colors.gray700,
     marginBottom: Spacing.xs,
   },
   typeTitleSelected: {
     color: Colors.primary,
+    fontFamily: FontFamily.displayBold,
   },
   typeDesc: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
+    lineHeight: 18,
     color: Colors.gray500,
     textAlign: 'center',
   },
@@ -869,10 +883,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   inputLabel: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray700,
-    marginBottom: Spacing.xs,
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: Colors.gray600,
+    marginBottom: Spacing.sm,
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -908,7 +924,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.medium,
+    lineHeight: 16,
     color: Colors.error,
   },
 
@@ -940,13 +957,17 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   summaryLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    fontSize: 10,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     color: Colors.gray500,
+    marginBottom: 2,
   },
   summaryValue: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.1,
     color: Colors.gray900,
   },
   summaryDivider: {
@@ -967,14 +988,17 @@ const styles = StyleSheet.create({
   testimonialText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
+    lineHeight: 20,
     color: Colors.gray700,
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: Spacing.sm,
   },
   testimonialAuthor: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
     color: Colors.gray500,
   },
 
@@ -997,8 +1021,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray100,
   },
   backButtonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.1,
     color: Colors.gray600,
   },
   nextButton: {

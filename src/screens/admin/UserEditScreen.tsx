@@ -5,10 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +25,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'UserEdit'>;
@@ -37,7 +36,7 @@ export default function UserEditScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { userId } = route.params;
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
 
   const [user, setUser] = useState<User | null>(null);
@@ -126,19 +125,23 @@ export default function UserEditScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>USER</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   if (!user) return null;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>USER</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       <View style={styles.header}>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -236,7 +239,8 @@ export default function UserEditScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

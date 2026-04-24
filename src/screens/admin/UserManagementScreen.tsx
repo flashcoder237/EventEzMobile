@@ -6,9 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +25,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -52,7 +51,7 @@ const roleLabel = (role: string): string => {
 
 export default function UserManagementScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -136,8 +135,9 @@ export default function UserManagementScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>USRS</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       <View style={styles.header}>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -184,7 +184,8 @@ export default function UserManagementScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

@@ -7,14 +7,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
-  StatusBar,
   ScrollView,
   Modal,
   Animated,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -79,7 +78,7 @@ const defaultFilters: Filters = {
 export default function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Explore'>>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
   const flatListRef = useRef<FlatList>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -946,8 +945,9 @@ export default function ExploreScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>MAP</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Search Bar */}
       <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
@@ -1070,7 +1070,8 @@ export default function ExploreScreen() {
 
       {/* Filters Modal */}
       {renderFiltersModal()}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

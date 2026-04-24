@@ -8,9 +8,8 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -60,7 +59,7 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; color: string; 
 export default function VolunteerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<VolunteerRouteProp>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const eventId = route.params?.eventId;
 
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
@@ -312,18 +311,21 @@ export default function VolunteerScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <LoadingSpinner />
-      </SafeAreaView>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>VOL</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <LoadingSpinner />
+        </View>
+      </EditorialCanvas>
     );
   }
 
   const currentData = activeTab === 'roles' ? roles : applications;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>VOL</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <View style={styles.header}>
@@ -409,7 +411,8 @@ export default function VolunteerScreen() {
           renderItem={renderApplicationCard}
         />
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

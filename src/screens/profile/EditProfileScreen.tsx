@@ -7,10 +7,8 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  StatusBar,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,6 +31,7 @@ import {
   Spacing,
   TextStyles,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -75,7 +74,7 @@ export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, updateUser, setUser } = useAuth();
   const { showSuccess, showError } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -274,8 +273,9 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.gray50 }]} edges={['bottom']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <EditorialCanvas edges={['bottom']}>
+      <WatermarkNumeral>EDIT</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       <KeyboardAwareScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -314,9 +314,9 @@ export default function EditProfileScreen() {
           <Section title="Informations personnelles" icon="person-outline" defaultExpanded={true}>
             <View style={styles.inputRow}>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray700 }]}>Prénom</Text>
+                <Text style={[styles.label, { color: colors.gray600 }]}>Prénom</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={firstName}
                   onChangeText={setFirstName}
                   placeholder="Prénom"
@@ -325,9 +325,9 @@ export default function EditProfileScreen() {
                 />
               </View>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray700 }]}>Nom</Text>
+                <Text style={[styles.label, { color: colors.gray600 }]}>Nom</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={lastName}
                   onChangeText={setLastName}
                   placeholder="Nom"
@@ -338,11 +338,11 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Téléphone</Text>
+              <Text style={[styles.label, { color: colors.gray600 }]}>Téléphone</Text>
               <View style={styles.inputWithIcon}>
                 <Ionicons name="call-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="+237 6XX XXX XXX"
@@ -353,11 +353,11 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Date de naissance</Text>
+              <Text style={[styles.label, { color: colors.gray600 }]}>Date de naissance</Text>
               <View style={styles.inputWithIcon}>
                 <Ionicons name="calendar-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
                 <TextInput
-                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={dateOfBirth}
                   onChangeText={setDateOfBirth}
                   placeholder="AAAA-MM-JJ"
@@ -370,9 +370,9 @@ export default function EditProfileScreen() {
           {/* Adresse */}
           <Section title="Adresse" icon="location-outline">
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Adresse</Text>
+              <Text style={[styles.label, { color: colors.gray600 }]}>Adresse</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                 value={address}
                 onChangeText={setAddress}
                 placeholder="Votre adresse"
@@ -382,9 +382,9 @@ export default function EditProfileScreen() {
 
             <View style={styles.inputRow}>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray700 }]}>Ville</Text>
+                <Text style={[styles.label, { color: colors.gray600 }]}>Ville</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={city}
                   onChangeText={setCity}
                   placeholder="Ville"
@@ -392,9 +392,9 @@ export default function EditProfileScreen() {
                 />
               </View>
               <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray700 }]}>Pays</Text>
+                <Text style={[styles.label, { color: colors.gray600 }]}>Pays</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={country}
                   onChangeText={setCountry}
                   placeholder="Pays"
@@ -404,9 +404,9 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Biographie</Text>
+              <Text style={[styles.label, { color: colors.gray600 }]}>Biographie</Text>
               <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                style={[styles.input, styles.textArea, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                 value={bio}
                 onChangeText={setBio}
                 placeholder="Parlez-nous un peu de vous..."
@@ -422,9 +422,9 @@ export default function EditProfileScreen() {
           {user?.role === 'organizer' && (
             <Section title="Organisation" icon="business-outline">
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.gray700 }]}>Nom de l'entreprise</Text>
+                <Text style={[styles.label, { color: colors.gray600 }]}>Nom de l'entreprise</Text>
                 <TextInput
-                  style={[styles.input, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={companyName}
                   onChangeText={setCompanyName}
                   placeholder="Nom de votre entreprise"
@@ -444,10 +444,10 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Mot de passe actuel</Text>
+              <Text style={[styles.label, { color: colors.gray600 }]}>Mot de passe actuel</Text>
               <View style={styles.passwordInput}>
                 <TextInput
-                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={currentPassword}
                   onChangeText={setCurrentPassword}
                   placeholder="••••••••"
@@ -468,10 +468,10 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Nouveau mot de passe</Text>
+              <Text style={[styles.label, { color: colors.gray600 }]}>Nouveau mot de passe</Text>
               <View style={styles.passwordInput}>
                 <TextInput
-                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={newPassword}
                   onChangeText={setNewPassword}
                   placeholder="••••••••"
@@ -495,10 +495,10 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray700 }]}>Confirmer le mot de passe</Text>
+              <Text style={[styles.label, { color: colors.gray600 }]}>Confirmer le mot de passe</Text>
               <View style={styles.passwordInput}>
                 <TextInput
-                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
+                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   placeholder="••••••••"
@@ -546,7 +546,8 @@ export default function EditProfileScreen() {
       {saving && (
         <LoadingSpinner />
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 
@@ -617,6 +618,7 @@ const styles = StyleSheet.create({
   },
   emailText: {
     marginTop: Spacing.xs,
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
     color: Colors.gray500,
   },
@@ -653,7 +655,10 @@ const styles = StyleSheet.create({
     marginRight: Spacing.sm,
   },
   sectionTitle: {
-    ...TextStyles.bodyBold,
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 17,
+    lineHeight: 22,
+    letterSpacing: -0.3,
   },
   sectionContent: {
     padding: Spacing.md,
@@ -671,14 +676,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   label: {
-    ...TextStyles.label,
-    marginBottom: Spacing.xs,
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.sm,
   },
   input: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    backgroundColor: Colors.card,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: 14,
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.base,
     color: Colors.gray900,
     borderWidth: 1,
@@ -702,7 +711,9 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
   },
   helpText: {
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.xs,
+    lineHeight: 16,
     color: Colors.gray500,
     marginTop: Spacing.xs,
   },
@@ -719,7 +730,9 @@ const styles = StyleSheet.create({
   },
   passwordNoticeText: {
     flex: 1,
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
+    lineHeight: 18,
     color: Colors.primary,
   },
   passwordInput: {
@@ -740,13 +753,14 @@ const styles = StyleSheet.create({
   changePasswordButton: {
     backgroundColor: Colors.gray100,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.xl,
     alignItems: 'center',
     marginTop: Spacing.sm,
   },
   changePasswordButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.base,
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.sm,
+    letterSpacing: -0.1,
     color: Colors.gray700,
   },
 

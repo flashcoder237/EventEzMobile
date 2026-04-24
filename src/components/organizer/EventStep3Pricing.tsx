@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
-import { Spacing } from '../../constants/theme';
+import { Spacing, FontFamily } from '../../constants/theme';
 import { LocationType } from '../../types';
 import { TicketTypeForm, FormFieldForm, FIELD_TYPES } from '../../hooks/useEventForm';
 import DateTimePickerField from '../ui/DateTimePickerField';
@@ -288,10 +288,10 @@ export default function EventStep3Pricing({
             size={14}
             color={isDark ? '#A5B4FC' : '#4F46E5'}
           />
-          <Text style={{ fontSize: 12, color: isDark ? '#C7D2FE' : '#4338CA', flex: 1 }}>
-            Devise : <Text style={{ fontWeight: '700' }}>{walletCurrency}</Text>
+          <Text style={{ fontFamily: FontFamily.medium, fontSize: 12, lineHeight: 17, color: isDark ? '#C7D2FE' : '#4338CA', flex: 1 }}>
+            Devise : <Text style={{ fontFamily: FontFamily.bold }}>{walletCurrency}</Text>
             {displayCurrency !== walletCurrency ? ` (${displayCurrency})` : ''}
-            {' '}— heritee de votre compte, verrouillee pour cet evenement.
+            {' '}— héritée de votre compte, verrouillée pour cet événement.
           </Text>
         </View>
       )}

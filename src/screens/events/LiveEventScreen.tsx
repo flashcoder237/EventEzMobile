@@ -11,8 +11,8 @@ import {
   RefreshControl,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -274,15 +274,19 @@ export default function LiveEventScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <LoadingSpinner />
-      </SafeAreaView>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>LIVE</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <LoadingSpinner />
+        </View>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>LIVE</WatermarkNumeral>
+    <KeyboardAvoidingView style={{ flex: 1, zIndex: 1 }} behavior="padding">
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -400,7 +404,7 @@ export default function LiveEventScreen() {
         />
       )}
     </KeyboardAvoidingView>
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 

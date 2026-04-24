@@ -8,9 +8,9 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
-  StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -50,7 +50,7 @@ export default function QRScannerScreen() {
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
   const { showError } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -200,30 +200,32 @@ export default function QRScannerScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <Ionicons name="camera-outline" size={64} color={colors.gray400} />
-        <Text style={[styles.permissionTitle, { color: colors.text }]}>Accès à la caméra requis</Text>
-        <Text style={[styles.permissionText, { color: colors.gray500 }]}>
-          Pour scanner les QR codes, autorisez l'accès à la caméra
-        </Text>
-        <TouchableOpacity
-          style={[styles.permissionButton, { backgroundColor: colors.primary }]}
-          onPress={requestPermission}
-          accessibilityRole="button"
-          accessibilityLabel="Autoriser l'acces a la camera"
-        >
-          <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.backLink}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Retour"
-        >
-          <Text style={[styles.backLinkText, { color: colors.gray500 }]}>Retour</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
+      <EditorialCanvas edges={['top', 'bottom']}>
+        <WatermarkNumeral>QR</WatermarkNumeral>
+        <View style={[styles.permissionContainer, { zIndex: 1 }]}>
+          <Ionicons name="camera-outline" size={64} color={colors.gray400} />
+          <Text style={[styles.permissionTitle, { color: colors.text }]}>Accès à la caméra requis</Text>
+          <Text style={[styles.permissionText, { color: colors.gray500 }]}>
+            Pour scanner les QR codes, autorisez l'accès à la caméra
+          </Text>
+          <TouchableOpacity
+            style={[styles.permissionButton, { backgroundColor: colors.primary }]}
+            onPress={requestPermission}
+            accessibilityRole="button"
+            accessibilityLabel="Autoriser l'acces a la camera"
+          >
+            <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
+            <Text style={[styles.backLinkText, { color: colors.gray500 }]}>Retour</Text>
+          </TouchableOpacity>
+        </View>
+      </EditorialCanvas>
     );
   }
 

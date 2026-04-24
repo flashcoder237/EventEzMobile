@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,7 +61,7 @@ export default function EventAnalyticsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [event, setEvent] = useState<Event | null>(null);
   // Strategie "Event mono-devise" : analytics s'affichent dans la devise de l'evenement
@@ -126,8 +125,9 @@ export default function EventAnalyticsScreen() {
   const revenue = analytics?.revenue || 0;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>KPI</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
@@ -280,7 +280,8 @@ export default function EventAnalyticsScreen() {
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

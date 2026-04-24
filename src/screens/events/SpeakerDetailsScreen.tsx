@@ -4,13 +4,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  StatusBar,
   TouchableOpacity,
   ActivityIndicator,
   Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -37,7 +36,7 @@ export default function SpeakerDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { showError } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { speakerId } = route.params;
 
   const [speaker, setSpeaker] = useState<Speaker | null>(null);
@@ -112,36 +111,40 @@ export default function SpeakerDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
-          <View style={styles.headerRight} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>MIC</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
+            <View style={styles.headerRight} />
+          </View>
+          <ProfileSkeleton />
         </View>
-        <ProfileSkeleton />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   if (!speaker) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
-          <View style={styles.headerRight} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>NO</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
+            <View style={styles.headerRight} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>Intervenant introuvable</Text>
+          </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>Intervenant introuvable</Text>
-        </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -149,8 +152,9 @@ export default function SpeakerDetailsScreen() {
   const hasSocialLinks = speaker.website || speaker.linkedin || speaker.twitter;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>MIC</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
@@ -324,7 +328,8 @@ export default function SpeakerDetailsScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

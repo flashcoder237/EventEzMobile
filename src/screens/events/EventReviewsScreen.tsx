@@ -8,10 +8,10 @@ import {
   TextInput,
   RefreshControl,
   ActivityIndicator,
-  StatusBar,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
@@ -473,8 +473,9 @@ export default function EventReviewsScreen() {
   // === Main render ===
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>★</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <View style={[styles.topBar, { borderBottomColor: colors.gray100 }]}>
@@ -547,7 +548,8 @@ export default function EventReviewsScreen() {
           <Text style={styles.fabText}>Laisser un avis</Text>
         </TouchableOpacity>
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

@@ -7,10 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  StatusBar,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -162,7 +161,7 @@ export default function EventSearchScreen() {
   const initialCategory = route.params?.category ?? null;
   const initialQuery = route.params?.query ?? '';
 
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
   const { columns, padding: containerPadding } = useTabletLayout();
   const {
@@ -379,8 +378,9 @@ export default function EventSearchScreen() {
   // === Main render ===
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>Q?</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header : back + search input + sort button */}
       <View style={[styles.topBar, { borderBottomColor: colors.gray100 }]}>
@@ -540,7 +540,8 @@ export default function EventSearchScreen() {
           }
         />
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

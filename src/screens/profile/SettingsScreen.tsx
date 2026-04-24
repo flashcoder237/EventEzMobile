@@ -5,11 +5,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Switch,
   TextInput,
-  Platform,
   Modal,
   ActivityIndicator,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -17,101 +16,276 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
-import { useTheme, ThemeMode } from '../../contexts/ThemeContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
-  Colors,
   FontFamily,
-  FontSizes,
   BorderRadius,
   Spacing,
-  TextStyles,
+  Shadows,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface ToggleItemProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
+// ─────────────────────────────────────────────────────────
+// Soft toggle — uses platform Switch tinted with theme colors
+// ─────────────────────────────────────────────────────────
+const SoftToggle = ({
+  value,
+  onToggle,
+  disabled,
+}: {
   value: boolean;
-  onToggle: (value: boolean) => void;
+  onToggle: (v: boolean) => void;
   disabled?: boolean;
-}
-
-const ToggleItem = ({ icon, title, subtitle, value, onToggle, disabled = false }: ToggleItemProps) => {
-  const { colors } = useTheme();
+}) => {
+  const { colors, isDark } = useTheme();
   return (
-    <View style={[styles.settingItem, { borderBottomColor: colors.gray100 }, disabled && styles.settingItemDisabled]}>
-      <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
-        <Ionicons name={icon} size={20} color={disabled ? colors.gray400 : colors.gray600} />
-      </View>
-      <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, { color: colors.gray900 }, disabled && { color: colors.gray500 }]}>{title}</Text>
-        <Text style={[styles.settingSubtitle, { color: colors.gray500 }]}>{subtitle}</Text>
-        {disabled && (
-          <Text style={[styles.unavailableLabel, { color: colors.gray400 }]}>(Indisponible pour le moment)</Text>
-        )}
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onToggle}
-        trackColor={{ false: colors.gray200, true: colors.primaryLight }}
-        thumbColor={value ? colors.primary : colors.gray400}
-        disabled={disabled}
-        accessibilityRole="switch"
-        accessibilityLabel={title}
-        accessibilityState={{ checked: value }}
-      />
-    </View>
+    <Switch
+      value={value}
+      onValueChange={onToggle}
+      disabled={disabled}
+      trackColor={{
+        false: isDark ? colors.gray200 : colors.gray300,
+        true: colors.primary,
+      }}
+      thumbColor={isDark ? colors.card : '#FFFFFF'}
+      ios_backgroundColor={isDark ? colors.gray200 : colors.gray300}
+    />
   );
 };
 
-interface SelectItemProps {
+// ─────────────────────────────────────────────────────────
+// Soft option row — rounded card with subtle border & shadow
+// ─────────────────────────────────────────────────────────
+interface OptionCardProps {
   icon: keyof typeof Ionicons.glyphMap;
+  eyebrow: string;
   title: string;
-  value: string;
-  onPress: () => void;
+  right?: React.ReactNode;
+  onPress?: () => void;
   disabled?: boolean;
-  isActive?: boolean;
+  danger?: boolean;
+  tone?: 'default' | 'primary' | 'accent' | 'secondary';
 }
 
-const SelectItem = ({ icon, title, value, onPress, disabled = false, isActive }: SelectItemProps) => {
-  const { colors } = useTheme();
+const OptionCard = ({
+  icon,
+  eyebrow,
+  title,
+  right,
+  onPress,
+  disabled,
+  danger,
+  tone = 'default',
+}: OptionCardProps) => {
+  const { colors, isDark } = useTheme();
+
+  const cardBg = danger
+    ? isDark
+      ? 'rgba(255,107,107,0.08)'
+      : '#FFF5F5'
+    : colors.card;
+  const borderCol = danger
+    ? colors.accent
+    : isDark
+    ? colors.gray200
+    : 'rgba(0,0,0,0.05)';
+
+  const iconBg =
+    tone === 'primary'
+      ? `${colors.primary}15`
+      : tone === 'accent'
+      ? `${colors.accent}15`
+      : tone === 'secondary'
+      ? `${colors.secondary || colors.primary}15`
+      : danger
+      ? `${colors.accent}15`
+      : isDark
+      ? colors.gray100
+      : colors.gray50;
+  const iconColor =
+    tone === 'primary'
+      ? colors.primary
+      : tone === 'accent'
+      ? colors.accent
+      : tone === 'secondary'
+      ? colors.secondary || colors.primary
+      : danger
+      ? colors.accent
+      : colors.gray600;
+
+  const Wrapper = onPress ? TouchableOpacity : View;
+
+  return (
+    <Wrapper
+      onPress={onPress}
+      activeOpacity={0.85}
+      disabled={disabled}
+      style={[
+        optionStyles.card,
+        {
+          backgroundColor: cardBg,
+          borderColor: borderCol,
+          opacity: disabled ? 0.55 : 1,
+        },
+        Shadows.sm,
+      ]}
+    >
+      <View style={[optionStyles.iconDisc, { backgroundColor: iconBg }]}>
+        <Ionicons name={icon} size={18} color={iconColor} />
+      </View>
+      <View style={optionStyles.body}>
+        <Text
+          style={[
+            optionStyles.eyebrow,
+            { color: danger ? colors.accent : colors.gray500 },
+          ]}
+          numberOfLines={1}
+        >
+          {eyebrow}
+        </Text>
+        <Text
+          style={[
+            optionStyles.title,
+            { color: danger ? colors.accent : colors.text },
+          ]}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+      </View>
+      {right}
+    </Wrapper>
+  );
+};
+
+const optionStyles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 72,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 10,
+    gap: 14,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  body: {
+    flex: 1,
+  },
+  eyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9.5,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  title: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
+    letterSpacing: -0.2,
+  },
+});
+
+// ─────────────────────────────────────────────────────────
+// Shortcut tile — soft rounded square with colored icon disc
+// ─────────────────────────────────────────────────────────
+interface ShortcutTileProps {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress?: () => void;
+  tone: 'primary' | 'accent' | 'secondary' | 'neutral';
+}
+
+const ShortcutTile = ({ icon, label, onPress, tone }: ShortcutTileProps) => {
+  const { colors, isDark } = useTheme();
+  const tint =
+    tone === 'primary'
+      ? colors.primary
+      : tone === 'accent'
+      ? colors.accent
+      : tone === 'secondary'
+      ? colors.secondary || colors.primary
+      : colors.gray500;
   return (
     <TouchableOpacity
-      style={[styles.settingItem, { borderBottomColor: colors.gray100 }, disabled && styles.settingItemDisabled]}
       onPress={onPress}
-      activeOpacity={0.7}
-      disabled={disabled}
+      activeOpacity={0.85}
+      style={shortcutStyles.wrap}
       accessibilityRole="button"
-      accessibilityLabel={`${title}, ${value}`}
+      accessibilityLabel={label}
     >
-      <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
-        <Ionicons name={icon} size={20} color={disabled ? colors.gray400 : colors.gray600} />
+      <View
+        style={[
+          shortcutStyles.tile,
+          {
+            backgroundColor: colors.card,
+            borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.05)',
+          },
+          Shadows.sm,
+        ]}
+      >
+        <View style={[shortcutStyles.iconWell, { backgroundColor: `${tint}15` }]}>
+          <Ionicons name={icon} size={20} color={tint} />
+        </View>
       </View>
-      <View style={styles.settingContent}>
-        <Text style={[styles.settingTitle, { color: colors.gray900 }, disabled && { color: colors.gray500 }]}>{title}</Text>
-        <Text style={[styles.settingSubtitle, { color: colors.gray500 }]}>{value}</Text>
-        {disabled && (
-          <Text style={[styles.unavailableLabel, { color: colors.gray400 }]}>(Indisponible pour le moment)</Text>
-        )}
-      </View>
-      <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
+      <Text
+        style={[shortcutStyles.label, { color: colors.gray700 }]}
+        numberOfLines={2}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 };
 
+const shortcutStyles = StyleSheet.create({
+  wrap: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 8,
+  },
+  tile: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWell: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  label: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+});
+
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { user, logout, updateUser } = useAuth();
-  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
-  const { colors, isDark, mode: themeMode, setMode: setThemeMode, gradients } = useTheme();
+  const { logout } = useAuth();
+  const { showAlert, showError, showConfirm } = useAlert();
+  const { colors, isDark, mode: themeMode, setMode: setThemeMode } = useTheme();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -169,7 +343,6 @@ export default function SettingsScreen() {
       await usersAPI.updateUserSettings({ [key]: value });
     } catch (error) {
       if (__DEV__) console.error('Erreur mise à jour:', error);
-      // Revert on error
       fetchSettings();
     }
   };
@@ -284,538 +457,560 @@ export default function SettingsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={[styles.container, { backgroundColor: colors.background }]}>
-            <LoadingSpinner />
-          </View>
-        </SafeAreaView>
-      </View>
+      <SafeAreaView style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <LoadingSpinner />
+      </SafeAreaView>
     );
   }
 
+  const eyebrowColor = colors.gray500;
+  const sectionHairline = isDark ? colors.gray200 : colors.gray100;
+
   return (
-    <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={[styles.container, { backgroundColor: colors.background }]}>
-          {/* Gradient Header */}
-          <LinearGradient
-        colors={gradients.brand as [string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {/* Header: back disc + eyebrow (rounded bottom card style) */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: isDark ? colors.border : 'rgba(255,255,255,0.5)',
+          },
+        ]}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Retour"
-        >
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <View style={styles.headerIconContainer}>
-            <Ionicons name="settings" size={24} color="rgba(255,255,255,0.8)" />
-          </View>
-          <View style={styles.headerTextContainer}>
-            <Text style={styles.headerSubtitle}>Configuration</Text>
-            <Text style={styles.headerTitle}>Paramètres</Text>
-            <Text style={styles.headerDescription}>
-              Personnalisez votre expérience EventEz
-            </Text>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[
+              styles.backDisc,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+              },
+              Shadows.sm,
+            ]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: Spacing.md }}>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>RÉGLAGES</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Préférences</Text>
           </View>
         </View>
-          </LinearGradient>
+        <Text style={[styles.headerLead, { color: colors.gray500 }]}>
+          Règle ton app, ta confidentialité et tes notifications. Rien de compliqué, tout au bon endroit.
+        </Text>
+      </View>
 
-          <ScrollView
-        style={styles.scrollView}
+      <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Notifications Section */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-          <View style={[styles.sectionHeader, { borderBottomColor: colors.gray200 }]}>
-            <View style={[styles.sectionIconContainer, { backgroundColor: isDark ? '#0C2D48' : '#E0F2FE' }]}>
-              <Ionicons name="notifications" size={20} color="#0284C7" />
-            </View>
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Notifications</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.gray500 }]}>Gérez comment vous êtes notifié</Text>
-            </View>
+        {/* Shortcuts */}
+        <View style={styles.shortcutsBlock}>
+          <View style={styles.shortcutsHeader}>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>RACCOURCIS</Text>
+            <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
-
-          <View style={styles.sectionContent}>
-            <ToggleItem
-              icon="mail-outline"
-              title="Notifications par email"
-              subtitle="Recevez des emails pour vos événements"
-              value={emailNotifications}
-              onToggle={(v) => handleToggle('email_notifications', v, setEmailNotifications)}
+          <View style={styles.shortcutsRow}>
+            <ShortcutTile
+              icon="receipt-outline"
+              label="Factures"
+              tone="primary"
+              onPress={() => navigation.navigate('MyPayments')}
             />
-            <ToggleItem
-              icon="phone-portrait-outline"
-              title="Notifications push"
-              subtitle="Notifications sur votre appareil"
-              value={pushNotifications}
-              onToggle={(v) => handleToggle('push_notifications', v, setPushNotifications)}
-              disabled
+            <ShortcutTile
+              icon="cash-outline"
+              label="Fiscalité"
+              tone="secondary"
+              onPress={() => navigation.navigate('MyPayments')}
             />
-            <ToggleItem
-              icon="chatbubble-outline"
-              title="Notifications SMS"
-              subtitle="Recevez des SMS importants"
-              value={smsNotifications}
-              onToggle={(v) => handleToggle('sms_notifications', v, setSmsNotifications)}
-              disabled
+            <ShortcutTile
+              icon="calendar-outline"
+              label="Mes Évén."
+              tone="primary"
+              onPress={() => navigation.navigate('Main', { screen: 'Tickets' } as any)}
             />
-            <ToggleItem
-              icon="time-outline"
-              title="Rappels d'événements"
-              subtitle="Rappels avant vos événements"
-              value={eventReminders}
-              onToggle={(v) => handleToggle('event_reminders', v, setEventReminders)}
-            />
-            <ToggleItem
-              icon="sparkles-outline"
-              title="Emails marketing"
-              subtitle="Nouveautés et offres spéciales"
-              value={marketingEmails}
-              onToggle={(v) => handleToggle('marketing_emails', v, setMarketingEmails)}
+            <ShortcutTile
+              icon="help-circle-outline"
+              label="Aide"
+              tone="accent"
             />
           </View>
         </View>
 
-        {/* Preferences Section */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-          <View style={[styles.sectionHeader, { borderBottomColor: colors.gray200 }]}>
-            <View style={[styles.sectionIconContainer, { backgroundColor: isDark ? '#312E81' : '#F3E8FF' }]}>
-              <Ionicons name="globe" size={20} color={colors.primary} />
-            </View>
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Préférences</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.gray500 }]}>Personnalisez votre expérience</Text>
-            </View>
+        {/* Section: Notifications */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>NOTIFICATIONS</Text>
+            <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
 
-          <View style={styles.sectionContent}>
-            <SelectItem
-              icon="language-outline"
-              title="Langue"
-              value={getLanguageLabel()}
-              onPress={showLanguagePicker}
-              disabled
-            />
-            <SelectItem
-              icon={isDark ? 'moon-outline' : 'sunny-outline'}
-              title="Thème"
-              value={getThemeLabel()}
-              onPress={showThemePicker}
-            />
-            <SelectItem
-              icon="time-outline"
-              title="Fuseau horaire"
-              value={getTimezoneLabel()}
-              onPress={showTimezonePicker}
-              disabled
-            />
-          </View>
+          <OptionCard
+            icon="mail-outline"
+            eyebrow="EMAIL"
+            title="Notifications par email"
+            right={
+              <SoftToggle
+                value={emailNotifications}
+                onToggle={(v) => handleToggle('email_notifications', v, setEmailNotifications)}
+              />
+            }
+          />
+          <OptionCard
+            icon="phone-portrait-outline"
+            eyebrow="PUSH · BIENTÔT"
+            title="Notifications push"
+            disabled
+            right={<SoftToggle value={pushNotifications} onToggle={() => {}} disabled />}
+          />
+          <OptionCard
+            icon="chatbubble-outline"
+            eyebrow="SMS · BIENTÔT"
+            title="Notifications SMS"
+            disabled
+            right={<SoftToggle value={smsNotifications} onToggle={() => {}} disabled />}
+          />
+          <OptionCard
+            icon="time-outline"
+            eyebrow="RAPPELS"
+            title="Avant tes événements"
+            right={
+              <SoftToggle
+                value={eventReminders}
+                onToggle={(v) => handleToggle('event_reminders', v, setEventReminders)}
+              />
+            }
+          />
+          <OptionCard
+            icon="sparkles-outline"
+            eyebrow="MARKETING"
+            title="Nouveautés et offres"
+            right={
+              <SoftToggle
+                value={marketingEmails}
+                onToggle={(v) => handleToggle('marketing_emails', v, setMarketingEmails)}
+              />
+            }
+          />
         </View>
 
-        {/* Security Section */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-          <View style={[styles.sectionHeader, { borderBottomColor: colors.gray200 }]}>
-            <View style={[styles.sectionIconContainer, { backgroundColor: isDark ? '#0D3B2E' : '#D1FAE5' }]}>
-              <Ionicons name="shield-checkmark" size={20} color="#059669" />
-            </View>
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sécurité</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.gray500 }]}>Protégez votre compte</Text>
-            </View>
+        {/* Section: Préférences */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>PRÉFÉRENCES</Text>
+            <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
-
-          <View style={styles.sectionContent}>
-            <ToggleItem
-              icon="shield-outline"
-              title="Authentification à deux facteurs"
-              subtitle="Couche de sécurité supplémentaire"
-              value={twoFactorAuth}
-              onToggle={(v) => handleToggle('two_factor_auth', v, setTwoFactorAuth)}
-              disabled
-            />
-            <ToggleItem
-              icon="notifications-outline"
-              title="Notifications de connexion"
-              subtitle="Alertes lors de nouvelles connexions"
-              value={loginNotifications}
-              onToggle={(v) => handleToggle('login_notifications', v, setLoginNotifications)}
-              disabled
-            />
-            <ToggleItem
-              icon="eye-outline"
-              title="Profil public"
-              subtitle="Permettre aux autres de voir votre profil"
-              value={publicProfile}
-              onToggle={(v) => handleToggle('public_profile', v, setPublicProfile)}
-            />
-          </View>
+          <OptionCard
+            icon="language-outline"
+            eyebrow="LANGUE · BIENTÔT"
+            title={getLanguageLabel()}
+            onPress={showLanguagePicker}
+            disabled
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          <OptionCard
+            icon={isDark ? 'moon-outline' : 'sunny-outline'}
+            eyebrow="THÈME"
+            title={getThemeLabel()}
+            onPress={showThemePicker}
+            tone="primary"
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          <OptionCard
+            icon="time-outline"
+            eyebrow="FUSEAU · BIENTÔT"
+            title={getTimezoneLabel()}
+            onPress={showTimezonePicker}
+            disabled
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
         </View>
 
-        {/* App Info Section */}
-        <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-          <View style={[styles.sectionHeader, { borderBottomColor: colors.gray200 }]}>
-            <View style={[styles.sectionIconContainer, { backgroundColor: colors.gray100 }]}>
-              <Ionicons name="information-circle" size={20} color={colors.gray600} />
-            </View>
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Application</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.gray500 }]}>À propos et aide</Text>
-            </View>
+        {/* Section: Sécurité */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>SÉCURITÉ</Text>
+            <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
 
-          <View style={styles.sectionContent}>
-            <TouchableOpacity style={[styles.settingItem, { borderBottomColor: colors.gray100 }]} activeOpacity={0.7} accessibilityRole="link" accessibilityLabel="Centre d'aide">
-              <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
-                <Ionicons name="help-circle-outline" size={20} color={colors.gray600} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.gray900 }]}>Centre d'aide</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.gray500 }]}>FAQ et support</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.settingItem, { borderBottomColor: colors.gray100 }]}
-              activeOpacity={0.7}
-              onPress={() => navigation.navigate('Terms')}
-              accessibilityRole="link"
-              accessibilityLabel="Conditions d'utilisation"
-            >
-              <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
-                <Ionicons name="document-text-outline" size={20} color={colors.gray600} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.gray900 }]}>Conditions d'utilisation</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.settingItem, { borderBottomColor: colors.gray100 }]} activeOpacity={0.7} accessibilityRole="link" accessibilityLabel="Politique de confidentialite">
-              <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
-                <Ionicons name="shield-outline" size={20} color={colors.gray600} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.gray900 }]}>Politique de confidentialité</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
-            </TouchableOpacity>
-
-            <View style={[styles.settingItem, { borderBottomColor: colors.gray100 }]}>
-              <View style={[styles.settingIcon, { backgroundColor: colors.gray100 }]}>
-                <Ionicons name="information-outline" size={20} color={colors.gray600} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.gray900 }]}>Version</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.gray500 }]}>1.0.0</Text>
-              </View>
-            </View>
-          </View>
+          <OptionCard
+            icon="shield-checkmark-outline"
+            eyebrow="AUTHENTIFICATION · BIENTÔT"
+            title="Double authentification"
+            disabled
+            tone="primary"
+            right={
+              twoFactorAuth ? (
+                <View
+                  style={[
+                    styles.statusPill,
+                    { backgroundColor: `${colors.primary}15` },
+                  ]}
+                >
+                  <Text style={[styles.statusPillText, { color: colors.primary }]}>2FA ACTIVÉE</Text>
+                </View>
+              ) : (
+                <SoftToggle value={twoFactorAuth} onToggle={() => {}} disabled />
+              )
+            }
+          />
+          <OptionCard
+            icon="notifications-outline"
+            eyebrow="CONNEXIONS · BIENTÔT"
+            title="Alertes de connexion"
+            disabled
+            right={<SoftToggle value={loginNotifications} onToggle={() => {}} disabled />}
+          />
+          <OptionCard
+            icon="eye-outline"
+            eyebrow="VISIBILITÉ"
+            title="Profil public"
+            right={
+              <SoftToggle
+                value={publicProfile}
+                onToggle={(v) => handleToggle('public_profile', v, setPublicProfile)}
+              />
+            }
+          />
         </View>
 
-        {/* Danger Zone */}
-        <View style={[styles.section, styles.dangerSection, { backgroundColor: colors.card, borderColor: isDark ? '#7F1D1D' : '#FCA5A5' }]}>
-          <View style={[styles.sectionHeader, { borderBottomColor: isDark ? '#7F1D1D' : '#FCA5A5' }]}>
-            <View style={[styles.sectionIconContainer, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}>
-              <Ionicons name="alert-circle" size={20} color={colors.error} />
-            </View>
-            <View>
-              <Text style={[styles.sectionTitle, { color: colors.error }]}>Zone de danger</Text>
-              <Text style={[styles.sectionSubtitle, { color: colors.gray500 }]}>Actions irréversibles</Text>
-            </View>
+        {/* Section: À propos */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>À PROPOS</Text>
+            <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
-
-          <View style={styles.sectionContent}>
-            <TouchableOpacity
-              style={[styles.settingItem, { borderBottomColor: colors.gray100 }]}
-              onPress={handleLogout}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Deconnexion"
-            >
-              <View style={[styles.settingIcon, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}>
-                <Ionicons name="log-out-outline" size={20} color={colors.error} />
+          <OptionCard
+            icon="help-circle-outline"
+            eyebrow="SUPPORT"
+            title="Centre d'aide"
+            onPress={() => {}}
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          <OptionCard
+            icon="document-text-outline"
+            eyebrow="JURIDIQUE"
+            title="Conditions d'utilisation"
+            onPress={() => navigation.navigate('Terms')}
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          <OptionCard
+            icon="shield-outline"
+            eyebrow="RGPD"
+            title="Politique de confidentialité"
+            onPress={() => {}}
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          <OptionCard
+            icon="information-outline"
+            eyebrow="VERSION"
+            title="EventEz 1.0.0"
+            right={
+              <View style={[styles.versionPill, { backgroundColor: colors.gray100 }]}>
+                <Text style={[styles.versionPillText, { color: colors.gray600 }]}>BUILD 2026</Text>
               </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.error }]}>Déconnexion</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.settingItem, { borderBottomColor: colors.gray100 }]}
-              onPress={() => setShowDeleteModal(true)}
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel="Supprimer mon compte"
-            >
-              <View style={[styles.settingIcon, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}>
-                <Ionicons name="trash-outline" size={20} color={colors.error} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={[styles.settingTitle, { color: colors.error }]}>Supprimer mon compte</Text>
-                <Text style={[styles.settingSubtitle, { color: colors.gray500 }]}>Cette action est définitive</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+            }
+          />
         </View>
-          </ScrollView>
 
-          {/* Delete Account Modal */}
-          <Modal
+        {/* Zone sensible — Déconnexion + Suppression */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.eyebrowSection, { color: colors.accent }]}>ZONE SENSIBLE</Text>
+            <View style={[styles.dashLine, { backgroundColor: `${colors.accent}40` }]} />
+          </View>
+          <OptionCard
+            icon="log-out-outline"
+            eyebrow="SESSION"
+            title="Déconnexion"
+            onPress={handleLogout}
+            danger
+            right={<Ionicons name="chevron-forward" size={18} color={colors.accent} />}
+          />
+          <OptionCard
+            icon="trash-outline"
+            eyebrow="IRRÉVERSIBLE"
+            title="Supprimer mon compte"
+            onPress={() => setShowDeleteModal(true)}
+            danger
+            right={<Ionicons name="chevron-forward" size={18} color={colors.accent} />}
+          />
+        </View>
+
+        {/* Footer */}
+        <View style={styles.footerBlock}>
+          <View style={[styles.footerLine, { backgroundColor: sectionHairline }]} />
+          <Text style={[styles.footerText, { color: eyebrowColor }]}>
+            EVENTEZ — ÉDITION 2026
+          </Text>
+        </View>
+      </ScrollView>
+
+      {/* Delete Account Modal */}
+      <Modal
         visible={showDeleteModal}
         transparent
         animationType="fade"
         onRequestClose={() => setShowDeleteModal(false)}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHeader}>
-              <View style={[styles.modalIconContainer, { backgroundColor: isDark ? '#450A0A' : '#FEE2E2' }]}>
-                <Ionicons name="alert-circle" size={32} color={colors.error} />
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalContent,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                },
+                Shadows.md,
+              ]}
+            >
+              <View style={styles.modalHeader}>
+                <View
+                  style={[
+                    styles.modalIconContainer,
+                    { backgroundColor: `${colors.accent}15` },
+                  ]}
+                >
+                  <Ionicons name="alert-circle" size={28} color={colors.accent} />
+                </View>
+                <Text style={[styles.modalEyebrow, { color: colors.accent }]}>
+                  IRRÉVERSIBLE
+                </Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>Supprimer</Text>
+                <Text style={[styles.modalSubtitle, { color: colors.gray500 }]}>
+                  Cette action supprime définitivement ton compte et toutes tes données.
+                </Text>
               </View>
-              <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Supprimer votre compte</Text>
-              <Text style={[styles.modalSubtitle, { color: colors.gray600 }]}>
-                Cette action est irréversible. Toutes vos données seront définitivement supprimées.
-              </Text>
-            </View>
 
-            <View style={styles.modalBody}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Raison de la suppression (optionnel)</Text>
-              <TextInput
-                style={[styles.modalInput, styles.textArea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
-                value={deleteReason}
-                onChangeText={setDeleteReason}
-                placeholder="Pourquoi supprimez-vous votre compte?"
-                placeholderTextColor={colors.gray400}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
+              <View style={styles.modalBody}>
+                <Text style={[styles.inputLabel, { color: eyebrowColor }]}>RAISON (OPTIONNEL)</Text>
+                <TextInput
+                  style={[
+                    styles.modalInput,
+                    styles.textArea,
+                    {
+                      backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                      borderColor: isDark ? colors.gray200 : colors.gray100,
+                      color: colors.text,
+                    },
+                  ]}
+                  value={deleteReason}
+                  onChangeText={setDeleteReason}
+                  placeholder="Pourquoi supprimes-tu ton compte ?"
+                  placeholderTextColor={colors.gray400}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
 
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Confirmer avec votre mot de passe</Text>
-              <TextInput
-                style={[styles.modalInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
-                value={deletePassword}
-                onChangeText={setDeletePassword}
-                placeholder="Votre mot de passe"
-                placeholderTextColor={colors.gray400}
-                secureTextEntry
-              />
-            </View>
+                <Text style={[styles.inputLabel, { color: eyebrowColor }]}>MOT DE PASSE</Text>
+                <TextInput
+                  style={[
+                    styles.modalInput,
+                    {
+                      backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                      borderColor: isDark ? colors.gray200 : colors.gray100,
+                      color: colors.text,
+                    },
+                  ]}
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  placeholder="Ton mot de passe"
+                  placeholderTextColor={colors.gray400}
+                  secureTextEntry
+                />
+              </View>
 
-            <View style={styles.modalFooter}>
-              <TouchableOpacity
-                style={[styles.cancelButton, { backgroundColor: colors.gray100 }]}
-                onPress={() => {
-                  setShowDeleteModal(false);
-                  setDeletePassword('');
-                  setDeleteReason('');
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Annuler"
-              >
-                <Text style={[styles.cancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={handleDeleteAccount}
-                disabled={saving}
-                accessibilityRole="button"
-                accessibilityLabel="Supprimer definitivement"
-              >
-                {saving ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <Text style={styles.deleteButtonText}>Supprimer définitivement</Text>
-                )}
-              </TouchableOpacity>
+              <View style={styles.modalFooter}>
+                <TouchableOpacity
+                  style={[
+                    styles.cancelButton,
+                    {
+                      backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                      borderColor: isDark ? colors.gray200 : colors.gray100,
+                    },
+                  ]}
+                  onPress={() => {
+                    setShowDeleteModal(false);
+                    setDeletePassword('');
+                    setDeleteReason('');
+                  }}
+                >
+                  <Text style={[styles.cancelButtonText, { color: colors.text }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.deleteButton, { backgroundColor: colors.accent }]}
+                  onPress={handleDeleteAccount}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.deleteButtonText}>Supprimer</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
         </KeyboardAvoidingView>
-          </Modal>
-        </View>
-      </SafeAreaView>
-    </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  rootContainer: {
-    flex: 1,
-    backgroundColor: '#4F46E5',
-  },
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
-    backgroundColor: Colors.gray50,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // Header
   header: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  backButton: {
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  backDisc: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
-  },
-  headerIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 4,
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes['2xl'],
-    color: Colors.white,
-    marginBottom: 4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 32,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
-  headerDescription: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  scrollView: {
-    flex: 1,
+  headerLead: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13.5,
+    lineHeight: 19,
+    maxWidth: '92%',
+    marginTop: 4,
   },
   scrollContent: {
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
     paddingBottom: Spacing['3xl'],
   },
 
-  // Sections
-  section: {
-    marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
-    overflow: 'hidden',
+  // Shortcuts
+  shortcutsBlock: {
+    marginBottom: Spacing.lg,
   },
-  dangerSection: {
-    borderColor: '#FCA5A5',
-  },
-  sectionHeader: {
+  shortcutsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
     gap: Spacing.sm,
+    marginBottom: 14,
   },
-  sectionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sectionTitle: {
-    ...TextStyles.bodyBold,
-  },
-  sectionSubtitle: {
-    ...TextStyles.small,
-    color: Colors.gray500,
-    marginTop: 2,
-  },
-  sectionContent: {
-    paddingVertical: Spacing.xs,
+  shortcutsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
   },
 
-  // Setting Items
-  settingItem: {
+  // Section
+  sectionBlock: {
+    marginTop: Spacing.lg,
+  },
+  sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray50,
+    gap: Spacing.sm,
+    marginBottom: 14,
   },
-  settingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.gray50,
-    alignItems: 'center',
-    justifyContent: 'center',
+  eyebrowSection: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
   },
-  settingContent: {
+  dashLine: {
     flex: 1,
-    marginLeft: Spacing.md,
+    height: 1,
   },
-  settingItemDisabled: {
-    opacity: 0.5,
+
+  // Pills
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
   },
-  settingTitle: {
-    ...TextStyles.bodyBold,
-    fontFamily: FontFamily.medium,
+  statusPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
   },
-  settingTitleDisabled: {
-    color: Colors.gray500,
+  versionPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
   },
-  settingSubtitle: {
-    ...TextStyles.small,
-    color: Colors.gray500,
-    marginTop: 2,
+  versionPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
   },
-  unavailableLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray400,
-    fontStyle: 'italic',
-    marginTop: 2,
+
+  // Footer
+  footerBlock: {
+    marginTop: Spacing.xl,
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  footerLine: {
+    width: 40,
+    height: 1,
+  },
+  footerText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
 
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(17,17,16,0.55)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 24,
+    borderWidth: 1,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 420,
     overflow: 'hidden',
   },
   modalHeader: {
@@ -824,23 +1019,31 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.md,
   },
   modalIconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FEE2E2',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  modalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
   modalTitle: {
-    ...TextStyles.h4,
-    textAlign: 'center',
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    lineHeight: 32,
+    letterSpacing: -1.1,
+    marginBottom: Spacing.sm,
   },
   modalSubtitle: {
-    ...TextStyles.small,
-    color: Colors.gray600,
+    fontFamily: FontFamily.regular,
+    fontSize: 13.5,
     textAlign: 'center',
-    marginTop: Spacing.sm,
     lineHeight: 20,
   },
   modalBody: {
@@ -848,21 +1051,20 @@ const styles = StyleSheet.create({
     paddingTop: 0,
   },
   inputLabel: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray700,
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
     marginBottom: Spacing.xs,
     marginTop: Spacing.md,
   },
   modalInput: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    fontSize: FontSizes.base,
-    color: Colors.gray900,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: Colors.gray200,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
   },
   textArea: {
     minHeight: 80,
@@ -875,24 +1077,27 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.gray100,
-    borderRadius: BorderRadius.lg,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
     alignItems: 'center',
   },
   cancelButtonText: {
-    ...TextStyles.button,
-    color: Colors.gray700,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
   },
   deleteButton: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.error,
-    borderRadius: BorderRadius.lg,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteButtonText: {
-    ...TextStyles.button,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
+    color: '#FFFFFF',
   },
 });

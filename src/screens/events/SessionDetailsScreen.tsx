@@ -4,13 +4,12 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  StatusBar,
   TouchableOpacity,
   ActivityIndicator,
   Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -57,7 +56,7 @@ export default function SessionDetailsScreen() {
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
   const { user } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { sessionId } = route.params;
 
   const [session, setSession] = useState<Session | null>(null);
@@ -153,36 +152,40 @@ export default function SessionDetailsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
-          <View style={styles.headerRight} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>SES</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
+            <View style={styles.headerRight} />
+          </View>
+          <DetailScreenSkeleton />
         </View>
-        <DetailScreenSkeleton />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   if (!session) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
-          <View style={styles.headerRight} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>NO</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
+            <View style={styles.headerRight} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>Session introuvable</Text>
+          </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>Session introuvable</Text>
-        </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -192,8 +195,9 @@ export default function SessionDetailsScreen() {
   const isFull = session.max_capacity != null && (session.registration_count || 0) >= session.max_capacity;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>SES</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
@@ -486,7 +490,8 @@ export default function SessionDetailsScreen() {
           </TouchableOpacity>
         </View>
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

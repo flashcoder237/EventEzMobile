@@ -5,9 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -43,7 +42,7 @@ export default function EventEditScreen() {
 
   const alertActions = useAlert();
   const { showAlert } = alertActions;
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const {
     form,
@@ -139,30 +138,32 @@ export default function EventEditScreen() {
   // Show loading spinner while form data is being fetched
   if (form.loading && !form.title) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-        <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={[styles.headerBarEyebrow, { color: colors.accent }]}>Peaufine le détail</Text>
-            <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Modifier l'événement</Text>
+      <EditorialCanvas edges={['top', 'bottom']}>
+        <WatermarkNumeral>EDIT</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray900} />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={[styles.headerBarEyebrow, { color: colors.accent }]}>Peaufine le détail</Text>
+              <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Modifier l'événement</Text>
+            </View>
+            <View style={{ width: 40 }} />
           </View>
-          <View style={{ width: 40 }} />
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.gray500 }]}>Chargement de l'événement...</Text>
+          </View>
         </View>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.gray500 }]}>Chargement de l'événement...</Text>
-        </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <View style={styles.keyboardView}>
+    <EditorialCanvas edges={['top', 'bottom']}>
+      <WatermarkNumeral>EDIT</WatermarkNumeral>
+      <View style={[styles.keyboardView, { zIndex: 1 }]}>
         {/* Header */}
         <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity style={styles.backButton} onPress={handleBack}>
@@ -377,7 +378,7 @@ export default function EventEditScreen() {
         initialLat={form.locationLatitude ? parseFloat(form.locationLatitude) : undefined}
         initialLng={form.locationLongitude ? parseFloat(form.locationLongitude) : undefined}
       />
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 

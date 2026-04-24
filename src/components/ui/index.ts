@@ -5,6 +5,7 @@
 export { default as GradientButton, GradientButton as Button } from './GradientButton';
 export { default as Badge } from './Badge';
 export { default as Input } from './Input';
+export { default as OptionCard } from './OptionCard';
 export { default as GradientText } from './GradientText';
 export { default as ConfettiEffect } from './ConfettiEffect';
 export { default as EmptyState } from './EmptyState';
@@ -41,3 +42,18 @@ export {
   SectionEntrance,
   SlideIn,
 } from './Animations';
+
+// Editorial design system
+export {
+  EditorialCanvas,
+  EditorialHeader,
+  EditorialPillCTA,
+  WatermarkNumeral,
+  editorial,
+  EditorialColors,
+  pickCanvas,
+  pickWatermark,
+  pickBarDim,
+  pickStickyBarBg,
+  pickStickyBarBorder,
+} from './editorial';

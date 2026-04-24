@@ -6,10 +6,9 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,7 +43,7 @@ export default function DiscountFormScreen() {
   const route = useRoute<RoutePropType>();
   const { eventId, discountId } = route.params;
   const { showSuccess, showError } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const isEditing = !!discountId;
 
@@ -186,18 +185,19 @@ export default function DiscountFormScreen() {
 
   if (fetchingData) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <View style={styles.loadingContainer}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>%</WatermarkNumeral>
+        <View style={[styles.loadingContainer, { zIndex: 1 }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>%</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <LinearGradient
@@ -229,7 +229,7 @@ export default function DiscountFormScreen() {
         >
           {/* Code */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Code promo</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Code promo</Text>
             <View style={styles.codeRow}>
               <TextInput
                 style={[
@@ -252,12 +252,17 @@ export default function DiscountFormScreen() {
                 <Ionicons name="refresh" size={20} color={colors.primary} />
               </TouchableOpacity>
             </View>
-            {errors.code ? <Text style={[styles.errorText, { color: colors.error }]}>{errors.code}</Text> : null}
+            {errors.code ? (
+              <View style={styles.errorRow}>
+                <Ionicons name="alert-circle" size={14} color={colors.error} />
+                <Text style={[styles.errorText, { color: colors.error }]}>{errors.code}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Type toggle */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Type de réduction</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Type de réduction</Text>
             <View style={styles.toggleRow}>
               <TouchableOpacity
                 style={[
@@ -306,7 +311,7 @@ export default function DiscountFormScreen() {
 
           {/* Value */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>
+            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>
               Valeur {discountType === 'percentage' ? '(%)' : `(${platformCurrency})`}
             </Text>
             <TextInput
@@ -324,7 +329,12 @@ export default function DiscountFormScreen() {
               placeholderTextColor={colors.gray400}
               keyboardType="numeric"
             />
-            {errors.value ? <Text style={[styles.errorText, { color: colors.error }]}>{errors.value}</Text> : null}
+            {errors.value ? (
+              <View style={styles.errorRow}>
+                <Ionicons name="alert-circle" size={14} color={colors.error} />
+                <Text style={[styles.errorText, { color: colors.error }]}>{errors.value}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Date début */}
@@ -358,7 +368,7 @@ export default function DiscountFormScreen() {
 
           {/* Max uses */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Utilisations max</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Utilisations max</Text>
             <TextInput
               style={[
                 styles.input,
@@ -374,13 +384,18 @@ export default function DiscountFormScreen() {
               placeholderTextColor={colors.gray400}
               keyboardType="numeric"
             />
-            {errors.max_uses ? <Text style={[styles.errorText, { color: colors.error }]}>{errors.max_uses}</Text> : null}
+            {errors.max_uses ? (
+              <View style={styles.errorRow}>
+                <Ionicons name="alert-circle" size={14} color={colors.error} />
+                <Text style={[styles.errorText, { color: colors.error }]}>{errors.max_uses}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Ticket types */}
           {ticketTypes.length > 0 && (
             <View style={styles.fieldContainer}>
-              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Tickets applicables</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Tickets applicables</Text>
               <Text style={[styles.fieldHint, { color: colors.gray400 }]}>Laisser vide = tous les tickets</Text>
               <View style={styles.ticketTypesList}>
                 {ticketTypes.map((tt) => {
@@ -425,7 +440,8 @@ export default function DiscountFormScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 
@@ -486,25 +502,28 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   fieldLabel: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
-    marginBottom: 6,
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: Colors.gray600,
+    marginBottom: Spacing.sm,
   },
   fieldHint: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    lineHeight: 16,
     color: Colors.gray400,
-    marginBottom: 8,
+    marginBottom: Spacing.sm,
   },
   input: {
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.gray300,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.base,
     paddingVertical: 14,
-    fontSize: FontSizes.md,
+    fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
     color: Colors.gray900,
   },
@@ -519,19 +538,26 @@ const styles = StyleSheet.create({
     flex: 1,
     letterSpacing: 2,
     fontFamily: FontFamily.bold,
+    fontSize: 16,
   },
   generateButton: {
     width: 48,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#F3E8FF',
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.xs,
   },
   errorText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
+    lineHeight: 16,
     color: Colors.error,
-    marginTop: 4,
   },
   toggleRow: {
     flexDirection: 'row',
@@ -544,9 +570,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 14,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     backgroundColor: Colors.white,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.gray300,
   },
   toggleOptionActive: {
@@ -554,11 +580,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
   },
   toggleText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    letterSpacing: -0.1,
     color: Colors.gray600,
   },
   toggleTextActive: {
+    fontFamily: FontFamily.bold,
     color: Colors.white,
   },
   ticketTypesList: {
@@ -567,12 +595,12 @@ const styles = StyleSheet.create({
   ticketTypeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    borderRadius: BorderRadius.lg,
+    gap: 10,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: 14,
+    borderRadius: BorderRadius.xl,
     backgroundColor: Colors.white,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Colors.gray200,
   },
   ticketTypeChipActive: {
@@ -581,12 +609,13 @@ const styles = StyleSheet.create({
   },
   ticketTypeText: {
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.medium,
+    letterSpacing: -0.1,
     color: Colors.gray600,
   },
   ticketTypeTextActive: {
     color: Colors.primary,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
   },
   submitContainer: {
     marginTop: Spacing.md,

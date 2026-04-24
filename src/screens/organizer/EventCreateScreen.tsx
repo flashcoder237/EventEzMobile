@@ -14,7 +14,6 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
@@ -29,28 +28,30 @@ import {
 import { useEventForm, STEPS } from '../../hooks/useEventForm';
 import { useEventDraft } from '../../hooks/useEventDraft';
 import {
+  Colors,
   FontFamily,
   FontSizes,
-  BorderRadius,
   Spacing,
-  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+const CANVAS_LIGHT = '#F4F3F0';
 
 export default function EventCreateScreen() {
   const navigation = useNavigation<NavigationProp>();
   const alertActions = useAlert();
   const { showAlert } = alertActions;
   const { colors, isDark } = useTheme();
+  const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
+  const watermarkColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(17,17,16,0.04)';
+  const barDim = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(17,17,16,0.08)';
 
   const {
     form,
     goToNextStep,
     goToPrevStep,
     goToStep,
-    validateStep,
-    // Step 1
     setTitle,
     setDescription,
     setShortDescription,
@@ -63,10 +64,8 @@ export default function EventCreateScreen() {
     setBannerImage,
     pickGalleryImages,
     removeGalleryImage,
-    // Visibility
     setVisibility,
     setAccessCode,
-    // Step 2
     setStartDate,
     setEndDate,
     setRegistrationDeadline,
@@ -82,7 +81,6 @@ export default function EventCreateScreen() {
     setOnlinePasscode,
     handleMapLocationSelect,
     setShowMapPicker,
-    // Step 3
     setIsFree,
     setMaxParticipants,
     setAutoApproveRegistrations,
@@ -95,32 +93,25 @@ export default function EventCreateScreen() {
     removeFormField,
     setShowFormFieldsForBilletterie,
     setFormFields,
-    // Step 4
     addSession,
     updateSession,
     removeSession,
-    // AI
     handleAIGenerate,
     handleAIApply,
     handleOptimizeTitle,
     handleGenerateDescription,
     handleSuggestPricing,
-    // Submit
     handleSubmit,
     resetForm,
-    // Draft
     hydrateForm,
-    // Utils
     formatDate,
   } = useEventForm(alertActions);
 
-  // Draft persistence
   const { hasDraft, draftTitle, draftLoading, draftJustSaved, loadDraft, scheduleSave, saveNow, clearDraft } = useEventDraft();
   const draftCheckedRef = useRef(false);
   const formRef = useRef(form);
   formRef.current = form;
 
-  // On mount: check for existing draft
   useEffect(() => {
     if (draftLoading || draftCheckedRef.current) return;
     draftCheckedRef.current = true;
@@ -148,10 +139,8 @@ export default function EventCreateScreen() {
     }
   }, [draftLoading, hasDraft, draftTitle, showAlert, clearDraft, loadDraft, hydrateForm]);
 
-  // Auto-save on form changes (debounced 2s)
   useEffect(() => {
     if (draftLoading) return;
-    // Skip if form is completely empty (fresh state)
     const hasContent =
       form.title.trim() ||
       form.description.trim() ||
@@ -181,7 +170,6 @@ export default function EventCreateScreen() {
     form.sessions,
   ]);
 
-  // Back button: save immediately then go back
   const handleBack = useCallback(async () => {
     const hasContent =
       formRef.current.title.trim() ||
@@ -221,234 +209,290 @@ export default function EventCreateScreen() {
     }
   };
 
+  const stepNumeral = String(form.currentStep).padStart(2, '0');
+  const currentStepConfig = STEPS[form.currentStep - 1];
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <SafeAreaView style={[styles.container, { backgroundColor: canvasBg }]} edges={['top', 'bottom']}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={canvasBg} />
       <View style={styles.keyboardView}>
-        {/* Header */}
-        <View style={[styles.headerBar, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
+        {/* Header — editorial, transparent, blends with canvas */}
+        <View style={styles.headerBar}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
             accessibilityRole="button"
             accessibilityLabel="Retour"
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
+            <Ionicons name="arrow-back" size={22} color={colors.gray900} />
           </TouchableOpacity>
+
           <View style={styles.headerCenter}>
-            <Text style={[styles.headerBarEyebrow, { color: colors.accent }]}>Donne vie à ton idée</Text>
-            <Text style={[styles.headerBarTitle, { color: colors.gray900 }]}>Créer un événement</Text>
+            <Text style={[styles.headerBarEyebrow, { color: colors.gray500 }]}>
+              Étape {stepNumeral} / {String(STEPS.length).padStart(2, '0')}
+            </Text>
+            <Text style={[styles.headerBarTitle, { color: colors.gray900 }]} numberOfLines={1}>
+              {currentStepConfig?.shortTitle || 'Créer un événement'}
+            </Text>
             {draftJustSaved && (
               <Animated.View
                 entering={FadeIn.duration(300)}
                 exiting={FadeOut.duration(300)}
                 style={styles.savedBadge}
               >
-                <Ionicons name="cloud-done-outline" size={12} color={colors.success} />
+                <Ionicons name="cloud-done-outline" size={10} color={colors.success} />
                 <Text style={[styles.savedBadgeText, { color: colors.success }]}>Sauvegardé</Text>
               </Animated.View>
             )}
           </View>
+
           {form.aiEnabled ? <AIUsageBadge usage={form.aiUsage} /> : <View style={{ width: 40 }} />}
         </View>
 
-        {/* Progress Steps */}
-        <View style={[styles.progressContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-          {STEPS.map((step, index) => (
-            <React.Fragment key={step.id}>
+        {/* Progress — editorial 4-bar indicator (replaces numbered nodes) */}
+        <View style={styles.progressContainer}>
+          {STEPS.map((step) => {
+            const isActive = form.currentStep === step.id;
+            const isCompleted = form.currentStep > step.id;
+            return (
               <TouchableOpacity
-                style={[
-                  styles.stepIndicator,
-                  { backgroundColor: colors.gray200 },
-                  form.currentStep >= step.id && { backgroundColor: colors.primary },
-                  form.currentStep === step.id && { backgroundColor: colors.primary, transform: [{ scale: 1.1 }] },
-                ]}
+                key={step.id}
+                style={styles.progressBarTrack}
                 onPress={() => goToStep(step.id)}
                 accessibilityRole="button"
-                accessibilityLabel={`Etape ${step.id} sur ${STEPS.length}`}
-                accessibilityState={{ selected: form.currentStep === step.id }}
+                accessibilityLabel={`Étape ${step.id} sur ${STEPS.length} : ${step.shortTitle}`}
+                accessibilityState={{ selected: isActive }}
+                hitSlop={{ top: 10, bottom: 10, left: 2, right: 2 }}
               >
-                <Ionicons
-                  name={step.icon as any}
-                  size={18}
-                  color={form.currentStep >= step.id ? '#FFFFFF' : colors.gray400}
+                <View
+                  style={[
+                    styles.progressBarFill,
+                    {
+                      backgroundColor: isActive
+                        ? colors.primary
+                        : isCompleted
+                        ? (isDark ? colors.primaryDark : colors.primaryLight)
+                        : barDim,
+                      height: isActive ? 4 : 3,
+                    },
+                  ]}
                 />
               </TouchableOpacity>
-              {index < STEPS.length - 1 && (
-                <View style={[styles.stepLine, { backgroundColor: colors.gray200 }, form.currentStep > step.id && { backgroundColor: colors.primary }]} />
-              )}
-            </React.Fragment>
-          ))}
+            );
+          })}
         </View>
 
-        {/* Step Content */}
-        <KeyboardAwareScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={80}
+        {/* Content with watermark step numeral behind */}
+        <View style={styles.scrollWrap}>
+          {/* Big faded step numeral — editorial backdrop */}
+          <Text
+            pointerEvents="none"
+            style={[styles.watermarkNumeral, { color: watermarkColor }]}
+          >
+            {stepNumeral}
+          </Text>
+
+          <KeyboardAwareScrollView
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bottomOffset={80}
+          >
+            {form.currentStep === 1 && (
+              <EventStep1Info
+                title={form.title}
+                description={form.description}
+                shortDescription={form.shortDescription}
+                eventType={form.eventType}
+                categoryId={form.categoryId}
+                selectedTagIds={form.selectedTagIds}
+                customTags={form.customTags}
+                bannerImage={form.bannerImage}
+                categories={form.categories}
+                availableTags={form.availableTags}
+                aiEnabled={form.aiEnabled}
+                aiLoading={form.aiLoading}
+                aiResult={form.aiResult}
+                aiError={form.aiError}
+                aiUsage={form.aiUsage}
+                aiTitleLoading={form.aiTitleLoading}
+                aiDescLoading={form.aiDescLoading}
+                onTitleChange={setTitle}
+                onDescriptionChange={setDescription}
+                onShortDescriptionChange={setShortDescription}
+                onEventTypeChange={setEventType}
+                onCategoryChange={setCategoryId}
+                onTagsChange={setSelectedTagIds}
+                onCustomTagAdd={handleCustomTagAdd}
+                onCustomTagRemove={handleCustomTagRemove}
+                onPickImage={pickImage}
+                onRemoveImage={() => setBannerImage(null)}
+                galleryImages={form.galleryImages}
+                onPickGalleryImages={pickGalleryImages}
+                onRemoveGalleryImage={removeGalleryImage}
+                visibility={form.visibility}
+                accessCode={form.accessCode}
+                onVisibilityChange={setVisibility}
+                onAccessCodeChange={setAccessCode}
+                onAIGenerate={handleAIGenerate}
+                onAIApply={handleAIApply}
+                onOptimizeTitle={handleOptimizeTitle}
+                onGenerateDescription={handleGenerateDescription}
+              />
+            )}
+
+            {form.currentStep === 2 && (
+              <EventStep2DateTime
+                startDate={form.startDate}
+                endDate={form.endDate}
+                registrationDeadline={form.registrationDeadline}
+                hasRegistrationDeadline={form.hasRegistrationDeadline}
+                locationType={form.locationType}
+                locationName={form.locationName}
+                locationCity={form.locationCity}
+                locationAddress={form.locationAddress}
+                locationLatitude={form.locationLatitude}
+                locationLongitude={form.locationLongitude}
+                onlineUrl={form.onlineUrl}
+                onlinePlatform={form.onlinePlatform}
+                onlineInstructions={form.onlineInstructions}
+                onlineMeetingId={form.onlineMeetingId}
+                onlinePasscode={form.onlinePasscode}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+                onRegistrationDeadlineChange={setRegistrationDeadline}
+                onHasRegistrationDeadlineChange={setHasRegistrationDeadline}
+                onLocationTypeChange={setLocationType}
+                onLocationNameChange={setLocationName}
+                onLocationCityChange={setLocationCity}
+                onLocationAddressChange={setLocationAddress}
+                onShowMapPicker={() => setShowMapPicker(true)}
+                onOnlineUrlChange={setOnlineUrl}
+                onOnlinePlatformChange={setOnlinePlatform}
+                onOnlineInstructionsChange={setOnlineInstructions}
+                onOnlineMeetingIdChange={setOnlineMeetingId}
+                onOnlinePasscodeChange={setOnlinePasscode}
+              />
+            )}
+
+            {form.currentStep === 3 && (
+              <EventStep3Pricing
+                eventType={form.eventType}
+                isFree={form.isFree}
+                maxParticipants={form.maxParticipants}
+                autoApproveRegistrations={form.autoApproveRegistrations}
+                feeBearer={form.feeBearer}
+                startDate={form.startDate}
+                ticketTypes={form.ticketTypes}
+                showFormFieldsForBilletterie={form.showFormFieldsForBilletterie}
+                formFields={form.formFields}
+                title={form.title}
+                locationType={form.locationType}
+                locationCity={form.locationCity}
+                formatDate={formatDate}
+                aiEnabled={form.aiEnabled}
+                aiPricingLoading={form.aiPricingLoading}
+                onIsFreeChange={setIsFree}
+                onMaxParticipantsChange={setMaxParticipants}
+                onAutoApproveChange={setAutoApproveRegistrations}
+                onFeeBearerChange={setFeeBearer}
+                onAddTicketType={addTicketType}
+                onUpdateTicketType={updateTicketType}
+                onRemoveTicketType={removeTicketType}
+                onAddFormField={addFormField}
+                onUpdateFormField={updateFormField}
+                onRemoveFormField={removeFormField}
+                onShowFormFieldsForBilletterieChange={setShowFormFieldsForBilletterie}
+                onSetFormFields={setFormFields}
+                onSuggestPricing={handleSuggestPricing}
+              />
+            )}
+
+            {form.currentStep === 4 && (
+              <EventStep4Sessions
+                sessions={form.sessions}
+                onAddSession={addSession}
+                onUpdateSession={updateSession}
+                onRemoveSession={removeSession}
+              />
+            )}
+          </KeyboardAwareScrollView>
+        </View>
+
+        {/* Sticky Bottom Nav — ghost Retour + pill CTA with dual label + arrow disc */}
+        <View
+          style={[
+            styles.navigationButtons,
+            {
+              backgroundColor: isDark ? 'rgba(15,23,42,0.9)' : 'rgba(244,243,240,0.9)',
+              borderTopColor: isDark ? colors.gray100 : 'rgba(17,17,16,0.06)',
+            },
+          ]}
         >
-          {form.currentStep === 1 && (
-            <EventStep1Info
-              title={form.title}
-              description={form.description}
-              shortDescription={form.shortDescription}
-              eventType={form.eventType}
-              categoryId={form.categoryId}
-              selectedTagIds={form.selectedTagIds}
-              customTags={form.customTags}
-              bannerImage={form.bannerImage}
-              categories={form.categories}
-              availableTags={form.availableTags}
-              aiEnabled={form.aiEnabled}
-              aiLoading={form.aiLoading}
-              aiResult={form.aiResult}
-              aiError={form.aiError}
-              aiUsage={form.aiUsage}
-              aiTitleLoading={form.aiTitleLoading}
-              aiDescLoading={form.aiDescLoading}
-              onTitleChange={setTitle}
-              onDescriptionChange={setDescription}
-              onShortDescriptionChange={setShortDescription}
-              onEventTypeChange={setEventType}
-              onCategoryChange={setCategoryId}
-              onTagsChange={setSelectedTagIds}
-              onCustomTagAdd={handleCustomTagAdd}
-              onCustomTagRemove={handleCustomTagRemove}
-              onPickImage={pickImage}
-              onRemoveImage={() => setBannerImage(null)}
-              galleryImages={form.galleryImages}
-              onPickGalleryImages={pickGalleryImages}
-              onRemoveGalleryImage={removeGalleryImage}
-              visibility={form.visibility}
-              accessCode={form.accessCode}
-              onVisibilityChange={setVisibility}
-              onAccessCodeChange={setAccessCode}
-              onAIGenerate={handleAIGenerate}
-              onAIApply={handleAIApply}
-              onOptimizeTitle={handleOptimizeTitle}
-              onGenerateDescription={handleGenerateDescription}
-            />
-          )}
-
-          {form.currentStep === 2 && (
-            <EventStep2DateTime
-              startDate={form.startDate}
-              endDate={form.endDate}
-              registrationDeadline={form.registrationDeadline}
-              hasRegistrationDeadline={form.hasRegistrationDeadline}
-              locationType={form.locationType}
-              locationName={form.locationName}
-              locationCity={form.locationCity}
-              locationAddress={form.locationAddress}
-              locationLatitude={form.locationLatitude}
-              locationLongitude={form.locationLongitude}
-              onlineUrl={form.onlineUrl}
-              onlinePlatform={form.onlinePlatform}
-              onlineInstructions={form.onlineInstructions}
-              onlineMeetingId={form.onlineMeetingId}
-              onlinePasscode={form.onlinePasscode}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-              onRegistrationDeadlineChange={setRegistrationDeadline}
-              onHasRegistrationDeadlineChange={setHasRegistrationDeadline}
-              onLocationTypeChange={setLocationType}
-              onLocationNameChange={setLocationName}
-              onLocationCityChange={setLocationCity}
-              onLocationAddressChange={setLocationAddress}
-              onShowMapPicker={() => setShowMapPicker(true)}
-              onOnlineUrlChange={setOnlineUrl}
-              onOnlinePlatformChange={setOnlinePlatform}
-              onOnlineInstructionsChange={setOnlineInstructions}
-              onOnlineMeetingIdChange={setOnlineMeetingId}
-              onOnlinePasscodeChange={setOnlinePasscode}
-            />
-          )}
-
-          {form.currentStep === 3 && (
-            <EventStep3Pricing
-              eventType={form.eventType}
-              isFree={form.isFree}
-              maxParticipants={form.maxParticipants}
-              autoApproveRegistrations={form.autoApproveRegistrations}
-              feeBearer={form.feeBearer}
-              startDate={form.startDate}
-              ticketTypes={form.ticketTypes}
-              showFormFieldsForBilletterie={form.showFormFieldsForBilletterie}
-              formFields={form.formFields}
-              title={form.title}
-              locationType={form.locationType}
-              locationCity={form.locationCity}
-              formatDate={formatDate}
-              aiEnabled={form.aiEnabled}
-              aiPricingLoading={form.aiPricingLoading}
-              onIsFreeChange={setIsFree}
-              onMaxParticipantsChange={setMaxParticipants}
-              onAutoApproveChange={setAutoApproveRegistrations}
-              onFeeBearerChange={setFeeBearer}
-              onAddTicketType={addTicketType}
-              onUpdateTicketType={updateTicketType}
-              onRemoveTicketType={removeTicketType}
-              onAddFormField={addFormField}
-              onUpdateFormField={updateFormField}
-              onRemoveFormField={removeFormField}
-              onShowFormFieldsForBilletterieChange={setShowFormFieldsForBilletterie}
-              onSetFormFields={setFormFields}
-              onSuggestPricing={handleSuggestPricing}
-            />
-          )}
-
-          {form.currentStep === 4 && (
-            <EventStep4Sessions
-              sessions={form.sessions}
-              onAddSession={addSession}
-              onUpdateSession={updateSession}
-              onRemoveSession={removeSession}
-            />
-          )}
-        </KeyboardAwareScrollView>
-
-        {/* Navigation Buttons */}
-        <View style={[styles.navigationButtons, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
-          {form.currentStep > 1 && (
+          {form.currentStep > 1 ? (
             <TouchableOpacity
-              style={[styles.prevButton, { backgroundColor: colors.gray100 }]}
+              style={styles.prevButtonGhost}
               onPress={goToPrevStep}
               accessibilityRole="button"
-              accessibilityLabel="Etape precedente"
+              accessibilityLabel="Étape précédente"
+              hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             >
-              <Ionicons name="arrow-back" size={20} color={colors.gray600} />
-              <Text style={[styles.prevButtonText, { color: colors.gray600 }]}>Précédent</Text>
+              <Ionicons name="chevron-back" size={16} color={colors.gray500} />
+              <Text style={[styles.prevButtonGhostText, { color: colors.gray600 }]}>Retour</Text>
             </TouchableOpacity>
+          ) : (
+            <View style={{ width: 80 }} />
           )}
 
           {form.currentStep < STEPS.length ? (
             <TouchableOpacity
-              style={[styles.nextButton, { backgroundColor: colors.primary }, form.currentStep === 1 && { flex: 1 }]}
+              style={[
+                styles.nextButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+              ]}
               onPress={goToNextStep}
               accessibilityRole="button"
-              accessibilityLabel="Etape suivante"
+              accessibilityLabel="Étape suivante"
+              activeOpacity={0.88}
             >
-              <Text style={styles.nextButtonText}>Suivant</Text>
-              <Ionicons name="arrow-forward" size={20} color={'#FFFFFF'} />
+              <View style={styles.nextButtonContent}>
+                <Text style={styles.nextButtonEyebrow}>Suivant</Text>
+                <Text style={styles.nextButtonLabel} numberOfLines={1}>
+                  {currentStepConfig?.nextLabel}
+                </Text>
+              </View>
+              <View style={styles.nextButtonArrow}>
+                <Ionicons name="arrow-forward" size={16} color={'#FFFFFF'} />
+              </View>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.submitButton, { backgroundColor: colors.success }, form.loading && styles.submitButtonDisabled]}
+              style={[
+                styles.submitButton,
+                { backgroundColor: colors.primary, shadowColor: colors.primary },
+                form.loading && styles.submitButtonDisabled,
+              ]}
               onPress={onSubmit}
               disabled={form.loading}
               accessibilityRole="button"
-              accessibilityLabel="Creer l'evenement"
+              accessibilityLabel="Créer l'événement"
+              activeOpacity={0.88}
             >
-              {form.loading ? (
-                <ActivityIndicator size="small" color={'#FFFFFF'} />
-              ) : (
-                <Ionicons name="checkmark-circle" size={20} color={'#FFFFFF'} />
-              )}
-              <Text style={styles.submitButtonText}>
-                {form.loading ? 'Création...' : 'Créer l\'événement'}
-              </Text>
+              <View style={styles.nextButtonContent}>
+                <Text style={styles.nextButtonEyebrow}>Finaliser</Text>
+                <Text style={styles.nextButtonLabel} numberOfLines={1}>
+                  {form.loading ? 'Création...' : "Publier l'événement"}
+                </Text>
+              </View>
+              <View style={styles.nextButtonArrow}>
+                {form.loading ? (
+                  <ActivityIndicator size="small" color={'#FFFFFF'} />
+                ) : (
+                  <Ionicons name="checkmark" size={18} color={'#FFFFFF'} />
+                )}
+              </View>
             </TouchableOpacity>
           )}
         </View>
@@ -467,7 +511,7 @@ export default function EventCreateScreen() {
 }
 
 // ============================================
-// Screen-level styles only
+// Screen-level styles — editorial shell
 // ============================================
 const styles = StyleSheet.create({
   container: {
@@ -476,117 +520,171 @@ const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+  // Header — no card bg, transparent, blends with canvas
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   backButton: {
     width: 40,
     height: 40,
-    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: -Spacing.xs,
   },
   headerCenter: {
     alignItems: 'center',
     flex: 1,
+    paddingHorizontal: Spacing.sm,
   },
   headerBarEyebrow: {
     fontSize: 10,
     fontFamily: FontFamily.bold,
-    letterSpacing: 1.5,
+    letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   headerBarTitle: {
     fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.lg,
+    fontSize: FontSizes.base,
     letterSpacing: -0.3,
   },
   savedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    marginTop: 2,
+    marginTop: 3,
   },
   savedBadgeText: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
+  // Progress — 4 horizontal bars (active indigo, completed dim primary, future 8% ink)
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.lg,
-    paddingHorizontal: Spacing.xl,
-    borderBottomWidth: 1,
+    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.base,
+    paddingTop: 2,
   },
-  stepIndicator: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stepLine: {
+  progressBarTrack: {
     flex: 1,
-    height: 2,
-    marginHorizontal: Spacing.sm,
+    height: 10,
+    justifyContent: 'center',
+  },
+  progressBarFill: {
+    width: '100%',
+    borderRadius: 2,
+  },
+  // Scroll wrapper so the watermark numeral can sit behind the scroll content
+  scrollWrap: {
+    flex: 1,
+    position: 'relative',
+  },
+  watermarkNumeral: {
+    position: 'absolute',
+    top: -20,
+    left: -16,
+    fontSize: 220,
+    fontFamily: FontFamily.displayExtraBold,
+    lineHeight: 200,
+    letterSpacing: -12,
+    zIndex: 0,
   },
   scrollView: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
-    paddingBottom: Spacing.xl,
+    paddingBottom: Spacing.xl * 2,
   },
+  // Bottom nav
   navigationButtons: {
     flexDirection: 'row',
-    padding: Spacing.lg,
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
     gap: Spacing.md,
     borderTopWidth: 1,
   },
-  prevButton: {
+  prevButtonGhost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    gap: 2,
+    minWidth: 80,
+  },
+  prevButtonGhostText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+  },
+  // Pill CTA — dual-label + arrow disc (matches AIDesigner concept)
+  nextButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
+    justifyContent: 'space-between',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: 999,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+    elevation: 5,
   },
-  prevButtonText: {
-    fontFamily: FontFamily.medium,
+  nextButtonContent: {
+    flex: 1,
+    alignItems: 'flex-start',
+    paddingVertical: 6,
+  },
+  nextButtonEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: Colors.lime,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    lineHeight: 11,
+  },
+  nextButtonLabel: {
+    fontFamily: FontFamily.displaySemiBold,
     fontSize: FontSizes.base,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+    marginTop: 2,
   },
-  nextButton: {
-    flex: 2,
-    flexDirection: 'row',
+  nextButtonArrow: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
-  },
-  nextButtonText: {
-    ...TextStyles.button,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
   submitButton: {
-    flex: 2,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
+    justifyContent: 'space-between',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: 999,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.28,
+    shadowRadius: 16,
+    elevation: 5,
   },
   submitButtonDisabled: {
     opacity: 0.6,
-  },
-  submitButtonText: {
-    ...TextStyles.button,
   },
 });

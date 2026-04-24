@@ -57,6 +57,7 @@ import { eventsAPI, getMediaUrl } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
+import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA, EditorialColors } from '../../components/ui/editorial';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -193,27 +194,31 @@ export default function EventDetailsScreen() {
 
   if (!loading && !event) {
     return (
-      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
-        <Ionicons name="alert-circle-outline" size={60} color={colors.gray400} />
-        <Text style={[styles.errorText, { color: colors.gray500 }]}>Evenement non trouve</Text>
-        <TouchableOpacity
-          style={[styles.backButtonError, { backgroundColor: colors.primary }]}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Retour"
-        >
-          <Text style={styles.backButtonErrorText}>Retour</Text>
-        </TouchableOpacity>
-      </View>
+      <EditorialCanvas edges={['top', 'bottom']}>
+        <WatermarkNumeral>404</WatermarkNumeral>
+        <View style={[styles.errorContainer, { zIndex: 1 }]}>
+          <Text style={[editorialStyles.eyebrow, { color: colors.primary }]}>Introuvable</Text>
+          <Text style={[editorialStyles.errorTitle, { color: colors.gray900 }]}>Evenement non trouve</Text>
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>Le lien a peut-etre expire.</Text>
+          <View style={{ marginTop: 24 }}>
+            <EditorialPillCTA
+              eyebrow="Retour"
+              label="Revenir en arriere"
+              icon="arrow-back"
+              onPress={() => navigation.goBack()}
+            />
+          </View>
+        </View>
+      </EditorialCanvas>
     );
   }
 
   // Invite-only gate
   if (event?.visibility === 'invite_only' && event?.user_has_access === false) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <View style={visibilityStyles.gateContainer}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>VIP</WatermarkNumeral>
+        <View style={[visibilityStyles.gateContainer, { zIndex: 1 }]}>
           <TouchableOpacity style={visibilityStyles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
@@ -225,20 +230,25 @@ export default function EventDetailsScreen() {
             Cet événement est réservé aux personnes invitées.
             Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.
           </Text>
-          <TouchableOpacity style={[visibilityStyles.gateBtn, { backgroundColor: colors.primary }]} onPress={() => navigation.goBack()}>
-            <Text style={visibilityStyles.gateBtnText}>Retour</Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: 16 }}>
+            <EditorialPillCTA
+              eyebrow="Retour"
+              label="Revenir a l'accueil"
+              icon="arrow-back"
+              onPress={() => navigation.goBack()}
+            />
+          </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   // Access code gate
   if (event?.requires_access_code) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-        <View style={visibilityStyles.gateContainer}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>KEY</WatermarkNumeral>
+        <View style={[visibilityStyles.gateContainer, { zIndex: 1 }]}>
           <TouchableOpacity style={visibilityStyles.backBtn} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color={colors.gray700} />
           </TouchableOpacity>
@@ -278,20 +288,19 @@ export default function EventDetailsScreen() {
               placeholderTextColor={colors.gray400}
               autoFocus
             />
-            <TouchableOpacity
-              style={[visibilityStyles.codeBtn, { backgroundColor: colors.primary }, (!accessCodeInput.trim() || verifyingCode) && { opacity: 0.5 }]}
-              onPress={handleVerifyAccessCode}
-              disabled={!accessCodeInput.trim() || verifyingCode}
-            >
-              {verifyingCode ? (
-                <ActivityIndicator color={colors.white} size="small" />
-              ) : (
-                <Text style={visibilityStyles.codeBtnText}>Accéder</Text>
-              )}
-            </TouchableOpacity>
+            <View style={{ marginTop: 8 }}>
+              <EditorialPillCTA
+                eyebrow="Valider"
+                label="Acceder"
+                icon="arrow-forward"
+                onPress={handleVerifyAccessCode}
+                loading={verifyingCode}
+                disabled={!accessCodeInput.trim() || verifyingCode}
+              />
+            </View>
           </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -465,23 +474,23 @@ export default function EventDetailsScreen() {
             </View>
           )}
 
-          {/* Date pill — coral, floating at top edge of content (AIDesigner editorial) */}
-          <View style={[styles.datePill, { backgroundColor: colors.accent }]}>
-            <Ionicons name="calendar-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.datePillText}>
+          {/* Eyebrow above title — soft editorial */}
+          <Text style={[styles.titleEyebrow, { color: colors.primary }]}>
+            ÉVÉNEMENT · {event.category?.name?.toUpperCase() || 'FEATURED'}
+          </Text>
+
+          {/* Date pill — soft editorial */}
+          <View style={[styles.datePill, { backgroundColor: colors.primaryBg, borderColor: colors.primary }]}>
+            <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+            <Text style={[styles.datePillText, { color: colors.primary }]}>
               {formatDate(event.start_date)} · {formatTime(event.start_date)}
             </Text>
           </View>
 
-          {/* Title — Oversized, uppercase, editorial */}
+          {/* Title — display extra-bold, no italic */}
           <Text style={[styles.title, { color: colors.gray900 }]}>{event.title}</Text>
 
-          {/* Category Badge */}
-          {event.category?.name && (
-            <Badge label={event.category.name} variant="default" size="md" style={{ marginBottom: Spacing.lg }} />
-          )}
-
-          {/* Organizer Card — with Suivre CTA */}
+          {/* Organizer Card — soft editorial */}
           <View style={[styles.organizerCard, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
             <View style={[styles.organizerAvatar, { backgroundColor: colors.primary }]}>
               {event.organizer?.profile_picture ? (
@@ -505,7 +514,7 @@ export default function EventDetailsScreen() {
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.organizerFollowBtn, { backgroundColor: colors.gray900 }]}
+              style={[styles.organizerFollowBtn, { backgroundColor: colors.primary }]}
               onPress={handleContactOrganizer}
               accessibilityRole="button"
               accessibilityLabel="Suivre l'organisateur"
@@ -667,23 +676,20 @@ export default function EventDetailsScreen() {
           )}
 
           {/* Stats Row */}
-          <View style={[styles.statsRow, { backgroundColor: colors.gray50 }]}>
+          <View style={[styles.statsRow, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
             <View style={styles.statItem}>
-              <Ionicons name="people-outline" size={20} color={colors.gray500} />
               <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.registration_count || 0}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>inscrits</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Inscrits</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.statItem}>
-              <Ionicons name="eye-outline" size={20} color={colors.gray500} />
               <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.view_count || 0}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>vues</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Vues</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.statItem}>
-              <Ionicons name="heart-outline" size={20} color={colors.gray500} />
               <Text style={[styles.statValue, { color: colors.gray900 }]}>{followersCount}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>favoris</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Favoris</Text>
             </View>
           </View>
 
@@ -698,8 +704,9 @@ export default function EventDetailsScreen() {
             onNavigateVolunteers={() => navigation.navigate('Volunteers', { eventId: event.id })}
           />
 
-          {/* Section: Good to Know — 2-col icon grid (AIDesigner editorial) */}
+          {/* Section: Good to Know — 2-col icon grid (soft editorial) */}
           <View style={[styles.goodToKnowSection, { borderTopColor: colors.gray100 }]}>
+            <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>INFO UTILE</Text>
             <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Bon à savoir</Text>
             <View style={styles.goodToKnowGrid}>
               {event.start_date && (
@@ -772,12 +779,13 @@ export default function EventDetailsScreen() {
           {/* Section: Who's Going */}
           {(event.registration_count || 0) > 0 && (
             <View style={[styles.whoIsGoingSection, { borderTopColor: colors.gray100 }]}>
+              <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>LA COMMUNAUTÉ</Text>
               <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Qui y va ?</Text>
               <View style={styles.whoIsGoingRow}>
                 <View style={styles.avatarStack}>
                   {[0, 1, 2].map(i => (
                     <View key={i} style={[styles.avatarCircle, { marginLeft: i > 0 ? -10 : 0, zIndex: 3 - i, backgroundColor: colors.gray200, borderColor: colors.surface }]}>
-                      <Ionicons name="person" size={16} color={colors.gray400} />
+                      <Ionicons name="person" size={14} color={colors.gray400} />
                     </View>
                   ))}
                 </View>
@@ -791,6 +799,7 @@ export default function EventDetailsScreen() {
           {/* Section: Gallery */}
           {allImages.length > 1 && (
             <View style={[styles.gallerySection, { borderTopColor: colors.gray100 }]}>
+              <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>GALERIE</Text>
               <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Photos</Text>
               <FlatList
                 horizontal
@@ -1143,33 +1152,36 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: BorderRadius['4xl'],
     borderTopRightRadius: BorderRadius['4xl'],
   },
-  // Date pill — coral, floating (AIDesigner editorial)
+  titleEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    color: Colors.primary,
+    marginBottom: 6,
+  },
+  // Date pill — soft editorial
   datePill: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: Colors.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: BorderRadius.full,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
     gap: 6,
-    marginTop: -Spacing.md,
     marginBottom: Spacing.md,
-    shadowColor: Colors.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 10,
-    elevation: 3,
+    borderWidth: 1,
   },
   datePillText: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.semiBold,
     fontSize: 11,
-    color: Colors.white,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
+    letterSpacing: -0.1,
   },
   title: {
-    ...TextStyles.heroSm,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 32,
+    lineHeight: 36,
+    letterSpacing: -1.2,
     marginBottom: Spacing.md,
   },
   categoryBadge: {
@@ -1187,34 +1199,30 @@ const styles = StyleSheet.create({
   organizerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.full,
+    borderRadius: 20,
     paddingLeft: 6,
-    paddingRight: 6,
+    paddingRight: 10,
     paddingVertical: 6,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.gray100,
   },
   organizerFollowBtn: {
-    paddingHorizontal: 18,
-    height: 36,
+    paddingHorizontal: 16,
+    height: 34,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.gray900,
   },
   organizerFollowText: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSizes.sm,
+    fontSize: 12,
     color: Colors.white,
     letterSpacing: 0.2,
   },
   organizerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: Colors.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -1311,31 +1319,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-around',
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius['3xl'],
-    padding: Spacing.lg,
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingVertical: Spacing.lg,
     marginBottom: Spacing.lg,
   },
   statItem: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.sm,
   },
   statValue: {
-    ...TextStyles.price,
-    marginTop: Spacing.xs,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    lineHeight: 26,
+    letterSpacing: -0.6,
+    marginBottom: 4,
   },
   statLabel: {
-    ...TextStyles.caption,
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   statDivider: {
     width: 1,
-    height: 40,
-    backgroundColor: Colors.gray200,
+    height: 36,
+    alignSelf: 'center',
   },
   section: {
     marginBottom: Spacing.lg,
   },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
   sectionTitle: {
-    ...TextStyles.h4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    lineHeight: 28,
+    letterSpacing: -0.9,
     marginBottom: Spacing.md,
   },
   blurHeaderBtn: {
@@ -1366,14 +1393,19 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.md, // overridden inline with insets.bottom
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   priceContainer: {},
   priceLabel: {
-    ...TextStyles.caption,
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   priceValue: {
-    ...TextStyles.h3,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    lineHeight: 26,
+    letterSpacing: -0.6,
   },
   ctaButtonsRow: {
     flexDirection: 'row',
@@ -1386,28 +1418,35 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     gap: Spacing.sm,
   },
-  // Gradient CTA (sticky bottom, AIDesigner editorial)
+  // Primary CTA pill (soft editorial)
   ctaGradientWrap: {
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
     overflow: 'hidden',
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 14,
-    elevation: 6,
   },
   ctaGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: 14,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 12,
     gap: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
   ctaButtonText: {
-    ...TextStyles.button,
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    letterSpacing: -0.1,
+    color: Colors.white,
+  },
+  ctaArrowDisc: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 2,
   },
   ctaButtonCompact: {
     paddingHorizontal: Spacing.lg,
@@ -1415,29 +1454,25 @@ const styles = StyleSheet.create({
   ctaButtonIcon: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.white,
-    width: 48,
-    height: 48,
-    borderRadius: BorderRadius.md,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1,
-    borderColor: Colors.primary,
   },
   ctaButtonSecondary: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.white,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.full,
     borderWidth: 1,
-    borderColor: Colors.primary,
     gap: 4,
   },
   ctaButtonSecondaryText: {
-    fontSize: FontSizes.sm,
+    fontSize: 13,
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
+    letterSpacing: -0.1,
   },
   // Tabs
   tabsContainer: {
@@ -1655,7 +1690,9 @@ const styles = StyleSheet.create({
   // Image Zoom Hint — pastille en bas a droite de la banniere
   imageZoomHint: {
     position: 'absolute',
-    bottom: 12,
+    // Spacing['2xl'] correspond au chevauchement du bloc de contenu (marginTop negatif).
+    // On ajoute 12px pour conserver l'espacement visuel d'origine au-dessus de la courbe.
+    bottom: Spacing['2xl'] + 12,
     right: 12,
     flexDirection: 'row',
     alignItems: 'center',
@@ -1684,11 +1721,13 @@ const styles = StyleSheet.create({
   galleryThumb: {
     width: 120,
     height: 90,
-    borderRadius: BorderRadius.md,
+    borderRadius: BorderRadius.lg,
   },
   galleryCaption: {
-    marginTop: 4,
-    fontSize: FontSizes.xs,
+    marginTop: 6,
+    fontSize: 11,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.1,
     width: 120,
     textAlign: 'center',
   },
@@ -1744,7 +1783,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
     paddingTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   goodToKnowGrid: {
     flexDirection: 'row',
@@ -1755,12 +1793,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    backgroundColor: Colors.gray50,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.base,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.gray100,
     flexGrow: 1,
     flexBasis: '47%',
     minWidth: '47%',
@@ -1773,16 +1809,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   goodToKnowText: {
-    ...TextStyles.label,
+    fontFamily: FontFamily.semiBold,
     flex: 1,
-    fontSize: 13,
+    fontSize: 12,
+    letterSpacing: -0.1,
   },
   // ===== QUI Y VA =====
   whoIsGoingSection: {
     marginTop: Spacing.xl,
     paddingTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
   whoIsGoingRow: {
     flexDirection: 'row',
@@ -1797,15 +1833,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: Colors.white,
   },
   whoIsGoingText: {
-    ...TextStyles.body,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    letterSpacing: -0.1,
   },
 });
 
@@ -1917,5 +1952,23 @@ const visibilityStyles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
     color: Colors.white,
+  },
+});
+
+const editorialStyles = StyleSheet.create({
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  errorTitle: {
+    fontSize: 30,
+    fontFamily: FontFamily.displayExtraBold,
+    letterSpacing: -0.9,
+    lineHeight: 34,
+    textAlign: 'center',
+    marginBottom: 12,
   },
 });

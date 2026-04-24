@@ -6,9 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +24,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -40,7 +39,7 @@ const severityConfig: Record<string, { label: string; color: string; variant: 'd
 
 export default function AuditLogsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -129,8 +128,9 @@ export default function AuditLogsScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>LOGS</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       <View style={styles.header}>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -188,7 +188,8 @@ export default function AuditLogsScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

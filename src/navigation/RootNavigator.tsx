@@ -269,14 +269,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Conversation"
         component={ConversationScreen}
-        options={{
-          headerShown: true,
-          headerTitle: '',
-          headerBackTitle: 'Retour',
-          headerTintColor: colors.primary,
-          headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
-        }}
+        options={{ headerShown: false }}
       />
 
       {/* Organizer Screens */}

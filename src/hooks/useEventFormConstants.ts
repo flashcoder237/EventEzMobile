@@ -1,10 +1,10 @@
 import { LocationType } from '../types';
 
 export const STEPS = [
-  { id: 1, title: 'Informations', icon: 'information-circle-outline' },
-  { id: 2, title: 'Date & Lieu', icon: 'calendar-outline' },
-  { id: 3, title: 'Tarification', icon: 'pricetag-outline' },
-  { id: 4, title: 'Sessions', icon: 'layers-outline' },
+  { id: 1, title: 'Informations', shortTitle: "L'Essentiel", icon: 'information-circle-outline', nextLabel: 'Quand & Où' },
+  { id: 2, title: 'Date & Lieu', shortTitle: 'Quand & Où', icon: 'calendar-outline', nextLabel: 'Tarification' },
+  { id: 3, title: 'Tarification', shortTitle: 'Tarifs & Billets', icon: 'pricetag-outline', nextLabel: 'Agenda' },
+  { id: 4, title: 'Sessions', shortTitle: 'Agenda & Sessions', icon: 'layers-outline', nextLabel: null },
 ] as const;
 
 export const LOCATION_TYPES: { value: LocationType; label: string; icon: string; description: string }[] = [

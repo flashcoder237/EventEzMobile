@@ -6,9 +6,8 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -78,7 +77,7 @@ export default function DiscountManagementScreen() {
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
   const { showAlert, showError } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -291,8 +290,9 @@ export default function DiscountManagementScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>%</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <LinearGradient
@@ -338,7 +338,8 @@ export default function DiscountManagementScreen() {
           }
         />
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

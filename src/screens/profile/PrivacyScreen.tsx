@@ -5,9 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,10 +17,11 @@ import {
   Spacing,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 export default function PrivacyScreen() {
   const navigation = useNavigation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const sections = [
     {
@@ -161,9 +160,9 @@ Vous avez egalement le droit d'introduire une reclamation aupres de l'autorite d
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>GDPR</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -206,7 +205,8 @@ Vous avez egalement le droit d'introduire une reclamation aupres de l'autorite d
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

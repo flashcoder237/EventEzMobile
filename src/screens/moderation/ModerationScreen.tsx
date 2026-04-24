@@ -7,14 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  StatusBar,
   TextInput,
   Modal,
   Platform,
   Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +24,7 @@ import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AccessDenied, WellDone, AnimatedIllustration } from '../../components/illustrations';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import {
   Colors,
   FontFamily,
@@ -63,7 +62,7 @@ export default function ModerationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showSuccess, showError } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const [events, setEvents] = useState<PendingEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,24 +208,26 @@ export default function ModerationScreen() {
   // Access denied for non-moderators
   if (!isModerator) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={styles.accessDenied}>
-          <AnimatedIllustration entry="scaleIn" idle="float">
-            <AccessDenied color={colors.primary} size={160} />
-          </AnimatedIllustration>
-          <Text style={[styles.accessDeniedTitle, { color: colors.gray700 }]}>Accès restreint</Text>
-          <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
-            Cette section est réservée aux modérateurs et administrateurs.
-          </Text>
-          <TouchableOpacity
-            style={[styles.backButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={[styles.backButtonText, { color: colors.white }]}>Retour</Text>
-          </TouchableOpacity>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>MOD</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={styles.accessDenied}>
+            <AnimatedIllustration entry="scaleIn" idle="float">
+              <AccessDenied color={colors.primary} size={160} />
+            </AnimatedIllustration>
+            <Text style={[styles.accessDeniedTitle, { color: colors.gray700 }]}>Accès restreint</Text>
+            <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
+              Cette section est réservée aux modérateurs et administrateurs.
+            </Text>
+            <TouchableOpacity
+              style={[styles.backButton, { backgroundColor: colors.primary }]}
+              onPress={() => navigation.goBack()}
+            >
+              <Text style={[styles.backButtonText, { color: colors.white }]}>Retour</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -347,16 +348,19 @@ export default function ModerationScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle="light-content" backgroundColor="#312E81" />
-        <LoadingSpinner />
-      </SafeAreaView>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>MOD</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <LoadingSpinner />
+        </View>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle="light-content" backgroundColor="#312E81" />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>MOD</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header - gradient/colored background, Colors.white is fine */}
       <View style={styles.header}>
@@ -575,7 +579,8 @@ export default function ModerationScreen() {
         </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

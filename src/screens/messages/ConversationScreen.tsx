@@ -17,17 +17,16 @@ import {
   StyleSheet,
   FlatList,
   ActivityIndicator,
-  StatusBar,
   Alert,
   TouchableOpacity,
   Clipboard,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import {
   useAudioPlayer,
@@ -48,6 +47,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
 import { Message, RootStackParamList, User } from '../../types';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import {
   Colors,
   FontFamily,
@@ -85,6 +85,7 @@ type ConversationRouteProp = RouteProp<RootStackParamList, 'Conversation'>;
 export default function ConversationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ConversationRouteProp>();
+  const insets = useSafeAreaInsets();
   const { conversationId: initialConversationId, userId, userName } = route.params;
   const { user } = useAuth();
   const { showError, showSuccess } = useAlert();
@@ -890,7 +891,7 @@ export default function ConversationScreen() {
   }, [state.messages, state.otherUserId, state.playingVoiceId, user?.id, handleMessageLongPress]);
 
   const renderEmpty = () => (
-    <View style={[styles.emptyContainer, { transform: [{ scaleY: -1 }] }]}>
+    <View style={styles.emptyContainer}>
       <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.gray300} />
       </View>
@@ -920,20 +921,82 @@ export default function ConversationScreen() {
     }
   };
 
+  const headerTitle = state.conversationTitle || userName || '';
+  const headerAvatar = state.otherUserAvatar;
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+
+  const renderCustomHeader = () => (
+    <View
+      style={[
+        styles.customHeader,
+        {
+          backgroundColor: colors.background,
+          borderBottomColor: hairline,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.customHeaderBack}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="chevron-back" size={24} color={colors.primary} />
+      </TouchableOpacity>
+      <View style={styles.customHeaderTitle}>
+        {headerAvatar ? (
+          <Image
+            source={headerAvatar}
+            style={styles.headerAvatar}
+            cachePolicy="disk"
+            transition={200}
+          />
+        ) : (
+          <View style={[styles.headerAvatarPlaceholder, { backgroundColor: colors.primary }]}>
+            <Text style={styles.headerAvatarText}>
+              {headerTitle.substring(0, 2).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <Text
+          style={[styles.headerTitleText, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {headerTitle}
+        </Text>
+      </View>
+      {state.conversationId ? (
+        <TouchableOpacity
+          style={styles.headerMenuButton}
+          onPress={handleShowConversationOptions}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.gray700} />
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.headerMenuButton} />
+      )}
+    </View>
+  );
+
   if (state.loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.gray50 }]} edges={['bottom']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
-        <View style={styles.loadingContainer}>
-          <SkeletonList count={6} Component={MessageSkeleton} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>CHAT</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          {renderCustomHeader()}
+          <View style={styles.loadingContainer}>
+            <SkeletonList count={6} Component={MessageSkeleton} />
+          </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.gray50 }]} edges={['bottom']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.white} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>CHAT</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
+      {renderCustomHeader()}
 
       {/* Connection Status Warning */}
       {!isConnected && state.conversationId && (
@@ -946,6 +1009,7 @@ export default function ConversationScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
+        behavior="padding"
       >
         <View style={{ flex: 1 }}>
           <FlatList
@@ -984,27 +1048,29 @@ export default function ConversationScreen() {
         )}
 
         {/* Input Toolbar */}
-        <InputToolbar
-          value={state.newMessage}
-          onChangeText={(text) => {
-            actions.setNewMessage(text);
-            handleTyping();
-          }}
-          onSend={handleSend}
-          sending={state.sending}
-          attachedFiles={state.attachedFiles}
-          onPickImage={handlePickImage}
-          onRemoveAttachment={handleRemoveAttachment}
-          isRecording={state.isRecording}
-          recordingDuration={state.recordingDuration}
-          onStartRecording={startRecording}
-          onStopRecording={stopRecording}
-          onCancelRecording={cancelRecording}
-          replyToMessage={state.replyToMessage}
-          editingMessage={state.editingMessage}
-          onCancelReply={actions.cancelReply}
-          onCancelEdit={actions.cancelEdit}
-        />
+        <View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+          <InputToolbar
+            value={state.newMessage}
+            onChangeText={(text) => {
+              actions.setNewMessage(text);
+              handleTyping();
+            }}
+            onSend={handleSend}
+            sending={state.sending}
+            attachedFiles={state.attachedFiles}
+            onPickImage={handlePickImage}
+            onRemoveAttachment={handleRemoveAttachment}
+            isRecording={state.isRecording}
+            recordingDuration={state.recordingDuration}
+            onStartRecording={startRecording}
+            onStopRecording={stopRecording}
+            onCancelRecording={cancelRecording}
+            replyToMessage={state.replyToMessage}
+            editingMessage={state.editingMessage}
+            onCancelReply={actions.cancelReply}
+            onCancelEdit={actions.cancelEdit}
+          />
+        </View>
       </KeyboardAvoidingView>
 
       {/* Modals */}
@@ -1031,7 +1097,8 @@ export default function ConversationScreen() {
         onClose={actions.hideForwardModal}
         onSelectTarget={handleForwardToUser}
       />
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 
@@ -1049,6 +1116,27 @@ const styles = StyleSheet.create({
   },
 
   // Header
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    gap: 4,
+  },
+  customHeaderBack: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customHeaderTitle: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.xs,
+  },
   headerTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1108,7 +1196,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: Spacing['3xl'],
-    transform: [{ scaleY: -1 }],
+    transform: [{ scale: -1 }],
   },
   emptyIconContainer: {
     width: 80,

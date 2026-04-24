@@ -6,16 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -92,7 +90,7 @@ export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout, isLoading: authLoading } = useAuth();
   const { showAlert, showConfirm } = useAlert();
-  const { colors, isDark, gradients } = useTheme();
+  const { colors, isDark } = useTheme();
   const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount } = useUnreadCounts();
   const [showMyQR, setShowMyQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -166,10 +164,11 @@ export default function ProfileScreen() {
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
   const isAdmin = user?.role === 'admin';
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+  const softBorder = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top']}>
+      <View style={{ flex: 1 }}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -184,113 +183,133 @@ export default function ProfileScreen() {
       >
         <VerificationBanner />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={[styles.headerEyebrow, { color: colors.gray400 }]}>Ton compte</Text>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Profil</Text>
-          </View>
-          <View style={styles.headerRight}>
+        {/* Editorial top row — utilities */}
+        <View style={styles.editorialTopRow}>
+          <Text style={[styles.editorialKicker, { color: colors.gray500 }]}>
+            MEMBRE EVENTEZ DEPUIS {user?.date_joined ? new Date(user.date_joined).getFullYear() : '2024'}
+          </Text>
+          <View style={styles.editorialTopActions}>
             <TouchableOpacity
-              style={[styles.settingsButton, { backgroundColor: colors.gray50 }]}
+              style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}
               onPress={() => setShowMyQR(true)}
               accessibilityRole="button"
               accessibilityLabel="Afficher mon QR code"
             >
-              <Ionicons name="qr-code-outline" size={22} color={colors.gray700} />
+              <Ionicons name="qr-code-outline" size={18} color={colors.text} />
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.settingsButton, { backgroundColor: colors.gray50 }]}
+              style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}
               onPress={() => navigation.navigate('Settings')}
               accessibilityRole="button"
               accessibilityLabel="Parametres"
             >
-              <Ionicons name="settings-outline" size={24} color={colors.gray700} />
+              <Ionicons name="settings-outline" size={18} color={colors.text} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* User Card with gradient behind avatar */}
+        {/* Editorial Hero — oversized italic name + square avatar */}
         <FadeInView delay={100} translateY={16}>
-        <TouchableOpacity
-          style={[styles.userCard, { backgroundColor: colors.card }, Shadows.cardViolet]}
-          onPress={() => navigation.navigate('EditProfile')}
-          activeOpacity={0.8}
-          accessibilityRole="button"
-          accessibilityLabel="Modifier le profil"
-        >
-          <View style={styles.userCardLeft}>
-            {user?.profile_picture || user?.image ? (
-              <View>
-                <LinearGradient
-                  colors={[...gradients.brand] as [string, string]}
-                  style={styles.avatarGradientRing}
-                />
+          <TouchableOpacity
+            style={styles.heroRow}
+            onPress={() => navigation.navigate('EditProfile')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Modifier le profil"
+          >
+            <View style={styles.heroNameCol}>
+              <Text style={[styles.heroName, { color: colors.gray900 }]} numberOfLines={1}>
+                {user?.first_name || user?.last_name || 'Invité'}
+                {(user?.first_name || user?.last_name) ? '.' : ''}
+              </Text>
+              <Text style={[styles.heroEmail, { color: colors.gray500 }]} numberOfLines={1}>
+                {user?.email}
+              </Text>
+              {isOrganizer && (
+                <View style={[styles.proLimeBadge, { backgroundColor: `${colors.primary}15` }]}>
+                  <Text style={[styles.proLimeBadgeText, { color: colors.primary }]}>ORGANISATEUR</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.avatarSquareWrap}>
+              {user?.profile_picture || user?.image ? (
                 <Image
                   source={user.profile_picture || user.image}
-                  style={[styles.avatar, { borderColor: colors.surface }]}
+                  style={styles.avatarSquare}
                   contentFit="cover"
                   cachePolicy="memory-disk"
                   transition={300}
                 />
-              </View>
-            ) : (
-              <View>
-                <LinearGradient
-                  colors={[...gradients.brand] as [string, string]}
-                  style={styles.avatarGradientRing}
-                />
-                <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200, borderColor: colors.surface }]}>
-                  <Text style={[styles.avatarText, { color: colors.gray600 }]}>{getInitials()}</Text>
+              ) : (
+                <View style={[styles.avatarSquare, styles.avatarSquarePlaceholder]}>
+                  <Text style={styles.avatarSquareText}>{getInitials()}</Text>
                 </View>
-              </View>
-            )}
-            <View style={styles.userInfo}>
-              <View style={styles.userNameRow}>
-                <Text style={[styles.userName, { color: colors.gray900 }]} numberOfLines={1}>
-                  {user?.first_name || ''} {user?.last_name || ''}
-                  {!user?.first_name && !user?.last_name && 'Utilisateur'}
-                </Text>
-                {isOrganizer && (
-                  <View style={styles.proLimeBadge}>
-                    <Text style={styles.proLimeBadgeText}>PRO</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={[styles.userEmail, { color: colors.gray500 }]}>{user?.email}</Text>
+              )}
               {user?.is_verified ? (
-                <View style={[styles.verificationBadge, { backgroundColor: colors.successLight }]}>
-                  <Ionicons name="checkmark-circle" size={12} color={colors.success} />
-                  <Text style={[styles.verificationText, { color: colors.success }]}>Vérifié</Text>
+                <View style={[styles.verifiedTag, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="shield-checkmark" size={10} color="#FFFFFF" />
+                  <Text style={styles.verifiedTagText}>VÉRIFIÉ</Text>
                 </View>
               ) : (
-                <View style={[styles.verificationBadge, { backgroundColor: colors.warningBg }]}>
-                  <Ionicons name="time-outline" size={12} color={colors.warning} />
-                  <Text style={[styles.verificationText, { color: colors.warning }]}>Non vérifié</Text>
+                <View style={[styles.verifiedTag, { backgroundColor: colors.accent }]}>
+                  <Ionicons name="time-outline" size={10} color="#FFFFFF" />
+                  <Text style={styles.verifiedTagText}>EN ATTENTE</Text>
                 </View>
               )}
             </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.gray300} />
-        </TouchableOpacity>
+          </TouchableOpacity>
         </FadeInView>
 
-        {/* Stats — 3 individual cards */}
+        {/* Stats — 3 soft blocks with dividers */}
         <FadeInView delay={200} translateY={16}>
-        <View style={styles.statsContainer}>
-          <View style={[styles.statCard, { backgroundColor: colors.card }, Shadows.cardViolet]}>
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.tickets}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Réservations</Text>
+          <View
+            style={[
+              styles.statStrip,
+              {
+                backgroundColor: colors.card,
+                borderColor: softBorder,
+              },
+              Shadows.sm,
+            ]}
+          >
+            <View style={[styles.statCell, { borderRightColor: colors.gray100 }]}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.tickets}</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>RÉSERVATIONS</Text>
+            </View>
+            <View style={[styles.statCell, { borderRightColor: colors.gray100 }]}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.favorites}</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>FAVORIS</Text>
+            </View>
+            <View style={styles.statCell}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.reviews}</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>AVIS</Text>
+            </View>
           </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }, Shadows.cardViolet]}>
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.favorites}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Favoris</Text>
-          </View>
-          <View style={[styles.statCard, { backgroundColor: colors.card }, Shadows.cardViolet]}>
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.reviews}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Avis</Text>
-          </View>
-        </View>
+
+          {/* Chip strip */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipStrip}
+          >
+            <View style={[styles.chipFilled, { backgroundColor: colors.primary }]}>
+              <Text style={styles.chipFilledText}>
+                {isOrganizer ? 'ORGANISATEUR' : 'FAN'}
+              </Text>
+            </View>
+            <View style={[styles.chipOutline, { backgroundColor: colors.card, borderColor: softBorder }]}>
+              <Text style={[styles.chipOutlineText, { color: colors.text }]}>
+                {user?.role === 'admin' ? 'ADMIN' : user?.role === 'moderator' ? 'MODÉRATEUR' : 'MEMBRE'}
+              </Text>
+            </View>
+            {user?.city ? (
+              <View style={[styles.chipOutline, { backgroundColor: colors.card, borderColor: softBorder, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                <Ionicons name="location-outline" size={12} color={colors.text} />
+                <Text style={[styles.chipOutlineText, { color: colors.text }]}>{user.city.toUpperCase()}</Text>
+              </View>
+            ) : null}
+          </ScrollView>
         </FadeInView>
 
         {/* Become Organizer CTA - Only for regular users */}
@@ -536,6 +555,7 @@ export default function ProfileScreen() {
           subtitle="Faites scanner ce code pour partager votre profil"
         />
       )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -544,146 +564,164 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
+  // Editorial top row
+  editorialTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
-  headerEyebrow: {
-    ...TextStyles.eyebrow,
-    marginBottom: 2,
+  editorialKicker: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
-  headerTitle: {
-    ...TextStyles.h2,
-  },
-  headerRight: {
+  editorialTopActions: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  settingsButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  userCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.xl,
-    borderRadius: BorderRadius['4xl'],
-    ...Shadows.glass,
-  },
-  userCardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatarGradientRing: {
-    position: 'absolute',
-    width: 78,
-    height: 78,
-    borderRadius: 39,
-    top: -3,
-    left: -3,
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 3,
-    ...Shadows.sm,
-  },
-  avatarPlaceholder: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    ...Shadows.sm,
-  },
-  avatarText: {
-    ...TextStyles.h3,
-    color: Colors.gray600,
-  },
-  userInfo: {
-    marginLeft: Spacing.md,
-    flex: 1,
-  },
-  userNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     gap: 8,
-    flexWrap: 'wrap',
   },
-  userName: {
-    ...TextStyles.h3,
-    flexShrink: 1,
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  userEmail: {
-    ...TextStyles.small,
-    color: Colors.gray500,
-    marginTop: 2,
+
+  // Hero
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.md,
   },
-  // PRO lime badge (AIDesigner editorial)
-  proLimeBadge: {
+  heroNameCol: {
+    flex: 1,
+    paddingTop: Spacing.sm,
+  },
+  heroName: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 36,
+    lineHeight: 38,
+    letterSpacing: -1.3,
+  },
+  heroEmail: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    marginTop: 8,
+  },
+  avatarSquareWrap: {
+    position: 'relative',
+    width: 92,
+    height: 92,
+  },
+  avatarSquare: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+  },
+  avatarSquarePlaceholder: {
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarSquareText: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 32,
+    color: '#FFFFFF',
+    letterSpacing: -1,
+  },
+  verifiedTag: {
+    position: 'absolute',
+    bottom: -6,
+    right: -6,
     paddingHorizontal: 8,
-    paddingVertical: 3,
-    backgroundColor: Colors.lime,
+    paddingVertical: 4,
     borderRadius: BorderRadius.full,
-    shadowColor: Colors.lime,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    elevation: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  verifiedTagText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 8.5,
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
+  },
+  proLimeBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
   },
   proLimeBadgeText: {
     fontFamily: FontFamily.bold,
-    fontSize: 10,
-    color: Colors.gray900,
-    letterSpacing: 1,
+    fontSize: 9,
+    letterSpacing: 1.4,
   },
-  verificationBadge: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
-    gap: 4,
-  },
-  verificationText: {
-    ...TextStyles.caption,
-    fontFamily: FontFamily.medium,
-  },
-  statsContainer: {
+
+  // Stat strip — soft card with gray dividers
+  statStrip: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    gap: Spacing.sm,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: Spacing.md,
   },
-  statCard: {
+  statCell: {
     flex: 1,
-    alignItems: 'center',
-    borderRadius: BorderRadius['3xl'],
-    paddingVertical: Spacing.lg,
     paddingHorizontal: Spacing.sm,
-    ...Shadows.xs,
+    borderRightWidth: 1,
   },
-  statValue: {
-    ...TextStyles.h2,
+  statNumber: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    lineHeight: 30,
+    letterSpacing: -0.9,
   },
-  statLabel: {
-    ...TextStyles.small,
-    color: Colors.gray500,
-    marginTop: 2,
+  statEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginTop: 4,
+  },
+
+  // Chip strip
+  chipStrip: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  chipFilled: {
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  chipFilledText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10.5,
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
+  },
+  chipOutline: {
+    borderWidth: 1,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  chipOutlineText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10.5,
+    letterSpacing: 1.2,
   },
   becomeOrganizerCard: {
     flexDirection: 'row',

@@ -4,11 +4,9 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  StatusBar,
   Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,14 +22,12 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../constants/theme';
 import { authAPI } from '../../api';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators } from '../../lib/validation';
-import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
-import DotPattern from '../../components/ui/DotPattern';
+import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 
@@ -195,23 +191,15 @@ export default function RegisterScreen() {
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-
-      {/* Dot pattern background */}
-      <DotPattern opacity={isDark ? 0.02 : 0.04} />
-
-      {/* Top accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
-
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAwareScrollView
-          style={styles.keyboardView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={20}
-        >
+    <EditorialCanvas>
+      <WatermarkNumeral>02</WatermarkNumeral>
+      <KeyboardAwareScrollView
+        style={styles.keyboardView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
+      >
           {/* Back Button */}
           <AnimatedPressable
             onPress={() => navigation.goBack()}
@@ -235,7 +223,7 @@ export default function RegisterScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>Inscription</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>Inscription / 02</Text>
             <Text style={[styles.title, { color: colors.gray900 }]}>Créer un compte</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
               Rejoins EventEz et découvre les meilleurs événements
@@ -323,16 +311,15 @@ export default function RegisterScreen() {
               <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/privacy')}>Politique de confidentialité</Text>
             </Text>
 
-            {/* Register Button */}
-            <GradientButton
-              onPress={handleRegister}
-              title="Créer mon compte"
-              loading={isSubmitting}
-              icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
-              size="xl"
-              fullWidth
-              style={styles.registerButton}
-            />
+            {/* Register Button — editorial pill CTA */}
+            <View style={styles.registerButtonWrap}>
+              <EditorialPillCTA
+                eyebrow="Rejoindre"
+                label="Créer mon compte"
+                onPress={handleRegister}
+                loading={isSubmitting}
+              />
+            </View>
           </View>
 
           {/* Organizer Link */}
@@ -369,28 +356,15 @@ export default function RegisterScreen() {
               <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
             </AnimatedPressable>
           </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
-    </View>
+      </KeyboardAwareScrollView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  accentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
-  safeArea: {
-    flex: 1,
-  },
   keyboardView: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -501,9 +475,9 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontFamily: FontFamily.medium,
   },
-  registerButton: {
+  registerButtonWrap: {
     marginTop: Spacing.md,
-    ...Shadows.coloredPrimary,
+    flexDirection: 'row',
   },
   organizerContainer: {
     marginTop: Spacing['2xl'],

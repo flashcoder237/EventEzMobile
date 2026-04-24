@@ -6,10 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -163,8 +162,9 @@ export default function ReportsScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>RPT</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -204,7 +204,8 @@ export default function ReportsScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
       />
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

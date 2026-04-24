@@ -6,9 +6,7 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +25,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -133,8 +132,9 @@ export default function SubscriptionManagementScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>SUBS</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       <View style={styles.header}>
         <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
@@ -161,7 +161,8 @@ export default function SubscriptionManagementScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

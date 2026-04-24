@@ -4,10 +4,8 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -23,9 +21,8 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
-import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
-import DotPattern from '../../components/ui/DotPattern';
+import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ResetPassword'>;
 type RouteProps = RouteProp<RootStackParamList, 'ResetPassword'>;
@@ -34,7 +31,7 @@ export default function ResetPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { token } = route.params;
 
   const [password, setPassword] = useState('');
@@ -116,250 +113,247 @@ export default function ResetPasswordScreen() {
   // Loading state - validating token
   if (isValidating) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <EditorialCanvas>
+        <WatermarkNumeral>04</WatermarkNumeral>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.loadingText, { color: colors.gray500 }]}>Verification du lien...</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent, marginTop: Spacing.lg }]}>Vérification</Text>
+          <Text style={[styles.loadingText, { color: colors.gray500 }]}>Validation de votre lien…</Text>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   // Invalid token state
   if (!isTokenValid) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <EditorialCanvas>
+        <WatermarkNumeral>NO</WatermarkNumeral>
         <View style={styles.centerContainer}>
           <View style={[styles.iconCircle, { backgroundColor: colors.gray50 }]}>
             <Ionicons name="close-circle-outline" size={48} color={colors.error} />
           </View>
-          <Text style={[styles.errorTitle, { color: colors.gray900 }]}>Lien invalide</Text>
-          <Text style={[styles.errorDescription, { color: colors.gray600 }]}>
-            Ce lien de reinitialisation est invalide ou a expire. Veuillez faire une nouvelle demande de reinitialisation de mot de passe.
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Lien expiré</Text>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Lien invalide</Text>
+          <Text style={[styles.successText, { color: colors.gray600 }]}>
+            Ce lien de réinitialisation est invalide ou a expiré. Demandez un nouveau lien pour continuer.
           </Text>
-          <GradientButton
-            title="Nouvelle demande"
-            onPress={() => navigation.navigate('ForgotPassword')}
-            style={styles.actionButton}
-            fullWidth
-          />
+          <View style={styles.successButtonWrap}>
+            <EditorialPillCTA
+              eyebrow="Recommencer"
+              label="Nouvelle demande"
+              onPress={() => navigation.navigate('ForgotPassword')}
+              icon="refresh"
+            />
+          </View>
           <AnimatedPressable
             onPress={() => navigation.navigate('Login')}
             animationType="scale"
             scaleValue={0.95}
             style={styles.linkContainer}
           >
-            <Text style={[styles.linkText, { color: colors.primary }]}>Retour a la connexion</Text>
+            <Text style={[styles.linkText, { color: colors.primary }]}>Retour à la connexion</Text>
           </AnimatedPressable>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   // Success state
   if (isSuccess) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <EditorialCanvas>
+        <WatermarkNumeral>OK</WatermarkNumeral>
         <View style={styles.centerContainer}>
           <View style={styles.successIconCircle}>
             <Ionicons name="checkmark-circle-outline" size={48} color={Colors.success} />
           </View>
-          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Mot de passe modifie !</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Réussite</Text>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Mot de passe mis à jour</Text>
           <Text style={[styles.successText, { color: colors.gray600 }]}>
-            Votre mot de passe a ete reinitialise avec succes. Vous pouvez maintenant vous connecter avec votre nouveau mot de passe.
+            Votre mot de passe a été réinitialisé avec succès. Connectez-vous avec votre nouveau mot de passe.
           </Text>
-          <GradientButton
-            title="Se connecter"
-            onPress={() => navigation.navigate('Login')}
-            style={styles.actionButton}
-            icon={<Ionicons name="log-in-outline" size={20} color={Colors.white} />}
-            fullWidth
-          />
+          <View style={styles.successButtonWrap}>
+            <EditorialPillCTA
+              eyebrow="Continuer"
+              label="Se connecter"
+              onPress={() => navigation.navigate('Login')}
+              icon="log-in"
+            />
+          </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   // Main form
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-
-      {/* Dot pattern background */}
-      <DotPattern opacity={isDark ? 0.02 : 0.04} />
-
-      {/* Top accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
-
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAwareScrollView
-          style={styles.keyboardView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={20}
+    <EditorialCanvas>
+      <WatermarkNumeral>04</WatermarkNumeral>
+      <KeyboardAwareScrollView
+        style={styles.keyboardView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
+      >
+        {/* Back Button */}
+        <AnimatedPressable
+          onPress={() => navigation.goBack()}
+          style={[styles.backButton, { backgroundColor: colors.gray50 }]}
+          animationType="scale"
+          scaleValue={0.9}
         >
-          {/* Back Button */}
-          <AnimatedPressable
-            onPress={() => navigation.goBack()}
-            style={[styles.backButton, { backgroundColor: colors.gray50 }]}
-            animationType="scale"
-            scaleValue={0.9}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.gray800} />
-          </AnimatedPressable>
+          <Ionicons name="arrow-back" size={24} color={colors.gray800} />
+        </AnimatedPressable>
 
-          {/* Icon */}
-          <View style={styles.iconContainer}>
-            <View style={[styles.iconCircle, { backgroundColor: colors.gray50 }]}>
-              <Ionicons name="key-outline" size={40} color={colors.primary} />
+        {/* Icon */}
+        <View style={styles.iconContainer}>
+          <View style={[styles.iconCircle, { backgroundColor: colors.gray50 }]}>
+            <Ionicons name="key-outline" size={40} color={colors.primary} />
+          </View>
+        </View>
+
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Réinitialisation</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]}>Nouveau mot de passe</Text>
+          <Text style={[styles.subtitle, { color: colors.gray500 }]}>
+            Choisissez un mot de passe sécurisé pour votre compte.
+          </Text>
+        </View>
+
+        {/* Form */}
+        <View style={styles.form}>
+          {/* Password Field */}
+          <View style={styles.inputContainer}>
+            <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Nouveau mot de passe</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.password && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
+              <View style={styles.inputIconContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
+              </View>
+              <TextInput
+                style={[styles.input, { color: colors.gray900 }]}
+                placeholder="Minimum 8 caractères"
+                placeholderTextColor={colors.gray400}
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="new-password"
+              />
+              <AnimatedPressable
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.eyeButton}
+                animationType="scale"
+                scaleValue={0.9}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.gray400}
+                />
+              </AnimatedPressable>
             </View>
+            {errors.password && (
+              <View style={styles.fieldErrorContainer}>
+                <Ionicons name="alert-circle" size={14} color={colors.error} />
+                <Text style={[styles.fieldErrorText, { color: colors.error }]}>{errors.password}</Text>
+              </View>
+            )}
           </View>
 
-          {/* Header */}
-          <View style={styles.headerContainer}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>Réinitialisation</Text>
-            <Text style={[styles.title, { color: colors.gray900 }]}>Nouveau mot de passe</Text>
-            <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-              Choisissez un nouveau mot de passe securise pour votre compte.
-            </Text>
+          {/* Confirm Password Field */}
+          <View style={styles.inputContainer}>
+            <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Confirmer le mot de passe</Text>
+            <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.confirmPassword && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
+              <View style={styles.inputIconContainer}>
+                <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
+              </View>
+              <TextInput
+                style={[styles.input, { color: colors.gray900 }]}
+                placeholder="Retapez le mot de passe"
+                placeholderTextColor={colors.gray400}
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+                }}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoComplete="new-password"
+              />
+              <AnimatedPressable
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={styles.eyeButton}
+                animationType="scale"
+                scaleValue={0.9}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={colors.gray400}
+                />
+              </AnimatedPressable>
+            </View>
+            {errors.confirmPassword && (
+              <View style={styles.fieldErrorContainer}>
+                <Ionicons name="alert-circle" size={14} color={colors.error} />
+                <Text style={[styles.fieldErrorText, { color: colors.error }]}>{errors.confirmPassword}</Text>
+              </View>
+            )}
           </View>
 
-          {/* Form */}
-          <View style={styles.form}>
-            {/* Password Field */}
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Nouveau mot de passe</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.password && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
-                <View style={styles.inputIconContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
-                </View>
-                <TextInput
-                  style={[styles.input, { color: colors.gray900 }]}
-                  placeholder="Minimum 8 caracteres"
-                  placeholderTextColor={colors.gray400}
-                  value={password}
-                  onChangeText={(text) => {
-                    setPassword(text);
-                    if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
-                  }}
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="new-password"
-                />
-                <AnimatedPressable
-                  onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
-                  animationType="scale"
-                  scaleValue={0.9}
-                >
-                  <Ionicons
-                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.gray400}
-                  />
-                </AnimatedPressable>
-              </View>
-              {errors.password && (
-                <View style={styles.fieldErrorContainer}>
-                  <Ionicons name="alert-circle" size={14} color={colors.error} />
-                  <Text style={[styles.fieldErrorText, { color: colors.error }]}>{errors.password}</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Confirm Password Field */}
-            <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Confirmer le mot de passe</Text>
-              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.confirmPassword && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
-                <View style={styles.inputIconContainer}>
-                  <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
-                </View>
-                <TextInput
-                  style={[styles.input, { color: colors.gray900 }]}
-                  placeholder="Retapez le mot de passe"
-                  placeholderTextColor={colors.gray400}
-                  value={confirmPassword}
-                  onChangeText={(text) => {
-                    setConfirmPassword(text);
-                    if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
-                  }}
-                  secureTextEntry={!showConfirmPassword}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  autoComplete="new-password"
-                />
-                <AnimatedPressable
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                  style={styles.eyeButton}
-                  animationType="scale"
-                  scaleValue={0.9}
-                >
-                  <Ionicons
-                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.gray400}
-                  />
-                </AnimatedPressable>
-              </View>
-              {errors.confirmPassword && (
-                <View style={styles.fieldErrorContainer}>
-                  <Ionicons name="alert-circle" size={14} color={colors.error} />
-                  <Text style={[styles.fieldErrorText, { color: colors.error }]}>{errors.confirmPassword}</Text>
-                </View>
-              )}
-            </View>
-
-            {/* Password requirements */}
-            <View style={[styles.requirementsContainer, { backgroundColor: colors.gray50 }]}>
-              <Text style={[styles.requirementsTitle, { color: colors.gray700 }]}>Le mot de passe doit contenir :</Text>
-              <PasswordRequirement
-                met={password.length >= 8}
-                text="Au moins 8 caracteres"
-              />
-              <PasswordRequirement
-                met={/[A-Z]/.test(password)}
-                text="Une lettre majuscule"
-              />
-              <PasswordRequirement
-                met={/[a-z]/.test(password)}
-                text="Une lettre minuscule"
-              />
-              <PasswordRequirement
-                met={/\d/.test(password)}
-                text="Un chiffre"
-              />
-            </View>
-
-            <GradientButton
-              onPress={handleSubmit}
-              title="Reinitialiser le mot de passe"
-              loading={isLoading}
-              icon={<Ionicons name="checkmark-circle" size={20} color={Colors.white} />}
-              size="xl"
-              fullWidth
-              style={styles.submitButton}
+          {/* Password requirements */}
+          <View style={[styles.requirementsContainer, { backgroundColor: colors.gray50 }]}>
+            <Text style={[styles.requirementsTitle, { color: colors.gray700 }]}>Le mot de passe doit contenir :</Text>
+            <PasswordRequirement
+              met={password.length >= 8}
+              text="Au moins 8 caractères"
+            />
+            <PasswordRequirement
+              met={/[A-Z]/.test(password)}
+              text="Une lettre majuscule"
+            />
+            <PasswordRequirement
+              met={/[a-z]/.test(password)}
+              text="Une lettre minuscule"
+            />
+            <PasswordRequirement
+              met={/\d/.test(password)}
+              text="Un chiffre"
             />
           </View>
 
-          {/* Login Link */}
-          <View style={styles.loginContainer}>
-            <Text style={[styles.loginText, { color: colors.gray500 }]}>Vous vous souvenez ?</Text>
-            <AnimatedPressable
-              onPress={() => navigation.navigate('Login')}
-              animationType="scale"
-              scaleValue={0.95}
-            >
-              <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
-            </AnimatedPressable>
+          <View style={styles.submitButtonWrap}>
+            <EditorialPillCTA
+              eyebrow="Valider"
+              label="Réinitialiser"
+              onPress={handleSubmit}
+              loading={isLoading}
+              icon="checkmark"
+            />
           </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
-    </View>
+        </View>
+
+        {/* Login Link */}
+        <View style={styles.loginContainer}>
+          <Text style={[styles.loginText, { color: colors.gray500 }]}>Vous vous souvenez ?</Text>
+          <AnimatedPressable
+            onPress={() => navigation.navigate('Login')}
+            animationType="scale"
+            scaleValue={0.95}
+          >
+            <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
+          </AnimatedPressable>
+        </View>
+      </KeyboardAwareScrollView>
+    </EditorialCanvas>
   );
 }
 
@@ -381,21 +375,9 @@ function PasswordRequirement({ met, text }: { met: boolean; text: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  accentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
-  safeArea: {
-    flex: 1,
-  },
   keyboardView: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -413,7 +395,7 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.medium,
     color: Colors.gray500,
-    marginTop: Spacing.md,
+    marginTop: Spacing.sm,
   },
   backButton: {
     width: 44,
@@ -435,6 +417,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray50,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: Spacing.xl,
   },
   headerContainer: {
     marginBottom: Spacing.xl,
@@ -448,12 +431,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontSize: FontSizes['3xl'],
-    fontFamily: FontFamily.displayBold,
+    fontSize: 34,
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
     textAlign: 'center',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+    lineHeight: 38,
   },
   subtitle: {
     fontSize: FontSizes.base,
@@ -535,8 +519,14 @@ const styles = StyleSheet.create({
   requirementMet: {
     color: Colors.success,
   },
-  submitButton: {
+  submitButtonWrap: {
     marginTop: Spacing.md,
+    flexDirection: 'row',
+  },
+  successButtonWrap: {
+    marginTop: Spacing.lg,
+    flexDirection: 'row',
+    alignSelf: 'stretch',
   },
   loginContainer: {
     flexDirection: 'row',
@@ -552,26 +542,6 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: FontSizes.md,
     fontFamily: FontFamily.semiBold,
-  },
-  // Error state (invalid token)
-  errorTitle: {
-    fontSize: FontSizes['2xl'],
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-  errorDescription: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
-    textAlign: 'center',
-    lineHeight: FontSizes.base * 1.5,
-    marginBottom: Spacing.xl,
-  },
-  actionButton: {
-    marginTop: Spacing.lg,
   },
   linkContainer: {
     marginTop: Spacing.lg,
@@ -592,10 +562,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   successTitle: {
-    fontSize: FontSizes['2xl'],
-    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['3xl'],
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
+    letterSpacing: -0.9,
+    textAlign: 'center',
   },
   successText: {
     fontSize: FontSizes.base,

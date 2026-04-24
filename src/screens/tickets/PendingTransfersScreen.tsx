@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -413,7 +413,9 @@ export default function PendingTransfersScreen() {
   const currentData = activeTab === 'received' ? transfers : sentTransfers;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>XFER</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
@@ -503,7 +505,8 @@ export default function PendingTransfersScreen() {
           subtitle={selectedTransferTitle}
         />
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

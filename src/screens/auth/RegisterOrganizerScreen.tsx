@@ -4,12 +4,9 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  ScrollView,
-  StatusBar,
   Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,9 +26,8 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
-import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
-import DotPattern from '../../components/ui/DotPattern';
+import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'RegisterOrganizer'>;
 
@@ -68,7 +64,7 @@ export default function RegisterOrganizerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { setUser } = useAuth();
   const { showError, showSuccess } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -417,14 +413,14 @@ export default function RegisterOrganizerScreen() {
         )}
       </View>
 
-      <GradientButton
-        onPress={handleNextStep}
-        title="Continuer"
-        icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
-        size="xl"
-        fullWidth
-        style={styles.submitButton}
-      />
+      <View style={styles.submitButtonWrap}>
+        <EditorialPillCTA
+          eyebrow="Suivant"
+          label="Continuer"
+          onPress={handleNextStep}
+          icon="arrow-forward"
+        />
+      </View>
     </View>
   );
 
@@ -493,109 +489,87 @@ export default function RegisterOrganizerScreen() {
           <Text style={[styles.backStepText, { color: colors.gray600 }]}>Retour</Text>
         </AnimatedPressable>
 
-        <GradientButton
-          onPress={handleRegister}
-          title="Créer mon compte"
-          loading={isLoading}
-          icon={<Ionicons name="checkmark" size={20} color={colors.white} />}
-          size="lg"
-          style={styles.submitButtonFlex}
-        />
+        <View style={styles.submitButtonFlex}>
+          <EditorialPillCTA
+            eyebrow="Valider"
+            label="Créer mon compte"
+            onPress={handleRegister}
+            loading={isLoading}
+            icon="checkmark"
+          />
+        </View>
       </View>
     </View>
   );
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas>
+      <WatermarkNumeral>PRO</WatermarkNumeral>
+      <KeyboardAwareScrollView
+        style={styles.keyboardView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
+      >
+        {/* Back Button */}
+        <AnimatedPressable
+          onPress={() => navigation.goBack()}
+          style={[styles.backButton, { backgroundColor: colors.gray50 }]}
+          animationType="scale"
+          scaleValue={0.9}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.gray800} />
+        </AnimatedPressable>
 
-      {/* Dot pattern background */}
-      <DotPattern />
+        {/* Logo */}
+        <View style={styles.logoContainer}>
+          <Image
+            source={require('../../../assets/logo.png')}
+            style={styles.logo}
+            contentFit="contain"
+          />
+        </View>
 
-      {/* Top accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
+        {/* Header */}
+        <View style={styles.headerContainer}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>Passe pro / Étape {step}</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]}>Devenir Organisateur</Text>
+          <Text style={[styles.subtitle, { color: colors.gray500 }]}>
+            Crée et gère tes propres événements sur EventEz
+          </Text>
+        </View>
 
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAwareScrollView
-          style={styles.keyboardView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={20}
+        {/* Progress Indicator */}
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressBar, { backgroundColor: colors.gray200 }]}>
+            <View style={[styles.progressFill, { width: step === 1 ? '50%' : '100%', backgroundColor: colors.primary }]} />
+          </View>
+          <Text style={[styles.progressText, { color: colors.gray500 }]}>Étape {step} sur 2</Text>
+        </View>
+
+        {step === 1 ? renderStep1() : renderStep2()}
+
+        {/* Login Link */}
+        <View style={styles.loginContainer}>
+          <Text style={[styles.loginText, { color: colors.gray500 }]}>Déjà un compte ?</Text>
+          <AnimatedPressable
+            onPress={() => navigation.navigate('Login')}
+            animationType="scale"
+            scaleValue={0.95}
           >
-            {/* Back Button */}
-            <AnimatedPressable
-              onPress={() => navigation.goBack()}
-              style={[styles.backButton, { backgroundColor: colors.surface }]}
-              animationType="scale"
-              scaleValue={0.9}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.gray800} />
-            </AnimatedPressable>
-
-            {/* Logo */}
-            <View style={styles.logoContainer}>
-              <Image
-                source={require('../../../assets/logo.png')}
-                style={styles.logo}
-                contentFit="contain"
-              />
-            </View>
-
-            {/* Header */}
-            <View style={styles.headerContainer}>
-              <Text style={[styles.eyebrow, { color: colors.accent }]}>Passe pro</Text>
-              <Text style={[styles.title, { color: colors.gray900 }]}>Devenir Organisateur</Text>
-              <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                Crée et gère tes propres événements sur EventEz
-              </Text>
-            </View>
-
-            {/* Progress Indicator */}
-            <View style={styles.progressContainer}>
-              <View style={[styles.progressBar, { backgroundColor: colors.gray200 }]}>
-                <View style={[styles.progressFill, { width: step === 1 ? '50%' : '100%', backgroundColor: colors.primary }]} />
-              </View>
-              <Text style={[styles.progressText, { color: colors.gray500 }]}>Étape {step} sur 2</Text>
-            </View>
-
-            {step === 1 ? renderStep1() : renderStep2()}
-
-            {/* Login Link */}
-            <View style={styles.loginContainer}>
-              <Text style={[styles.loginText, { color: colors.gray500 }]}>Déjà un compte ?</Text>
-              <AnimatedPressable
-                onPress={() => navigation.navigate('Login')}
-                animationType="scale"
-                scaleValue={0.95}
-              >
-                <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
-              </AnimatedPressable>
-            </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
-    </View>
+            <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
+          </AnimatedPressable>
+        </View>
+      </KeyboardAwareScrollView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
-  accentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: Colors.primary,
-  },
-  safeArea: {
-    flex: 1,
-  },
   keyboardView: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -632,10 +606,11 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    ...TextStyles.h1,
-    fontSize: FontSizes['3xl'],
+    fontSize: 34,
+    fontFamily: FontFamily.displayExtraBold,
     marginBottom: Spacing.xs,
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+    lineHeight: 38,
   },
   subtitle: {
     ...TextStyles.body,
@@ -775,8 +750,9 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontFamily: FontFamily.medium,
   },
-  submitButton: {
+  submitButtonWrap: {
     marginTop: Spacing.lg,
+    flexDirection: 'row',
   },
   buttonRow: {
     flexDirection: 'row',

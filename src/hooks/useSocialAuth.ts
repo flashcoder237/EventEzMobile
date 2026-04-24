@@ -1,5 +1,5 @@
 /**
- * Hooks pour l'authentification sociale (Google & Apple)
+ * Hooks pour l'authentification sociale (Google & Apple) et OTP téléphone.
  */
 
 import { useState, useEffect } from 'react';
@@ -211,5 +211,60 @@ export function useAppleAuth() {
     signIn,
     isLoading,
     isAvailable,
+  };
+}
+
+/**
+ * Hook pour l'authentification par numéro de téléphone (OTP SMS).
+ * Flux : sendOTP(phone) → verifyOTP(phone, code) → User
+ */
+export function usePhoneAuth() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [normalizedPhone, setNormalizedPhone] = useState('');
+
+  const sendOTP = async (phoneNumber: string): Promise<SocialAuthResult & { normalizedPhone?: string }> => {
+    setIsLoading(true);
+    try {
+      const res = await authAPI.phoneSendOTP(phoneNumber);
+      const normalized: string = res.data?.phone_number || phoneNumber;
+      setNormalizedPhone(normalized);
+      return { success: true, normalizedPhone: normalized };
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.detail ||
+        error.message ||
+        'Impossible d\'envoyer le SMS';
+      return { success: false, error: msg };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOTP = async (
+    phone: string,
+    code: string,
+  ): Promise<SocialAuthResult> => {
+    setIsLoading(true);
+    try {
+      const res = await authAPI.phoneVerifyOTP(phone || normalizedPhone, code);
+      const { access, refresh, user } = res.data;
+      await setTokens(access, refresh);
+      return { success: true, user };
+    } catch (error: any) {
+      const msg =
+        error.response?.data?.detail ||
+        error.message ||
+        'Code incorrect ou expiré';
+      return { success: false, error: msg };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return {
+    sendOTP,
+    verifyOTP,
+    isLoading,
+    normalizedPhone,
   };
 }

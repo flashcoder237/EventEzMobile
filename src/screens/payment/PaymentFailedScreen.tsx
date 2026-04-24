@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,7 +30,9 @@ export default function PaymentFailedScreen() {
   const { colors } = useTheme();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <EditorialCanvas edges={['top', 'bottom']}>
+      <WatermarkNumeral>NO</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       <View style={styles.content}>
         {/* Error Illustration */}
         <AnimatedIllustration entry="bounce" idle="breathe">
@@ -73,7 +75,8 @@ export default function PaymentFailedScreen() {
           accessibilityLabel="Retour a l'accueil"
         />
       </View>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

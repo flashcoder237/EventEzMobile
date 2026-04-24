@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Dimensions,
   ScrollView,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -29,6 +31,7 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
   TextStyles,
 } from '../../constants/theme';
 
@@ -136,12 +139,39 @@ export default function ScanScreen() {
   const [scanned, setScanned] = useState(false);
   const [result, setResult] = useState<ScanResult | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const scanLineAnim = useRef(new Animated.Value(0)).current;
+  const liveDotAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (!permission?.granted) {
       requestPermission();
     }
   }, [permission]);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanLineAnim, {
+          toValue: 1,
+          duration: 1800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanLineAnim, {
+          toValue: 0,
+          duration: 1800,
+          easing: Easing.inOut(Easing.quad),
+          useNativeDriver: true,
+        }),
+      ]),
+    ).start();
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(liveDotAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+        Animated.timing(liveDotAnim, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+      ]),
+    ).start();
+  }, []);
 
   // ── Handle QR scan ──
 
@@ -317,18 +347,20 @@ export default function ScanScreen() {
 
   if (!permission.granted) {
     return (
-      <SafeAreaView style={[styles.permissionContainer, { backgroundColor: colors.card }]}>
-        <Ionicons name="camera-outline" size={64} color={colors.gray400} />
-        <Text style={[styles.permissionTitle, { color: colors.gray900 }]}>Accès à la caméra requis</Text>
-        <Text style={[styles.permissionText, { color: colors.gray500 }]}>
-          Pour scanner les QR codes, autorisez l'accès à la caméra
-        </Text>
-        <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
-          <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-          <Text style={[styles.backLinkText, { color: colors.gray500 }]}>Retour</Text>
-        </TouchableOpacity>
+      <SafeAreaView style={[{ flex: 1, backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
+          <Ionicons name="camera-outline" size={64} color={colors.gray400} />
+          <Text style={[styles.permissionTitle, { color: colors.text }]}>Accès à la caméra requis</Text>
+          <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
+            Pour scanner les QR codes, autorisez l'accès à la caméra
+          </Text>
+          <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
+            <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
+            <Text style={[styles.backLinkText, { color: colors.textSecondary }]}>Retour</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }
@@ -346,60 +378,92 @@ export default function ScanScreen() {
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
       />
 
-      {/* Overlay */}
+      {/* Editorial Overlay */}
       <View style={styles.overlay}>
-        {/* Header - on camera overlay, Colors.white is fine */}
-        <SafeAreaView style={styles.header}>
-          <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={24} color={Colors.white} />
-          </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerEyebrow}>Vise et scanne</Text>
-            <Text style={styles.headerTitle}>Scanner QR</Text>
-            <Text style={styles.headerSubtitle}>Transfert de billet ou profil utilisateur</Text>
+        {/* Top zone — EN DIRECT tag + editorial header */}
+        <SafeAreaView style={styles.topZone}>
+          <View style={styles.topRow}>
+            <TouchableOpacity style={styles.closeDisc} onPress={() => navigation.goBack()}>
+              <Ionicons name="close" size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+
+            <View style={styles.liveTag}>
+              <Animated.View style={[styles.liveDot, { opacity: liveDotAnim }]} />
+              <Text style={styles.liveTagText}>EN DIRECT</Text>
+            </View>
+
+            <TouchableOpacity style={styles.closeDisc} onPress={() => setFlashOn(!flashOn)}>
+              <Ionicons
+                name={flashOn ? 'flash' : 'flash-outline'}
+                size={18}
+                color={flashOn ? '#FCD34D' : '#FFFFFF'}
+              />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity style={styles.headerButton} onPress={() => setFlashOn(!flashOn)}>
-            <Ionicons
-              name={flashOn ? 'flash' : 'flash-outline'}
-              size={24}
-              color={flashOn ? '#FBBF24' : Colors.white}
-            />
-          </TouchableOpacity>
+
+          <View style={styles.editorialHeader}>
+            <Text style={styles.editorialEyebrow}>VISE ET SCANNE</Text>
+            <Text style={styles.editorialTitle}>Scanner</Text>
+          </View>
         </SafeAreaView>
 
-        {/* Scan Area */}
+        {/* Scan Viewfinder */}
         <View style={styles.scanAreaContainer}>
+          {/* Floating MODE CAMÉRA pill */}
+          <View style={styles.modePill}>
+            <Text style={styles.modePillText}>MODE CAMÉRA</Text>
+            <View style={styles.modePillDivider} />
+            <Ionicons name="flash" size={12} color="#FCD34D" />
+          </View>
+
           <View style={styles.scanArea}>
-            <View style={[styles.corner, styles.topLeft]} />
-            <View style={[styles.corner, styles.topRight]} />
-            <View style={[styles.corner, styles.bottomLeft]} />
-            <View style={[styles.corner, styles.bottomRight]} />
+            {/* Indigo L-brackets */}
+            <View style={[styles.bracket, styles.bracketTL]} />
+            <View style={[styles.bracket, styles.bracketTR]} />
+            <View style={[styles.bracket, styles.bracketBL]} />
+            <View style={[styles.bracket, styles.bracketBR]} />
+
+            {/* Animated lime scan line */}
+            <Animated.View
+              style={[
+                styles.scanLine,
+                {
+                  transform: [
+                    {
+                      translateY: scanLineAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [12, SCAN_AREA_SIZE - 12],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
 
             {scanState === 'loading' && (
               <View style={styles.processingOverlay}>
-                <ActivityIndicator size="large" color={Colors.white} />
+                <ActivityIndicator size="large" color={colors.primary} />
                 <Text style={styles.processingText}>Analyse...</Text>
               </View>
             )}
           </View>
-          <Text style={styles.scanHint}>
-            Placez un QR code EventEz dans le cadre
-          </Text>
+
+          <Text style={styles.scanHint}>Placez un QR code EventEz dans le cadre</Text>
         </View>
 
-        {/* Bottom hint */}
-        <SafeAreaView style={styles.bottomHints}>
-          <View style={styles.hintRow}>
-            <Ionicons name="qr-code-outline" size={18} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.hintText}>Billet</Text>
+        {/* Bottom hint chips */}
+        <SafeAreaView style={styles.bottomHints} edges={['bottom']}>
+          <View style={styles.hintChip}>
+            <Ionicons name="qr-code-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.hintChipText}>BILLET</Text>
           </View>
-          <View style={styles.hintRow}>
-            <Ionicons name="ticket-outline" size={18} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.hintText}>Transfert</Text>
+          <View style={[styles.hintChip, styles.hintChipAccent]}>
+            <Ionicons name="ticket-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.hintChipText}>TRANSFERT</Text>
           </View>
-          <View style={styles.hintRow}>
-            <Ionicons name="person-outline" size={18} color="rgba(255,255,255,0.8)" />
-            <Text style={styles.hintText}>Profil</Text>
+          <View style={styles.hintChip}>
+            <Ionicons name="person-outline" size={14} color="#FFFFFF" />
+            <Text style={styles.hintChipText}>PROFIL</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -844,97 +908,156 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
   },
 
-  // Camera overlay
+  // Editorial camera overlay
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'space-between',
   },
-  header: {
+  topZone: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    paddingBottom: Spacing.md,
+  },
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    marginBottom: Spacing.md,
   },
-  headerButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  closeDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCenter: {
-    flex: 1,
+  liveTag: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
   },
-  headerEyebrow: {
-    fontSize: 10,
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#EF4444',
+  },
+  liveTagText: {
     fontFamily: FontFamily.bold,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
     letterSpacing: 1.5,
-    textTransform: 'uppercase',
+    color: '#FFFFFF',
+  },
+  editorialHeader: {
+    alignItems: 'flex-start',
+  },
+  editorialEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.75)',
     marginBottom: 2,
   },
-  headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.lg,
-    color: Colors.white,
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    fontSize: FontSizes.xs,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
+  editorialTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 32,
+    letterSpacing: -1.1,
+    color: '#FFFFFF',
+    lineHeight: 36,
   },
 
   // Scan area
   scanAreaContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+  },
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    marginBottom: -12,
+    zIndex: 2,
+  },
+  modePillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    color: '#FFFFFF',
+  },
+  modePillDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: 'rgba(255,255,255,0.25)',
   },
   scanArea: {
     width: SCAN_AREA_SIZE,
     height: SCAN_AREA_SIZE,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 28,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
-  corner: {
+  bracket: {
     position: 'absolute',
-    width: 30,
-    height: 30,
-    borderColor: Colors.white,
-    borderWidth: 3,
+    width: 36,
+    height: 36,
+    borderColor: '#FFFFFF',
   },
-  topLeft: {
-    top: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderBottomWidth: 0,
-    borderTopLeftRadius: BorderRadius.lg,
+  bracketTL: {
+    top: 10,
+    left: 10,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 16,
   },
-  topRight: {
-    top: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderBottomWidth: 0,
-    borderTopRightRadius: BorderRadius.lg,
+  bracketTR: {
+    top: 10,
+    right: 10,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 16,
   },
-  bottomLeft: {
-    bottom: 0,
-    left: 0,
-    borderRightWidth: 0,
-    borderTopWidth: 0,
-    borderBottomLeftRadius: BorderRadius.lg,
+  bracketBL: {
+    bottom: 10,
+    left: 10,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 16,
   },
-  bottomRight: {
-    bottom: 0,
-    right: 0,
-    borderLeftWidth: 0,
-    borderTopWidth: 0,
-    borderBottomRightRadius: BorderRadius.lg,
+  bracketBR: {
+    bottom: 10,
+    right: 10,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 16,
+  },
+  scanLine: {
+    position: 'absolute',
+    left: 12,
+    right: 12,
+    height: 2,
+    backgroundColor: '#4F46E5',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 3,
   },
   processingOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -943,34 +1066,47 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   processingText: {
-    fontSize: FontSizes.base,
-    color: Colors.white,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    color: '#FFFFFF',
     marginTop: Spacing.md,
   },
   scanHint: {
-    fontSize: FontSizes.base,
-    color: Colors.white,
-    marginTop: Spacing.lg,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: Spacing.xl,
     textAlign: 'center',
   },
 
-  // Bottom hints
+  // Bottom hint chips
   bottomHints: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Spacing.xl,
+    gap: Spacing.sm,
   },
-  hintRow: {
+  hintChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
   },
-  hintText: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.8)',
+  hintChipAccent: {
+    backgroundColor: 'rgba(79,70,229,0.8)',
+    borderColor: 'rgba(79,70,229,0.9)',
+  },
+  hintChipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    color: '#FFFFFF',
   },
 
   // Modal

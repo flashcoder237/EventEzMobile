@@ -6,10 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
   InteractionManager,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -63,7 +62,7 @@ const QuickAction = ({ icon, title, onPress, badge }: QuickActionProps) => {
 export default function DashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
@@ -145,10 +144,10 @@ export default function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>DB</WatermarkNumeral>
       <ScrollView
+        style={{ flex: 1, zIndex: 1 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
@@ -173,7 +172,7 @@ export default function DashboardScreen() {
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
             <View>
-              <Text style={[styles.greeting, { color: colors.gray500 }]}>{getGreeting()}</Text>
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>{getGreeting()}</Text>
               <Text style={[styles.userName, { color: colors.text }]}>{user?.first_name || 'Utilisateur'}</Text>
             </View>
           </View>
@@ -431,15 +430,11 @@ export default function DashboardScreen() {
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
   scrollContent: {
     paddingBottom: 130,
   },
@@ -469,8 +464,17 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
   },
   userName: {
-    ...TextStyles.h2,
+    fontSize: 30,
+    fontFamily: FontFamily.displayExtraBold,
+    letterSpacing: -0.9,
+    lineHeight: 34,
     marginTop: 2,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   notificationButton: {
     width: 44,

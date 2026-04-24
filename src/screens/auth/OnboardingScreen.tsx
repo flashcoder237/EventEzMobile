@@ -12,10 +12,9 @@ import {
   StyleSheet,
   Dimensions,
   FlatList,
-  StatusBar,
   ViewToken,
+  Pressable,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -29,7 +28,7 @@ import {
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Events as EventsIllustration, Searching as SearchingIllustration, OnlinePayments, Conference, AnimatedIllustration } from '../../components/illustrations';
-import GradientButton from '../../components/ui/GradientButton';
+import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -99,6 +98,7 @@ interface OnboardingScreenProps {
 
 export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
   const { colors, isDark } = useTheme();
+  const slideNumerals = ['01', '02', '03', '04'];
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -171,18 +171,15 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
   const isLastSlide = currentIndex === slides.length - 1;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+    <EditorialCanvas>
+      <WatermarkNumeral>{slideNumerals[currentIndex] ?? '01'}</WatermarkNumeral>
+      <View style={styles.safeArea}>
         {/* Skip button */}
         {!isLastSlide && (
           <View style={styles.skipContainer}>
-            <GradientButton
-              title="Passer"
-              onPress={handleSkip}
-              variant="ghost"
-              size="sm"
-            />
+            <Pressable onPress={handleSkip} hitSlop={12}>
+              <Text style={[styles.skipText, { color: colors.gray500 }]}>Passer</Text>
+            </Pressable>
           </View>
         )}
 
@@ -224,34 +221,35 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 
           {/* Action button */}
           <View style={styles.actionContainer}>
-            <GradientButton
-              title={isLastSlide ? "C'est parti !" : 'Suivant'}
+            <EditorialPillCTA
+              eyebrow={isLastSlide ? 'Commencer' : 'Continuer'}
+              label={isLastSlide ? "C'est parti !" : 'Suivant'}
               onPress={handleNext}
-              variant="primary"
-              size="xl"
-              fullWidth
-              iconRight={isLastSlide ? 'rocket-outline' : 'arrow-forward'}
+              icon={isLastSlide ? 'rocket' : 'arrow-forward'}
             />
           </View>
         </View>
-      </SafeAreaView>
-    </View>
+      </View>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
   safeArea: {
     flex: 1,
+    zIndex: 1,
   },
   skipContainer: {
     position: 'absolute',
     top: Spacing.md,
-    right: Spacing.md,
+    right: Spacing.xl,
     zIndex: 10,
+  },
+  skipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   slide: {
     width: SCREEN_WIDTH,

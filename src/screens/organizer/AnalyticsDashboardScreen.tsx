@@ -6,14 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
@@ -39,6 +37,7 @@ type TimeRange = '7d' | '30d' | '90d' | '1y';
 export default function AnalyticsDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   // Strategie "Event mono-devise" : tous les events de l'organisateur sont
   // dans la devise de son wallet → on lit directement celle-ci.
   const { currency: walletCurrency } = useOrganizerWallet();
@@ -92,26 +91,27 @@ export default function AnalyticsDashboardScreen() {
   const avgAttendance = summary?.avg_attendance_rate || 0;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
         <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: colors.gray50 }]}
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={22} color={colors.gray700} />
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Ta performance</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Analytics</Text>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TA PERFORMANCE</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Analytics</Text>
         </View>
         <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: colors.gray50 }]}
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
           onPress={() => navigation.navigate('Reports')}
+          activeOpacity={0.7}
         >
-          <Ionicons name="document-text-outline" size={22} color={colors.gray700} />
+          <Ionicons name="document-text-outline" size={18} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -255,7 +255,8 @@ export default function AnalyticsDashboardScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

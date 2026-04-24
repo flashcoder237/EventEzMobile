@@ -6,9 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -32,6 +31,7 @@ import {
 } from '../../constants/theme';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TicketPurchaseRouteProp = RouteProp<RootStackParamList, 'TicketPurchase'>;
@@ -46,7 +46,7 @@ export default function TicketPurchaseScreen() {
   const route = useRoute<TicketPurchaseRouteProp>();
   const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig();
 
@@ -445,8 +445,9 @@ export default function TicketPurchaseScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>BUY</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
@@ -852,7 +853,8 @@ export default function TicketPurchaseScreen() {
           accessibilityLabel="Continuer vers le paiement"
         />
       </View>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

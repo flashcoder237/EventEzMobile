@@ -7,12 +7,12 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  StatusBar,
   SectionList,
   Modal,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -496,19 +496,17 @@ export default function NotificationsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <NotificationsScreenSkeleton />
-        </SafeAreaView>
-      </View>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>BELL</WatermarkNumeral>
+        <NotificationsScreenSkeleton />
+      </EditorialCanvas>
     );
   }
 
   return (
-    <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>BELL</WatermarkNumeral>
+      <View style={styles.safeArea}>
         <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
           {/* Header with Stats */}
           <View style={[styles.headerContainer, { backgroundColor: colors.primary }]}>
@@ -694,8 +692,8 @@ export default function NotificationsScreen() {
             </View>
           </Modal>
         </View>
-      </SafeAreaView>
-    </View>
+      </View>
+    </EditorialCanvas>
   );
 }
 

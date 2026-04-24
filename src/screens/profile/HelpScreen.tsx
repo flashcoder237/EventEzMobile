@@ -6,18 +6,17 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
-  StatusBar,
   LayoutAnimation,
   Platform,
   UIManager,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import {
   FontFamily,
   FontSizes,
@@ -220,9 +219,9 @@ export default function HelpScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>?</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -340,7 +339,8 @@ export default function HelpScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

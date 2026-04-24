@@ -5,9 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -19,6 +17,7 @@ import {
   Spacing,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 export default function TermsScreen() {
   const navigation = useNavigation();
@@ -125,9 +124,9 @@ Ces conditions sont régies par les lois camerounaises.`
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>TOS</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
@@ -170,7 +169,8 @@ Ces conditions sont régies par les lois camerounaises.`
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

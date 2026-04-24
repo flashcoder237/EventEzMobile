@@ -19,7 +19,7 @@ import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -57,6 +57,8 @@ export default function ReferralScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -67,13 +69,11 @@ export default function ReferralScreen() {
       const codesData: ReferralCode[] = codesRes.data.results || codesRes.data || [];
       setCodes(codesData);
 
-      // Fetch stats for the first code if available, or aggregate
       if (codesData.length > 0) {
         try {
           const statsRes = await referralsAPI.getStats(codesData[0].id);
           setStats(statsRes.data);
         } catch {
-          // Aggregate from codes data as fallback
           const aggregated: ReferralStats = {
             total_clicks: codesData.reduce((sum, c) => sum + (c.total_clicks || 0), 0),
             total_conversions: codesData.reduce((sum, c) => sum + (c.total_conversions || 0), 0),
@@ -133,21 +133,28 @@ export default function ReferralScreen() {
 
   const renderStatsCard = () => (
     <View style={styles.statsRow}>
-      <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-        <Ionicons name="hand-left-outline" size={22} color={colors.info} />
-        <Text style={[styles.statValue, { color: colors.text }]}>{stats?.total_clicks || 0}</Text>
-        <Text style={[styles.statLabel, { color: colors.textLight }]}>Clics</Text>
-      </View>
-      <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-        <Ionicons name="people-outline" size={22} color={colors.success} />
-        <Text style={[styles.statValue, { color: colors.text }]}>{stats?.total_conversions || 0}</Text>
-        <Text style={[styles.statLabel, { color: colors.textLight }]}>Conversions</Text>
-      </View>
-      <View style={[styles.statCard, { backgroundColor: colors.card }]}>
-        <Ionicons name="cash-outline" size={22} color={colors.primary} />
-        <Text style={[styles.statValue, { color: colors.text }]}>{formatCurrency(stats?.total_earnings || 0)}</Text>
-        <Text style={[styles.statLabel, { color: colors.textLight }]}>Gains</Text>
-      </View>
+      {[
+        { icon: 'hand-left-outline' as const, value: String(stats?.total_clicks || 0), label: 'Clics', color: colors.info },
+        { icon: 'people-outline' as const, value: String(stats?.total_conversions || 0), label: 'Conversions', color: colors.success },
+        { icon: 'cash-outline' as const, value: formatCurrency(stats?.total_earnings || 0), label: 'Gains', color: colors.primary },
+      ].map((s, i) => (
+        <View
+          key={i}
+          style={[
+            styles.statCard,
+            { backgroundColor: colors.card, borderColor: hairline },
+            Shadows.sm,
+          ]}
+        >
+          <View style={[styles.statIcon, { backgroundColor: `${s.color}15` }]}>
+            <Ionicons name={s.icon} size={18} color={s.color} />
+          </View>
+          <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>
+            {s.value}
+          </Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{s.label}</Text>
+        </View>
+      ))}
     </View>
   );
 
@@ -156,20 +163,41 @@ export default function ReferralScreen() {
     const eventName = item.event_title || item.event_name;
 
     return (
-      <View style={[styles.codeCard, { backgroundColor: colors.card }]}>
+      <View
+        style={[
+          styles.codeCard,
+          { backgroundColor: colors.card, borderColor: hairline },
+          Shadows.sm,
+        ]}
+      >
         {eventName && (
-          <Text style={[styles.codeEventName, { color: colors.textSecondary }]} numberOfLines={1}>
+          <Text style={[styles.codeEventName, { color: colors.gray500 }]} numberOfLines={1}>
             {eventName}
           </Text>
         )}
 
         <View style={styles.codeRow}>
-          <View style={[styles.codeBox, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+          <View
+            style={[
+              styles.codeBox,
+              {
+                backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                borderColor: hairline,
+              },
+            ]}
+          >
             <Text style={[styles.codeText, { color: colors.primary }]}>{item.code}</Text>
           </View>
           <TouchableOpacity
-            style={[styles.copyButton, { backgroundColor: colors.primaryBg }, isCopied && { backgroundColor: colors.successLight }]}
+            style={[
+              styles.copyButton,
+              {
+                backgroundColor: isCopied ? `${colors.success}15` : `${colors.primary}15`,
+                borderColor: isCopied ? `${colors.success}30` : hairline,
+              },
+            ]}
             onPress={() => handleCopy(item.code, item.id)}
+            activeOpacity={0.75}
           >
             <Ionicons
               name={isCopied ? 'checkmark' : 'copy-outline'}
@@ -178,31 +206,32 @@ export default function ReferralScreen() {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.shareButton, { backgroundColor: colors.primary }]}
+            style={[styles.shareButton, { backgroundColor: colors.primary }, Shadows.sm]}
             onPress={() => handleShare(item.code, eventName)}
+            activeOpacity={0.85}
           >
-            <Ionicons name="share-outline" size={18} color={Colors.white} />
+            <Ionicons name="share-outline" size={18} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
         <View style={styles.codeDetails}>
           {item.commission_percentage != null && (
-            <View style={[styles.detailChip, { backgroundColor: colors.gray100 }]}>
-              <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>
+            <View style={[styles.detailChip, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
+              <Text style={[styles.detailChipText, { color: colors.text }]}>
                 {item.commission_percentage}% commission
               </Text>
             </View>
           )}
           {item.usage_limit != null && (
-            <View style={[styles.detailChip, { backgroundColor: colors.gray100 }]}>
-              <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>
+            <View style={[styles.detailChip, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
+              <Text style={[styles.detailChipText, { color: colors.text }]}>
                 {item.usage_count || 0}/{item.usage_limit} utilisations
               </Text>
             </View>
           )}
           {item.total_clicks != null && (
-            <View style={[styles.detailChip, { backgroundColor: colors.gray100 }]}>
-              <Text style={[styles.detailChipText, { color: colors.textSecondary }]}>
+            <View style={[styles.detailChip, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
+              <Text style={[styles.detailChipText, { color: colors.text }]}>
                 {item.total_clicks} clic{(item.total_clicks || 0) !== 1 ? 's' : ''}
               </Text>
             </View>
@@ -210,8 +239,13 @@ export default function ReferralScreen() {
         </View>
 
         {item.valid_until && (
-          <Text style={[styles.validUntil, { color: colors.textLight }]}>
-            Valide jusqu'au {new Date(item.valid_until).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+          <Text style={[styles.validUntil, { color: colors.gray500 }]}>
+            Valide jusqu'au{' '}
+            {new Date(item.valid_until).toLocaleDateString('fr-FR', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+            })}
           </Text>
         )}
       </View>
@@ -220,21 +254,27 @@ export default function ReferralScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Parrainage</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>PROGRAMME</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Parrainage</Text>
+        </View>
       </View>
 
       <FlatList
@@ -246,27 +286,31 @@ export default function ReferralScreen() {
         }
         ListHeaderComponent={
           <>
-            {/* Description */}
-            <View style={[styles.descriptionCard, { backgroundColor: colors.primaryBg }]}>
-              <Ionicons name="gift-outline" size={24} color={colors.primary} />
-              <Text style={[styles.descriptionText, { color: colors.primary }]}>
-                Partagez vos codes de parrainage et gagnez des commissions sur chaque inscription !
+            <View
+              style={[
+                styles.descriptionCard,
+                { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}20` },
+              ]}
+            >
+              <View style={[styles.descriptionIcon, { backgroundColor: `${colors.primary}20` }]}>
+                <Ionicons name="gift-outline" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.descriptionText, { color: colors.text }]}>
+                Partagez vos codes de parrainage et gagnez des commissions sur chaque inscription.
               </Text>
             </View>
 
-            {/* Stats */}
             {renderStatsCard()}
 
-            {/* Section Title */}
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Mes codes de parrainage</Text>
+            <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>MES CODES</Text>
           </>
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="link-outline" size={48} color={colors.textLight} />
-            <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun code de parrainage</Text>
-            <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
-              Vos codes de parrainage apparaitront ici lorsqu'ils seront disponibles.
+            <Ionicons name="link-outline" size={48} color={colors.gray400} />
+            <Text style={[styles.emptyText, { color: colors.text }]}>Aucun code de parrainage</Text>
+            <Text style={[styles.emptySubtext, { color: colors.gray500 }]}>
+              Vos codes de parrainage apparaîtront ici lorsqu'ils seront disponibles.
             </Text>
           </View>
         }
@@ -277,31 +321,175 @@ export default function ReferralScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: FontSizes.lg, fontWeight: '700', color: Colors.text },
-  listContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.xl },
-  descriptionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.primaryBg, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.md, gap: Spacing.sm },
-  descriptionText: { flex: 1, fontSize: FontSizes.sm, color: Colors.primary, lineHeight: 18 },
-  statsRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.lg },
-  statCard: { flex: 1, alignItems: 'center', backgroundColor: Colors.white, borderRadius: BorderRadius.xl, paddingVertical: Spacing.md, paddingHorizontal: Spacing.xs, ...Shadows.card },
-  statValue: { fontSize: FontSizes.lg, fontWeight: '800', color: Colors.text, marginTop: Spacing.xs },
-  statLabel: { fontSize: FontSizes.xs, color: Colors.textLight, marginTop: 2 },
-  sectionTitle: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.text, marginBottom: Spacing.md },
-  codeCard: { backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.md, marginBottom: Spacing.sm, ...Shadows.card },
-  codeEventName: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.textSecondary, marginBottom: Spacing.sm },
-  codeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  codeBox: { flex: 1, backgroundColor: Colors.gray50, borderRadius: BorderRadius.lg, paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderWidth: 1, borderColor: Colors.border, borderStyle: 'dashed' },
-  codeText: { fontSize: FontSizes.lg, fontWeight: '800', color: Colors.primary, textAlign: 'center', letterSpacing: 2 },
-  copyButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primaryBg, alignItems: 'center', justifyContent: 'center' },
-  copyButtonDone: { backgroundColor: Colors.successLight },
-  shareButton: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  codeDetails: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginTop: Spacing.sm },
-  detailChip: { backgroundColor: Colors.gray100, paddingHorizontal: Spacing.sm, paddingVertical: 4, borderRadius: BorderRadius.full },
-  detailChipText: { fontSize: FontSizes.xs, color: Colors.textSecondary, fontWeight: '500' },
-  validUntil: { fontSize: FontSizes.xs, color: Colors.textLight, marginTop: Spacing.sm },
-  emptyState: { alignItems: 'center', paddingVertical: Spacing.xl * 2 },
-  emptyText: { fontSize: FontSizes.md, color: Colors.textLight, fontWeight: '600', marginTop: Spacing.md },
-  emptySubtext: { fontSize: FontSizes.sm, color: Colors.textLight, marginTop: Spacing.xs, textAlign: 'center', paddingHorizontal: Spacing.xl },
+  container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  listContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.sm,
+  },
+  descriptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  descriptionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  descriptionText: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    lineHeight: 18,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  statCard: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+    gap: 4,
+  },
+  statIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
+  },
+  statValue: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.md,
+  },
+  statLabel: {
+    fontSize: FontSizes.xs,
+    marginTop: 2,
+  },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: Spacing.sm,
+  },
+  codeCard: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  codeEventName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+    marginBottom: Spacing.sm,
+  },
+  codeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  codeBox: {
+    flex: 1,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+  },
+  codeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.lg,
+    textAlign: 'center',
+    letterSpacing: 2,
+  },
+  copyButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  codeDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: Spacing.sm,
+  },
+  detailChip: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  detailChipText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+  },
+  validUntil: {
+    fontSize: FontSizes.xs,
+    marginTop: Spacing.sm,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl * 2,
+    gap: Spacing.xs,
+  },
+  emptyText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.md,
+    marginTop: Spacing.md,
+  },
+  emptySubtext: {
+    fontSize: FontSizes.sm,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
 });

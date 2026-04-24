@@ -7,10 +7,9 @@ import {
   TextInput,
   ScrollView,
   ActivityIndicator,
-  StatusBar,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -149,31 +148,34 @@ export default function RefundRequestScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-        <LoadingSpinner />
-      </SafeAreaView>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>RFND</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <LoadingSpinner />
+        </View>
+      </EditorialCanvas>
     );
   }
 
   if (!payment) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-        <View style={styles.errorContainer}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>NO</WatermarkNumeral>
+        <View style={[styles.errorContainer, { zIndex: 1 }]}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
           <Text style={[styles.errorText, { color: colors.gray500 }]}>Paiement non trouvé</Text>
           <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => navigation.goBack()}>
             <Text style={[styles.retryButtonText, { color: colors.white }]}>Retour</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>RFND</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
           <TouchableOpacity
@@ -330,7 +332,8 @@ export default function RefundRequestScreen() {
             )}
           </TouchableOpacity>
         </View>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

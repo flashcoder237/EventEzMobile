@@ -26,6 +26,8 @@ import { useTheme } from '../../contexts/ThemeContext';
 
 interface InputProps extends Omit<TextInputProps, 'style'> {
   label?: string;
+  /** Right-side micro-text (char counter, optional indicator, etc.) */
+  labelTrailing?: string;
   error?: string;
   success?: string;
   hint?: string;
@@ -33,6 +35,8 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
   iconRight?: keyof typeof Ionicons.glyphMap;
   disabled?: boolean;
   containerStyle?: ViewStyle;
+  /** Typographic variant: "default" (body regular) or "title" (Funnel Display semibold) */
+  variant?: 'default' | 'title';
   /** Label d'accessibilite personnalise */
   accessibilityLabel?: string;
   /** Indice d'accessibilite */
@@ -43,6 +47,7 @@ const AnimatedView = Animated.View;
 
 function InputComponent({
   label,
+  labelTrailing,
   error,
   success,
   hint,
@@ -51,6 +56,7 @@ function InputComponent({
   disabled = false,
   secureTextEntry,
   containerStyle,
+  variant = 'default',
   accessibilityLabel: a11yLabel,
   accessibilityHint: a11yHint,
   ...textInputProps
@@ -98,15 +104,20 @@ function InputComponent({
   return (
     <AnimatedView style={[shakeStyle, containerStyle]}>
       {label && (
-        <Text style={[styles.label, { color: colors.gray700 }]}>{label}</Text>
+        <View style={styles.labelRow}>
+          <Text style={[styles.label, { color: colors.gray600 }]}>{label}</Text>
+          {labelTrailing ? (
+            <Text style={[styles.labelTrailing, { color: colors.gray400 }]}>{labelTrailing}</Text>
+          ) : null}
+        </View>
       )}
       <View
         style={[
           styles.inputContainer,
           {
-            backgroundColor: isDark ? colors.gray100 : colors.gray50,
+            backgroundColor: isDark ? colors.card : colors.card,
             borderColor: getBorderColor(),
-            borderWidth: focused ? 2 : 1,
+            borderWidth: focused ? 1.5 : 1,
           },
           disabled && { opacity: 0.5 },
         ]}
@@ -132,6 +143,7 @@ function InputComponent({
           accessibilityState={disabled ? { disabled: true } : undefined}
           style={[
             styles.input,
+            variant === 'title' && styles.inputTitle,
             { color: colors.text },
             icon && { paddingLeft: 0 },
             (iconRight || secureTextEntry) && { paddingRight: 0 },
@@ -173,23 +185,40 @@ function InputComponent({
 }
 
 const styles = StyleSheet.create({
-  label: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     marginBottom: Spacing.sm,
+  },
+  label: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  labelTrailing: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderRadius: INPUT_BORDER_RADIUS,
     paddingHorizontal: Spacing.base,
-    minHeight: 48,
+    minHeight: 50,
   },
   input: {
     flex: 1,
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.base,
     paddingVertical: Spacing.md,
+  },
+  inputTitle: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 18,
+    letterSpacing: -0.3,
+    paddingVertical: 16,
   },
   iconLeft: {
     marginRight: Spacing.sm,
@@ -198,8 +227,9 @@ const styles = StyleSheet.create({
     marginLeft: Spacing.sm,
   },
   helperText: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.xs,
+    lineHeight: 16,
     marginTop: Spacing.xs,
   },
 });

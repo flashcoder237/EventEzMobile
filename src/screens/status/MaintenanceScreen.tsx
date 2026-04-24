@@ -6,9 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -26,6 +24,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { IncidentSeverity, IncidentStatus, RootStackParamList } from '../../types';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -72,7 +71,7 @@ function formatDateTime(iso: string | null): string {
 
 export default function MaintenanceScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { blockingIncident, lastServiceIncident, refresh, isLoading } = useStatus();
 
   const incident = blockingIncident || lastServiceIncident;
@@ -83,8 +82,9 @@ export default function MaintenanceScreen() {
   const statusColor = STATUS_COLORS[status];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>MNT</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       <ScrollView
         contentContainerStyle={styles.content}
@@ -220,7 +220,8 @@ export default function MaintenanceScreen() {
           </Text>
         </StaggeredItem>
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

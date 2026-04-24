@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
@@ -19,6 +18,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type VerificationStatus = 'none' | 'pending' | 'under_review' | 'approved' | 'rejected';
 
@@ -176,14 +176,19 @@ export default function VerificationScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]}>
-        <LoadingSpinner />
-      </SafeAreaView>
+      <EditorialCanvas>
+        <WatermarkNumeral>✓</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <LoadingSpinner />
+        </View>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.card }]}>
+    <EditorialCanvas>
+      <WatermarkNumeral>✓</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={[styles.title, { color: colors.gray900 }]}>Verification du compte</Text>
         <Text style={[styles.subtitle, { color: colors.gray600 }]}>
@@ -286,7 +291,8 @@ export default function VerificationScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

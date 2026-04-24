@@ -9,7 +9,7 @@ import {
   Share,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -263,19 +263,22 @@ export default function QRCodeScreen() {
 
   if (!ticket) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Retour" accessibilityRole="button">
-            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
-          <View style={{ width: 40 }} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>QR</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Retour" accessibilityRole="button">
+              <Ionicons name="arrow-back" size={24} color={colors.gray900} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>Billet non trouvé</Text>
+          </View>
         </View>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>Billet non trouvé</Text>
-        </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -284,7 +287,9 @@ export default function QRCodeScreen() {
   const statusConfig = getStatusConfig(ticket.status);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>QR</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Retour" accessibilityRole="button">
@@ -536,7 +541,8 @@ export default function QRCodeScreen() {
 
         <View style={{ height: Spacing.xl * 2 }} />
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

@@ -4,10 +4,7 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  ScrollView,
-  StatusBar,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,21 +17,18 @@ import {
   Colors,
   FontSizes,
   FontFamily,
-  TextStyles,
   BorderRadius,
   Spacing,
-  Shadows,
 } from '../../constants/theme';
-import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
-import DotPattern from '../../components/ui/DotPattern';
+import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'ForgotPassword'>;
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError } = useAlert();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -77,48 +71,43 @@ export default function ForgotPasswordScreen() {
 
   if (isSuccess) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+      <EditorialCanvas>
+        <WatermarkNumeral>OK</WatermarkNumeral>
         <View style={styles.successContainer}>
           <View style={[styles.successIcon, { backgroundColor: colors.gray50 }]}>
             <Ionicons name="mail-outline" size={48} color={colors.primary} />
           </View>
-          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Email envoyé !</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent, textAlign: 'center' }]}>Email envoyé</Text>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Check ta boîte mail</Text>
           <Text style={[styles.successText, { color: colors.gray600 }]}>
             Si un compte existe avec l'adresse {email}, vous recevrez un email avec les instructions pour réinitialiser votre mot de passe.
           </Text>
           <Text style={[styles.successHint, { color: colors.gray400 }]}>
             Vérifiez également votre dossier spam.
           </Text>
-          <GradientButton
-            title="Retour à la connexion"
-            onPress={() => navigation.navigate('Login')}
-            style={styles.successButton}
-            fullWidth
-          />
+          <View style={styles.successButtonWrap}>
+            <EditorialPillCTA
+              eyebrow="Revenir"
+              label="Retour à la connexion"
+              onPress={() => navigation.navigate('Login')}
+              icon="arrow-back"
+            />
+          </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-
-      {/* Dot pattern background */}
-      <DotPattern opacity={isDark ? 0.02 : 0.04} />
-
-      {/* Top accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: colors.primary }]} />
-
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAwareScrollView
-          style={styles.keyboardView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={20}
-          >
+    <EditorialCanvas>
+      <WatermarkNumeral>03</WatermarkNumeral>
+      <KeyboardAwareScrollView
+        style={styles.keyboardView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
+      >
             {/* Back Button */}
             <AnimatedPressable
               onPress={() => navigation.goBack()}
@@ -176,15 +165,15 @@ export default function ForgotPasswordScreen() {
                 )}
               </View>
 
-              <GradientButton
-                onPress={handleSubmit}
-                title="Envoyer le lien"
-                loading={isLoading}
-                icon={<Ionicons name="send" size={20} color={Colors.white} />}
-                size="xl"
-                fullWidth
-                style={styles.submitButton}
-              />
+              <View style={styles.submitButtonWrap}>
+                <EditorialPillCTA
+                  eyebrow="Envoyer"
+                  label="Envoyer le lien"
+                  onPress={handleSubmit}
+                  loading={isLoading}
+                  icon="send"
+                />
+              </View>
             </View>
 
             {/* Login Link */}
@@ -198,28 +187,15 @@ export default function ForgotPasswordScreen() {
                 <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
               </AnimatedPressable>
             </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
-    </View>
+      </KeyboardAwareScrollView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  accentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
-  safeArea: {
-    flex: 1,
-  },
   keyboardView: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -260,12 +236,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontSize: FontSizes['3xl'],
-    fontFamily: FontFamily.displayBold,
+    fontSize: 34,
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.gray900,
     marginBottom: Spacing.sm,
     textAlign: 'center',
-    letterSpacing: -0.5,
+    letterSpacing: -1,
+    lineHeight: 38,
   },
   subtitle: {
     fontSize: FontSizes.base,
@@ -318,8 +295,14 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.sm,
     color: Colors.error,
   },
-  submitButton: {
+  submitButtonWrap: {
     marginTop: Spacing.md,
+    flexDirection: 'row',
+  },
+  successButtonWrap: {
+    marginTop: Spacing.lg,
+    flexDirection: 'row',
+    alignSelf: 'stretch',
   },
   loginContainer: {
     flexDirection: 'row',
@@ -353,10 +336,12 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.xl,
   },
   successTitle: {
-    fontSize: FontSizes['2xl'],
-    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['3xl'],
+    fontFamily: FontFamily.displayExtraBold,
     color: Colors.gray900,
     marginBottom: Spacing.md,
+    letterSpacing: -0.9,
+    textAlign: 'center',
   },
   successText: {
     fontSize: FontSizes.base,

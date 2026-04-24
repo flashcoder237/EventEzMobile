@@ -107,14 +107,14 @@ export default function DynamicFormFields({
     return (
       <View key={field.id} style={styles.fieldContainer}>
         <View style={styles.labelContainer}>
-          <Text style={[styles.label, { color: colors.gray700 }]}>{field.label}</Text>
+          <Text style={[styles.label, { color: colors.gray600 }]}>{field.label}</Text>
           {field.required && <Text style={[styles.required, { color: colors.error }]}>*</Text>}
         </View>
 
         {/* Text, Email, Number, Phone, URL fields */}
         {['text', 'email', 'number', 'phone', 'tel', 'url'].includes(field.field_type) && (
           <TextInput
-            style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }, error && { borderColor: colors.error }]}
+            style={[styles.input, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }, error && { borderColor: colors.error }]}
             value={value || ''}
             onChangeText={(text) => onFieldChange(field.label, text)}
             placeholder={field.placeholder || ''}
@@ -132,7 +132,7 @@ export default function DynamicFormFields({
         {/* Textarea */}
         {field.field_type === 'textarea' && (
           <TextInput
-            style={[styles.input, styles.textArea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }, error && { borderColor: colors.error }]}
+            style={[styles.input, styles.textArea, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }, error && { borderColor: colors.error }]}
             value={value || ''}
             onChangeText={(text) => onFieldChange(field.label, text)}
             placeholder={field.placeholder || ''}
@@ -149,17 +149,21 @@ export default function DynamicFormFields({
             {options.map((option: string, optIndex: number) => (
               <TouchableOpacity
                 key={optIndex}
+                activeOpacity={0.85}
                 style={[
                   styles.selectOption,
-                  { backgroundColor: colors.gray50, borderColor: colors.gray200 },
-                  value === option && { borderColor: colors.primary, backgroundColor: colors.primaryBg },
+                  { backgroundColor: colors.card, borderColor: colors.gray200 },
+                  value === option && {
+                    borderColor: colors.primary,
+                    backgroundColor: isDark ? colors.primaryBg : colors.primaryBgLight,
+                  },
                 ]}
                 onPress={() => onFieldChange(field.label, option)}
               >
                 <Text style={[
                   styles.selectOptionText,
                   { color: colors.gray700 },
-                  value === option && { color: colors.primary, fontFamily: FontFamily.medium },
+                  value === option && { color: colors.primary, fontFamily: FontFamily.bold },
                 ]}>
                   {option}
                 </Text>
@@ -242,7 +246,12 @@ export default function DynamicFormFields({
         )}
 
         {/* Error Message */}
-        {error && <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>}
+        {error && (
+          <View style={styles.errorRow}>
+            <Ionicons name="alert-circle" size={14} color={colors.error} />
+            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+          </View>
+        )}
       </View>
     );
   };
@@ -352,35 +361,41 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: 22,
+    lineHeight: 26,
     fontFamily: FontFamily.displayBold,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
     color: Colors.gray900,
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   fieldContainer: {
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   labelContainer: {
     flexDirection: 'row',
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   label: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray700,
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    color: Colors.gray600,
   },
   required: {
     color: Colors.error,
     marginLeft: 4,
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
   },
   input: {
-    backgroundColor: Colors.gray50,
+    backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.gray200,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: 14,
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.base,
     color: Colors.gray900,
   },
@@ -398,24 +413,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.gray50,
-    borderWidth: 1,
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
     borderColor: Colors.gray200,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.base,
+    paddingVertical: 14,
   },
   selectOptionActive: {
     borderColor: Colors.primary,
     backgroundColor: Colors.primaryBg,
   },
   selectOptionText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.base,
+    letterSpacing: -0.1,
     color: Colors.gray700,
   },
   selectOptionTextActive: {
     color: Colors.primary,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.bold,
   },
   radioContainer: {
     gap: Spacing.sm,
@@ -444,6 +461,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   radioText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
     color: Colors.gray700,
   },
@@ -467,18 +485,27 @@ const styles = StyleSheet.create({
   },
   checkboxText: {
     flex: 1,
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.base,
     color: Colors.gray700,
   },
   helpText: {
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.xs,
+    lineHeight: 16,
     color: Colors.gray500,
-    marginTop: 4,
+    marginTop: Spacing.xs,
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: Spacing.xs,
   },
   errorText: {
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
     color: Colors.error,
-    marginTop: 4,
   },
   stepIndicator: {
     marginBottom: Spacing.xl,
@@ -490,9 +517,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   stepCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: Colors.gray200,
     alignItems: 'center',
     justifyContent: 'center',
@@ -506,8 +533,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.primaryLight,
   },
   stepNumber: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    fontFamily: FontFamily.bold,
     color: Colors.gray500,
   },
   stepNumberActive: {
@@ -523,14 +550,19 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
   },
   stepTitle: {
-    fontSize: FontSizes.lg,
+    fontSize: 20,
+    lineHeight: 24,
     fontFamily: FontFamily.displayBold,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
     color: Colors.gray900,
     marginBottom: 4,
+    textAlign: 'center',
   },
   stepProgress: {
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
     color: Colors.gray500,
   },
   fieldsContainer: {
@@ -559,16 +591,18 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
   },
   navButtonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.1,
     color: Colors.gray700,
   },
   navButtonTextDisabled: {
     color: Colors.gray300,
   },
   navButtonTextPrimary: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    letterSpacing: -0.1,
     color: Colors.white,
   },
 });

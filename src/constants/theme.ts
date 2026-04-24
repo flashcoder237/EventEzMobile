@@ -2,6 +2,8 @@
 // Inspired by Eventbrite 2025 rebrand
 // Typography: Funnel Display (titles), Montserrat (body)
 
+import { ms } from '../utils/responsive';
+
 export const Colors = {
   // Primary - Indigo profond (EventEz signature)
   primary: '#4F46E5',
@@ -211,20 +213,22 @@ export const FontFamily = {
   light: 'Montserrat_300Light',
 };
 
+// FontSizes : adapte a la largeur d'ecran via moderateScale (facteur 0.3).
+// Reference : iPhone 14 (390pt). Les petits ecrans rapetissent legerement, les tablettes grossissent modestement.
 export const FontSizes = {
-  xs: 11,
-  sm: 13,
-  md: 14,
-  base: 15,
-  lg: 17,
-  xl: 20,
-  '2xl': 24,
-  '3xl': 30,
-  '4xl': 36,
-  '5xl': 48,
-  '6xl': 56,
-  '7xl': 64,
-  '8xl': 72,
+  xs: ms(11),
+  sm: ms(13),
+  md: ms(14),
+  base: ms(15),
+  lg: ms(17),
+  xl: ms(20),
+  '2xl': ms(24),
+  '3xl': ms(30),
+  '4xl': ms(36),
+  '5xl': ms(48),
+  '6xl': ms(56),
+  '7xl': ms(64),
+  '8xl': ms(72),
 };
 
 export const FontWeights = {
@@ -236,20 +240,21 @@ export const FontWeights = {
   bold: '700' as const,
 };
 
+// Spacing : scale modere pour coherence layout/typographie a travers les tailles d'ecran.
 export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  base: 16,
-  lg: 20,
-  xl: 24,
-  '2xl': 32,
-  '3xl': 40,
-  '4xl': 48,
-  '5xl': 64,
-  '6xl': 80,
-  '7xl': 96,
-  '8xl': 120,
+  xs: ms(4),
+  sm: ms(8),
+  md: ms(12),
+  base: ms(16),
+  lg: ms(20),
+  xl: ms(24),
+  '2xl': ms(32),
+  '3xl': ms(40),
+  '4xl': ms(48),
+  '5xl': ms(64),
+  '6xl': ms(80),
+  '7xl': ms(96),
+  '8xl': ms(120),
 };
 
 export const BorderRadius = {
@@ -445,28 +450,28 @@ export const TextStyles = {
   // Editorial - Hero & Display styles
   hero: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 56,
+    fontSize: ms(56),
     color: Colors.gray900,
-    lineHeight: 58,
+    lineHeight: ms(58),
     letterSpacing: -2,
   },
   heroSm: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
+    fontSize: ms(40),
     color: Colors.gray900,
-    lineHeight: 44,
+    lineHeight: ms(44),
     letterSpacing: -1.5,
   },
   editorial: {
     fontFamily: FontFamily.displayBold,
-    fontSize: 32,
+    fontSize: ms(32),
     color: Colors.gray900,
-    lineHeight: 36,
+    lineHeight: ms(36),
     letterSpacing: -1,
   },
   eyebrow: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 11,
+    fontSize: ms(11),
     color: Colors.accent,
     textTransform: 'uppercase' as const,
     letterSpacing: 1.5,
@@ -475,16 +480,16 @@ export const TextStyles = {
   // Headings - Funnel Display (bolder, larger — Eventbrite style)
   h1: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
+    fontSize: ms(40),
     color: Colors.gray900,
-    lineHeight: 46,
+    lineHeight: ms(46),
     letterSpacing: -1,
   },
   h2: {
     fontFamily: FontFamily.displayBold,
-    fontSize: 28,
+    fontSize: ms(28),
     color: Colors.gray900,
-    lineHeight: 34,
+    lineHeight: ms(34),
     letterSpacing: -0.5,
   },
   h3: {
@@ -583,12 +588,12 @@ export const BUTTON_BORDER_RADIUS = BorderRadius.lg;
 
 /** Tailles d'icones standards */
 export const IconSizes = {
-  xs: 14,
-  sm: 18,
-  md: 24,
-  lg: 32,
-  xl: 48,
-  '2xl': 64,
+  xs: ms(14),
+  sm: ms(18),
+  md: ms(24),
+  lg: ms(32),
+  xl: ms(48),
+  '2xl': ms(64),
 };
 
 /** Durees d'animation standards */
@@ -600,23 +605,23 @@ export const ANIMATION_DURATION = {
 
 /** Hauteurs de composants standards */
 export const ComponentHeights = {
-  buttonSm: 36,
-  buttonMd: 44,
-  buttonLg: 52,
-  input: 48,
-  header: 56,
-  tabBar: 60,
-  listItem: 64,
+  buttonSm: ms(36),
+  buttonMd: ms(44),
+  buttonLg: ms(52),
+  input: ms(48),
+  header: ms(56),
+  tabBar: ms(60),
+  listItem: ms(64),
 };
 
 /** Tailles d'avatar standards */
 export const AvatarSizes = {
-  xs: 24,
-  sm: 32,
-  md: 40,
-  lg: 56,
-  xl: 80,
-  '2xl': 100,
+  xs: ms(24),
+  sm: ms(32),
+  md: ms(40),
+  lg: ms(56),
+  xl: ms(80),
+  '2xl': ms(100),
 };
 
 const theme = {

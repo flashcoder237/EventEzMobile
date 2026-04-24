@@ -6,11 +6,10 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
   TextInput,
   SectionList,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -302,18 +301,21 @@ export default function MyPaymentsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
-        <View style={{ padding: 16 }}>
-          <SkeletonList count={6} Component={PaymentCardSkeleton} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>€€€</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={{ padding: 16 }}>
+            <SkeletonList count={6} Component={PaymentCardSkeleton} />
+          </View>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>€€€</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
@@ -481,7 +483,8 @@ export default function MyPaymentsScreen() {
           }
         />
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

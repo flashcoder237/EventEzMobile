@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   FlatList,
   TouchableOpacity,
 } from 'react-native';
@@ -15,7 +14,7 @@ import { gamificationAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -27,6 +26,8 @@ export default function GamificationScreen() {
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'badges' | 'leaderboard'>('badges');
+
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   useEffect(() => {
     fetchData();
@@ -51,45 +52,71 @@ export default function GamificationScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <LoadingSpinner />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Badges & Points</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>RÉCOMPENSES</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Badges & Points</Text>
+        </View>
       </View>
 
       {/* Points Card */}
-      <View style={[styles.pointsCard, { backgroundColor: colors.card }]}>
-        <Ionicons name="trophy" size={32} color="#FFD700" />
-        <Text style={[styles.pointsValue, { color: colors.primary }]}>{points?.total_points || points?.balance || 0}</Text>
-        <Text style={[styles.pointsLabel, { color: colors.textLight }]}>Points</Text>
+      <View
+        style={[
+          styles.pointsCard,
+          { backgroundColor: colors.card, borderColor: hairline },
+          Shadows.sm,
+        ]}
+      >
+        <View style={[styles.pointsIcon, { backgroundColor: 'rgba(255,215,0,0.12)' }]}>
+          <Ionicons name="trophy" size={28} color="#E0A800" />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.pointsEyebrow, { color: colors.gray500 }]}>SOLDE</Text>
+          <Text style={[styles.pointsValue, { color: colors.text }]}>
+            {points?.total_points || points?.balance || 0}
+          </Text>
+          <Text style={[styles.pointsLabel, { color: colors.gray500 }]}>points cumulés</Text>
+        </View>
       </View>
 
       {/* Tabs */}
-      <View style={[styles.tabs, { backgroundColor: colors.gray100 }]}>
+      <View
+        style={[
+          styles.tabs,
+          { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'badges' && [styles.activeTab, { backgroundColor: colors.card }]]}
+          style={[styles.tab, activeTab === 'badges' && [styles.activeTab, { backgroundColor: colors.card }, Shadows.sm]]}
           onPress={() => setActiveTab('badges')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'badges' && { color: colors.primary }]}>
+          <Text style={[styles.tabText, { color: activeTab === 'badges' ? colors.text : colors.gray500 }]}>
             Badges ({badges.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'leaderboard' && [styles.activeTab, { backgroundColor: colors.card }]]}
+          style={[styles.tab, activeTab === 'leaderboard' && [styles.activeTab, { backgroundColor: colors.card }, Shadows.sm]]}
           onPress={() => setActiveTab('leaderboard')}
+          activeOpacity={0.7}
         >
-          <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'leaderboard' && { color: colors.primary }]}>
+          <Text style={[styles.tabText, { color: activeTab === 'leaderboard' ? colors.text : colors.gray500 }]}>
             Classement
           </Text>
         </TouchableOpacity>
@@ -104,19 +131,31 @@ export default function GamificationScreen() {
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="ribbon-outline" size={48} color={colors.textLight} />
-              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun badge pour le moment</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>Participez a des evenements pour gagner des badges !</Text>
+              <Ionicons name="ribbon-outline" size={48} color={colors.gray400} />
+              <Text style={[styles.emptyText, { color: colors.text }]}>Aucun badge pour le moment</Text>
+              <Text style={[styles.emptySubtext, { color: colors.gray500 }]}>
+                Participez à des événements pour gagner des badges.
+              </Text>
             </View>
           }
           renderItem={({ item }) => (
             <View style={styles.badgeItem}>
-              <View style={[styles.badgeIcon, { backgroundColor: item.color || colors.primaryBg }]}>
-                <Ionicons name={item.icon || 'ribbon'} size={28} color={colors.primary} />
+              <View
+                style={[
+                  styles.badgeIcon,
+                  {
+                    backgroundColor: `${colors.primary}15`,
+                    borderColor: hairline,
+                  },
+                ]}
+              >
+                <Ionicons name={item.icon || 'ribbon'} size={26} color={colors.primary} />
               </View>
-              <Text style={[styles.badgeName, { color: colors.text }]} numberOfLines={2}>{item.badge_name || item.name}</Text>
+              <Text style={[styles.badgeName, { color: colors.text }]} numberOfLines={2}>
+                {item.badge_name || item.name}
+              </Text>
               {item.earned_at && (
-                <Text style={[styles.badgeDate, { color: colors.textLight }]}>
+                <Text style={[styles.badgeDate, { color: colors.gray500 }]}>
                   {new Date(item.earned_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
                 </Text>
               )}
@@ -131,19 +170,29 @@ export default function GamificationScreen() {
           keyExtractor={(item, index) => item.id || String(index)}
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="podium-outline" size={48} color={colors.textLight} />
-              <Text style={[styles.emptyText, { color: colors.textLight }]}>Classement non disponible</Text>
+              <Ionicons name="podium-outline" size={48} color={colors.gray400} />
+              <Text style={[styles.emptyText, { color: colors.text }]}>Classement non disponible</Text>
             </View>
           }
           renderItem={({ item, index }) => (
-            <View style={[styles.leaderboardItem, { backgroundColor: colors.card }, index < 3 && { borderLeftColor: colors.primary, borderLeftWidth: 3 }]}>
-              <Text style={[styles.rank, { color: colors.textLight }, index < 3 && styles.topRank]}>
+            <View
+              style={[
+                styles.leaderboardItem,
+                { backgroundColor: colors.card, borderColor: hairline },
+                Shadows.sm,
+              ]}
+            >
+              <Text style={[styles.rank, { color: index < 3 ? colors.primary : colors.gray500 }]}>
                 {index === 0 ? '\u{1F947}' : index === 1 ? '\u{1F948}' : index === 2 ? '\u{1F949}' : `${index + 1}`}
               </Text>
               <View style={styles.leaderboardInfo}>
-                <Text style={[styles.leaderboardName, { color: colors.text }]}>{item.user_name || item.username || 'Utilisateur'}</Text>
+                <Text style={[styles.leaderboardName, { color: colors.text }]} numberOfLines={1}>
+                  {item.user_name || item.username || 'Utilisateur'}
+                </Text>
               </View>
-              <Text style={[styles.leaderboardPoints, { color: colors.primary }]}>{item.total_points || 0} pts</Text>
+              <Text style={[styles.leaderboardPoints, { color: colors.primary }]}>
+                {item.total_points || 0} pts
+              </Text>
             </View>
           )}
         />
@@ -153,32 +202,157 @@ export default function GamificationScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
-  backButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontSize: FontSizes.lg, fontWeight: '700', color: Colors.text },
-  pointsCard: { alignItems: 'center', backgroundColor: Colors.white, marginHorizontal: Spacing.md, borderRadius: BorderRadius.xl, padding: Spacing.lg, marginBottom: Spacing.md, ...Shadows.md },
-  pointsValue: { fontSize: 36, fontWeight: '800', color: Colors.primary, marginTop: Spacing.xs },
-  pointsLabel: { fontSize: FontSizes.sm, color: Colors.textLight },
-  tabs: { flexDirection: 'row', marginHorizontal: Spacing.md, backgroundColor: Colors.gray100, borderRadius: BorderRadius.lg, padding: 4, marginBottom: Spacing.md },
-  tab: { flex: 1, paddingVertical: Spacing.sm, alignItems: 'center', borderRadius: BorderRadius.md },
-  activeTab: { backgroundColor: Colors.white, ...Shadows.md },
-  tabText: { fontSize: FontSizes.sm, color: Colors.textLight, fontWeight: '600' },
-  activeTabText: { color: Colors.primary },
-  badgesGrid: { paddingHorizontal: Spacing.md },
-  badgeItem: { flex: 1 / 3, alignItems: 'center', marginBottom: Spacing.lg, paddingHorizontal: Spacing.xs },
-  badgeIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.xs },
-  badgeName: { fontSize: FontSizes.xs, color: Colors.text, textAlign: 'center', fontWeight: '600' },
-  badgeDate: { fontSize: 10, color: Colors.textLight, marginTop: 2 },
-  leaderboardList: { paddingHorizontal: Spacing.md },
-  leaderboardItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.white, borderRadius: BorderRadius.lg, padding: Spacing.md, marginBottom: Spacing.xs },
-  topThree: { borderLeftWidth: 3, borderLeftColor: Colors.primary },
-  rank: { fontSize: FontSizes.md, fontWeight: '700', color: Colors.textLight, width: 32, textAlign: 'center' },
-  topRank: { fontSize: 20 },
-  leaderboardInfo: { flex: 1, marginLeft: Spacing.sm },
-  leaderboardName: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.text },
-  leaderboardPoints: { fontSize: FontSizes.sm, fontWeight: '700', color: Colors.primary },
-  emptyState: { alignItems: 'center', paddingVertical: Spacing.xl * 2 },
-  emptyText: { fontSize: FontSizes.md, color: Colors.textLight, fontWeight: '600', marginTop: Spacing.md },
-  emptySubtext: { fontSize: FontSizes.sm, color: Colors.textLight, marginTop: Spacing.xs, textAlign: 'center' },
+  container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  title: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  pointsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.lg,
+  },
+  pointsIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pointsEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  pointsValue: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 32,
+    letterSpacing: -1,
+  },
+  pointsLabel: {
+    fontSize: FontSizes.xs,
+    marginTop: 2,
+  },
+  tabs: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.lg,
+    marginVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    padding: 4,
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    alignItems: 'center',
+    borderRadius: BorderRadius.full,
+  },
+  activeTab: {},
+  tabText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+  },
+  badgesGrid: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+  },
+  badgeItem: {
+    flex: 1 / 3,
+    alignItems: 'center',
+    marginBottom: Spacing.lg,
+    paddingHorizontal: Spacing.xs,
+  },
+  badgeIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.xs,
+  },
+  badgeName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
+    textAlign: 'center',
+  },
+  badgeDate: {
+    fontSize: 10,
+    marginTop: 2,
+  },
+  leaderboardList: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xl,
+    gap: Spacing.xs,
+  },
+  leaderboardItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  rank: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.md,
+    width: 32,
+    textAlign: 'center',
+  },
+  leaderboardInfo: {
+    flex: 1,
+    marginLeft: Spacing.sm,
+  },
+  leaderboardName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+  },
+  leaderboardPoints: {
+    fontFamily: FontFamily.bold,
+    fontSize: FontSizes.sm,
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl * 2,
+    gap: Spacing.xs,
+  },
+  emptyText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.md,
+    marginTop: Spacing.md,
+  },
+  emptySubtext: {
+    fontSize: FontSizes.sm,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
 });

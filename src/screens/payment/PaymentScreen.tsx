@@ -8,11 +8,11 @@ import {
   TextInput,
   ActivityIndicator,
   Linking,
-  StatusBar,
 } from 'react-native';
 import { Image, ImageSource } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +27,7 @@ import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useSavedPaymentMethods, SavedPaymentMethod, maskPhoneNumber } from '../../hooks';
+import { useSavedPaymentMethods, SavedPaymentMethod, maskPhoneNumber, PaymentMethodType } from '../../hooks';
 import {
   usePaymentVerification,
   isPaymentSuccess,
@@ -184,7 +184,7 @@ export default function PaymentScreen() {
   const { registrationId, newTickets, totalAmount } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   // Mode billets supplémentaires: on a des newTickets passés en params
@@ -230,7 +230,8 @@ export default function PaymentScreen() {
   const savePaymentMethodOnSuccess = useCallback(() => {
     if (selectedMethod && !REDIRECT_METHODS.has(selectedMethod) && phoneNumber) {
       const cleanNumber = phoneNumber.replace(/[\s\-\.\(\)]/g, '');
-      savePaymentMethod(cleanNumber, selectedMethod);
+      // REDIRECT_METHODS filtre 'paypal' → selectedMethod est ici un PaymentMethodType.
+      savePaymentMethod(cleanNumber, selectedMethod as PaymentMethodType);
       if (selectedSavedMethod) {
         markAsUsed(selectedSavedMethod.id);
       }
@@ -430,7 +431,7 @@ export default function PaymentScreen() {
   // Auto-select last used payment method for the selected type
   useEffect(() => {
     if (selectedMethod && !REDIRECT_METHODS.has(selectedMethod)) {
-      const methodsOfType = getMethodsByType(selectedMethod);
+      const methodsOfType = getMethodsByType(selectedMethod as PaymentMethodType);
       if (methodsOfType.length > 0 && !selectedSavedMethod) {
         // Don't auto-select, but keep for display
       }
@@ -633,7 +634,7 @@ export default function PaymentScreen() {
         });
         if (__DEV__) console.log('[Payment] Mobile Money processing response:', response.data);
       } else {
-        // Carte bancaire ou PayPal - redirection vers page de paiement (NotchPay ou Stripe Checkout)
+        // Carte bancaire ou PayPal - redirection vers page de paiement NotchPay
         const response = await paymentsAPI.initializePayment(newPaymentId);
         if (__DEV__) console.log('[Payment] Redirect initialization response:', response.data);
 
@@ -812,8 +813,9 @@ export default function PaymentScreen() {
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>PAY</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity
@@ -1133,7 +1135,7 @@ export default function PaymentScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Numéro de téléphone</Text>
 
                 {/* Saved Payment Methods */}
-                {getMethodsByType(selectedMethod).length > 0 && (
+                {getMethodsByType(selectedMethod as PaymentMethodType).length > 0 && (
                   <View style={styles.savedMethodsContainer}>
                     <Text style={[styles.savedMethodsLabel, { color: colors.gray600 }]}>Numéros enregistrés</Text>
                     <ScrollView
@@ -1141,7 +1143,7 @@ export default function PaymentScreen() {
                       showsHorizontalScrollIndicator={false}
                       contentContainerStyle={styles.savedMethodsList}
                     >
-                      {getMethodsByType(selectedMethod).map((method) => (
+                      {getMethodsByType(selectedMethod as PaymentMethodType).map((method) => (
                         <TouchableOpacity
                           key={method.id}
                           style={[
@@ -1260,7 +1262,8 @@ export default function PaymentScreen() {
           </View>
         </>
       )}
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

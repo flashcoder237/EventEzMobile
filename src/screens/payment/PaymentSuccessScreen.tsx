@@ -4,7 +4,7 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -48,7 +48,7 @@ export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
   const { eventType, approvalStatus, eventTitle, registrationId } = route.params;
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -125,7 +125,9 @@ export default function PaymentSuccessScreen() {
   const showConfetti = content.icon !== 'time-outline';
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <EditorialCanvas edges={['top', 'bottom']}>
+      <WatermarkNumeral>OK</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Confetti for success states */}
       {showConfetti && <ConfettiEffect />}
 
@@ -179,7 +181,8 @@ export default function PaymentSuccessScreen() {
           accessibilityLabel="Retour a l'accueil"
         />
       </View>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

@@ -1,11 +1,5 @@
 /**
- * MessagesScreen - Liste des conversations refactorisée
- *
- * Améliorations:
- * - Taille d'avatar standardisée (MESSAGE_AVATAR_SIZE)
- * - Skeleton loading
- * - Composants mémorisés
- * - Helpers de formatage centralisés
+ * MessagesScreen - Soft Editorial Inbox
  */
 
 import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
@@ -16,12 +10,12 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
   TextInput,
   Modal,
+  Platform,
 } from 'react-native';
-import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -33,13 +27,13 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Conversation, RootStackParamList, User } from '../../types';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
-  TextStyles,
+  Shadows,
   TOUCH_OPACITY,
+  Colors,
 } from '../../constants/theme';
 import {
   MESSAGE_AVATAR_SIZE,
@@ -48,15 +42,14 @@ import {
   formatRelativeTime,
 } from '../../lib/utils/messagingHelpers';
 import { ConversationItemSkeleton, MessagesScreenSkeleton } from '../../components/ui/Skeleton';
-import { EmptyState } from '../../components/ui';
 import { NewMessage, PeopleSearch, AnimatedIllustration } from '../../components/illustrations';
 import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type TabType = 'all' | 'archived';
+type TabType = 'all' | 'events' | 'archived';
 
 // ============================================
-// CONVERSATION CARD COMPONENT
+// CONVERSATION CARD — soft rounded
 // ============================================
 
 interface ConversationCardProps {
@@ -72,52 +65,112 @@ const ConversationCard = memo(function ConversationCard({
   onPress,
   onLongPress,
 }: ConversationCardProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const otherUser = conversation.participants?.find(p => p.id !== currentUserId) || conversation.participants?.[0];
   const displayName = conversation.title || getDisplayName(otherUser || null);
   const avatar = otherUser?.profile_picture || (otherUser as any)?.image;
   const initials = getUserInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
+  const isOrganizer = (otherUser as any)?.role === 'organizer' || (otherUser as any)?.user_type === 'organization';
+
+  const preview =
+    (typeof conversation.last_message === 'object'
+      ? conversation.last_message?.content
+      : conversation.last_message) || 'Aucun message';
 
   return (
     <TouchableOpacity
-      style={[styles.conversationCard, { backgroundColor: colors.card, borderColor: colors.gray100 }, hasUnread && [styles.unreadCard, { borderLeftColor: colors.primary }]]}
+      style={[
+        cardStyles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.05)',
+        },
+        Shadows.sm,
+      ]}
       onPress={onPress}
       onLongPress={onLongPress}
-      activeOpacity={TOUCH_OPACITY}
+      activeOpacity={0.85}
       accessibilityRole="button"
-      accessibilityLabel={`Conversation avec ${displayName}${hasUnread ? `, ${conversation.unread_count} non lu${conversation.unread_count > 1 ? 's' : ''}` : ''}`}
+      accessibilityLabel={`Conversation avec ${displayName}${
+        hasUnread ? `, ${conversation.unread_count} non lu${conversation.unread_count > 1 ? 's' : ''}` : ''
+      }`}
     >
-      {avatar ? (
-        <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
-      ) : (
-        <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarInitials}>{initials}</Text>
-        </View>
-      )}
-
-      <View style={styles.conversationContent}>
-        <View style={styles.conversationHeader}>
-          <Text
-            style={[styles.conversationName, { color: colors.gray900 }, hasUnread && styles.unreadText]}
-            numberOfLines={1}
+      {/* Avatar — rounded */}
+      <View style={cardStyles.avatarWrap}>
+        {avatar ? (
+          <Image
+            source={avatar}
+            style={cardStyles.avatarImg}
+            contentFit="cover"
+            cachePolicy="disk"
+            transition={200}
+          />
+        ) : (
+          <View
+            style={[
+              cardStyles.avatarImg,
+              { backgroundColor: `${colors.primary}15`, alignItems: 'center', justifyContent: 'center' },
+            ]}
           >
-            {displayName}
-          </Text>
-          <Text style={[styles.conversationTime, { color: colors.gray500 }]}>
+            <Text style={[cardStyles.avatarInitials, { color: colors.primary }]}>{initials}</Text>
+          </View>
+        )}
+        {hasUnread && (
+          <View
+            style={[
+              cardStyles.avatarDot,
+              { backgroundColor: colors.accent, borderColor: colors.card },
+            ]}
+          />
+        )}
+      </View>
+
+      <View style={cardStyles.body}>
+        {/* Eyebrow row: organizer badge + time */}
+        <View style={cardStyles.eyebrowRow}>
+          {isOrganizer ? (
+            <View
+              style={[
+                cardStyles.organizerBadge,
+                { backgroundColor: `${colors.primary}15` },
+              ]}
+            >
+              <Text style={[cardStyles.organizerText, { color: colors.primary }]}>ORGANIZER</Text>
+            </View>
+          ) : (
+            <Text style={[cardStyles.directLabel, { color: colors.gray500 }]}>DIRECT</Text>
+          )}
+          <Text style={[cardStyles.time, { color: colors.gray500 }]}>
             {conversation.last_message_at ? formatRelativeTime(conversation.last_message_at) : ''}
           </Text>
         </View>
-        <View style={styles.conversationFooter}>
+
+        <Text
+          style={[
+            cardStyles.name,
+            { color: colors.text },
+            hasUnread && { fontFamily: FontFamily.displayExtraBold },
+          ]}
+          numberOfLines={1}
+        >
+          {displayName}
+        </Text>
+
+        <View style={cardStyles.footerRow}>
           <Text
-            style={[styles.lastMessage, { color: colors.gray500 }, hasUnread && [styles.lastMessageUnread, { color: colors.gray700 }]]}
+            style={[
+              cardStyles.preview,
+              { color: hasUnread ? colors.text : colors.gray500 },
+              hasUnread && { fontFamily: FontFamily.semiBold },
+            ]}
             numberOfLines={1}
           >
-            {(typeof conversation.last_message === 'object' ? conversation.last_message?.content : conversation.last_message) || 'Aucun message'}
+            {preview}
           </Text>
           {hasUnread && (
-            <View style={[styles.unreadBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.unreadCountText}>
+            <View style={[cardStyles.unreadPill, { backgroundColor: colors.accent }]}>
+              <Text style={cardStyles.unreadPillText}>
                 {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </Text>
             </View>
@@ -128,8 +181,109 @@ const ConversationCard = memo(function ConversationCard({
   );
 });
 
+const cardStyles = StyleSheet.create({
+  card: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 12,
+    gap: 14,
+  },
+  avatarWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    overflow: 'visible',
+    position: 'relative',
+  },
+  avatarImg: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+  },
+  avatarInitials: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 18,
+    letterSpacing: -0.3,
+  },
+  avatarDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+  },
+  body: {
+    flex: 1,
+    justifyContent: 'center',
+    gap: 2,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  organizerBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  organizerText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.3,
+  },
+  directLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+  },
+  time: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
+  name: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 16,
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+    gap: 8,
+  },
+  preview: {
+    flex: 1,
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  unreadPill: {
+    minWidth: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  unreadPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 0.3,
+    color: '#FFFFFF',
+  },
+});
+
 // ============================================
-// USER ITEM COMPONENT
+// USER ITEM (for new conversation modal)
 // ============================================
 
 interface UserItemProps {
@@ -138,31 +292,86 @@ interface UserItemProps {
 }
 
 const UserItem = memo(function UserItem({ user, onPress }: UserItemProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const name = getDisplayName(user);
   const avatar = user.profile_picture || (user as any)?.image;
   const initials = getUserInitials(name);
 
   return (
     <TouchableOpacity
-      style={[styles.userItem, { borderBottomColor: colors.gray100 }]}
+      style={[
+        userStyles.row,
+        { borderBottomColor: isDark ? colors.gray200 : colors.gray100 },
+      ]}
       onPress={onPress}
       activeOpacity={TOUCH_OPACITY}
     >
-      {avatar ? (
-        <Image source={avatar} style={styles.userAvatar} cachePolicy="disk" transition={200} />
-      ) : (
-        <View style={[styles.userAvatarPlaceholder, { backgroundColor: colors.primary }]}>
-          <Text style={styles.userAvatarInitials}>{initials}</Text>
-        </View>
-      )}
-      <View style={styles.userInfo}>
-        <Text style={[styles.userName, { color: colors.gray900 }]}>{name}</Text>
-        {user.email && <Text style={[styles.userEmail, { color: colors.gray500 }]}>{user.email}</Text>}
+      <View style={userStyles.avatarWrap}>
+        {avatar ? (
+          <Image source={avatar} style={userStyles.avatarImg} cachePolicy="disk" transition={200} />
+        ) : (
+          <View
+            style={[
+              userStyles.avatarImg,
+              { backgroundColor: `${colors.primary}15`, alignItems: 'center', justifyContent: 'center' },
+            ]}
+          >
+            <Text style={{ fontFamily: FontFamily.displayBold, fontSize: 16, color: colors.primary }}>
+              {initials}
+            </Text>
+          </View>
+        )}
       </View>
-      <Ionicons name="chatbubble-outline" size={20} color={colors.gray400} />
+      <View style={userStyles.info}>
+        <Text style={[userStyles.name, { color: colors.text }]} numberOfLines={1}>{name}</Text>
+        {user.email && <Text style={[userStyles.email, { color: colors.gray500 }]} numberOfLines={1}>{user.email}</Text>}
+      </View>
+      <View style={[userStyles.chevronDisc, { backgroundColor: `${colors.primary}15` }]}>
+        <Ionicons name="chatbubble-outline" size={14} color={colors.primary} />
+      </View>
     </TouchableOpacity>
   );
+});
+
+const userStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    gap: 12,
+  },
+  avatarWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  avatarImg: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 22,
+  },
+  info: {
+    flex: 1,
+  },
+  name: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 15,
+    letterSpacing: -0.2,
+  },
+  email: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  chevronDisc: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
 
 // ============================================
@@ -180,8 +389,8 @@ export default function MessagesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  // New conversation modal
   const [showNewModal, setShowNewModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -192,7 +401,6 @@ export default function MessagesScreen() {
     fetchConversations();
   }, []);
 
-  // Debounced server-side user search
   useEffect(() => {
     if (userSearchTimerRef.current) {
       clearTimeout(userSearchTimerRef.current);
@@ -233,14 +441,13 @@ export default function MessagesScreen() {
         if (cached) {
           setConversations(cached.data);
           setLoading(false);
-          if (!cached.isStale) return; // Données fraîches
-          // Périmées : refresh silencieux
+          if (!cached.isStale) return;
         }
       }
       const response = await messagesAPI.getConversations();
       const data = response.data.results || response.data || [];
       setConversations(data);
-      CacheService.set(cacheKey, data, 30 * 1000); // fraîcheur : 30 secondes
+      CacheService.set(cacheKey, data, 30 * 1000);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement conversations:', error);
     } finally {
@@ -259,7 +466,6 @@ export default function MessagesScreen() {
   };
 
   const handleStartConversation = async (targetUser: User) => {
-    // Vérifier si une conversation existe déjà
     const existingConv = conversations.find(conv => {
       if (conv.participants && conv.participants.length > 0) {
         return conv.participants.some(p => p.id === targetUser.id);
@@ -305,29 +511,32 @@ export default function MessagesScreen() {
     );
   };
 
-  // Filter and sort conversations (most recent first)
   const filteredConversations = conversations
     .filter(conv => {
-      const matchesTab = activeTab === 'all' ? !conv.is_archived : conv.is_archived;
+      if (activeTab === 'archived') {
+        if (!conv.is_archived) return false;
+      } else {
+        if (conv.is_archived) return false;
+      }
+      if (activeTab === 'events') {
+        const otherUser = conv.participants?.find(p => p.id !== user?.id);
+        const role = (otherUser as any)?.role;
+        const uType = (otherUser as any)?.user_type;
+        if (role !== 'organizer' && uType !== 'organization') return false;
+      }
       const otherUser = conv.participants?.find(p => p.id !== user?.id);
       const name = conv.title || getDisplayName(otherUser || null);
-      const matchesSearch = name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesTab && matchesSearch;
+      return name.toLowerCase().includes(searchQuery.toLowerCase());
     })
     .sort((a, b) => {
-      // Starred first
       if (a.is_starred && !b.is_starred) return -1;
       if (!a.is_starred && b.is_starred) return 1;
-      // Then by most recent
       const aTime = new Date(a.last_message_at || a.updated_at || a.created_at).getTime();
       const bTime = new Date(b.last_message_at || b.updated_at || b.created_at).getTime();
       return bTime - aTime;
     });
 
-  // Stats
   const unreadCount = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived).length;
-
-  // Users are now filtered server-side via debounced search
   const filteredUsers = availableUsers;
 
   const renderConversation = useCallback(({ item, index }: { item: Conversation; index: number }) => {
@@ -353,511 +562,547 @@ export default function MessagesScreen() {
     );
   }, [user?.id, navigation, showConfirm]);
 
-  const renderEmpty = () => (
-    <EmptyState
-      illustration={
+  const renderEmpty = () => {
+    const eyebrow = activeTab === 'archived' ? 'BOÎTE ARCHIVÉE' : 'BOÎTE VIDE';
+    const title = activeTab === 'archived' ? 'Rien ici' : 'Pas encore';
+    const sub =
+      activeTab === 'archived'
+        ? 'Les conversations archivées viendront se loger ici.'
+        : 'Commence un nouveau message — on trouvera quelqu\'un à qui parler.';
+    return (
+      <View style={styles.emptyWrap}>
         <AnimatedIllustration entry="fadeIn" idle="sway">
-          <NewMessage color={colors.primary} size={160} />
+          <NewMessage color={colors.primary} size={140} />
         </AnimatedIllustration>
-      }
-      icon={activeTab === 'archived' ? 'archive-outline' : 'chatbubbles-outline'}
-      title={activeTab === 'archived' ? 'Aucune archive' : 'Aucune conversation'}
-      description={
-        activeTab === 'archived'
-          ? 'Vos conversations archivées apparaîtront ici.'
-          : 'Commencez une nouvelle conversation !'
-      }
-      actionLabel={activeTab === 'all' ? 'Nouveau message' : undefined}
-      onAction={activeTab === 'all' ? handleOpenNewModal : undefined}
-    />
-  );
+        <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{eyebrow}</Text>
+        <Text style={[styles.emptyTitle, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.emptyDesc, { color: colors.gray500 }]}>{sub}</Text>
+        {activeTab === 'all' && (
+          <TouchableOpacity
+            style={[
+              styles.emptyCta,
+              { backgroundColor: colors.primary },
+              Shadows.md,
+            ]}
+            onPress={handleOpenNewModal}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.emptyCtaText}>NOUVEAU MESSAGE</Text>
+            <View style={styles.emptyCtaDisc}>
+              <Ionicons name="arrow-forward" size={14} color={colors.primary} />
+            </View>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
 
   const renderUserItem = useCallback(({ item }: { item: User }) => (
     <UserItem user={item} onPress={() => handleStartConversation(item)} />
   ), []);
 
-  // Loading state with skeletons
   if (loading) {
     return (
-      <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
-        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <MessagesScreenSkeleton />
-        </SafeAreaView>
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <MessagesScreenSkeleton />
+      </SafeAreaView>
     );
   }
 
-  return (
-    <View style={[styles.rootContainer, { backgroundColor: colors.primary }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
-          {/* Header */}
-          <View style={[styles.headerContainer, { backgroundColor: colors.primary }]}>
-            <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
-                <Ionicons name="arrow-back" size={24} color={Colors.white} />
-              </TouchableOpacity>
-              <View style={styles.headerLeft}>
-                <View style={styles.headerIconContainer}>
-                  <Ionicons name="chatbubbles" size={24} color={Colors.white} />
-                </View>
-                <View>
-                  <Text style={styles.headerEyebrow}>Tes discussions</Text>
-                  <Text style={styles.headerTitle}>Messages</Text>
-                  <Text style={styles.headerSubtitle}>
-                    {unreadCount > 0
-                      ? `${unreadCount} non lu${unreadCount > 1 ? 's' : ''}`
-                      : 'Toutes tes conversations'}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={styles.newButton}
-                onPress={handleOpenNewModal}
-                accessibilityLabel="Nouvelle conversation"
-                accessibilityRole="button"
-              >
-                <Ionicons name="create-outline" size={22} color={Colors.white} />
-              </TouchableOpacity>
-            </View>
+  const hairline = isDark ? colors.gray200 : colors.gray100;
 
-            {/* Search */}
-            <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
-              <Ionicons name="search" size={18} color={colors.gray400} style={styles.searchIcon} />
+  type ChipDef = { key: TabType; label: string };
+  const chips: ChipDef[] = [
+    { key: 'all', label: 'Tous' },
+    { key: 'events', label: 'Événements' },
+    { key: 'archived', label: 'Archives' },
+  ];
+
+  return (
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {/* Header row */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: isDark ? colors.border : 'rgba(255,255,255,0.5)',
+          },
+        ]}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[
+              styles.iconDisc,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+              },
+              Shadows.sm,
+            ]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: Spacing.md }}>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+              ÉCHANGES • {unreadCount > 0 ? `${unreadCount} NON LUS` : 'TOUT LU'}
+            </Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Inbox</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setSearchOpen(s => !s)}
+            style={[
+              styles.iconDisc,
+              {
+                backgroundColor: colors.card,
+                borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                marginRight: 8,
+              },
+              Shadows.sm,
+            ]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Rechercher"
+          >
+            <Ionicons name={searchOpen ? 'close' : 'search'} size={18} color={colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleOpenNewModal}
+            style={[styles.composeBtn, { backgroundColor: colors.primary }, Shadows.md]}
+            activeOpacity={0.85}
+            accessibilityLabel="Nouveau message"
+            accessibilityRole="button"
+          >
+            <Ionicons name="create-outline" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Search bar — only when open */}
+        {searchOpen && (
+          <View style={styles.searchWrap}>
+            <View
+              style={[
+                styles.searchBar,
+                {
+                  backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                  borderColor: isDark ? colors.gray200 : colors.gray100,
+                },
+              ]}
+            >
+              <Ionicons name="search" size={16} color={colors.gray500} />
               <TextInput
-                style={[styles.searchInput, { color: colors.gray900 }]}
-                placeholder="Rechercher..."
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Chercher une conversation…"
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
-                accessibilityLabel="Rechercher une conversation"
+                autoFocus
               />
-            </View>
-
-            {/* Tabs */}
-            <View style={styles.tabsRow}>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'all' && styles.tabActive]}
-                onPress={() => setActiveTab('all')}
-              >
-                <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
-                  Conversations
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'archived' && styles.tabActive]}
-                onPress={() => setActiveTab('archived')}
-              >
-                <Ionicons
-                  name="archive-outline"
-                  size={14}
-                  color={activeTab === 'archived' ? Colors.white : 'rgba(255,255,255,0.7)'}
-                  style={{ marginRight: 4 }}
-                />
-                <Text style={[styles.tabText, activeTab === 'archived' && styles.tabTextActive]}>
-                  Archives
-                </Text>
-              </TouchableOpacity>
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={16} color={colors.gray400} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
+        )}
 
-          {/* Conversations List */}
-          <FlatList
-            data={filteredConversations}
-            renderItem={renderConversation}
-            keyExtractor={(item) => String(item.id)}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={renderEmpty}
-            keyboardShouldPersistTaps="handled"
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                tintColor={colors.primary}
-              />
-            }
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            removeClippedSubviews
-          />
-
-          {/* New Conversation Modal */}
-          <Modal
-            visible={showNewModal}
-            transparent
-            animationType="slide"
-            onRequestClose={() => setShowNewModal(false)}
-          >
-            <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-            <View style={styles.modalOverlay}>
-              <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-                <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
-                  <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Nouveau message</Text>
-                  <TouchableOpacity onPress={() => setShowNewModal(false)}>
-                    <Ionicons name="close" size={24} color={colors.gray600} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={[styles.modalSearchContainer, { backgroundColor: colors.gray50 }]}>
-                  <Ionicons name="search" size={18} color={colors.gray400} />
-                  <TextInput
-                    style={[styles.modalSearchInput, { color: colors.gray900 }]}
-                    placeholder="Rechercher un utilisateur..."
-                    placeholderTextColor={colors.gray400}
-                    value={userSearch}
-                    onChangeText={setUserSearch}
-                    autoFocus
-                  />
-                </View>
-
-                {loadingUsers ? (
-                  <View style={styles.modalLoading}>
-                    {[1, 2, 3].map(i => (
-                      <ConversationItemSkeleton key={i} />
-                    ))}
-                  </View>
-                ) : (
-                  <FlatList
-                    data={filteredUsers}
-                    renderItem={renderUserItem}
-                    keyExtractor={(item) => String(item.id)}
-                    style={styles.usersList}
-                    keyboardShouldPersistTaps="handled"
-                    ListEmptyComponent={
-                      <View style={styles.noUsers}>
-                        <AnimatedIllustration entry="fadeIn" idle="breathe">
-                          <PeopleSearch color={colors.primary} size={120} />
-                        </AnimatedIllustration>
-                        <Text style={[styles.noUsersText, { color: colors.gray500 }]}>
-                          {userSearch.length < 2
-                            ? 'Tapez pour rechercher un utilisateur...'
-                            : 'Aucun utilisateur trouvé'}
-                        </Text>
-                      </View>
-                    }
-                  />
-                )}
-              </View>
-            </View>
-            </KeyboardAvoidingView>
-          </Modal>
+        {/* Chips */}
+        <View style={styles.chipsRow}>
+          {chips.map((c) => {
+            const active = activeTab === c.key;
+            return (
+              <TouchableOpacity
+                key={c.key}
+                onPress={() => setActiveTab(c.key)}
+                activeOpacity={0.85}
+                style={[
+                  styles.chip,
+                  {
+                    backgroundColor: active ? colors.primary : colors.card,
+                    borderColor: active
+                      ? colors.primary
+                      : isDark
+                      ? colors.gray200
+                      : 'rgba(0,0,0,0.05)',
+                  },
+                  !active && Shadows.sm,
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? '#FFFFFF' : colors.text },
+                  ]}
+                >
+                  {c.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
-      </SafeAreaView>
-    </View>
+      </View>
+
+      {/* List */}
+      <FlatList
+        data={filteredConversations}
+        renderItem={renderConversation}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={renderEmpty}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        removeClippedSubviews
+      />
+
+      {/* Footer eyebrow */}
+      <View style={styles.footerBlock}>
+        <View style={[styles.footerLine, { backgroundColor: hairline }]} />
+        <Text style={[styles.footerText, { color: colors.gray500 }]}>EVENTEZ — ÉDITION 2026</Text>
+      </View>
+
+      {/* New Conversation Modal */}
+      <Modal
+        visible={showNewModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowNewModal(false)}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1, backgroundColor: 'rgba(17,17,16,0.5)' }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalContent,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                },
+                Shadows.lg,
+              ]}
+            >
+              <View style={[styles.modalHandle, { backgroundColor: colors.gray300 }]} />
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={[styles.modalEyebrow, { color: colors.accent }]}>DÉMARRER</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>Nouveau</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowNewModal(false)}
+                  style={[
+                    styles.iconDisc,
+                    {
+                      backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                      borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.06)',
+                    },
+                  ]}
+                >
+                  <Ionicons name="close" size={18} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <View
+                style={[
+                  styles.modalSearchBar,
+                  {
+                    backgroundColor: isDark ? colors.gray100 : colors.gray50,
+                    borderColor: isDark ? colors.gray200 : colors.gray100,
+                  },
+                ]}
+              >
+                <Ionicons name="search" size={16} color={colors.gray500} />
+                <TextInput
+                  style={[styles.modalSearchInput, { color: colors.text }]}
+                  placeholder="Chercher un contact…"
+                  placeholderTextColor={colors.gray400}
+                  value={userSearch}
+                  onChangeText={setUserSearch}
+                  autoFocus
+                />
+              </View>
+
+              {loadingUsers ? (
+                <View style={styles.modalLoading}>
+                  {[1, 2, 3].map(i => (
+                    <ConversationItemSkeleton key={i} />
+                  ))}
+                </View>
+              ) : (
+                <FlatList
+                  data={filteredUsers}
+                  renderItem={renderUserItem}
+                  keyExtractor={(item) => String(item.id)}
+                  style={styles.usersList}
+                  keyboardShouldPersistTaps="handled"
+                  ListEmptyComponent={
+                    <View style={styles.noUsers}>
+                      <AnimatedIllustration entry="fadeIn" idle="breathe">
+                        <PeopleSearch color={colors.primary} size={120} />
+                      </AnimatedIllustration>
+                      <Text style={[styles.noUsersEyebrow, { color: colors.gray500 }]}>RECHERCHE</Text>
+                      <Text style={[styles.noUsersTitle, { color: colors.text }]}>
+                        {userSearch.length < 2 ? 'Tape pour chercher' : 'Personne trouvée'}
+                      </Text>
+                    </View>
+                  }
+                />
+              )}
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  rootContainer: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-  },
-  safeArea: {
-    flex: 1,
-  },
   container: {
     flex: 1,
-    backgroundColor: Colors.gray50,
-  },
-
-  // Header
-  headerContainer: {
-    backgroundColor: Colors.primary,
-    paddingBottom: Spacing.md,
-    borderBottomLeftRadius: BorderRadius.xl,
-    borderBottomRightRadius: BorderRadius.xl,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  backButton: {
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.sm,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.1,
+    lineHeight: 32,
+  },
+  composeBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  headerEyebrow: {
-    fontSize: 10,
-    fontFamily: FontFamily.bold,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  headerTitle: {
-    ...TextStyles.h3,
-    color: Colors.white,
-    letterSpacing: -0.3,
-  },
-  headerSubtitle: {
-    ...TextStyles.small,
-    color: 'rgba(255,255,255,0.8)',
-  },
-  newButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
-  // Search
-  searchContainer: {
+  searchWrap: {
+    paddingBottom: Spacing.sm,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-  },
-  searchIcon: {
-    marginRight: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 10,
   },
   searchInput: {
-    ...TextStyles.body,
     flex: 1,
-    paddingVertical: Spacing.sm,
-    color: Colors.gray900,
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+    paddingVertical: 0,
   },
 
-  // Tabs
-  tabsRow: {
+  chipsRow: {
     flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    gap: Spacing.sm,
+    gap: 8,
+    paddingTop: Spacing.sm,
   },
-  tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
+  chip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderRadius: BorderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderWidth: 1,
   },
-  tabActive: {
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  tabText: {
-    ...TextStyles.label,
-    color: 'rgba(255,255,255,0.7)',
-  },
-  tabTextActive: {
-    color: Colors.white,
+  chipText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.2,
   },
 
-  // List
   listContent: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing['3xl'],
+    paddingBottom: Spacing.lg,
     flexGrow: 1,
   },
 
-  // Conversation Card
-  conversationCard: {
+  emptyWrap: {
+    alignItems: 'center',
+    paddingVertical: Spacing['3xl'],
+    gap: 10,
+  },
+  emptyEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 8,
+  },
+  emptyTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 32,
+    letterSpacing: -1.2,
+  },
+  emptyDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13.5,
+    textAlign: 'center',
+    lineHeight: 19,
+    maxWidth: 280,
+  },
+  emptyCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
+    borderRadius: BorderRadius.full,
+    paddingLeft: 18,
+    paddingRight: 6,
+    paddingVertical: 6,
+    marginTop: 14,
+    gap: 10,
   },
-  unreadCard: {
-    borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
+  emptyCtaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: '#FFFFFF',
   },
-  avatar: {
-    width: MESSAGE_AVATAR_SIZE,
-    height: MESSAGE_AVATAR_SIZE,
-    borderRadius: MESSAGE_AVATAR_SIZE / 2,
-  },
-  avatarPlaceholder: {
-    width: MESSAGE_AVATAR_SIZE,
-    height: MESSAGE_AVATAR_SIZE,
-    borderRadius: MESSAGE_AVATAR_SIZE / 2,
+  emptyCtaDisc: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.primary,
   },
-  avatarInitials: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSizes.base,
-    color: Colors.white,
-  },
-  conversationContent: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  conversationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+
+  footerBlock: {
     alignItems: 'center',
-    marginBottom: 4,
+    paddingVertical: Spacing.md,
+    gap: 6,
   },
-  conversationName: {
-    ...TextStyles.body,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray900,
-    flex: 1,
-    marginRight: Spacing.sm,
+  footerLine: {
+    width: 40,
+    height: 1,
   },
-  unreadText: {
+  footerText: {
     fontFamily: FontFamily.bold,
-  },
-  conversationTime: {
-    ...TextStyles.caption,
-    color: Colors.gray500,
-  },
-  conversationFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  lastMessage: {
-    ...TextStyles.small,
-    color: Colors.gray500,
-    flex: 1,
-    marginRight: Spacing.sm,
-  },
-  lastMessageUnread: {
-    color: Colors.gray700,
-    fontFamily: FontFamily.medium,
-  },
-  unreadBadge: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 8,
-  },
-  unreadCountText: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSizes.xs,
-    color: Colors.white,
+    fontSize: 10,
+    letterSpacing: 2.5,
+    textTransform: 'uppercase',
   },
 
   // Modal
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(17,17,16,0.5)',
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: Colors.white,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    maxHeight: '80%',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    height: '85%',
+    paddingBottom: Spacing.lg,
+  },
+  modalHandle: {
+    alignSelf: 'center',
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    marginTop: 10,
+    marginBottom: 12,
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  modalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   modalTitle: {
-    ...TextStyles.h4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1,
   },
-  modalSearchContainer: {
+  modalSearchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
-    margin: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.sm,
+    gap: 10,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   modalSearchInput: {
-    ...TextStyles.body,
     flex: 1,
-    paddingVertical: Spacing.md,
-    color: Colors.gray900,
+    fontFamily: FontFamily.regular,
+    fontSize: 14,
+    paddingVertical: 0,
   },
   modalLoading: {
     padding: Spacing.lg,
   },
   usersList: {
-    paddingHorizontal: Spacing.lg,
-  },
-  userItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
-  },
-  userAvatar: {
-    width: MESSAGE_AVATAR_SIZE,
-    height: MESSAGE_AVATAR_SIZE,
-    borderRadius: MESSAGE_AVATAR_SIZE / 2,
-  },
-  userAvatarPlaceholder: {
-    width: MESSAGE_AVATAR_SIZE,
-    height: MESSAGE_AVATAR_SIZE,
-    borderRadius: MESSAGE_AVATAR_SIZE / 2,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  userAvatarInitials: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSizes.sm,
-    color: Colors.white,
-  },
-  userInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
-  },
-  userName: {
-    ...TextStyles.body,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray900,
-  },
-  userEmail: {
-    ...TextStyles.small,
-    color: Colors.gray500,
-    marginTop: 2,
+    paddingHorizontal: Spacing.lg,
   },
   noUsers: {
     alignItems: 'center',
     paddingVertical: Spacing['3xl'],
+    gap: 6,
   },
-  noUsersText: {
-    ...TextStyles.body,
-    color: Colors.gray500,
-    marginTop: Spacing.md,
+  noUsersEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 8,
+  },
+  noUsersTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    letterSpacing: -0.9,
+    textAlign: 'center',
   },
 });

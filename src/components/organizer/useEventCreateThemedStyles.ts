@@ -10,44 +10,61 @@ import { useTheme } from '../../contexts/ThemeContext';
  *        <TextInput style={[styles.input, themed.input]} />
  */
 export function useEventCreateThemedStyles() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
 
   return useMemo(() => ({
     // Text styles
     stepTitle: { color: colors.gray900 },
     stepDescription: { color: colors.gray500 },
-    label: { color: colors.gray900 },
+    label: { color: colors.gray600 },
+    labelRowLabel: { color: colors.gray600 },
+    labelRowCounter: { color: colors.gray400 },
     charCount: { color: colors.gray400 },
     inputHint: { color: colors.gray500 },
     subSectionTitle: { color: colors.gray800 },
 
-    // Input
+    // Input — card bg over page bg, subtle 1px border
     input: {
-      backgroundColor: colors.gray50,
+      backgroundColor: colors.card,
       color: colors.gray900,
-      borderColor: colors.gray200,
+      borderColor: colors.gray100,
     },
+    inputInlineAction: {
+      backgroundColor: isDark ? colors.primaryBg : colors.primaryBgLight,
+    },
+    inputInlineActionIcon: colors.primary,
 
-    // Image picker
-    imagePickerButton: { borderColor: colors.gray200 },
-    imagePickerPlaceholder: { backgroundColor: colors.gray50 },
-    imagePickerText: { color: colors.gray500 },
+    // Image picker — dashed indigo-tinted border + subtle glow
+    imagePickerButton: {
+      borderColor: isDark ? colors.primaryDark : colors.primaryLight,
+    },
+    imagePickerPlaceholder: {
+      backgroundColor: isDark ? colors.primaryBg : colors.primaryBgLight,
+    },
+    imagePickerIconBubble: {
+      backgroundColor: colors.card,
+    },
+    imagePickerIconColor: colors.primary,
+    imagePickerText: { color: colors.gray900 },
+    imagePickerSubtext: { color: colors.gray500 },
 
     // Type selector
     typeOption: { backgroundColor: colors.gray100, borderColor: colors.gray200 },
     typeOptionText: { color: colors.gray600 },
 
-    // Category chips
-    categoryChip: { backgroundColor: colors.gray100, borderColor: colors.gray200 },
-    categoryChipActive: { backgroundColor: colors.primaryBg, borderColor: colors.primary },
+    // Category chips — solid primary fill when active (mock style)
+    categoryChip: { backgroundColor: colors.card, borderColor: colors.gray200 },
+    categoryChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     categoryChipText: { color: colors.gray600 },
-    categoryChipTextActive: { color: colors.primary },
+    categoryChipTextActive: { color: '#FFFFFF' },
 
     // Generic chips
-    chip: { backgroundColor: colors.gray100, borderColor: colors.gray200 },
-    chipActive: { backgroundColor: colors.primaryBg, borderColor: colors.primary },
+    chip: { backgroundColor: colors.card, borderColor: colors.gray200 },
+    chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
     chipText: { color: colors.gray600 },
-    chipTextActive: { color: colors.primary },
+    chipTextActive: { color: '#FFFFFF' },
+    chipDashed: { borderColor: colors.gray300 },
+    chipDashedText: { color: colors.gray500 },
 
     // Location
     locationTypeOption: { backgroundColor: colors.gray50, borderColor: colors.gray200 },
@@ -86,8 +103,13 @@ export function useEventCreateThemedStyles() {
     addButton: { backgroundColor: colors.primary },
     addButtonText: { color: colors.white },
 
-    // Card
-    card: { backgroundColor: colors.card, borderColor: colors.gray200 },
+    // Card — soft violet-tint shadow, indigo-lightened on dark
+    card: {
+      backgroundColor: colors.card,
+      borderColor: colors.gray100,
+      shadowColor: isDark ? '#000000' : '#4F46E5',
+      shadowOpacity: isDark ? 0.3 : 0.04,
+    },
     cardHeader: { borderBottomColor: colors.gray100 },
     cardTitle: { color: colors.gray900 },
 
@@ -110,5 +132,22 @@ export function useEventCreateThemedStyles() {
     // Advanced toggle
     advancedToggle: { backgroundColor: colors.gray50, borderColor: colors.gray200 },
     advancedToggleText: { color: colors.gray700 },
-  }), [colors]);
+
+    // Option cards (visibility / generic 3-choice cards)
+    optionCard: { backgroundColor: colors.card, borderColor: colors.gray200 },
+    optionCardActive: {
+      backgroundColor: isDark ? colors.primaryBg : colors.primaryBgLight,
+      borderColor: colors.primary,
+      shadowColor: isDark ? '#000000' : colors.primary,
+      shadowOpacity: isDark ? 0.25 : 0.14,
+    },
+    optionCardIconWrap: { backgroundColor: colors.gray100 },
+    optionCardIconWrapActive: { backgroundColor: colors.primary },
+    optionCardLabel: { color: colors.gray800 },
+    optionCardLabelActive: { color: colors.primary },
+    optionCardDesc: { color: colors.gray500 },
+    optionCardDescActive: { color: colors.primary },
+    optionCardIconIdleColor: colors.gray500,
+    optionCardIconActiveColor: '#FFFFFF',
+  }), [colors, isDark]);
 }

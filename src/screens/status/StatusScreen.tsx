@@ -6,10 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +25,7 @@ import {
   Shadows,
   TextStyles,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import type {
   Incident,
   RootStackParamList,
@@ -110,7 +109,7 @@ function formatDateTime(iso: string | null): string {
 
 export default function StatusScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { snapshot, isLoading, refresh, lastFetchedAt } = useStatus();
 
   const grouped = useMemo(() => {
@@ -132,8 +131,9 @@ export default function StatusScreen() {
   const resolvedCount = snapshot?.recent_resolved.length || 0;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>STAT</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
 
       <View style={styles.header}>
         <TouchableOpacity
@@ -319,7 +319,8 @@ export default function StatusScreen() {
           </Text>
         )}
       </ScrollView>
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 

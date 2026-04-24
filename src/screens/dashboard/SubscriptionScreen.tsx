@@ -13,8 +13,8 @@ import {
   TextInput,
   Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
@@ -425,7 +425,8 @@ export default function SubscriptionScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: cardBg }]} edges={['top']}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>PLAN</WatermarkNumeral>
         <View style={[styles.header, { borderBottomColor: borderColor }]}>
           <TouchableOpacity
             style={[styles.backButton, { backgroundColor: surface }]}
@@ -440,12 +441,13 @@ export default function SubscriptionScreen() {
         <View style={styles.loadingContainer}>
           <LoadingSpinner message="Chargement..." />
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: cardBg }]} edges={['top']}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>PLAN</WatermarkNumeral>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: borderColor }]}>
         <TouchableOpacity
@@ -1002,7 +1004,7 @@ export default function SubscriptionScreen() {
         </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 

@@ -11,7 +11,6 @@ import {
   Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +29,7 @@ import {
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RegistrationDetailsRouteProp = RouteProp<RootStackParamList, 'RegistrationDetails'>;
@@ -241,19 +241,22 @@ export default function RegistrationDetailsScreen() {
 
   if (!registration) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color={colors.gray900} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Inscription</Text>
-          <View style={{ width: 40 }} />
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>INS</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
+            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+              <Ionicons name="arrow-back" size={24} color={colors.gray900} />
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Inscription</Text>
+            <View style={{ width: 40 }} />
+          </View>
+          <View style={styles.errorContainer}>
+            <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>Inscription non trouvée</Text>
+          </View>
         </View>
-        <View style={styles.errorContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>Inscription non trouvée</Text>
-        </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -266,7 +269,9 @@ export default function RegistrationDetailsScreen() {
     : 0;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>INS</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
@@ -686,7 +691,8 @@ export default function RegistrationDetailsScreen() {
           fetchRegistration();
         }}
       />
-    </SafeAreaView>
+      </View>
+    </EditorialCanvas>
   );
 }
 
