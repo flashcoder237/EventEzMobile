@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +19,7 @@ import {
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../constants/theme';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -29,162 +28,174 @@ interface SettingRowProps {
   title: string;
   subtitle: string;
   value?: string;
+  color?: string;
   onPress?: () => void;
+  isLast?: boolean;
 }
 
 export default function PlatformSettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
-  const SettingRow = ({ icon, title, subtitle, value, onPress }: SettingRowProps) => (
-    <TouchableOpacity
-      style={[styles.settingRow, { borderBottomColor: colors.gray100 }]}
-      onPress={onPress}
-      activeOpacity={onPress ? 0.6 : 1}
-      disabled={!onPress}
-    >
-      <View style={[styles.settingIcon, { backgroundColor: `${colors.primary}15` }]}>
-        <Ionicons name={icon} size={20} color={colors.primary} />
-      </View>
-      <View style={styles.settingInfo}>
-        <Text style={[styles.settingTitle, { color: colors.gray900 }]}>{title}</Text>
-        <Text style={[styles.settingSubtitle, { color: colors.gray500 }]}>{subtitle}</Text>
-      </View>
-      {value && <Text style={[styles.settingValue, { color: colors.primary }]}>{value}</Text>}
-      {onPress && <Ionicons name="chevron-forward" size={18} color={colors.gray300} />}
-    </TouchableOpacity>
-  );
+  const SettingRow = ({ icon, title, subtitle, value, color, onPress, isLast }: SettingRowProps) => {
+    const tint = color || colors.primary;
+    return (
+      <TouchableOpacity
+        style={[
+          styles.settingRow,
+          !isLast && { borderBottomWidth: 1, borderBottomColor: hairline },
+        ]}
+        onPress={onPress}
+        activeOpacity={onPress ? 0.6 : 1}
+        disabled={!onPress}
+      >
+        <View style={[styles.iconWell, { backgroundColor: `${tint}15` }]}>
+          <Ionicons name={icon} size={18} color={tint} />
+        </View>
+        <View style={styles.settingInfo}>
+          <Text style={[styles.settingTitle, { color: colors.text }]}>{title}</Text>
+          <Text style={[styles.settingSubtitle, { color: colors.gray500 }]}>{subtitle}</Text>
+        </View>
+        {value && <Text style={[styles.settingValue, { color: tint }]}>{value}</Text>}
+        {onPress && <Ionicons name="chevron-forward" size={16} color={colors.gray400} />}
+      </TouchableOpacity>
+    );
+  };
+
+  const sections: {
+    title: string;
+    rows: (Omit<SettingRowProps, 'isLast'> & { key: string })[];
+  }[] = [
+    {
+      title: 'GÉNÉRAL',
+      rows: [
+        { key: 'name', icon: 'globe-outline', title: 'Nom de la plateforme', subtitle: 'Nom affiché aux utilisateurs', value: 'EventEz', color: '#4F46E5' },
+        { key: 'tz', icon: 'time-outline', title: 'Fuseau horaire', subtitle: 'Fuseau horaire par défaut', value: 'Africa/Douala', color: '#4F46E5' },
+        { key: 'lang', icon: 'language-outline', title: 'Langue', subtitle: 'Langue par défaut', value: 'Français', color: '#4F46E5' },
+      ],
+    },
+    {
+      title: 'PAIEMENTS',
+      rows: [
+        { key: 'gateway', icon: 'card-outline', title: 'Passerelle de paiement', subtitle: 'Service de paiement intégré', value: 'NotchPay', color: '#10B981' },
+        { key: 'currency', icon: 'cash-outline', title: 'Devise', subtitle: 'Devise par défaut', value: 'XAF (FCFA)', color: '#10B981' },
+        { key: 'commission', icon: 'calculator-outline', title: 'Commission', subtitle: 'Taux de commission plateforme', value: 'Variable', color: '#10B981' },
+      ],
+    },
+    {
+      title: 'SÉCURITÉ',
+      rows: [
+        { key: 'jwt', icon: 'key-outline', title: 'Tokens JWT', subtitle: 'Durée de vie des tokens', value: '15min / 7j', color: '#F59E0B' },
+        { key: 'mod', icon: 'shield-checkmark-outline', title: 'Modération', subtitle: 'Validation requise pour publier', value: 'Active', color: '#F59E0B' },
+        { key: 'audit', icon: 'document-text-outline', title: 'Audit', subtitle: 'Journalisation des actions', value: 'Actif', color: '#F59E0B' },
+      ],
+    },
+    {
+      title: 'INFRASTRUCTURE',
+      rows: [
+        { key: 'db', icon: 'server-outline', title: 'Base de données', subtitle: 'Type et nom', value: 'PostgreSQL', color: '#A855F7' },
+        { key: 'cache', icon: 'flash-outline', title: 'Cache & Queues', subtitle: 'Celery + Redis', value: 'Redis', color: '#A855F7' },
+        { key: 'ws', icon: 'wifi-outline', title: 'WebSocket', subtitle: 'Messagerie temps réel', value: 'Channels', color: '#A855F7' },
+      ],
+    },
+  ];
 
   return (
-    <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>CFG</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-
-      <View style={styles.header}>
-        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={colors.gray700} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Le moteur</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Paramètres plateforme</Text>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LE MOTEUR</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Paramètres plateforme</Text>
         </View>
-        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* General */}
-        <Text style={[styles.sectionTitle, { color: colors.accent }]}>General</Text>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <SettingRow
-            icon="globe-outline"
-            title="Nom de la plateforme"
-            subtitle="Nom affiche aux utilisateurs"
-            value="EventEz"
-          />
-          <SettingRow
-            icon="time-outline"
-            title="Fuseau horaire"
-            subtitle="Fuseau horaire par defaut"
-            value="Africa/Douala"
-          />
-          <SettingRow
-            icon="language-outline"
-            title="Langue"
-            subtitle="Langue par defaut"
-            value="Francais"
-          />
-        </View>
-
-        {/* Payments */}
-        <Text style={[styles.sectionTitle, { color: colors.accent }]}>Paiements</Text>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <SettingRow
-            icon="card-outline"
-            title="Passerelle de paiement"
-            subtitle="Service de paiement integre"
-            value="NotchPay"
-          />
-          <SettingRow
-            icon="cash-outline"
-            title="Devise"
-            subtitle="Devise par defaut"
-            value="XAF (FCFA)"
-          />
-          <SettingRow
-            icon="calculator-outline"
-            title="Commission"
-            subtitle="Taux de commission plateforme"
-            value="Variable"
-          />
-        </View>
-
-        {/* Security */}
-        <Text style={[styles.sectionTitle, { color: colors.accent }]}>Securite</Text>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <SettingRow
-            icon="key-outline"
-            title="Tokens JWT"
-            subtitle="Duree de vie des tokens"
-            value="15min / 7j"
-          />
-          <SettingRow
-            icon="shield-checkmark-outline"
-            title="Moderation"
-            subtitle="Validation requise pour publier"
-            value="Active"
-          />
-          <SettingRow
-            icon="document-text-outline"
-            title="Audit"
-            subtitle="Journalisation des actions"
-            value="Active"
-          />
-        </View>
-
-        {/* Infrastructure */}
-        <Text style={[styles.sectionTitle, { color: colors.accent }]}>Infrastructure</Text>
-        <View style={[styles.card, { backgroundColor: colors.card }]}>
-          <SettingRow
-            icon="server-outline"
-            title="Base de donnees"
-            subtitle="Type et nom"
-            value="PostgreSQL"
-          />
-          <SettingRow
-            icon="flash-outline"
-            title="Cache & Queues"
-            subtitle="Celery + Redis"
-            value="Redis"
-          />
-          <SettingRow
-            icon="wifi-outline"
-            title="WebSocket"
-            subtitle="Messagerie temps reel"
-            value="Channels"
-          />
-        </View>
-
+        {sections.map((section) => (
+          <React.Fragment key={section.title}>
+            <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{section.title}</Text>
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+              {section.rows.map((row, idx) => {
+                const { key, ...rest } = row;
+                return <SettingRow key={key} {...rest} isLast={idx === section.rows.length - 1} />;
+              })}
+            </View>
+          </React.Fragment>
+        ))}
         <View style={{ height: 100 }} />
       </ScrollView>
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitleWrap: { alignItems: 'center' },
-  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
-  scrollContent: { paddingHorizontal: Spacing.lg },
-  sectionTitle: { ...TextStyles.eyebrow, letterSpacing: 1.2, marginTop: Spacing.xl, marginBottom: Spacing.sm },
-  card: { borderRadius: BorderRadius['2xl'], ...Shadows.card, overflow: 'hidden' },
-  settingRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, borderBottomWidth: 1, gap: Spacing.md },
-  settingIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+    marginLeft: Spacing.xs,
+  },
+  card: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  iconWell: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   settingInfo: { flex: 1 },
-  settingTitle: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
-  settingSubtitle: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: 2 },
-  settingValue: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.xs },
+  settingTitle: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  settingSubtitle: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs, marginTop: 2 },
+  settingValue: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs },
 });

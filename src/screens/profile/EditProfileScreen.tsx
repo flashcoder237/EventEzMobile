@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
@@ -24,14 +23,12 @@ import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import GradientButton from '../../components/ui/GradientButton';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
-  TextStyles,
+  Shadows,
 } from '../../constants/theme';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -44,24 +41,31 @@ interface SectionProps {
 
 const Section = ({ title, icon, children, defaultExpanded = false }: SectionProps) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   return (
-    <View style={[styles.section, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
+    <View
+      style={[
+        styles.section,
+        { backgroundColor: colors.card, borderColor: hairline },
+        Shadows.sm,
+      ]}
+    >
       <TouchableOpacity
-        style={[styles.sectionHeader, { borderBottomColor: colors.gray100 }]}
+        style={[styles.sectionHeader, expanded && { borderBottomColor: hairline, borderBottomWidth: 1 }]}
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.7}
       >
         <View style={styles.sectionHeaderLeft}>
-          <View style={[styles.sectionIconContainer, { backgroundColor: colors.primaryBg }]}>
-            <Ionicons name={icon} size={20} color={colors.primary} />
+          <View style={[styles.sectionIconContainer, { backgroundColor: `${colors.primary}15` }]}>
+            <Ionicons name={icon} size={18} color={colors.primary} />
           </View>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{title}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{title}</Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
-          size={20}
+          size={18}
           color={colors.gray400}
         />
       </TouchableOpacity>
@@ -74,12 +78,12 @@ export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, updateUser, setUser } = useAuth();
   const { showSuccess, showError } = useAlert();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+  const inputBg = isDark ? colors.gray100 : colors.gray50;
 
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Informations personnelles
   const [firstName, setFirstName] = useState(user?.first_name || '');
   const [lastName, setLastName] = useState(user?.last_name || '');
   const [phone, setPhone] = useState(user?.phone_number || '');
@@ -88,16 +92,13 @@ export default function EditProfileScreen() {
     user?.profile_picture || user?.image || null
   );
 
-  // Adresse
   const [address, setAddress] = useState(user?.address || '');
   const [city, setCity] = useState(user?.city || '');
   const [country, setCountry] = useState(user?.country || 'Cameroun');
   const [bio, setBio] = useState(user?.bio || '');
 
-  // Organisateur
   const [companyName, setCompanyName] = useState(user?.company_name || '');
 
-  // Mot de passe
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -125,7 +126,7 @@ export default function EditProfileScreen() {
       if (!permissionResult.granted) {
         showError(
           'Permission requise',
-          'Veuillez autoriser l\'accès à vos photos pour changer votre image de profil.'
+          "Veuillez autoriser l'accès à vos photos pour changer votre image de profil."
         );
         return;
       }
@@ -139,20 +140,16 @@ export default function EditProfileScreen() {
 
       if (!result.canceled && result.assets[0]) {
         setProfileImage(result.assets[0].uri);
-        // Upload image
         await handleUploadImage(result.assets[0].uri);
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur sélection image:', error);
-      showError('Erreur', 'Impossible de sélectionner l\'image');
+      showError('Erreur', "Impossible de sélectionner l'image");
     }
   };
 
   const handleUploadImage = async (imageUri: string) => {
     try {
-      // Sur Android, expo-image-picker peut retourner un URI content://
-      // que React Native ne peut pas lire directement dans un FormData.
-      // On copie d'abord le fichier dans le cache pour obtenir un URI file://.
       let uploadUri = imageUri;
       if (imageUri.startsWith('content://')) {
         const ext = imageUri.split('.').pop()?.split('?')[0] || 'jpg';
@@ -178,15 +175,7 @@ export default function EditProfileScreen() {
       }
       showSuccess('Succès', 'Photo de profil mise à jour');
     } catch (error: any) {
-      if (__DEV__) {
-        console.error('Erreur upload image:', error);
-        console.error('Upload error details:', {
-          status: error.response?.status,
-          data: error.response?.data,
-          code: error.code,
-          message: error.message,
-        });
-      }
+      if (__DEV__) console.error('Erreur upload image:', error);
       setProfileImage(user?.profile_picture || user?.image || null);
       const detail = error.response?.data?.detail || error.message || '';
       showError('Erreur', `Impossible de mettre à jour la photo de profil. ${detail}`);
@@ -216,10 +205,7 @@ export default function EditProfileScreen() {
       showSuccess('Succès', 'Votre profil a été mis à jour');
     } catch (error: any) {
       if (__DEV__) console.error('Erreur mise à jour profil:', error);
-      showError(
-        'Erreur',
-        error.response?.data?.detail || 'Impossible de mettre à jour le profil'
-      );
+      showError('Erreur', error.response?.data?.detail || 'Impossible de mettre à jour le profil');
     } finally {
       setSaving(false);
     }
@@ -272,10 +258,28 @@ export default function EditProfileScreen() {
     return (user?.email?.[0] || 'U').toUpperCase();
   };
 
+  const inputStyle = [
+    styles.input,
+    { backgroundColor: inputBg, color: colors.text, borderColor: hairline },
+  ];
+
   return (
-    <EditorialCanvas edges={['bottom']}>
-      <WatermarkNumeral>EDIT</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {/* Header */}
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
+        </TouchableOpacity>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON PROFIL</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Modifier</Text>
+        </View>
+      </View>
+
       <KeyboardAwareScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -283,304 +287,323 @@ export default function EditProfileScreen() {
         keyboardShouldPersistTaps="handled"
         bottomOffset={80}
       >
-          {/* Profile Image Header */}
-          <View style={[styles.imageSection, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity
-              style={styles.imageContainer}
-              onPress={handlePickImage}
-              activeOpacity={0.8}
-            >
-              {profileImage ? (
-                <Image
-                  source={profileImage}
-                  style={[styles.profileImage, { borderColor: colors.primary }]}
-                  cachePolicy="disk"
-                  transition={200}
-                />
-              ) : (
-                <View style={[styles.initialsContainer, { backgroundColor: colors.gray200, borderColor: colors.primary }]}>
-                  <Text style={[styles.initials, { color: colors.gray600 }]}>{getInitials()}</Text>
-                </View>
-              )}
-              <View style={[styles.editBadge, { backgroundColor: colors.primary, borderColor: colors.white }]}>
-                <Ionicons name="camera" size={16} color={colors.white} />
+        {/* Profile Image */}
+        <View style={styles.imageSection}>
+          <TouchableOpacity style={styles.imageContainer} onPress={handlePickImage} activeOpacity={0.85}>
+            {profileImage ? (
+              <Image
+                source={profileImage}
+                style={[styles.profileImage, { borderColor: colors.card }]}
+                cachePolicy="disk"
+                transition={200}
+              />
+            ) : (
+              <View
+                style={[
+                  styles.initialsContainer,
+                  { backgroundColor: `${colors.primary}15`, borderColor: colors.card },
+                ]}
+              >
+                <Text style={[styles.initials, { color: colors.primary }]}>{getInitials()}</Text>
               </View>
-            </TouchableOpacity>
-            <Text style={[styles.changePhotoText, { color: colors.primary }]}>Changer la photo</Text>
-            <Text style={[styles.emailText, { color: colors.gray500 }]}>{user?.email}</Text>
+            )}
+            <View
+              style={[
+                styles.editBadge,
+                { backgroundColor: colors.primary, borderColor: colors.background },
+              ]}
+            >
+              <Ionicons name="camera" size={14} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+          <Text style={[styles.changePhotoText, { color: colors.primary }]}>Changer la photo</Text>
+          <Text style={[styles.emailText, { color: colors.gray500 }]}>{user?.email}</Text>
+        </View>
+
+        {/* Informations personnelles */}
+        <Section title="Informations personnelles" icon="person-outline" defaultExpanded={true}>
+          <View style={styles.inputRow}>
+            <View style={[styles.inputGroup, styles.inputHalf]}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>Prénom</Text>
+              <TextInput
+                style={inputStyle}
+                value={firstName}
+                onChangeText={setFirstName}
+                placeholder="Prénom"
+                placeholderTextColor={colors.gray400}
+                autoCapitalize="words"
+              />
+            </View>
+            <View style={[styles.inputGroup, styles.inputHalf]}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>Nom</Text>
+              <TextInput
+                style={inputStyle}
+                value={lastName}
+                onChangeText={setLastName}
+                placeholder="Nom"
+                placeholderTextColor={colors.gray400}
+                autoCapitalize="words"
+              />
+            </View>
           </View>
 
-          {/* Informations personnelles */}
-          <Section title="Informations personnelles" icon="person-outline" defaultExpanded={true}>
-            <View style={styles.inputRow}>
-              <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray600 }]}>Prénom</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  placeholder="Prénom"
-                  placeholderTextColor={colors.gray400}
-                  autoCapitalize="words"
-                />
-              </View>
-              <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray600 }]}>Nom</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  placeholder="Nom"
-                  placeholderTextColor={colors.gray400}
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray600 }]}>Téléphone</Text>
-              <View style={styles.inputWithIcon}>
-                <Ionicons name="call-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={phone}
-                  onChangeText={setPhone}
-                  placeholder="+237 6XX XXX XXX"
-                  placeholderTextColor={colors.gray400}
-                  keyboardType="phone-pad"
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray600 }]}>Date de naissance</Text>
-              <View style={styles.inputWithIcon}>
-                <Ionicons name="calendar-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, styles.inputWithIconPadding, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={dateOfBirth}
-                  onChangeText={setDateOfBirth}
-                  placeholder="AAAA-MM-JJ"
-                  placeholderTextColor={colors.gray400}
-                />
-              </View>
-            </View>
-          </Section>
-
-          {/* Adresse */}
-          <Section title="Adresse" icon="location-outline">
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray600 }]}>Adresse</Text>
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.gray500 }]}>Téléphone</Text>
+            <View style={styles.inputWithIcon}>
+              <Ionicons name="call-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
               <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                value={address}
-                onChangeText={setAddress}
-                placeholder="Votre adresse"
+                style={[inputStyle, styles.inputWithIconPadding]}
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="+237 6XX XXX XXX"
+                placeholderTextColor={colors.gray400}
+                keyboardType="phone-pad"
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.gray500 }]}>Date de naissance</Text>
+            <View style={styles.inputWithIcon}>
+              <Ionicons name="calendar-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
+              <TextInput
+                style={[inputStyle, styles.inputWithIconPadding]}
+                value={dateOfBirth}
+                onChangeText={setDateOfBirth}
+                placeholder="AAAA-MM-JJ"
                 placeholderTextColor={colors.gray400}
               />
             </View>
+          </View>
+        </Section>
 
-            <View style={styles.inputRow}>
-              <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray600 }]}>Ville</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={city}
-                  onChangeText={setCity}
-                  placeholder="Ville"
-                  placeholderTextColor={colors.gray400}
-                />
-              </View>
-              <View style={[styles.inputGroup, styles.inputHalf]}>
-                <Text style={[styles.label, { color: colors.gray600 }]}>Pays</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={country}
-                  onChangeText={setCountry}
-                  placeholder="Pays"
-                  placeholderTextColor={colors.gray400}
-                />
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray600 }]}>Biographie</Text>
-              <TextInput
-                style={[styles.input, styles.textArea, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                value={bio}
-                onChangeText={setBio}
-                placeholder="Parlez-nous un peu de vous..."
-                placeholderTextColor={colors.gray400}
-                multiline
-                numberOfLines={4}
-                textAlignVertical="top"
-              />
-            </View>
-          </Section>
-
-          {/* Organisateur */}
-          {user?.role === 'organizer' && (
-            <Section title="Organisation" icon="business-outline">
-              <View style={styles.inputGroup}>
-                <Text style={[styles.label, { color: colors.gray600 }]}>Nom de l'entreprise</Text>
-                <TextInput
-                  style={[styles.input, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={companyName}
-                  onChangeText={setCompanyName}
-                  placeholder="Nom de votre entreprise"
-                  placeholderTextColor={colors.gray400}
-                />
-              </View>
-            </Section>
-          )}
-
-          {/* Sécurité - Mot de passe */}
-          <Section title="Sécurité" icon="lock-closed-outline">
-            <View style={[styles.passwordNotice, { backgroundColor: colors.primaryBg }]}>
-              <Ionicons name="information-circle" size={18} color={colors.primary} />
-              <Text style={[styles.passwordNoticeText, { color: colors.primary }]}>
-                Remplissez ces champs uniquement si vous souhaitez changer votre mot de passe
-              </Text>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray600 }]}>Mot de passe actuel</Text>
-              <View style={styles.passwordInput}>
-                <TextInput
-                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={currentPassword}
-                  onChangeText={setCurrentPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.gray400}
-                  secureTextEntry={!showCurrentPassword}
-                />
-                <TouchableOpacity
-                  style={styles.passwordToggle}
-                  onPress={() => setShowCurrentPassword(!showCurrentPassword)}
-                >
-                  <Ionicons
-                    name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.gray400}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray600 }]}>Nouveau mot de passe</Text>
-              <View style={styles.passwordInput}>
-                <TextInput
-                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.gray400}
-                  secureTextEntry={!showNewPassword}
-                />
-                <TouchableOpacity
-                  style={styles.passwordToggle}
-                  onPress={() => setShowNewPassword(!showNewPassword)}
-                >
-                  <Ionicons
-                    name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.gray400}
-                  />
-                </TouchableOpacity>
-              </View>
-              <Text style={[styles.helpText, { color: colors.gray500 }]}>
-                Minimum 8 caractères avec lettres, chiffres et symboles
-              </Text>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray600 }]}>Confirmer le mot de passe</Text>
-              <View style={styles.passwordInput}>
-                <TextInput
-                  style={[styles.input, styles.passwordInputField, { backgroundColor: colors.card, color: colors.gray900, borderColor: colors.gray200 }]}
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="••••••••"
-                  placeholderTextColor={colors.gray400}
-                  secureTextEntry={!showConfirmPassword}
-                />
-                <TouchableOpacity
-                  style={styles.passwordToggle}
-                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  <Ionicons
-                    name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                    size={20}
-                    color={colors.gray400}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {hasPasswordChanges && (
-              <TouchableOpacity
-                style={[styles.changePasswordButton, { backgroundColor: colors.gray100 }]}
-                onPress={handleChangePassword}
-                disabled={saving}
-              >
-                <Text style={[styles.changePasswordButtonText, { color: colors.gray700 }]}>
-                  Changer le mot de passe
-                </Text>
-              </TouchableOpacity>
-            )}
-          </Section>
-
-          {/* Save Button */}
-          <View style={styles.bottomButton}>
-            <GradientButton
-              title={saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
-              onPress={handleSaveProfile}
-              disabled={!hasProfileChanges || saving}
-              fullWidth
-              icon={<Ionicons name="checkmark" size={20} color={colors.white} />}
+        {/* Adresse */}
+        <Section title="Adresse" icon="location-outline">
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.gray500 }]}>Adresse</Text>
+            <TextInput
+              style={inputStyle}
+              value={address}
+              onChangeText={setAddress}
+              placeholder="Votre adresse"
+              placeholderTextColor={colors.gray400}
             />
           </View>
+
+          <View style={styles.inputRow}>
+            <View style={[styles.inputGroup, styles.inputHalf]}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>Ville</Text>
+              <TextInput
+                style={inputStyle}
+                value={city}
+                onChangeText={setCity}
+                placeholder="Ville"
+                placeholderTextColor={colors.gray400}
+              />
+            </View>
+            <View style={[styles.inputGroup, styles.inputHalf]}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>Pays</Text>
+              <TextInput
+                style={inputStyle}
+                value={country}
+                onChangeText={setCountry}
+                placeholder="Pays"
+                placeholderTextColor={colors.gray400}
+              />
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.gray500 }]}>Biographie</Text>
+            <TextInput
+              style={[inputStyle, styles.textArea]}
+              value={bio}
+              onChangeText={setBio}
+              placeholder="Parlez-nous un peu de vous..."
+              placeholderTextColor={colors.gray400}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+            />
+          </View>
+        </Section>
+
+        {/* Organisation */}
+        {user?.role === 'organizer' && (
+          <Section title="Organisation" icon="business-outline">
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.gray500 }]}>Nom de l'entreprise</Text>
+              <TextInput
+                style={inputStyle}
+                value={companyName}
+                onChangeText={setCompanyName}
+                placeholder="Nom de votre entreprise"
+                placeholderTextColor={colors.gray400}
+              />
+            </View>
+          </Section>
+        )}
+
+        {/* Sécurité */}
+        <Section title="Sécurité" icon="lock-closed-outline">
+          <View style={[styles.passwordNotice, { backgroundColor: `${colors.primary}10` }]}>
+            <Ionicons name="information-circle" size={16} color={colors.primary} />
+            <Text style={[styles.passwordNoticeText, { color: colors.primary }]}>
+              Remplissez ces champs uniquement pour changer votre mot de passe
+            </Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.gray500 }]}>Mot de passe actuel</Text>
+            <View style={styles.passwordInput}>
+              <TextInput
+                style={[inputStyle, styles.passwordInputField]}
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.gray400}
+                secureTextEntry={!showCurrentPassword}
+              />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowCurrentPassword(!showCurrentPassword)}
+              >
+                <Ionicons
+                  name={showCurrentPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.gray400}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.gray500 }]}>Nouveau mot de passe</Text>
+            <View style={styles.passwordInput}>
+              <TextInput
+                style={[inputStyle, styles.passwordInputField]}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.gray400}
+                secureTextEntry={!showNewPassword}
+              />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowNewPassword(!showNewPassword)}
+              >
+                <Ionicons
+                  name={showNewPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.gray400}
+                />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.helpText, { color: colors.gray500 }]}>
+              Minimum 8 caractères avec lettres, chiffres et symboles
+            </Text>
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={[styles.label, { color: colors.gray500 }]}>Confirmer le mot de passe</Text>
+            <View style={styles.passwordInput}>
+              <TextInput
+                style={[inputStyle, styles.passwordInputField]}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="••••••••"
+                placeholderTextColor={colors.gray400}
+                secureTextEntry={!showConfirmPassword}
+              />
+              <TouchableOpacity
+                style={styles.passwordToggle}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={18}
+                  color={colors.gray400}
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {hasPasswordChanges && (
+            <TouchableOpacity
+              style={[
+                styles.changePasswordButton,
+                { backgroundColor: inputBg, borderColor: hairline },
+              ]}
+              onPress={handleChangePassword}
+              disabled={saving}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.changePasswordButtonText, { color: colors.text }]}>
+                Changer le mot de passe
+              </Text>
+            </TouchableOpacity>
+          )}
+        </Section>
+
+        <View style={styles.bottomButton}>
+          <GradientButton
+            title={saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+            onPress={handleSaveProfile}
+            disabled={!hasProfileChanges || saving}
+            fullWidth
+            icon={<Ionicons name="checkmark" size={20} color="#FFFFFF" />}
+          />
+        </View>
       </KeyboardAwareScrollView>
 
-      {saving && (
-        <LoadingSpinner />
-      )}
-      </View>
-    </EditorialCanvas>
+      {saving && <LoadingSpinner />}
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.gray50,
+  container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
   },
-  keyboardView: {
-    flex: 1,
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  scrollView: {
-    flex: 1,
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
-  scrollContent: {
-    paddingBottom: Spacing['3xl'],
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
   },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: Spacing['3xl'] },
   imageSection: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    paddingTop: Spacing.xl,
+    paddingBottom: Spacing.lg,
   },
-  imageContainer: {
-    position: 'relative',
-  },
+  imageContainer: { position: 'relative' },
   profileImage: {
     width: 100,
     height: 100,
     borderRadius: 50,
     borderWidth: 3,
-    borderColor: Colors.primary,
   },
   initialsContainer: {
     width: 100,
@@ -588,49 +611,38 @@ const styles = StyleSheet.create({
     borderRadius: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.gray200,
     borderWidth: 3,
-    borderColor: Colors.primary,
   },
   initials: {
     fontFamily: FontFamily.displayBold,
-    fontSize: 36,
-    color: Colors.gray600,
+    fontSize: 32,
   },
   editBadge: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.primary,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: Colors.white,
+    borderWidth: 2,
   },
   changePhotoText: {
     marginTop: Spacing.sm,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    color: Colors.primary,
   },
   emailText: {
-    marginTop: Spacing.xs,
+    marginTop: 2,
     fontFamily: FontFamily.regular,
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
+    fontSize: FontSizes.xs,
   },
-
-  // Sections
   section: {
     marginTop: Spacing.md,
     marginHorizontal: Spacing.lg,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    borderColor: Colors.gray100,
     overflow: 'hidden',
   },
   sectionHeader: {
@@ -638,64 +650,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
-  sectionHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  sectionHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   sectionIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: Spacing.sm,
   },
   sectionTitle: {
-    fontFamily: FontFamily.displaySemiBold,
-    fontSize: 17,
-    lineHeight: 22,
-    letterSpacing: -0.3,
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.md,
+    letterSpacing: -0.2,
   },
-  sectionContent: {
-    padding: Spacing.md,
-  },
-
-  // Inputs
-  inputRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  inputGroup: {
-    marginBottom: Spacing.md,
-  },
-  inputHalf: {
-    flex: 1,
-  },
+  sectionContent: { padding: Spacing.md },
+  inputRow: { flexDirection: 'row', gap: Spacing.sm },
+  inputGroup: { marginBottom: Spacing.md },
+  inputHalf: { flex: 1 },
   label: {
     fontFamily: FontFamily.bold,
-    fontSize: 11,
-    letterSpacing: 0.8,
+    fontSize: 10,
+    letterSpacing: 1.2,
     textTransform: 'uppercase',
-    marginBottom: Spacing.sm,
+    marginBottom: Spacing.xs,
   },
   input: {
-    backgroundColor: Colors.card,
-    borderRadius: BorderRadius.xl,
-    paddingHorizontal: Spacing.base,
-    paddingVertical: 14,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.base,
-    color: Colors.gray900,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
   },
-  inputWithIcon: {
-    position: 'relative',
-  },
+  inputWithIcon: { position: 'relative' },
   inputIcon: {
     position: 'absolute',
     left: Spacing.md,
@@ -703,26 +691,17 @@ const styles = StyleSheet.create({
     transform: [{ translateY: -9 }],
     zIndex: 1,
   },
-  inputWithIconPadding: {
-    paddingLeft: Spacing.md + 26,
-  },
-  textArea: {
-    minHeight: 100,
-    paddingTop: Spacing.md,
-  },
+  inputWithIconPadding: { paddingLeft: Spacing.md + 26 },
+  textArea: { minHeight: 100, paddingTop: Spacing.md },
   helpText: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.xs,
     lineHeight: 16,
-    color: Colors.gray500,
     marginTop: Spacing.xs,
   },
-
-  // Password
   passwordNotice: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryLight,
     padding: Spacing.sm,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
@@ -731,16 +710,11 @@ const styles = StyleSheet.create({
   passwordNoticeText: {
     flex: 1,
     fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+    fontSize: FontSizes.xs,
     lineHeight: 18,
-    color: Colors.primary,
   },
-  passwordInput: {
-    position: 'relative',
-  },
-  passwordInputField: {
-    paddingRight: 50,
-  },
+  passwordInput: { position: 'relative' },
+  passwordInputField: { paddingRight: 50 },
   passwordToggle: {
     position: 'absolute',
     right: 0,
@@ -751,28 +725,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   changePasswordButton: {
-    backgroundColor: Colors.gray100,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
     alignItems: 'center',
     marginTop: Spacing.sm,
   },
   changePasswordButtonText: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    letterSpacing: -0.1,
-    color: Colors.gray700,
   },
-
-  // Bottom
   bottomButton: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
-  },
-  loadingOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

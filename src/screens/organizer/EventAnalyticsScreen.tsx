@@ -5,24 +5,23 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
   Dimensions,
 } from 'react-native';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { analyticsAPI, eventsAPI } from '../../api';
-import { RootStackParamList, Event, AnalyticsDashboardSummary } from '../../types';
+import { RootStackParamList, Event } from '../../types';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
 } from '../../constants/theme';
 import { SkeletonList, StatCardSkeleton } from '../../components/ui/Skeleton';
 
@@ -40,17 +39,18 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon, color, subtitle }: StatCardProps) => {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   return (
     <View
-      style={[styles.statCard, { backgroundColor: colors.gray50 }]}
+      style={[styles.statCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
       accessibilityRole="summary"
       accessibilityLabel={`${title}: ${value}${subtitle ? `, ${subtitle}` : ''}`}
     >
       <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
-        <Ionicons name={icon} size={24} color={color} />
+        <Ionicons name={icon} size={22} color={color} />
       </View>
-      <Text style={[styles.statValue, { color: colors.gray900 }]}>{value}</Text>
+      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
       <Text style={[styles.statTitle, { color: colors.gray500 }]}>{title}</Text>
       {subtitle && <Text style={[styles.statSubtitle, { color: colors.gray400 }]}>{subtitle}</Text>}
     </View>
@@ -61,10 +61,10 @@ export default function EventAnalyticsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [event, setEvent] = useState<Event | null>(null);
-  // Strategie "Event mono-devise" : analytics s'affichent dans la devise de l'evenement
   const eventCurrencyCode = (event?.currency || 'XAF').toUpperCase();
   const platformCurrency = eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF' ? 'FCFA' : eventCurrencyCode;
   const [analytics, setAnalytics] = useState<any>(null);
@@ -98,24 +98,20 @@ export default function EventAnalyticsScreen() {
   };
 
   const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
     return num.toString();
   };
 
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString() + ' ' + platformCurrency;
-  };
+  const formatCurrency = (amount: number) => amount.toLocaleString() + ' ' + platformCurrency;
 
   if (loading) {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
-        <SkeletonList count={4} Component={StatCardSkeleton} />
-      </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={styles.loadingContainer}>
+          <SkeletonList count={4} Component={StatCardSkeleton} />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -125,143 +121,136 @@ export default function EventAnalyticsScreen() {
   const revenue = analytics?.revenue || 0;
 
   return (
-    <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>KPI</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
         <TouchableOpacity
-          style={styles.backButton}
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Retour"
+          activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Ton impact</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Analytiques</Text>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON IMPACT</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Analytiques</Text>
         </View>
-        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Event Title */}
-        <View style={[styles.eventHeader, { borderBottomColor: colors.gray100 }]}>
-          <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
+        {/* Event Title Card */}
+        <View
+          style={[
+            styles.eventHeader,
+            { backgroundColor: colors.card, borderColor: hairline },
+            Shadows.sm,
+          ]}
+        >
+          <Text style={[styles.eventEyebrow, { color: colors.gray500 }]}>ÉVÉNEMENT</Text>
+          <Text style={[styles.eventTitle, { color: colors.text }]} numberOfLines={2}>
             {event?.title}
           </Text>
-          <View style={[styles.statusBadge, { backgroundColor: colors.primaryBg }]}>
+          <View style={[styles.statusBadge, { backgroundColor: `${colors.primary}15` }]}>
             <Text style={[styles.statusText, { color: colors.primary }]}>{event?.status}</Text>
           </View>
         </View>
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <StatCard
-            title="Vues"
-            value={formatNumber(views)}
-            icon="eye-outline"
-            color={Colors.primary}
-          />
-          <StatCard
-            title="Inscriptions"
-            value={formatNumber(registrations)}
-            icon="people-outline"
-            color="#10B981"
-          />
-          <StatCard
-            title="Conversion"
-            value={`${conversionRate}%`}
-            icon="trending-up-outline"
-            color="#F59E0B"
-          />
-          <StatCard
-            title="Revenus"
-            value={formatCurrency(revenue)}
-            icon="wallet-outline"
-            color="#6366F1"
-          />
+          <StatCard title="Vues" value={formatNumber(views)} icon="eye-outline" color={colors.primary} />
+          <StatCard title="Inscriptions" value={formatNumber(registrations)} icon="people-outline" color="#10B981" />
+          <StatCard title="Conversion" value={`${conversionRate}%`} icon="trending-up-outline" color="#F59E0B" />
+          <StatCard title="Revenus" value={formatCurrency(revenue)} icon="wallet-outline" color="#6366F1" />
         </View>
 
         {/* Performance Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Performance</Text>
-          <View style={[styles.performanceCard, { backgroundColor: colors.gray50 }]}>
-            <View style={styles.performanceRow}>
-              <View style={styles.performanceItem}>
-                <Text style={[styles.performanceLabel, { color: colors.gray600 }]}>Capacité utilisée</Text>
-                <View style={[styles.progressContainer, { backgroundColor: colors.gray200 }]}>
-                  <View
-                    style={[
-                      styles.progressBar,
-                      {
-                        width: `${Math.min(100, (registrations / (event?.max_participants || 100)) * 100)}%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={[styles.performanceValue, { color: colors.gray500 }]}>
-                  {registrations} / {event?.max_participants || '∞'}
-                </Text>
-              </View>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Performance</Text>
+          <View
+            style={[
+              styles.performanceCard,
+              { backgroundColor: colors.card, borderColor: hairline },
+              Shadows.sm,
+            ]}
+          >
+            <Text style={[styles.performanceLabel, { color: colors.gray500 }]}>Capacité utilisée</Text>
+            <View style={[styles.progressContainer, { backgroundColor: isDark ? colors.gray200 : colors.gray100 }]}>
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: `${Math.min(100, (registrations / (event?.max_participants || 100)) * 100)}%`,
+                    backgroundColor: colors.primary,
+                  },
+                ]}
+              />
             </View>
+            <Text style={[styles.performanceValue, { color: colors.gray500 }]}>
+              {registrations} / {event?.max_participants || '∞'}
+            </Text>
           </View>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Actions rapides</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions rapides</Text>
           <View style={styles.actionsRow}>
             <TouchableOpacity
-              style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
+              style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
               onPress={() => navigation.navigate('EventRegistrations', { eventId })}
-              accessibilityRole="button"
-              accessibilityLabel="Voir les inscriptions"
+              activeOpacity={0.7}
             >
-              <Ionicons name="list-outline" size={24} color={colors.primary} />
-              <Text style={[styles.actionText, { color: colors.gray700 }]}>Inscriptions</Text>
+              <View style={[styles.actionIcon, { backgroundColor: `${colors.primary}15` }]}>
+                <Ionicons name="list-outline" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.actionText, { color: colors.text }]}>Inscriptions</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
+              style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
               onPress={() => navigation.navigate('QRScanner', { eventId })}
-              accessibilityRole="button"
-              accessibilityLabel="Scanner un QR code"
+              activeOpacity={0.7}
             >
-              <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
-              <Text style={[styles.actionText, { color: colors.gray700 }]}>Scanner</Text>
+              <View style={[styles.actionIcon, { backgroundColor: `${colors.primary}15` }]}>
+                <Ionicons name="qr-code-outline" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.actionText, { color: colors.text }]}>Scanner</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.actionCard, { backgroundColor: colors.gray50 }]}
+              style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
               onPress={() => navigation.navigate('EventEdit', { eventId })}
-              accessibilityRole="button"
-              accessibilityLabel="Modifier l'evenement"
+              activeOpacity={0.7}
             >
-              <Ionicons name="create-outline" size={24} color={colors.primary} />
-              <Text style={[styles.actionText, { color: colors.gray700 }]}>Modifier</Text>
+              <View style={[styles.actionIcon, { backgroundColor: `${colors.primary}15` }]}>
+                <Ionicons name="create-outline" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.actionText, { color: colors.text }]}>Modifier</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Insights */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Aperçu</Text>
-          <View style={[styles.insightCard, { backgroundColor: colors.gray50 }]}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Aperçu</Text>
+          <View
+            style={[
+              styles.insightCard,
+              { backgroundColor: colors.card, borderColor: hairline },
+              Shadows.sm,
+            ]}
+          >
             <View style={styles.insightRow}>
-              <Ionicons name="trending-up" size={20} color="#10B981" />
-              <Text style={[styles.insightText, { color: colors.gray600 }]}>
+              <View style={[styles.insightIcon, { backgroundColor: 'rgba(16,185,129,0.12)' }]}>
+                <Ionicons name="trending-up" size={18} color="#10B981" />
+              </View>
+              <Text style={[styles.insightText, { color: colors.text }]}>
                 {views > 0
                   ? `Votre événement a été vu ${views} fois`
                   : 'Partagez votre événement pour obtenir plus de vues'}
@@ -269,9 +258,12 @@ export default function EventAnalyticsScreen() {
             </View>
             {registrations > 0 && (
               <View style={styles.insightRow}>
-                <Ionicons name="people" size={20} color={colors.primary} />
-                <Text style={[styles.insightText, { color: colors.gray600 }]}>
-                  {registrations} personne{registrations > 1 ? 's' : ''} inscrite{registrations > 1 ? 's' : ''}
+                <View style={[styles.insightIcon, { backgroundColor: `${colors.primary}15` }]}>
+                  <Ionicons name="people" size={18} color={colors.primary} />
+                </View>
+                <Text style={[styles.insightText, { color: colors.text }]}>
+                  {registrations} personne{registrations > 1 ? 's' : ''} inscrite
+                  {registrations > 1 ? 's' : ''}
                 </Text>
               </View>
             )}
@@ -280,91 +272,90 @@ export default function EventAnalyticsScreen() {
 
         <View style={{ height: Spacing['3xl'] }} />
       </ScrollView>
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
+  container: { flex: 1 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.white,
+    padding: Spacing.lg,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
-  backButton: {
+  iconDisc: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitleWrap: {
-    alignItems: 'center',
-  },
   headerEyebrow: {
-    fontSize: 10,
     fontFamily: FontFamily.bold,
+    fontSize: 10,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   headerTitle: {
-    fontSize: FontSizes.lg,
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
-    letterSpacing: -0.3,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
   },
   scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
   },
   eventHeader: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     padding: Spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    marginBottom: Spacing.lg,
+  },
+  eventEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: Spacing.xs,
   },
   eventTitle: {
-    fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
     marginBottom: Spacing.sm,
   },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.xs,
-    backgroundColor: Colors.primaryBg,
     borderRadius: BorderRadius.full,
   },
   statusText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
-    color: Colors.primary,
     textTransform: 'capitalize',
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: Spacing.lg,
     gap: Spacing.md,
+    marginBottom: Spacing.sm,
   },
   statCard: {
-    width: (SCREEN_WIDTH - Spacing.lg * 3) / 2,
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md) / 2,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     padding: Spacing.md,
   },
   statIcon: {
@@ -376,62 +367,50 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   statValue: {
-    fontSize: FontSizes['2xl'],
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    fontSize: FontSizes['2xl'],
+    letterSpacing: -0.5,
   },
   statTitle: {
-    fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
-    color: Colors.gray500,
+    fontSize: FontSizes.sm,
     marginTop: 2,
   },
   statSubtitle: {
     fontSize: FontSizes.xs,
-    color: Colors.gray400,
     marginTop: 2,
   },
   section: {
-    paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
   },
   sectionTitle: {
-    fontSize: FontSizes.lg,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+    fontSize: FontSizes.md,
     marginBottom: Spacing.md,
   },
   performanceCard: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     padding: Spacing.lg,
   },
-  performanceRow: {
-    gap: Spacing.md,
-  },
-  performanceItem: {},
   performanceLabel: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray600,
     marginBottom: Spacing.sm,
   },
   progressContainer: {
     height: 8,
-    backgroundColor: Colors.gray200,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: Spacing.xs,
   },
   progressBar: {
     height: '100%',
-    backgroundColor: Colors.primary,
     borderRadius: 4,
   },
   performanceValue: {
-    fontSize: FontSizes.sm,
     fontFamily: FontFamily.medium,
-    color: Colors.gray500,
+    fontSize: FontSizes.sm,
   },
   actionsRow: {
     flexDirection: 'row',
@@ -439,20 +418,26 @@ const styles = StyleSheet.create({
   },
   actionCard: {
     flex: 1,
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     padding: Spacing.md,
     alignItems: 'center',
     gap: Spacing.sm,
   },
+  actionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   actionText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray700,
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
   },
   insightCard: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     padding: Spacing.lg,
     gap: Spacing.md,
   },
@@ -461,11 +446,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
   },
+  insightIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   insightText: {
     flex: 1,
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
     lineHeight: 20,
   },
 });

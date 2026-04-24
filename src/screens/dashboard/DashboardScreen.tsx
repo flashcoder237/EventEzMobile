@@ -464,7 +464,7 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
   },
   userName: {
-    fontSize: 30,
+    fontSize: 40,
     fontFamily: FontFamily.displayExtraBold,
     letterSpacing: -0.9,
     lineHeight: 34,

@@ -977,6 +977,16 @@ export default function EventDetailsScreen() {
               <Ionicons name="ticket-outline" size={18} color={colors.white} />
             </TouchableOpacity>
           )
+        ) : event.status === 'cancelled' ? (
+          <View style={[styles.ctaButton, { backgroundColor: colors.error || '#EF4444', opacity: 0.85 }]}>
+            <Ionicons name="close-circle-outline" size={18} color={colors.white} />
+            <Text style={styles.ctaButtonText}>Événement annulé</Text>
+          </View>
+        ) : event.status === 'completed' ? (
+          <View style={[styles.ctaButton, { backgroundColor: colors.gray400 || '#9CA3AF' }]}>
+            <Ionicons name="checkmark-done-outline" size={18} color={colors.white} />
+            <Text style={styles.ctaButtonText}>Événement terminé</Text>
+          </View>
         ) : (
           <TouchableOpacity
             onPress={requireAuth(() => navigation.navigate('TicketPurchase', { eventId }))}

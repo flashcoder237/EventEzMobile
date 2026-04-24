@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  StatusBar,
   TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
@@ -14,7 +13,6 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,23 +26,24 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
-  TextStyles,
+  Shadows,
 } from '../../constants/theme';
 import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
+import { StaggeredItem } from '../../components/ui/Animations';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 type FilterStatus = 'all' | 'draft' | 'submitted' | 'validated' | 'rejected' | 'completed' | 'cancelled';
 
-const statusConfig: Record<string, { color: string; bgColor: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  draft: { color: '#6B7280', bgColor: '#F3F4F6', label: 'Brouillon', icon: 'document-outline' },
-  submitted: { color: '#F59E0B', bgColor: '#FEF3C7', label: 'En attente', icon: 'time-outline' },
-  validated: { color: '#10B981', bgColor: '#D1FAE5', label: 'Validé', icon: 'checkmark-circle-outline' },
-  published: { color: '#10B981', bgColor: '#D1FAE5', label: 'Publié', icon: 'checkmark-circle-outline' },
-  rejected: { color: '#EF4444', bgColor: '#FEE2E2', label: 'Rejeté', icon: 'close-circle-outline' },
-  completed: { color: '#3B82F6', bgColor: '#DBEAFE', label: 'Terminé', icon: 'flag-outline' },
-  cancelled: { color: '#6B7280', bgColor: '#F3F4F6', label: 'Annulé', icon: 'ban-outline' },
+const statusConfig: Record<string, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  draft: { color: '#6B7280', label: 'Brouillon', icon: 'document-outline' },
+  submitted: { color: '#F59E0B', label: 'En attente', icon: 'time-outline' },
+  validated: { color: '#10B981', label: 'Validé', icon: 'checkmark-circle-outline' },
+  published: { color: '#10B981', label: 'Publié', icon: 'checkmark-circle-outline' },
+  rejected: { color: '#EF4444', label: 'Rejeté', icon: 'close-circle-outline' },
+  completed: { color: '#3B82F6', label: 'Terminé', icon: 'flag-outline' },
+  cancelled: { color: '#6B7280', label: 'Annulé', icon: 'ban-outline' },
 };
 
 const filterOptions: { value: FilterStatus; label: string }[] = [
@@ -62,7 +61,10 @@ export default function MyEventsScreen() {
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
-  const { isTablet, columns, padding: containerPadding, cardGap } = useTabletLayout();
+  const { columns, padding: containerPadding, cardGap } = useTabletLayout();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+  const inputBg = isDark ? colors.gray100 : colors.gray50;
+
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -243,184 +245,225 @@ export default function MyEventsScreen() {
     showAlert('Actions', event.title, actions);
   };
 
-  const renderEvent = ({ item }: { item: Event }) => {
+  const renderEvent = ({ item, index }: { item: Event; index: number }) => {
     const config = statusConfig[item.status] || statusConfig.draft;
     const location = getLocationDisplay(item);
 
     return (
-      <TouchableOpacity
-        style={[styles.eventCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
-        onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
-        onLongPress={() => showEventActions(item)}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel={`Evenement ${item.title}`}
-      >
-        <Image
-          source={
-            getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)
-              || require('../../../assets/defaults/default-event.png')
-          }
-          placeholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder || undefined}
-          placeholderContentFit="cover"
-          style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
-          cachePolicy="memory-disk"
-          transition={300}
-        />
-
-        {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: config.bgColor }]}>
-          <Ionicons name={config.icon} size={12} color={config.color} />
-          <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
-        </View>
-
-        <View style={styles.eventContent}>
-          <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>{item.title}</Text>
-
-          <View style={styles.eventMeta}>
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={14} color={colors.gray500} />
-              <Text style={[styles.metaText, { color: colors.gray500 }]}>{formatDate(item.start_date)}</Text>
-            </View>
-            <View style={styles.metaItem}>
-              <Ionicons name={location.icon} size={14} color={location.color} />
-              <Text style={[styles.metaText, { color: location.color }]} numberOfLines={1}>
-                {location.text}
-              </Text>
+      <StaggeredItem index={index}>
+        <TouchableOpacity
+          style={[
+            styles.eventCard,
+            { backgroundColor: colors.card, borderColor: hairline },
+            Shadows.sm,
+          ]}
+          onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+          onLongPress={() => showEventActions(item)}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={`Evenement ${item.title}`}
+        >
+          <View style={styles.imageWrap}>
+            <Image
+              source={
+                getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)
+                  || require('../../../assets/defaults/default-event.png')
+              }
+              placeholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder || undefined}
+              placeholderContentFit="cover"
+              style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
+              cachePolicy="memory-disk"
+              transition={300}
+            />
+            <View style={[styles.statusBadge, { backgroundColor: `${config.color}15` }]}>
+              <Ionicons name={config.icon} size={11} color={config.color} />
+              <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
             </View>
           </View>
 
-          <View style={[styles.eventStats, { borderTopColor: colors.gray100 }]}>
-            <View style={styles.statItem}>
-              <Ionicons name="people-outline" size={16} color={colors.gray500} />
-              <Text style={[styles.statValue, { color: colors.gray900 }]}>
-                {item.registration_count || item.registrations_count || 0}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>inscrits</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="eye-outline" size={16} color={colors.gray500} />
-              <Text style={[styles.statValue, { color: colors.gray900 }]}>{item.view_count || 0}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>vues</Text>
-            </View>
-            <Text style={[styles.priceText, { color: colors.primary }]}>
-              {item.is_free ? 'Gratuit' : `${item.base_price?.toLocaleString() || 0} ${item.currency || 'FCFA'}`}
+          <View style={styles.eventContent}>
+            <Text style={[styles.eventTitle, { color: colors.text }]} numberOfLines={2}>
+              {item.title}
             </Text>
-          </View>
 
-          {/* Quick Actions */}
-          <View style={[styles.actionsRow, { borderTopColor: colors.gray100 }]}>
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
-              onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
-              accessibilityRole="button"
-              accessibilityLabel="Voir l'evenement"
-            >
-              <Ionicons name="eye-outline" size={16} color={colors.gray600} />
-              <Text style={[styles.actionText, { color: colors.gray600 }]}>Voir</Text>
-            </TouchableOpacity>
+            <View style={styles.eventMeta}>
+              <View style={styles.metaItem}>
+                <Ionicons name="time-outline" size={14} color={colors.gray500} />
+                <Text style={[styles.metaText, { color: colors.gray500 }]}>{formatDate(item.start_date)}</Text>
+              </View>
+              <View style={styles.metaItem}>
+                <Ionicons name={location.icon} size={14} color={location.color} />
+                <Text style={[styles.metaText, { color: location.color }]} numberOfLines={1}>
+                  {location.text}
+                </Text>
+              </View>
+            </View>
 
-            {item.status === 'validated' && (
-              <>
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: '#10B981' }]}
-                  onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
-                  accessibilityRole="button"
-                  accessibilityLabel="Scanner QR code"
-                >
-                  <Ionicons name="qr-code" size={16} color="#FFFFFF" />
-                  <Text style={[styles.actionText, { color: '#FFFFFF' }]}>Scanner</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
-                  onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
-                  accessibilityRole="button"
-                  accessibilityLabel="Voir les inscrits"
-                >
-                  <Ionicons name="people" size={16} color={colors.primary} />
-                  <Text style={[styles.actionText, { color: colors.primary }]}>Inscrits</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
-                  onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
-                  accessibilityRole="button"
-                  accessibilityLabel="Voir les statistiques"
-                >
-                  <Ionicons name="stats-chart" size={16} color={colors.gray600} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
-                  onPress={() => navigation.navigate('Volunteers', { eventId: item.id })}
-                  accessibilityRole="button"
-                  accessibilityLabel="Gerer les benevoles"
-                >
-                  <Ionicons name="people-outline" size={16} color={colors.gray600} />
-                  <Text style={[styles.actionText, { color: colors.gray600 }]}>Bénévoles</Text>
-                </TouchableOpacity>
-              </>
-            )}
+            <View style={[styles.eventStats, { borderTopColor: hairline }]}>
+              <View style={styles.statCluster}>
+                <View style={styles.statBlock}>
+                  <Text style={[styles.statBlockValue, { color: colors.text }]}>
+                    {item.registration_count || item.registrations_count || 0}
+                  </Text>
+                  <Text style={[styles.statBlockLabel, { color: colors.gray500 }]}>inscrits</Text>
+                </View>
+                <View style={[styles.statDivider, { backgroundColor: hairline }]} />
+                <View style={styles.statBlock}>
+                  <Text style={[styles.statBlockValue, { color: colors.text }]}>{item.view_count || 0}</Text>
+                  <Text style={[styles.statBlockLabel, { color: colors.gray500 }]}>vues</Text>
+                </View>
+              </View>
+              <Text style={[styles.priceText, { color: colors.primary }]}>
+                {item.is_free ? 'Gratuit' : `${item.base_price?.toLocaleString() || 0} ${item.currency || 'FCFA'}`}
+              </Text>
+            </View>
 
-            {item.status === 'draft' && (
+            {/* Quick Actions */}
+            <View style={[styles.actionsRow, { borderTopColor: hairline }]}>
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.primary }]}
-                onPress={() => handleSubmitForValidation(item.id)}
+                style={[styles.actionChip, { backgroundColor: inputBg, borderColor: hairline }]}
+                onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
                 accessibilityRole="button"
-                accessibilityLabel="Publier l'evenement"
+                accessibilityLabel="Voir l'evenement"
               >
-                <Ionicons name="send" size={16} color="#FFFFFF" />
-                <Text style={[styles.actionText, { color: '#FFFFFF' }]}>Publier</Text>
+                <Ionicons name="eye-outline" size={14} color={colors.text} />
+                <Text style={[styles.actionChipText, { color: colors.text }]}>Voir</Text>
               </TouchableOpacity>
-            )}
 
-            {(item.status === 'draft' || item.status === 'rejected') && (
+              {item.status === 'validated' && (
+                <>
+                  <TouchableOpacity
+                    style={[styles.actionChipPrimary, { backgroundColor: colors.primary }]}
+                    onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
+                    accessibilityRole="button"
+                    accessibilityLabel="Scanner QR code"
+                  >
+                    <Ionicons name="qr-code" size={14} color="#FFFFFF" />
+                    <Text style={[styles.actionChipPrimaryText]}>Scanner</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionChip, { backgroundColor: inputBg, borderColor: hairline }]}
+                    onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
+                    accessibilityRole="button"
+                    accessibilityLabel="Voir les inscrits"
+                  >
+                    <Ionicons name="people-outline" size={14} color={colors.text} />
+                    <Text style={[styles.actionChipText, { color: colors.text }]}>Inscrits</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.actionIcon, { backgroundColor: inputBg, borderColor: hairline }]}
+                    onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
+                    accessibilityRole="button"
+                    accessibilityLabel="Voir les statistiques"
+                  >
+                    <Ionicons name="stats-chart-outline" size={14} color={colors.text} />
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {item.status === 'draft' && (
+                <TouchableOpacity
+                  style={[styles.actionChipPrimary, { backgroundColor: colors.primary }]}
+                  onPress={() => handleSubmitForValidation(item.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Publier l'evenement"
+                >
+                  <Ionicons name="send" size={14} color="#FFFFFF" />
+                  <Text style={styles.actionChipPrimaryText}>Publier</Text>
+                </TouchableOpacity>
+              )}
+
+              {(item.status === 'draft' || item.status === 'rejected') && (
+                <TouchableOpacity
+                  style={[styles.actionIcon, { backgroundColor: inputBg, borderColor: hairline }]}
+                  onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
+                  accessibilityRole="button"
+                  accessibilityLabel="Modifier l'evenement"
+                >
+                  <Ionicons name="create-outline" size={14} color={colors.text} />
+                </TouchableOpacity>
+              )}
+
               <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
-                onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
+                style={[styles.actionIcon, { backgroundColor: inputBg, borderColor: hairline }]}
+                onPress={() => showEventActions(item)}
                 accessibilityRole="button"
-                accessibilityLabel="Modifier l'evenement"
+                accessibilityLabel="Plus d'actions"
               >
-                <Ionicons name="create-outline" size={16} color={colors.gray600} />
+                <Ionicons name="ellipsis-horizontal" size={14} color={colors.text} />
               </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
-              onPress={() => showEventActions(item)}
-              accessibilityRole="button"
-              accessibilityLabel="Plus d'actions"
-            >
-              <Ionicons name="ellipsis-vertical" size={16} color={colors.gray600} />
-            </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+      </StaggeredItem>
     );
   };
 
   const renderEventItem = useCallback(
-    ({ item }: { item: Event }) => (
+    ({ item, index }: { item: Event; index: number }) => (
       <View style={columns > 1 ? { flex: 1 } : undefined}>
-        {renderEvent({ item })}
+        {renderEvent({ item, index })}
       </View>
     ),
     [columns, renderEvent],
   );
 
   const renderFilterItem = useCallback(
-    ({ item }: { item: { value: FilterStatus; label: string } }) => (
+    ({ item }: { item: { value: FilterStatus; label: string } }) => {
+      const active = filter === item.value;
+      return (
+        <TouchableOpacity
+          style={[
+            styles.filterPill,
+            active
+              ? { backgroundColor: colors.text, borderColor: colors.text }
+              : { backgroundColor: colors.card, borderColor: hairline },
+          ]}
+          onPress={() => setFilter(item.value)}
+          activeOpacity={0.7}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: active }}
+          accessibilityLabel={`Filtre ${item.label}`}
+        >
+          <Text
+            style={[
+              styles.filterPillText,
+              { color: active ? colors.background : colors.gray600 },
+            ]}
+          >
+            {item.label}
+          </Text>
+        </TouchableOpacity>
+      );
+    },
+    [filter, colors, hairline],
+  );
+
+  const renderHeader = () => (
+    <View style={[styles.header, { borderBottomColor: hairline }]}>
       <TouchableOpacity
-        style={[styles.filterTab, { backgroundColor: filter === item.value ? colors.primary : colors.gray100 }]}
-        onPress={() => setFilter(item.value)}
-        accessibilityRole="tab"
-        accessibilityState={{ selected: filter === item.value }}
-        accessibilityLabel={`Filtre ${item.label}`}
+        style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Retour"
       >
-        <Text style={[styles.filterTabText, { color: filter === item.value ? '#FFFFFF' : colors.gray600 }]}>
-          {item.label}
-        </Text>
+        <Ionicons name="chevron-back" size={18} color={colors.text} />
       </TouchableOpacity>
-    ),
-    [filter, colors.primary, colors.gray100, colors.gray600],
+      <View style={{ flex: 1, marginLeft: Spacing.md }}>
+        <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON CATALOGUE</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>Mes événements</Text>
+      </View>
+      <TouchableOpacity
+        style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+        onPress={() => navigation.navigate('EventCreate')}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel="Creer un evenement"
+      >
+        <Ionicons name="add" size={20} color={colors.primary} />
+      </TouchableOpacity>
+    </View>
   );
 
   const renderEmpty = () => (
@@ -428,7 +471,7 @@ export default function MyEventsScreen() {
       <AnimatedIllustration entry="fadeIn" idle="sway">
         <EventsIllustration color={colors.primary} size={160} />
       </AnimatedIllustration>
-      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>
         {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Aucun événement'}
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
@@ -440,10 +483,11 @@ export default function MyEventsScreen() {
         <TouchableOpacity
           style={[styles.createButton, { backgroundColor: colors.primary }]}
           onPress={() => navigation.navigate('EventCreate')}
+          activeOpacity={0.85}
           accessibilityRole="button"
           accessibilityLabel="Creer un evenement"
         >
-          <Ionicons name="add" size={20} color="#FFFFFF" />
+          <Ionicons name="add" size={18} color="#FFFFFF" />
           <Text style={styles.createButtonText}>Créer mon premier événement</Text>
         </TouchableOpacity>
       )}
@@ -452,95 +496,85 @@ export default function MyEventsScreen() {
 
   if (loading) {
     return (
-      <>
-        <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        {renderHeader()}
         <MyEventsScreenSkeleton />
-      </>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={[styles.mainContainer, { backgroundColor: colors.primary }]}>
-      <StatusBar barStyle="light-content" backgroundColor={colors.primary} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      {renderHeader()}
 
-      {/* Header with gradient */}
-      <LinearGradient
-        colors={isDark ? [colors.primaryDark, colors.primaryDark, colors.primaryDark] : [colors.primary, '#6366F1', '#6366F1']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + Spacing.md }]}
+      {/* Stats Card */}
+      <View
+        style={[
+          styles.statsCard,
+          { backgroundColor: colors.card, borderColor: hairline },
+          Shadows.sm,
+        ]}
       >
-        <View style={styles.headerTop}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Retour"
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerEyebrow}>Ton catalogue</Text>
-            <Text style={styles.headerTitle}>Mes événements</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.addButton, { backgroundColor: colors.card }]}
-            onPress={() => navigation.navigate('EventCreate')}
-            accessibilityRole="button"
-            accessibilityLabel="Creer un evenement"
-          >
-            <Ionicons name="add" size={24} color={colors.primary} />
-          </TouchableOpacity>
+        <View style={styles.statItem}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Total</Text>
         </View>
-
-        <Text style={styles.headerStats}>
-          {stats.total} événement{stats.total > 1 ? 's' : ''} · {stats.validated} validé{stats.validated > 1 ? 's' : ''} · {stats.draft} brouillon{stats.draft > 1 ? 's' : ''}
-        </Text>
-      </LinearGradient>
-
-      {/* Content area */}
-      <View style={[styles.contentArea, { backgroundColor: colors.background }]}>
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <View style={[styles.searchBar, { backgroundColor: colors.gray50 }]}>
-            <Ionicons name="search" size={20} color={colors.gray400} />
-            <TextInput
-              style={[styles.searchInput, { color: colors.gray900 }]}
-              placeholder="Rechercher un événement..."
-              placeholderTextColor={colors.gray400}
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              accessibilityLabel="Rechercher mes evenements"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color={colors.gray400} />
-              </TouchableOpacity>
-            )}
-          </View>
+        <View style={[styles.statCardDivider, { backgroundColor: hairline }]} />
+        <View style={styles.statItem}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.validated}</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Validés</Text>
         </View>
+        <View style={[styles.statCardDivider, { backgroundColor: hairline }]} />
+        <View style={styles.statItem}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.draft}</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Brouillons</Text>
+        </View>
+      </View>
 
-        {/* Filter Tabs */}
-        <View style={styles.filterContainer}>
-          <FlatList
-            horizontal
-            data={filterOptions}
-            keyExtractor={(item) => item.value}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterList}
-            renderItem={renderFilterItem}
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, { backgroundColor: inputBg, borderColor: hairline }]}>
+          <Ionicons name="search" size={18} color={colors.gray400} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Rechercher un événement..."
+            placeholderTextColor={colors.gray400}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            accessibilityLabel="Rechercher mes evenements"
           />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Effacer la recherche">
+              <Ionicons name="close-circle" size={18} color={colors.gray400} />
+            </TouchableOpacity>
+          )}
         </View>
+      </View>
 
-        {/* Events List */}
+      {/* Filter Pills */}
+      <View style={styles.filterContainer}>
         <FlatList
+          horizontal
+          data={filterOptions}
+          keyExtractor={(item) => item.value}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterList}
+          renderItem={renderFilterItem}
+        />
+      </View>
+
+      {/* Events List */}
+      <FlatList
         key={columns}
         numColumns={columns}
         columnWrapperStyle={columns > 1 ? { gap: cardGap } : undefined}
         data={filteredEvents}
         renderItem={renderEventItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={[styles.listContent, { paddingHorizontal: containerPadding }]}
+        contentContainerStyle={[
+          styles.listContent,
+          { paddingHorizontal: containerPadding, paddingBottom: insets.bottom + Spacing.xl },
+        ]}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
         refreshControl={
@@ -554,110 +588,103 @@ export default function MyEventsScreen() {
         maxToRenderPerBatch={10}
         windowSize={5}
         removeClippedSubviews
-        />
-      </View>
-    </View>
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  mainContainer: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
-  contentArea: {
-    flex: 1,
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    marginTop: -Spacing.md,
-  },
-  headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
   },
-  backButton: {
+  iconDisc: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitleWrap: {
-    alignItems: 'center',
-  },
   headerEyebrow: {
-    fontSize: 10,
     fontFamily: FontFamily.bold,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   headerTitle: {
-    ...TextStyles.h2,
-    color: '#FFFFFF',
-    letterSpacing: -0.3,
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
   },
-  addButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  statsCard: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingVertical: Spacing.md,
+  },
+  statItem: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  headerStats: {
-    fontSize: FontSizes.base,
-    color: 'rgba(255,255,255,0.8)',
-    textAlign: 'center',
+  statValue: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
   },
+  statLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+    marginTop: 2,
+  },
+  statCardDivider: { width: 1 },
   searchContainer: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
     paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: Spacing.md,
-    fontSize: FontSizes.base,
+    paddingVertical: Spacing.sm + 2,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
   },
   filterContainer: {
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
   filterList: {
     paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
   },
-  filterTab: {
+  filterPill: {
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
     marginRight: Spacing.sm,
   },
-  filterTabActive: {},
-  filterTabText: {
-    fontFamily: FontFamily.medium,
+  filterPillText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
   },
-  filterTabTextActive: {},
   listContent: {
-    padding: Spacing.lg,
     paddingTop: Spacing.sm,
-    paddingBottom: Spacing['3xl'],
     flexGrow: 1,
   },
   eventCard: {
@@ -665,6 +692,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
+  },
+  imageWrap: {
+    position: 'relative',
   },
   eventImage: {
     width: '100%',
@@ -682,18 +712,22 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statusText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 0.3,
   },
   eventContent: {
     padding: Spacing.md,
   },
   eventTitle: {
-    ...TextStyles.h4,
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
+    lineHeight: FontSizes.lg * 1.25,
     marginBottom: Spacing.sm,
   },
   eventMeta: {
-    gap: Spacing.xs,
+    gap: 6,
     marginBottom: Spacing.md,
   },
   metaItem: {
@@ -702,6 +736,7 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   metaText: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
     flex: 1,
   },
@@ -709,43 +744,77 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: Spacing.sm,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
     borderTopWidth: 1,
-    marginBottom: Spacing.sm,
   },
-  statItem: {
+  statCluster: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.md,
+  },
+  statBlock: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
     gap: 4,
   },
-  statValue: {
-    ...TextStyles.bodyBold,
-  },
-  statLabel: {
-    fontSize: FontSizes.sm,
-  },
-  priceText: {
+  statBlockValue: {
     fontFamily: FontFamily.bold,
     fontSize: FontSizes.base,
   },
+  statBlockLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+  },
+  statDivider: {
+    width: 1,
+    height: 14,
+  },
+  priceText: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.base,
+    letterSpacing: -0.2,
+  },
   actionsRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
   },
-  actionButton: {
+  actionChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.xs,
+    paddingVertical: 6,
     paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    gap: Spacing.xs,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    gap: 4,
   },
-  actionButtonPrimary: {},
-  actionText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
+  actionChipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
+  },
+  actionChipPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    gap: 4,
+  },
+  actionChipPrimaryText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.xs,
+    color: '#FFFFFF',
+  },
+  actionIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyContainer: {
     flex: 1,
@@ -753,34 +822,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: Spacing['3xl'],
   },
-  emptyIcon: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
-  },
   emptyTitle: {
-    ...TextStyles.h3,
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+    marginTop: Spacing.lg,
     marginBottom: Spacing.sm,
   },
   emptyText: {
-    fontSize: FontSizes.base,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
     paddingHorizontal: Spacing.xl,
     marginBottom: Spacing.xl,
   },
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
     gap: Spacing.sm,
   },
   createButtonText: {
-    ...TextStyles.button,
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
+    color: '#FFFFFF',
   },
 });

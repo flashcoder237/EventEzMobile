@@ -6,8 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,23 +16,21 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
 import { RootStackParamList } from '../../../types';
-import { KPICard, ChartWrapper } from '../../../components/charts';
+import { KPICard } from '../../../components/charts';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../../constants/theme';
-import { EditorialCanvas, WatermarkNumeral } from '../../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function TreasuryReportsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,21 +68,42 @@ export default function TreasuryReportsScreen() {
   const expenses = profitLoss?.total_expenses || summary?.total_expenses || 0;
   const netProfit = profitLoss?.net_profit || (revenue - expenses);
   const margin = revenue > 0 ? Math.round((netProfit / revenue) * 100) : 0;
+  const profitable = netProfit >= 0;
+  const profitColor = profitable ? '#10B981' : '#EF4444';
+
+  const revenueRows = [
+    { label: 'Commissions', value: profitLoss?.commissions || summary?.commissions || 0 },
+    { label: 'Abonnements', value: profitLoss?.subscriptions || summary?.subscriptions || 0 },
+  ];
+
+  const expenseRows = [
+    { label: 'Masse salariale', value: profitLoss?.payroll || summary?.payroll || 0 },
+    { label: 'Dépenses opérationnelles', value: profitLoss?.operational_expenses || summary?.operational || 0 },
+    { label: 'Dividendes versés', value: profitLoss?.dividends || summary?.dividends || 0 },
+  ];
+
+  const ratios = [
+    { label: 'Marge nette', value: `${margin}%`, color: profitable ? '#10B981' : '#EF4444' },
+    { label: 'Ratio dépenses/revenus', value: revenue > 0 ? `${Math.round((expenses / revenue) * 100)}%` : '0%', color: colors.text },
+    { label: 'Paie / Revenus', value: revenue > 0 ? `${Math.round(((profitLoss?.payroll || 0) / revenue) * 100)}%` : '0%', color: colors.text },
+  ];
 
   return (
-    <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>RPT</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-
-      <View style={styles.header}>
-        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={colors.gray700} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Le bilan</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Rapports financiers</Text>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LE BILAN</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Rapports financiers</Text>
         </View>
-        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -93,79 +112,78 @@ export default function TreasuryReportsScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Net Profit Card */}
-        <View style={[styles.profitCard, { backgroundColor: netProfit >= 0 ? (isDark ? '#0A2E1A' : '#D1FAE5') : (isDark ? '#2E0A0A' : '#FEE2E2') }]}>
-          <Text style={[styles.profitLabel, { color: netProfit >= 0 ? '#059669' : '#DC2626' }]}>
-            {netProfit >= 0 ? 'Benefice net' : 'Perte nette'}
+        <View
+          style={[
+            styles.profitCard,
+            { backgroundColor: colors.card, borderColor: hairline },
+            Shadows.sm,
+          ]}
+        >
+          <Text style={[styles.profitEyebrow, { color: colors.gray500 }]}>
+            {profitable ? 'BÉNÉFICE NET' : 'PERTE NETTE'}
           </Text>
-          <Text style={[styles.profitValue, { color: netProfit >= 0 ? '#059669' : '#DC2626' }]}>
+          <Text style={[styles.profitValue, { color: profitColor }]}>
             {formatAmount(Math.abs(netProfit))}
           </Text>
-          <Text style={[styles.profitMargin, { color: netProfit >= 0 ? '#10B981' : '#EF4444' }]}>
-            Marge: {margin}%
-          </Text>
+          <View style={[styles.profitBadge, { backgroundColor: `${profitColor}15` }]}>
+            <Ionicons
+              name={profitable ? 'trending-up' : 'trending-down'}
+              size={14}
+              color={profitColor}
+            />
+            <Text style={[styles.profitBadgeText, { color: profitColor }]}>
+              Marge {margin}%
+            </Text>
+          </View>
         </View>
 
         {/* KPIs */}
         <View style={styles.kpiRow}>
           <KPICard title="Revenus" value={formatAmount(revenue)} icon="trending-up" color="#10B981" />
-          <KPICard title="Depenses" value={formatAmount(expenses)} icon="trending-down" color="#EF4444" />
+          <KPICard title="Dépenses" value={formatAmount(expenses)} icon="trending-down" color="#EF4444" />
         </View>
 
         {/* P&L Breakdown */}
-        <ChartWrapper title="Compte de resultat" subtitle="Repartition revenus/depenses">
-          <View style={styles.plBreakdown}>
-            {/* Revenue Section */}
-            <View style={styles.plSection}>
-              <Text style={[styles.plSectionTitle, { color: '#10B981' }]}>Revenus</Text>
-              {[
-                { label: 'Commissions', value: profitLoss?.commissions || summary?.commissions || 0 },
-                { label: 'Abonnements', value: profitLoss?.subscriptions || summary?.subscriptions || 0 },
-              ].map((item) => (
-                <View key={item.label} style={styles.plRow}>
-                  <Text style={[styles.plLabel, { color: colors.gray600 }]}>{item.label}</Text>
-                  <Text style={[styles.plValue, { color: colors.gray900 }]}>{formatAmount(item.value)}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={[styles.plDivider, { backgroundColor: colors.gray100 }]} />
-
-            {/* Expenses Section */}
-            <View style={styles.plSection}>
-              <Text style={[styles.plSectionTitle, { color: '#EF4444' }]}>Depenses</Text>
-              {[
-                { label: 'Masse salariale', value: profitLoss?.payroll || summary?.payroll || 0 },
-                { label: 'Depenses operationnelles', value: profitLoss?.operational_expenses || summary?.operational || 0 },
-                { label: 'Dividendes verses', value: profitLoss?.dividends || summary?.dividends || 0 },
-              ].map((item) => (
-                <View key={item.label} style={styles.plRow}>
-                  <Text style={[styles.plLabel, { color: colors.gray600 }]}>{item.label}</Text>
-                  <Text style={[styles.plValue, { color: colors.gray900 }]}>{formatAmount(item.value)}</Text>
-                </View>
-              ))}
-            </View>
-
-            <View style={[styles.plDivider, { backgroundColor: colors.gray300 }]} />
-
-            {/* Total */}
-            <View style={styles.plRow}>
-              <Text style={[styles.plTotalLabel, { color: colors.gray900 }]}>Resultat net</Text>
-              <Text style={[styles.plTotalValue, { color: netProfit >= 0 ? '#10B981' : '#EF4444' }]}>
-                {formatAmount(netProfit)}
-              </Text>
-            </View>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>COMPTE DE RÉSULTAT</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+          <View style={{ padding: Spacing.md }}>
+            <Text style={[styles.plSectionTitle, { color: '#10B981' }]}>Revenus</Text>
+            {revenueRows.map((item) => (
+              <View key={item.label} style={styles.plRow}>
+                <Text style={[styles.plLabel, { color: colors.gray600 }]}>{item.label}</Text>
+                <Text style={[styles.plValue, { color: colors.text }]}>{formatAmount(item.value)}</Text>
+              </View>
+            ))}
           </View>
-        </ChartWrapper>
+
+          <View style={[styles.plDivider, { backgroundColor: hairline }]} />
+
+          <View style={{ padding: Spacing.md }}>
+            <Text style={[styles.plSectionTitle, { color: '#EF4444' }]}>Dépenses</Text>
+            {expenseRows.map((item) => (
+              <View key={item.label} style={styles.plRow}>
+                <Text style={[styles.plLabel, { color: colors.gray600 }]}>{item.label}</Text>
+                <Text style={[styles.plValue, { color: colors.text }]}>{formatAmount(item.value)}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={[styles.plDivider, { backgroundColor: hairline }]} />
+
+          <View style={[styles.plTotalRow, { padding: Spacing.md }]}>
+            <Text style={[styles.plTotalLabel, { color: colors.text }]}>Résultat net</Text>
+            <Text style={[styles.plTotalValue, { color: profitColor }]}>{formatAmount(netProfit)}</Text>
+          </View>
+        </View>
 
         {/* Monthly Ratios */}
-        <View style={[styles.ratiosCard, { backgroundColor: colors.card }, Shadows.card]}>
-          <Text style={[styles.ratiosTitle, { color: colors.gray900 }]}>Ratios cles</Text>
-          {[
-            { label: 'Marge nette', value: `${margin}%`, color: margin >= 0 ? '#10B981' : '#EF4444' },
-            { label: 'Ratio depenses/revenus', value: revenue > 0 ? `${Math.round((expenses / revenue) * 100)}%` : '0%', color: colors.gray900 },
-            { label: 'Paie / Revenus', value: revenue > 0 ? `${Math.round(((profitLoss?.payroll || 0) / revenue) * 100)}%` : '0%', color: colors.gray900 },
-          ].map((item, idx) => (
-            <View key={item.label} style={[styles.ratioRow, idx > 0 && { borderTopWidth: 1, borderTopColor: colors.gray100 }]}>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>RATIOS CLÉS</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+          {ratios.map((item, idx) => (
+            <View
+              key={item.label}
+              style={[styles.ratioRow, idx < ratios.length - 1 && { borderBottomWidth: 1, borderBottomColor: hairline }]}
+            >
               <Text style={[styles.ratioLabel, { color: colors.gray600 }]}>{item.label}</Text>
               <Text style={[styles.ratioValue, { color: item.color }]}>{item.value}</Text>
             </View>
@@ -174,36 +192,92 @@ export default function TreasuryReportsScreen() {
 
         <View style={{ height: 100 }} />
       </ScrollView>
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitleWrap: { alignItems: 'center' },
-  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
-  scrollContent: { paddingHorizontal: Spacing.lg },
-  profitCard: { borderRadius: BorderRadius['2xl'], padding: Spacing.xl, alignItems: 'center', marginBottom: Spacing.md },
-  profitLabel: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm, marginBottom: Spacing.xs },
-  profitValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes['3xl'] },
-  profitMargin: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, marginTop: Spacing.xs },
-  kpiRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.md },
-  plBreakdown: { width: '100%' },
-  plSection: { marginBottom: Spacing.sm },
-  plSectionTitle: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm, marginBottom: Spacing.xs },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  profitCard: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.xl,
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  profitEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: Spacing.xs,
+  },
+  profitValue: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['3xl'],
+    letterSpacing: -0.8,
+    marginBottom: Spacing.sm,
+  },
+  profitBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+  },
+  profitBadgeText: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs },
+  kpiRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+    marginLeft: Spacing.xs,
+  },
+  card: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  plSectionTitle: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: Spacing.sm },
   plRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.xs },
-  plLabel: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm },
-  plValue: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
-  plDivider: { height: 1, marginVertical: Spacing.sm },
-  plTotalLabel: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.md },
-  plTotalValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.md },
-  ratiosCard: { borderRadius: BorderRadius['2xl'], padding: Spacing.md, marginTop: Spacing.md },
-  ratiosTitle: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.md, marginBottom: Spacing.md },
-  ratioRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: Spacing.sm },
-  ratioLabel: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm },
-  ratioValue: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  plLabel: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
+  plValue: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  plDivider: { height: 1 },
+  plTotalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  plTotalLabel: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.base, letterSpacing: -0.3 },
+  plTotalValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.base, letterSpacing: -0.3 },
+  ratioRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: Spacing.md },
+  ratioLabel: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
+  ratioValue: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
 });

@@ -423,10 +423,10 @@ export default function RegistrationDetailsScreen() {
                     <Text style={styles.joinOnlineButtonText}>Rejoindre l'événement</Text>
                   </TouchableOpacity>
                 ) : event.online_platform?.toLowerCase() === 'eventez_visio' || event.online_platform?.toLowerCase() === 'eventez visio' ? (
-                  <View style={[styles.eventezVisioInfo, { backgroundColor: isDark ? colors.infoBg || '#10182D' : '#F0F9FF' }]}>
-                    <Ionicons name="information-circle" size={18} color={colors.info} />
+                  <View style={[styles.eventezVisioInfo, { backgroundColor: isDark ? colors.infoBg || '#10182D' : '#FFF7ED' }]}>
+                    <Ionicons name="time-outline" size={18} color={colors.warning || '#F59E0B'} />
                     <Text style={[styles.eventezVisioText, { color: colors.gray600 }]}>
-                      La visioconférence EventEz sera disponible le jour de l'événement
+                      EventEz Visio est indisponible pour le moment. L&apos;organisateur vous communiquera le lien de connexion.
                     </Text>
                   </View>
                 ) : !event.online_meeting_id && !event.online_passcode ? (

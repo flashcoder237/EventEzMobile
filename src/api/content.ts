@@ -125,6 +125,14 @@ export const virtualRoomsAPI = {
 
   getParticipants: (id: string) =>
     api.get(`/virtual-rooms/${id}/participants/`),
+
+  /** Rejoindre via le provider configuré — retourne token JWT ou URL+password selon le plan */
+  eventJoin: (eventId: string) =>
+    api.get(`/virtual-rooms/event/${eventId}/join/`),
+
+  /** Capacités vidéo du plan pour un événement donné */
+  eventPlanInfo: (eventId: string) =>
+    api.get(`/virtual-rooms/event/${eventId}/plan-info/`),
 };
 
 // ============================================

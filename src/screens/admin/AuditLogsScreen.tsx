@@ -6,7 +6,9 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,15 +18,12 @@ import { auditAPI } from '../../api';
 import { AuditLog, AuditSeverity, RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../constants/theme';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -39,7 +38,8 @@ const severityConfig: Record<string, { label: string; color: string; variant: 'd
 
 export default function AuditLogsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -91,10 +91,16 @@ export default function AuditLogsScreen() {
     const sev = severityConfig[item.severity || 'info'] || severityConfig.info;
 
     return (
-      <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
+      <View
+        style={[
+          styles.logCard,
+          { backgroundColor: colors.card, borderColor: hairline },
+          Shadows.sm,
+        ]}
+      >
         <View style={styles.logHeader}>
           <View style={[styles.severityDot, { backgroundColor: sev.color }]} />
-          <Text style={[styles.logAction, { color: colors.gray900 }]} numberOfLines={1}>
+          <Text style={[styles.logAction, { color: colors.text }]} numberOfLines={1}>
             {item.action_display || item.action}
           </Text>
           <Badge label={sev.label} variant={sev.variant} size="sm" />
@@ -104,10 +110,10 @@ export default function AuditLogsScreen() {
             Cible: {item.target_display}
           </Text>
         )}
-        <View style={[styles.logFooter, { borderTopColor: colors.gray100 }]}>
+        <View style={[styles.logFooter, { borderTopColor: hairline }]}>
           <View style={styles.logMeta}>
             <Ionicons name="person-outline" size={12} color={colors.gray400} />
-            <Text style={[styles.logMetaText, { color: colors.gray400 }]}>
+            <Text style={[styles.logMetaText, { color: colors.gray500 }]}>
               {item.user_display?.email || item.user_display?.name || `User #${item.user}`}
             </Text>
           </View>
@@ -128,50 +134,72 @@ export default function AuditLogsScreen() {
   ];
 
   return (
-    <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>LOGS</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-
-      <View style={styles.header}>
-        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={colors.gray700} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Traçabilité</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Logs d'audit</Text>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TRAÇABILITÉ</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Logs d'audit</Text>
         </View>
-        <View style={{ width: 44 }} />
       </View>
 
       {/* Stats summary */}
       {stats && (
-        <View style={[styles.statsRow, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
+        <View
+          style={[
+            styles.statsCard,
+            { backgroundColor: colors.card, borderColor: hairline },
+            Shadows.sm,
+          ]}
+        >
           <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.total_logs || logs.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray400 }]}>Total</Text>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.total_logs || logs.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Total</Text>
           </View>
-          {Object.entries(stats.by_severity || {}).map(([sev, count]) => (
-            <View key={sev} style={styles.statItem}>
-              <Text style={[styles.statValue, { color: severityConfig[sev]?.color || colors.gray900 }]}>{String(count)}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray400 }]}>{severityConfig[sev]?.label || sev}</Text>
-            </View>
+          {Object.entries(stats.by_severity || {}).slice(0, 3).map(([sev, count]) => (
+            <React.Fragment key={sev}>
+              <View style={[styles.statDivider, { backgroundColor: hairline }]} />
+              <View style={styles.statItem}>
+                <Text style={[styles.statValue, { color: severityConfig[sev]?.color || colors.text }]}>{String(count)}</Text>
+                <Text style={[styles.statLabel, { color: colors.gray500 }]}>{severityConfig[sev]?.label || sev}</Text>
+              </View>
+            </React.Fragment>
           ))}
         </View>
       )}
 
       {/* Severity Filters */}
-      <View style={[styles.filtersRow, { borderBottomColor: colors.gray100 }]}>
-        {filters.map((f) => (
-          <TouchableOpacity
-            key={f.key}
-            style={[styles.filterBtn, { backgroundColor: colors.gray100 }, severityFilter === f.key && { backgroundColor: colors.primary }]}
-            onPress={() => setSeverityFilter(f.key)}
-          >
-            <Text style={[styles.filterText, { color: colors.gray600 }, severityFilter === f.key && { color: '#FFFFFF' }]}>
-              {f.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.filtersRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingHorizontal: Spacing.lg }}>
+          {filters.map((f) => {
+            const active = severityFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[
+                  styles.filterPill,
+                  active
+                    ? { backgroundColor: colors.text, borderColor: colors.text }
+                    : { backgroundColor: colors.card, borderColor: hairline },
+                ]}
+                onPress={() => setSeverityFilter(f.key)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.filterText, { color: active ? colors.background : colors.gray600 }]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       <FlatList
@@ -184,39 +212,92 @@ export default function AuditLogsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="shield-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray400 }]}>Aucun log d'audit</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucun log d'audit</Text>
           </View>
         }
       />
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitleWrap: { alignItems: 'center' },
-  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
-  statsRow: { flexDirection: 'row', paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 1, gap: Spacing.lg },
-  statItem: { alignItems: 'center' },
-  statValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.lg },
-  statLabel: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: 2 },
-  filtersRow: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, gap: Spacing.xs, borderBottomWidth: 1 },
-  filterBtn: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, borderRadius: BorderRadius.full },
-  filterText: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
-  listContent: { padding: Spacing.lg, flexGrow: 1 },
-  logCard: { borderRadius: BorderRadius.xl, borderWidth: 1, padding: Spacing.md, marginBottom: Spacing.sm },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  statsCard: {
+    flexDirection: 'row',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingVertical: Spacing.md,
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statValue: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  statLabel: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs, marginTop: 2 },
+  statDivider: { width: 1 },
+  filtersRow: {
+    paddingVertical: Spacing.md,
+  },
+  filterPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  filterText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, flexGrow: 1 },
+  logCard: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
   logHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   severityDot: { width: 8, height: 8, borderRadius: 4 },
-  logAction: { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
-  logTarget: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: Spacing.xs, marginLeft: 20 },
-  logFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing.sm, paddingTop: Spacing.sm, borderTopWidth: 1 },
+  logAction: { flex: 1, fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  logTarget: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs, marginTop: Spacing.xs, marginLeft: 20 },
+  logFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.sm,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
   logMeta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  logMetaText: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs },
-  logTime: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs },
+  logMetaText: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
+  logTime: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], gap: Spacing.md },
-  emptyText: { fontFamily: FontFamily.regular, fontSize: FontSizes.base },
+  emptyText: { fontFamily: FontFamily.medium, fontSize: FontSizes.base },
 });

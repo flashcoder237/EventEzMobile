@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,15 +19,12 @@ import { treasuryAPI } from '../../../api';
 import { RootStackParamList, Expense } from '../../../types';
 import Badge from '../../../components/ui/Badge';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../../constants/theme';
-import { EditorialCanvas, WatermarkNumeral } from '../../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -52,6 +50,7 @@ const statusLabel = (s: string): string => {
 export default function TreasuryExpensesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
   const { showSuccess, showError } = useAlert();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -104,31 +103,39 @@ export default function TreasuryExpensesScreen() {
   const totalApproved = expenses.filter(e => e.status === 'approved' || e.status === 'paid').reduce((sum, e) => sum + e.amount, 0);
 
   const renderExpense = ({ item }: { item: Expense }) => (
-    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
       <View style={styles.cardRow}>
-        <View style={[styles.icon, { backgroundColor: isDark ? '#2D2B1B' : '#FEF3C7' }]}>
-          <Ionicons name={item.is_recurring ? 'repeat-outline' : 'receipt-outline'} size={20} color="#F59E0B" />
+        <View style={[styles.iconWell, { backgroundColor: '#F59E0B15' }]}>
+          <Ionicons name={item.is_recurring ? 'repeat-outline' : 'receipt-outline'} size={18} color="#F59E0B" />
         </View>
         <View style={styles.info}>
-          <Text style={[styles.title, { color: colors.gray900 }]} numberOfLines={1}>{item.title}</Text>
-          <Text style={[styles.category, { color: colors.gray500 }]}>{item.category}</Text>
+          <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{item.title}</Text>
+          <Text style={[styles.category, { color: colors.gray500 }]} numberOfLines={1}>{item.category}</Text>
         </View>
         <Badge label={statusLabel(item.status)} variant={statusVariant(item.status)} size="sm" />
       </View>
-      <View style={[styles.cardFooter, { borderTopColor: colors.gray100 }]}>
-        <Text style={[styles.amount, { color: colors.gray900 }]}>{item.amount.toLocaleString()} {platformCurrency}</Text>
-        <Text style={[styles.date, { color: colors.gray400 }]}>
+      <View style={[styles.cardFooter, { borderTopColor: hairline }]}>
+        <Text style={[styles.amount, { color: colors.text }]}>{item.amount.toLocaleString()} {platformCurrency}</Text>
+        <Text style={[styles.date, { color: colors.gray500 }]}>
           {new Date(item.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
         </Text>
       </View>
       {item.status === 'pending' && (
-        <View style={styles.actions}>
-          <TouchableOpacity style={[styles.approveBtn, { backgroundColor: '#10B981' }]} onPress={() => handleApprove(item.id)}>
-            <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-            <Text style={styles.actionText}>Approuver</Text>
+        <View style={[styles.actions, { borderTopColor: hairline }]}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#10B98115', borderColor: '#10B98130' }]}
+            onPress={() => handleApprove(item.id)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="checkmark" size={14} color="#10B981" />
+            <Text style={[styles.actionText, { color: '#10B981' }]}>Approuver</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.rejectBtn, { backgroundColor: '#FEE2E2' }]} onPress={() => handleReject(item.id)}>
-            <Ionicons name="close" size={16} color="#EF4444" />
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: '#EF444415', borderColor: '#EF444430' }]}
+            onPress={() => handleReject(item.id)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={14} color="#EF4444" />
             <Text style={[styles.actionText, { color: '#EF4444' }]}>Rejeter</Text>
           </TouchableOpacity>
         </View>
@@ -137,34 +144,39 @@ export default function TreasuryExpensesScreen() {
   );
 
   return (
-    <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>EXP</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-
-      <View style={styles.header}>
-        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={colors.gray700} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Les sorties</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Dépenses</Text>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LES SORTIES</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Dépenses</Text>
         </View>
-        <View style={{ width: 44 }} />
       </View>
 
-      {/* Summary */}
-      <View style={[styles.summary, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-        <View style={styles.summaryItem}>
-          <Text style={[styles.summaryValue, { color: '#F59E0B' }]}>{totalPending.toLocaleString()}</Text>
-          <Text style={[styles.summaryLabel, { color: colors.gray400 }]}>En attente</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={[styles.summaryValue, { color: '#10B981' }]}>{totalApproved.toLocaleString()}</Text>
-          <Text style={[styles.summaryLabel, { color: colors.gray400 }]}>Approuve</Text>
-        </View>
-        <View style={styles.summaryItem}>
-          <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{expenses.length}</Text>
-          <Text style={[styles.summaryLabel, { color: colors.gray400 }]}>Total</Text>
+      <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
+        <View style={[styles.summary, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+          <View style={styles.summaryItem}>
+            <Text style={[styles.summaryValue, { color: '#F59E0B' }]}>{totalPending.toLocaleString()}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>EN ATTENTE</Text>
+          </View>
+          <View style={[styles.summaryDivider, { backgroundColor: hairline }]} />
+          <View style={styles.summaryItem}>
+            <Text style={[styles.summaryValue, { color: '#10B981' }]}>{totalApproved.toLocaleString()}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>APPROUVÉ</Text>
+          </View>
+          <View style={[styles.summaryDivider, { backgroundColor: hairline }]} />
+          <View style={styles.summaryItem}>
+            <Text style={[styles.summaryValue, { color: colors.text }]}>{expenses.length}</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>TOTAL</Text>
+          </View>
         </View>
       </View>
 
@@ -178,40 +190,101 @@ export default function TreasuryExpensesScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray400 }]}>Aucune depense</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucune dépense</Text>
           </View>
         }
       />
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitleWrap: { alignItems: 'center' },
-  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
-  summary: { flexDirection: 'row', paddingVertical: Spacing.md, paddingHorizontal: Spacing.lg, borderBottomWidth: 1 },
-  summaryItem: { flex: 1, alignItems: 'center' },
-  summaryValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.lg },
-  summaryLabel: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: 2 },
-  listContent: { padding: Spacing.lg, flexGrow: 1 },
-  card: { borderRadius: BorderRadius.xl, borderWidth: 1, marginBottom: Spacing.sm, overflow: 'hidden' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  summary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
+  summaryItem: { flex: 1, alignItems: 'center', gap: 2 },
+  summaryValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.lg, letterSpacing: -0.3 },
+  summaryLabel: { fontFamily: FontFamily.bold, fontSize: 9, letterSpacing: 1.2 },
+  summaryDivider: { width: 1, height: 32 },
+  listContent: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xl, flexGrow: 1 },
+  card: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+    overflow: 'hidden',
+  },
   cardRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md },
-  icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  iconWell: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   info: { flex: 1, marginHorizontal: Spacing.md },
   title: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.base },
-  category: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: 2 },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', padding: Spacing.sm, paddingHorizontal: Spacing.md, borderTopWidth: 1 },
-  amount: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
-  date: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs },
-  actions: { flexDirection: 'row', padding: Spacing.sm, gap: Spacing.sm },
-  approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, gap: 4 },
-  rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing.sm, borderRadius: BorderRadius.md, gap: 4 },
-  actionText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.xs, color: '#FFFFFF' },
+  category: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs, marginTop: 2 },
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderTopWidth: 1,
+  },
+  amount: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
+  date: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
+  actions: {
+    flexDirection: 'row',
+    padding: Spacing.sm,
+    gap: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  actionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    gap: 4,
+  },
+  actionText: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], gap: Spacing.md },
-  emptyText: { fontFamily: FontFamily.regular, fontSize: FontSizes.base },
+  emptyText: { fontFamily: FontFamily.medium, fontSize: FontSizes.base },
 });

@@ -19,13 +19,11 @@ import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { KPICard, ChartWrapper } from '../../components/charts';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -233,54 +231,118 @@ export default function AnalyticsDashboardScreen() {
         </ChartWrapper>
 
         {/* Quick Links */}
-        <View style={[styles.quickLinksCard, { backgroundColor: colors.card }]}>
-          <Text style={[styles.quickLinksTitle, { color: colors.gray900 }]}>Actions rapides</Text>
+        <View style={[styles.quickLinksCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+          <Text style={[styles.quickLinksTitle, { color: colors.text }]}>Actions rapides</Text>
           <TouchableOpacity
-            style={[styles.quickLink, { borderBottomColor: colors.gray100 }]}
+            style={[styles.quickLink, { borderBottomColor: hairline }]}
             onPress={() => navigation.navigate('Reports')}
+            activeOpacity={0.7}
           >
             <Ionicons name="document-text-outline" size={20} color={colors.primary} />
-            <Text style={[styles.quickLinkText, { color: colors.gray700 }]}>Voir les rapports</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.gray300} />
+            <Text style={[styles.quickLinkText, { color: colors.text }]}>Voir les rapports</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.quickLink, { borderBottomColor: colors.gray100 }]}
+            style={[styles.quickLink, { borderBottomWidth: 0 }]}
             onPress={() => navigation.navigate('MyEvents')}
+            activeOpacity={0.7}
           >
             <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-            <Text style={[styles.quickLinkText, { color: colors.gray700 }]}>Mes evenements</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.gray300} />
+            <Text style={[styles.quickLinkText, { color: colors.text }]}>Mes evenements</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
           </TouchableOpacity>
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  backButton: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitleWrap: { alignItems: 'center' },
-  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
-  scrollContent: { paddingHorizontal: Spacing.lg },
-  timeRangeContainer: { flexDirection: 'row', borderRadius: BorderRadius.xl, padding: 4, marginBottom: Spacing.lg },
-  timeRangeButton: { flex: 1, paddingVertical: Spacing.sm, borderRadius: BorderRadius.lg, alignItems: 'center' },
-  timeRangeText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  timeRangeContainer: {
+    flexDirection: 'row',
+    borderRadius: BorderRadius.full,
+    padding: 4,
+    marginBottom: Spacing.lg,
+  },
+  timeRangeButton: {
+    flex: 1,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+  },
+  timeRangeText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
   kpiRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  chartPlaceholder: { width: '100%', height: 160, borderRadius: BorderRadius.lg, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  barChart: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-around', width: '100%', height: 140, paddingHorizontal: Spacing.md, paddingBottom: Spacing.lg },
+  chartPlaceholder: {
+    width: '100%',
+    height: 160,
+    borderRadius: BorderRadius.lg,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  barChart: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-around',
+    width: '100%',
+    height: 140,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.lg,
+  },
   barColumn: { alignItems: 'center', flex: 1 },
   bar: { width: 20, borderRadius: 4, minHeight: 4 },
   barLabel: { fontSize: 10, marginTop: 4 },
   noDataContainer: { alignItems: 'center', gap: Spacing.sm },
   noDataText: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm },
-  quickLinksCard: { borderRadius: BorderRadius['2xl'], padding: Spacing.md, marginTop: Spacing.md, ...Shadows.card },
-  quickLinksTitle: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.md, marginBottom: Spacing.md },
-  quickLink: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.md, borderBottomWidth: 1, gap: Spacing.md },
+  quickLinksCard: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  quickLinksTitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.md,
+    marginBottom: Spacing.md,
+  },
+  quickLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
+    borderBottomWidth: 1,
+    gap: Spacing.md,
+  },
   quickLinkText: { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
 });

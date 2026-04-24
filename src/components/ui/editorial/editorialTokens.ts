@@ -170,7 +170,7 @@ export const editorial = StyleSheet.create({
   },
   sectionTitleLg: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
+    fontSize: 30,
     lineHeight: 42,
     letterSpacing: -1.2,
     marginBottom: Spacing.xs,
@@ -380,7 +380,7 @@ export const editorial = StyleSheet.create({
   },
   statNumber: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
+    fontSize: 30,
     lineHeight: 44,
     letterSpacing: -1.4,
   },

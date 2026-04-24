@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,23 +17,20 @@ import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
 import { RootStackParamList, TreasuryOverview, PlatformTransaction } from '../../../types';
 import { KPICard } from '../../../components/charts';
-import Badge from '../../../components/ui/Badge';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../../constants/theme';
-import { EditorialCanvas, WatermarkNumeral } from '../../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function TreasuryOverviewScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -62,11 +60,11 @@ export default function TreasuryOverviewScreen() {
   const wallet = overview?.wallet;
   const transactions = overview?.recent_transactions || [];
 
-  const menuItems = [
-    { icon: 'people-outline' as const, title: 'Personnel & Paie', screen: 'TreasuryStaff' as const, color: '#4F46E5' },
-    { icon: 'receipt-outline' as const, title: 'Depenses', screen: 'TreasuryExpenses' as const, color: '#F59E0B' },
-    { icon: 'pie-chart-outline' as const, title: 'Actionnaires', screen: 'TreasuryShareholders' as const, color: '#A855F7' },
-    { icon: 'document-text-outline' as const, title: 'Rapports financiers', screen: 'TreasuryReports' as const, color: '#10B981' },
+  const menuItems: { icon: keyof typeof Ionicons.glyphMap; title: string; screen: string; color: string }[] = [
+    { icon: 'people-outline', title: 'Personnel & Paie', screen: 'TreasuryStaff', color: '#4F46E5' },
+    { icon: 'receipt-outline', title: 'Dépenses', screen: 'TreasuryExpenses', color: '#F59E0B' },
+    { icon: 'pie-chart-outline', title: 'Actionnaires', screen: 'TreasuryShareholders', color: '#A855F7' },
+    { icon: 'document-text-outline', title: 'Rapports financiers', screen: 'TreasuryReports', color: '#10B981' },
   ];
 
   const formatAmount = (amount: number) => `${amount.toLocaleString()} ${platformCurrency}`;
@@ -80,19 +78,21 @@ export default function TreasuryOverviewScreen() {
   };
 
   return (
-    <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>TRES</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-
-      <View style={styles.header}>
-        <TouchableOpacity style={[styles.backBtn, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color={colors.gray700} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>La caisse globale</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Trésorerie</Text>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LA CAISSE GLOBALE</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Trésorerie</Text>
         </View>
-        <View style={{ width: 44 }} />
       </View>
 
       <ScrollView
@@ -101,20 +101,27 @@ export default function TreasuryOverviewScreen() {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Balance Card */}
-        <View style={[styles.balanceCard, { backgroundColor: colors.card }, Shadows.card]}>
-          <Text style={[styles.balanceLabel, { color: colors.gray500 }]}>Solde net</Text>
-          <Text style={[styles.balanceValue, { color: colors.gray900 }]}>
+        <View
+          style={[
+            styles.balanceCard,
+            { backgroundColor: colors.card, borderColor: hairline },
+            Shadows.sm,
+          ]}
+        >
+          <Text style={[styles.balanceEyebrow, { color: colors.gray500 }]}>SOLDE NET</Text>
+          <Text style={[styles.balanceValue, { color: colors.text }]}>
             {formatAmount(wallet?.net_balance || 0)}
           </Text>
           <View style={styles.balanceRow}>
             <View style={styles.balanceStat}>
-              <Ionicons name="arrow-up-circle" size={16} color="#10B981" />
+              <Ionicons name="arrow-up-circle" size={14} color="#10B981" />
               <Text style={[styles.balanceStatText, { color: '#10B981' }]}>
                 {formatAmount(wallet?.total_revenue || 0)}
               </Text>
             </View>
+            <View style={[styles.balanceStatDivider, { backgroundColor: hairline }]} />
             <View style={styles.balanceStat}>
-              <Ionicons name="arrow-down-circle" size={16} color="#EF4444" />
+              <Ionicons name="arrow-down-circle" size={14} color="#EF4444" />
               <Text style={[styles.balanceStatText, { color: '#EF4444' }]}>
                 {formatAmount(wallet?.total_expenses || 0)}
               </Text>
@@ -128,43 +135,43 @@ export default function TreasuryOverviewScreen() {
           <KPICard title="Paie" value={formatAmount(wallet?.total_payroll || 0)} icon="people-outline" color="#A855F7" />
         </View>
         <View style={styles.kpiRow}>
-          <KPICard title="Depenses" value={formatAmount(wallet?.total_expenses || 0)} icon="card-outline" color="#F59E0B" />
+          <KPICard title="Dépenses" value={formatAmount(wallet?.total_expenses || 0)} icon="card-outline" color="#F59E0B" />
           <KPICard title="Dividendes" value={formatAmount(wallet?.total_dividends || 0)} icon="pie-chart-outline" color="#10B981" />
         </View>
 
         {/* Menu */}
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Gestion</Text>
-        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>GESTION</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {menuItems.map((item, idx) => (
             <TouchableOpacity
               key={item.screen}
-              style={[styles.menuItem, idx < menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.gray100 }]}
+              style={[styles.menuItem, idx < menuItems.length - 1 && { borderBottomWidth: 1, borderBottomColor: hairline }]}
               onPress={() => navigation.navigate(item.screen as any)}
               activeOpacity={0.6}
             >
-              <View style={[styles.menuIcon, { backgroundColor: `${item.color}15` }]}>
-                <Ionicons name={item.icon} size={20} color={item.color} />
+              <View style={[styles.iconWell, { backgroundColor: `${item.color}15` }]}>
+                <Ionicons name={item.icon} size={18} color={item.color} />
               </View>
-              <Text style={[styles.menuTitle, { color: colors.gray900 }]}>{item.title}</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.gray300} />
+              <Text style={[styles.menuTitle, { color: colors.text }]}>{item.title}</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
             </TouchableOpacity>
           ))}
         </View>
 
         {/* Recent Transactions */}
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Transactions recentes</Text>
-        <View style={[styles.transactionsCard, { backgroundColor: colors.card }]}>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>TRANSACTIONS RÉCENTES</Text>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {transactions.length > 0 ? transactions.slice(0, 5).map((tx: PlatformTransaction, idx: number) => (
             <View
               key={tx.id}
-              style={[styles.txRow, idx < Math.min(transactions.length, 5) - 1 && { borderBottomWidth: 1, borderBottomColor: colors.gray100 }]}
+              style={[styles.txRow, idx < Math.min(transactions.length, 5) - 1 && { borderBottomWidth: 1, borderBottomColor: hairline }]}
             >
               <View style={[styles.txDot, { backgroundColor: getTransactionColor(tx.transaction_type) }]} />
               <View style={styles.txInfo}>
-                <Text style={[styles.txDesc, { color: colors.gray900 }]} numberOfLines={1}>
+                <Text style={[styles.txDesc, { color: colors.text }]} numberOfLines={1}>
                   {tx.description}
                 </Text>
-                <Text style={[styles.txDate, { color: colors.gray400 }]}>
+                <Text style={[styles.txDate, { color: colors.gray500 }]}>
                   {new Date(tx.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
                 </Text>
               </View>
@@ -174,43 +181,107 @@ export default function TreasuryOverviewScreen() {
               </Text>
             </View>
           )) : (
-            <Text style={[styles.emptyText, { color: colors.gray400 }]}>Aucune transaction</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucune transaction</Text>
           )}
         </View>
 
         <View style={{ height: 100 }} />
       </ScrollView>
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.md },
-  backBtn: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
-  headerTitleWrap: { alignItems: 'center' },
-  headerEyebrow: { fontSize: 10, fontFamily: FontFamily.bold, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 },
-  headerTitle: { ...TextStyles.h3, letterSpacing: -0.3 },
-  scrollContent: { paddingHorizontal: Spacing.lg },
-  balanceCard: { borderRadius: BorderRadius['2xl'], padding: Spacing.xl, marginBottom: Spacing.md, alignItems: 'center' },
-  balanceLabel: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm, marginBottom: Spacing.xs },
-  balanceValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes['3xl'] },
-  balanceRow: { flexDirection: 'row', gap: Spacing.xl, marginTop: Spacing.md },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  iconDisc: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
+  },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
+  balanceCard: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    padding: Spacing.xl,
+    marginBottom: Spacing.md,
+    alignItems: 'center',
+  },
+  balanceEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: Spacing.xs,
+  },
+  balanceValue: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['3xl'],
+    letterSpacing: -0.8,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.lg,
+    marginTop: Spacing.md,
+  },
   balanceStat: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  balanceStatText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  balanceStatText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
+  balanceStatDivider: { width: 1, height: 14 },
   kpiRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  sectionTitle: { ...TextStyles.h4, marginTop: Spacing.lg, marginBottom: Spacing.sm },
-  menuCard: { borderRadius: BorderRadius['2xl'], ...Shadows.card, overflow: 'hidden' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
-  menuIcon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  menuTitle: { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSizes.base },
-  transactionsCard: { borderRadius: BorderRadius['2xl'], ...Shadows.card, overflow: 'hidden' },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.sm,
+    marginLeft: Spacing.xs,
+  },
+  card: {
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Spacing.md,
+    gap: Spacing.md,
+  },
+  iconWell: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuTitle: { flex: 1, fontFamily: FontFamily.semiBold, fontSize: FontSizes.base },
   txRow: { flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: Spacing.md },
   txDot: { width: 8, height: 8, borderRadius: 4 },
   txInfo: { flex: 1 },
-  txDesc: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
-  txDate: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs, marginTop: 2 },
-  txAmount: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
-  emptyText: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm, textAlign: 'center', padding: Spacing.xl },
+  txDesc: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  txDate: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs, marginTop: 2 },
+  txAmount: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
+  emptyText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm, textAlign: 'center', padding: Spacing.xl },
 });

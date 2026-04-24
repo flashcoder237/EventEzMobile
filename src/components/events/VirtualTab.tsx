@@ -4,10 +4,11 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import * as WebBrowser from 'expo-web-browser';
 import { virtualRoomsAPI, recordingsAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -36,13 +37,15 @@ interface Recording {
 
 interface VirtualTabProps {
   eventId: string;
+  isRegistered?: boolean;
 }
 
-export default function VirtualTab({ eventId }: VirtualTabProps) {
+export default function VirtualTab({ eventId, isRegistered = false }: VirtualTabProps) {
   const { colors, isDark } = useTheme();
   const [rooms, setRooms] = useState<VirtualRoom[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchVirtualData();
@@ -68,13 +71,63 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
     }
   };
 
-  const handleJoinRoom = async (roomId: string) => {
+  const handleJoinRoom = async (_roomId: string) => {
+    // Utiliser event_join qui retourne le token et l'URL selon le provider
+    if (!isRegistered) {
+      Alert.alert(
+        'Inscription requise',
+        'Vous devez être inscrit à cet événement pour rejoindre la visioconférence.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setJoiningRoomId(_roomId);
     try {
-      await virtualRoomsAPI.join(roomId);
-      // Refresh rooms after joining
+      const res = await virtualRoomsAPI.eventJoin(eventId);
+      const data = res.data;
+
+      if (!data.url) {
+        Alert.alert('Erreur', "Impossible d'obtenir l'URL de la salle.");
+        return;
+      }
+
+      let finalUrl = data.url;
+
+      if (data.provider === 'jaas' && data.token) {
+        finalUrl = `${data.url}?jwt=${data.token}`;
+      }
+      // jitsi_jwt : URL contient déjà ?jwt=token
+      // jitsi_public : URL directe, afficher mot de passe si présent
+
+      if (data.provider === 'jitsi_public' && data.password) {
+        Alert.alert(
+          'Mot de passe de la salle',
+          `Mot de passe : ${data.password}\n\nCopier ce mot de passe avant de rejoindre la salle.`,
+          [
+            { text: 'Annuler', style: 'cancel' },
+            {
+              text: 'Rejoindre',
+              onPress: () => WebBrowser.openBrowserAsync(finalUrl),
+            },
+          ]
+        );
+      } else {
+        await WebBrowser.openBrowserAsync(finalUrl);
+      }
+
       fetchVirtualData();
-    } catch (error) {
-      if (__DEV__) console.error('Erreur rejoindre la salle:', error);
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || "Impossible de rejoindre la salle.";
+      const minsRemaining = error?.response?.data?.minutes_remaining;
+      Alert.alert(
+        'Accès refusé',
+        minsRemaining
+          ? `La salle ouvrira dans ${minsRemaining} min.`
+          : msg
+      );
+    } finally {
+      setJoiningRoomId(null);
     }
   };
 
@@ -163,12 +216,19 @@ export default function VirtualTab({ eventId }: VirtualTabProps) {
                 )}
                 {active && (
                   <TouchableOpacity
-                    style={styles.joinButton}
+                    style={[styles.joinButton, joiningRoomId === room.id && { opacity: 0.6 }]}
                     onPress={() => handleJoinRoom(room.id)}
+                    disabled={joiningRoomId !== null}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="videocam" size={16} color={Colors.white} />
-                    <Text style={styles.joinButtonText}>Rejoindre</Text>
+                    {joiningRoomId === room.id ? (
+                      <LoadingSpinner size={16} color={Colors.white} />
+                    ) : (
+                      <Ionicons name="videocam" size={16} color={Colors.white} />
+                    )}
+                    <Text style={styles.joinButtonText}>
+                      {joiningRoomId === room.id ? 'Connexion...' : 'Rejoindre'}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>

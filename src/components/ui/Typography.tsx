@@ -83,7 +83,7 @@ const baseStyles = StyleSheet.create({
   },
   heroSm: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
+    fontSize: 30,
     lineHeight: 44,
     letterSpacing: -1.5,
   },

@@ -988,7 +988,7 @@ const styles = StyleSheet.create({
   },
   creditCardBalance: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
+    fontSize: 30,
     lineHeight: 44,
     letterSpacing: -1.2,
     color: '#FFFFFF',

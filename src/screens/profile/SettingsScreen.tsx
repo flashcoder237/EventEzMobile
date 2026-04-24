@@ -1035,7 +1035,7 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 30,
+    fontSize: 40,
     lineHeight: 32,
     letterSpacing: -1.1,
     marginBottom: Spacing.sm,

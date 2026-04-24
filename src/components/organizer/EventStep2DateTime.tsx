@@ -263,7 +263,7 @@ export default function EventStep2DateTime({
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Lien de connexion</Text>
+            <Text style={[styles.label, themed.label]}>Lien de connexion <Text style={{ color: colors.error || '#EF4444' }}>*</Text></Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={onlineUrl}

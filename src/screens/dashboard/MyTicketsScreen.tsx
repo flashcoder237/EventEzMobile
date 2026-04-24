@@ -949,7 +949,6 @@ export default function MyTicketsScreen() {
               <Text style={[styles.headerEyebrow, { color: colors.accent }]}>BILLETTERIE</Text>
               <View style={styles.headerTitleRow}>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Billets</Text>
-                <View style={[styles.headerDot, { backgroundColor: colors.primary }]} />
               </View>
             </View>
             <View style={styles.headerActions}>
@@ -1290,7 +1289,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 40,
+    fontSize: 30,
     letterSpacing: -1.5,
     lineHeight: 42,
   },

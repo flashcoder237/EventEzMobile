@@ -33,8 +33,8 @@ export function useEventFormValidation(
           }
         }
         if (form.locationType === 'online' || form.locationType === 'hybrid') {
-          if (!form.onlineUrl.trim() && !form.onlinePlatform.trim()) {
-            showError('Erreur', 'Veuillez indiquer une URL ou une plateforme pour l\'événement en ligne');
+          if (!form.onlineUrl.trim()) {
+            showError('Erreur', 'Le lien de connexion est requis pour un événement en ligne');
             return false;
           }
         }

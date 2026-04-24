@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,29 +9,27 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  Platform,
-  Alert,
+  ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { eventsAPI, getMediaUrl } from '../../api';
-import { Event, RootStackParamList } from '../../types';
+import { RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AccessDenied, WellDone, AnimatedIllustration } from '../../components/illustrations';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import Badge from '../../components/ui/Badge';
 import {
-  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
-  TextStyles,
   Shadows,
 } from '../../constants/theme';
 
@@ -58,25 +56,29 @@ interface PendingEvent {
   };
 }
 
+type FilterType = 'all' | 'billetterie' | 'inscription';
+
+const BILLET_COLOR = '#4F46E5';
+const INSCRIPTION_COLOR = '#A855F7';
+
 export default function ModerationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showSuccess, showError } = useAlert();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [events, setEvents] = useState<PendingEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterType, setFilterType] = useState<'all' | 'billetterie' | 'inscription'>('all');
+  const [filterType, setFilterType] = useState<FilterType>('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Reject modal state
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<PendingEvent | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  // Check if user is moderator or admin
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
 
   useEffect(() => {
@@ -109,7 +111,6 @@ export default function ModerationScreen() {
     try {
       await eventsAPI.validateEvent(eventId);
       showSuccess('Succès', 'Événement validé avec succès');
-      // Remove from list
       setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (error: any) {
       showError('Erreur', error.response?.data?.detail || 'Impossible de valider l\'événement');
@@ -128,7 +129,6 @@ export default function ModerationScreen() {
     try {
       await eventsAPI.rejectEvent(selectedEvent.id, rejectionReason);
       showSuccess('Succès', 'Événement rejeté');
-      // Remove from list
       setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
       setShowRejectModal(false);
       setSelectedEvent(null);
@@ -146,23 +146,17 @@ export default function ModerationScreen() {
     setShowRejectModal(true);
   };
 
-  // Stats
-  const stats = useMemo(() => {
-    return {
-      total: events.length,
-      billetterie: events.filter(e => e.event_type === 'billetterie').length,
-      inscription: events.filter(e => e.event_type === 'inscription').length,
-    };
-  }, [events]);
+  const stats = useMemo(() => ({
+    total: events.length,
+    billetterie: events.filter(e => e.event_type === 'billetterie').length,
+    inscription: events.filter(e => e.event_type === 'inscription').length,
+  }), [events]);
 
-  // Filtered events
   const filteredEvents = useMemo(() => {
     let result = [...events];
-
     if (filterType !== 'all') {
       result = result.filter(e => e.event_type === filterType);
     }
-
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(e =>
@@ -172,17 +166,12 @@ export default function ModerationScreen() {
         e.location_city?.toLowerCase().includes(query)
       );
     }
-
     return result;
   }, [events, filterType, searchQuery]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
   const getTimeSince = (dateString: string) => {
@@ -190,10 +179,9 @@ export default function ModerationScreen() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return "Aujourd'hui";
-    if (diffDays === 1) return "Hier";
-    if (diffDays < 7) return `Il y a ${diffDays} jours`;
+    if (diffDays === 0) return "aujourd'hui";
+    if (diffDays === 1) return "hier";
+    if (diffDays < 7) return `il y a ${diffDays} j`;
     return formatDate(dateString);
   };
 
@@ -205,66 +193,63 @@ export default function ModerationScreen() {
     return event.organizer?.email || 'Organisateur inconnu';
   };
 
-  // Access denied for non-moderators
   if (!isModerator) {
     return (
-      <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>MOD</WatermarkNumeral>
-        <View style={{ flex: 1, zIndex: 1 }}>
-          <View style={styles.accessDenied}>
-            <AnimatedIllustration entry="scaleIn" idle="float">
-              <AccessDenied color={colors.primary} size={160} />
-            </AnimatedIllustration>
-            <Text style={[styles.accessDeniedTitle, { color: colors.gray700 }]}>Accès restreint</Text>
-            <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
-              Cette section est réservée aux modérateurs et administrateurs.
-            </Text>
-            <TouchableOpacity
-              style={[styles.backButton, { backgroundColor: colors.primary }]}
-              onPress={() => navigation.goBack()}
-            >
-              <Text style={[styles.backButtonText, { color: colors.white }]}>Retour</Text>
-            </TouchableOpacity>
-          </View>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <View style={styles.accessDenied}>
+          <AnimatedIllustration entry="scaleIn" idle="float">
+            <AccessDenied color={colors.primary} size={160} />
+          </AnimatedIllustration>
+          <Text style={[styles.accessDeniedEyebrow, { color: colors.accent }]}>ACCÈS RESTREINT</Text>
+          <Text style={[styles.accessDeniedTitle, { color: colors.text }]}>Zone modération</Text>
+          <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
+            Cette section est réservée aux modérateurs et administrateurs.
+          </Text>
+          <TouchableOpacity
+            style={[styles.backCta, { backgroundColor: colors.text }]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.backCtaText, { color: colors.background }]}>Retour</Text>
+          </TouchableOpacity>
         </View>
-      </EditorialCanvas>
+      </SafeAreaView>
     );
   }
 
   const renderEvent = ({ item }: { item: PendingEvent }) => {
     const isActionLoading = actionLoading === item.id;
     const isBilletterie = item.event_type === 'billetterie';
+    const typeColor = isBilletterie ? BILLET_COLOR : INSCRIPTION_COLOR;
 
     return (
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
-        {/* Image */}
+      <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
         <View style={styles.cardImage}>
           {item.banner_image ? (
             <Image source={getMediaUrl(item.banner_image)!} style={styles.image} cachePolicy="disk" transition={200} />
           ) : (
-            <View style={[styles.imagePlaceholder, isBilletterie ? styles.imagePlaceholderBillet : styles.imagePlaceholderInscription]}>
+            <View style={[styles.imagePlaceholder, { backgroundColor: `${typeColor}12` }]}>
               <Ionicons
-                name={isBilletterie ? 'ticket' : 'document-text'}
-                size={24}
-                color={isBilletterie ? colors.primary : '#6366F1'}
+                name={isBilletterie ? 'ticket-outline' : 'document-text-outline'}
+                size={28}
+                color={typeColor}
               />
             </View>
           )}
-          <View style={[styles.typeBadge, isBilletterie ? styles.typeBadgeBillet : styles.typeBadgeInscription]}>
+          <View style={[styles.typeBadge, { backgroundColor: colors.card, borderColor: hairline }]}>
             <Ionicons
               name={isBilletterie ? 'ticket' : 'document-text'}
               size={10}
-              color={colors.white}
+              color={typeColor}
             />
-            <Text style={styles.typeBadgeText}>
+            <Text style={[styles.typeBadgeText, { color: typeColor }]}>
               {isBilletterie ? 'Billetterie' : 'Inscription'}
             </Text>
           </View>
         </View>
 
-        {/* Content */}
         <View style={styles.cardContent}>
-          <Text style={[styles.cardTitle, { color: colors.gray900 }]} numberOfLines={2}>{item.title}</Text>
+          <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
 
           {item.short_description && (
             <Text style={[styles.cardDescription, { color: colors.gray600 }]} numberOfLines={2}>
@@ -289,42 +274,51 @@ export default function ModerationScreen() {
             </View>
           </View>
 
-          <View style={[styles.submittedInfo, { borderTopColor: colors.gray100 }]}>
+          <View style={[styles.submittedInfo, { borderTopColor: hairline }]}>
             <Ionicons name="time-outline" size={12} color={colors.gray400} />
-            <Text style={[styles.submittedText, { color: colors.gray400 }]}>Soumis {getTimeSince(item.created_at)}</Text>
+            <Text style={[styles.submittedText, { color: colors.gray500 }]}>Soumis {getTimeSince(item.created_at)}</Text>
           </View>
         </View>
 
-        {/* Actions */}
-        <View style={[styles.cardActions, { borderTopColor: colors.gray100, backgroundColor: colors.gray50 }]}>
+        <View style={[styles.cardActions, { borderTopColor: hairline }]}>
           <TouchableOpacity
-            style={styles.viewButton}
+            style={[styles.actionChip, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }]}
             onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
+            activeOpacity={0.7}
           >
-            <Ionicons name="eye-outline" size={18} color={colors.primary} />
+            <Ionicons name="eye-outline" size={14} color={colors.primary} />
+            <Text style={[styles.actionChipText, { color: colors.primary }]}>Voir</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.rejectButton, { backgroundColor: colors.errorLight }]}
+            style={[styles.actionChip, { backgroundColor: '#EF444415', borderColor: '#EF444430' }]}
             onPress={() => openRejectModal(item)}
             disabled={isActionLoading}
+            activeOpacity={0.7}
           >
-            {isActionLoading && actionLoading === item.id ? (
-              <ActivityIndicator size="small" color={colors.error} />
+            {isActionLoading ? (
+              <ActivityIndicator size="small" color="#EF4444" />
             ) : (
-              <Ionicons name="close-circle" size={20} color={colors.error} />
+              <>
+                <Ionicons name="close-circle-outline" size={14} color="#EF4444" />
+                <Text style={[styles.actionChipText, { color: '#EF4444' }]}>Rejeter</Text>
+              </>
             )}
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.validateButton, { backgroundColor: colors.success }]}
+            style={[styles.actionChipFilled, { backgroundColor: '#10B981' }]}
             onPress={() => handleValidate(item.id)}
             disabled={isActionLoading}
+            activeOpacity={0.8}
           >
-            {isActionLoading && actionLoading === item.id ? (
-              <ActivityIndicator size="small" color={colors.white} />
+            {isActionLoading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Ionicons name="checkmark-circle" size={20} color={colors.white} />
+              <>
+                <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
+                <Text style={[styles.actionChipText, { color: '#FFFFFF' }]}>Valider</Text>
+              </>
             )}
           </TouchableOpacity>
         </View>
@@ -335,9 +329,9 @@ export default function ModerationScreen() {
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <AnimatedIllustration entry="bounce" idle="breathe">
-        <WellDone color={colors.success} size={160} />
+        <WellDone color="#10B981" size={160} />
       </AnimatedIllustration>
-      <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>Aucun événement en attente</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun événement en attente</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filterType !== 'all'
           ? 'Aucun événement ne correspond à vos critères.'
@@ -348,70 +342,73 @@ export default function ModerationScreen() {
 
   if (loading) {
     return (
-      <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>MOD</WatermarkNumeral>
-        <View style={{ flex: 1, zIndex: 1 }}>
-          <LoadingSpinner />
-        </View>
-      </EditorialCanvas>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+        <LoadingSpinner />
+      </SafeAreaView>
     );
   }
 
+  const filters: { key: FilterType; label: string; count: number }[] = [
+    { key: 'all', label: 'Tous', count: stats.total },
+    { key: 'billetterie', label: 'Billetterie', count: stats.billetterie },
+    { key: 'inscription', label: 'Inscription', count: stats.inscription },
+  ];
+
   return (
-    <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>MOD</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-
-      {/* Header - gradient/colored background, Colors.white is fine */}
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <View style={[styles.header, { borderBottomColor: hairline }]}>
         <TouchableOpacity
-          style={styles.headerBackButton}
+          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
           onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
         >
-          <Ionicons name="arrow-back" size={24} color={Colors.white} />
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <View style={styles.headerIconContainer}>
-            <Ionicons name="shield-checkmark" size={24} color={Colors.white} />
-          </View>
-          <View>
-            <Text style={styles.headerEyebrow}>Garde le cap</Text>
-            <Text style={styles.headerTitle}>Modération</Text>
-            <Text style={styles.headerSubtitle}>Événements en attente de validation</Text>
-          </View>
+        <View style={{ flex: 1, marginLeft: Spacing.md }}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>GARDE LE CAP</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Modération</Text>
+        </View>
+        <View style={[styles.countPill, { backgroundColor: `${colors.primary}15` }]}>
+          <Text style={[styles.countText, { color: colors.primary }]}>{stats.total}</Text>
         </View>
       </View>
 
-      {/* Stats */}
-      <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.total}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>En attente</Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
-        <View style={styles.statItem}>
-          <View style={styles.statRow}>
-            <Ionicons name="ticket" size={14} color="#818CF8" />
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.billetterie}</Text>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+      >
+        {/* Stats card */}
+        <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>EN ATTENTE</Text>
           </View>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Billetterie</Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
-        <View style={styles.statItem}>
-          <View style={styles.statRow}>
-            <Ionicons name="document-text" size={14} color="#60A5FA" />
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stats.inscription}</Text>
+          <View style={[styles.statDivider, { backgroundColor: hairline }]} />
+          <View style={styles.statItem}>
+            <View style={styles.statRow}>
+              <Ionicons name="ticket" size={13} color={BILLET_COLOR} />
+              <Text style={[styles.statValue, { color: colors.text }]}>{stats.billetterie}</Text>
+            </View>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>BILLETTERIE</Text>
           </View>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Inscription</Text>
+          <View style={[styles.statDivider, { backgroundColor: hairline }]} />
+          <View style={styles.statItem}>
+            <View style={styles.statRow}>
+              <Ionicons name="document-text" size={13} color={INSCRIPTION_COLOR} />
+              <Text style={[styles.statValue, { color: colors.text }]}>{stats.inscription}</Text>
+            </View>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>INSCRIPTION</Text>
+          </View>
         </View>
-      </View>
 
-      {/* Search & Filter */}
-      <View style={styles.searchContainer}>
-        <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-          <Ionicons name="search" size={18} color={colors.gray400} />
+        {/* Search */}
+        <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+          <Ionicons name="search" size={16} color={colors.gray500} />
           <TextInput
-            style={[styles.searchInput, { color: colors.gray900 }]}
+            style={[styles.searchInput, { color: colors.text }]}
             placeholder="Rechercher par titre, organisateur..."
             placeholderTextColor={colors.gray400}
             value={searchQuery}
@@ -419,82 +416,50 @@ export default function ModerationScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={18} color={colors.gray400} />
+              <Ionicons name="close-circle" size={16} color={colors.gray400} />
             </TouchableOpacity>
           )}
         </View>
-      </View>
 
-      {/* Filter Chips */}
-      <View style={styles.filterContainer}>
-        <TouchableOpacity
-          style={[styles.filterChip, { backgroundColor: colors.card, borderColor: colors.gray200 }, filterType === 'all' && styles.filterChipActive]}
-          onPress={() => setFilterType('all')}
-        >
-          <Text style={[styles.filterChipText, { color: colors.gray600 }, filterType === 'all' && styles.filterChipTextActive]}>
-            Tous ({stats.total})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterChip, filterType === 'billetterie' && styles.filterChipActiveBillet]}
-          onPress={() => setFilterType('billetterie')}
-        >
-          <Ionicons
-            name="ticket"
-            size={12}
-            color={filterType === 'billetterie' ? Colors.white : colors.primary}
-          />
-          <Text style={[
-            styles.filterChipText,
-            filterType === 'billetterie' && styles.filterChipTextActive,
-            filterType !== 'billetterie' && { color: colors.primary }
-          ]}>
-            Billetterie ({stats.billetterie})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.filterChip, filterType === 'inscription' && styles.filterChipActiveInscription]}
-          onPress={() => setFilterType('inscription')}
-        >
-          <Ionicons
-            name="document-text"
-            size={12}
-            color={filterType === 'inscription' ? Colors.white : '#6366F1'}
-          />
-          <Text style={[
-            styles.filterChipText,
-            filterType === 'inscription' && styles.filterChipTextActive,
-            filterType !== 'inscription' && { color: '#6366F1' }
-          ]}>
-            Inscription ({stats.inscription})
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* Filters */}
+        <View style={styles.filtersRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm }}>
+            {filters.map((f) => {
+              const active = filterType === f.key;
+              return (
+                <TouchableOpacity
+                  key={f.key}
+                  style={[
+                    styles.filterPill,
+                    active
+                      ? { backgroundColor: colors.text, borderColor: colors.text }
+                      : { backgroundColor: colors.card, borderColor: hairline },
+                  ]}
+                  onPress={() => setFilterType(f.key)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.filterText, { color: active ? colors.background : colors.gray600 }]}>
+                    {f.label} ({f.count})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
-      {/* Results count */}
-      <View style={styles.resultsInfo}>
-        <Text style={[styles.resultsText, { color: colors.gray500 }]}>
-          {filteredEvents.length} événement{filteredEvents.length !== 1 ? 's' : ''} en attente
-        </Text>
-      </View>
+        {/* Events list */}
+        <View style={{ marginTop: Spacing.sm }}>
+          {filteredEvents.length > 0 ? (
+            filteredEvents.map((event) => (
+              <View key={event.id}>{renderEvent({ item: event })}</View>
+            ))
+          ) : (
+            renderEmpty()
+          )}
+        </View>
 
-      {/* Events List */}
-      <FlatList
-        data={filteredEvents}
-        renderItem={renderEvent}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmpty}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-          />
-        }
-      />
+        <View style={{ height: Spacing['3xl'] }} />
+      </ScrollView>
 
       {/* Reject Modal */}
       <Modal
@@ -504,295 +469,188 @@ export default function ModerationScreen() {
         onRequestClose={() => setShowRejectModal(false)}
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHeader}>
-              <View style={[styles.modalIconContainer, { backgroundColor: colors.errorLight }]}>
-                <Ionicons name="close-circle" size={24} color={colors.error} />
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: hairline }, Shadows.lg]}>
+              <View style={styles.modalHeader}>
+                <View style={[styles.modalIconWell, { backgroundColor: '#EF444415' }]}>
+                  <Ionicons name="close-circle" size={20} color="#EF4444" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>REJET</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>Motif requis</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalClose, { backgroundColor: colors.background, borderColor: hairline }]}
+                  onPress={() => {
+                    setShowRejectModal(false);
+                    setSelectedEvent(null);
+                    setRejectionReason('');
+                  }}
+                >
+                  <Ionicons name="close" size={16} color={colors.gray600} />
+                </TouchableOpacity>
               </View>
-              <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Rejeter l'événement</Text>
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => {
-                  setShowRejectModal(false);
-                  setSelectedEvent(null);
-                  setRejectionReason('');
-                }}
-              >
-                <Ionicons name="close" size={24} color={colors.gray500} />
-              </TouchableOpacity>
-            </View>
 
-            {selectedEvent && (
-              <Text style={[styles.modalEventTitle, { color: colors.gray700 }]}>
-                "{selectedEvent.title}"
+              {selectedEvent && (
+                <View style={[styles.modalEventChip, { backgroundColor: colors.background, borderColor: hairline }]}>
+                  <Text style={[styles.modalEventTitle, { color: colors.text }]} numberOfLines={2}>
+                    {selectedEvent.title}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
+                Indiquez la raison du rejet. L'organisateur recevra cette information.
               </Text>
-            )}
 
-            <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
-              Veuillez indiquer la raison du rejet. L'organisateur recevra cette information.
-            </Text>
+              <TextInput
+                style={[styles.modalTextInput, { backgroundColor: colors.background, borderColor: hairline, color: colors.text }]}
+                placeholder="Raison du rejet (obligatoire)..."
+                placeholderTextColor={colors.gray400}
+                value={rejectionReason}
+                onChangeText={setRejectionReason}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
 
-            <TextInput
-              style={[styles.modalTextInput, { backgroundColor: colors.gray50, color: colors.gray900 }]}
-              placeholder="Raison du rejet (obligatoire)..."
-              placeholderTextColor={colors.gray400}
-              value={rejectionReason}
-              onChangeText={setRejectionReason}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalCancelButton, { backgroundColor: colors.gray100 }]}
-                onPress={() => {
-                  setShowRejectModal(false);
-                  setSelectedEvent(null);
-                  setRejectionReason('');
-                }}
-                disabled={actionLoading !== null}
-              >
-                <Text style={[styles.modalCancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modalRejectButton,
-                  { backgroundColor: colors.error },
-                  (!rejectionReason.trim() || actionLoading !== null) && styles.modalButtonDisabled
-                ]}
-                onPress={handleReject}
-                disabled={!rejectionReason.trim() || actionLoading !== null}
-              >
-                {actionLoading !== null ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <>
-                    <Ionicons name="close-circle" size={16} color={colors.white} />
-                    <Text style={[styles.modalRejectButtonText, { color: colors.white }]}>Confirmer le rejet</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, { backgroundColor: colors.background, borderColor: hairline }]}
+                  onPress={() => {
+                    setShowRejectModal(false);
+                    setSelectedEvent(null);
+                    setRejectionReason('');
+                  }}
+                  disabled={actionLoading !== null}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalRejectBtn,
+                    { backgroundColor: '#EF4444' },
+                    (!rejectionReason.trim() || actionLoading !== null) && { opacity: 0.5 },
+                  ]}
+                  onPress={handleReject}
+                  disabled={!rejectionReason.trim() || actionLoading !== null}
+                  activeOpacity={0.8}
+                >
+                  {actionLoading !== null ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="close-circle" size={14} color="#FFFFFF" />
+                      <Text style={styles.modalRejectText}>Confirmer</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
         </KeyboardAvoidingView>
       </Modal>
-      </View>
-    </EditorialCanvas>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Header
+  container: { flex: 1 },
   header: {
-    backgroundColor: '#312E81',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
   },
-  headerBackButton: {
+  iconDisc: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    flex: 1,
-  },
-  headerIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerEyebrow: {
-    fontSize: 10,
     fontFamily: FontFamily.bold,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
     fontFamily: FontFamily.displayBold,
-    color: Colors.white,
-    letterSpacing: -0.3,
+    fontSize: FontSizes.xl,
+    letterSpacing: -0.4,
   },
-  headerSubtitle: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: 'rgba(255,255,255,0.7)',
+  countPill: {
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    minWidth: 32,
+    alignItems: 'center',
   },
+  countText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
+  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
 
   // Stats
-  statsContainer: {
+  statsCard: {
     flexDirection: 'row',
-    backgroundColor: Colors.white,
-    marginHorizontal: Spacing.lg,
-    marginTop: -Spacing.lg,
+    alignItems: 'center',
+    paddingVertical: Spacing.md,
     borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
-    ...Shadows.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
-  },
-  statLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    backgroundColor: Colors.gray200,
-    marginVertical: Spacing.xs,
-  },
+  statItem: { flex: 1, alignItems: 'center', gap: 4 },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  statValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.xl, letterSpacing: -0.3 },
+  statLabel: { fontFamily: FontFamily.bold, fontSize: 9, letterSpacing: 1.2 },
+  statDivider: { width: 1, height: 32 },
 
   // Search
-  searchContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.gray200,
     gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray900,
+    fontFamily: FontFamily.medium,
     paddingVertical: 0,
   },
 
-  // Filter
-  filterContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-    gap: Spacing.sm,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
+  // Filters
+  filtersRow: { paddingVertical: Spacing.md },
+  filterPill: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.gray200,
-    gap: 4,
   },
-  filterChipActive: {
-    backgroundColor: Colors.gray700,
-    borderColor: Colors.gray700,
-  },
-  filterChipActiveBillet: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  filterChipActiveInscription: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-  },
-  filterChipText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray600,
-  },
-  filterChipTextActive: {
-    color: Colors.white,
-  },
-
-  // Results
-  resultsInfo: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
-  },
-  resultsText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-  },
-
-  // List
-  listContent: {
-    padding: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: 100,
-  },
+  filterText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
 
   // Card
   card: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.xl,
+    borderWidth: 1,
     marginBottom: Spacing.md,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.gray100,
   },
-  cardImage: {
-    height: 120,
-    position: 'relative',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
+  cardImage: { height: 120, position: 'relative' },
+  image: { width: '100%', height: '100%' },
   imagePlaceholder: {
     width: '100%',
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  imagePlaceholderBillet: {
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-  },
-  imagePlaceholderInscription: {
-    backgroundColor: 'rgba(139, 92, 246, 0.1)',
   },
   typeBadge: {
     position: 'absolute',
@@ -804,32 +662,19 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
-  typeBadgeBillet: {
-    backgroundColor: Colors.primary,
-  },
-  typeBadgeInscription: {
-    backgroundColor: '#6366F1',
-  },
-  typeBadgeText: {
-    fontSize: 10,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
-  },
-  cardContent: {
-    padding: Spacing.md,
-  },
+  typeBadgeText: { fontFamily: FontFamily.bold, fontSize: 10 },
+  cardContent: { padding: Spacing.md },
   cardTitle: {
-    fontSize: FontSizes.base,
     fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
+    fontSize: FontSizes.base,
     letterSpacing: -0.2,
     marginBottom: 4,
   },
   cardDescription: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
     marginBottom: Spacing.sm,
   },
   cardMeta: {
@@ -838,89 +683,60 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-  },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
   submittedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
-  submittedText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray400,
-    fontStyle: 'italic',
-  },
+  submittedText: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
     gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    backgroundColor: Colors.gray50,
   },
-  viewButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+  actionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  actionChipFilled: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderRadius: BorderRadius.full,
   },
-  rejectButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.errorLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  validateButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.success,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  actionChipText: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs },
 
   // Empty
   emptyContainer: {
     alignItems: 'center',
     paddingTop: Spacing['3xl'],
     paddingHorizontal: Spacing.xl,
-  },
-  emptyIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.successLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
+    gap: Spacing.md,
   },
   emptyTitle: {
-    ...TextStyles.h4,
-    color: Colors.gray700,
-    marginBottom: Spacing.sm,
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
   },
   emptyText: {
-    ...TextStyles.body,
-    color: Colors.gray500,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
     textAlign: 'center',
   },
 
@@ -930,37 +746,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: Spacing.xl,
+    gap: Spacing.md,
   },
-  accessDeniedIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: Colors.gray100,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.lg,
+  accessDeniedEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: Spacing.lg,
   },
   accessDeniedTitle: {
-    ...TextStyles.h3,
-    color: Colors.gray700,
-    marginBottom: Spacing.sm,
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes['2xl'],
+    letterSpacing: -0.5,
   },
   accessDeniedText: {
-    ...TextStyles.body,
-    color: Colors.gray500,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.base,
     textAlign: 'center',
-    marginBottom: Spacing.xl,
+    lineHeight: FontSizes.base * 1.5,
   },
-  backButton: {
+  backCta: {
+    marginTop: Spacing.md,
     paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing['2xl'],
+    borderRadius: BorderRadius.full,
   },
-  backButtonText: {
-    ...TextStyles.button,
-    color: Colors.white,
-  },
+  backCtaText: { fontFamily: FontFamily.bold, fontSize: FontSizes.base, letterSpacing: -0.2 },
 
   // Modal
   modalOverlay: {
@@ -971,8 +783,8 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
+    borderRadius: BorderRadius['2xl'],
+    borderWidth: 1,
     padding: Spacing.lg,
     width: '100%',
     maxWidth: 400,
@@ -983,42 +795,53 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.md,
   },
-  modalIconContainer: {
+  modalIconWell: {
     width: 40,
     height: 40,
-    borderRadius: 12,
-    backgroundColor: Colors.errorLight,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modalTitle: {
-    flex: 1,
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+  modalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    marginBottom: 2,
   },
-  modalCloseButton: {
-    padding: Spacing.xs,
+  modalTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.lg,
+    letterSpacing: -0.3,
+  },
+  modalClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalEventChip: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
   },
   modalEventTitle: {
-    fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
-    marginBottom: Spacing.sm,
+    fontSize: FontSizes.sm,
   },
   modalDescription: {
+    fontFamily: FontFamily.medium,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
     marginBottom: Spacing.md,
   },
   modalTextInput: {
-    backgroundColor: Colors.gray50,
     borderRadius: BorderRadius.lg,
+    borderWidth: 1,
     padding: Spacing.md,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray900,
+    fontFamily: FontFamily.medium,
     minHeight: 100,
   },
   modalActions: {
@@ -1026,34 +849,22 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginTop: Spacing.lg,
   },
-  modalCancelButton: {
+  modalCancelBtn: {
     flex: 1,
     paddingVertical: Spacing.md,
     alignItems: 'center',
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.gray100,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
-  modalCancelButtonText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray700,
-  },
-  modalRejectButton: {
+  modalCancelText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
+  modalRejectBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: Spacing.xs,
     paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.error,
+    borderRadius: BorderRadius.full,
   },
-  modalRejectButtonText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
-  },
-  modalButtonDisabled: {
-    opacity: 0.5,
-  },
+  modalRejectText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm, color: '#FFFFFF' },
 });
