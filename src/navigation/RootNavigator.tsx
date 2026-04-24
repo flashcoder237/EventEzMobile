@@ -239,14 +239,6 @@ export default function RootNavigator() {
       <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
-        options={{
-          headerShown: true,
-          headerTitle: 'Modifier le profil',
-          headerBackTitle: 'Retour',
-          headerTintColor: colors.primary,
-          headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
-        }}
       />
       <Stack.Screen name="Terms" component={TermsScreen} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} />
