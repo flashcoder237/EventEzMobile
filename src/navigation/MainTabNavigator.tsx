@@ -112,7 +112,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   });
 
   const bottomPadding = Math.max(insets.bottom, 16);
-  const pillBg = colors.primaryBg;
+  // Active pill uses EventEz primary indigo for brand consistency
+  const pillBg = isDark ? colors.primaryBg : colors.primary;
   const barBg = isDark ? `${colors.card}F2` : `${colors.card}F2`;
 
   return (
@@ -155,7 +156,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             }
           };
 
-          const activeColor = colors.primaryDark;
+          const activeColor = isDark ? colors.primaryDark : colors.white;
           const inactiveColor = colors.gray400;
 
           return (
@@ -195,7 +196,7 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                     </View>
                   )}
                   {totalPendingCount > 0 && (
-                    <View style={[styles.profileBadge, { backgroundColor: colors.error }]}>
+                    <View style={[styles.profileBadge, { backgroundColor: '#FF6B6B', borderColor: pillBg }]}>
                       <Text style={styles.profileBadgeText}>
                         {totalPendingCount > 99 ? '99+' : totalPendingCount}
                       </Text>
@@ -322,21 +323,20 @@ const styles = StyleSheet.create({
   },
   profileBadge: {
     position: 'absolute',
-    top: -4,
-    right: -8,
+    top: -5,
+    right: -9,
     minWidth: 18,
     height: 18,
-    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
+    paddingHorizontal: 3,
+    borderWidth: 1.5,
   },
   profileBadgeText: {
     color: '#FFFFFF',
     fontSize: 9,
     fontFamily: FontFamily.bold,
     lineHeight: 12,
+    letterSpacing: 0.2,
   },
 });

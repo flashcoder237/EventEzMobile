@@ -5,7 +5,7 @@
 
 // Core — Axios instance, token management, helpers
 export { default as api, default } from './instance';
-export { setTokens, clearTokens, getAccessToken, getRefreshToken, deduplicatedGet } from './instance';
+export { setTokens, clearTokens, getAccessToken, getRefreshToken, deduplicatedGet, ensureFreshAccessToken } from './instance';
 export { getMediaUrl, API_BASE_URL, SERVER_BASE_URL } from './config';
 
 // Authentication, Users & Verification

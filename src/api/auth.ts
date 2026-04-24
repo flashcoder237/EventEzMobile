@@ -2,9 +2,8 @@
 // EventEz Mobile API — Authentication, Users & Verification
 // ============================================
 
-import api, { clearTokens } from './instance';
-import { fetchUpload, REFRESH_TOKEN_KEY } from './config';
-import * as SecureStore from 'expo-secure-store';
+import api, { clearTokens, getRefreshToken } from './instance';
+import { fetchUpload } from './config';
 
 // ============================================
 // AUTHENTICATION API
@@ -41,7 +40,9 @@ export const authAPI = {
 
   logout: async () => {
     try {
-      const refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+      // getRefreshToken lit la mémoire en priorité, puis SecureStore — fonctionne
+      // aussi en mode éphémère (rememberMe=false) pour blacklister le token.
+      const refreshToken = await getRefreshToken();
       await api.post('/logout/', { refresh: refreshToken });
     } catch (error) {
       if (__DEV__) console.warn('Logout API call failed:', error);
@@ -71,6 +72,20 @@ export const authAPI = {
 
   resendVerificationEmail: (email: string) =>
     api.post('/verify-email/resend/', { email }),
+
+  // Authentification par téléphone (OTP SMS)
+  phoneSendOTP: (phoneNumber: string) =>
+    api.post('/auth/phone/send-otp/', { phone_number: phoneNumber }),
+
+  phoneVerifyOTP: (phoneNumber: string, code: string) =>
+    api.post('/auth/phone/verify/', { phone_number: phoneNumber, code }),
+
+  // Vérification de compte par téléphone (utilisateur authentifié)
+  phoneSendAccountVerification: (phoneNumber: string) =>
+    api.post('/auth/phone/send-account-verification/', { phone_number: phoneNumber }),
+
+  phoneVerifyAccount: (phoneNumber: string, code: string) =>
+    api.post('/auth/phone/verify-account/', { phone_number: phoneNumber, code }),
 };
 
 // ============================================

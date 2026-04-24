@@ -24,13 +24,12 @@ const api: AxiosInstance = axios.create({
 // Intercepteur pour ajouter le token d'authentification et logger les requêtes
 api.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
-    try {
-      const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (error) {
-      if (__DEV__) console.warn('Erreur lors de la récupération du token:', error);
+    // Passe par getAccessToken (défini plus bas) — utilise la couche mémoire
+    // quand rememberMe=false (SecureStore est vide dans ce mode, lire SecureStore
+    // directement renverrait null et on partirait sans Authorization).
+    const token = await getAccessToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
     // En React Native, le FormData est un polyfill — Axios peut ne pas le reconnaître
     // et tenter de le JSON.stringify (résultat: {"_parts":[...]} au lieu de multipart).
@@ -86,6 +85,77 @@ const processQueue = (error: any, token: string | null = null) => {
 
 // Nombre maximum de retries pour les timeouts
 const MAX_TIMEOUT_RETRIES = 3;
+
+// ============================================
+// SHARED REFRESH TOKEN HELPER
+// ============================================
+// Utilisé par l'interceptor, fetchUpload et le WebSocket pour partager le même
+// mutex → évite les refresh concurrents qui se blacklistent mutuellement
+// (backend: ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION).
+
+let refreshPromise: Promise<string | null> | null = null;
+// Incrémenté à chaque clearTokens — invalide les refresh en vol si l'utilisateur
+// se déconnecte pendant qu'un refresh est en cours (sinon les nouveaux tokens
+// seraient ré-écrits en SecureStore après le logout).
+let sessionVersion = 0;
+
+/**
+ * Rafraîchit l'access token (et le refresh si rotation).
+ * Coalesce les appels concurrents via refreshPromise.
+ * Retourne le nouvel access token, ou null si :
+ *  - pas de refresh token en store
+ *  - refresh invalide/blacklisté (401/403) → émet api-auth-error
+ *  - session changée (logout pendant le refresh)
+ * Les autres erreurs (réseau, 5xx) retournent null SANS déconnecter.
+ */
+export async function ensureFreshAccessToken(): Promise<string | null> {
+  if (refreshPromise) return refreshPromise;
+
+  const mySession = sessionVersion;
+  refreshPromise = (async () => {
+    try {
+      const refreshToken = await getRefreshToken();
+      if (!refreshToken) return null;
+
+      const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
+        refresh: refreshToken,
+      }, { timeout: 15000 });
+
+      // Si logout pendant le refresh, ne pas écraser les tokens effacés
+      if (sessionVersion !== mySession) {
+        if (__DEV__) console.log('[API] Refresh succeeded but session was cleared — discarding new tokens');
+        return null;
+      }
+
+      const { access, refresh: newRefresh } = response.data;
+      // IMPORTANT: avec ROTATE_REFRESH_TOKENS côté backend, le nouveau refresh
+      // DOIT être sauvegardé — sinon on reste avec un refresh blacklisté qui
+      // échouera au prochain cycle.
+      // On utilise updateTokens (pas setTokens) pour préserver le mode de
+      // persistance choisi au login (mémoire vs SecureStore).
+      await updateTokens(access, newRefresh ?? refreshToken);
+      return access;
+    } catch (error) {
+      const axErr = error as AxiosError;
+      const status = axErr.response?.status;
+      // Ne déconnecter que si le refresh est franchement invalide (401/403).
+      // Timeouts, 5xx, erreurs réseau → on laisse la session intacte, l'utilisateur
+      // pourra réessayer. Déconnecter sur un hoquet serveur est trop agressif.
+      if (status === 401 || status === 403) {
+        if (__DEV__) console.log('[API] Refresh token invalid/blacklisted — clearing session');
+        await clearTokensInternal();
+        eventBus.emit('api-auth-error');
+      } else if (__DEV__) {
+        console.warn(`[API] Refresh transient error (${status ?? axErr.code}) — session preserved`);
+      }
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
 
 // Intercepteur pour gérer le refresh token et logger les erreurs
 api.interceptors.response.use(
@@ -179,48 +249,24 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        let refreshToken: string | null = null;
-        try {
-          refreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
-        } catch (secureStoreError) {
-          if (__DEV__) console.warn('SecureStore failed to get refresh token:', secureStoreError);
-        }
+        const newAccess = await ensureFreshAccessToken();
 
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/token/refresh/`, {
-            refresh: refreshToken,
-          });
-
-          const { access } = response.data;
-          try {
-            await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, access);
-          } catch (secureStoreError) {
-            if (__DEV__) console.warn('SecureStore failed to save access token:', secureStoreError);
-          }
-
+        if (newAccess) {
           if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${access}`;
+            originalRequest.headers.Authorization = `Bearer ${newAccess}`;
           }
-
-          processQueue(null, access);
-          isRefreshing = false;
+          processQueue(null, newAccess);
           return api(originalRequest);
-        } else {
-          // Pas de refresh token disponible — débloquer la queue et nettoyer
-          const noTokenError = new Error('No refresh token available');
-          processQueue(noTokenError, null);
-          isRefreshing = false;
-          await clearTokens();
-          eventBus.emit('api-auth-error');
-          return Promise.reject(noTokenError);
         }
-      } catch (refreshError) {
-        processQueue(refreshError, null);
-        // Supprimer les tokens si le refresh échoue
-        await clearTokens();
+
+        // Échec du refresh :
+        //   - 401/403 → ensureFreshAccessToken a déjà nettoyé + émis api-auth-error
+        //   - 5xx/timeout → session préservée, on remonte juste l'erreur originale
+        const sessionError = new Error('Session refresh failed');
+        processQueue(sessionError, null);
+        return Promise.reject(error);
+      } finally {
         isRefreshing = false;
-        eventBus.emit('api-auth-error');
-        return Promise.reject(refreshError);
       }
     }
 
@@ -305,18 +351,67 @@ export const deduplicatedGet = async <T = any>(url: string, config?: any): Promi
 // ============================================
 // TOKEN MANAGEMENT FUNCTIONS
 // ============================================
+//
+// Deux modes de persistance :
+//  - persistent=true  → SecureStore (Keychain iOS / KeyStore Android). Session
+//                       survit aux redémarrages. C'est le défaut.
+//  - persistent=false → mémoire uniquement (les deux variables ci-dessous).
+//                       Les tokens disparaissent quand le process RN est tué
+//                       (kill manuel, reboot, OS qui récupère la mémoire).
+//                       Utilisé quand l'utilisateur a DÉCOCHÉ "Se souvenir
+//                       de moi" — il ne veut pas que sa session persiste
+//                       au-delà de la vie de l'app.
 
-export const setTokens = async (accessToken: string, refreshToken: string) => {
+let memoryAccessToken: string | null = null;
+let memoryRefreshToken: string | null = null;
+let useMemoryOnly = false;
+
+/**
+ * Sauvegarde les tokens. Change le mode de persistance selon `persistent`.
+ * Appeler depuis : login (avec rememberMe), social auth, OTP, register.
+ * NE PAS appeler depuis ensureFreshAccessToken — utiliser updateTokens.
+ */
+export const setTokens = async (
+  accessToken: string,
+  refreshToken: string,
+  persistent: boolean = true
+) => {
+  sessionVersion++;
+  useMemoryOnly = !persistent;
+  memoryAccessToken = accessToken;
+  memoryRefreshToken = refreshToken;
+
+  if (persistent) {
+    try {
+      await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+      await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+    } catch (error) {
+      if (__DEV__) console.error('SecureStore failed to save tokens:', error);
+      throw new Error('Failed to securely store authentication tokens');
+    }
+  } else {
+    // Mode éphémère : on purge toute trace précédente sur disque
+    await clearSecureStoreTokens();
+  }
+};
+
+/**
+ * Met à jour les tokens APRÈS refresh, sans changer le mode de persistance.
+ * Si useMemoryOnly=true, on ne touche pas à SecureStore.
+ */
+const updateTokens = async (accessToken: string, refreshToken: string) => {
+  memoryAccessToken = accessToken;
+  memoryRefreshToken = refreshToken;
+  if (useMemoryOnly) return;
   try {
     await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
     await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
   } catch (error) {
-    if (__DEV__) console.error('SecureStore failed to save tokens:', error);
-    throw new Error('Failed to securely store authentication tokens');
+    if (__DEV__) console.warn('SecureStore failed to update tokens:', error);
   }
 };
 
-export const clearTokens = async () => {
+const clearSecureStoreTokens = async () => {
   try {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
   } catch (error) {
@@ -329,9 +424,32 @@ export const clearTokens = async () => {
   }
 };
 
+// Version interne utilisée par ensureFreshAccessToken sur le chemin 401 du
+// refresh — n'incrémente PAS sessionVersion (sinon on invaliderait le refresh
+// en cours avant qu'il ait fini).
+const clearTokensInternal = async () => {
+  memoryAccessToken = null;
+  memoryRefreshToken = null;
+  useMemoryOnly = false;
+  await clearSecureStoreTokens();
+};
+
+export const clearTokens = async () => {
+  // Invalide tout refresh en vol : si le logout arrive pendant un refresh,
+  // ensureFreshAccessToken comparera mySession !== sessionVersion et
+  // jettera les nouveaux tokens au lieu de les stocker.
+  sessionVersion++;
+  await clearTokensInternal();
+};
+
 export const getAccessToken = async () => {
+  if (memoryAccessToken !== null) return memoryAccessToken;
+  if (useMemoryOnly) return null;
   try {
-    return await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+    // Hydrate la mémoire pour les appels suivants (évite I/O disque répété)
+    if (token) memoryAccessToken = token;
+    return token;
   } catch (error) {
     if (__DEV__) console.warn('SecureStore failed to get access token:', error);
     return null;
@@ -339,8 +457,12 @@ export const getAccessToken = async () => {
 };
 
 export const getRefreshToken = async () => {
+  if (memoryRefreshToken !== null) return memoryRefreshToken;
+  if (useMemoryOnly) return null;
   try {
-    return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    const token = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+    if (token) memoryRefreshToken = token;
+    return token;
   } catch (error) {
     if (__DEV__) console.warn('SecureStore failed to get refresh token:', error);
     return null;

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
-import { authAPI, usersAPI, setTokens, clearTokens } from '../api';
+import { authAPI, usersAPI, setTokens, clearTokens, getAccessToken, getRefreshToken } from '../api';
 import CacheService from '../services/CacheService';
 import { eventBus } from '../lib/eventBus';
 import { User, AuthState } from '../types';
@@ -59,17 +59,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkAuth = async () => {
     try {
-      const rememberMe = await SecureStore.getItemAsync(REMEMBER_ME_KEY);
-      const token = await SecureStore.getItemAsync('eventez_access_token');
+      // Plus besoin de checker REMEMBER_ME_KEY ici :
+      //   - Si rememberMe=false au login, les tokens n'ont JAMAIS été écrits
+      //     en SecureStore — ils vivaient en mémoire et sont morts avec le
+      //     process. getAccessToken() retournera null → pas de session.
+      //   - Si rememberMe=true, les tokens sont en SecureStore → session
+      //     restaurée.
+      const token = await getAccessToken();
 
       if (!token) {
-        setState({ user: null, isAuthenticated: false, isLoading: false });
-        return;
-      }
-
-      if (rememberMe === 'false') {
-        if (__DEV__) console.log('[Auth] Remember me disabled, clearing tokens');
-        await clearTokens();
         setState({ user: null, isAuthenticated: false, isLoading: false });
         return;
       }
@@ -101,8 +99,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authAPI.login(email, password);
       const { access, refresh } = response.data;
-      await setTokens(access, refresh);
+      // rememberMe=true → tokens en SecureStore (persistent entre sessions)
+      // rememberMe=false → tokens en mémoire uniquement (évaporent au kill)
+      await setTokens(access, refresh, rememberMe);
 
+      // On garde quand même la préférence sur disque pour que la checkbox
+      // du LoginScreen affiche le dernier choix de l'utilisateur.
       await SecureStore.setItemAsync(REMEMBER_ME_KEY, rememberMe.toString());
 
       const userResponse = await usersAPI.getCurrentUser();
@@ -148,6 +150,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true }));
+    // authAPI.logout() appelle déjà clearTokens() dans son finally (blackliste
+    // le refresh côté backend + nettoie SecureStore localement). Pas besoin de
+    // rappeler clearTokens() ici — doublon inutile.
     try {
       await authAPI.logout();
     } catch (error) {
@@ -156,12 +161,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     EventEzAnalytics.logout();
     clearAnalyticsUser();
     clearSentryUser();
-
-    try {
-      await clearTokens();
-    } catch (clearError) {
-      if (__DEV__) console.warn('Failed to clear tokens during logout:', clearError);
-    }
     CacheService.clearMemory();
     setState({
       user: null,
@@ -184,8 +183,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Pour l'authentification sociale - met à jour l'utilisateur après connexion
   const setUserFn = useCallback(async (user: User) => {
-    const accessToken = await SecureStore.getItemAsync('eventez_access_token');
-    const refreshToken = await SecureStore.getItemAsync('eventez_refresh_token');
+    const accessToken = await getAccessToken();
+    const refreshToken = await getRefreshToken();
     if (!accessToken || !refreshToken) {
       if (__DEV__) console.warn('[Auth] setUser called but tokens not found');
       setState({ user: null, isAuthenticated: false, isLoading: false });

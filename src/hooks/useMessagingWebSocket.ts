@@ -7,8 +7,8 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { getAccessToken, ensureFreshAccessToken } from '../api';
 import { Message, WebSocketIncomingMessage } from '../types';
 
 // Dériver l'URL WebSocket à partir de EXPO_PUBLIC_API_URL
@@ -40,6 +40,7 @@ const WS_BASE_URL = getWebSocketBaseUrl();
 // Legacy interface kept for the generic 'error' case not in the discriminated union
 interface WebSocketErrorMessage {
   type: 'error';
+  code?: string;
   error?: string;
 }
 
@@ -87,8 +88,17 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
+  // Si le serveur envoie un code d'erreur "permanent" (max_connections, etc.),
+  // on bloque la reconnexion auto pour éviter un storm.
+  const fatalErrorRef = useRef(false);
   const typingTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const pendingMessagesRef = useRef<any[]>([]);
+  // Ref vers connect() pour pouvoir l'appeler depuis handleMessage sans créer
+  // une dépendance circulaire (connect est défini après handleMessage).
+  const connectRef = useRef<(() => void) | null>(null);
+  // Évite que onclose ne reconnecte automatiquement pendant qu'on refresh le
+  // token manuellement après un auth.error (sinon on se retrouve avec 2 WS).
+  const authRefreshInProgressRef = useRef(false);
 
   // Cleanup typing timeout
   const clearTypingTimeout = useCallback((key: string) => {
@@ -114,6 +124,9 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         case 'auth.success':
           setIsAuthenticated(true);
           setConnectionError(null);
+          // Reset le compteur ici (et pas dans onopen) : on a la confirmation
+          // que la session est vraiment établie côté serveur.
+          reconnectAttemptsRef.current = 0;
           // Envoyer les messages en attente
           pendingMessagesRef.current.forEach(msg => {
             wsRef.current?.send(JSON.stringify(msg));
@@ -122,8 +135,25 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         case 'auth.error':
-          setConnectionError(data.error || 'Erreur d\'authentification');
+          // Le token envoyé a été rejeté — typiquement expiré (access JWT
+          // dure 30 min, le WS peut rester ouvert plus longtemps). On tente
+          // un refresh puis on reconnecte. Si le refresh échoue, c'est que
+          // la session est cuite — l'intercepteur API aura émis api-auth-error.
           setIsAuthenticated(false);
+          authRefreshInProgressRef.current = true;
+          if (wsRef.current) {
+            wsRef.current.close();
+          }
+          ensureFreshAccessToken().then((newAccess) => {
+            authRefreshInProgressRef.current = false;
+            if (newAccess) {
+              if (__DEV__) console.log('[WS] Auth failed, refreshed token, reconnecting');
+              reconnectAttemptsRef.current = 0;
+              connectRef.current?.();
+            } else {
+              setConnectionError(data.error || 'Erreur d\'authentification');
+            }
+          });
           break;
 
         case 'message.new':
@@ -253,9 +283,17 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           }
           break;
 
-        case 'error':
+        case 'error': {
           if (__DEV__) console.error('WebSocket error from server:', data);
+          const errData = data as WebSocketErrorMessage;
+          // Erreurs "permanentes" pour cette session : on stoppe la reconnexion
+          // auto sinon on crée un storm (le serveur va continuer de rejeter).
+          if (errData.code === 'max_connections') {
+            fatalErrorRef.current = true;
+            setConnectionError(errData.error || 'Trop de connexions ouvertes');
+          }
           break;
+        }
 
         default:
           if (__DEV__) {
@@ -280,8 +318,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   // Connect to WebSocket
   const connect = useCallback(async () => {
     try {
-      // Récupérer le token d'accès
-      const accessToken = await SecureStore.getItemAsync('eventez_access_token');
+      // Récupérer le token d'accès via le helper centralisé
+      const accessToken = await getAccessToken();
       if (!accessToken) {
         setConnectionError('Non authentifié');
         return;
@@ -294,12 +332,23 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
       // SÉCURITÉ: Ne pas inclure le token dans l'URL
       const wsUrl = `${WS_BASE_URL}/ws/messages/`;
+
+      // Garde anti-fuite en production : on refuse ws:// non chiffré hors DEV
+      // (le token JWT est envoyé dans le 1er frame — il doit être chiffré TLS).
+      if (!__DEV__ && !wsUrl.startsWith('wss://')) {
+        if (__DEV__) console.error('[WS] Refusing insecure ws:// in release build');
+        setConnectionError('Connexion non sécurisée');
+        return;
+      }
+
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
         if (__DEV__) console.log('WebSocket connected, authenticating...');
         setIsConnected(true);
-        reconnectAttemptsRef.current = 0;
+        // Ne PAS reset reconnectAttemptsRef ici — le backend accepte toujours
+        // le WS avant d'authentifier, donc onopen ne signifie pas "session OK".
+        // Le reset se fait dans le case 'auth.success' de handleMessage.
         onConnectionChange?.(true);
 
         // Envoyer l'authentification via le premier message
@@ -314,6 +363,21 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         setIsConnected(false);
         setIsAuthenticated(false);
         onConnectionChange?.(false);
+
+        // Si on est en train de refresh manuellement le token après auth.error,
+        // ne pas enclencher la reconnexion auto — elle sera faite par le .then()
+        // une fois le refresh terminé (évite les doubles WS).
+        if (authRefreshInProgressRef.current) {
+          if (__DEV__) console.log('[WS] Auto-reconnect skipped — auth refresh in progress');
+          return;
+        }
+
+        // Erreur fatale (max_connections, etc.) : pas de reconnexion auto.
+        // L'utilisateur peut appeler reconnect() manuellement quand il veut.
+        if (fatalErrorRef.current) {
+          if (__DEV__) console.log('[WS] Auto-reconnect skipped — fatal error received');
+          return;
+        }
 
         // Reconnexion automatique avec backoff exponentiel
         if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
@@ -343,6 +407,13 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     }
   }, [handleMessage, onConnectionChange]);
 
+  // Synchronise connectRef avec la dernière version de connect (utilisé par
+  // handleMessage.auth.error qui ne peut pas capturer connect directement
+  // sans créer une boucle de deps).
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
   // Disconnect
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
@@ -363,6 +434,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   // Manual reconnect
   const reconnect = useCallback(() => {
     reconnectAttemptsRef.current = 0;
+    fatalErrorRef.current = false;
+    setConnectionError(null);
     disconnect();
     connect();
   }, [connect, disconnect]);

@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   StyleSheet,
-  StatusBar,
   ActivityIndicator,
   Linking,
+  TouchableOpacity,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -19,27 +18,26 @@ import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useGoogleAuth, useAppleAuth } from '../../hooks/useSocialAuth';
+import { useGoogleAuth, useAppleAuth, usePhoneAuth } from '../../hooks/useSocialAuth';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
-  Gradients,
   FontFamily,
   FontSizes,
   BorderRadius,
   Spacing,
   Shadows,
-  TextStyles,
 } from '../../constants/theme';
 import { extractErrorMessage } from '../../lib/utils/errorHandling';
 import { validators, FormErrors } from '../../lib/validation';
 import { eventBus } from '../../lib/eventBus';
-import { LinearGradient } from 'expo-linear-gradient';
-import GradientButton from '../../components/ui/GradientButton';
 import AnimatedPressable from '../../components/ui/AnimatedPressable';
-import DotPattern from '../../components/ui/DotPattern';
+import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral, editorial } from '../../components/ui/editorial';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
+
+type AuthTab = 'email' | 'phone';
+type PhoneStep = 'phone' | 'otp';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 
@@ -47,7 +45,9 @@ export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { login, isLoading, setUser } = useAuth();
   const { showError, showSuccess } = useAlert();
-  const { colors, isDark, gradients } = useTheme();
+  const { colors, isDark } = useTheme();
+
+  // Email form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -56,6 +56,15 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<FormErrors<'email' | 'password'>>({});
   const [loginInProgress, setLoginInProgress] = useState(false);
   const [retryInfo, setRetryInfo] = useState<{ attempt: number; maxRetries: number } | null>(null);
+
+  // Tab & phone form
+  const [activeTab, setActiveTab] = useState<AuthTab>('email');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [phoneStep, setPhoneStep] = useState<PhoneStep>('phone');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpPhone, setOtpPhone] = useState(''); // normalized phone after send
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const otpInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     const loadRememberMe = async () => {
@@ -93,6 +102,19 @@ export default function LoginScreen() {
     isAvailable: appleAvailable,
   } = useAppleAuth();
 
+  const {
+    sendOTP,
+    verifyOTP,
+    isLoading: phoneLoading,
+  } = usePhoneAuth();
+
+  // Resend countdown
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
+
   const handleGoogleSignIn = async () => {
     const result = await googleSignIn();
     if (result.success && result.user) {
@@ -108,6 +130,48 @@ export default function LoginScreen() {
       await setUser(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Apple', result.error);
+    }
+  };
+
+  const handleSendOTP = async () => {
+    const raw = phoneNumber.trim();
+    if (!raw) { showError('Numéro manquant', 'Entrez votre numéro de téléphone'); return; }
+    const formatted = raw.startsWith('+') ? raw : `+${raw}`;
+    const result = await sendOTP(formatted);
+    if (result.success) {
+      setOtpPhone(result.normalizedPhone || formatted);
+      setPhoneStep('otp');
+      setOtpCode('');
+      setResendCooldown(60);
+      setTimeout(() => otpInputRef.current?.focus(), 300);
+    } else {
+      showError('Erreur SMS', result.error || 'Impossible d\'envoyer le SMS');
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    if (otpCode.replace(/\D/g, '').length < 6) {
+      showError('Code incomplet', 'Entrez le code à 6 chiffres');
+      return;
+    }
+    const result = await verifyOTP(otpPhone, otpCode);
+    if (result.success && result.user) {
+      await setUser(result.user);
+      if (navigation.canGoBack()) navigation.goBack();
+    } else {
+      showError('Code invalide', result.error || 'Code incorrect ou expiré');
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    const result = await sendOTP(otpPhone);
+    if (result.success) {
+      setOtpCode('');
+      setResendCooldown(60);
+      showSuccess('Code renvoyé', 'Un nouveau code a été envoyé');
+    } else {
+      showError('Erreur', result.error || 'Impossible de renvoyer le code');
     }
   };
 
@@ -152,28 +216,17 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.background} />
+    <EditorialCanvas>
+      {/* Watermark letter behind form — editorial backdrop */}
+      <WatermarkNumeral>E</WatermarkNumeral>
 
-      {/* Dot pattern background */}
-      <DotPattern opacity={isDark ? 0.02 : 0.04} />
-
-      {/* Top accent bar — gradient violet→pink */}
-      <LinearGradient
-        colors={[...gradients.brand] as [string, string]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.accentBar}
-      />
-
-      <SafeAreaView style={styles.safeArea}>
-        <KeyboardAwareScrollView
-          style={styles.keyboardView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={20}
-        >
+      <KeyboardAwareScrollView
+        style={styles.keyboardView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
+      >
           {/* Logo */}
           <View style={styles.logoContainer}>
             <Image
@@ -185,7 +238,7 @@ export default function LoginScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>Connexion</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>Connexion / 01</Text>
             <Text style={[styles.title, { color: colors.gray900 }]}>Bon retour !</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
               Connecte-toi pour découvrir les meilleurs événements
@@ -194,7 +247,110 @@ export default function LoginScreen() {
 
           {/* Form */}
           <View style={styles.form}>
-            {/* Email */}
+            {/* ── Phone tab content ── */}
+            {activeTab === 'phone' && phoneStep === 'phone' && (
+              <View style={styles.inputContainer}>
+                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Numéro de téléphone</Text>
+                <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, focusedField === 'phone' && { backgroundColor: colors.surface, borderColor: colors.primary, ...Shadows.sm }]}>
+                  <View style={styles.inputIconContainer}>
+                    <Ionicons name="phone-portrait-outline" size={20} color={focusedField === 'phone' ? colors.primary : colors.gray400} />
+                  </View>
+                  <TextInput
+                    style={[styles.input, { color: colors.gray900 }]}
+                    placeholder="+237 6 12 34 56 78"
+                    placeholderTextColor={colors.gray400}
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    onFocus={() => setFocusedField('phone')}
+                    onBlur={() => setFocusedField(null)}
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                    accessibilityLabel="Numéro de téléphone avec indicatif pays"
+                  />
+                </View>
+                <Text style={[styles.fieldHint, { color: colors.gray400 }]}>
+                  Inclure l'indicatif pays : +33, +237, +1…
+                </Text>
+                <AnimatedPressable
+                  style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: Spacing.sm }]}
+                  onPress={handleSendOTP}
+                  disabled={phoneLoading}
+                  animationType="scale"
+                  haptic="medium"
+                  accessibilityRole="button"
+                  accessibilityLabel="Recevoir le code SMS"
+                >
+                  {phoneLoading
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.primaryButtonText}>Recevoir le code SMS</Text>}
+                </AnimatedPressable>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setActiveTab('email');
+                    setPhoneStep('phone');
+                    setOtpCode('');
+                  }}
+                  style={styles.methodSwitch}
+                  accessibilityRole="link"
+                  accessibilityLabel="Utiliser mon adresse email à la place"
+                >
+                  <Ionicons name="mail-outline" size={14} color={colors.gray500} />
+                  <Text style={[styles.methodSwitchText, { color: colors.gray500 }]}>
+                    Utiliser mon{' '}
+                    <Text style={{ color: colors.primary, fontFamily: FontFamily.semiBold }}>
+                      adresse email
+                    </Text>
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {activeTab === 'phone' && phoneStep === 'otp' && (
+              <View style={styles.inputContainer}>
+                <Text style={[styles.inputLabel, { color: colors.gray700, textAlign: 'center' }]}>
+                  Code envoyé au {otpPhone}
+                </Text>
+                <TextInput
+                  ref={otpInputRef}
+                  style={[styles.otpInput, { color: colors.gray900, borderColor: colors.gray200, backgroundColor: colors.gray50 }]}
+                  placeholder="123456"
+                  placeholderTextColor={colors.gray400}
+                  value={otpCode}
+                  onChangeText={(t) => setOtpCode(t.replace(/\D/g, '').slice(0, 6))}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  autoFocus
+                  accessibilityLabel="Code OTP à 6 chiffres"
+                />
+                <AnimatedPressable
+                  style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: Spacing.sm }, (otpCode.length < 6 || phoneLoading) && { opacity: 0.6 }]}
+                  onPress={handleVerifyOTP}
+                  disabled={otpCode.length < 6 || phoneLoading}
+                  animationType="scale"
+                  haptic="medium"
+                  accessibilityRole="button"
+                  accessibilityLabel="Vérifier le code"
+                >
+                  {phoneLoading
+                    ? <ActivityIndicator size="small" color="#fff" />
+                    : <Text style={styles.primaryButtonText}>Vérifier le code</Text>}
+                </AnimatedPressable>
+                <View style={styles.otpActions}>
+                  <TouchableOpacity onPress={() => { setPhoneStep('phone'); setOtpCode(''); }}>
+                    <Text style={[styles.otpLink, { color: colors.gray500 }]}>← Changer de numéro</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={handleResendOTP} disabled={resendCooldown > 0}>
+                    <Text style={[styles.otpLink, { color: resendCooldown > 0 ? colors.gray400 : colors.primary }]}>
+                      {resendCooldown > 0 ? `Renvoyer (${resendCooldown}s)` : 'Renvoyer le code'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
+            {/* ── Email tab content ── */}
+            {activeTab === 'email' && <>
             <View style={styles.inputContainer}>
               <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
               <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('email', !!errors.email)]}>
@@ -309,17 +465,16 @@ export default function LoginScreen() {
               <Text style={[styles.rememberMeText, { color: colors.gray600 }]}>Se souvenir de moi</Text>
             </AnimatedPressable>
 
-            {/* Login Button */}
-            <GradientButton
-              onPress={handleLogin}
-              title="Se connecter"
-              loading={loginInProgress || isLoading}
-              disabled={loginInProgress || isLoading}
-              icon={<Ionicons name="arrow-forward" size={20} color={Colors.white} />}
-              size="xl"
-              fullWidth
-              style={styles.loginButton}
-            />
+            {/* Login Button — editorial pill CTA */}
+            <View style={styles.loginButtonWrap}>
+              <EditorialPillCTA
+                eyebrow="Entrer"
+                label="Se connecter"
+                onPress={handleLogin}
+                loading={loginInProgress || isLoading}
+                disabled={loginInProgress || isLoading}
+              />
+            </View>
 
             {/* Retry Indicator */}
             {retryInfo && (
@@ -330,6 +485,22 @@ export default function LoginScreen() {
                 </Text>
               </View>
             )}
+
+            <TouchableOpacity
+              onPress={() => setActiveTab('phone')}
+              style={styles.methodSwitch}
+              accessibilityRole="link"
+              accessibilityLabel="Se connecter avec mon numéro de téléphone"
+            >
+              <Ionicons name="phone-portrait-outline" size={14} color={colors.gray500} />
+              <Text style={[styles.methodSwitchText, { color: colors.gray500 }]}>
+                Se connecter avec{' '}
+                <Text style={{ color: colors.primary, fontFamily: FontFamily.semiBold }}>
+                  mon numéro
+                </Text>
+              </Text>
+            </TouchableOpacity>
+            </>}
           </View>
 
           {/* Divider */}
@@ -412,28 +583,15 @@ export default function LoginScreen() {
               <Text style={[styles.registerLink, { color: colors.primary }]}> Créer un compte</Text>
             </AnimatedPressable>
           </View>
-        </KeyboardAwareScrollView>
-      </SafeAreaView>
-    </View>
+      </KeyboardAwareScrollView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  accentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-  },
-  safeArea: {
-    flex: 1,
-  },
   keyboardView: {
     flex: 1,
+    zIndex: 1,
   },
   scrollContent: {
     flexGrow: 1,
@@ -563,9 +721,9 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     color: Colors.gray600,
   },
-  loginButton: {
+  loginButtonWrap: {
     marginTop: Spacing.sm,
-    ...Shadows.coloredPrimary,
+    flexDirection: 'row',
   },
   divider: {
     flexDirection: 'row',
@@ -646,5 +804,55 @@ const styles = StyleSheet.create({
   },
   termsLink: {
     fontFamily: FontFamily.semiBold,
+  },
+  // Ghost link: switch between email ↔ phone auth
+  methodSwitch: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: Spacing.md,
+    paddingVertical: Spacing.xs,
+  },
+  methodSwitchText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+  },
+  // Phone OTP styles
+  fieldHint: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    marginTop: Spacing.xs,
+  },
+  primaryButton: {
+    borderRadius: BorderRadius['2xl'],
+    paddingVertical: Spacing.md + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+  },
+  otpInput: {
+    borderRadius: BorderRadius['2xl'],
+    borderWidth: 1.5,
+    paddingVertical: Spacing.md + 2,
+    paddingHorizontal: Spacing.lg,
+    fontSize: FontSizes['2xl'],
+    fontFamily: FontFamily.bold,
+    textAlign: 'center',
+    letterSpacing: 8,
+    marginVertical: Spacing.sm,
+  },
+  otpActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: Spacing.sm,
+  },
+  otpLink: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
   },
 });

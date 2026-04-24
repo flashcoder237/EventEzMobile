@@ -2,9 +2,8 @@
 // EventEz Mobile API — Payments, Refunds, Invoices, Subscriptions, Wallet, Payouts & Commissions
 // ============================================
 
-import api from './instance';
-import { API_BASE_URL, ACCESS_TOKEN_KEY } from './config';
-import * as SecureStore from 'expo-secure-store';
+import api, { getAccessToken } from './instance';
+import { API_BASE_URL } from './config';
 
 // ============================================
 // PAYMENTS API
@@ -33,7 +32,7 @@ export const paymentsAPI = {
       // Fallback: use native fetch if axios fails with network error
       if (axiosErr?.code === 'ERR_NETWORK' || axiosErr?.message?.includes('Network Error')) {
         if (__DEV__) console.log('[API] Axios network error, falling back to native fetch for payment verification');
-        const token = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+        const token = await getAccessToken();
         const response = await fetch(`${API_BASE_URL}/payments/${id}/verify_payment/`, {
           method: 'GET',
           headers: {
