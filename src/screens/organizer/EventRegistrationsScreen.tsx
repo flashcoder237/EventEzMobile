@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useExport } from '../../hooks/useExport';
 import { registrationsAPI, eventsAPI } from '../../api';
 import { Registration, RootStackParamList } from '../../types';
 import {
@@ -78,6 +79,7 @@ export default function EventRegistrationsScreen() {
   const { showAlert, showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { exportData, loading: exportLoading } = useExport();
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,7 +98,6 @@ export default function EventRegistrationsScreen() {
   const [selectionMode, setSelectionMode] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchRegistrations();
@@ -283,17 +284,15 @@ export default function EventRegistrationsScreen() {
     }
   };
 
-  // Export
+  // Export (CSV by default — writes file and opens native share sheet)
   const handleExport = async () => {
-    setExporting(true);
-    try {
-      await registrationsAPI.exportRegistrations({ event_id: eventId, format: 'csv' });
-      showSuccess('Succes', 'Export telecharge avec succes');
-    } catch (error) {
-      showError('Erreur', 'Impossible d\'exporter les inscriptions');
-    } finally {
-      setExporting(false);
-    }
+    const safeTitle = (eventTitle || 'evenement').slice(0, 40);
+    await exportData(
+      '/registrations/export/',
+      'csv',
+      `inscriptions_${safeTitle}`,
+      { event_id: eventId }
+    );
   };
 
   const handleApprove = async (registration: Registration) => {
@@ -535,9 +534,9 @@ export default function EventRegistrationsScreen() {
                 <TouchableOpacity
                   style={styles.headerActionBtn}
                   onPress={handleExport}
-                  disabled={exporting}
+                  disabled={exportLoading}
                 >
-                  {exporting ? (
+                  {exportLoading ? (
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
                     <Ionicons name="download-outline" size={20} color={Colors.white} />

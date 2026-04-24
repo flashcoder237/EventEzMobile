@@ -108,8 +108,9 @@ export const invoicesAPI = {
   getInvoice: (id: string) =>
     api.get(`/invoices/${id}/`),
 
+  // Renvoie `{ pdf_url }` — ouvrir l'URL via `Linking` ou `expo-web-browser`
   downloadPdf: (id: string) =>
-    api.get(`/invoices/${id}/download_pdf/`, { responseType: 'blob' }),
+    api.get<{ pdf_url: string }>(`/invoices/${id}/download_pdf/`),
 };
 
 // ============================================

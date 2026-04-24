@@ -63,37 +63,32 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
     }
   };
 
+  const shareIcs = async (icsContent: string) => {
+    const file = new File(Paths.cache, `event-${event.id}.ics`);
+    file.write(icsContent);
+    const isAvailable = await Sharing.isAvailableAsync();
+    if (isAvailable) {
+      await Sharing.shareAsync(file.uri, {
+        mimeType: 'text/calendar',
+        dialogTitle: 'Ajouter au calendrier',
+        UTI: 'com.apple.ical.ics',
+      });
+    }
+  };
+
   const handleIcal = async () => {
     setLoading('ical');
     try {
       const res = await eventsAPI.exportIcal(event.id);
-      const icsContent = typeof res.data === 'string' ? res.data : generateIcsContent();
-      const file = new File(Paths.cache, `event-${event.id}.ics`);
-      file.write(icsContent);
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (isAvailable) {
-        await Sharing.shareAsync(file.uri, {
-          mimeType: 'text/calendar',
-          dialogTitle: 'Ajouter au calendrier',
-          UTI: 'com.apple.ical.ics',
-        });
-      }
+      const decoder = new TextDecoder('utf-8');
+      const icsContent = decoder.decode(new Uint8Array(res.data as ArrayBuffer));
+      await shareIcs(icsContent.trim() ? icsContent : generateIcsContent());
       setShowModal(false);
     } catch (error) {
       if (__DEV__) console.error('Erreur export iCal:', error);
-      // Fallback: generate ICS locally
+      // Fallback: generate ICS locally if the backend call fails
       try {
-        const icsContent = generateIcsContent();
-        const fallbackFile = new File(Paths.cache, `event-${event.id}.ics`);
-        fallbackFile.write(icsContent);
-        const isAvailable = await Sharing.isAvailableAsync();
-        if (isAvailable) {
-          await Sharing.shareAsync(fallbackFile.uri, {
-            mimeType: 'text/calendar',
-            dialogTitle: 'Ajouter au calendrier',
-            UTI: 'com.apple.ical.ics',
-          });
-        }
+        await shareIcs(generateIcsContent());
         setShowModal(false);
       } catch (fallbackError) {
         if (__DEV__) console.error('Erreur fallback iCal:', fallbackError);

@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useExport } from '../../hooks/useExport';
 import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
@@ -43,6 +44,7 @@ export default function ReportsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError } = useAlert();
+  const { exportData, loading: exportLoading } = useExport();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -87,12 +89,13 @@ export default function ReportsScreen() {
   };
 
   const handleExport = async (reportId: string) => {
-    try {
-      await analyticsAPI.exportReport(reportId, 'pdf');
-      showSuccess('Succes', 'Rapport exporte avec succes');
-    } catch (error) {
-      showError('Erreur', 'Impossible d\'exporter le rapport');
-    }
+    const report = reports.find(r => r.id === reportId);
+    const filename = (report?.title || `rapport_${reportId}`).slice(0, 40);
+    await exportData(
+      `/analytics/reports/${reportId}/export/`,
+      'pdf',
+      filename
+    );
   };
 
   const formatDate = (dateStr: string) => {
@@ -140,8 +143,13 @@ export default function ReportsScreen() {
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: colors.gray100 }]}
             onPress={() => handleExport(item.id)}
+            disabled={exportLoading}
           >
-            <Ionicons name="download-outline" size={16} color={colors.gray600} />
+            {exportLoading ? (
+              <ActivityIndicator size="small" color={colors.gray600} />
+            ) : (
+              <Ionicons name="download-outline" size={16} color={colors.gray600} />
+            )}
             <Text style={[styles.actionBtnText, { color: colors.gray600 }]}>Exporter</Text>
           </TouchableOpacity>
         </View>

@@ -82,8 +82,8 @@ export const analyticsAPI = {
   deleteReport: (id: string) =>
     api.delete(`/analytics/reports/${id}/`),
 
-  exportReport: (id: string, format: string) =>
-    api.get(`/analytics/reports/${id}/export/`, { params: { format }, responseType: 'blob' }),
+  // Export — use `useExport()` hook instead (needs arraybuffer + file write + share)
+  // Endpoint path kept for reference: GET /analytics/reports/{id}/export/?format=csv|xlsx|pdf
 
   generateReport: (data: any) =>
     api.post('/analytics/reports/generate/', data),

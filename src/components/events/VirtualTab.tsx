@@ -222,7 +222,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
                     activeOpacity={0.7}
                   >
                     {joiningRoomId === room.id ? (
-                      <LoadingSpinner size={16} color={Colors.white} />
+                      <LoadingSpinner size="small" color={Colors.white} />
                     ) : (
                       <Ionicons name="videocam" size={16} color={Colors.white} />
                     )}

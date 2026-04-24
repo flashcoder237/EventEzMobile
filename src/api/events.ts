@@ -105,9 +105,9 @@ export const eventsAPI = {
   searchEvents: (query: string) =>
     api.get('/events/', { params: { search: query } }),
 
-  // Calendrier
+  // Calendrier — returns text/calendar payload as ArrayBuffer (decode with TextDecoder)
   exportIcal: (id: string) =>
-    api.get(`/events/${id}/export-ical/`, { responseType: 'blob' }),
+    api.get<ArrayBuffer>(`/events/${id}/export-ical/`, { responseType: 'arraybuffer' }),
   getGoogleCalendarLink: (id: string) =>
     api.get(`/events/${id}/google-calendar-link/`),
 

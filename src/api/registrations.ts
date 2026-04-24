@@ -85,9 +85,8 @@ export const registrationsAPI = {
   sendEmail: (data: { registration_ids: string[]; subject: string; message: string }) =>
     api.post('/registrations/send_email/', data),
 
-  // Export
-  exportRegistrations: (params?: { event_id?: string; format?: 'csv' | 'xlsx' }) =>
-    api.get('/registrations/export/', { params, responseType: 'blob' }),
+  // Export — use `useExport()` hook instead (needs arraybuffer + file write + share)
+  // Endpoint path kept for reference: GET /registrations/export/?event_id=&format=csv|xlsx|pdf
 
   // Approbation par l'organisateur
   getPendingApproval: (params?: any) =>

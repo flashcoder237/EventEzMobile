@@ -13,7 +13,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { sessionsAPI } from '../../api';
+import { sessionsAPI, sessionResourcesAPI } from '../../api';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -114,12 +114,13 @@ export default function SessionDetailsScreen() {
 
   const handleOpenResource = useCallback(async (resource: SessionResource) => {
     const url = resource.url || resource.file;
-    if (url) {
-      try {
-        await Linking.openURL(url);
-      } catch {
-        showError('Erreur', 'Impossible d\'ouvrir la ressource.');
-      }
+    if (!url) return;
+    // Fire-and-forget counter increment — don't block opening if tracking fails
+    sessionResourcesAPI.downloadResource(resource.id).catch(() => {});
+    try {
+      await Linking.openURL(url);
+    } catch {
+      showError('Erreur', 'Impossible d\'ouvrir la ressource.');
     }
   }, []);
 
