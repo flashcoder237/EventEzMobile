@@ -336,7 +336,7 @@ export default function EventEditScreen() {
 
         {/* Navigation Buttons */}
         <View style={[styles.navigationButtons, { backgroundColor: colors.card, borderTopColor: colors.gray100 }]}>
-          {form.currentStep > 1 && (
+          {form.currentStep > 1 && form.currentStep < STEPS.length && (
             <TouchableOpacity style={[styles.prevButton, { backgroundColor: colors.gray100 }]} onPress={goToPrevStep}>
               <Ionicons name="arrow-back" size={20} color={colors.gray600} />
               <Text style={[styles.prevButtonText, { color: colors.gray600 }]}>Précédent</Text>
@@ -353,7 +353,7 @@ export default function EventEditScreen() {
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
-              style={[styles.submitButton, form.loading && styles.submitButtonDisabled]}
+              style={[styles.submitButton, { flex: 1 }, form.loading && styles.submitButtonDisabled]}
               onPress={onSubmit}
               disabled={form.loading}
             >
