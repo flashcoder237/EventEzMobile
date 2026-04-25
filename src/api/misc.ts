@@ -145,12 +145,26 @@ export const comparisonAPI = {
 };
 
 // ============================================
-// EXPORT API
+// EXPORT API (déprécié)
 // ============================================
+//
+// L'ancien `exportAPI.download` utilisait `responseType: 'arraybuffer'` via
+// axios — instable en RN/Hermes (renvoie parfois une string, ce qui corrompt
+// le binaire). Le hook `useExport` télécharge désormais directement via
+// `File.downloadFileAsync` (expo-file-system, natif). Cet objet est conservé
+// uniquement pour ne pas casser un éventuel import externe ; il déclenche un
+// warning en dev pour signaler aux nouveaux callers de passer par useExport.
 
 export const exportAPI = {
-  download: (endpoint: string, params: Record<string, string> = {}) =>
-    api.get(endpoint, { params, responseType: 'arraybuffer' }),
+  download: (endpoint: string, params: Record<string, string> = {}) => {
+    if (__DEV__) {
+      console.warn(
+        '[exportAPI.download] DEPRECATED — utilisez le hook useExport ' +
+        '(téléchargement natif via expo-file-system, gère les binaires correctement).'
+      );
+    }
+    return api.get(endpoint, { params, responseType: 'arraybuffer' });
+  },
 };
 
 // ============================================

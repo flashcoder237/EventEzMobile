@@ -5,7 +5,6 @@ import CacheService from '../services/CacheService';
 import { eventBus } from '../lib/eventBus';
 import { User, AuthState } from '../types';
 import { EventEzAnalytics, setAnalyticsUser, clearAnalyticsUser } from '../services/analyticsService';
-import { setUser as setSentryUser, clearUser as clearSentryUser } from '../services/sentryService';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
 
@@ -80,7 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       });
       setAnalyticsUser(user.id, { role: user.role || 'user' });
-      setSentryUser({ id: user.id, email: user.email, role: user.role });
     } catch (error) {
       if (__DEV__) console.error('Erreur de vérification auth:', error);
       try {
@@ -117,7 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       EventEzAnalytics.login('email');
       setAnalyticsUser(user.id, { role: user.role || 'user' });
-      setSentryUser({ id: user.id, email: user.email, role: user.role });
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;
@@ -160,7 +157,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     EventEzAnalytics.logout();
     clearAnalyticsUser();
-    clearSentryUser();
     CacheService.clearMemory();
     setState({
       user: null,
@@ -198,7 +194,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     EventEzAnalytics.login('social');
     setAnalyticsUser(user.id, { role: user.role || 'user' });
-    setSentryUser({ id: user.id, email: user.email, role: user.role });
   }, []);
 
   const value = useMemo(() => ({

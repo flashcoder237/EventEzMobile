@@ -35,7 +35,8 @@ patchDefaultFont(RNText);
 patchDefaultFont(RNTextInput);
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
-import { NavigationContainer, LinkingOptions, NavigationContainerRef } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import { navigationRef } from './src/navigation/navigationRef';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
@@ -71,12 +72,8 @@ import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
 import { RootStackParamList } from './src/types';
 
 // Services
-import { initSentry, SentryWrapper } from './src/services/sentryService';
 import { initAnalytics, trackScreenView } from './src/services/analyticsService';
 import './src/i18n';
-
-// Initialize Sentry as early as possible
-initSentry();
 
 // Keep native splash visible while we load fonts
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -108,7 +105,6 @@ const linking: LinkingOptions<RootStackParamList> = {
 
 function AppContent() {
   const { isDark } = useTheme();
-  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
   const routeNameRef = useRef<string | undefined>(undefined);
 
   // Initialize analytics on mount
@@ -211,4 +207,4 @@ function App() {
   );
 }
 
-export default SentryWrapper(App);
+export default App;

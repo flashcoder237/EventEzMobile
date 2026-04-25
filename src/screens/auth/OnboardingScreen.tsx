@@ -1,233 +1,297 @@
 /**
- * OnboardingScreen
- * Displays a multi-slide welcome experience for first-time users.
- * Shown after the first successful login.
- * Uses AsyncStorage to track if onboarding has been completed.
+ * OnboardingScreen — first-launch welcome (editorial)
+ * Shown on the very first app open, before any auth.
+ * Ported from AIDesigner artifact (run 972fc2ba) — editorial, indigo + corail.
  */
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
   FlatList,
-  ViewToken,
   Pressable,
+  ViewToken,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withRepeat,
+  withTiming,
+  withSequence,
+  withDelay,
+  Easing,
+} from 'react-native-reanimated';
+
 import {
   Colors,
   FontFamily,
-  FontSizes,
-  BorderRadius,
   Spacing,
-  Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Events as EventsIllustration, Searching as SearchingIllustration, OnlinePayments, Conference, AnimatedIllustration } from '../../components/illustrations';
-import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_WIDTH = SCREEN_WIDTH;
 
 export const ONBOARDING_COMPLETE_KEY = 'eventez_onboarding_complete';
 
-interface OnboardingSlide {
+type FeatureSlide = {
   id: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  iconColor: string;
-  bgGradient: readonly [string, string];
+  numeral: string;
+  eyebrow: string;
   title: string;
-  subtitle: string;
-  description: string;
-  illustration: React.ReactElement;
-}
+  body: string;
+  icon: keyof typeof Ionicons.glyphMap;
+};
 
-const slides: OnboardingSlide[] = [
+const SLIDES: FeatureSlide[] = [
   {
     id: '1',
-    icon: 'sparkles',
-    iconColor: '#4F46E5',
-    bgGradient: ['#EEF2FF', '#E0E7FF'] as const,
-    title: 'Bienvenue sur EventEz',
-    subtitle: 'Votre compagnon evenementiel',
-    description:
-      'Decouvrez les meilleurs evenements pres de chez vous et ne manquez plus aucune occasion.',
-    illustration: <EventsIllustration color="#4F46E5" size={160} />,
+    numeral: '01',
+    eyebrow: 'EXPLORATION',
+    title: 'Découvrez ce qui bouge près de vous.',
+    body: 'De Bonanjo à Deido, trouvez les meilleurs concerts, ateliers et soirées.',
+    icon: 'compass',
   },
   {
     id: '2',
-    icon: 'search',
-    iconColor: '#3B82F6',
-    bgGradient: ['#EFF6FF', '#DBEAFE'] as const,
-    title: 'Trouvez vos evenements',
-    subtitle: 'Parcourez, filtrez, decouvrez',
-    description:
-      'Explorez par categorie, localisation ou date. Trouvez exactement ce qui vous interesse.',
-    illustration: <SearchingIllustration color="#3B82F6" size={160} />,
+    numeral: '02',
+    eyebrow: 'BILLETTERIE',
+    title: 'Réservez vos billets en quelques secondes.',
+    body: 'Paiement mobile sécurisé intégré. Moins d\'attente, plus de fête.',
+    icon: 'ticket',
   },
   {
     id: '3',
-    icon: 'ticket',
-    iconColor: '#22C55E',
-    bgGradient: ['#F0FDF4', '#DCFCE7'] as const,
-    title: 'Achetez vos billets',
-    subtitle: 'Paiement mobile facile',
-    description:
-      'Payez facilement via Mobile Money, carte bancaire ou PayPal. Recevez vos billets instantanement.',
-    illustration: <OnlinePayments color="#22C55E" size={160} />,
-  },
-  {
-    id: '4',
-    icon: 'qr-code',
-    iconColor: '#A855F7',
-    bgGradient: ['#FDF2F8', '#FCE7F3'] as const,
-    title: 'Profitez !',
-    subtitle: 'Check-in avec QR code',
-    description:
-      'Presentez votre QR code a l\'entree et profitez pleinement de votre evenement. C\'est aussi simple que ca !',
-    illustration: <Conference color="#A855F7" size={160} />,
+    numeral: '03',
+    eyebrow: 'PORTEFEUILLE',
+    title: 'Gérez vos accès directs dans l\'app.',
+    body: 'QR codes hors-ligne. Ne perdez plus jamais vos entrées.',
+    icon: 'wallet',
   },
 ];
 
-interface OnboardingScreenProps {
-  onComplete: () => void;
+interface Props {
+  onComplete: (goToLogin?: boolean) => void;
 }
 
-export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
+export default function OnboardingScreen({ onComplete }: Props) {
   const { colors, isDark } = useTheme();
-  const slideNumerals = ['01', '02', '03', '04'];
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems.length > 0 && viewableItems[0].index !== null) {
-        setCurrentIndex(viewableItems[0].index);
-      }
-    }
-  ).current;
+  // Pulsing corail dot in header
+  const pulseScale = useSharedValue(1);
+  const pulseOpacity = useSharedValue(0.75);
+  useEffect(() => {
+    pulseScale.value = withRepeat(
+      withSequence(
+        withTiming(2.2, { duration: 1200, easing: Easing.out(Easing.ease) }),
+        withTiming(1, { duration: 0 }),
+      ),
+      -1,
+      false,
+    );
+    pulseOpacity.value = withRepeat(
+      withSequence(
+        withTiming(0, { duration: 1200, easing: Easing.out(Easing.ease) }),
+        withTiming(0.75, { duration: 0 }),
+      ),
+      -1,
+      false,
+    );
+  }, [pulseScale, pulseOpacity]);
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    opacity: pulseOpacity.value,
+  }));
 
-  const viewabilityConfig = useRef({
-    viewAreaCoveragePercentThreshold: 50,
+  // Cascade entry animations for hero block
+  const heroEyebrowY = useSharedValue(16);
+  const heroEyebrowOp = useSharedValue(0);
+  const heroTitleY = useSharedValue(16);
+  const heroTitleOp = useSharedValue(0);
+  useEffect(() => {
+    heroEyebrowY.value = withDelay(220, withTiming(0, { duration: 700, easing: Easing.bezier(0.16, 1, 0.3, 1) }));
+    heroEyebrowOp.value = withDelay(220, withTiming(1, { duration: 700 }));
+    heroTitleY.value = withDelay(360, withTiming(0, { duration: 700, easing: Easing.bezier(0.16, 1, 0.3, 1) }));
+    heroTitleOp.value = withDelay(360, withTiming(1, { duration: 700 }));
+  }, [heroEyebrowY, heroEyebrowOp, heroTitleY, heroTitleOp]);
+  const heroEyebrowStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: heroEyebrowY.value }],
+    opacity: heroEyebrowOp.value,
+  }));
+  const heroTitleStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: heroTitleY.value }],
+    opacity: heroTitleOp.value,
+  }));
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    if (viewableItems.length > 0 && viewableItems[0].index !== null) {
+      setIndex(viewableItems[0].index ?? 0);
+    }
   }).current;
 
-  const handleNext = () => {
-    if (currentIndex < slides.length - 1) {
-      flatListRef.current?.scrollToIndex({
-        index: currentIndex + 1,
-        animated: true,
-      });
-    } else {
-      handleComplete();
-    }
-  };
+  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 60 }).current;
 
-  const handleSkip = () => {
-    handleComplete();
-  };
-
-  const handleComplete = async () => {
+  const completeAndExit = async (goToLogin: boolean) => {
     try {
       await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
     } catch (error) {
-      if (__DEV__) console.error('[Onboarding] Error saving completion state:', error);
+      if (__DEV__) console.error('[Onboarding] save error:', error);
     }
-    onComplete();
+    onComplete(goToLogin);
   };
 
-  const renderSlide = ({ item }: { item: OnboardingSlide }) => (
-    <View style={styles.slide}>
-      {/* Illustration area */}
-      <View style={styles.illustrationArea}>
-        <LinearGradient
-          colors={isDark ? [item.bgGradient[0] + '40', item.bgGradient[1] + '40'] as const : item.bgGradient}
-          style={styles.illustrationGradient}
-        >
-          {/* Decorative background circles */}
-          <View style={styles.decorCircleOuter} />
-          <View style={styles.decorCircleMid} />
+  const renderCard = ({ item }: { item: FeatureSlide }) => (
+    <View style={styles.card}>
+      {/* Vertical accent line */}
+      <View style={[styles.cardLineTrack, { backgroundColor: colors.primary + '1A' }]} />
 
-          {/* Illustration */}
-          <AnimatedIllustration entry="scaleIn" idle="float" delay={120}>
-            <View style={styles.iconWrapper}>
-              {item.illustration}
-            </View>
-          </AnimatedIllustration>
-        </LinearGradient>
+      {/* Top row: icon disc + giant numeral */}
+      <View style={styles.cardTopRow}>
+        <View style={[styles.iconDisc, { backgroundColor: colors.primary }]}>
+          <Ionicons name={item.icon} size={20} color="#FFFFFF" />
+        </View>
+        <Text
+          style={[
+            styles.cardNumeral,
+            { color: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(9,9,11,0.10)' },
+          ]}
+        >
+          {item.numeral}
+        </Text>
       </View>
 
-      {/* Text content */}
-      <View style={styles.textContent}>
-        <Text style={[styles.slideSubtitle, { color: colors.accent }]}>{item.subtitle}</Text>
-        <Text style={[styles.slideTitle, { color: colors.gray900 }]}>{item.title}</Text>
-        <Text style={[styles.slideDescription, { color: colors.gray500 }]}>{item.description}</Text>
+      {/* Body */}
+      <View style={styles.cardBody}>
+        <Text style={[styles.cardEyebrow, { color: colors.accent }]}>{item.eyebrow}</Text>
+        <Text style={[styles.cardTitle, { color: colors.text }]}>{item.title}</Text>
+        <Text style={[styles.cardCaption, { color: colors.gray500 }]}>{item.body}</Text>
       </View>
     </View>
   );
 
-  const isLastSlide = currentIndex === slides.length - 1;
-
   return (
     <EditorialCanvas>
-      <WatermarkNumeral>{slideNumerals[currentIndex] ?? '01'}</WatermarkNumeral>
-      <View style={styles.safeArea}>
-        {/* Skip button */}
-        {!isLastSlide && (
-          <View style={styles.skipContainer}>
-            <Pressable onPress={handleSkip} hitSlop={12}>
-              <Text style={[styles.skipText, { color: colors.gray500 }]}>Passer</Text>
-            </Pressable>
+      {/* Watermark — top-right "EZ" */}
+      <View pointerEvents="none" style={styles.watermarkWrap}>
+        <WatermarkNumeral>EZ</WatermarkNumeral>
+      </View>
+
+      {/* Decorative accents */}
+      <View
+        pointerEvents="none"
+        style={[styles.decorLine, { backgroundColor: colors.primary + '33' }]}
+      />
+      <View
+        pointerEvents="none"
+        style={[styles.decorDot, { backgroundColor: colors.accent }]}
+      />
+
+      <View style={styles.safeContent}>
+        {/* === HEADER === */}
+        <View style={styles.header}>
+          <Text style={[styles.wordmark, { color: colors.primary }]}>EventEz</Text>
+          <View style={styles.pulseHost}>
+            <Animated.View
+              style={[styles.pulseRing, { backgroundColor: colors.accent }, pulseStyle]}
+            />
+            <View style={[styles.pulseDot, { backgroundColor: colors.accent }]} />
           </View>
-        )}
+        </View>
 
-        {/* Slides */}
-        <FlatList
-          ref={flatListRef}
-          data={slides}
-          renderItem={renderSlide}
-          keyExtractor={(item) => item.id}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          bounces={false}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          getItemLayout={(_, index) => ({
-            length: SCREEN_WIDTH,
-            offset: SCREEN_WIDTH * index,
-            index,
-          })}
-        />
+        {/* === HERO === */}
+        <View style={styles.hero}>
+          <Animated.View style={[styles.eyebrowPillWrap, heroEyebrowStyle]}>
+            <View
+              style={[
+                styles.eyebrowPill,
+                {
+                  borderColor: colors.primary + '26',
+                  backgroundColor: isDark ? colors.card : '#F4F3F0',
+                },
+              ]}
+            >
+              <Text style={[styles.eyebrowPillText, { color: colors.primary }]}>
+                CAMEROUN · DOUALA
+              </Text>
+            </View>
+          </Animated.View>
 
-        {/* Bottom section */}
-        <View style={styles.bottomSection}>
-          {/* Pagination dots */}
-          <View style={styles.pagination}>
-            {slides.map((_, index) => (
+          <Animated.Text style={[styles.heroTitle, { color: colors.text }, heroTitleStyle]}>
+            L&apos;énergie de la ville dans la paume de votre main.{'\n'}
+            <Text style={{ color: colors.accent }}>Vibrez</Text> au rythme de l&apos;instant.
+          </Animated.Text>
+        </View>
+
+        {/* === FEATURE PAGER === */}
+        <View style={styles.pagerSection}>
+          <FlatList
+            ref={flatListRef}
+            data={SLIDES}
+            renderItem={renderCard}
+            keyExtractor={(s) => s.id}
+            horizontal
+            pagingEnabled
+            snapToInterval={CARD_WIDTH}
+            snapToAlignment="start"
+            decelerationRate="fast"
+            showsHorizontalScrollIndicator={false}
+            bounces={false}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            getItemLayout={(_, i) => ({ length: CARD_WIDTH, offset: CARD_WIDTH * i, index: i })}
+          />
+
+          {/* Pager dots */}
+          <View style={styles.dotsRow}>
+            {SLIDES.map((_, i) => (
               <View
-                key={index}
+                key={i}
                 style={[
                   styles.dot,
-                  index === currentIndex
-                    ? [styles.dotActive, { backgroundColor: colors.primary }]
-                    : [styles.dotInactive, { backgroundColor: colors.gray300 }],
+                  i === index
+                    ? { width: 24, backgroundColor: colors.primary }
+                    : { width: 6, backgroundColor: colors.primary + '33' },
                 ]}
               />
             ))}
           </View>
+        </View>
 
-          {/* Action button */}
-          <View style={styles.actionContainer}>
-            <EditorialPillCTA
-              eyebrow={isLastSlide ? 'Commencer' : 'Continuer'}
-              label={isLastSlide ? "C'est parti !" : 'Suivant'}
-              onPress={handleNext}
-              icon={isLastSlide ? 'rocket' : 'arrow-forward'}
-            />
-          </View>
+        {/* === BOTTOM CTAs === */}
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[
+              styles.primaryCTA,
+              { backgroundColor: colors.primary, shadowColor: colors.primary },
+            ]}
+            onPress={() => completeAndExit(false)}
+            activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel="Commencer"
+          >
+            <Text style={styles.primaryCTAText}>Commencer</Text>
+            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+
+          <Pressable
+            onPress={() => completeAndExit(true)}
+            hitSlop={12}
+            style={styles.secondaryCTA}
+            accessibilityRole="link"
+            accessibilityLabel="J'ai déjà un compte"
+          >
+            <Text style={[styles.secondaryCTAText, { color: colors.primary }]}>
+              J&apos;ai déjà un compte
+            </Text>
+          </Pressable>
         </View>
       </View>
     </EditorialCanvas>
@@ -235,151 +299,209 @@ export default function OnboardingScreen({ onComplete }: OnboardingScreenProps) 
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  // Decorative
+  watermarkWrap: {
+    position: 'absolute',
+    top: -24,
+    right: -48,
+  },
+  decorLine: {
+    position: 'absolute',
+    top: '32%',
+    left: 0,
+    width: 64,
+    height: 1,
+  },
+  decorDot: {
+    position: 'absolute',
+    top: '48%',
+    right: 32,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+
+  safeContent: {
     flex: 1,
-    zIndex: 1,
   },
-  skipContainer: {
-    position: 'absolute',
-    top: Spacing.md,
-    right: Spacing.xl,
-    zIndex: 10,
-  },
-  skipText: {
-    fontSize: 11,
-    fontFamily: FontFamily.bold,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  slide: {
-    width: SCREEN_WIDTH,
-    flex: 1,
-  },
-  illustrationArea: {
-    flex: 1,
-    maxHeight: '50%',
-  },
-  illustrationGradient: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderBottomLeftRadius: BorderRadius['3xl'],
-    borderBottomRightRadius: BorderRadius['3xl'],
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  decorCircleOuter: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  decorCircleMid: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-  },
-  iconWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  iconCircle: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconInner: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.lg,
-  },
-  floatIcon1: {
-    position: 'absolute',
-    top: '20%',
-    right: '15%',
-  },
-  floatIcon2: {
-    position: 'absolute',
-    bottom: '25%',
-    left: '12%',
-  },
-  floatIcon3: {
-    position: 'absolute',
-    top: '35%',
-    left: '20%',
-  },
-  floatIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  textContent: {
-    flex: 1,
-    paddingHorizontal: Spacing['2xl'],
-    paddingTop: Spacing['2xl'],
-    alignItems: 'center',
-  },
-  slideSubtitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    color: Colors.primary,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: Spacing.sm,
-  },
-  slideTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes['3xl'],
-    color: Colors.gray900,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-    lineHeight: FontSizes['3xl'] * 1.2,
-  },
-  slideDescription: {
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.base,
-    color: Colors.gray500,
-    textAlign: 'center',
-    lineHeight: FontSizes.base * 1.6,
-    maxWidth: 320,
-  },
-  bottomSection: {
-    paddingHorizontal: Spacing['2xl'],
-    paddingBottom: Spacing.lg,
-  },
-  pagination: {
+
+  // Header
+  header: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
-  dot: {
+  wordmark: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.6,
+  },
+  pulseHost: {
+    width: 8,
+    height: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pulseRing: {
+    position: 'absolute',
+    width: 8,
     height: 8,
     borderRadius: 4,
-    marginHorizontal: 4,
   },
-  dotActive: {
-    width: 24,
-    backgroundColor: Colors.primary,
-  },
-  dotInactive: {
+  pulseDot: {
     width: 8,
-    backgroundColor: Colors.gray300,
+    height: 8,
+    borderRadius: 4,
   },
-  actionContainer: {
-    width: '100%',
+
+  // Hero
+  hero: {
+    paddingHorizontal: 24,
+    paddingTop: 28,
+  },
+  eyebrowPillWrap: {
+    flexDirection: 'row',
+    marginBottom: 20,
+  },
+  eyebrowPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  eyebrowPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10.5,
+    letterSpacing: 1.6,
+  },
+  heroTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 36,
+    lineHeight: 38,
+    letterSpacing: -1.4,
+  },
+
+  // Pager section
+  pagerSection: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingBottom: 8,
+    marginTop: 24,
+  },
+
+  // Card
+  card: {
+    width: CARD_WIDTH,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    height: 240,
+    justifyContent: 'space-between',
+    position: 'relative',
+  },
+  cardLineTrack: {
+    position: 'absolute',
+    left: 24,
+    top: 64,
+    bottom: 16,
+    width: 2,
+    borderRadius: 1,
+  },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingLeft: 16,
+    height: 56,
+  },
+  iconDisc: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 14,
+    elevation: 6,
+  },
+  cardNumeral: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 64,
+    lineHeight: 56,
+    letterSpacing: -3,
+  },
+  cardBody: {
+    paddingLeft: 16,
+    paddingTop: 12,
+  },
+  cardEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.6,
+    marginBottom: 8,
+  },
+  cardTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    lineHeight: 26,
+    letterSpacing: -0.6,
+    marginBottom: 8,
+  },
+  cardCaption: {
+    fontFamily: FontFamily.medium,
+    fontSize: 13,
+    lineHeight: 18,
+    paddingRight: 16,
+  },
+
+  // Pager dots
+  dotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 24,
+    marginTop: 16,
+  },
+  dot: {
+    height: 6,
+    borderRadius: 3,
+  },
+
+  // Footer / CTAs
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingBottom: 28,
+  },
+  primaryCTA: {
+    height: 56,
+    borderRadius: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.35,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  primaryCTAText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 15,
+    color: '#FFFFFF',
+    letterSpacing: 0.1,
+  },
+  secondaryCTA: {
+    alignItems: 'center',
+    marginTop: 18,
+    paddingVertical: 6,
+  },
+  secondaryCTAText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    letterSpacing: 0.1,
   },
 });

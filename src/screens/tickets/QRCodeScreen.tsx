@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -46,10 +46,34 @@ export default function QRCodeScreen() {
   const [ticket, setTicket] = useState<TicketPurchase | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Ref vers le composant QRCode SVG affiché : permet de récupérer son contenu
+  // en base64 PNG (toDataURL) pour l'embed dans le PDF — évite de dépendre d'une
+  // API externe (api.qrserver.com) qui peut être indisponible / bloquée.
+  const qrSvgRef = useRef<any>(null);
+
   // URL de vérification (format unifié mobile + web)
   const verificationUrl = getVerificationUrl(
     String(ticket?.registration_id || ticket?.registration || '')
   );
+
+  // Récupère le QR rendu en base64 PNG via la ref. Renvoie null si la ref
+  // n'est pas prête (composant pas encore monté).
+  const getQrDataUrl = useCallback((): Promise<string | null> => {
+    return new Promise((resolve) => {
+      const ref = qrSvgRef.current;
+      if (!ref || typeof ref.toDataURL !== 'function') {
+        resolve(null);
+        return;
+      }
+      try {
+        ref.toDataURL((data: string) => {
+          resolve(data ? `data:image/png;base64,${data}` : null);
+        });
+      } catch {
+        resolve(null);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     fetchTicket();
@@ -67,10 +91,13 @@ export default function QRCodeScreen() {
     }
   };
 
-  const generateTicketHTML = (): string => {
+  const generateTicketHTML = (qrImageUrl: string): string => {
     const eventTitle = event?.title || (ticket as any)?.event_title || 'Événement';
-    // Pour le HTML/PDF export, on utilise une API en ligne car le SVG natif n'est pas disponible en HTML
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=200x200&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
+    // qrImageUrl est de préférence un data URL PNG généré localement via la
+    // ref du composant QRCode (cf. getQrDataUrl). Fallback sur api.qrserver.com
+    // uniquement si la ref n'est pas dispo (sécurité, jamais le chemin nominal).
+    const qrUrl = qrImageUrl
+      || `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=200x200&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
     const ticketTypeName = ticketType?.name || (ticket as any)?.ticket_type_name || 'Standard';
     const reference = String(ticketId).slice(0, 8).toUpperCase();
     const statusLabel = getStatusConfig(ticket?.status).label;
@@ -174,13 +201,21 @@ export default function QRCodeScreen() {
   const handleDownloadPDF = async () => {
     if (!ticket) return;
     try {
-      const html = generateTicketHTML();
+      // Récupère le QR rendu localement -> embed dans le PDF (pas de dépendance
+      // à api.qrserver.com qui peut être hors-ligne / bloquée).
+      const qrDataUrl = await getQrDataUrl();
+      const html = generateTicketHTML(qrDataUrl || '');
       const { uri } = await Print.printToFileAsync({ html });
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Sauvegarder le billet PDF',
-        UTI: 'com.adobe.pdf',
-      });
+      const sharingAvailable = await Sharing.isAvailableAsync();
+      if (sharingAvailable) {
+        await Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Sauvegarder le billet PDF',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        showError('Partage indisponible', 'Le partage de fichier n\'est pas disponible sur cet appareil.');
+      }
     } catch (error) {
       if (__DEV__) console.error('Error generating PDF:', error);
       showError('Erreur', 'Impossible de générer le PDF');
@@ -190,7 +225,8 @@ export default function QRCodeScreen() {
   const handlePrint = async () => {
     if (!ticket) return;
     try {
-      const html = generateTicketHTML();
+      const qrDataUrl = await getQrDataUrl();
+      const html = generateTicketHTML(qrDataUrl || '');
       await Print.printAsync({ html });
     } catch (error) {
       if (__DEV__) console.error('Error printing:', error);
@@ -377,6 +413,7 @@ export default function QRCodeScreen() {
                 size={QR_SIZE}
                 color={isDark ? '#4C1D95' : '#5B21B6'}
                 backgroundColor="#FFFFFF"
+                getRef={(c: any) => { qrSvgRef.current = c; }}
               />
             </View>
             <Text style={[styles.qrHint, { color: colors.gray500 }]}>

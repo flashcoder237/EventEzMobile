@@ -106,19 +106,11 @@
           "color": "#7c3aed"
         }
       ],
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "ton-org-sentry",
-          "project": "ton-projet-sentry"
-        }
-      ],
       "./plugins/withNetworkSecurity",
       "expo-web-browser",
       "expo-audio",
       "@react-native-community/datetimepicker",
       "expo-asset",
-      "@sentry/react-native",
       "expo-localization"
     ],
     "extra": {

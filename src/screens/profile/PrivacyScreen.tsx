@@ -1,303 +1,741 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import {
   Colors,
   FontFamily,
-  FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { StaggeredItem } from '../../components/ui/Animations';
+
+interface Section {
+  num: string;
+  title: string;
+  content: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
+
+const SECTIONS: Section[] = [
+  {
+    num: '01',
+    icon: 'information-circle-outline',
+    title: 'Introduction',
+    content: `La présente Politique de Confidentialité décrit comment EventEz ("nous", "notre") collecte, utilise, stocke et protège vos données personnelles lorsque vous utilisez notre application mobile et nos services.
+
+Nous nous engageons à respecter votre vie privée et à protéger vos données conformément au RGPD et aux lois camerounaises en vigueur.`,
+  },
+  {
+    num: '02',
+    icon: 'folder-open-outline',
+    title: 'Données collectées',
+    content: `Nous collectons :
+
+IDENTIFICATION
+• Nom, prénom, adresse email
+• Numéro de téléphone
+• Photo de profil (optionnel)
+
+COMPTE
+• Identifiants de connexion
+• Préférences et paramètres
+• Historique d'activité
+
+TRANSACTIONS
+• Historique des achats de billets
+• Informations de paiement (traitées par nos partenaires sécurisés)
+• Factures et reçus
+
+LOCALISATION
+• Position géographique (avec votre consentement)
+• Ville et pays de résidence
+
+TECHNIQUE
+• Type d'appareil et OS
+• Adresse IP
+• Logs d'utilisation`,
+  },
+  {
+    num: '03',
+    icon: 'compass-outline',
+    title: 'Finalités du traitement',
+    content: `Vos données sont utilisées pour :
+
+• Gérer votre compte et l'authentification
+• Permettre l'inscription et l'achat de billets
+• Traiter les paiements de manière sécurisée
+• Envoyer des notifications relatives à vos événements
+• Améliorer nos services et l'expérience utilisateur
+• Assurer la sécurité de la plateforme
+• Respecter nos obligations légales
+• Communiquer avec vous concernant le service`,
+  },
+  {
+    num: '04',
+    icon: 'document-text-outline',
+    title: 'Base légale',
+    content: `Le traitement de vos données repose sur :
+
+• EXÉCUTION DU CONTRAT — nécessaire pour fournir nos services
+• CONSENTEMENT — pour les notifications marketing et la localisation
+• INTÉRÊT LÉGITIME — amélioration du service, sécurité, prévention de fraude
+• OBLIGATION LÉGALE — conservation des données de facturation`,
+  },
+  {
+    num: '05',
+    icon: 'share-social-outline',
+    title: 'Partage des données',
+    content: `Nous pouvons partager vos données avec :
+
+• ORGANISATEURS — nom et email pour les inscriptions
+• PRESTATAIRES PAIEMENT — NotchPay, Stripe, pour les transactions
+• HÉBERGEURS TECHNIQUES — pour le fonctionnement de la plateforme
+
+Nous ne vendons jamais vos données personnelles à des tiers. Tout partage est encadré par des accords de confidentialité stricts.`,
+  },
+  {
+    num: '06',
+    icon: 'shield-checkmark-outline',
+    title: 'Sécurité des données',
+    content: `Nous mettons en œuvre des mesures de sécurité appropriées :
+
+• Chiffrement des données en transit (HTTPS/TLS)
+• Stockage sécurisé des mots de passe (hachage)
+• Tokens JWT avec expiration
+• Journalisation des accès et audit trail
+• Sauvegardes régulières et chiffrées
+• Contrôle d'accès basé sur les rôles`,
+  },
+  {
+    num: '07',
+    icon: 'time-outline',
+    title: 'Conservation',
+    content: `Vos données sont conservées :
+
+• COMPTE — durée d'inscription + 3 ans après suppression
+• TRANSACTIONS — 10 ans (obligations légales)
+• LOGS TECHNIQUES — 12 mois
+• LOCALISATION — non conservée au-delà de la session
+
+Vous pouvez demander la suppression de votre compte à tout moment.`,
+  },
+  {
+    num: '08',
+    icon: 'key-outline',
+    title: 'Vos droits',
+    content: `Conformément au RGPD, vous disposez des droits suivants :
+
+• ACCÈS — obtenir une copie de vos données
+• RECTIFICATION — corriger vos données inexactes
+• EFFACEMENT — demander la suppression
+• PORTABILITÉ — recevoir vos données dans un format standard
+• OPPOSITION — vous opposer à certains traitements
+• LIMITATION — restreindre le traitement
+• RETRAIT DU CONSENTEMENT — à tout moment
+
+Pour exercer ces droits, contactez : privacy@eventez.com`,
+  },
+  {
+    num: '09',
+    icon: 'phone-portrait-outline',
+    title: 'Stockage local',
+    content: `Notre application mobile utilise des technologies de stockage local (AsyncStorage, SecureStore) pour :
+
+• Maintenir votre session de connexion
+• Sauvegarder vos préférences
+• Améliorer les performances
+
+Ces données sont stockées localement sur votre appareil et ne sont pas partagées avec des tiers.`,
+  },
+  {
+    num: '10',
+    icon: 'globe-outline',
+    title: 'Transferts internationaux',
+    content: `Vos données peuvent être traitées sur des serveurs situés en dehors du Cameroun. Dans ce cas, nous nous assurons que des garanties appropriées sont en place, conformément au RGPD (clauses contractuelles types, adéquation).`,
+  },
+  {
+    num: '11',
+    icon: 'people-outline',
+    title: 'Mineurs',
+    content: `Notre service n'est pas destiné aux personnes de moins de 16 ans. Nous ne collectons pas sciemment de données concernant des mineurs. Si nous découvrons qu'un mineur nous a fourni des données personnelles, nous les supprimerons immédiatement.`,
+  },
+  {
+    num: '12',
+    icon: 'refresh-outline',
+    title: 'Modifications',
+    content: `Nous pouvons mettre à jour cette Politique de Confidentialité périodiquement. Nous vous informerons de tout changement significatif par notification dans l'application. La date de dernière mise à jour sera toujours indiquée.`,
+  },
+  {
+    num: '13',
+    icon: 'mail-outline',
+    title: 'Contact',
+    content: `Pour toute question relative à vos données personnelles :
+
+• Email : privacy@eventez.com
+• Adresse : Douala, Cameroun
+
+Vous avez également le droit d'introduire une réclamation auprès de l'autorité de contrôle compétente.`,
+  },
+];
 
 export default function PrivacyScreen() {
   const navigation = useNavigation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+  const scrollRef = useRef<ScrollView>(null);
+  const sectionPositionsRef = useRef<Record<string, number>>({});
+  const [progress, setProgress] = useState(0);
 
-  const sections = [
-    {
-      title: "1. Introduction",
-      content: `La presente Politique de Confidentialite decrit comment EventEz (\"nous\", \"notre\") collecte, utilise, stocke et protege vos donnees personnelles lorsque vous utilisez notre application mobile et nos services.
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+    const total = contentSize.height - layoutMeasurement.height;
+    if (total > 0) {
+      const p = Math.max(0, Math.min(1, contentOffset.y / total));
+      setProgress(p);
+    }
+  };
 
-Nous nous engageons a respecter votre vie privee et a proteger vos donnees conformement au Reglement General sur la Protection des Donnees (RGPD) et aux lois camerounaises en vigueur.`
-    },
-    {
-      title: "2. Donnees collectees",
-      content: `Nous collectons les categories de donnees suivantes :
-
-Donnees d'identification :
-- Nom, prenom, adresse email
-- Numero de telephone
-- Photo de profil (optionnel)
-
-Donnees de compte :
-- Identifiants de connexion
-- Preferences et parametres
-- Historique d'activite
-
-Donnees transactionnelles :
-- Historique des achats de billets
-- Informations de paiement (traitees par nos partenaires securises)
-- Factures et reçus
-
-Donnees de localisation :
-- Position geographique (avec votre consentement)
-- Ville et pays de residence
-
-Donnees techniques :
-- Type d'appareil et systeme d'exploitation
-- Adresse IP
-- Logs d'utilisation`
-    },
-    {
-      title: "3. Finalites du traitement",
-      content: `Vos donnees sont utilisees pour :
-
-- Gerer votre compte et votre authentification
-- Permettre l'inscription et l'achat de billets pour des evenements
-- Traiter les paiements de maniere securisee
-- Envoyer des notifications relatives a vos evenements
-- Ameliorer nos services et l'experience utilisateur
-- Assurer la securite de la plateforme
-- Respecter nos obligations legales
-- Communiquer avec vous concernant le service`
-    },
-    {
-      title: "4. Base legale du traitement",
-      content: `Le traitement de vos donnees repose sur :
-
-- L'execution du contrat : necessaire pour fournir nos services
-- Votre consentement : pour les notifications marketing et la localisation
-- L'interet legitime : amelioration du service, securite, prevention de la fraude
-- L'obligation legale : conservation des donnees de facturation`
-    },
-    {
-      title: "5. Partage des donnees",
-      content: `Nous pouvons partager vos donnees avec :
-
-- Les organisateurs d'evenements : nom et email pour les inscriptions
-- Nos prestataires de paiement : NotchPay, pour le traitement securise des transactions
-- Nos hebergeurs et prestataires techniques : pour le fonctionnement de la plateforme
-
-Nous ne vendons jamais vos donnees personnelles a des tiers. Tout partage est encadre par des accords de confidentialite stricts.`
-    },
-    {
-      title: "6. Securite des donnees",
-      content: `Nous mettons en oeuvre des mesures de securite appropriees :
-
-- Chiffrement des donnees en transit (HTTPS/TLS)
-- Stockage securise des mots de passe (hachage)
-- Tokens d'authentification JWT avec expiration
-- Journalisation des acces et audit trail
-- Sauvegardes regulieres et chiffrees
-- Controle d'acces base sur les roles`
-    },
-    {
-      title: "7. Conservation des donnees",
-      content: `Vos donnees sont conservees :
-
-- Donnees de compte : pendant la duree de votre inscription et 3 ans apres la suppression
-- Donnees transactionnelles : 10 ans (obligations legales de facturation)
-- Logs techniques : 12 mois
-- Donnees de localisation : non conservees au-dela de la session
-
-Vous pouvez demander la suppression de votre compte a tout moment depuis les parametres de l'application.`
-    },
-    {
-      title: "8. Vos droits",
-      content: `Conformement au RGPD, vous disposez des droits suivants :
-
-- Droit d'acces : obtenir une copie de vos donnees
-- Droit de rectification : corriger vos donnees inexactes
-- Droit a l'effacement : demander la suppression de vos donnees
-- Droit a la portabilite : recevoir vos donnees dans un format standard
-- Droit d'opposition : vous opposer a certains traitements
-- Droit a la limitation : restreindre le traitement de vos donnees
-- Droit de retrait du consentement : a tout moment
-
-Pour exercer ces droits, contactez-nous a : privacy@eventez.com`
-    },
-    {
-      title: "9. Cookies et traceurs",
-      content: `Notre application mobile utilise des technologies de stockage local (AsyncStorage, SecureStore) pour :
-
-- Maintenir votre session de connexion
-- Sauvegarder vos preferences
-- Ameliorer les performances de l'application
-
-Ces donnees sont stockees localement sur votre appareil et ne sont pas partagees avec des tiers.`
-    },
-    {
-      title: "10. Transferts internationaux",
-      content: `Vos donnees peuvent etre traitees sur des serveurs situes en dehors du Cameroun. Dans ce cas, nous nous assurons que des garanties appropriees sont en place, conformement au RGPD (clauses contractuelles types, adequation).`
-    },
-    {
-      title: "11. Mineurs",
-      content: `Notre service n'est pas destine aux personnes de moins de 16 ans. Nous ne collectons pas sciemment de donnees concernant des mineurs. Si nous decouvrons qu'un mineur nous a fourni des donnees personnelles, nous les supprimerons immediatement.`
-    },
-    {
-      title: "12. Modifications",
-      content: `Nous pouvons mettre a jour cette Politique de Confidentialite periodiquement. Nous vous informerons de tout changement significatif par notification dans l'application. La date de derniere mise a jour sera toujours indiquee.`
-    },
-    {
-      title: "13. Contact",
-      content: `Pour toute question relative a vos donnees personnelles :
-
-- Email : privacy@eventez.com
-- Adresse : Douala, Cameroun
-
-Vous avez egalement le droit d'introduire une reclamation aupres de l'autorite de controle competente.`
-    },
-  ];
+  const scrollToSection = (num: string) => {
+    const y = sectionPositionsRef.current[num] || 0;
+    scrollRef.current?.scrollTo({ y: Math.max(0, y - 80), animated: true });
+  };
 
   return (
     <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>GDPR</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={[styles.backButton, { backgroundColor: colors.gray50 }]}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Politique de confidentialite</Text>
-        <View style={styles.headerRight} />
+      <WatermarkNumeral>RGPD</WatermarkNumeral>
+
+      {/* === HEADER === */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
+        ]}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>VIE PRIVÉE • PRIVACY</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Politique de confidentialité</Text>
+          </View>
+        </View>
+        <View style={[styles.progressBar, { backgroundColor: colors.gray100 }]}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${progress * 100}%`, backgroundColor: '#10B981' },
+            ]}
+          />
+        </View>
       </View>
 
       <ScrollView
-        style={styles.content}
+        ref={scrollRef}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
-        {/* Introduction */}
-        <View style={[styles.introCard, { backgroundColor: colors.gray50 }]}>
-          <Ionicons name="shield-checkmark" size={32} color={colors.primary} />
-          <Text style={styles.introTitle}>Politique de Confidentialite</Text>
-          <Text style={styles.introText}>
-            Derniere mise a jour : Janvier 2026
+        {/* === HERO (green security gradient) === */}
+        <View style={[styles.heroCard, Shadows.lg]}>
+          <LinearGradient
+            colors={['#064E3B', '#065F46', '#10B981']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.heroCircle1} />
+          <View style={styles.heroCircle2} />
+          <Text style={styles.heroWatermark}>{'{'}{'}'}</Text>
+
+          <View style={styles.heroBadgeRow}>
+            <View style={styles.heroBadge}>
+              <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
+              <Text style={styles.heroBadgeText}>RGPD COMPLIANT</Text>
+            </View>
+          </View>
+          <Text style={styles.heroEyebrow}>VIE PRIVÉE · PROTÉGÉE</Text>
+          <Text style={styles.heroTitle} numberOfLines={3}>
+            Tes données{'\n'}sont en sécurité
           </Text>
+          <View style={styles.heroMeta}>
+            <View style={styles.heroMetaItem}>
+              <View style={styles.heroMetaDot} />
+              <Text style={styles.heroMetaText}>{SECTIONS.length} articles</Text>
+            </View>
+            <View style={styles.heroMetaItem}>
+              <Ionicons name="lock-closed" size={11} color="rgba(255,255,255,0.85)" />
+              <Text style={styles.heroMetaText}>Chiffrement end-to-end</Text>
+            </View>
+          </View>
+          <View style={styles.heroDateBlock}>
+            <Text style={styles.heroDateLabel}>DERNIÈRE MISE À JOUR</Text>
+            <Text style={styles.heroDateValue}>25 AVRIL 2026</Text>
+          </View>
         </View>
 
-        {/* Sections */}
-        {sections.map((section, index) => (
-          <View key={index} style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{section.title}</Text>
-            <Text style={[styles.sectionContent, { color: colors.gray600 }]}>{section.content}</Text>
+        {/* === KEY GUARANTEES === */}
+        <View style={styles.guaranteesSection}>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>NOS ENGAGEMENTS</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>4 garanties clés</Text>
+          <View style={styles.guaranteesGrid}>
+            {[
+              { icon: 'shield-checkmark-outline' as const, label: 'Aucune vente', sub: 'On ne vend pas tes données', color: '#10B981' },
+              { icon: 'lock-closed-outline' as const, label: 'Chiffrement', sub: 'TLS/HTTPS partout', color: '#3B82F6' },
+              { icon: 'eye-off-outline' as const, label: 'Anonymat', sub: 'Tu peux supprimer ton compte', color: '#A855F7' },
+              { icon: 'cloud-done-outline' as const, label: 'RGPD', sub: 'Conformité européenne', color: '#F59E0B' },
+            ].map((g, idx) => (
+              <View
+                key={idx}
+                style={[styles.guaranteeCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
+              >
+                <View style={[styles.guaranteeIcon, { backgroundColor: `${g.color}15` }]}>
+                  <Ionicons name={g.icon} size={16} color={g.color} />
+                </View>
+                <Text style={[styles.guaranteeLabel, { color: colors.text }]} numberOfLines={1}>
+                  {g.label}
+                </Text>
+                <Text style={[styles.guaranteeSub, { color: colors.gray500 }]} numberOfLines={2}>
+                  {g.sub}
+                </Text>
+              </View>
+            ))}
           </View>
+        </View>
+
+        {/* === TOC === */}
+        <View style={styles.tocSection}>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>NAVIGATION • TOC</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Table des matières</Text>
+          <View style={styles.tocGrid}>
+            {SECTIONS.map((section) => (
+              <TouchableOpacity
+                key={section.num}
+                style={[styles.tocChip, { backgroundColor: colors.card, borderColor: hairline }]}
+                onPress={() => scrollToSection(section.num)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.tocChipNum, { color: '#10B981' }]}>{section.num}</Text>
+                <Text style={[styles.tocChipLabel, { color: colors.text }]} numberOfLines={1}>
+                  {section.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* === SECTIONS === */}
+        {SECTIONS.map((section, idx) => (
+          <StaggeredItem key={section.num} index={idx} staggerDelay={50}>
+            <View
+              style={styles.sectionBlock}
+              onLayout={(e) => {
+                sectionPositionsRef.current[section.num] = e.nativeEvent.layout.y;
+              }}
+            >
+              <View style={styles.sectionBlockHeader}>
+                <View style={[styles.sectionNumBox, { backgroundColor: '#10B98115' }]}>
+                  <Text style={[styles.sectionNumText, { color: '#10B981' }]}>
+                    {section.num}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.sectionIconRow}>
+                    <Ionicons name={section.icon} size={14} color={colors.gray500} />
+                    <Text style={[styles.sectionIconLabel, { color: colors.gray500 }]}>
+                      ARTICLE {section.num}
+                    </Text>
+                  </View>
+                  <Text style={[styles.sectionBlockTitle, { color: colors.text }]}>
+                    {section.title}
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.sectionContentCard, { backgroundColor: colors.card, borderColor: hairline }]}>
+                <Text style={[styles.sectionContentText, { color: colors.gray700 }]}>
+                  {section.content}
+                </Text>
+              </View>
+            </View>
+          </StaggeredItem>
         ))}
 
-        {/* Footer */}
-        <View style={[styles.footer, { backgroundColor: colors.primaryBg }]}>
-          <Ionicons name="lock-closed" size={24} color={colors.primary} />
-          <Text style={styles.footerText}>
-            Vos donnees sont protegees. Nous prenons votre vie privee au serieux.
-          </Text>
+        {/* === FINAL CALLOUT === */}
+        <View style={[styles.finalCallout, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+          <View style={[styles.finalRail, { backgroundColor: '#10B981' }]} />
+          <View style={[styles.finalIcon, { backgroundColor: '#10B981' }]}>
+            <Ionicons name="lock-closed" size={16} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.finalEyebrow}>ENGAGEMENT EVENTEZ</Text>
+            <Text style={styles.finalText}>
+              Tes données sont protégées. On prend ta vie privée au sérieux.
+            </Text>
+          </View>
         </View>
+
+        <View style={{ height: 60 }} />
       </ScrollView>
-      </View>
     </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
   header: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
+    gap: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.gray50,
+  iconDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  eyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   headerTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.bold,
-    color: Colors.gray900,
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: Spacing.sm,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
   },
-  headerRight: {
-    width: 40,
+  progressBar: {
+    height: 3,
+    width: '100%',
+    overflow: 'hidden',
+    marginHorizontal: -Spacing.lg,
+    marginTop: -1,
   },
-  content: {
-    flex: 1,
+  progressFill: {
+    height: 3,
   },
+
   scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: 40,
+  },
+
+  // === HERO (green) ===
+  heroCard: {
+    borderRadius: 28,
     padding: Spacing.lg,
-    paddingBottom: Spacing['3xl'],
-  },
-  introCard: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.xl,
-    alignItems: 'center',
+    minHeight: 260,
+    overflow: 'hidden',
     marginBottom: Spacing.xl,
   },
-  introTitle: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.bold,
-    color: Colors.gray900,
-    marginTop: Spacing.md,
-    textAlign: 'center',
+  heroCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.07)',
   },
-  introText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-    marginTop: Spacing.xs,
+  heroCircle2: {
+    position: 'absolute',
+    bottom: -40,
+    left: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(190,255,90,0.18)',
   },
-  section: {
-    marginBottom: Spacing.xl,
+  heroWatermark: {
+    position: 'absolute',
+    bottom: -10,
+    right: 18,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 130,
+    letterSpacing: -8,
+    color: 'rgba(255,255,255,0.06)',
+    lineHeight: 130,
   },
-  sectionTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.bold,
-    color: Colors.gray900,
+  heroBadgeRow: {
     marginBottom: Spacing.sm,
   },
-  sectionContent: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
-    lineHeight: 22,
-  },
-  footer: {
+  heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.lg,
+    gap: 5,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  heroBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#FFFFFF',
+    letterSpacing: 1.4,
+  },
+  heroEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 2,
+    marginBottom: 8,
+  },
+  heroTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    color: '#FFFFFF',
+    letterSpacing: -1.2,
+    lineHeight: 34,
+    marginBottom: Spacing.md,
+  },
+  heroMeta: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: Spacing.md,
+  },
+  heroMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  heroMetaDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#BEFF5A',
+  },
+  heroMetaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 0.2,
+  },
+  heroDateBlock: {
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+  },
+  heroDateLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  heroDateValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+
+  // === SECTIONS HEADERS ===
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  sectionTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 20,
+    letterSpacing: -0.6,
+    lineHeight: 24,
+    marginBottom: Spacing.md,
+  },
+
+  // === GUARANTEES GRID ===
+  guaranteesSection: {
+    marginBottom: Spacing.xl,
+  },
+  guaranteesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  guaranteeCard: {
+    width: '48%',
+    flexGrow: 1,
     padding: Spacing.md,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 4,
+  },
+  guaranteeIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  guaranteeLabel: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    letterSpacing: -0.4,
+    lineHeight: 17,
+  },
+  guaranteeSub: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    lineHeight: 14,
+    letterSpacing: -0.1,
+  },
+
+  // === TOC ===
+  tocSection: {
+    marginBottom: Spacing.xl,
+  },
+  tocGrid: {
+    gap: 6,
+  },
+  tocChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  tocChipNum: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+    width: 22,
+  },
+  tocChipLabel: {
+    flex: 1,
+    fontFamily: FontFamily.displayBold,
+    fontSize: 13,
+    letterSpacing: -0.3,
+  },
+
+  // === SECTION BLOCK ===
+  sectionBlock: {
+    marginBottom: Spacing.lg,
+  },
+  sectionBlockHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: Spacing.sm,
+  },
+  sectionNumBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionNumText: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    letterSpacing: -0.5,
+  },
+  sectionIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 2,
+  },
+  sectionIconLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+  },
+  sectionBlockTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    letterSpacing: -0.5,
+    lineHeight: 22,
+  },
+  sectionContentCard: {
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  sectionContentText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 21,
+  },
+
+  // === FINAL CALLOUT ===
+  finalCallout: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
+    padding: Spacing.md,
+    paddingLeft: Spacing.lg + 6,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: 'hidden',
     marginTop: Spacing.lg,
   },
-  footerText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.primary,
+  finalRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  finalIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  finalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#065F46',
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  finalText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    color: '#064E3B',
+    lineHeight: 18,
   },
 });

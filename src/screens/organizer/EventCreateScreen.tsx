@@ -190,7 +190,7 @@ export default function EventCreateScreen() {
       await clearDraft();
       showAlert(
         'Succès',
-        'Votre événement a été créé en tant que brouillon. Vous pouvez le modifier et le publier depuis Mes événements.',
+        "Votre événement a été soumis pour validation. Vous serez notifié dès qu'il sera approuvé.",
         [
           {
             text: 'Voir mes événements',

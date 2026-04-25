@@ -30,6 +30,13 @@ export function useEventFormSubmit(
         createSessions(eventId, form.sessions),
       ]);
 
+      // Soumettre pour validation uniquement à la création (pas à l'édition).
+      // On soumet APRÈS le Promise.all pour garantir que tickets/sessions/images
+      // sont déjà créés quand le modérateur examine l'événement.
+      if (!editEventId) {
+        await eventsAPI.submitForValidation(eventId);
+      }
+
       return eventId;
     } catch (error: any) {
       if (__DEV__) console.error('Erreur création événement:', error);

@@ -58,8 +58,10 @@ export const registrationsAPI = {
     api.post(`/registrations/${id}/update_tickets/`, { tickets }),
 
   // Ajouter des billets supplémentaires à une inscription confirmée
-  addTickets: (id: string, tickets: Array<{ ticket_type: number; quantity: number }>) =>
-    api.post(`/registrations/${id}/add_tickets/`, { tickets }),
+  addTickets: (
+    id: string,
+    tickets: Array<{ ticket_type: number; quantity: number; discount_code?: string }>
+  ) => api.post(`/registrations/${id}/add_tickets/`, { tickets }),
 
   // Check-in
   checkIn: (id: string) =>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -6,6 +6,7 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
+import { navigate } from './navigationRef';
 
 // Navigators
 import MainTabNavigator from './MainTabNavigator';
@@ -113,42 +114,48 @@ import IncidentDetailsScreen from '../screens/status/IncidentDetailsScreen';
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { isAuthenticated, isInitializing } = useAuth();
+  const { isInitializing } = useAuth();
   const { colors } = useTheme();
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
+  const pendingLoginRef = useRef(false);
 
   useEffect(() => {
-    checkOnboardingStatus();
-  }, [isAuthenticated]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
+        if (!cancelled) setShowOnboarding(completed !== 'true');
+      } catch (error) {
+        if (__DEV__) console.error('[RootNavigator] Error checking onboarding status:', error);
+        if (!cancelled) setShowOnboarding(false);
+      } finally {
+        if (!cancelled) setCheckingOnboarding(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
-  const checkOnboardingStatus = async () => {
-    if (!isAuthenticated) {
-      setCheckingOnboarding(false);
-      setShowOnboarding(false);
-      return;
-    }
-    try {
-      const completed = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
-      setShowOnboarding(completed !== 'true');
-    } catch (error) {
-      if (__DEV__) console.error('[RootNavigator] Error checking onboarding status:', error);
-      setShowOnboarding(false);
-    } finally {
-      setCheckingOnboarding(false);
-    }
-  };
-
-  const handleOnboardingComplete = useCallback(() => {
+  const handleOnboardingComplete = useCallback((goToLogin?: boolean) => {
+    pendingLoginRef.current = !!goToLogin;
     setShowOnboarding(false);
   }, []);
+
+  // After onboarding unmounts and Stack mounts, dispatch pending login navigation
+  useEffect(() => {
+    if (showOnboarding === false && pendingLoginRef.current) {
+      pendingLoginRef.current = false;
+      const t = setTimeout(() => navigate('Login' as any), 0);
+      return () => clearTimeout(t);
+    }
+  }, [showOnboarding]);
 
   if (isInitializing || checkingOnboarding) {
     return <LoadingSpinner />;
   }
 
-  // Show onboarding as a full-screen overlay for first-time authenticated users
-  if (isAuthenticated && showOnboarding) {
+  // First-launch welcome — shown to ALL users (guest & authenticated) until completed
+  if (showOnboarding) {
     return <OnboardingScreen onComplete={handleOnboardingComplete} />;
   }
 

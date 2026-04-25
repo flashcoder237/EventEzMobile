@@ -301,13 +301,14 @@ export default function TicketPurchaseScreen() {
 
     setSubmitting(true);
     try {
-      // Préparer les billets
+      // Préparer les billets (avec code promo si appliqué)
       const tickets: any[] = [];
       if (isBilletterie) {
         selections.forEach((quantity, ticketTypeId) => {
           tickets.push({
             ticket_type: parseInt(ticketTypeId),
             quantity,
+            ...(appliedDiscount ? { discount_code: appliedDiscount.code } : {}),
           });
         });
       }
@@ -321,6 +322,15 @@ export default function TicketPurchaseScreen() {
         finalRegistrationId = registrationId;
         paymentRequired = response.data.registration?.payment_required || getTotalPrice() > 0;
         showSuccess('Succès', 'Vos billets ont été mis à jour');
+      } else if (isAdditionalMode && !existingRegistration) {
+        // On est venu en mode "achat supplémentaire" mais aucune inscription
+        // active n'a été trouvée -> ne PAS créer silencieusement une nouvelle
+        // inscription, sinon on duplique. On stoppe avec un message clair.
+        showError(
+          'Inscription introuvable',
+          'Impossible d\'ajouter des billets : aucune inscription active n\'a été trouvée pour cet événement.'
+        );
+        return;
       } else if (isAdditionalMode && existingRegistration) {
         // Mode achat supplémentaire: ajouter des billets à une inscription confirmée
         const response = await registrationsAPI.addTickets(existingRegistration.id, tickets);
@@ -360,14 +370,11 @@ export default function TicketPurchaseScreen() {
           registrationData.form_data = formData;
         }
 
-        // Add tickets for billetterie
+        // Add tickets for billetterie. Le discount_code est désormais
+        // propagé par billet (cf. construction de `tickets` ci-dessus) — c'est
+        // ce que le backend lit. Pas besoin de le dupliquer au niveau racine.
         if (isBilletterie) {
           registrationData.tickets = tickets;
-
-          // Add discount code if applied
-          if (appliedDiscount) {
-            registrationData.discount_code = appliedDiscount.code;
-          }
         }
 
         const response = await registrationsAPI.createRegistration(registrationData);

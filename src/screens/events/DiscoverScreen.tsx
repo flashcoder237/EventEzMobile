@@ -952,25 +952,63 @@ export default function DiscoverScreen() {
                   </View>
                 </View>
 
-                {/* Search trigger */}
+                {/* === EDITORIAL SEARCH BAR — inverse indigo === */}
                 <TouchableOpacity
-                  style={[
-                    styles.searchTrigger,
-                    { backgroundColor: colors.gray100, borderColor: colors.border },
-                  ]}
+                  style={[styles.searchTrigger, Shadows.cardViolet]}
                   onPress={() => activateSearch()}
-                  activeOpacity={0.75}
+                  activeOpacity={0.9}
                   accessibilityRole="search"
                 >
-                  <Ionicons name="search" size={16} color={colors.gray400} />
-                  <Text
-                    style={[styles.searchTriggerText, { color: colors.gray500 }]}
-                    numberOfLines={1}
+                  {/* Indigo gradient bg (full bleed) */}
+                  <LinearGradient
+                    colors={
+                      isDark
+                        ? ['#312E81', '#1E1B4B']
+                        : [colors.primary, colors.primaryDark]
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  {/* Decorative corner accent (corail) */}
+                  <View
+                    style={[
+                      styles.searchCornerDot,
+                      { backgroundColor: colors.accent },
+                    ]}
+                  />
+                  {/* Decorative diagonal slash (subtle) */}
+                  <View style={styles.searchSlash} pointerEvents="none" />
+                  {/* Search icon disc — cream w/ indigo icon */}
+                  <View
+                    style={[
+                      styles.searchIconDisc,
+                      { backgroundColor: '#F4F0E8' },
+                    ]}
                   >
-                    {placeholderSuggestions[placeholderIndex]}
-                  </Text>
-                  <View style={[styles.searchFilterPill, { backgroundColor: colors.card }]}>
-                    <Ionicons name="options" size={14} color={colors.primary} />
+                    <Ionicons name="search" size={17} color={colors.primary} />
+                  </View>
+                  {/* Text col */}
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.searchEyebrow, { color: colors.accent }]}>
+                      QUOI · CE SOIR
+                    </Text>
+                    <Text
+                      style={[styles.searchTriggerText, { color: '#FFFFFF' }]}
+                      numberOfLines={1}
+                    >
+                      {placeholderSuggestions[placeholderIndex]}
+                    </Text>
+                  </View>
+                  {/* Filter pill — translucent white on indigo */}
+                  <View
+                    style={[
+                      styles.searchFilterPill,
+                      { backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
+                    ]}
+                  >
+                    <Ionicons name="options" size={14} color="#FFFFFF" />
+                    <Text style={[styles.searchFilterPillText, { color: '#FFFFFF' }]}>Filtres</Text>
                   </View>
                 </TouchableOpacity>
 
@@ -1211,28 +1249,69 @@ const styles = StyleSheet.create({
   },
   headerBadgeWrap: { position: 'absolute', top: 0, right: 0 },
 
-  // === SEARCH TRIGGER ===
+  // === SEARCH TRIGGER (editorial with character) ===
   searchTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 46,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    gap: 10,
+    minHeight: 64,
+    borderRadius: 18,
+    paddingLeft: 8,
+    paddingRight: 8,
+    paddingVertical: 8,
+    gap: 12,
     marginBottom: Spacing.md,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  searchTriggerText: {
-    flex: 1,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.sm,
+  searchCornerDot: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
-  searchFilterPill: {
-    width: 32,
-    height: 32,
+  searchIconDisc: {
+    width: 48,
+    height: 48,
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  searchSlash: {
+    position: 'absolute',
+    top: -10,
+    right: 60,
+    width: 1,
+    height: 80,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    transform: [{ rotate: '18deg' }],
+  },
+  searchEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    marginBottom: 1,
+  },
+  searchTriggerText: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+  },
+  searchFilterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.full,
+  },
+  searchFilterPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
 
   // === CATEGORY CHIPS ===

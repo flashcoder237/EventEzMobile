@@ -18,6 +18,15 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import Animated, {
+  useSharedValue,
+  useAnimatedScrollHandler,
+  useAnimatedStyle,
+  withTiming,
+  interpolate,
+  Extrapolation,
+  Easing,
+} from 'react-native-reanimated';
 
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { eventsAPI, categoriesAPI } from '../../api';
@@ -273,6 +282,60 @@ export default function EventSearchScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const inputRef = useRef<TextInput>(null);
 
+  // === Compact mode on scroll direction (only search bar stays) ===
+  const [headerH, setHeaderH] = useState(220);
+  const lastY = useSharedValue(0);
+  const progress = useSharedValue(0); // 0 = expanded, 1 = collapsed
+  const SHOW_AT_TOP = 20;
+  const HIDE_TRIGGER = 6;
+  const SHOW_TRIGGER = 6;
+  const ANIM_CONFIG = { duration: 280, easing: Easing.bezier(0.25, 0.1, 0.25, 1) };
+
+  const onScroll = useAnimatedScrollHandler({
+    onScroll: (e) => {
+      const current = e.contentOffset.y;
+      const diff = current - lastY.value;
+      if (current <= SHOW_AT_TOP) {
+        progress.value = withTiming(0, ANIM_CONFIG);
+      } else if (diff > HIDE_TRIGGER) {
+        progress.value = withTiming(1, ANIM_CONFIG);
+      } else if (diff < -SHOW_TRIGGER) {
+        progress.value = withTiming(0, ANIM_CONFIG);
+      }
+      lastY.value = current;
+    },
+  });
+
+  // Title row (eyebrow + h1) — fade + collapse height
+  const titleColStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.6], [1, 0], Extrapolation.CLAMP),
+    maxHeight: interpolate(progress.value, [0, 1], [62, 0], Extrapolation.CLAMP),
+    marginBottom: interpolate(progress.value, [0, 1], [Spacing.md, 0], Extrapolation.CLAMP),
+    overflow: 'hidden',
+  }));
+
+  // Quick filters row — fade + collapse height
+  const quickFiltersStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.6], [1, 0], Extrapolation.CLAMP),
+    maxHeight: interpolate(progress.value, [0, 1], [44, 0], Extrapolation.CLAMP),
+    marginTop: interpolate(progress.value, [0, 1], [Spacing.md, 0], Extrapolation.CLAMP),
+    overflow: 'hidden',
+  }));
+
+  // Active filters bar — fade + collapse
+  const activeFiltersAnimStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.6], [1, 0], Extrapolation.CLAMP),
+    maxHeight: interpolate(progress.value, [0, 1], [60, 0], Extrapolation.CLAMP),
+    overflow: 'hidden',
+  }));
+
+  // Result count + sort — fade + collapse
+  const resultBarAnimStyle = useAnimatedStyle(() => ({
+    opacity: interpolate(progress.value, [0, 0.6], [1, 0], Extrapolation.CLAMP),
+    maxHeight: interpolate(progress.value, [0, 1], [44, 0], Extrapolation.CLAMP),
+    overflow: 'hidden',
+  }));
+
   // Active filters count (excluding query/sort)
   const activeFiltersCount = useMemo(() => {
     let n = 0;
@@ -358,9 +421,9 @@ export default function EventSearchScreen() {
         // Location type
         if (state.locationType !== 'any') params.location_type = state.locationType;
 
-        // Price
-        if (state.priceFilter === 'free') params.is_free = true;
-        if (state.priceFilter === 'paid') params.is_free = false;
+        // Price (backend expects 'free' / 'paid')
+        if (state.priceFilter === 'free') params.price = 'free';
+        if (state.priceFilter === 'paid') params.price = 'paid';
 
         // Near me
         if (state.nearMe && userLocation) {
@@ -500,6 +563,7 @@ export default function EventSearchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.activeChipsScroll}
         contentContainerStyle={styles.activeChipsRow}
       >
         <TouchableOpacity
@@ -540,149 +604,170 @@ export default function EventSearchScreen() {
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>FIND</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
-        {/* === EDITORIAL HEADER (tile) === */}
-        <View
+        {/* === STICKY GROUP — only search bar stays on scroll === */}
+        <Animated.View
           style={[
-            styles.header,
-            {
-              backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
-              borderBottomColor: hairline,
-            },
+            styles.stickyGroup,
+            { backgroundColor: isDark ? colors.background : '#F4F3F0' },
           ]}
+          onLayout={(e) => {
+            const h = Math.round(e.nativeEvent.layout.height);
+            if (h > 0 && h !== headerH) setHeaderH(h);
+          }}
         >
-          <View style={styles.headerTopRow}>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={18} color={colors.gray600} />
-            </TouchableOpacity>
-            <View style={{ flex: 1 }}>
+          {/* Editorial header tile */}
+          <View
+            style={[
+              styles.header,
+              {
+                backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+                borderBottomColor: hairline,
+              },
+            ]}
+          >
+            {/* Title row (eyebrow + h1) — fully collapsible */}
+            <Animated.View style={[styles.titleColWrap, titleColStyle]}>
               <Text style={[styles.headerEyebrow, { color: colors.accent }]}>EXPLORATION • SEARCH</Text>
               <Text style={[styles.headerTitle, { color: colors.text }]}>Trouve ton event</Text>
-            </View>
-          </View>
+            </Animated.View>
 
-          {/* Search input */}
-          <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: hairline }]}>
-            <Ionicons name="search" size={16} color={colors.gray500} />
-            <TextInput
-              ref={inputRef}
-              style={[styles.searchInput, { color: colors.text }]}
-              placeholder="Concert, atelier, conférence..."
-              placeholderTextColor={colors.gray400}
-              value={state.query}
-              onChangeText={(text) => dispatch({ type: 'SET_QUERY', query: text })}
-              returnKeyType="search"
-              autoCorrect={false}
-              autoCapitalize="none"
-            />
-            {state.query.length > 0 && (
-              <TouchableOpacity onPress={handleClearQuery} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={16} color={colors.gray400} />
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[styles.filterTrigger, { backgroundColor: activeFiltersCount > 0 ? colors.primary : colors.gray100 }]}
-              onPress={() => setShowFilters(true)}
-              activeOpacity={0.85}
-            >
-              <Ionicons
-                name="options"
-                size={14}
-                color={activeFiltersCount > 0 ? Colors.white : colors.gray700}
-              />
-              {activeFiltersCount > 0 && (
-                <View style={styles.filterCountBadge}>
-                  <Text style={styles.filterCountText}>{activeFiltersCount}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Quick filter chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.quickFiltersRow}
-          >
-            {QUICK_FILTERS.map((qf, idx) => (
+            {/* Search row — ALWAYS visible (back + input + filter) */}
+            <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: hairline }]}>
               <TouchableOpacity
-                key={idx}
-                style={[
-                  styles.quickFilterChip,
-                  qf.active
-                    ? { backgroundColor: colors.text, ...Shadows.sm }
-                    : {
-                        backgroundColor: colors.card,
-                        borderColor: hairline,
-                        borderWidth: 1,
-                      },
-                ]}
-                onPress={qf.onPress}
-                activeOpacity={0.75}
+                onPress={() => navigation.goBack()}
+                style={styles.searchBackBtn}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+              </TouchableOpacity>
+              <View style={[styles.searchDivider, { backgroundColor: hairline }]} />
+              <Ionicons name="search" size={16} color={colors.gray500} />
+              <TextInput
+                ref={inputRef}
+                style={[styles.searchInput, { color: colors.text }]}
+                placeholder="Concert, atelier, conférence..."
+                placeholderTextColor={colors.gray400}
+                value={state.query}
+                onChangeText={(text) => dispatch({ type: 'SET_QUERY', query: text })}
+                returnKeyType="search"
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+              {state.query.length > 0 && (
+                <TouchableOpacity onPress={handleClearQuery} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={16} color={colors.gray400} />
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                style={[styles.filterTrigger, { backgroundColor: activeFiltersCount > 0 ? colors.primary : colors.gray100 }]}
+                onPress={() => setShowFilters(true)}
+                activeOpacity={0.85}
               >
                 <Ionicons
-                  name={qf.icon}
-                  size={13}
-                  color={qf.active ? Colors.white : colors.gray700}
+                  name="options"
+                  size={14}
+                  color={activeFiltersCount > 0 ? Colors.white : colors.gray700}
                 />
-                <Text
-                  style={[
-                    styles.quickFilterText,
-                    { color: qf.active ? Colors.white : colors.gray700 },
-                  ]}
-                >
-                  {qf.label}
-                </Text>
+                {activeFiltersCount > 0 && (
+                  <View style={styles.filterCountBadge}>
+                    <Text style={styles.filterCountText}>{activeFiltersCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+            </View>
 
-        {/* Active filters bar */}
-        {renderActiveFilters()}
-
-        {/* Result count + sort */}
-        {hasActiveSearch && !state.loading && (
-          <View style={styles.resultBar}>
-            <Text style={[styles.resultCount, { color: colors.gray600 }]}>
-              <Text style={[styles.resultCountBold, { color: colors.text }]}>{state.total}</Text>
-              {' '}résultat{state.total > 1 ? 's' : ''}
-            </Text>
-            <View style={styles.sortRow}>
-              {SORT_OPTIONS.map((opt) => {
-                const active = state.sortBy === opt.key;
-                return (
+            {/* Quick filter chips — collapsible */}
+            <Animated.View style={quickFiltersStyle}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.quickFiltersScroll}
+                contentContainerStyle={styles.quickFiltersRow}
+              >
+                {QUICK_FILTERS.map((qf, idx) => (
                   <TouchableOpacity
-                    key={opt.key}
+                    key={idx}
                     style={[
-                      styles.sortPill,
-                      active && { backgroundColor: colors.text },
+                      styles.quickFilterChip,
+                      qf.active
+                        ? { backgroundColor: colors.text, ...Shadows.sm }
+                        : {
+                            backgroundColor: colors.card,
+                            borderColor: hairline,
+                            borderWidth: 1,
+                          },
                     ]}
-                    onPress={() => dispatch({ type: 'SET_SORT', sort: opt.key })}
+                    onPress={qf.onPress}
                     activeOpacity={0.75}
                   >
                     <Ionicons
-                      name={opt.icon}
-                      size={11}
-                      color={active ? Colors.white : colors.gray500}
+                      name={qf.icon}
+                      size={13}
+                      color={qf.active ? Colors.white : colors.gray700}
                     />
+                    <Text
+                      style={[
+                        styles.quickFilterText,
+                        { color: qf.active ? Colors.white : colors.gray700 },
+                      ]}
+                    >
+                      {qf.label}
+                    </Text>
                   </TouchableOpacity>
-                );
-              })}
-            </View>
+                ))}
+              </ScrollView>
+            </Animated.View>
           </View>
-        )}
+
+          {/* Active filters bar — collapsible */}
+          <Animated.View style={activeFiltersAnimStyle}>
+            {renderActiveFilters()}
+          </Animated.View>
+
+          {/* Result count + sort — collapsible */}
+          {hasActiveSearch && !state.loading && (
+            <Animated.View style={[styles.resultBar, resultBarAnimStyle]}>
+              <Text style={[styles.resultCount, { color: colors.gray600 }]}>
+                <Text style={[styles.resultCountBold, { color: colors.text }]}>{state.total}</Text>
+                {' '}résultat{state.total > 1 ? 's' : ''}
+              </Text>
+              <View style={styles.sortRow}>
+                {SORT_OPTIONS.map((opt) => {
+                  const active = state.sortBy === opt.key;
+                  return (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[
+                        styles.sortPill,
+                        active && { backgroundColor: colors.text },
+                      ]}
+                      onPress={() => dispatch({ type: 'SET_SORT', sort: opt.key })}
+                      activeOpacity={0.75}
+                    >
+                      <Ionicons
+                        name={opt.icon}
+                        size={11}
+                        color={active ? Colors.white : colors.gray500}
+                      />
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </Animated.View>
+          )}
+        </Animated.View>
 
         {/* Content */}
         {!hasActiveSearch ? (
           <View style={{ flex: 1 }}>
             {history.length > 0 ? (
-              <FlatList
+              <Animated.FlatList
                 data={history}
                 keyExtractor={(item) => item}
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+                contentContainerStyle={{ paddingTop: headerH }}
                 renderItem={({ item }) => (
                   <View style={[styles.historyRow, { borderBottomColor: hairline }]}>
                     <TouchableOpacity
@@ -742,7 +827,11 @@ export default function EventSearchScreen() {
                 }
               />
             ) : (
-              <ScrollView contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl }}>
+              <Animated.ScrollView
+                onScroll={onScroll}
+                scrollEventThrottle={16}
+                contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: headerH + Spacing.xl }}
+              >
                 <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>SUGGESTIONS</Text>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>Catégories tendance</Text>
                 <View style={styles.suggestionGrid}>
@@ -762,21 +851,23 @@ export default function EventSearchScreen() {
                     </TouchableOpacity>
                   ))}
                 </View>
-              </ScrollView>
+              </Animated.ScrollView>
             )}
           </View>
         ) : state.loading && state.results.length === 0 ? (
-          <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: Spacing.sm }}>
+          <View style={{ flex: 1, paddingHorizontal: containerPadding, paddingTop: headerH + Spacing.sm }}>
             <SkeletonList count={4} Component={EventCardSkeleton} />
           </View>
         ) : state.results.length === 0 ? (
-          <EmptyState
-            icon="search-outline"
-            title="Aucun résultat"
-            description="Essaie d'autres mots-clés ou ajuste tes filtres."
-          />
+          <View style={{ flex: 1, paddingTop: headerH }}>
+            <EmptyState
+              icon="search-outline"
+              title="Aucun résultat"
+              description="Essaie d'autres mots-clés ou ajuste tes filtres."
+            />
+          </View>
         ) : (
-          <FlatList
+          <Animated.FlatList
             data={state.results}
             keyExtractor={(item) => String(item.id)}
             renderItem={renderEvent}
@@ -784,7 +875,13 @@ export default function EventSearchScreen() {
             key={`list-${columns}`}
             onEndReached={loadMore}
             onEndReachedThreshold={0.3}
-            contentContainerStyle={{ paddingHorizontal: containerPadding, paddingTop: Spacing.sm, paddingBottom: 40 }}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              paddingHorizontal: containerPadding,
+              paddingTop: headerH + Spacing.sm,
+              paddingBottom: 40,
+            }}
             showsVerticalScrollIndicator={false}
             removeClippedSubviews
             initialNumToRender={8}
@@ -1129,6 +1226,15 @@ export default function EventSearchScreen() {
 }
 
 const styles = StyleSheet.create({
+  // === STICKY GROUP (auto-hide on scroll direction) ===
+  stickyGroup: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+
   // === HEADER ===
   header: {
     paddingHorizontal: Spacing.lg,
@@ -1143,6 +1249,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  titleColWrap: {
+    justifyContent: 'center',
   },
   iconDisc: {
     width: 38,
@@ -1173,8 +1282,20 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    paddingLeft: Spacing.md,
+    paddingLeft: 8,
     paddingRight: 6,
+  },
+  searchBackBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchDivider: {
+    width: 1,
+    height: 22,
+    marginRight: 4,
   },
   searchInput: {
     flex: 1,
@@ -1211,8 +1332,13 @@ const styles = StyleSheet.create({
   },
 
   // === QUICK FILTERS ===
+  quickFiltersScroll: {
+    flexGrow: 0,
+    maxHeight: 40,
+  },
   quickFiltersRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
     paddingRight: Spacing.md,
   },
@@ -1231,40 +1357,44 @@ const styles = StyleSheet.create({
   },
 
   // === ACTIVE FILTERS BAR ===
+  activeChipsScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
   activeChipsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
-    paddingBottom: 4,
+    paddingVertical: 10,
   },
   clearAllChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 5,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
   clearAllChipText: {
     fontFamily: FontFamily.bold,
-    fontSize: 10,
+    fontSize: 12,
     color: '#DC2626',
     letterSpacing: 0.2,
   },
   activeChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    gap: 5,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
   },
   activeChipText: {
     fontFamily: FontFamily.bold,
-    fontSize: 10,
+    fontSize: 12,
     letterSpacing: 0.2,
     maxWidth: 140,
   },

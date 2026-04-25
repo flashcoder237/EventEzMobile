@@ -53,8 +53,8 @@ type SortType = 'registration_date' | 'event_date' | 'name';
 
 // Warm editorial canvas (light mode) — dark mode falls back to surface
 const CANVAS_LIGHT = '#F6F6F9';
-const STUB_WIDTH = 98;
-const NOTCH_RADIUS = 11;
+const STUB_WIDTH = 104;
+const NOTCH_RADIUS = 10;
 
 // --- Reducer state management ---
 
@@ -258,12 +258,14 @@ function ShimmerBand({
         />
       </Animated.View>
       <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
         style={{
           fontFamily: FontFamily.bold,
           fontSize: 9,
           color: textColor,
           textAlign: 'center',
-          letterSpacing: 1.2,
+          letterSpacing: 0.8,
           textTransform: 'uppercase',
         }}
       >
@@ -639,6 +641,12 @@ export default function MyTicketsScreen() {
       ? colors.accent
       : colors.primary;
 
+    // === TYPE THEMING (billetterie vs inscription) ===
+    const typeColor = isInscription ? '#A855F7' : colors.primary; // violet vs indigo
+    const typeIcon: keyof typeof Ionicons.glyphMap = isInscription ? 'document-text' : 'ticket';
+    const typeLabel = isInscription ? 'INSCRIPTION' : 'BILLET';
+    const stubLabel = isInscription ? 'PASS' : 'TIX';
+
     // Eyebrow label (category or type)
     const eyebrow = isArchived
       ? 'Terminé'
@@ -670,14 +678,47 @@ export default function MyTicketsScreen() {
               dateInfo ? `, ${dateInfo.full}` : ''
             }`}
           >
+            {/* Type rail (left edge color band) */}
+            {!isArchived && (
+              <View style={[styles.typeRail, { backgroundColor: typeColor }]} />
+            )}
+
             {/* Main section */}
             <View style={styles.ticketMain}>
               <View style={styles.ticketMainHeader}>
                 <View style={{ flex: 1, paddingRight: Spacing.sm }}>
-                  <View style={[styles.eyebrowPill, { backgroundColor: colors.gray100 }]}>
-                    <Text style={[styles.eyebrowText, { color: colors.gray500 }]} numberOfLines={1}>
-                      {eyebrow}
-                    </Text>
+                  <View style={styles.typePillRow}>
+                    {/* Colored TYPE pill (BILLET / INSCRIPTION) */}
+                    <View
+                      style={[
+                        styles.typePill,
+                        { backgroundColor: isArchived ? colors.gray100 : `${typeColor}15` },
+                      ]}
+                    >
+                      <Ionicons
+                        name={typeIcon}
+                        size={10}
+                        color={isArchived ? colors.gray500 : typeColor}
+                      />
+                      <Text
+                        style={[
+                          styles.typePillText,
+                          { color: isArchived ? colors.gray500 : typeColor },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {typeLabel}
+                      </Text>
+                    </View>
+                    {/* Category eyebrow (only for billetterie with category) */}
+                    {!isInscription && event?.category?.name && !isArchived && (
+                      <Text
+                        style={[styles.categoryEyebrow, { color: colors.gray500 }]}
+                        numberOfLines={1}
+                      >
+                        · {event.category.name.toUpperCase()}
+                      </Text>
+                    )}
                   </View>
                   <Text
                     style={[
@@ -780,64 +821,94 @@ export default function MyTicketsScreen() {
               ]}
             />
 
-            {/* Stub section (right) */}
-            <View style={styles.ticketStub}>
-              {/* SCAN label vertical */}
-              <Text
-                style={[
-                  styles.scanLabel,
-                  { color: isArchived ? colors.gray300 : colors.gray400 },
-                ]}
-              >
-                SCAN
-              </Text>
+            {/* Stub section (right) — tinted by type */}
+            <View
+              style={[
+                styles.ticketStub,
+                !isArchived && !isPending && {
+                  backgroundColor: isDark ? `${typeColor}10` : `${typeColor}08`,
+                },
+              ]}
+            >
+              {/* Stub label at top (TIX / PASS) */}
+              {!isArchived && !isPending && (
+                <Text style={[styles.stubLabel, { color: typeColor }]}>{stubLabel}</Text>
+              )}
 
-              <View style={{ alignItems: 'center', gap: Spacing.xs }}>
-                {isArchived ? (
-                  <View
-                    style={[
-                      styles.qrLocked,
-                      { backgroundColor: colors.gray100, borderColor: colors.border },
-                    ]}
-                  >
-                    <Ionicons name="checkmark-circle" size={28} color={colors.gray400} />
-                  </View>
-                ) : isPending ? (
-                  <View
-                    style={[
-                      styles.qrLocked,
-                      { backgroundColor: colors.gray50, borderColor: colors.border },
-                    ]}
-                  >
-                    <Ionicons name="lock-closed" size={22} color={colors.gray400} />
-                  </View>
-                ) : (
-                  <View
-                    style={[
-                      styles.qrBox,
-                      { backgroundColor: Colors.white, borderColor: colors.gray200 },
-                    ]}
-                  >
-                    <QRPattern size={46} color={colors.gray900} />
-                  </View>
-                )}
+              {/* QR / status icon */}
+              {isArchived ? (
+                <View
+                  style={[
+                    styles.qrLocked,
+                    { backgroundColor: colors.gray100, borderColor: colors.border },
+                  ]}
+                >
+                  <Ionicons name="checkmark-circle" size={26} color={colors.gray400} />
+                </View>
+              ) : isPending ? (
+                <View
+                  style={[
+                    styles.qrLocked,
+                    { backgroundColor: colors.gray50, borderColor: colors.border },
+                  ]}
+                >
+                  <Ionicons name="lock-closed" size={20} color={colors.gray400} />
+                </View>
+              ) : isInscription ? (
+                /* Inscription: document badge (no QR) */
+                <View
+                  style={[
+                    styles.passBox,
+                    { backgroundColor: Colors.white, borderColor: typeColor },
+                  ]}
+                >
+                  <Ionicons name="document-text" size={20} color={typeColor} />
+                  <View style={[styles.passLines, { backgroundColor: `${typeColor}30` }]} />
+                  <View style={[styles.passLines, { backgroundColor: `${typeColor}30`, width: 18 }]} />
+                </View>
+              ) : (
+                /* Billetterie: QR */
+                <View
+                  style={[
+                    styles.qrBox,
+                    { backgroundColor: Colors.white, borderColor: typeColor },
+                  ]}
+                >
+                  <QRPattern size={42} color={colors.gray900} />
+                </View>
+              )}
 
-                {/* Qty badge */}
-                {!isArchived && !isPending && !isInscription && (
-                  <View style={[styles.qtyBadge, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
-                    <Ionicons name="ticket" size={11} color={colors.gray400} />
-                    <Text style={[styles.qtyText, { color: colors.text }]}>×{ticketInfo.quantity}</Text>
-                  </View>
-                )}
-                {!isArchived && !isPending && isInscription && (
-                  <View style={[styles.qtyBadge, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
-                    <Ionicons name="person" size={11} color={colors.gray400} />
-                    <Text style={[styles.qtyText, { color: colors.text }]}>×1</Text>
-                  </View>
-                )}
-              </View>
+              {/* Qty badge */}
+              {!isArchived && !isPending && !isInscription && (
+                <View
+                  style={[
+                    styles.qtyBadge,
+                    {
+                      backgroundColor: isDark ? colors.gray100 : Colors.white,
+                      borderColor: `${typeColor}40`,
+                    },
+                  ]}
+                >
+                  <Ionicons name="ticket" size={10} color={typeColor} />
+                  <Text style={[styles.qtyText, { color: colors.text }]}>×{ticketInfo.quantity}</Text>
+                </View>
+              )}
+              {!isArchived && !isPending && isInscription && (
+                <View
+                  style={[
+                    styles.qtyBadge,
+                    {
+                      backgroundColor: isDark ? colors.gray100 : Colors.white,
+                      borderColor: `${typeColor}40`,
+                    },
+                  ]}
+                >
+                  <Ionicons name="person" size={10} color={typeColor} />
+                  <Text style={[styles.qtyText, { color: colors.text }]}>SOLO</Text>
+                </View>
+              )}
 
-              {/* Status shimmer band */}
+              {/* Status pill at bottom */}
               {!isArchived && (
                 <ShimmerBand
                   label={statusConfig.label}
@@ -1480,6 +1551,42 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
+  // Type rail (left edge color band)
+  typeRail: {
+    position: 'absolute',
+    left: 0,
+    top: 14,
+    bottom: 14,
+    width: 3,
+    borderTopRightRadius: 2,
+    borderBottomRightRadius: 2,
+    zIndex: 1,
+  },
+  typePillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  typePillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  categoryEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+    flex: 1,
+  },
   ticketTitle: {
     fontFamily: FontFamily.displayExtraBold,
     fontSize: 22,
@@ -1572,61 +1679,74 @@ const styles = StyleSheet.create({
   ticketStub: {
     width: STUB_WIDTH,
     paddingVertical: Spacing.md,
-    paddingLeft: Spacing.md,
-    paddingRight: Spacing.sm,
+    paddingHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 8,
   },
-  scanLabel: {
-    position: 'absolute',
-    left: 4,
-    top: '50%',
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
+  stubLabel: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 13,
     letterSpacing: 2,
-    transform: [{ rotate: '90deg' }, { translateY: -20 }],
   },
   qrBox: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 3,
   },
   qrLocked: {
-    width: 52,
-    height: 52,
+    width: 48,
+    height: 48,
     borderRadius: 8,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  passBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    paddingTop: 6,
+  },
+  passLines: {
+    height: 1.5,
+    width: 24,
+    borderRadius: 1,
+  },
   qtyBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
+    gap: 3,
+    paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 1,
+    maxWidth: '100%',
   },
   qtyText: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 12,
+    fontSize: 11,
     letterSpacing: -0.3,
   },
   archivedPill: {
-    width: '100%',
+    alignSelf: 'stretch',
     paddingVertical: 5,
+    paddingHorizontal: 4,
     borderRadius: 6,
     alignItems: 'center',
   },
   archivedPillText: {
     fontFamily: FontFamily.bold,
     fontSize: 9,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
     textTransform: 'uppercase',
   },
 
