@@ -5,29 +5,55 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
+  ScrollView,
+  RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { gamificationAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { GamificationScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
-import { FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { Colors, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
+const TIER_CONFIG: { points: number; name: string; eyebrow: string; color: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { points: 0, name: 'Bronze', eyebrow: 'TIER 01', color: '#CD7F32', icon: 'shield-outline' },
+  { points: 500, name: 'Argent', eyebrow: 'TIER 02', color: '#9CA3AF', icon: 'shield-half' },
+  { points: 2000, name: 'Or', eyebrow: 'TIER 03', color: '#F59E0B', icon: 'shield' },
+  { points: 5000, name: 'Platine', eyebrow: 'TIER 04', color: '#A855F7', icon: 'star' },
+  { points: 10000, name: 'Légende', eyebrow: 'TIER 05', color: '#EF4444', icon: 'flame' },
+];
+
+function getTier(points: number) {
+  let tier = TIER_CONFIG[0];
+  let next = TIER_CONFIG[1];
+  for (let i = 0; i < TIER_CONFIG.length; i++) {
+    if (points >= TIER_CONFIG[i].points) {
+      tier = TIER_CONFIG[i];
+      next = TIER_CONFIG[i + 1] || tier;
+    }
+  }
+  return { tier, next };
+}
 
 export default function GamificationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+
   const [badges, setBadges] = useState<any[]>([]);
   const [points, setPoints] = useState<any>(null);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'badges' | 'leaderboard'>('badges');
-
-  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   useEffect(() => {
     fetchData();
@@ -47,175 +73,366 @@ export default function GamificationScreen() {
       if (__DEV__) console.error('Erreur gamification:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        <LoadingSpinner />
-      </SafeAreaView>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>XP</WatermarkNumeral>
+        <GamificationScreenSkeleton />
+      </EditorialCanvas>
     );
   }
 
+  const totalPoints = points?.total_points || points?.balance || 0;
+  const { tier, next } = getTier(totalPoints);
+  const isMaxTier = tier === next;
+  const tierProgress = isMaxTier
+    ? 100
+    : ((totalPoints - tier.points) / (next.points - tier.points)) * 100;
+  const pointsToNext = isMaxTier ? 0 : next.points - totalPoints;
+
+  // === BADGE CARD ===
+  const renderBadge = ({ item, index }: { item: any; index: number }) => {
+    const earned = !!item.earned_at;
+    return (
+      <StaggeredItem index={index} staggerDelay={50}>
+        <View style={styles.badgeCol}>
+          <View
+            style={[
+              styles.badgeCard,
+              {
+                backgroundColor: colors.card,
+                borderColor: earned ? colors.primary : hairline,
+              },
+              earned ? Shadows.sm : { opacity: 0.55 },
+            ]}
+          >
+            {earned && (
+              <View style={[styles.badgeRibbon, { backgroundColor: '#10B981' }]}>
+                <Ionicons name="checkmark" size={8} color="#FFFFFF" />
+              </View>
+            )}
+            <View style={[styles.badgeIconBoxE, { backgroundColor: `${colors.primary}15` }]}>
+              <Ionicons
+                name={(item.icon || 'ribbon') as any}
+                size={28}
+                color={earned ? colors.primary : colors.gray400}
+              />
+            </View>
+          </View>
+          <Text style={[styles.badgeNameE, { color: colors.text }]} numberOfLines={2}>
+            {item.badge_name || item.name}
+          </Text>
+          {earned ? (
+            <Text style={[styles.badgeDateE, { color: colors.gray500 }]}>
+              {new Date(item.earned_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }).toUpperCase()}
+            </Text>
+          ) : (
+            <Text style={[styles.badgeDateE, { color: colors.gray400 }]}>VERROUILLÉ</Text>
+          )}
+        </View>
+      </StaggeredItem>
+    );
+  };
+
+  // === LEADERBOARD ROW ===
+  const renderLeaderRow = ({ item, index }: { item: any; index: number }) => {
+    const isTop3 = index < 3;
+    const medal = index === 0 ? '\u{1F947}' : index === 1 ? '\u{1F948}' : index === 2 ? '\u{1F949}' : null;
+
+    return (
+      <StaggeredItem index={index} staggerDelay={60}>
+        <View
+          style={[
+            styles.leaderRow,
+            {
+              backgroundColor: colors.card,
+              borderColor: isTop3 ? `${colors.primary}40` : hairline,
+            },
+            isTop3 ? Shadows.sm : Shadows.xs,
+          ]}
+        >
+          <View
+            style={[
+              styles.rankBadge,
+              { backgroundColor: isTop3 ? `${colors.primary}15` : colors.gray100 },
+            ]}
+          >
+            {medal ? (
+              <Text style={styles.rankMedal}>{medal}</Text>
+            ) : (
+              <Text style={[styles.rankNumber, { color: colors.gray600 }]}>{index + 1}</Text>
+            )}
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.leaderNameE, { color: colors.text }]} numberOfLines={1}>
+              {item.user_name || item.username || 'Utilisateur'}
+            </Text>
+            <Text style={[styles.leaderSub, { color: colors.gray500 }]}>
+              {item.badges_count || 0} badge{(item.badges_count || 0) > 1 ? 's' : ''}
+            </Text>
+          </View>
+
+          <View style={styles.leaderPointsCol}>
+            <Text style={[styles.leaderPointsValue, { color: colors.text }]}>
+              {item.total_points || 0}
+            </Text>
+            <Text style={[styles.leaderPointsLabel, { color: colors.gray500 }]}>PTS</Text>
+          </View>
+        </View>
+      </StaggeredItem>
+    );
+  };
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: hairline }]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>RÉCOMPENSES</Text>
-          <Text style={[styles.title, { color: colors.text }]}>Badges & Points</Text>
-        </View>
-      </View>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>XP</WatermarkNumeral>
 
-      {/* Points Card */}
+      {/* === HEADER === */}
       <View
         style={[
-          styles.pointsCard,
-          { backgroundColor: colors.card, borderColor: hairline },
-          Shadows.sm,
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
         ]}
       >
-        <View style={[styles.pointsIcon, { backgroundColor: 'rgba(255,215,0,0.12)' }]}>
-          <Ionicons name="trophy" size={28} color="#E0A800" />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.pointsEyebrow, { color: colors.gray500 }]}>SOLDE</Text>
-          <Text style={[styles.pointsValue, { color: colors.text }]}>
-            {points?.total_points || points?.balance || 0}
-          </Text>
-          <Text style={[styles.pointsLabel, { color: colors.gray500 }]}>points cumulés</Text>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>RÉCOMPENSES • XP</Text>
+            <Text style={[styles.title, { color: colors.text }]}>Badges & Points</Text>
+          </View>
+          <View style={[styles.tierPill, { backgroundColor: `${tier.color}15` }]}>
+            <Ionicons name={tier.icon} size={11} color={tier.color} />
+            <Text style={[styles.tierPillText, { color: tier.color }]}>{tier.name}</Text>
+          </View>
         </View>
       </View>
 
-      {/* Tabs */}
-      <View
-        style={[
-          styles.tabs,
-          { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline },
-        ]}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+          />
+        }
+        contentContainerStyle={styles.scrollContent}
       >
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'badges' && [styles.activeTab, { backgroundColor: colors.card }, Shadows.sm]]}
-          onPress={() => setActiveTab('badges')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'badges' ? colors.text : colors.gray500 }]}>
-            Badges ({badges.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'leaderboard' && [styles.activeTab, { backgroundColor: colors.card }, Shadows.sm]]}
-          onPress={() => setActiveTab('leaderboard')}
-          activeOpacity={0.7}
-        >
-          <Text style={[styles.tabText, { color: activeTab === 'leaderboard' ? colors.text : colors.gray500 }]}>
-            Classement
-          </Text>
-        </TouchableOpacity>
-      </View>
+        {/* === HERO POINTS CARD (gradient + tier progress) === */}
+        <View style={[styles.heroCard, Shadows.lg]}>
+          <LinearGradient
+            colors={['#0F172A', '#1E1B4B', tier.color]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.heroCircle1} />
+          <View style={styles.heroCircle2} />
+          <Text style={styles.heroWatermark}>XP</Text>
 
-      {activeTab === 'badges' ? (
-        <FlatList
-          key="badges-grid"
-          data={badges}
-          numColumns={3}
-          contentContainerStyle={styles.badgesGrid}
-          keyExtractor={(item) => item.id}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="ribbon-outline" size={48} color={colors.gray400} />
-              <Text style={[styles.emptyText, { color: colors.text }]}>Aucun badge pour le moment</Text>
-              <Text style={[styles.emptySubtext, { color: colors.gray500 }]}>
-                Participez à des événements pour gagner des badges.
+          <View style={styles.heroTopRow}>
+            <View style={styles.heroEyebrowCol}>
+              <Text style={styles.heroEyebrow}>SOLDE • POINTS</Text>
+              <View style={styles.heroTierBadge}>
+                <Ionicons name={tier.icon} size={10} color="#FFFFFF" />
+                <Text style={styles.heroTierBadgeText}>{tier.eyebrow}</Text>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.heroPointsRow}>
+            <Text style={styles.heroPointsValue} numberOfLines={1} adjustsFontSizeToFit>
+              {totalPoints.toLocaleString()}
+            </Text>
+            <Text style={styles.heroPointsUnit}>PTS</Text>
+          </View>
+
+          <View style={styles.heroDivider} />
+
+          {/* Tier progress */}
+          <View style={styles.tierProgressBlock}>
+            <View style={styles.tierProgressTop}>
+              <Text style={styles.tierProgressLabel}>
+                {isMaxTier ? 'NIVEAU MAX ATTEINT' : `PROCHAIN PALIER · ${next.name.toUpperCase()}`}
+              </Text>
+              <Text style={styles.tierProgressValue}>
+                {isMaxTier ? '∞' : `${pointsToNext} pts`}
               </Text>
             </View>
-          }
-          renderItem={({ item }) => (
-            <View style={styles.badgeItem}>
+            <View style={styles.tierProgressBar}>
               <View
                 style={[
-                  styles.badgeIcon,
-                  {
-                    backgroundColor: `${colors.primary}15`,
-                    borderColor: hairline,
-                  },
+                  styles.tierProgressFill,
+                  { width: `${Math.min(tierProgress, 100)}%` },
                 ]}
+              />
+            </View>
+          </View>
+        </View>
+
+        {/* === STAT STRIP === */}
+        <View
+          style={[
+            styles.statStrip,
+            { backgroundColor: colors.card, borderColor: hairline },
+          ]}
+        >
+          <View style={[styles.statCell, { borderRightColor: hairline }]}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {badges.filter((b) => b.earned_at).length}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>BADGES</Text>
+          </View>
+          <View style={[styles.statCell, { borderRightColor: hairline }]}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {points?.points_today || 0}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>AUJOURD'HUI</Text>
+          </View>
+          <View style={styles.statCellLast}>
+            <Text style={[styles.statValue, { color: colors.text }]}>
+              {points?.streak_days || 0}
+            </Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>STREAK</Text>
+          </View>
+        </View>
+
+        {/* === TABS === */}
+        <View style={[styles.tabsBar, { backgroundColor: colors.gray100 }]}>
+          {([
+            { key: 'badges' as const, label: 'Badges', count: badges.length },
+            { key: 'leaderboard' as const, label: 'Classement', count: leaderboard.length },
+          ]).map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[
+                  styles.tabSeg,
+                  active && { backgroundColor: colors.card, ...Shadows.xs },
+                ]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.7}
               >
-                <Ionicons name={item.icon || 'ribbon'} size={26} color={colors.primary} />
-              </View>
-              <Text style={[styles.badgeName, { color: colors.text }]} numberOfLines={2}>
-                {item.badge_name || item.name}
-              </Text>
-              {item.earned_at && (
-                <Text style={[styles.badgeDate, { color: colors.gray500 }]}>
-                  {new Date(item.earned_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+                <Text
+                  style={[
+                    styles.tabSegText,
+                    { color: active ? colors.text : colors.gray500 },
+                  ]}
+                >
+                  {tab.label}
                 </Text>
-              )}
-            </View>
-          )}
-        />
-      ) : (
-        <FlatList
-          key="leaderboard-list"
-          data={leaderboard}
-          contentContainerStyle={styles.leaderboardList}
-          keyExtractor={(item, index) => item.id || String(index)}
-          ListEmptyComponent={
-            <View style={styles.emptyState}>
-              <Ionicons name="podium-outline" size={48} color={colors.gray400} />
-              <Text style={[styles.emptyText, { color: colors.text }]}>Classement non disponible</Text>
-            </View>
-          }
-          renderItem={({ item, index }) => (
-            <View
-              style={[
-                styles.leaderboardItem,
-                { backgroundColor: colors.card, borderColor: hairline },
-                Shadows.sm,
-              ]}
-            >
-              <Text style={[styles.rank, { color: index < 3 ? colors.primary : colors.gray500 }]}>
-                {index === 0 ? '\u{1F947}' : index === 1 ? '\u{1F948}' : index === 2 ? '\u{1F949}' : `${index + 1}`}
-              </Text>
-              <View style={styles.leaderboardInfo}>
-                <Text style={[styles.leaderboardName, { color: colors.text }]} numberOfLines={1}>
-                  {item.user_name || item.username || 'Utilisateur'}
-                </Text>
+                {tab.count > 0 && (
+                  <View style={[styles.tabSegBadge, { backgroundColor: active ? colors.gray200 : 'transparent' }]}>
+                    <Text style={[styles.tabSegBadgeText, { color: active ? colors.gray700 : colors.gray400 }]}>
+                      {tab.count}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* === CONTENT === */}
+        {activeTab === 'badges' ? (
+          badges.length === 0 ? (
+            <View style={styles.emptyStateE}>
+              <View style={[styles.emptyIconE, { backgroundColor: `${colors.primary}10` }]}>
+                <Ionicons name="ribbon-outline" size={40} color={colors.primary} />
               </View>
-              <Text style={[styles.leaderboardPoints, { color: colors.primary }]}>
-                {item.total_points || 0} pts
+              <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>COLLECTION VIDE</Text>
+              <Text style={[styles.emptyTitleE, { color: colors.text }]}>Aucun badge</Text>
+              <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>
+                Participez à des événements pour gagner vos premiers badges
               </Text>
             </View>
-          )}
-        />
-      )}
-    </SafeAreaView>
+          ) : (
+            <View style={styles.section}>
+              <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
+                COLLECTION • {badges.filter((b) => b.earned_at).length}/{badges.length}
+              </Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Tes badges</Text>
+              <FlatList
+                data={badges}
+                numColumns={3}
+                keyExtractor={(item) => item.id}
+                renderItem={renderBadge}
+                scrollEnabled={false}
+                contentContainerStyle={styles.badgesGridE}
+                columnWrapperStyle={{ gap: 8, marginBottom: Spacing.sm }}
+              />
+            </View>
+          )
+        ) : leaderboard.length === 0 ? (
+          <View style={styles.emptyStateE}>
+            <View style={[styles.emptyIconE, { backgroundColor: `${colors.primary}10` }]}>
+              <Ionicons name="podium-outline" size={40} color={colors.primary} />
+            </View>
+            <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>PAS DE TOP</Text>
+            <Text style={[styles.emptyTitleE, { color: colors.text }]}>Classement vide</Text>
+            <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>
+              Le leaderboard sera disponible bientôt
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
+              TOP PLAYERS • LIVE
+            </Text>
+            <Text style={[styles.sectionTitleE, { color: colors.text }]}>Classement global</Text>
+            {leaderboard.map((item, index) => (
+              <View key={item.id || index}>
+                {renderLeaderRow({ item, index })}
+              </View>
+            ))}
+          </View>
+        )}
+
+        <View style={{ height: 80 }} />
+      </ScrollView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  // === HEADER ===
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   iconDisc: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -227,132 +444,384 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   title: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
-  pointsCard: {
+  tierPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    padding: Spacing.lg,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
   },
-  pointsIcon: {
+  tierPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: 140,
+  },
+
+  // === HERO CARD ===
+  heroCard: {
+    borderRadius: 28,
+    padding: Spacing.lg,
+    minHeight: 220,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+  },
+  heroCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  heroCircle2: {
+    position: 'absolute',
+    bottom: -40,
+    left: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(190,255,90,0.12)',
+  },
+  heroWatermark: {
+    position: 'absolute',
+    bottom: 14,
+    right: 18,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 80,
+    letterSpacing: -3,
+    color: 'rgba(255,255,255,0.06)',
+    lineHeight: 80,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  heroEyebrowCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flex: 1,
+    flexWrap: 'wrap',
+  },
+  heroEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  heroTierBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  heroTierBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#FFFFFF',
+    letterSpacing: 1.2,
+  },
+  heroPointsRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: Spacing.md,
+  },
+  heroPointsValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 50,
+    color: '#FFFFFF',
+    letterSpacing: -2.2,
+    lineHeight: 52,
+  },
+  heroPointsUnit: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1.2,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginBottom: Spacing.md,
+  },
+  tierProgressBlock: {
+    gap: 8,
+  },
+  tierProgressTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  tierProgressLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 1.5,
+  },
+  tierProgressValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 12,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  tierProgressBar: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    overflow: 'hidden',
+  },
+  tierProgressFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+  },
+
+  // === STAT STRIP ===
+  statStrip: {
+    flexDirection: 'row',
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  statCell: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    borderRightWidth: 1,
+    alignItems: 'flex-start',
+  },
+  statCellLast: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  statValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 24,
+  },
+  statLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+
+  // === TABS ===
+  tabsBar: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.md,
+  },
+  tabSeg: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    borderRadius: BorderRadius.full,
+  },
+  tabSegText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  tabSegBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  tabSegBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+  },
+
+  // === SECTION ===
+  section: {
+    marginTop: Spacing.sm,
+  },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  sectionTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+    marginBottom: Spacing.md,
+  },
+
+  // === BADGES GRID ===
+  badgesGridE: {
+    paddingTop: 4,
+  },
+  badgeCol: {
+    flex: 1 / 3,
+    alignItems: 'center',
+    gap: 4,
+  },
+  badgeCard: {
+    width: '92%',
+    aspectRatio: 1,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  badgeRibbon: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  badgeIconBoxE: {
     width: 56,
     height: 56,
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pointsEyebrow: {
-    fontFamily: FontFamily.bold,
-    fontSize: 10,
-    letterSpacing: 1.5,
-    marginBottom: 2,
-  },
-  pointsValue: {
+  badgeNameE: {
     fontFamily: FontFamily.displayBold,
-    fontSize: 32,
-    letterSpacing: -1,
+    fontSize: 11,
+    letterSpacing: -0.2,
+    textAlign: 'center',
+    lineHeight: 14,
+    marginTop: 4,
   },
-  pointsLabel: {
-    fontSize: FontSizes.xs,
-    marginTop: 2,
+  badgeDateE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 8,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
-  tabs: {
+
+  // === LEADERBOARD ===
+  leaderRow: {
     flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
     alignItems: 'center',
-    borderRadius: BorderRadius.full,
-  },
-  activeTab: {},
-  tabText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-  },
-  badgesGrid: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-  },
-  badgeItem: {
-    flex: 1 / 3,
-    alignItems: 'center',
-    marginBottom: Spacing.lg,
-    paddingHorizontal: Spacing.xs,
-  },
-  badgeIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: 16,
     borderWidth: 1,
+    marginBottom: 8,
+  },
+  rankBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xs,
   },
-  badgeName: {
+  rankMedal: {
+    fontSize: 22,
+  },
+  rankNumber: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.3,
+  },
+  leaderNameE: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+    lineHeight: 17,
+  },
+  leaderSub: {
     fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
-    textAlign: 'center',
+    fontSize: 11,
+    marginTop: 2,
+    letterSpacing: -0.1,
   },
-  badgeDate: {
-    fontSize: 10,
+  leaderPointsCol: {
+    alignItems: 'flex-end',
+    minWidth: 60,
+  },
+  leaderPointsValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.5,
+    lineHeight: 19,
+  },
+  leaderPointsLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
     marginTop: 2,
   },
-  leaderboardList: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
-    gap: Spacing.xs,
-  },
-  leaderboardItem: {
-    flexDirection: 'row',
+
+  // === EMPTY ===
+  emptyStateE: {
     alignItems: 'center',
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    padding: Spacing.md,
-  },
-  rank: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSizes.md,
-    width: 32,
-    textAlign: 'center',
-  },
-  leaderboardInfo: {
-    flex: 1,
-    marginLeft: Spacing.sm,
-  },
-  leaderboardName: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-  },
-  leaderboardPoints: {
-    fontFamily: FontFamily.bold,
-    fontSize: FontSizes.sm,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xl * 2,
-    gap: Spacing.xs,
-  },
-  emptyText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.md,
-    marginTop: Spacing.md,
-  },
-  emptySubtext: {
-    fontSize: FontSizes.sm,
-    textAlign: 'center',
+    paddingVertical: Spacing['2xl'],
     paddingHorizontal: Spacing.xl,
+  },
+  emptyIconE: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  emptyEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.xs,
+  },
+  emptyTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.6,
+    lineHeight: 26,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
+  },
+  emptyTextE: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 19,
+    maxWidth: 260,
   },
 });

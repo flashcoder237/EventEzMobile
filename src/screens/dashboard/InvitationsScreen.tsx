@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { invitationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { InvitationsScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Emails, AnimatedIllustration } from '../../components/illustrations';
@@ -274,7 +275,7 @@ export default function InvitationsScreen() {
     return (
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>RSVP</WatermarkNumeral>
-        <LoadingSpinner />
+        <InvitationsScreenSkeleton />
       </EditorialCanvas>
     );
   }

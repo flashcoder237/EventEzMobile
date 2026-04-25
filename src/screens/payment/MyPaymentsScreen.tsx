@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { paymentsAPI } from '../../api';
 import { Payment, RootStackParamList } from '../../types';
-import { SkeletonList, PaymentCardSkeleton } from '../../components/ui/Skeleton';
+import { SkeletonList, PaymentCardSkeleton, MyPaymentsScreenSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
@@ -362,9 +362,7 @@ export default function MyPaymentsScreen() {
     return (
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>PAID</WatermarkNumeral>
-        <View style={{ padding: Spacing.lg, paddingTop: Spacing.xl }}>
-          <SkeletonList count={6} Component={PaymentCardSkeleton} />
-        </View>
+        <MyPaymentsScreenSkeleton />
       </EditorialCanvas>
     );
   }

@@ -25,6 +25,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { getServiceFeeLabel } from '../../constants/payment';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { WalletScreenSkeleton } from '../../components/ui/Skeleton';
 import { walletAPI, payoutsAPI } from '../../api';
 import {
   OrganizerWallet,
@@ -433,7 +434,7 @@ export default function WalletScreen() {
     return (
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>{wallet?.currency || 'XAF'}</WatermarkNumeral>
-        <LoadingSpinner />
+        <WalletScreenSkeleton />
       </EditorialCanvas>
     );
   }

@@ -17,6 +17,7 @@ import * as Clipboard from 'expo-clipboard';
 import { referralsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { ReferralScreenSkeleton } from '../../components/ui/Skeleton';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { Colors, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
@@ -276,7 +277,7 @@ export default function ReferralScreen() {
     return (
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>+1</WatermarkNumeral>
-        <LoadingSpinner />
+        <ReferralScreenSkeleton />
       </EditorialCanvas>
     );
   }

@@ -25,6 +25,7 @@ import {
 } from '../../constants/theme';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { AnalyticsDashboardScreenSkeleton } from '../../components/ui/Skeleton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TimeRange = '7d' | '30d' | '90d' | '1y';
@@ -139,6 +140,15 @@ export default function AnalyticsDashboardScreen() {
       </View>
     );
   };
+
+  if (loading) {
+    return (
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>DATA</WatermarkNumeral>
+        <AnalyticsDashboardScreenSkeleton />
+      </EditorialCanvas>
+    );
+  }
 
   return (
     <EditorialCanvas edges={['top']}>
