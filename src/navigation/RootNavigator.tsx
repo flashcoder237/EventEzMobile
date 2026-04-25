@@ -246,14 +246,6 @@ export default function RootNavigator() {
       <Stack.Screen
         name="Verification"
         component={VerificationScreen}
-        options={{
-          headerShown: true,
-          headerTitle: 'Verification',
-          headerBackTitle: 'Retour',
-          headerTintColor: colors.primary,
-          headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
-        }}
       />
 
       {/* Messages Screens */}
