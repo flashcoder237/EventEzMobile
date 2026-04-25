@@ -455,18 +455,40 @@ export const LeaderboardRowSkeleton = memo(function LeaderboardRowSkeleton() {
 // Width: 82% of screen (like real card)
 // ============================================
 export const EventCardSkeleton = memo(function EventCardSkeleton() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   return (
-    <View style={[styles.eventCard, { backgroundColor: colors.card }]}>
-      <Skeleton height={200} borderRadius={0} />
-      <View style={styles.eventCardContent}>
-        <Skeleton width="45%" height={12} style={{ marginBottom: 6 }} />
-        <Skeleton width="85%" height={16} style={{ marginBottom: 6 }} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-          <Skeleton width={13} height={13} borderRadius={BorderRadius.full} />
-          <Skeleton width="50%" height={12} />
+    <View style={[styles.eventCard, { backgroundColor: colors.card, borderColor: hairline, borderWidth: 1 }]}>
+      {/* Image with overlays */}
+      <View style={{ height: 220, position: 'relative' }}>
+        <Skeleton height={220} borderRadius={0} />
+        {/* Eyebrow pill top-left */}
+        <View style={{ position: 'absolute', top: 12, left: 12 }}>
+          <Skeleton width={90} height={22} borderRadius={BorderRadius.full} />
         </View>
-        <Skeleton width="35%" height={16} />
+        {/* Bookmark disc top-right */}
+        <View style={{ position: 'absolute', top: 12, right: 12 }}>
+          <Skeleton width={34} height={34} borderRadius={17} />
+        </View>
+        {/* Title overlay bottom */}
+        <View style={{ position: 'absolute', left: 14, right: 14, bottom: 14, gap: 4 }}>
+          <Skeleton width="80%" height={22} borderRadius={4} />
+          <Skeleton width="60%" height={22} borderRadius={4} />
+        </View>
+      </View>
+      {/* Footer: date tile + meta + price pill */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', padding: Spacing.md, gap: 12 }}>
+        <View style={{ minWidth: 54, paddingHorizontal: 10, paddingVertical: 7, alignItems: 'center', gap: 3 }}>
+          <Skeleton width={26} height={20} borderRadius={4} />
+          <Skeleton width={22} height={9} borderRadius={2} />
+        </View>
+        <View style={{ flex: 1, gap: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Skeleton width={11} height={11} borderRadius={5.5} />
+            <Skeleton width="60%" height={11} borderRadius={3} />
+          </View>
+        </View>
+        <Skeleton width={70} height={28} borderRadius={BorderRadius.full} />
       </View>
     </View>
   );
@@ -474,24 +496,34 @@ export const EventCardSkeleton = memo(function EventCardSkeleton() {
 
 // ============================================
 // EVENT CARD HORIZONTAL SKELETON
-// Matches EventCard.tsx horizontal: image 120x130 + dateAccent + title + location + price + bookmark
+// Matches EventCard.tsx horizontal: image-left + body + bookmark-right
 // ============================================
 export const EventCardHorizontalSkeleton = memo(function EventCardHorizontalSkeleton() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   return (
-    <View style={[styles.eventCardHorizontal, { backgroundColor: colors.card }]}>
-      <Skeleton width={120} height={130} borderRadius={0} />
-      <View style={styles.eventCardHorizontalContent}>
-        <Skeleton width="60%" height={12} style={{ marginBottom: 6 }} />
-        <Skeleton width="90%" height={16} style={{ marginBottom: 4 }} />
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 8 }}>
-          <Skeleton width={13} height={13} borderRadius={BorderRadius.full} />
-          <Skeleton width="55%" height={12} />
+    <View style={[styles.eventCardHorizontal, { backgroundColor: colors.card, borderColor: hairline, borderWidth: 1, minHeight: 140 }]}>
+      <View style={{ width: 130, position: 'relative' }}>
+        <Skeleton width={130} height={140} borderRadius={0} />
+        {/* Floating date tile */}
+        <View style={{ position: 'absolute', top: 10, left: 10 }}>
+          <Skeleton width={42} height={32} borderRadius={BorderRadius.md} />
         </View>
-        <Skeleton width="40%" height={14} />
       </View>
-      <View style={styles.eventCardHorizontalBookmark}>
-        <Skeleton width={20} height={20} borderRadius={BorderRadius.xs} />
+      <View style={[styles.eventCardHorizontalContent, { gap: 4 }]}>
+        <Skeleton width={70} height={18} borderRadius={6} />
+        <Skeleton width="90%" height={15} borderRadius={4} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Skeleton width={11} height={11} borderRadius={5.5} />
+          <Skeleton width="55%" height={11} borderRadius={3} />
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+          <Skeleton width={60} height={20} borderRadius={4} />
+          <Skeleton width={50} height={18} borderRadius={6} />
+        </View>
+      </View>
+      <View style={{ alignItems: 'center', justifyContent: 'center', paddingRight: Spacing.sm }}>
+        <Skeleton width={32} height={32} borderRadius={16} />
       </View>
     </View>
   );
