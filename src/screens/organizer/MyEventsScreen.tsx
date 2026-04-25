@@ -9,10 +9,11 @@ import {
   TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -22,6 +23,7 @@ import { eventsAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
 import { Event, RootStackParamList } from '../../types';
 import {
+  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
@@ -30,6 +32,7 @@ import {
 } from '../../constants/theme';
 import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -248,6 +251,16 @@ export default function MyEventsScreen() {
   const renderEvent = ({ item, index }: { item: Event; index: number }) => {
     const config = statusConfig[item.status] || statusConfig.draft;
     const location = getLocationDisplay(item);
+    const startDate = new Date(item.start_date);
+    const day = String(startDate.getDate()).padStart(2, '0');
+    const month = startDate.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
+    const time = startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const statusEyebrow = item.status === 'validated' ? 'EN LIGNE' :
+                          item.status === 'submitted' ? 'EN ATTENTE' :
+                          item.status === 'draft' ? 'BROUILLON' :
+                          item.status === 'rejected' ? 'REJETÉ' :
+                          item.status === 'completed' ? 'TERMINÉ' :
+                          item.status === 'cancelled' ? 'ANNULÉ' : 'PUBLIÉ';
 
     return (
       <StaggeredItem index={index}>
@@ -255,14 +268,15 @@ export default function MyEventsScreen() {
           style={[
             styles.eventCard,
             { backgroundColor: colors.card, borderColor: hairline },
-            Shadows.sm,
+            Shadows.lg,
           ]}
           onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
           onLongPress={() => showEventActions(item)}
-          activeOpacity={0.85}
+          activeOpacity={0.92}
           accessibilityRole="button"
           accessibilityLabel={`Evenement ${item.title}`}
         >
+          {/* === BANNER WITH OVERLAY === */}
           <View style={styles.imageWrap}>
             <Image
               source={
@@ -275,124 +289,157 @@ export default function MyEventsScreen() {
               cachePolicy="memory-disk"
               transition={300}
             />
-            <View style={[styles.statusBadge, { backgroundColor: `${config.color}15` }]}>
-              <Ionicons name={config.icon} size={11} color={config.color} />
-              <Text style={[styles.statusText, { color: config.color }]}>{config.label}</Text>
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.5)']}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            />
+
+            {/* Status pill top-left */}
+            <View style={[styles.statusEyebrowPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
+              <View style={[styles.statusEyebrowDot, { backgroundColor: config.color }]} />
+              <Text style={[styles.statusEyebrowText, { color: '#111' }]}>{statusEyebrow}</Text>
+            </View>
+
+            {/* Date tile top-right */}
+            <View style={[styles.dateTileTop, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
+              <Text style={[styles.dateTileDay, { color: colors.text }]}>{day}</Text>
+              <Text style={[styles.dateTileMonth, { color: colors.accent }]}>{month}</Text>
+            </View>
+
+            {/* Title overlay */}
+            <View style={styles.titleOverlay}>
+              {item.category?.name && (
+                <Text style={styles.categoryEyebrow}>{item.category.name.toUpperCase()}</Text>
+              )}
+              <Text style={styles.titleOverlayText} numberOfLines={2}>
+                {item.title}
+              </Text>
             </View>
           </View>
 
-          <View style={styles.eventContent}>
-            <Text style={[styles.eventTitle, { color: colors.text }]} numberOfLines={2}>
-              {item.title}
-            </Text>
-
-            <View style={styles.eventMeta}>
-              <View style={styles.metaItem}>
-                <Ionicons name="time-outline" size={14} color={colors.gray500} />
-                <Text style={[styles.metaText, { color: colors.gray500 }]}>{formatDate(item.start_date)}</Text>
-              </View>
-              <View style={styles.metaItem}>
-                <Ionicons name={location.icon} size={14} color={location.color} />
-                <Text style={[styles.metaText, { color: location.color }]} numberOfLines={1}>
-                  {location.text}
-                </Text>
-              </View>
+          {/* === META ROW === */}
+          <View style={styles.metaRow}>
+            <View style={styles.metaItemE}>
+              <Ionicons name="time-outline" size={13} color={colors.gray500} />
+              <Text style={[styles.metaTextE, { color: colors.gray600 }]}>{time}</Text>
             </View>
-
-            <View style={[styles.eventStats, { borderTopColor: hairline }]}>
-              <View style={styles.statCluster}>
-                <View style={styles.statBlock}>
-                  <Text style={[styles.statBlockValue, { color: colors.text }]}>
-                    {item.registration_count || item.registrations_count || 0}
-                  </Text>
-                  <Text style={[styles.statBlockLabel, { color: colors.gray500 }]}>inscrits</Text>
-                </View>
-                <View style={[styles.statDivider, { backgroundColor: hairline }]} />
-                <View style={styles.statBlock}>
-                  <Text style={[styles.statBlockValue, { color: colors.text }]}>{item.view_count || 0}</Text>
-                  <Text style={[styles.statBlockLabel, { color: colors.gray500 }]}>vues</Text>
-                </View>
-              </View>
-              <Text style={[styles.priceText, { color: colors.primary }]}>
-                {item.is_free ? 'Gratuit' : `${item.base_price?.toLocaleString() || 0} ${item.currency || 'FCFA'}`}
+            <View style={[styles.metaDot, { backgroundColor: colors.gray300 }]} />
+            <View style={styles.metaItemE}>
+              <Ionicons name={location.icon} size={13} color={location.color} />
+              <Text style={[styles.metaTextE, { color: location.color }]} numberOfLines={1}>
+                {location.text}
               </Text>
             </View>
+          </View>
 
-            {/* Quick Actions */}
-            <View style={[styles.actionsRow, { borderTopColor: hairline }]}>
-              <TouchableOpacity
-                style={[styles.actionChip, { backgroundColor: inputBg, borderColor: hairline }]}
-                onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
-                accessibilityRole="button"
-                accessibilityLabel="Voir l'evenement"
-              >
-                <Ionicons name="eye-outline" size={14} color={colors.text} />
-                <Text style={[styles.actionChipText, { color: colors.text }]}>Voir</Text>
-              </TouchableOpacity>
-
-              {item.status === 'validated' && (
-                <>
-                  <TouchableOpacity
-                    style={[styles.actionChipPrimary, { backgroundColor: colors.primary }]}
-                    onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
-                    accessibilityRole="button"
-                    accessibilityLabel="Scanner QR code"
-                  >
-                    <Ionicons name="qr-code" size={14} color="#FFFFFF" />
-                    <Text style={[styles.actionChipPrimaryText]}>Scanner</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionChip, { backgroundColor: inputBg, borderColor: hairline }]}
-                    onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
-                    accessibilityRole="button"
-                    accessibilityLabel="Voir les inscrits"
-                  >
-                    <Ionicons name="people-outline" size={14} color={colors.text} />
-                    <Text style={[styles.actionChipText, { color: colors.text }]}>Inscrits</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.actionIcon, { backgroundColor: inputBg, borderColor: hairline }]}
-                    onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
-                    accessibilityRole="button"
-                    accessibilityLabel="Voir les statistiques"
-                  >
-                    <Ionicons name="stats-chart-outline" size={14} color={colors.text} />
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {item.status === 'draft' && (
-                <TouchableOpacity
-                  style={[styles.actionChipPrimary, { backgroundColor: colors.primary }]}
-                  onPress={() => handleSubmitForValidation(item.id)}
-                  accessibilityRole="button"
-                  accessibilityLabel="Publier l'evenement"
-                >
-                  <Ionicons name="send" size={14} color="#FFFFFF" />
-                  <Text style={styles.actionChipPrimaryText}>Publier</Text>
-                </TouchableOpacity>
-              )}
-
-              {(item.status === 'draft' || item.status === 'rejected') && (
-                <TouchableOpacity
-                  style={[styles.actionIcon, { backgroundColor: inputBg, borderColor: hairline }]}
-                  onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
-                  accessibilityRole="button"
-                  accessibilityLabel="Modifier l'evenement"
-                >
-                  <Ionicons name="create-outline" size={14} color={colors.text} />
-                </TouchableOpacity>
-              )}
-
-              <TouchableOpacity
-                style={[styles.actionIcon, { backgroundColor: inputBg, borderColor: hairline }]}
-                onPress={() => showEventActions(item)}
-                accessibilityRole="button"
-                accessibilityLabel="Plus d'actions"
-              >
-                <Ionicons name="ellipsis-horizontal" size={14} color={colors.text} />
-              </TouchableOpacity>
+          {/* === STATS BAR === */}
+          <View style={[styles.eventStats, { borderTopColor: hairline, borderBottomColor: hairline }]}>
+            <View style={styles.statBlockE}>
+              <Text style={[styles.statBlockValueE, { color: colors.text }]}>
+                {item.registration_count || item.registrations_count || 0}
+              </Text>
+              <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>INSCRITS</Text>
             </View>
+            <View style={[styles.statDivider, { backgroundColor: hairline }]} />
+            <View style={styles.statBlockE}>
+              <Text style={[styles.statBlockValueE, { color: colors.text }]}>{item.view_count || 0}</Text>
+              <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>VUES</Text>
+            </View>
+            <View style={[styles.statDivider, { backgroundColor: hairline }]} />
+            <View style={styles.statBlockE}>
+              <Text style={[styles.statBlockValueE, { color: colors.primary }]}>
+                {item.is_free ? 'FREE' : `${item.base_price?.toLocaleString() || 0}`}
+              </Text>
+              <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>
+                {item.is_free ? 'GRATUIT' : (item.currency || 'XAF')}
+              </Text>
+            </View>
+          </View>
+
+          {/* === ACTIONS === */}
+          <View style={styles.actionsRow}>
+            {item.status === 'validated' && (
+              <>
+                <TouchableOpacity
+                  style={[styles.primaryActionPill, Shadows.buttonPrimary]}
+                  onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scanner QR code"
+                >
+                  <LinearGradient
+                    colors={[colors.primary, colors.primaryDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  <Ionicons name="qr-code" size={14} color={Colors.white} />
+                  <Text style={styles.primaryActionPillText}>Scanner</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
+                  onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voir les inscrits"
+                >
+                  <Ionicons name="people-outline" size={14} color={colors.gray700} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
+                  onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voir les statistiques"
+                >
+                  <Ionicons name="stats-chart-outline" size={14} color={colors.gray700} />
+                </TouchableOpacity>
+              </>
+            )}
+
+            {item.status === 'draft' && (
+              <TouchableOpacity
+                style={[styles.primaryActionPill, Shadows.buttonPrimary]}
+                onPress={() => handleSubmitForValidation(item.id)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Publier l'evenement"
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Ionicons name="send" size={14} color={Colors.white} />
+                <Text style={styles.primaryActionPillText}>Publier</Text>
+              </TouchableOpacity>
+            )}
+
+            {(item.status === 'draft' || item.status === 'rejected') && (
+              <TouchableOpacity
+                style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
+                onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Modifier l'evenement"
+              >
+                <Ionicons name="create-outline" size={14} color={colors.gray700} />
+              </TouchableOpacity>
+            )}
+
+            <View style={{ flex: 1 }} />
+
+            <TouchableOpacity
+              style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
+              onPress={() => showEventActions(item)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Plus d'actions"
+            >
+              <Ionicons name="ellipsis-horizontal" size={14} color={colors.gray700} />
+            </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </StaggeredItem>
@@ -411,24 +458,42 @@ export default function MyEventsScreen() {
   const renderFilterItem = useCallback(
     ({ item }: { item: { value: FilterStatus; label: string } }) => {
       const active = filter === item.value;
+      const itemColor = item.value === 'all' ? colors.text :
+                        item.value === 'validated' ? '#10B981' :
+                        item.value === 'submitted' ? '#F59E0B' :
+                        item.value === 'draft' ? colors.gray500 :
+                        item.value === 'rejected' ? '#EF4444' :
+                        item.value === 'completed' ? '#3B82F6' : colors.gray500;
       return (
         <TouchableOpacity
           style={[
             styles.filterPill,
             active
-              ? { backgroundColor: colors.text, borderColor: colors.text }
-              : { backgroundColor: colors.card, borderColor: hairline },
+              ? { backgroundColor: colors.text}
+              : {
+                  backgroundColor: colors.card,
+                  borderColor: hairline,
+                  borderWidth: 1,
+                },
           ]}
           onPress={() => setFilter(item.value)}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
           accessibilityRole="tab"
           accessibilityState={{ selected: active }}
           accessibilityLabel={`Filtre ${item.label}`}
         >
+          {item.value !== 'all' && (
+            <View
+              style={[
+                styles.filterDot,
+                { backgroundColor: active ? Colors.white : itemColor },
+              ]}
+            />
+          )}
           <Text
             style={[
               styles.filterPillText,
-              { color: active ? colors.background : colors.gray600 },
+              { color: active ? Colors.white : colors.gray700 },
             ]}
           >
             {item.label}
@@ -440,29 +505,47 @@ export default function MyEventsScreen() {
   );
 
   const renderHeader = () => (
-    <View style={[styles.header, { borderBottomColor: hairline }]}>
-      <TouchableOpacity
-        style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-        onPress={() => navigation.goBack()}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel="Retour"
-      >
-        <Ionicons name="chevron-back" size={18} color={colors.text} />
-      </TouchableOpacity>
-      <View style={{ flex: 1, marginLeft: Spacing.md }}>
-        <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON CATALOGUE</Text>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Mes événements</Text>
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+          borderBottomColor: hairline,
+        },
+      ]}
+    >
+      <View style={styles.headerTopRow}>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Retour"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+        </TouchableOpacity>
+        <View style={styles.headerTextCol}>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+            CATALOGUE • ORGANISATEUR
+          </Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Events</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.headerCreateBtn, Shadows.buttonPrimary]}
+          onPress={() => navigation.navigate('EventCreate')}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Creer un evenement"
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Ionicons name="add" size={20} color={Colors.white} />
+        </TouchableOpacity>
       </View>
-      <TouchableOpacity
-        style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-        onPress={() => navigation.navigate('EventCreate')}
-        activeOpacity={0.7}
-        accessibilityRole="button"
-        accessibilityLabel="Creer un evenement"
-      >
-        <Ionicons name="add" size={20} color={colors.primary} />
-      </TouchableOpacity>
     </View>
   );
 
@@ -471,24 +554,38 @@ export default function MyEventsScreen() {
       <AnimatedIllustration entry="fadeIn" idle="sway">
         <EventsIllustration color={colors.primary} size={160} />
       </AnimatedIllustration>
+      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>
+        {searchQuery || filter !== 'all' ? 'AUCUN RÉSULTAT' : 'CATALOGUE VIDE'}
+      </Text>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Aucun événement'}
+        {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Démarre ton aventure'}
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filter !== 'all'
           ? 'Essayez de modifier vos critères de recherche'
-          : 'Créez votre premier événement pour commencer'}
+          : 'Créez votre premier événement pour commencer.\nC\'est rapide et 100% gratuit.'}
       </Text>
       {!searchQuery && filter === 'all' && (
         <TouchableOpacity
-          style={[styles.createButton, { backgroundColor: colors.primary }]}
+          style={[styles.createPillBtn, Shadows.buttonPrimary]}
           onPress={() => navigation.navigate('EventCreate')}
-          activeOpacity={0.85}
+          activeOpacity={0.9}
           accessibilityRole="button"
           accessibilityLabel="Creer un evenement"
         >
-          <Ionicons name="add" size={18} color="#FFFFFF" />
-          <Text style={styles.createButtonText}>Créer mon premier événement</Text>
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.createPillEyebrow}>NOUVEAU EVENT</Text>
+            <Text style={styles.createPillLabel}>Créer mon premier event</Text>
+          </View>
+          <View style={styles.createPillArrow}>
+            <Ionicons name="arrow-forward" size={16} color={Colors.white} />
+          </View>
         </TouchableOpacity>
       )}
     </View>
@@ -496,18 +593,20 @@ export default function MyEventsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>LIVE</WatermarkNumeral>
         {renderHeader()}
         <MyEventsScreenSkeleton />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>LIVE</WatermarkNumeral>
       {renderHeader()}
 
-      {/* Stats Card */}
+      {/* === EDITORIAL STAT STRIP === */}
       <View
         style={[
           styles.statsCard,
@@ -515,26 +614,34 @@ export default function MyEventsScreen() {
           Shadows.sm,
         ]}
       >
-        <View style={styles.statItem}>
+        <View style={[styles.statItem, { borderRightColor: hairline }]}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Total</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>TOTAL</Text>
         </View>
-        <View style={[styles.statCardDivider, { backgroundColor: hairline }]} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>{stats.validated}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Validés</Text>
+        <View style={[styles.statItem, { borderRightColor: hairline }]}>
+          <View style={styles.statValueRow}>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.validated}</Text>
+            {stats.validated > 0 && <View style={[styles.statDot, { backgroundColor: '#10B981' }]} />}
+          </View>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>VALIDÉS</Text>
         </View>
-        <View style={[styles.statCardDivider, { backgroundColor: hairline }]} />
-        <View style={styles.statItem}>
+        <View style={[styles.statItem, { borderRightColor: hairline }]}>
+          <View style={styles.statValueRow}>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.submitted}</Text>
+            {stats.submitted > 0 && <View style={[styles.statDot, { backgroundColor: '#F59E0B' }]} />}
+          </View>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>EN ATTENTE</Text>
+        </View>
+        <View style={styles.statItemLast}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats.draft}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Brouillons</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>BROUILLONS</Text>
         </View>
       </View>
 
-      {/* Search */}
+      {/* === SEARCH TRIGGER === */}
       <View style={styles.searchContainer}>
-        <View style={[styles.searchBar, { backgroundColor: inputBg, borderColor: hairline }]}>
-          <Ionicons name="search" size={18} color={colors.gray400} />
+        <View style={[styles.searchBar, { backgroundColor: colors.card, borderColor: hairline }]}>
+          <Ionicons name="search" size={16} color={colors.gray400} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
             placeholder="Rechercher un événement..."
@@ -545,9 +652,12 @@ export default function MyEventsScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Effacer la recherche">
-              <Ionicons name="close-circle" size={18} color={colors.gray400} />
+              <Ionicons name="close-circle" size={16} color={colors.gray400} />
             </TouchableOpacity>
           )}
+          <View style={[styles.searchPill, { backgroundColor: colors.gray100 }]}>
+            <Ionicons name="filter" size={12} color={colors.gray600} />
+          </View>
         </View>
       </View>
 
@@ -589,27 +699,40 @@ export default function MyEventsScreen() {
         windowSize={5}
         removeClippedSubviews
       />
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  headerTextCol: { flex: 1 },
   iconDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerCreateBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   headerEyebrow: {
     fontFamily: FontFamily.bold,
@@ -619,31 +742,52 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
   statsCard: {
     flexDirection: 'row',
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.xl,
+    marginTop: Spacing.lg,
+    borderRadius: 18,
     borderWidth: 1,
-    paddingVertical: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   statItem: {
     flex: 1,
+    paddingHorizontal: Spacing.sm,
+    borderRightWidth: 1,
+    alignItems: 'flex-start',
+  },
+  statItemLast: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  statValueRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   statValue: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    lineHeight: 24,
+    letterSpacing: -0.7,
+  },
+  statDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
   },
   statLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.xs,
-    marginTop: 2,
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    marginTop: 4,
+    textTransform: 'uppercase',
   },
   statCardDivider: { width: 1 },
   searchContainer: {
@@ -653,16 +797,24 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: BorderRadius.full,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
     gap: Spacing.sm,
+    height: 46,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: Spacing.sm + 2,
-    fontFamily: FontFamily.medium,
+    paddingVertical: 0,
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
+  },
+  searchPill: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterContainer: {
     paddingTop: Spacing.md,
@@ -670,184 +822,258 @@ const styles = StyleSheet.create({
   },
   filterList: {
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.sm,
+    gap: 8,
   },
   filterPill: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    marginRight: Spacing.sm,
+    marginRight: 8,
+  },
+  filterDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   filterPillText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.2,
   },
   listContent: {
     paddingTop: Spacing.sm,
     flexGrow: 1,
   },
+
+  // === EDITORIAL: EVENT CARD ===
   eventCard: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: 24,
     marginBottom: Spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
   },
   imageWrap: {
     position: 'relative',
+    height: 200,
   },
   eventImage: {
     width: '100%',
-    height: 160,
+    height: '100%',
   },
-  statusBadge: {
+  statusEyebrowPill: {
     position: 'absolute',
-    top: Spacing.sm,
-    right: Spacing.sm,
+    top: 12,
+    left: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
-    gap: 4,
   },
-  statusText: {
+  statusEyebrowDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusEyebrowText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+  },
+  dateTileTop: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    minWidth: 56,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  dateTileDay: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    lineHeight: 22,
+    letterSpacing: -0.8,
+  },
+  dateTileMonth: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginTop: 2,
+  },
+  titleOverlay: {
+    position: 'absolute',
+    left: 14,
+    right: 14,
+    bottom: 14,
+  },
+  categoryEyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    letterSpacing: 0.3,
+    color: 'rgba(255,255,255,0.85)',
+    letterSpacing: 1.5,
+    marginBottom: 4,
   },
-  eventContent: {
-    padding: Spacing.md,
+  titleOverlayText: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    color: '#FFFFFF',
+    letterSpacing: -0.6,
+    lineHeight: 26,
   },
-  eventTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.lg,
-    letterSpacing: -0.3,
-    lineHeight: FontSizes.lg * 1.25,
-    marginBottom: Spacing.sm,
-  },
-  eventMeta: {
-    gap: 6,
-    marginBottom: Spacing.md,
-  },
-  metaItem: {
+  metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
-  metaText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    flex: 1,
+  metaItemE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  metaTextE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
+  metaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    marginHorizontal: 4,
   },
   eventStats: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
+    borderBottomWidth: 1,
   },
-  statCluster: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
+  statBlockE: {
+    flex: 1,
+    alignItems: 'flex-start',
   },
-  statBlock: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 4,
+  statBlockValueE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    letterSpacing: -0.5,
+    lineHeight: 20,
   },
-  statBlockValue: {
+  statBlockLabelE: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSizes.base,
-  },
-  statBlockLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.xs,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    marginTop: 4,
   },
   statDivider: {
     width: 1,
-    height: 14,
+    height: 30,
+    marginHorizontal: Spacing.sm,
   },
-  priceText: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.base,
-    letterSpacing: -0.2,
-  },
+
+  // === ACTIONS ===
   actionsRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
+    alignItems: 'center',
+    gap: 8,
+    padding: Spacing.md,
   },
-  actionChip: {
+  primaryActionPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    gap: 4,
+    overflow: 'hidden',
   },
-  actionChipText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
-  },
-  actionChipPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 6,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: BorderRadius.full,
-    gap: 4,
-  },
-  actionChipPrimaryText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
+  primaryActionPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
-  actionIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
+  actionChipE: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // === EMPTY ===
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: Spacing['3xl'],
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.xs,
   },
   emptyTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
-    marginTop: Spacing.lg,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1,
+    lineHeight: 32,
+    textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   emptyText: {
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
     textAlign: 'center',
-    lineHeight: 20,
-    paddingHorizontal: Spacing.xl,
+    lineHeight: 21,
     marginBottom: Spacing.xl,
+    maxWidth: 300,
   },
-  createButton: {
+  createPillBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
-    gap: Spacing.sm,
+    overflow: 'hidden',
+    minWidth: 280,
   },
-  createButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
+  createPillEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  createPillLabel: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 14,
     color: '#FFFFFF',
+    letterSpacing: -0.2,
+    marginTop: 2,
+  },
+  createPillArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: Spacing.sm,
   },
 });

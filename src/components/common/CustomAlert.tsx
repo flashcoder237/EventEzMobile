@@ -1,17 +1,16 @@
 /**
- * CustomAlert — Bottom Sheet redesign
+ * CustomAlert — Editorial Bottom Sheet
  *
- * Design :
- *  - Sheet ancré en bas, coins arrondis en haut (BorderRadius['3xl'])
- *  - Handle bar centrée + icône double ring animée
- *  - Backdrop assombri indépendant du sheet
- *  - Boutons : row si ≤2, colonne si >2 (cancel en dernier)
+ * Direction visuelle : éditorial neo-brutalist (style guide EventEz)
+ *  - Eyebrow uppercase tracking 1.8 + display title large
+ *  - Icon hero gradient + ring animée
+ *  - Watermark numéral discret (signature du type)
+ *  - Boutons : pill gradient pour primary, ghost pour cancel
  *
- * Animations (Reanimated) :
- *  - Entrée  : sheet spring(damping=17) depuis bas + légère rotation initiale
- *              backdrop fade(300ms) + icon rings scale en cascade (delay 130/180ms)
- *  - Sortie  : sheet spring rapide vers bas, backdrop fade, icon scale-out
- *              Modal masquée 300ms après le déclenchement de la sortie
+ * Animations (Reanimated) — préservées :
+ *  - sheet spring entrée + rotation initiale
+ *  - backdrop fade
+ *  - icon rings cascade
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
@@ -33,12 +32,14 @@ import Reanimated, {
   Easing,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  Colors,
   FontFamily,
-  FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
   TOUCH_OPACITY,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -64,31 +65,54 @@ interface CustomAlertProps {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
-// Couleurs sémantiques fixes (lisibles en light & dark)
 const ACCENT: Record<AlertType, string> = {
   success: '#10B981',
-  error:   '#EF4444',
+  error: '#EF4444',
   warning: '#F59E0B',
-  info:    '',        // → colors.primary à l'exécution
-  confirm: '',        // → colors.primary à l'exécution
+  info: '',
+  confirm: '',
+};
+
+const ACCENT_DARK: Record<AlertType, string> = {
+  success: '#059669',
+  error: '#DC2626',
+  warning: '#D97706',
+  info: '',
+  confirm: '',
 };
 
 const ICON: Record<AlertType, keyof typeof Ionicons.glyphMap> = {
-  success: 'checkmark-circle',
-  error:   'close-circle',
-  warning: 'warning',
-  info:    'information-circle',
-  confirm: 'help-circle',
+  success: 'checkmark',
+  error: 'close',
+  warning: 'alert',
+  info: 'information',
+  confirm: 'help',
 };
 
-// ─── Constantes animation ─────────────────────────────────────────────────────
+const EYEBROW: Record<AlertType, string> = {
+  success: 'SUCCÈS',
+  error: 'ERREUR',
+  warning: 'ATTENTION',
+  info: 'INFO',
+  confirm: 'CONFIRMATION',
+};
+
+const WATERMARK: Record<AlertType, string> = {
+  success: 'OK!',
+  error: 'OOPS',
+  warning: '!',
+  info: 'i',
+  confirm: '?',
+};
+
+// ─── Animation constants ─────────────────────────────────────────────────────
 
 const { height: SCREEN_H } = Dimensions.get('window');
-const SPRING_IN  = { damping: 17, stiffness: 190, mass: 0.9 } as const;
+const SPRING_IN = { damping: 17, stiffness: 190, mass: 0.9 } as const;
 const SPRING_OUT = { damping: 24, stiffness: 300, mass: 0.8 } as const;
-const EXIT_DELAY = 290; // ms avant de cacher le Modal
+const EXIT_DELAY = 290;
 
-// ─── Composant principal ──────────────────────────────────────────────────────
+// ─── Component ──────────────────────────────────────────────────────
 
 export default function CustomAlert({
   visible,
@@ -98,60 +122,53 @@ export default function CustomAlert({
   buttons = [{ text: 'OK' }],
   onClose,
 }: CustomAlertProps) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
-  // État interne : le Modal reste ouvert pendant l'animation de sortie
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Valeurs animées
-  const sheetY      = useSharedValue(SCREEN_H);
+  const sheetY = useSharedValue(SCREEN_H);
   const sheetRotate = useSharedValue(-0.012);
   const backdropAlp = useSharedValue(0);
-  const outerScale  = useSharedValue(0);
-  const innerScale  = useSharedValue(0);
+  const outerScale = useSharedValue(0);
+  const innerScale = useSharedValue(0);
 
   const accent = ACCENT[type] || colors.primary;
-
-  // ── Gestion visible ────────────────────────────────────────────────────────
+  const accentDark = ACCENT_DARK[type] || colors.primaryDark;
 
   useEffect(() => {
     if (visible) {
-      // Réinitialiser positions de départ
-      sheetY.value      = SCREEN_H;
+      sheetY.value = SCREEN_H;
       sheetRotate.value = -0.012;
       backdropAlp.value = 0;
-      outerScale.value  = 0;
-      innerScale.value  = 0;
+      outerScale.value = 0;
+      innerScale.value = 0;
 
       setModalOpen(true);
 
-      // Un frame de délai pour que le Modal soit rendu avant d'animer
       const id = setTimeout(() => {
-        sheetY.value      = withSpring(0, SPRING_IN);
+        sheetY.value = withSpring(0, SPRING_IN);
         sheetRotate.value = withSpring(0, { damping: 14, stiffness: 180 });
         backdropAlp.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.ease) });
-        outerScale.value  = withDelay(130, withSpring(1, { damping: 10, stiffness: 210 }));
-        innerScale.value  = withDelay(185, withSpring(1, { damping: 8,  stiffness: 230 }));
+        outerScale.value = withDelay(130, withSpring(1, { damping: 10, stiffness: 210 }));
+        innerScale.value = withDelay(185, withSpring(1, { damping: 8, stiffness: 230 }));
       }, 10);
 
       return () => clearTimeout(id);
     } else {
-      // Animation de sortie
-      sheetY.value      = withSpring(SCREEN_H, SPRING_OUT);
+      sheetY.value = withSpring(SCREEN_H, SPRING_OUT);
       sheetRotate.value = withTiming(-0.008, { duration: 220 });
       backdropAlp.value = withTiming(0, { duration: 220 });
-      outerScale.value  = withTiming(0, { duration: 180 });
-      innerScale.value  = withTiming(0, { duration: 140 });
+      outerScale.value = withTiming(0, { duration: 180 });
+      innerScale.value = withTiming(0, { duration: 140 });
 
       const id = setTimeout(() => setModalOpen(false), EXIT_DELAY);
       return () => clearTimeout(id);
     }
   }, [visible]);
 
-  // ── Styles animés ──────────────────────────────────────────────────────────
-
-  const sheetAnim    = useAnimatedStyle(() => ({
+  const sheetAnim = useAnimatedStyle(() => ({
     transform: [
       { translateY: sheetY.value },
       { rotate: `${sheetRotate.value}rad` },
@@ -159,57 +176,100 @@ export default function CustomAlert({
   }));
 
   const backdropAnim = useAnimatedStyle(() => ({ opacity: backdropAlp.value }));
-  const outerAnim   = useAnimatedStyle(() => ({ transform: [{ scale: outerScale.value }] }));
-  const innerAnim   = useAnimatedStyle(() => ({ transform: [{ scale: innerScale.value }] }));
-
-  // ── Handlers ───────────────────────────────────────────────────────────────
+  const outerAnim = useAnimatedStyle(() => ({ transform: [{ scale: outerScale.value }] }));
+  const innerAnim = useAnimatedStyle(() => ({ transform: [{ scale: innerScale.value }] }));
 
   const handlePress = useCallback((btn: AlertButton) => {
     onClose();
-    // Exécuter le callback après la fermeture du Modal pour ne pas bloquer la navigation
     if (btn.onPress) {
       setTimeout(btn.onPress, EXIT_DELAY + 50);
     }
   }, [onClose]);
 
-  // ── Boutons ────────────────────────────────────────────────────────────────
-
-  // Séparer cancel du reste pour le placer en dernier dans la colonne
+  // Reorder buttons : actions first, cancel last
   const actionButtons = buttons.filter(b => b.style !== 'cancel');
   const cancelButtons = buttons.filter(b => b.style === 'cancel');
   const ordered = [...actionButtons, ...cancelButtons];
   const isColumn = buttons.length > 2;
 
   const renderButton = (btn: AlertButton, i: number) => {
-    const isCancel      = btn.style === 'cancel';
+    const isCancel = btn.style === 'cancel';
     const isDestructive = btn.style === 'destructive';
+    const isPrimary = !isCancel && !isDestructive;
 
-    const bgColor   = isCancel ? 'transparent' : isDestructive ? colors.error : accent;
-    const txtColor  = isCancel ? colors.gray500 : '#FFFFFF';
-    const border    = isCancel ? { borderWidth: 1, borderColor: colors.gray200 } : {};
+    if (isCancel) {
+      return (
+        <TouchableOpacity
+          key={i}
+          style={[
+            styles.cancelBtn,
+            { backgroundColor: colors.gray100 },
+            !isColumn && { flex: 1 },
+            isColumn && styles.btnFull,
+          ]}
+          onPress={() => handlePress(btn)}
+          activeOpacity={TOUCH_OPACITY}
+        >
+          <Text style={[styles.cancelBtnText, { color: colors.gray700 }]}>
+            {btn.text}
+          </Text>
+        </TouchableOpacity>
+      );
+    }
 
+    if (isDestructive) {
+      return (
+        <TouchableOpacity
+          key={i}
+          style={[
+            styles.actionPill,
+            !isColumn && { flex: 1 },
+            isColumn && styles.btnFull,
+            Shadows.buttonPrimary,
+          ]}
+          onPress={() => handlePress(btn)}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#EF4444', '#DC2626']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Text style={styles.actionPillText} numberOfLines={1}>{btn.text}</Text>
+          <View style={styles.actionPillArrow}>
+            <Ionicons name="trash" size={13} color="#FFFFFF" />
+          </View>
+        </TouchableOpacity>
+      );
+    }
+
+    // Primary action
     return (
       <TouchableOpacity
         key={i}
         style={[
-          styles.button,
-          { backgroundColor: bgColor },
-          border,
+          styles.actionPill,
           !isColumn && { flex: 1 },
-          isColumn && styles.buttonFull,
-          isCancel && isColumn && styles.cancelColumnBtn,
+          isColumn && styles.btnFull,
+          Shadows.buttonPrimary,
         ]}
         onPress={() => handlePress(btn)}
-        activeOpacity={TOUCH_OPACITY}
+        activeOpacity={0.9}
       >
-        <Text style={[styles.buttonText, { color: txtColor }]}>
-          {btn.text}
-        </Text>
+        <LinearGradient
+          colors={[accent, accentDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <Text style={styles.actionPillText} numberOfLines={1}>{btn.text}</Text>
+        <View style={styles.actionPillArrow}>
+          <Ionicons name="checkmark" size={13} color="#FFFFFF" />
+        </View>
       </TouchableOpacity>
     );
   };
-
-  // ── Rendu ──────────────────────────────────────────────────────────────────
 
   return (
     <Modal
@@ -230,22 +290,37 @@ export default function CustomAlert({
           styles.sheet,
           {
             backgroundColor: colors.card,
+            borderTopColor: hairline,
             paddingBottom: Math.max(insets.bottom + Spacing.sm, Spacing.xl),
           },
           sheetAnim,
         ]}
       >
+        {/* Watermark numeral */}
+        <Text style={[styles.watermark, { color: accent + '08' }]}>
+          {WATERMARK[type]}
+        </Text>
+
         {/* Handle */}
         <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
 
-        {/* Icône double ring */}
-        <Reanimated.View style={[styles.iconOuter, { backgroundColor: accent + '18' }, outerAnim]}>
-          <Reanimated.View style={[styles.iconInner, { backgroundColor: accent + '2E' }, innerAnim]}>
-            <Ionicons name={ICON[type]} size={34} color={accent} />
+        {/* Editorial Icon — gradient hero */}
+        <Reanimated.View style={[styles.iconOuter, { borderColor: accent + '30' }, outerAnim]}>
+          <Reanimated.View style={[styles.iconInner, innerAnim]}>
+            <LinearGradient
+              colors={[accent, accentDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Ionicons name={ICON[type]} size={32} color="#FFFFFF" />
           </Reanimated.View>
         </Reanimated.View>
 
-        {/* Titre */}
+        {/* Eyebrow */}
+        <Text style={[styles.eyebrow, { color: accent }]}>{EYEBROW[type]}</Text>
+
+        {/* Title display */}
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
 
         {/* Message */}
@@ -253,10 +328,7 @@ export default function CustomAlert({
           <Text style={[styles.message, { color: colors.gray500 }]}>{message}</Text>
         ) : null}
 
-        {/* Séparateur */}
-        <View style={[styles.divider, { backgroundColor: colors.gray100 }]} />
-
-        {/* Boutons */}
+        {/* Buttons */}
         <View style={[styles.buttonsWrap, isColumn && styles.buttonsColumn]}>
           {ordered.map(renderButton)}
         </View>
@@ -277,12 +349,13 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.sm,
+    paddingTop: 10,
     alignItems: 'center',
-    // Ombre portée vers le haut
+    overflow: 'hidden',
+    borderTopWidth: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -6 },
     shadowOpacity: 0.12,
@@ -290,85 +363,133 @@ const styles = StyleSheet.create({
     elevation: 24,
   },
 
+  watermark: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 140,
+    letterSpacing: -8,
+    lineHeight: 130,
+  },
+
   handle: {
-    width: 40,
+    width: 36,
     height: 4,
     borderRadius: 2,
-    marginBottom: Spacing.xl,
-    marginTop: Spacing.xs,
+    marginBottom: Spacing.lg,
+    opacity: 0.5,
   },
 
-  // Icône
+  // Icon — editorial style with gradient
   iconOuter: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   iconInner: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
 
-  // Textes
+  // Eyebrow
+  eyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+
+  // Title display
   title: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
-    letterSpacing: -0.3,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    letterSpacing: -0.9,
     textAlign: 'center',
     marginBottom: Spacing.sm,
-    lineHeight: 28,
+    lineHeight: 30,
   },
+
+  // Message
   message: {
-    fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
+    fontSize: 14,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 21,
     marginBottom: Spacing.lg,
-    paddingHorizontal: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    maxWidth: 320,
   },
 
-  divider: {
-    height: 1,
-    width: '100%',
-    marginBottom: Spacing.lg,
-  },
-
-  // Boutons
+  // Buttons wrap
   buttonsWrap: {
     flexDirection: 'row',
     width: '100%',
-    gap: Spacing.sm,
+    gap: 8,
   },
   buttonsColumn: {
     flexDirection: 'column',
-    gap: Spacing.xs,
+    gap: 8,
   },
-  button: {
-    paddingVertical: 14,
-    borderRadius: BorderRadius.lg,
+
+  // Cancel button (ghost pill)
+  cancelBtn: {
+    height: 50,
+    borderRadius: BorderRadius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  buttonFull: {
-    width: '100%',
-  },
-  cancelColumnBtn: {
-    marginTop: Spacing.xs,
-  },
-  buttonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
+  cancelBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
     letterSpacing: 0.2,
+  },
+
+  // Action pill (gradient with arrow)
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    height: 50,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    gap: 8,
+  },
+  actionPillText: {
+    flex: 1,
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+    textAlign: 'left',
+  },
+  actionPillArrow: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+
+  btnFull: {
+    width: '100%',
   },
 });
 
-// ─── Hook standalone (usage sans AlertContext) ────────────────────────────────
+// ─── Standalone hook ────────────────────────────────
 
 interface AlertState {
   visible: boolean;
@@ -401,7 +522,7 @@ export function useCustomAlert() {
   }, []);
 
   const showSuccess = useCallback((t: string, m?: string) => showAlert(t, m, 'success'), [showAlert]);
-  const showError   = useCallback((t: string, m?: string) => showAlert(t, m, 'error'),   [showAlert]);
+  const showError = useCallback((t: string, m?: string) => showAlert(t, m, 'error'), [showAlert]);
   const showWarning = useCallback((t: string, m?: string) => showAlert(t, m, 'warning'), [showAlert]);
 
   const showConfirm = useCallback((
@@ -411,7 +532,7 @@ export function useCustomAlert() {
     onCancel?: () => void
   ) => {
     showAlert(title, message, 'confirm', [
-      { text: 'Annuler',   style: 'cancel',  onPress: onCancel  },
+      { text: 'Annuler', style: 'cancel', onPress: onCancel },
       { text: 'Confirmer', style: 'default', onPress: onConfirm },
     ]);
   }, [showAlert]);

@@ -17,6 +17,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { registrationsAPI, paymentsAPI } from '../../api';
 import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption } from '../../types';
@@ -816,36 +817,54 @@ export default function PaymentScreen() {
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>PAY</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            if (!processing) navigation.goBack();
-          }}
-          disabled={processing}
-          accessibilityRole="button"
-          accessibilityLabel="Retour"
-        >
-          <Ionicons name="arrow-back" size={24} color={processing ? colors.gray400 : colors.gray900} />
-        </TouchableOpacity>
-        <View style={{ alignItems: 'center' }}>
-          <Text style={[styles.headerEyebrow, { color: colors.gray500 }]}>Étape 3 / 3</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>
-            {processing ? 'Traitement' : 'Paiement'}
-          </Text>
+      {/* === EDITORIAL HEADER (tile) === */}
+      <View
+        style={[
+          styles.headerE,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: 'rgba(0,0,0,0.06)',
+          },
+        ]}
+      >
+        <View style={styles.headerTopRowE}>
+          <TouchableOpacity
+            style={[styles.iconDiscE, { backgroundColor: colors.gray100 }]}
+            onPress={() => {
+              if (!processing) navigation.goBack();
+            }}
+            disabled={processing}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
+            <Ionicons name="chevron-back" size={18} color={processing ? colors.gray400 : colors.gray600} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerEyebrowE, { color: colors.accent }]}>
+              ÉTAPE 3 / 3 • CHECKOUT
+            </Text>
+            <Text style={[styles.headerTitleE, { color: colors.text }]}>
+              {processing ? 'Traitement' : 'Paiement'}
+            </Text>
+          </View>
+          {!processing && (
+            <View style={[styles.secureBadge, { backgroundColor: '#10B98115' }]}>
+              <Ionicons name="lock-closed" size={11} color="#10B981" />
+              <Text style={styles.secureBadgeText}>SÉCURISÉ</Text>
+            </View>
+          )}
         </View>
-        <View style={{ width: 40 }} />
-      </View>
 
-      {/* Step indicator bars (AIDesigner editorial) */}
-      {!processing && (
-        <View style={styles.stepBarsContainer}>
-          <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
-          <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
-          <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
-        </View>
-      )}
+        {/* Step indicator bars */}
+        {!processing && (
+          <View style={styles.stepBarsContainer}>
+            <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+            <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+            <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+          </View>
+        )}
+      </View>
 
       {processing ? (
         /* ===== Processing Status Screen (replaces form) ===== */
@@ -1006,62 +1025,80 @@ export default function PaymentScreen() {
             keyboardShouldPersistTaps="handled"
             bottomOffset={120}
           >
-            {/* Order Summary */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
-                {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Récapitulatif'}
+            {/* === ORDER SUMMARY (receipt) === */}
+            <View style={styles.sectionE}>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>
+                {isAdditionalTicketsMode ? 'BILLETS EN PLUS' : 'FACTURE • RECAP'}
               </Text>
-              <View style={[styles.orderCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.orderHeader, { borderBottomColor: colors.gray100 }]}>
-                  <Text style={[styles.orderEventTitle, { color: colors.gray900 }]} numberOfLines={2}>
-                    {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
-                  </Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>
+                {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Ta commande'}
+              </Text>
+              <View style={[styles.receiptCardE, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }, Shadows.sm]}>
+                <View style={styles.receiptHeaderE}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.receiptHeaderEyebrowE}>EVENT • {new Date().getFullYear()}</Text>
+                    <Text style={[styles.receiptEventTitle, { color: colors.text }]} numberOfLines={2}>
+                      {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
+                    </Text>
+                  </View>
                   {isAdditionalTicketsMode && (
-                    <Text style={[styles.additionalBadge, { color: colors.primary, backgroundColor: colors.primaryBg }]}>Achat supplémentaire</Text>
+                    <View style={[styles.additionalBadgeE, { backgroundColor: colors.primary + '15' }]}>
+                      <Text style={[styles.additionalBadgeTextE, { color: colors.primary }]}>+ EXTRA</Text>
+                    </View>
                   )}
                 </View>
 
+                <View style={[styles.receiptDashedE, { borderTopColor: 'rgba(0,0,0,0.12)' }]} />
+
                 {getTicketsToDisplay().map((ticket: any, index: number) => (
-                  <View key={ticket.id || index} style={styles.orderItem}>
-                    <View style={styles.orderItemLeft}>
-                      <Text style={[styles.orderItemName, { color: colors.gray700 }]}>
+                  <View key={ticket.id || index} style={styles.receiptItemRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.receiptItemName, { color: colors.gray700 }]} numberOfLines={1}>
                         {ticket.ticket_type_name || ticket.ticket_type?.name}
                       </Text>
-                      <Text style={[styles.orderItemQty, { color: colors.gray500, backgroundColor: colors.gray100 }]}>x{ticket.quantity || 1}</Text>
+                      <Text style={[styles.receiptItemQty, { color: colors.gray400 }]}>
+                        × {ticket.quantity || 1}
+                      </Text>
                     </View>
-                    <Text style={[styles.orderItemPrice, { color: colors.gray900 }]}>
+                    <Text style={[styles.receiptItemPrice, { color: colors.text }]}>
                       {Number(ticket.total_price || (ticket.unit_price || 0) * (ticket.quantity || 1)).toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                 ))}
 
-                {/* Sous-total */}
-                <View style={[styles.orderSubtotalRow, { borderTopColor: colors.gray100 }]}>
-                  <Text style={[styles.orderSubtotalLabel, { color: colors.gray600 }]}>Sous-total</Text>
-                  <Text style={[styles.orderSubtotalValue, { color: colors.gray700 }]}>
+                <View style={[styles.receiptDashedE, { borderTopColor: 'rgba(0,0,0,0.08)' }]} />
+
+                <View style={styles.receiptSubRow}>
+                  <Text style={[styles.receiptSubLabel, { color: colors.gray500 }]}>Sous-total</Text>
+                  <Text style={[styles.receiptSubValue, { color: colors.gray500 }]}>
                     {subtotal.toLocaleString()} {eventCurrencyLabel}
                   </Text>
                 </View>
 
-                {/* Frais de service */}
                 {serviceFee > 0 && (
-                  <View style={styles.orderFeeRow}>
-                    <Text style={[styles.orderFeeLabel, { color: colors.gray500 }]}>
-                      Frais de service ({serviceFeeLabel})
+                  <View style={styles.receiptSubRow}>
+                    <Text style={[styles.receiptSubLabel, { color: colors.gray500 }]} numberOfLines={1}>
+                      Frais service ({serviceFeeLabel})
                     </Text>
-                    <Text style={[styles.orderFeeValue, { color: colors.gray500 }]}>
+                    <Text style={[styles.receiptSubValue, { color: colors.gray500 }]}>
                       {serviceFee.toLocaleString()} {eventCurrencyLabel}
                     </Text>
                   </View>
                 )}
 
-                {/* Total */}
-                <View style={[styles.orderTotal, { borderTopColor: colors.gray100 }]}>
-                  <Text style={[styles.orderTotalLabel, { color: colors.gray700 }]}>Total à payer</Text>
+                <View style={[styles.receiptDashedThickE, { borderTopColor: 'rgba(0,0,0,0.18)' }]} />
+
+                <View style={styles.receiptTotalRowE}>
+                  <Text style={[styles.receiptTotalLabelE, { color: colors.text }]}>TOTAL À PAYER</Text>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={[styles.orderTotalValue, { color: colors.primary }]}>
-                      {finalTotal.toLocaleString()} {eventCurrencyLabel}
-                    </Text>
+                    <View style={styles.receiptTotalValueRowE}>
+                      <Text style={[styles.receiptTotalValueE, { color: colors.text }]}>
+                        {finalTotal.toLocaleString()}
+                      </Text>
+                      <Text style={[styles.receiptTotalCurrencyE, { color: colors.gray500 }]}>
+                        {eventCurrencyLabel}
+                      </Text>
+                    </View>
                     {finalTotal > 0 && (
                       <ConvertedPrice amount={finalTotal} eventCurrency={eventCurrencyCode} />
                     )}
@@ -1070,9 +1107,10 @@ export default function PaymentScreen() {
               </View>
             </View>
 
-            {/* Payment Methods */}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Mode de paiement</Text>
+            {/* === PAYMENT METHODS === */}
+            <View style={styles.sectionE}>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>MÉTHODES • PAY</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Mode de paiement</Text>
 
               <CountryBadgeSelector
                 countryCode={payerCountry}
@@ -1087,52 +1125,68 @@ export default function PaymentScreen() {
                 />
               )}
 
-              {dynamicMethods.map((method) => (
-                <AnimatedPressable
-                  key={method.id}
-                  style={[
-                    styles.methodCard,
-                    { backgroundColor: colors.card, borderColor: colors.gray200 },
-                    selectedMethod === method.id && [styles.methodCardSelected, { borderColor: colors.primary, backgroundColor: colors.primaryBg }],
-                  ]}
-                  onPress={() => setSelectedMethod(method.id)}
-                  animationType="scale"
-                  scaleValue={0.98}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: selectedMethod === method.id }}
-                  accessibilityLabel={method.name}
-                >
-                  <View
+              {dynamicMethods.map((method, idx) => {
+                const isSelected = selectedMethod === method.id;
+                return (
+                  <AnimatedPressable
+                    key={method.id}
                     style={[
-                      styles.methodIcon,
-                      { backgroundColor: method.color + '20' },
+                      styles.methodCardE,
+                      {
+                        backgroundColor: colors.card,
+                        borderColor: isSelected ? colors.primary : 'rgba(0,0,0,0.06)',
+                      },
+                      isSelected ? Shadows.buttonPrimary : Shadows.sm,
                     ]}
+                    onPress={() => setSelectedMethod(method.id)}
+                    animationType="scale"
+                    scaleValue={0.98}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={method.name}
                   >
-                    <Image source={method.icon} style={styles.methodIconImage} contentFit="contain" />
-                  </View>
-                  <View style={styles.methodInfo}>
-                    <Text style={[styles.methodName, { color: colors.gray900 }]}>{method.name}</Text>
-                    <Text style={[styles.methodDescription, { color: colors.gray500 }]}>{method.description}</Text>
-                  </View>
-                  <View
-                    style={[
-                      styles.methodRadio,
-                      { borderColor: colors.gray300 },
-                      selectedMethod === method.id && [styles.methodRadioSelected, { borderColor: colors.primary, backgroundColor: colors.primary }],
-                    ]}
-                  >
-                    {selectedMethod === method.id && (
-                      <Ionicons name="checkmark" size={14} color={Colors.white} />
-                    )}
-                  </View>
-                </AnimatedPressable>
-              ))}
+                    {/* Index badge */}
+                    <View style={styles.methodIndexCol}>
+                      <Text style={[styles.methodIndex, { color: isSelected ? colors.primary : colors.gray400 }]}>
+                        0{idx + 1}
+                      </Text>
+                    </View>
+
+                    {/* Method icon */}
+                    <View style={[styles.methodIconE, { backgroundColor: method.color + '15' }]}>
+                      <Image source={method.icon} style={styles.methodIconImageE} contentFit="contain" />
+                    </View>
+
+                    {/* Info */}
+                    <View style={styles.methodInfoE}>
+                      <Text style={[styles.methodNameE, { color: colors.text }]}>{method.name}</Text>
+                      <Text style={[styles.methodDescriptionE, { color: colors.gray500 }]} numberOfLines={1}>
+                        {method.description}
+                      </Text>
+                    </View>
+
+                    {/* Radio */}
+                    <View
+                      style={[
+                        styles.methodRadioE,
+                        {
+                          borderColor: isSelected ? colors.primary : colors.gray300,
+                          backgroundColor: isSelected ? colors.primary : 'transparent',
+                        },
+                      ]}
+                    >
+                      {isSelected && <Ionicons name="checkmark" size={12} color={Colors.white} />}
+                    </View>
+                  </AnimatedPressable>
+                );
+              })}
             </View>
 
-            {/* Phone Number Input - Afficher pour Mobile Money uniquement */}
+            {/* === PHONE NUMBER === */}
             {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
-              <View style={styles.section}>
-                <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Numéro de téléphone</Text>
+              <View style={styles.sectionE}>
+                <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>MOBILE MONEY • TEL</Text>
+                <Text style={[styles.sectionTitleE, { color: colors.text }]}>Numéro de téléphone</Text>
 
                 {/* Saved Payment Methods */}
                 {getMethodsByType(selectedMethod as PaymentMethodType).length > 0 && (
@@ -1240,25 +1294,55 @@ export default function PaymentScreen() {
             )}
           </KeyboardAwareScrollView>
 
-          {/* Bottom CTA */}
-          <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
-            <View style={styles.totalContainer} accessibilityRole="text" accessibilityLabel={`Total a payer: ${finalTotal.toLocaleString()} ${eventCurrencyLabel}`}>
-              <Text style={[styles.totalLabel, { color: colors.gray600 }]}>Total à payer</Text>
-              <Text style={[styles.totalValue, { color: colors.gray900 }]}>
-                {finalTotal.toLocaleString()} {eventCurrencyLabel}
-              </Text>
+          {/* === BOTTOM CTA === */}
+          <View
+            style={[
+              styles.bottomBarE,
+              {
+                backgroundColor: colors.card,
+                borderTopColor: 'rgba(0,0,0,0.06)',
+                paddingBottom: insets.bottom + 10,
+              },
+              Shadows.dramatic,
+            ]}
+          >
+            <View style={styles.bottomTotalColE} accessibilityRole="text" accessibilityLabel={`Total a payer: ${finalTotal.toLocaleString()} ${eventCurrencyLabel}`}>
+              <Text style={[styles.bottomTotalEyebrowE, { color: colors.gray500 }]}>TOTAL À PAYER</Text>
+              <View style={styles.bottomTotalRowE}>
+                <Text style={[styles.bottomTotalValueE, { color: colors.text }]}>
+                  {finalTotal.toLocaleString()}
+                </Text>
+                <Text style={[styles.bottomTotalCurrencyE, { color: colors.gray500 }]}>
+                  {eventCurrencyLabel}
+                </Text>
+              </View>
               {finalTotal > 0 && (
                 <ConvertedPrice amount={finalTotal} eventCurrency={eventCurrencyCode} style={{ fontSize: 10 }} />
               )}
             </View>
-            <GradientButton
-              title="Confirmer"
+            <TouchableOpacity
               onPress={handlePayment}
               disabled={!selectedMethod}
-              icon={<Ionicons name="lock-closed" size={18} color={Colors.white} />}
-              style={styles.payButton}
+              style={[
+                styles.bottomCtaPillE,
+                !selectedMethod && { opacity: 0.5 },
+                Shadows.buttonPrimary,
+              ]}
+              activeOpacity={0.9}
               accessibilityLabel="Confirmer le paiement"
-            />
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <Ionicons name="lock-closed" size={14} color={Colors.white} />
+              <Text style={styles.bottomCtaTextE}>Payer</Text>
+              <View style={styles.bottomCtaArrowE}>
+                <Ionicons name="arrow-forward" size={14} color={Colors.white} />
+              </View>
+            </TouchableOpacity>
           </View>
         </>
       )}
@@ -1773,5 +1857,300 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontFamily: FontFamily.medium,
     marginLeft: Spacing.sm,
+  },
+
+  // === EDITORIAL HEADER ===
+  headerE: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    gap: Spacing.md,
+  },
+  headerTopRowE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  iconDiscE: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1.1,
+    lineHeight: 32,
+  },
+  secureBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+  },
+  secureBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#10B981',
+    letterSpacing: 1.2,
+  },
+
+  // === SECTIONS ===
+  sectionE: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  sectionEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  sectionTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+    marginBottom: Spacing.md,
+  },
+
+  // === RECEIPT CARD ===
+  receiptCardE: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  receiptHeaderE: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+  },
+  receiptHeaderEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#9CA3AF',
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  receiptEventTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.5,
+    lineHeight: 21,
+  },
+  additionalBadgeE: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  additionalBadgeTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  receiptDashedE: {
+    borderTopWidth: 1,
+    borderStyle: 'dashed',
+    marginVertical: 10,
+  },
+  receiptDashedThickE: {
+    borderTopWidth: 2,
+    borderStyle: 'dashed',
+    marginVertical: 12,
+  },
+  receiptItemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    gap: 8,
+  },
+  receiptItemName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    letterSpacing: -0.2,
+  },
+  receiptItemQty: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    marginTop: 2,
+  },
+  receiptItemPrice: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 13,
+    letterSpacing: -0.2,
+  },
+  receiptSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 3,
+  },
+  receiptSubLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+    flex: 1,
+  },
+  receiptSubValue: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
+  receiptTotalRowE: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  receiptTotalLabelE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1.4,
+  },
+  receiptTotalValueRowE: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  receiptTotalValueE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    letterSpacing: -1,
+    lineHeight: 28,
+  },
+  receiptTotalCurrencyE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+
+  // === METHOD CARD ===
+  methodCardE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    marginBottom: Spacing.sm,
+  },
+  methodIndexCol: {
+    width: 30,
+    alignItems: 'flex-start',
+  },
+  methodIndex: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    letterSpacing: -0.5,
+  },
+  methodIconE: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  methodIconImageE: {
+    width: 28,
+    height: 28,
+  },
+  methodInfoE: {
+    flex: 1,
+  },
+  methodNameE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    letterSpacing: -0.4,
+    lineHeight: 18,
+  },
+  methodDescriptionE: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  methodRadioE: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // === BOTTOM BAR ===
+  bottomBarE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  bottomTotalColE: {
+    flex: 1,
+  },
+  bottomTotalEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  bottomTotalRowE: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+  },
+  bottomTotalValueE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 24,
+  },
+  bottomTotalCurrencyE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  bottomCtaPillE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    minHeight: 50,
+  },
+  bottomCtaTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  bottomCtaArrowE: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: 4,
   },
 });

@@ -12,6 +12,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -448,26 +449,41 @@ export default function TicketPurchaseScreen() {
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>BUY</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityLabel="Retour"
-          accessibilityRole="button"
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>
-          {isEditMode
-            ? event?.event_type === 'inscription' ? 'Modifier mon inscription' : 'Modifier mes billets'
-            : isAdditionalMode
-              ? event?.event_type === 'inscription' ? 'Inscription supplémentaire' : 'Billets supplémentaires'
-              : event?.event_type === 'inscription'
-                ? 'Inscription'
-                : 'Sélectionner les billets'}
-        </Text>
-        <View style={{ width: 40 }} />
+      {/* === EDITORIAL HEADER (tile) === */}
+      <View
+        style={[
+          styles.headerE,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: 'rgba(0,0,0,0.06)',
+          },
+        ]}
+      >
+        <View style={styles.headerTopRowE}>
+          <TouchableOpacity
+            style={[styles.iconDiscE, { backgroundColor: colors.gray100 }]}
+            onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
+            accessibilityLabel="Retour"
+            accessibilityRole="button"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerEyebrowE, { color: colors.accent }]}>
+              {isEditMode ? 'MODIFIER' : isAdditionalMode ? 'AJOUTER' : event?.event_type === 'inscription' ? 'INSCRIPTION • RSVP' : 'BILLETTERIE • TIX'}
+            </Text>
+            <Text style={[styles.headerTitleE, { color: colors.text }]}>
+              {isEditMode
+                ? event?.event_type === 'inscription' ? 'Modifier inscr.' : 'Modifier billets'
+                : isAdditionalMode
+                  ? event?.event_type === 'inscription' ? 'Inscr. en plus' : 'Billets en plus'
+                  : event?.event_type === 'inscription'
+                    ? 'S\'inscrire'
+                    : 'Choisir tes billets'}
+            </Text>
+          </View>
+        </View>
       </View>
 
       <KeyboardAwareScrollView
@@ -477,47 +493,67 @@ export default function TicketPurchaseScreen() {
         keyboardShouldPersistTaps="handled"
         bottomOffset={80}
       >
-        {/* Event Summary */}
-        <View style={[styles.eventSummary, { backgroundColor: colors.card }]}>
-          <Text style={[styles.eventTitle, { color: colors.gray900 }]}>{event?.title}</Text>
-          <View style={styles.eventMeta}>
-            <View style={styles.eventMetaItem}>
-              <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-              <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>
+        {/* === EVENT SUMMARY CARD === */}
+        <View style={[styles.eventSummaryE, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }, Shadows.sm]}>
+          {event?.start_date && (() => {
+            const d = new Date(event.start_date);
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
+            return (
+              <View style={[styles.eventDateTile, { backgroundColor: colors.primary }]}>
+                <Text style={styles.eventDateDay}>{day}</Text>
+                <Text style={styles.eventDateMonth}>{month}</Text>
+              </View>
+            );
+          })()}
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eventCategoryEyebrow, { color: colors.accent }]} numberOfLines={1}>
+              {(event?.category as any)?.name?.toUpperCase() || 'ÉVÉNEMENT'}
+            </Text>
+            <Text style={[styles.eventTitleE, { color: colors.text }]} numberOfLines={2}>
+              {event?.title}
+            </Text>
+            <View style={styles.eventMetaRowE}>
+              <Ionicons name="calendar-outline" size={11} color={colors.gray500} />
+              <Text style={[styles.eventMetaTextE, { color: colors.gray600 }]} numberOfLines={1}>
                 {event?.start_date ? formatDate(event.start_date) : ''}
               </Text>
-            </View>
-            <View style={styles.eventMetaItem}>
-              <Ionicons name="location-outline" size={16} color={colors.primary} />
-              <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>
+              <View style={[styles.metaDotE, { backgroundColor: colors.gray300 }]} />
+              <Ionicons name="location-outline" size={11} color={colors.gray500} />
+              <Text style={[styles.eventMetaTextE, { color: colors.gray600 }]} numberOfLines={1}>
                 {event?.location_city || 'En ligne'}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* Existing Registration Warning - Ne pas afficher en mode édition ou achat supplémentaire */}
+        {/* === EXISTING REGISTRATION CALLOUT === */}
         {existingRegistration && !isEditMode && !isAdditionalMode && (
-          <View style={[styles.existingRegWarning, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}>
-            <View style={styles.existingRegHeader}>
-              <Ionicons name="information-circle" size={24} color={colors.warning} />
-              <Text style={[styles.existingRegTitle, { color: colors.gray900 }]}>
-                Vous êtes déjà inscrit à cet événement
-              </Text>
+          <View style={[styles.existingRegE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+            <View style={[styles.existingRail, { backgroundColor: '#F59E0B' }]} />
+            <View style={styles.existingHeaderE}>
+              <View style={[styles.existingIconWrap, { backgroundColor: '#F59E0B' }]}>
+                <Ionicons name="information" size={14} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.existingEyebrowE}>DÉJÀ INSCRIT.E</Text>
+                <Text style={styles.existingTitleE}>Tu participes déjà</Text>
+              </View>
             </View>
-            <Text style={[styles.existingRegText, { color: colors.gray600 }]}>
+            <Text style={styles.existingTextE}>
               {existingRegistration.registration_type === 'inscription'
                 ? 'Votre inscription est '
                 : 'Votre réservation est '}
-              {existingRegistration.status === 'confirmed' ? 'confirmée' :
-               existingRegistration.status === 'pending' ? 'en attente de paiement' :
-               existingRegistration.approval_status === 'pending' ? 'en attente de validation' :
-               existingRegistration.status}
+              <Text style={{ fontFamily: FontFamily.bold }}>
+                {existingRegistration.status === 'confirmed' ? 'confirmée' :
+                 existingRegistration.status === 'pending' ? 'en attente de paiement' :
+                 existingRegistration.approval_status === 'pending' ? 'en attente de validation' :
+                 existingRegistration.status}
+              </Text>
             </Text>
             <View style={styles.existingRegActions}>
-              {/* Bouton Voir ma réservation */}
               <TouchableOpacity
-                style={[styles.viewRegButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
+                style={[styles.regActionPillE, { backgroundColor: '#FFFFFF', borderColor: '#FCD34D' }]}
                 onPress={() => {
                   if (existingRegistration.tickets && existingRegistration.tickets.length > 0) {
                     navigation.navigate('QRCode', { ticketId: existingRegistration.tickets[0].id });
@@ -525,33 +561,34 @@ export default function TicketPurchaseScreen() {
                     navigation.navigate('RegistrationDetails', { registrationId: existingRegistration.id });
                   }
                 }}
+                activeOpacity={0.85}
               >
-                <Ionicons name="eye-outline" size={18} color={colors.primary} />
-                <Text style={[styles.viewRegButtonText, { color: colors.primary }]}>Voir</Text>
+                <Ionicons name="eye-outline" size={13} color="#92400E" />
+                <Text style={styles.regActionPillTextE}>Voir</Text>
               </TouchableOpacity>
 
-              {/* Bouton Modifier (inscription pending) ou Acheter plus (inscription confirmée) */}
               {existingRegistration.status === 'pending' ? (
                 <TouchableOpacity
-                  style={[styles.viewRegButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
+                  style={[styles.regActionPillE, { backgroundColor: '#FFFFFF', borderColor: '#FCD34D' }]}
                   onPress={() => navigation.navigate('TicketPurchase', { eventId, registrationId: existingRegistration.id })}
+                  activeOpacity={0.85}
                 >
-                  <Ionicons name="create-outline" size={18} color={colors.primary} />
-                  <Text style={[styles.viewRegButtonText, { color: colors.primary }]}>Modifier</Text>
+                  <Ionicons name="create-outline" size={13} color="#92400E" />
+                  <Text style={styles.regActionPillTextE}>Modifier</Text>
                 </TouchableOpacity>
               ) : existingRegistration.status === 'confirmed' || existingRegistration.status === 'completed' ? (
                 <TouchableOpacity
-                  style={[styles.viewRegButton, { backgroundColor: colors.card, borderColor: colors.primary }]}
+                  style={[styles.regActionPillE, { backgroundColor: '#FFFFFF', borderColor: '#FCD34D' }]}
                   onPress={() => navigation.navigate('TicketPurchase', { eventId, additionalTickets: true })}
+                  activeOpacity={0.85}
                 >
-                  <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-                  <Text style={[styles.viewRegButtonText, { color: colors.primary }]}>+ Billets</Text>
+                  <Ionicons name="add" size={13} color="#92400E" />
+                  <Text style={styles.regActionPillTextE}>+ Billets</Text>
                 </TouchableOpacity>
               ) : null}
 
-              {/* Bouton Annuler */}
               <TouchableOpacity
-                style={[styles.cancelRegButton, { backgroundColor: colors.card, borderColor: colors.error }]}
+                style={[styles.regActionPillE, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
                 onPress={() => {
                   showConfirm(
                     'Annuler l\'inscription',
@@ -567,92 +604,138 @@ export default function TicketPurchaseScreen() {
                     }
                   );
                 }}
+                activeOpacity={0.85}
               >
-                <Ionicons name="close-circle-outline" size={18} color={colors.error} />
-                <Text style={[styles.cancelRegButtonText, { color: colors.error }]}>Annuler</Text>
+                <Ionicons name="close" size={13} color="#DC2626" />
+                <Text style={[styles.regActionPillTextE, { color: '#DC2626' }]}>Annuler</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
-        {/* Ticket Types - Only for billetterie */}
+        {/* === TICKET TYPES (boarding-pass style) === */}
         {event?.event_type === 'billetterie' && (
-        <View style={[styles.ticketsSection, { backgroundColor: colors.card }]}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Types de billets</Text>
+        <View style={styles.ticketsSectionE}>
+          <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>CHOIX • TIX</Text>
+          <Text style={[styles.sectionTitleE, { color: colors.text }]}>Types de billets</Text>
           {ticketTypes.length === 0 ? (
-            <View style={styles.noTickets}>
-              <Text style={[styles.noTicketsText, { color: colors.gray500 }]}>Aucun billet disponible</Text>
+            <View style={[styles.noTicketsE, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
+              <Ionicons name="ticket-outline" size={36} color={colors.gray300} />
+              <Text style={[styles.noTicketsTitleE, { color: colors.text }]}>Aucun billet disponible</Text>
+              <Text style={[styles.noTicketsTextE, { color: colors.gray500 }]}>
+                L'organisateur n'a pas encore créé de types de billets
+              </Text>
             </View>
           ) : (
-            ticketTypes.map((ticketType) => {
+            ticketTypes.map((ticketType, idx) => {
               const quantity = selections.get(String(ticketType.id)) || 0;
-              // Calculate available quantity - try multiple field names for backend compatibility
               const availableQty = typeof ticketType.quantity_available === 'number'
                 ? ticketType.quantity_available
                 : typeof (ticketType as any).available_quantity === 'number'
                 ? (ticketType as any).available_quantity
                 : (ticketType.quantity_total || 0) - (ticketType.quantity_sold || 0);
               const isAvailable = availableQty > 0 || (ticketType.quantity_total === undefined && ticketType.quantity_sold === undefined);
+              const isSelected = quantity > 0;
+              const isFree = ticketType.price === 0;
 
               return (
                 <View
                   key={ticketType.id}
-                  style={[styles.ticketCard, { backgroundColor: colors.gray50 }, !isAvailable && styles.ticketCardUnavailable]}
+                  style={[
+                    styles.boardingPassCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: isSelected ? colors.primary : 'rgba(0,0,0,0.06)',
+                    },
+                    isSelected ? Shadows.buttonPrimary : Shadows.sm,
+                    !isAvailable && { opacity: 0.55 },
+                  ]}
                 >
-                  <View style={styles.ticketInfo}>
-                    <Text style={[styles.ticketName, { color: colors.gray900 }]}>{ticketType.name}</Text>
+                  {/* === LEFT: Ticket info === */}
+                  <View style={styles.bpLeft}>
+                    <View style={styles.bpTopRow}>
+                      <View style={[styles.bpEyebrowPill, { backgroundColor: isFree ? '#10B98115' : `${colors.primary}15` }]}>
+                        <View style={[styles.bpEyebrowDot, { backgroundColor: isFree ? '#10B981' : colors.primary }]} />
+                        <Text style={[styles.bpEyebrowText, { color: isFree ? '#10B981' : colors.primary }]}>
+                          {isFree ? 'GRATUIT' : `BILLET 0${idx + 1}`}
+                        </Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.bpTicketName, { color: colors.text }]} numberOfLines={1}>
+                      {ticketType.name}
+                    </Text>
                     {ticketType.description && (
-                      <Text style={[styles.ticketDescription, { color: colors.gray500 }]} numberOfLines={2}>
+                      <Text style={[styles.bpDescription, { color: colors.gray500 }]} numberOfLines={2}>
                         {ticketType.description}
                       </Text>
                     )}
-                    <View style={styles.ticketMeta}>
-                      <Text style={[styles.ticketPrice, { color: colors.primary }]}>
-                        {ticketType.price === 0 ? 'Gratuit' : `${ticketType.price.toLocaleString()} ${commissionCurrency}`}
+                    <View style={styles.bpMetaRow}>
+                      <Text style={[styles.bpPrice, { color: colors.text }]}>
+                        {isFree ? 'GRATUIT' : `${ticketType.price.toLocaleString()}`}
                       </Text>
-                      {availableQty > 0 && ticketType.quantity_total !== undefined && (
-                        <Text style={[styles.ticketAvailability, { color: colors.gray500 }]}>
-                          {availableQty} disponible{availableQty > 1 ? 's' : ''}
-                        </Text>
+                      {!isFree && (
+                        <Text style={[styles.bpCurrency, { color: colors.gray500 }]}>{commissionCurrency}</Text>
                       )}
-                      {!isAvailable && (
-                        <Text style={[styles.ticketAvailability, { color: colors.error }]}>
-                          Épuisé
-                        </Text>
+                      {availableQty > 0 && ticketType.quantity_total !== undefined && (
+                        <>
+                          <View style={[styles.bpDot, { backgroundColor: colors.gray300 }]} />
+                          <Ionicons name="people-outline" size={11} color={colors.gray500} />
+                          <Text style={[styles.bpAvailability, { color: colors.gray500 }]}>
+                            {availableQty} dispo
+                          </Text>
+                        </>
                       )}
                     </View>
                   </View>
 
-                  {isAvailable ? (
-                    <View style={styles.quantitySelector}>
-                      <TouchableOpacity
-                        style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }, quantity === 0 && [styles.quantityButtonDisabled, { borderColor: colors.gray100 }]]}
-                        onPress={() => updateQuantity(String(ticketType.id), -1)}
-                        disabled={quantity === 0}
-                        accessibilityLabel="Retirer un billet"
-                        accessibilityRole="button"
-                      >
-                        <Ionicons
-                          name="remove"
-                          size={20}
-                          color={quantity === 0 ? colors.gray300 : colors.primary}
-                        />
-                      </TouchableOpacity>
-                      <Text style={[styles.quantityValue, { color: colors.gray900 }]}>{quantity}</Text>
-                      <TouchableOpacity
-                        style={[styles.quantityButton, { backgroundColor: colors.card, borderColor: colors.gray200 }]}
-                        onPress={() => updateQuantity(String(ticketType.id), 1)}
-                        accessibilityLabel="Ajouter un billet"
-                        accessibilityRole="button"
-                      >
-                        <Ionicons name="add" size={20} color={colors.primary} />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={[styles.soldOutBadge, { backgroundColor: colors.errorLight }]}>
-                      <Text style={[styles.soldOutText, { color: colors.error }]}>Épuisé</Text>
-                    </View>
-                  )}
+                  {/* === DASHED PERFORATION === */}
+                  <View style={styles.bpPerforation}>
+                    <View style={[styles.bpNotchTop, { backgroundColor: colors.background }]} />
+                    <View style={[styles.bpDashedLine, { borderColor: 'rgba(0,0,0,0.12)' }]} />
+                    <View style={[styles.bpNotchBottom, { backgroundColor: colors.background }]} />
+                  </View>
+
+                  {/* === RIGHT: Quantity stub === */}
+                  <View style={styles.bpRight}>
+                    {isAvailable ? (
+                      <>
+                        <Text style={[styles.bpQtyEyebrow, { color: colors.gray400 }]}>QUANTITÉ</Text>
+                        <View style={styles.bpQtyRow}>
+                          <TouchableOpacity
+                            style={[
+                              styles.bpQtyBtn,
+                              {
+                                backgroundColor: quantity === 0 ? colors.gray100 : colors.primary,
+                              },
+                            ]}
+                            onPress={() => updateQuantity(String(ticketType.id), -1)}
+                            disabled={quantity === 0}
+                            accessibilityLabel="Retirer un billet"
+                            accessibilityRole="button"
+                          >
+                            <Ionicons
+                              name="remove"
+                              size={16}
+                              color={quantity === 0 ? colors.gray400 : Colors.white}
+                            />
+                          </TouchableOpacity>
+                          <Text style={[styles.bpQtyValue, { color: colors.text }]}>{quantity}</Text>
+                          <TouchableOpacity
+                            style={[styles.bpQtyBtn, { backgroundColor: colors.primary }]}
+                            onPress={() => updateQuantity(String(ticketType.id), 1)}
+                            accessibilityLabel="Ajouter un billet"
+                            accessibilityRole="button"
+                          >
+                            <Ionicons name="add" size={16} color={Colors.white} />
+                          </TouchableOpacity>
+                        </View>
+                      </>
+                    ) : (
+                      <View style={[styles.bpSoldOut, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+                        <Text style={styles.bpSoldOutText}>ÉPUISÉ</Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
               );
             })
@@ -660,35 +743,45 @@ export default function TicketPurchaseScreen() {
         </View>
         )}
 
-        {/* Discount Code Section */}
+        {/* === DISCOUNT CODE === */}
         {event?.event_type === 'billetterie' && getTotalQuantity() > 0 && (
-          <View style={[styles.discountSection, { backgroundColor: colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Code promo</Text>
+          <View style={styles.discountSectionE}>
+            <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>RÉDUCTION • DEAL</Text>
+            <Text style={[styles.sectionTitleE, { color: colors.text }]}>Code promo</Text>
             {appliedDiscount ? (
-              <View style={[styles.appliedDiscountCard, { backgroundColor: colors.successLight, borderColor: colors.success }]}>
-                <View style={styles.appliedDiscountInfo}>
-                  <Ionicons name="pricetag" size={20} color={colors.success} />
-                  <View style={styles.appliedDiscountText}>
-                    <Text style={[styles.appliedDiscountCode, { color: colors.gray900 }]}>{appliedDiscount.code}</Text>
-                    <Text style={[styles.appliedDiscountValue, { color: colors.success }]}>
-                      {appliedDiscount.discount_type === 'percentage'
-                        ? `-${appliedDiscount.value || 0}% (estimation)`
-                        : `-${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency} (estimation)`}
-                    </Text>
-                  </View>
+              <View style={[styles.appliedDiscountE, { backgroundColor: colors.card, borderColor: '#10B981' }]}>
+                <View style={[styles.appliedDiscountIcon, { backgroundColor: '#10B981' }]}>
+                  <Ionicons name="pricetag" size={16} color={Colors.white} />
+                </View>
+                <View style={styles.appliedDiscountText}>
+                  <Text style={styles.appliedDiscountEyebrow}>CODE APPLIQUÉ</Text>
+                  <Text style={[styles.appliedDiscountCode, { color: colors.text }]}>{appliedDiscount.code}</Text>
+                  <Text style={styles.appliedDiscountValue}>
+                    {appliedDiscount.discount_type === 'percentage'
+                      ? `−${appliedDiscount.value || 0}% (estimation)`
+                      : `−${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency} (estimation)`}
+                  </Text>
                 </View>
                 <TouchableOpacity
-                  style={styles.removeDiscountButton}
+                  style={[styles.removeDiscountButtonE, { backgroundColor: colors.gray100 }]}
                   onPress={handleRemoveDiscount}
+                  activeOpacity={0.7}
                 >
-                  <Ionicons name="close-circle" size={24} color={colors.gray400} />
+                  <Ionicons name="close" size={14} color={colors.gray600} />
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={styles.discountInputRow}>
+              <View style={styles.discountInputRowE}>
                 <TextInput
-                  style={[styles.discountInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }, discountError && [styles.discountInputError, { borderColor: colors.error }]]}
-                  placeholder="Entrer le code promo"
+                  style={[
+                    styles.discountInputE,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: discountError ? '#FECACA' : 'rgba(0,0,0,0.06)',
+                      color: colors.text,
+                    },
+                  ]}
+                  placeholder="EX: WELCOME10"
                   placeholderTextColor={colors.gray400}
                   accessibilityLabel="Code promo"
                   value={discountCode}
@@ -700,22 +793,26 @@ export default function TicketPurchaseScreen() {
                   editable={!validatingDiscount}
                 />
                 <TouchableOpacity
-                  style={[styles.applyDiscountButton, { backgroundColor: colors.primary }, validatingDiscount && styles.applyDiscountButtonDisabled]}
+                  style={[styles.applyDiscountButtonE, validatingDiscount && { opacity: 0.5 }, Shadows.buttonPrimary]}
                   onPress={handleApplyDiscount}
                   disabled={validatingDiscount}
+                  activeOpacity={0.85}
                   accessibilityLabel="Appliquer le code promo"
                   accessibilityRole="button"
                 >
                   {validatingDiscount ? (
-                    <ActivityIndicator size="small" color={colors.white} />
+                    <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
-                    <Text style={[styles.applyDiscountText, { color: colors.white }]}>Appliquer</Text>
+                    <Text style={styles.applyDiscountTextE}>OK</Text>
                   )}
                 </TouchableOpacity>
               </View>
             )}
             {discountError && (
-              <Text style={[styles.discountErrorText, { color: colors.error }]}>{discountError}</Text>
+              <View style={[styles.discountErrorBox, { backgroundColor: '#FEF2F2' }]}>
+                <Ionicons name="warning" size={11} color="#DC2626" />
+                <Text style={styles.discountErrorTextE}>{discountError}</Text>
+              </View>
             )}
           </View>
         )}
@@ -732,126 +829,164 @@ export default function TicketPurchaseScreen() {
           </View>
         )}
 
-        {/* Order Summary */}
+        {/* === ORDER SUMMARY (receipt style) === */}
         {getTotalQuantity() > 0 && (
-          <View style={[styles.orderSummary, { backgroundColor: colors.card }]}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Récapitulatif</Text>
-            <View style={[styles.summaryCard, { backgroundColor: colors.gray50 }]}>
+          <View style={styles.orderSummaryE}>
+            <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>FACTURE • RECAP</Text>
+            <Text style={[styles.sectionTitleE, { color: colors.text }]}>Récapitulatif</Text>
+            <View style={[styles.receiptCard, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
+              {/* Receipt header strip */}
+              <View style={styles.receiptHeader}>
+                <Text style={styles.receiptHeaderEyebrow}>EVENTEZ · COMMANDE</Text>
+                <Text style={styles.receiptHeaderRef}>#{Date.now().toString().slice(-6)}</Text>
+              </View>
+
+              <View style={[styles.receiptDashed, { borderTopColor: 'rgba(0,0,0,0.12)' }]} />
+
               {Array.from(selections.entries()).map(([ticketTypeId, quantity]) => {
                 const ticketType = ticketTypes.find(t => String(t.id) === String(ticketTypeId));
                 if (!ticketType) return null;
-
                 return (
-                  <View key={ticketTypeId} style={styles.summaryRow}>
-                    <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>
-                      {ticketType.name} x {quantity}
+                  <View key={ticketTypeId} style={styles.receiptRow}>
+                    <Text style={[styles.receiptLabel, { color: colors.gray700 }]} numberOfLines={1}>
+                      {ticketType.name}
+                      <Text style={{ color: colors.gray400 }}> × {quantity}</Text>
                     </Text>
-                    <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
+                    <Text style={[styles.receiptValue, { color: colors.text }]}>
                       {(ticketType.price * quantity).toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                 );
               })}
+
               {appliedDiscount && (
                 <>
-                  <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
-                  <View style={styles.summaryRow}>
-                    <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Sous-total</Text>
-                    <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
+                  <View style={[styles.receiptDashed, { borderTopColor: 'rgba(0,0,0,0.08)' }]} />
+                  <View style={styles.receiptRow}>
+                    <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>Sous-total</Text>
+                    <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
                       {getSubtotal().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
-                  <View style={styles.summaryRow}>
+                  <View style={styles.receiptRow}>
                     <View style={styles.discountLabelRow}>
-                      <Ionicons name="pricetag" size={14} color={colors.success} />
-                      <Text style={[styles.discountLabel, { color: colors.success }]}>
-                        Réduction estimée ({appliedDiscount.code})
+                      <Ionicons name="pricetag" size={11} color="#10B981" />
+                      <Text style={[styles.discountLabel, { color: '#10B981' }]}>
+                        {appliedDiscount.code}
                       </Text>
                     </View>
-                    <Text style={[styles.discountValue, { color: colors.success }]}>
-                      ~-{getDiscountAmount().toLocaleString()} {commissionCurrency}
+                    <Text style={[styles.discountValue, { color: '#10B981' }]}>
+                      −{getDiscountAmount().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                 </>
               )}
-              <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
+
               {getTotalPrice() > 0 && (
                 <>
-                  <View style={styles.summaryRow}>
-                    <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Sous-total</Text>
-                    <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
+                  <View style={[styles.receiptDashed, { borderTopColor: 'rgba(0,0,0,0.08)' }]} />
+                  <View style={styles.receiptRow}>
+                    <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>Sous-total</Text>
+                    <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
                       {getTotalPrice().toLocaleString()} {commissionCurrency}
                     </Text>
                   </View>
                   {getServiceFee() > 0 && (
-                    <View style={styles.summaryRow}>
-                      <Text style={[styles.summaryLabel, { color: colors.gray600 }]}>Frais de service ({getServiceFeeLabel(commissionConfig)})</Text>
-                      <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
+                    <View style={styles.receiptRow}>
+                      <Text style={[styles.receiptLabel, { color: colors.gray500 }]} numberOfLines={1}>
+                        Frais service ({getServiceFeeLabel(commissionConfig)})
+                      </Text>
+                      <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
                         {getServiceFee().toLocaleString()} {commissionCurrency}
                       </Text>
                     </View>
                   )}
-                  <View style={[styles.summaryDivider, { backgroundColor: colors.gray200 }]} />
                 </>
               )}
-              <View style={styles.summaryRow} accessibilityRole="text" accessibilityLabel={`Total: ${getGrandTotal().toLocaleString()} ${commissionCurrency}`}>
-                <Text style={[styles.totalLabel, { color: colors.gray900 }]}>Total</Text>
-                <Text style={[styles.totalValue, { color: colors.primary }]}>
-                  {getGrandTotal().toLocaleString()} {commissionCurrency}
-                </Text>
+
+              <View style={[styles.receiptDashedThick, { borderTopColor: 'rgba(0,0,0,0.18)' }]} />
+
+              <View style={styles.receiptTotalRow} accessibilityRole="text" accessibilityLabel={`Total: ${getGrandTotal().toLocaleString()} ${commissionCurrency}`}>
+                <Text style={[styles.receiptTotalLabel, { color: colors.text }]}>TOTAL À PAYER</Text>
+                <View style={styles.receiptTotalValueRow}>
+                  <Text style={[styles.receiptTotalValue, { color: colors.text }]}>
+                    {getGrandTotal().toLocaleString()}
+                  </Text>
+                  <Text style={[styles.receiptTotalCurrency, { color: colors.gray500 }]}>
+                    {commissionCurrency}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
         )}
       </KeyboardAwareScrollView>
 
-      {/* Bottom CTA */}
-      <View style={[styles.bottomBar, { backgroundColor: colors.card, borderTopColor: colors.gray100, paddingBottom: insets.bottom + Spacing.md }]}>
-        <View style={styles.totalContainer}>
+      {/* === BOTTOM STICKY CTA === */}
+      <View
+        style={[
+          styles.bottomBarE,
+          {
+            backgroundColor: colors.card,
+            borderTopColor: 'rgba(0,0,0,0.06)',
+            paddingBottom: insets.bottom + 10,
+          },
+          Shadows.dramatic,
+        ]}
+      >
+        <View style={styles.bottomTotalCol}>
           {event?.event_type === 'billetterie' ? (
             <>
-              <Text style={[styles.totalLabelBottom, { color: colors.gray500 }]}>Total</Text>
-              <Text style={[styles.totalValueBottom, { color: colors.gray900 }]}>
-                {getGrandTotal().toLocaleString()} {commissionCurrency}
+              <Text style={[styles.bottomTotalEyebrow, { color: colors.gray500 }]}>
+                {getTotalQuantity()} BILLET{getTotalQuantity() > 1 ? 'S' : ''}
+                {getServiceFee() > 0 ? ' · FRAIS INCL' : ''}
               </Text>
-              <Text style={[styles.totalQuantityBottom, { color: colors.gray500 }]}>
-                {getTotalQuantity()} billet{getTotalQuantity() > 1 ? 's' : ''}
-                {getServiceFee() > 0 ? ` · Frais inclus` : ''}
-              </Text>
+              <View style={styles.bottomTotalRow}>
+                <Text style={[styles.bottomTotalValue, { color: colors.text }]}>
+                  {getGrandTotal().toLocaleString()}
+                </Text>
+                <Text style={[styles.bottomTotalCurrency, { color: colors.gray500 }]}>
+                  {commissionCurrency}
+                </Text>
+              </View>
             </>
           ) : (
             <>
-              <Text style={[styles.totalLabelBottom, { color: colors.gray500 }]}>Inscription</Text>
-              <Text style={[styles.totalValueBottom, { color: colors.gray900 }]}>
+              <Text style={[styles.bottomTotalEyebrow, { color: colors.gray500 }]}>INSCRIPTION</Text>
+              <Text style={[styles.bottomTotalValue, { color: colors.text }]}>
                 {event?.is_free || !event?.base_price ? 'Gratuit' : `${(event?.base_price || 0).toLocaleString()} ${commissionCurrency}`}
               </Text>
             </>
           )}
         </View>
-        <GradientButton
-          title={
-            submitting
-              ? 'Traitement...'
-              : isEditMode
-                ? event?.event_type === 'inscription' ? 'Mettre à jour l\'inscription' : 'Mettre à jour les billets'
-                : isAdditionalMode
-                  ? event?.event_type === 'inscription' ? 'Ajouter une inscription' : 'Acheter des billets supplémentaires'
-                  : event?.event_type === 'inscription'
-                    ? "S'inscrire"
-                    : 'Continuer'
-          }
+        <TouchableOpacity
           onPress={handleProceed}
           disabled={(event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || (!isEditMode && !isAdditionalMode && !!existingRegistration)}
-          icon={
-            submitting ? (
-              <ActivityIndicator size="small" color={colors.white} />
-            ) : (
-              <Ionicons name="arrow-forward" size={20} color={colors.white} />
-            )
-          }
-          style={styles.ctaButton}
+          style={[
+            styles.bottomCtaPill,
+            ((event?.event_type === 'billetterie' && getTotalQuantity() === 0) || submitting || (!isEditMode && !isAdditionalMode && !!existingRegistration)) && { opacity: 0.5 },
+            Shadows.buttonPrimary,
+          ]}
+          activeOpacity={0.9}
           accessibilityLabel="Continuer vers le paiement"
-        />
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <Text style={styles.bottomCtaText}>
+            {submitting ? 'Traitement...' : isEditMode ? 'Mettre à jour' : event?.event_type === 'inscription' ? "S'inscrire" : 'Continuer'}
+          </Text>
+          <View style={styles.bottomCtaArrow}>
+            {submitting ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Ionicons name="arrow-forward" size={16} color={Colors.white} />
+            )}
+          </View>
+        </TouchableOpacity>
       </View>
       </View>
     </EditorialCanvas>
@@ -1150,19 +1285,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
   },
-  appliedDiscountText: {
-    marginLeft: Spacing.xs,
-  },
-  appliedDiscountCode: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
-  },
-  appliedDiscountValue: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.success,
-  },
   removeDiscountButton: {
     padding: Spacing.xs,
   },
@@ -1259,5 +1381,597 @@ const styles = StyleSheet.create({
   },
   ctaButton: {
     minWidth: 150,
+  },
+
+  // === EDITORIAL HEADER ===
+  headerE: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTopRowE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  iconDiscE: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    letterSpacing: -1,
+    lineHeight: 30,
+  },
+
+  // === EVENT SUMMARY ===
+  eventSummaryE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
+    padding: Spacing.md,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  eventDateTile: {
+    width: 56,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  eventDateDay: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    lineHeight: 24,
+    color: '#FFFFFF',
+    letterSpacing: -0.8,
+  },
+  eventDateMonth: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.85)',
+    marginTop: 2,
+  },
+  eventCategoryEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  eventTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.5,
+    lineHeight: 21,
+  },
+  eventMetaRowE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  eventMetaTextE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
+  metaDotE: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    marginHorizontal: 4,
+  },
+
+  // === EXISTING REGISTRATION ===
+  existingRegE: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    paddingLeft: Spacing.lg + 6,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  existingRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+  },
+  existingHeaderE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: Spacing.sm,
+  },
+  existingIconWrap: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  existingEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: '#92400E',
+    marginBottom: 1,
+  },
+  existingTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.4,
+    color: '#78350F',
+  },
+  existingTextE: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    color: '#78350F',
+    lineHeight: 17,
+    marginBottom: Spacing.md,
+  },
+  regActionPillE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  regActionPillTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#92400E',
+    letterSpacing: 0.2,
+  },
+
+  // === SECTION HEADERS ===
+  sectionEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  sectionTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+    marginBottom: Spacing.md,
+  },
+
+  // === TICKETS SECTION ===
+  ticketsSectionE: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.xl,
+  },
+  noTicketsE: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: Spacing.sm,
+  },
+  noTicketsTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.4,
+  },
+  noTicketsTextE: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 17,
+    maxWidth: 240,
+  },
+
+  // === BOARDING-PASS TICKET CARD ===
+  boardingPassCard: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    marginBottom: Spacing.md,
+    minHeight: 120,
+    overflow: 'hidden',
+  },
+  bpLeft: {
+    flex: 1,
+    padding: Spacing.md,
+    paddingRight: Spacing.lg,
+    justifyContent: 'center',
+  },
+  bpTopRow: {
+    marginBottom: 6,
+  },
+  bpEyebrowPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  bpEyebrowDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  bpEyebrowText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  bpTicketName: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.5,
+    lineHeight: 21,
+  },
+  bpDescription: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: 3,
+  },
+  bpMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+    marginTop: 8,
+    flexWrap: 'wrap',
+  },
+  bpPrice: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    letterSpacing: -0.5,
+  },
+  bpCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  bpDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    alignSelf: 'center',
+    marginHorizontal: 2,
+  },
+  bpAvailability: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: -0.1,
+  },
+  bpPerforation: {
+    width: 1,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+  },
+  bpNotchTop: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginTop: -8,
+    marginLeft: -8,
+  },
+  bpDashedLine: {
+    flex: 1,
+    width: 0,
+    borderLeftWidth: 1.5,
+    borderStyle: 'dashed',
+  },
+  bpNotchBottom: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    marginBottom: -8,
+    marginLeft: -8,
+  },
+  bpRight: {
+    width: 110,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bpQtyEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 8,
+    letterSpacing: 1.5,
+    marginBottom: 8,
+  },
+  bpQtyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bpQtyBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bpQtyValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    letterSpacing: -0.5,
+    minWidth: 22,
+    textAlign: 'center',
+  },
+  bpSoldOut: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  bpSoldOutText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    color: '#DC2626',
+  },
+
+  // === DISCOUNT SECTION ===
+  discountSectionE: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.xl,
+  },
+  appliedDiscountE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  appliedDiscountIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  appliedDiscountText: {
+    flex: 1,
+  },
+  appliedDiscountEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: '#10B981',
+    marginBottom: 1,
+  },
+  appliedDiscountCode: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: 1,
+  },
+  appliedDiscountValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    color: '#059669',
+    marginTop: 2,
+    letterSpacing: -0.1,
+  },
+  removeDiscountButtonE: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  discountInputRowE: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  discountInputE: {
+    flex: 1,
+    height: 50,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    letterSpacing: 1.5,
+  },
+  applyDiscountButtonE: {
+    minWidth: 80,
+    height: 50,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4F46E5',
+  },
+  applyDiscountTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  discountErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  discountErrorTextE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#DC2626',
+    letterSpacing: -0.1,
+  },
+
+  // === ORDER SUMMARY (receipt) ===
+  orderSummaryE: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.xl,
+  },
+  receiptCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: Spacing.md,
+  },
+  receiptHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  receiptHeaderEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: '#9CA3AF',
+  },
+  receiptHeaderRef: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.8,
+    color: '#9CA3AF',
+  },
+  receiptDashed: {
+    borderTopWidth: 1,
+    borderStyle: 'dashed',
+    marginVertical: 8,
+  },
+  receiptDashedThick: {
+    borderTopWidth: 2,
+    borderStyle: 'dashed',
+    marginVertical: 10,
+  },
+  receiptRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    gap: 8,
+  },
+  receiptLabel: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
+  receiptValue: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
+  receiptTotalRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  receiptTotalLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1.4,
+  },
+  receiptTotalValueRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 6,
+  },
+  receiptTotalValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    letterSpacing: -1,
+    lineHeight: 28,
+  },
+  receiptTotalCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+
+  // === BOTTOM BAR ===
+  bottomBarE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: 12,
+    borderTopWidth: 1,
+  },
+  bottomTotalCol: {
+    flex: 1,
+  },
+  bottomTotalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  bottomTotalRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 5,
+  },
+  bottomTotalValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 24,
+  },
+  bottomTotalCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  bottomCtaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    minHeight: 50,
+  },
+  bottomCtaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  bottomCtaArrow: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: 8,
   },
 });

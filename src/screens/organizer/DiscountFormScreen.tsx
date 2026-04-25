@@ -183,10 +183,12 @@ export default function DiscountFormScreen() {
     );
   };
 
+  const hairline = 'rgba(0,0,0,0.06)';
+
   if (fetchingData) {
     return (
       <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>%</WatermarkNumeral>
+        <WatermarkNumeral>-%</WatermarkNumeral>
         <View style={[styles.loadingContainer, { zIndex: 1 }]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -196,30 +198,36 @@ export default function DiscountFormScreen() {
 
   return (
     <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>%</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
+      <WatermarkNumeral>-%</WatermarkNumeral>
 
-      {/* Header */}
-      <LinearGradient
-        colors={[colors.primary, colors.primaryDark]}
-        style={styles.header}
+      {/* === EDITORIAL HEADER (tile) === */}
+      <View
+        style={[
+          styles.headerE,
+          {
+            backgroundColor: colors.background,
+            borderBottomColor: hairline,
+          },
+        ]}
       >
-        <View style={styles.headerContent}>
+        <View style={styles.headerTopRowE}>
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.iconDiscE, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.goBack()}
+            activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerEyebrow}>Promo</Text>
-            <Text style={[styles.headerTitle, { color: colors.white }]}>
-              {isEditing ? 'Modifier le code' : 'Nouveau code promo'}
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerEyebrowE, { color: colors.accent }]}>
+              {isEditing ? 'MODIFIER • CODE' : 'NOUVEAU • DEAL'}
+            </Text>
+            <Text style={[styles.headerTitleE, { color: colors.text }]}>
+              {isEditing ? 'Modifier le code' : 'Nouveau code'}
             </Text>
           </View>
-          <View style={{ width: 40 }} />
         </View>
-      </LinearGradient>
+      </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView
@@ -227,16 +235,15 @@ export default function DiscountFormScreen() {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Code */}
+          {/* === CODE === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Code promo</Text>
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 01</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>Choisis ton code</Text>
             <View style={styles.codeRow}>
               <TextInput
                 style={[
-                  styles.input,
-                  styles.codeInput,
-                  { backgroundColor: colors.card, borderColor: colors.gray300, color: colors.gray900 },
-                  errors.code ? { borderColor: colors.error } : null,
+                  styles.codeInputE,
+                  { backgroundColor: colors.card, borderColor: errors.code ? '#FECACA' : hairline, color: colors.text },
                 ]}
                 value={code}
                 onChangeText={(t) => {
@@ -248,155 +255,174 @@ export default function DiscountFormScreen() {
                 autoCapitalize="characters"
                 maxLength={20}
               />
-              <TouchableOpacity style={[styles.generateButton, { backgroundColor: colors.primaryBg }]} onPress={generateCode}>
-                <Ionicons name="refresh" size={20} color={colors.primary} />
+              <TouchableOpacity style={[styles.generateBtn, { backgroundColor: colors.primary }]} onPress={generateCode}>
+                <Ionicons name="refresh" size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
             {errors.code ? (
-              <View style={styles.errorRow}>
-                <Ionicons name="alert-circle" size={14} color={colors.error} />
-                <Text style={[styles.errorText, { color: colors.error }]}>{errors.code}</Text>
+              <View style={[styles.errorBox, { backgroundColor: '#FEF2F2' }]}>
+                <Ionicons name="warning" size={11} color="#DC2626" />
+                <Text style={styles.errorTextE}>{errors.code}</Text>
               </View>
             ) : null}
           </View>
 
-          {/* Type toggle */}
+          {/* === TYPE === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Type de réduction</Text>
-            <View style={styles.toggleRow}>
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 02</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>Type de réduction</Text>
+            <View style={styles.typeRow}>
               <TouchableOpacity
                 style={[
-                  styles.toggleOption,
-                  { backgroundColor: colors.card, borderColor: colors.gray300 },
-                  discountType === 'percentage' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  styles.typeCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: discountType === 'percentage' ? colors.primary : hairline,
+                  },
+                  discountType === 'percentage' && { ...colors.primary ? {} : {} },
                 ]}
                 onPress={() => setDiscountType('percentage')}
+                activeOpacity={0.85}
               >
-                <Ionicons
-                  name="trending-down"
-                  size={18}
-                  color={discountType === 'percentage' ? colors.white : colors.gray600}
-                />
-                <Text style={[
-                  styles.toggleText,
-                  { color: colors.gray600 },
-                  discountType === 'percentage' && { color: colors.white },
-                ]}>
-                  Pourcentage (%)
-                </Text>
+                <Text style={[styles.typeBigSign, { color: discountType === 'percentage' ? colors.primary : colors.gray400 }]}>%</Text>
+                <Text style={[styles.typeLabel, { color: colors.text }]}>Pourcentage</Text>
+                <Text style={[styles.typeSub, { color: colors.gray500 }]}>Ex: 25%</Text>
+                {discountType === 'percentage' && (
+                  <View style={[styles.typeCheck, { backgroundColor: colors.primary }]}>
+                    <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+                  </View>
+                )}
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.toggleOption,
-                  { backgroundColor: colors.card, borderColor: colors.gray300 },
-                  discountType === 'fixed' && { backgroundColor: colors.primary, borderColor: colors.primary },
+                  styles.typeCard,
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: discountType === 'fixed' ? colors.primary : hairline,
+                  },
                 ]}
                 onPress={() => setDiscountType('fixed')}
+                activeOpacity={0.85}
               >
-                <Ionicons
-                  name="cash-outline"
-                  size={18}
-                  color={discountType === 'fixed' ? colors.white : colors.gray600}
-                />
-                <Text style={[
-                  styles.toggleText,
-                  { color: colors.gray600 },
-                  discountType === 'fixed' && { color: colors.white },
-                ]}>
-                  Montant fixe ({platformCurrency})
-                </Text>
+                <Text style={[styles.typeBigSign, { color: discountType === 'fixed' ? colors.primary : colors.gray400 }]}>{platformCurrency}</Text>
+                <Text style={[styles.typeLabel, { color: colors.text }]}>Montant fixe</Text>
+                <Text style={[styles.typeSub, { color: colors.gray500 }]}>Ex: 5000</Text>
+                {discountType === 'fixed' && (
+                  <View style={[styles.typeCheck, { backgroundColor: colors.primary }]}>
+                    <Ionicons name="checkmark" size={11} color="#FFFFFF" />
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Value */}
+          {/* === VALUE === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>
-              Valeur {discountType === 'percentage' ? '(%)' : `(${platformCurrency})`}
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 03</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>
+              Valeur de la réduction
             </Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.gray300, color: colors.gray900 },
-                errors.value ? { borderColor: colors.error } : null,
-              ]}
-              value={value}
-              onChangeText={(t) => {
-                setValue(t);
-                setErrors(prev => ({ ...prev, value: '' }));
-              }}
-              placeholder={discountType === 'percentage' ? '25' : '5000'}
-              placeholderTextColor={colors.gray400}
-              keyboardType="numeric"
-            />
+            <View style={styles.valueInputRow}>
+              <TextInput
+                style={[
+                  styles.inputE,
+                  { backgroundColor: colors.card, borderColor: errors.value ? '#FECACA' : hairline, color: colors.text, flex: 1 },
+                ]}
+                value={value}
+                onChangeText={(t) => {
+                  setValue(t);
+                  setErrors(prev => ({ ...prev, value: '' }));
+                }}
+                placeholder={discountType === 'percentage' ? '25' : '5000'}
+                placeholderTextColor={colors.gray400}
+                keyboardType="numeric"
+              />
+              <View style={[styles.valueSuffix, { backgroundColor: colors.gray100 }]}>
+                <Text style={[styles.valueSuffixText, { color: colors.gray700 }]}>
+                  {discountType === 'percentage' ? '%' : platformCurrency}
+                </Text>
+              </View>
+            </View>
             {errors.value ? (
-              <View style={styles.errorRow}>
-                <Ionicons name="alert-circle" size={14} color={colors.error} />
-                <Text style={[styles.errorText, { color: colors.error }]}>{errors.value}</Text>
+              <View style={[styles.errorBox, { backgroundColor: '#FEF2F2' }]}>
+                <Ionicons name="warning" size={11} color="#DC2626" />
+                <Text style={styles.errorTextE}>{errors.value}</Text>
               </View>
             ) : null}
           </View>
 
-          {/* Date début */}
+          {/* === DATES === */}
           <View style={styles.fieldContainer}>
-            <DateTimePickerField
-              label="Date de début"
-              value={validFrom}
-              onChange={(date) => {
-                setValidFrom(date);
-                setErrors(prev => ({ ...prev, valid_from: '' }));
-              }}
-              placeholder="Sélectionner la date de début"
-              error={errors.valid_from}
-            />
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 04</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>Période de validité</Text>
+            <View style={styles.dateRow}>
+              <View style={{ flex: 1 }}>
+                <DateTimePickerField
+                  label="Début"
+                  value={validFrom}
+                  onChange={(date) => {
+                    setValidFrom(date);
+                    setErrors(prev => ({ ...prev, valid_from: '' }));
+                  }}
+                  placeholder="Date de début"
+                  error={errors.valid_from}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <DateTimePickerField
+                  label="Fin"
+                  value={validUntil}
+                  onChange={(date) => {
+                    setValidUntil(date);
+                    setErrors(prev => ({ ...prev, valid_until: '' }));
+                  }}
+                  minimumDate={validFrom}
+                  placeholder="Date de fin"
+                  error={errors.valid_until}
+                />
+              </View>
+            </View>
           </View>
 
-          {/* Date fin */}
+          {/* === MAX USES === */}
           <View style={styles.fieldContainer}>
-            <DateTimePickerField
-              label="Date de fin"
-              value={validUntil}
-              onChange={(date) => {
-                setValidUntil(date);
-                setErrors(prev => ({ ...prev, valid_until: '' }));
-              }}
-              minimumDate={validFrom}
-              placeholder="Sélectionner la date de fin"
-              error={errors.valid_until}
-            />
-          </View>
-
-          {/* Max uses */}
-          <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Utilisations max</Text>
-            <TextInput
-              style={[
-                styles.input,
-                { backgroundColor: colors.card, borderColor: colors.gray300, color: colors.gray900 },
-                errors.max_uses ? { borderColor: colors.error } : null,
-              ]}
-              value={maxUses}
-              onChangeText={(t) => {
-                setMaxUses(t);
-                setErrors(prev => ({ ...prev, max_uses: '' }));
-              }}
-              placeholder="100"
-              placeholderTextColor={colors.gray400}
-              keyboardType="numeric"
-            />
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 05</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>Limite d'utilisations</Text>
+            <View style={styles.valueInputRow}>
+              <TextInput
+                style={[
+                  styles.inputE,
+                  { backgroundColor: colors.card, borderColor: errors.max_uses ? '#FECACA' : hairline, color: colors.text, flex: 1 },
+                ]}
+                value={maxUses}
+                onChangeText={(t) => {
+                  setMaxUses(t);
+                  setErrors(prev => ({ ...prev, max_uses: '' }));
+                }}
+                placeholder="100"
+                placeholderTextColor={colors.gray400}
+                keyboardType="numeric"
+              />
+              <View style={[styles.valueSuffix, { backgroundColor: colors.gray100 }]}>
+                <Text style={[styles.valueSuffixText, { color: colors.gray700 }]}>USAGES</Text>
+              </View>
+            </View>
             {errors.max_uses ? (
-              <View style={styles.errorRow}>
-                <Ionicons name="alert-circle" size={14} color={colors.error} />
-                <Text style={[styles.errorText, { color: colors.error }]}>{errors.max_uses}</Text>
+              <View style={[styles.errorBox, { backgroundColor: '#FEF2F2' }]}>
+                <Ionicons name="warning" size={11} color="#DC2626" />
+                <Text style={styles.errorTextE}>{errors.max_uses}</Text>
               </View>
             ) : null}
           </View>
 
-          {/* Ticket types */}
+          {/* === TICKET TYPES === */}
           {ticketTypes.length > 0 && (
             <View style={styles.fieldContainer}>
-              <Text style={[styles.fieldLabel, { color: colors.gray600 }]}>Tickets applicables</Text>
-              <Text style={[styles.fieldHint, { color: colors.gray400 }]}>Laisser vide = tous les tickets</Text>
+              <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 06 (OPT)</Text>
+              <Text style={[styles.fieldTitle, { color: colors.text }]}>Tickets applicables</Text>
+              <Text style={[styles.fieldHintE, { color: colors.gray500 }]}>
+                Laisser vide = tous les tickets éligibles
+              </Text>
               <View style={styles.ticketTypesList}>
                 {ticketTypes.map((tt) => {
                   const selected = selectedTicketTypes.includes(Number(tt.id));
@@ -404,24 +430,34 @@ export default function DiscountFormScreen() {
                     <TouchableOpacity
                       key={tt.id}
                       style={[
-                        styles.ticketTypeChip,
-                        { backgroundColor: colors.card, borderColor: colors.gray200 },
-                        selected && { backgroundColor: colors.primaryBg, borderColor: colors.primaryLight },
+                        styles.ticketTypeChipE,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: selected ? colors.primary : hairline,
+                        },
                       ]}
                       onPress={() => toggleTicketType(Number(tt.id))}
+                      activeOpacity={0.85}
                     >
-                      <Ionicons
-                        name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-                        size={16}
-                        color={selected ? colors.primary : colors.gray400}
-                      />
-                      <Text style={[
-                        styles.ticketTypeText,
-                        { color: colors.gray600 },
-                        selected && { color: colors.primary },
-                      ]}>
-                        {tt.name} — {tt.price.toLocaleString()} {platformCurrency}
-                      </Text>
+                      <View
+                        style={[
+                          styles.ticketTypeCheckbox,
+                          {
+                            backgroundColor: selected ? colors.primary : 'transparent',
+                            borderColor: selected ? colors.primary : colors.gray300,
+                          },
+                        ]}
+                      >
+                        {selected && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.ticketTypeNameE, { color: colors.text }]} numberOfLines={1}>
+                          {tt.name}
+                        </Text>
+                        <Text style={[styles.ticketTypePriceE, { color: colors.gray500 }]}>
+                          {tt.price.toLocaleString()} {platformCurrency}
+                        </Text>
+                      </View>
                     </TouchableOpacity>
                   );
                 })}
@@ -429,18 +465,37 @@ export default function DiscountFormScreen() {
             </View>
           )}
 
-          {/* Submit */}
-          <View style={styles.submitContainer}>
-            <GradientButton
-              title={loading ? 'Enregistrement...' : isEditing ? 'Mettre à jour' : 'Créer le code promo'}
-              onPress={handleSubmit}
-              disabled={loading}
-              iconRight={loading ? undefined : 'checkmark'}
+          {/* === SUBMIT === */}
+          <TouchableOpacity
+            style={[styles.submitPill, loading && { opacity: 0.5 }]}
+            onPress={handleSubmit}
+            disabled={loading}
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
             />
-          </View>
+            {loading ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.submitEyebrow}>{isEditing ? 'MISE À JOUR' : 'CRÉATION'}</Text>
+                  <Text style={styles.submitLabel}>
+                    {isEditing ? 'Mettre à jour' : 'Créer le code promo'}
+                  </Text>
+                </View>
+                <View style={styles.submitArrow}>
+                  <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                </View>
+              </>
+            )}
+          </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-      </View>
     </EditorialCanvas>
   );
 }
@@ -619,5 +674,225 @@ const styles = StyleSheet.create({
   },
   submitContainer: {
     marginTop: Spacing.md,
+  },
+
+  // === EDITORIAL STYLES ===
+  headerE: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTopRowE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  iconDiscE: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1.1,
+    lineHeight: 32,
+  },
+  fieldEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  fieldTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 20,
+    letterSpacing: -0.6,
+    lineHeight: 24,
+    marginBottom: Spacing.md,
+  },
+  fieldHintE: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: -8,
+    marginBottom: Spacing.sm,
+  },
+  inputE: {
+    height: 50,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+  },
+  codeInputE: {
+    flex: 1,
+    height: 56,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    letterSpacing: 3,
+  },
+  generateBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    marginTop: 6,
+  },
+  errorTextE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#DC2626',
+    letterSpacing: -0.1,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  typeCard: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    alignItems: 'flex-start',
+    gap: 6,
+  },
+  typeBigSign: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 36,
+    letterSpacing: -1.5,
+    lineHeight: 38,
+  },
+  typeLabel: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+    marginTop: 4,
+  },
+  typeSub: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
+  typeCheck: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  valueInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  valueSuffix: {
+    height: 50,
+    paddingHorizontal: 16,
+    borderRadius: BorderRadius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  valueSuffixText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  ticketTypeChipE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    marginBottom: 8,
+  },
+  ticketTypeCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ticketTypeNameE: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 13,
+    letterSpacing: -0.3,
+    lineHeight: 16,
+  },
+  ticketTypePriceE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    marginTop: 2,
+    letterSpacing: -0.1,
+  },
+  submitPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    minHeight: 56,
+    marginTop: Spacing.lg,
+  },
+  submitEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  submitLabel: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 15,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  submitArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: Spacing.sm,
   },
 });

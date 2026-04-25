@@ -9,7 +9,7 @@ import {
   Share,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +19,9 @@ import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { Colors, FontFamily, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -131,149 +133,180 @@ export default function ReferralScreen() {
     }).format(amount);
   };
 
-  const renderStatsCard = () => (
-    <View style={styles.statsRow}>
-      {[
-        { icon: 'hand-left-outline' as const, value: String(stats?.total_clicks || 0), label: 'Clics', color: colors.info },
-        { icon: 'people-outline' as const, value: String(stats?.total_conversions || 0), label: 'Conversions', color: colors.success },
-        { icon: 'cash-outline' as const, value: formatCurrency(stats?.total_earnings || 0), label: 'Gains', color: colors.primary },
-      ].map((s, i) => (
+  const renderCodeCard = ({ item, index }: { item: ReferralCode; index: number }) => {
+    const isCopied = copiedId === item.id;
+    const eventName = item.event_title || item.event_name;
+    const conversionRate = item.total_clicks ? ((item.total_conversions || 0) / item.total_clicks) * 100 : 0;
+
+    return (
+      <StaggeredItem index={index}>
         <View
-          key={i}
           style={[
-            styles.statCard,
+            styles.codeCard,
             { backgroundColor: colors.card, borderColor: hairline },
             Shadows.sm,
           ]}
         >
-          <View style={[styles.statIcon, { backgroundColor: `${s.color}15` }]}>
-            <Ionicons name={s.icon} size={18} color={s.color} />
+          {eventName && (
+            <View style={styles.codeEventRow}>
+              <Ionicons name="calendar-outline" size={11} color={colors.gray500} />
+              <Text style={[styles.codeEventName, { color: colors.gray500 }]} numberOfLines={1}>
+                {eventName.toUpperCase()}
+              </Text>
+            </View>
+          )}
+
+          {/* === HUGE CODE BLOCK (touche unique : ticket-stub style) === */}
+          <View style={styles.codeMainBlock}>
+            <View style={[styles.codeStubLeft, { backgroundColor: colors.text }]}>
+              <Text style={styles.codeStubLabel}>CODE</Text>
+              <Text style={styles.codeStubValue}>{item.code}</Text>
+              <Text style={styles.codeStubSub}>EventEz</Text>
+            </View>
+            <View style={styles.codeStubRight}>
+              <View style={[styles.codeStubNotchTop, { backgroundColor: colors.background }]} />
+              <View style={[styles.codeStubDashed, { borderColor: hairline }]} />
+              <View style={[styles.codeStubNotchBottom, { backgroundColor: colors.background }]} />
+            </View>
+            <View style={styles.codeActionsCol}>
+              <TouchableOpacity
+                style={[
+                  styles.copyBtnE,
+                  {
+                    backgroundColor: isCopied ? '#10B98115' : colors.gray100,
+                  },
+                ]}
+                onPress={() => handleCopy(item.code, item.id)}
+                activeOpacity={0.85}
+              >
+                <Ionicons
+                  name={isCopied ? 'checkmark' : 'copy-outline'}
+                  size={14}
+                  color={isCopied ? '#10B981' : colors.gray700}
+                />
+                <Text
+                  style={[
+                    styles.copyBtnText,
+                    { color: isCopied ? '#10B981' : colors.gray700 },
+                  ]}
+                >
+                  {isCopied ? 'Copié' : 'Copier'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.shareBtnE, Shadows.buttonPrimary]}
+                onPress={() => handleShare(item.code, eventName)}
+                activeOpacity={0.9}
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Ionicons name="share-outline" size={14} color={Colors.white} />
+                <Text style={styles.shareBtnText}>Partager</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-          <Text style={[styles.statValue, { color: colors.text }]} numberOfLines={1}>
-            {s.value}
-          </Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{s.label}</Text>
-        </View>
-      ))}
-    </View>
-  );
 
-  const renderCodeCard = ({ item }: { item: ReferralCode }) => {
-    const isCopied = copiedId === item.id;
-    const eventName = item.event_title || item.event_name;
-
-    return (
-      <View
-        style={[
-          styles.codeCard,
-          { backgroundColor: colors.card, borderColor: hairline },
-          Shadows.sm,
-        ]}
-      >
-        {eventName && (
-          <Text style={[styles.codeEventName, { color: colors.gray500 }]} numberOfLines={1}>
-            {eventName}
-          </Text>
-        )}
-
-        <View style={styles.codeRow}>
-          <View
-            style={[
-              styles.codeBox,
-              {
-                backgroundColor: isDark ? colors.gray100 : colors.gray50,
-                borderColor: hairline,
-              },
-            ]}
-          >
-            <Text style={[styles.codeText, { color: colors.primary }]}>{item.code}</Text>
+          {/* === STATS GRID === */}
+          <View style={[styles.codeStatsGrid, { borderTopColor: hairline }]}>
+            <View style={[styles.codeStatCell, { borderRightColor: hairline }]}>
+              <Text style={[styles.codeStatValue, { color: colors.text }]}>
+                {item.total_clicks || 0}
+              </Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>CLICS</Text>
+            </View>
+            <View style={[styles.codeStatCell, { borderRightColor: hairline }]}>
+              <Text style={[styles.codeStatValue, { color: colors.text }]}>
+                {item.total_conversions || 0}
+              </Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>CONV.</Text>
+            </View>
+            <View style={[styles.codeStatCell, { borderRightColor: hairline }]}>
+              <Text style={[styles.codeStatValue, { color: colors.text }]}>
+                {Math.round(conversionRate)}%
+              </Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>TAUX</Text>
+            </View>
+            <View style={styles.codeStatCellLast}>
+              <Text style={[styles.codeStatValue, { color: '#10B981' }]} numberOfLines={1}>
+                {formatCurrency(item.total_earnings || 0)}
+              </Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>GAINS</Text>
+            </View>
           </View>
-          <TouchableOpacity
-            style={[
-              styles.copyButton,
-              {
-                backgroundColor: isCopied ? `${colors.success}15` : `${colors.primary}15`,
-                borderColor: isCopied ? `${colors.success}30` : hairline,
-              },
-            ]}
-            onPress={() => handleCopy(item.code, item.id)}
-            activeOpacity={0.75}
-          >
-            <Ionicons
-              name={isCopied ? 'checkmark' : 'copy-outline'}
-              size={18}
-              color={isCopied ? colors.success : colors.primary}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.shareButton, { backgroundColor: colors.primary }, Shadows.sm]}
-            onPress={() => handleShare(item.code, eventName)}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="share-outline" size={18} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
 
-        <View style={styles.codeDetails}>
-          {item.commission_percentage != null && (
-            <View style={[styles.detailChip, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
-              <Text style={[styles.detailChipText, { color: colors.text }]}>
-                {item.commission_percentage}% commission
-              </Text>
-            </View>
-          )}
-          {item.usage_limit != null && (
-            <View style={[styles.detailChip, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
-              <Text style={[styles.detailChipText, { color: colors.text }]}>
-                {item.usage_count || 0}/{item.usage_limit} utilisations
-              </Text>
-            </View>
-          )}
-          {item.total_clicks != null && (
-            <View style={[styles.detailChip, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
-              <Text style={[styles.detailChipText, { color: colors.text }]}>
-                {item.total_clicks} clic{(item.total_clicks || 0) !== 1 ? 's' : ''}
-              </Text>
-            </View>
-          )}
+          {/* === DETAILS === */}
+          <View style={styles.codeDetailsRow}>
+            {item.commission_percentage != null && (
+              <View style={[styles.detailChipE, { backgroundColor: `${colors.primary}15` }]}>
+                <Ionicons name="trending-up" size={10} color={colors.primary} />
+                <Text style={[styles.detailChipTextE, { color: colors.primary }]}>
+                  {item.commission_percentage}% COMM
+                </Text>
+              </View>
+            )}
+            {item.usage_limit != null && (
+              <View style={[styles.detailChipE, { backgroundColor: colors.gray100 }]}>
+                <Text style={[styles.detailChipTextE, { color: colors.gray700 }]}>
+                  {item.usage_count || 0}/{item.usage_limit}
+                </Text>
+              </View>
+            )}
+            {item.valid_until && (
+              <View style={[styles.detailChipE, { backgroundColor: colors.gray100 }]}>
+                <Ionicons name="time-outline" size={10} color={colors.gray700} />
+                <Text style={[styles.detailChipTextE, { color: colors.gray700 }]}>
+                  {new Date(item.valid_until).toLocaleDateString('fr-FR', {
+                    day: 'numeric',
+                    month: 'short',
+                  })}
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-
-        {item.valid_until && (
-          <Text style={[styles.validUntil, { color: colors.gray500 }]}>
-            Valide jusqu'au{' '}
-            {new Date(item.valid_until).toLocaleDateString('fr-FR', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </Text>
-        )}
-      </View>
+      </StaggeredItem>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>+1</WatermarkNumeral>
         <LoadingSpinner />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: hairline }]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>PROGRAMME</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Parrainage</Text>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>+1</WatermarkNumeral>
+
+      {/* === HEADER === */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
+        ]}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>PARRAINAGE • REWARDS</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Invite & gagne</Text>
+          </View>
         </View>
       </View>
 
@@ -281,60 +314,122 @@ export default function ReferralScreen() {
         data={codes}
         contentContainerStyle={styles.listContent}
         keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListHeaderComponent={
           <>
-            <View
-              style={[
-                styles.descriptionCard,
-                { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}20` },
-              ]}
-            >
-              <View style={[styles.descriptionIcon, { backgroundColor: `${colors.primary}20` }]}>
-                <Ionicons name="gift-outline" size={20} color={colors.primary} />
+            {/* === EARNINGS HERO === */}
+            <View style={[styles.heroCard, Shadows.lg]}>
+              <LinearGradient
+                colors={['#0F172A', '#1E1B4B', colors.primary]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              <View style={styles.heroCircle1} />
+              <View style={styles.heroCircle2} />
+              <Text style={styles.heroWatermark}>$</Text>
+
+              <View style={styles.heroTopRow}>
+                <Text style={styles.heroEyebrow}>GAINS TOTAUX</Text>
+                <View style={styles.heroBadge}>
+                  <Ionicons name="gift" size={10} color={Colors.white} />
+                  <Text style={styles.heroBadgeText}>PROGRAMME</Text>
+                </View>
               </View>
-              <Text style={[styles.descriptionText, { color: colors.text }]}>
-                Partagez vos codes de parrainage et gagnez des commissions sur chaque inscription.
-              </Text>
+
+              <View style={styles.heroAmountRow}>
+                <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit>
+                  {formatCurrency(stats?.total_earnings || 0)}
+                </Text>
+              </View>
+
+              <View style={styles.heroDivider} />
+
+              <View style={styles.heroBottomRow}>
+                <View style={styles.heroBottomCell}>
+                  <Text style={styles.heroBottomEyebrow}>CLICS</Text>
+                  <Text style={styles.heroBottomValue}>{stats?.total_clicks || 0}</Text>
+                </View>
+                <View style={styles.heroBottomDivider} />
+                <View style={styles.heroBottomCell}>
+                  <Text style={styles.heroBottomEyebrow}>CONVERSIONS</Text>
+                  <Text style={styles.heroBottomValue}>{stats?.total_conversions || 0}</Text>
+                </View>
+                <View style={styles.heroBottomDivider} />
+                <View style={styles.heroBottomCell}>
+                  <Text style={styles.heroBottomEyebrow}>TAUX</Text>
+                  <Text style={styles.heroBottomValue}>
+                    {stats?.total_clicks ? Math.round((stats.total_conversions / stats.total_clicks) * 100) : 0}%
+                  </Text>
+                </View>
+              </View>
             </View>
 
-            {renderStatsCard()}
+            {/* === HOW IT WORKS === */}
+            <View style={styles.howItWorks}>
+              <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>COMMENT ÇA MARCHE</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>3 étapes simples</Text>
+              <View style={styles.stepsRow}>
+                {[
+                  { n: '01', label: 'Partage', icon: 'share-social' as const },
+                  { n: '02', label: 'On clique', icon: 'cursor-default-click' as const },
+                  { n: '03', label: 'Tu gagnes', icon: 'cash' as const },
+                ].map((step, idx) => (
+                  <View key={idx} style={[styles.stepCard, { backgroundColor: colors.card, borderColor: hairline }]}>
+                    <Text style={[styles.stepNumber, { color: colors.primary }]}>{step.n}</Text>
+                    <Text style={[styles.stepLabel, { color: colors.text }]}>{step.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
 
-            <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>MES CODES</Text>
+            {codes.length > 0 && (
+              <Text style={[styles.codesListEyebrow, { color: colors.accent }]}>
+                MES CODES • {codes.length}
+              </Text>
+            )}
           </>
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Ionicons name="link-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.emptyText, { color: colors.text }]}>Aucun code de parrainage</Text>
+            <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>
+              <Ionicons name="link-outline" size={40} color={colors.primary} />
+            </View>
+            <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>BIENTÔT</Text>
+            <Text style={[styles.emptyText, { color: colors.text }]}>Pas de code pour l'instant</Text>
             <Text style={[styles.emptySubtext, { color: colors.gray500 }]}>
-              Vos codes de parrainage apparaîtront ici lorsqu'ils seront disponibles.
+              Vos codes de parrainage apparaîtront ici dès qu'ils seront disponibles.
             </Text>
           </View>
         }
         renderItem={renderCodeCard}
       />
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  // === HEADER ===
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   iconDisc: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -346,150 +441,372 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
+
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xl,
-    gap: Spacing.sm,
+    paddingTop: Spacing.lg,
+    paddingBottom: 140,
   },
-  descriptionCard: {
+
+  // === HERO CARD ===
+  heroCard: {
+    borderRadius: 28,
+    padding: Spacing.lg,
+    minHeight: 200,
+    overflow: 'hidden',
+    marginBottom: Spacing.xl,
+  },
+  heroCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  heroCircle2: {
+    position: 'absolute',
+    bottom: -40,
+    left: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(190,255,90,0.12)',
+  },
+  heroWatermark: {
+    position: 'absolute',
+    bottom: 14,
+    right: 18,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 80,
+    letterSpacing: -3,
+    color: 'rgba(255,255,255,0.06)',
+    lineHeight: 80,
+  },
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    gap: Spacing.sm,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
   },
-  descriptionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  heroEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
-  descriptionText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
-    lineHeight: 18,
-  },
-  statsRow: {
+  heroBadge: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  statCard: {
-    flex: 1,
     alignItems: 'center',
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
     gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
-  statIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
+  heroBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#FFFFFF',
+    letterSpacing: 1.2,
   },
-  statValue: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.md,
+  heroAmountRow: {
+    marginBottom: Spacing.md,
   },
-  statLabel: {
-    fontSize: FontSizes.xs,
-    marginTop: 2,
+  heroAmount: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 38,
+    color: '#FFFFFF',
+    letterSpacing: -1.7,
+    lineHeight: 42,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginBottom: Spacing.md,
+  },
+  heroBottomRow: {
+    flexDirection: 'row',
+  },
+  heroBottomCell: {
+    flex: 1,
+    alignItems: 'flex-start',
+  },
+  heroBottomDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginHorizontal: Spacing.sm,
+  },
+  heroBottomEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  heroBottomValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    color: '#FFFFFF',
+    letterSpacing: -0.5,
+  },
+
+  // === HOW IT WORKS ===
+  howItWorks: {
+    marginBottom: Spacing.xl,
   },
   sectionEyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    letterSpacing: 1.5,
-    marginBottom: Spacing.sm,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
-  codeCard: {
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    padding: Spacing.md,
+  sectionTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+    marginBottom: Spacing.md,
   },
-  codeEventName: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    marginBottom: Spacing.sm,
-  },
-  codeRow: {
+  stepsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: Spacing.sm,
   },
-  codeBox: {
+  stepCard: {
     flex: 1,
-    borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: 14,
     borderWidth: 1,
-    borderStyle: 'dashed',
+    alignItems: 'flex-start',
   },
-  codeText: {
+  stepNumber: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    marginBottom: 4,
+  },
+  stepLabel: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 13,
+    letterSpacing: -0.3,
+  },
+
+  codesListEyebrow: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSizes.lg,
-    textAlign: 'center',
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.md,
+  },
+
+  // === CODE CARD ===
+  codeCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  codeEventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: Spacing.sm,
+  },
+  codeEventName: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+  },
+
+  // === CODE STUB STYLE (boarding pass-like) ===
+  codeMainBlock: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: 110,
+    marginBottom: Spacing.md,
+  },
+  codeStubLeft: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: 16,
+    justifyContent: 'center',
+  },
+  codeStubLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1.5,
+    marginBottom: 4,
+  },
+  codeStubValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    color: '#FFFFFF',
     letterSpacing: 2,
   },
-  copyButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+  codeStubSub: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.5)',
+    letterSpacing: 1.2,
+    marginTop: 6,
+  },
+  codeStubRight: {
+    width: 1,
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    marginHorizontal: 4,
+  },
+  codeStubNotchTop: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginTop: -7,
+    marginLeft: -7,
+  },
+  codeStubDashed: {
+    flex: 1,
+    width: 0,
+    borderLeftWidth: 1.5,
+    borderStyle: 'dashed',
+  },
+  codeStubNotchBottom: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    marginBottom: -7,
+    marginLeft: -7,
+  },
+  codeActionsCol: {
+    width: 100,
+    gap: 6,
     justifyContent: 'center',
   },
-  shareButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  copyBtnE: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
-  codeDetails: {
+  copyBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
+  shareBtnE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  shareBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+
+  // === STATS GRID ===
+  codeStatsGrid: {
+    flexDirection: 'row',
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  codeStatCell: {
+    flex: 1,
+    paddingHorizontal: 6,
+    borderRightWidth: 1,
+    alignItems: 'flex-start',
+  },
+  codeStatCellLast: {
+    flex: 1.3,
+    paddingHorizontal: 6,
+    alignItems: 'flex-start',
+  },
+  codeStatValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.5,
+    lineHeight: 18,
+  },
+  codeStatLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    marginTop: 4,
+  },
+
+  // === DETAILS ===
+  codeDetailsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
+    gap: 6,
     marginTop: Spacing.sm,
   },
-  detailChip: {
-    paddingHorizontal: Spacing.sm,
+  detailChipE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
+    borderRadius: 6,
   },
-  detailChipText: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.xs,
+  detailChipTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
   },
-  validUntil: {
-    fontSize: FontSizes.xs,
-    marginTop: Spacing.sm,
-  },
+
+  // === EMPTY ===
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl * 2,
-    gap: Spacing.xs,
+    paddingTop: Spacing['3xl'],
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyIcon: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  emptyEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.xs,
   },
   emptyText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.md,
-    marginTop: Spacing.md,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.6,
+    lineHeight: 26,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
   },
   emptySubtext: {
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
     textAlign: 'center',
-    paddingHorizontal: Spacing.xl,
+    lineHeight: 19,
+    maxWidth: 260,
   },
 });

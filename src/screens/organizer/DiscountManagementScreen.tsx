@@ -20,11 +20,12 @@ import { RootStackParamList } from '../../types';
 import {
   Colors,
   FontFamily,
-  FontSizes,
   BorderRadius,
   Spacing,
+  Shadows,
 } from '../../constants/theme';
 import { SkeletonList, DiscountCardSkeleton } from '../../components/ui/Skeleton';
+import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'DiscountManagement'>;
@@ -50,23 +51,6 @@ interface TicketType {
 
 type DiscountStatus = 'active' | 'expired' | 'exhausted' | 'upcoming';
 
-function getDiscountStatus(d: Discount): { status: DiscountStatus; label: string; color: string; bgColor: string } {
-  const now = new Date();
-  const from = new Date(d.valid_from);
-  const until = new Date(d.valid_until);
-
-  if (d.times_used >= d.max_uses) {
-    return { status: 'exhausted', label: 'Épuisé', color: Colors.gray600, bgColor: Colors.gray200 };
-  }
-  if (now > until) {
-    return { status: 'expired', label: 'Expiré', color: Colors.error, bgColor: Colors.errorLight };
-  }
-  if (now < from) {
-    return { status: 'upcoming', label: 'À venir', color: Colors.info, bgColor: Colors.infoLight };
-  }
-  return { status: 'active', label: 'Actif', color: Colors.success, bgColor: Colors.successLight };
-}
-
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -77,11 +61,11 @@ export default function DiscountManagementScreen() {
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
   const { showAlert, showError } = useAlert();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
-  // Strategie "Event mono-devise" : les codes promo s'affichent dans la devise de l'evenement
   const [eventCurrency, setEventCurrency] = useState<string>('XAF');
   const platformCurrency = eventCurrency === 'XAF' || eventCurrency === 'XOF' ? 'FCFA' : eventCurrency;
   const [loading, setLoading] = useState(true);
@@ -153,182 +137,250 @@ export default function DiscountManagementScreen() {
     );
   };
 
-  const formatValue = (discount: Discount): string => {
-    if (discount.discount_type === 'percentage') {
-      return `${discount.value}%`;
-    }
-    return `${discount.value.toLocaleString()} ${platformCurrency}`;
-  };
-
-  const getThemedDiscountStatus = (d: Discount): { status: DiscountStatus; label: string; color: string; bgColor: string } => {
+  const getThemedDiscountStatus = (d: Discount): { status: DiscountStatus; label: string; eyebrow: string; color: string } => {
     const now = new Date();
     const from = new Date(d.valid_from);
     const until = new Date(d.valid_until);
 
     if (d.times_used >= d.max_uses) {
-      return { status: 'exhausted', label: 'Épuisé', color: colors.gray600, bgColor: colors.gray200 };
+      return { status: 'exhausted', label: 'Épuisé', eyebrow: 'OUT', color: colors.gray600 };
     }
     if (now > until) {
-      return { status: 'expired', label: 'Expiré', color: colors.error, bgColor: colors.errorLight };
+      return { status: 'expired', label: 'Expiré', eyebrow: 'EXP', color: '#EF4444' };
     }
     if (now < from) {
-      return { status: 'upcoming', label: 'À venir', color: colors.info, bgColor: colors.infoLight };
+      return { status: 'upcoming', label: 'À venir', eyebrow: 'SOON', color: '#3B82F6' };
     }
-    return { status: 'active', label: 'Actif', color: colors.success, bgColor: colors.successLight };
+    return { status: 'active', label: 'Actif', eyebrow: 'LIVE', color: '#10B981' };
   };
 
-  const renderDiscount = ({ item }: { item: Discount }) => {
-    const { label, color, bgColor } = getThemedDiscountStatus(item);
+  const renderDiscount = ({ item, index }: { item: Discount; index: number }) => {
+    const { label, eyebrow, color } = getThemedDiscountStatus(item);
     const usagePercent = item.max_uses > 0 ? (item.times_used / item.max_uses) * 100 : 0;
+    const isPercentage = item.discount_type === 'percentage';
 
     return (
-      <TouchableOpacity
-        style={[styles.discountCard, { backgroundColor: colors.card }]}
-        onPress={() => navigation.navigate('DiscountForm', { eventId, discountId: item.id })}
-        activeOpacity={0.7}
-      >
-        {/* Header */}
-        <View style={styles.cardHeader}>
-          <View style={[styles.codeContainer, { backgroundColor: colors.primaryBg }]}>
-            <Text style={[styles.codeText, { color: colors.primary }]}>{item.code}</Text>
+      <StaggeredItem index={index}>
+        <TouchableOpacity
+          style={[
+            styles.discountCard,
+            {
+              backgroundColor: colors.card,
+              borderColor: hairline,
+            },
+            Shadows.sm,
+          ]}
+          onPress={() => navigation.navigate('DiscountForm', { eventId, discountId: item.id })}
+          activeOpacity={0.85}
+        >
+          {/* === HERO BLOCK with HUGE % numeral (touche unique) === */}
+          <View style={styles.heroBlock}>
+            <View style={[styles.heroLeft, { backgroundColor: `${color}10` }]}>
+              <Text style={[styles.heroValue, { color }]}>
+                {isPercentage ? `${item.value}` : `${(item.value).toLocaleString()}`}
+              </Text>
+              <Text style={[styles.heroSign, { color }]}>
+                {isPercentage ? '%' : platformCurrency}
+              </Text>
+              <Text style={[styles.heroLabel, { color }]}>
+                {isPercentage ? 'POURCENT' : 'FIXE'}
+              </Text>
+            </View>
+
+            <View style={styles.heroRight}>
+              <View style={styles.heroTopRow}>
+                <View style={[styles.statusPill, { backgroundColor: `${color}15` }]}>
+                  <View style={[styles.statusDot, { backgroundColor: color }]} />
+                  <Text style={[styles.statusText, { color }]}>{eyebrow}</Text>
+                </View>
+                <Text style={[styles.heroPeriod, { color: colors.gray400 }]}>
+                  {item.times_used}/{item.max_uses}
+                </Text>
+              </View>
+              <View style={[styles.codeBlock, { backgroundColor: colors.text }]}>
+                <Text style={styles.codeBlockText}>{item.code}</Text>
+              </View>
+              <Text style={[styles.heroSub, { color: colors.gray500 }]}>
+                Code à partager
+              </Text>
+            </View>
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: bgColor }]}>
-            <Text style={[styles.statusText, { color }]}>{label}</Text>
+
+          {/* === META ROW === */}
+          <View style={[styles.metaRow, { borderTopColor: hairline }]}>
+            <View style={styles.metaItem}>
+              <Ionicons name="calendar-outline" size={11} color={colors.gray500} />
+              <Text style={[styles.metaText, { color: colors.gray600 }]} numberOfLines={1}>
+                {formatDate(item.valid_from)} → {formatDate(item.valid_until)}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {/* Value */}
-        <Text style={[styles.valueText, { color: colors.gray900 }]}>{formatValue(item)}</Text>
-        <Text style={[styles.valueLabel, { color: colors.gray500 }]}>
-          {item.discount_type === 'percentage' ? 'de réduction' : 'de remise'}
-        </Text>
+          {/* === USAGE BAR === */}
+          <View style={styles.usageRow}>
+            <View style={styles.usageHeader}>
+              <Text style={[styles.usageLabel, { color: colors.gray500 }]}>UTILISATION</Text>
+              <Text style={[styles.usagePercent, { color: colors.text }]}>{Math.round(usagePercent)}%</Text>
+            </View>
+            <View style={[styles.usageBarBg, { backgroundColor: colors.gray100 }]}>
+              <LinearGradient
+                colors={
+                  usagePercent >= 90
+                    ? ['#EF4444', '#DC2626']
+                    : usagePercent >= 50
+                    ? ['#F59E0B', '#D97706']
+                    : [colors.primary, colors.primaryDark]
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.usageBarFill, { width: `${Math.min(usagePercent, 100)}%` }]}
+              />
+            </View>
+          </View>
 
-        {/* Dates */}
-        <View style={styles.infoRow}>
-          <Ionicons name="calendar-outline" size={14} color={colors.gray500} />
-          <Text style={[styles.infoText, { color: colors.gray600 }]}>
-            {formatDate(item.valid_from)} → {formatDate(item.valid_until)}
-          </Text>
-        </View>
-
-        {/* Usage */}
-        <View style={styles.infoRow}>
-          <Ionicons name="people-outline" size={14} color={colors.gray500} />
-          <Text style={[styles.infoText, { color: colors.gray600 }]}>
-            {item.times_used} / {item.max_uses} utilisations
-          </Text>
-        </View>
-
-        {/* Usage bar */}
-        <View style={[styles.usageBarBg, { backgroundColor: colors.gray200 }]}>
-          <View
-            style={[
-              styles.usageBarFill,
-              {
-                width: `${Math.min(usagePercent, 100)}%`,
-                backgroundColor: usagePercent >= 90 ? colors.error : usagePercent >= 50 ? colors.warning : colors.primary,
-              },
-            ]}
-          />
-        </View>
-
-        {/* Actions */}
-        <View style={[styles.cardActions, { borderTopColor: colors.gray100 }]}>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.gray50 }]}
-            onPress={() => navigation.navigate('DiscountForm', { eventId, discountId: item.id })}
-          >
-            <Ionicons name="create-outline" size={18} color={colors.primary} />
-            <Text style={[styles.actionText, { color: colors.primary }]}>Modifier</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.errorLight }]}
-            onPress={() => handleDelete(item)}
-          >
-            <Ionicons name="trash-outline" size={18} color={colors.error} />
-            <Text style={[styles.actionText, { color: colors.error }]}>Supprimer</Text>
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+          {/* === ACTIONS === */}
+          <View style={[styles.cardActions, { borderTopColor: hairline }]}>
+            <TouchableOpacity
+              style={[styles.actionPill, { backgroundColor: colors.gray100 }]}
+              onPress={() => navigation.navigate('DiscountForm', { eventId, discountId: item.id })}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="create-outline" size={13} color={colors.gray700} />
+              <Text style={[styles.actionPillText, { color: colors.gray700 }]}>Modifier</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionPillDanger, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
+              onPress={() => handleDelete(item)}
+              activeOpacity={0.85}
+            >
+              <Ionicons name="trash-outline" size={13} color="#DC2626" />
+              <Text style={styles.actionPillDangerText}>Supprimer</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </StaggeredItem>
     );
   };
 
   const renderEmpty = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="pricetag-outline" size={64} color={colors.gray300} />
-      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun code promo</Text>
+      <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>
+        <Text style={[styles.emptyIconBig, { color: colors.primary }]}>%</Text>
+      </View>
+      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>AUCUN DEAL</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>Crée ton 1er code</Text>
       <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
-        Créez votre premier code promo pour attirer plus de participants
+        Attire plus de participants{'\n'}avec des réductions stratégiques
       </Text>
       <TouchableOpacity
-        style={[styles.emptyCta, { backgroundColor: colors.primary }]}
+        style={[styles.emptyCta, Shadows.buttonPrimary]}
         onPress={() => navigation.navigate('DiscountForm', { eventId })}
+        activeOpacity={0.9}
       >
-        <Ionicons name="add" size={20} color={colors.white} />
-        <Text style={[styles.emptyCtaText, { color: colors.white }]}>Créer un code promo</Text>
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.emptyCtaEyebrow}>NOUVEAU CODE</Text>
+          <Text style={styles.emptyCtaLabel}>Créer un code promo</Text>
+        </View>
+        <View style={styles.emptyCtaArrow}>
+          <Ionicons name="add" size={18} color={Colors.white} />
+        </View>
       </TouchableOpacity>
     </View>
   );
 
-  const renderHeader = () => (
-    <View style={styles.statsContainer}>
-      <View style={styles.statsGrid}>
-        {[
-          { label: 'Total', value: stats.total, icon: 'pricetag-outline' as const, color: colors.primary },
-          { label: 'Actifs', value: stats.active, icon: 'checkmark-circle-outline' as const, color: colors.success },
-          { label: 'Expirés', value: stats.expired, icon: 'close-circle-outline' as const, color: colors.error },
-          { label: 'Utilisations', value: stats.totalUsages, icon: 'bar-chart-outline' as const, color: colors.info },
-        ].map((stat) => (
-          <View key={stat.label} style={[styles.statCard, { backgroundColor: colors.card }]}>
-            <Ionicons name={stat.icon} size={20} color={stat.color} />
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{stat.value}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{stat.label}</Text>
+  const renderListHeader = () => (
+    <View style={styles.statStrip}>
+      <View
+        style={[
+          styles.statStripCard,
+          { backgroundColor: colors.card, borderColor: hairline },
+          Shadows.sm,
+        ]}
+      >
+        <View style={[styles.statCell, { borderRightColor: hairline }]}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>TOTAL</Text>
+        </View>
+        <View style={[styles.statCell, { borderRightColor: hairline }]}>
+          <View style={styles.statValueRow}>
+            <Text style={[styles.statValue, { color: colors.text }]}>{stats.active}</Text>
+            {stats.active > 0 && <View style={[styles.statDot, { backgroundColor: '#10B981' }]} />}
           </View>
-        ))}
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>ACTIFS</Text>
+        </View>
+        <View style={[styles.statCell, { borderRightColor: hairline }]}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.expired}</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>EXPIRÉS</Text>
+        </View>
+        <View style={styles.statCellLast}>
+          <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalUsages}</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>USAGES</Text>
+        </View>
       </View>
     </View>
   );
 
   return (
     <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>%</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
+      <WatermarkNumeral>-%</WatermarkNumeral>
 
-      {/* Header */}
-      <LinearGradient
-        colors={[colors.primary, colors.primaryDark]}
-        style={styles.header}
+      {/* === HEADER === */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
+        ]}
       >
-        <View style={styles.headerContent}>
+        <View style={styles.headerTopRow}>
           <TouchableOpacity
-            style={styles.backButton}
             onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.white} />
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
-          <View style={styles.headerCenter}>
-            <Text style={styles.headerEyebrow}>Dope tes ventes</Text>
-            <Text style={[styles.headerTitle, { color: colors.white }]}>Codes promo</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>DEAL • PROMO</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Codes promo</Text>
           </View>
           <TouchableOpacity
-            style={styles.addButton}
             onPress={() => navigation.navigate('DiscountForm', { eventId })}
+            style={[styles.headerCreateBtn, Shadows.buttonPrimary]}
+            activeOpacity={0.85}
           >
-            <Ionicons name="add" size={24} color={colors.white} />
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Ionicons name="add" size={20} color={Colors.white} />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
-        <SkeletonList count={4} Component={DiscountCardSkeleton} />
+        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg }}>
+          <SkeletonList count={4} Component={DiscountCardSkeleton} />
+        </View>
       ) : (
         <FlatList
           data={discounts}
           keyExtractor={(item) => String(item.id)}
           renderItem={renderDiscount}
-          ListHeaderComponent={discounts.length > 0 ? renderHeader : null}
+          ListHeaderComponent={discounts.length > 0 ? renderListHeader : null}
           ListEmptyComponent={renderEmpty}
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -338,225 +390,361 @@ export default function DiscountManagementScreen() {
           }
         />
       )}
-      </View>
     </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  // === HEADER ===
   header: {
-    paddingBottom: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
   },
-  headerContent: {
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.sm,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  iconDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCenter: {
-    flex: 1,
+  headerCreateBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
   },
-  headerEyebrow: {
-    fontSize: 10,
+  eyebrow: {
     fontFamily: FontFamily.bold,
-    color: 'rgba(255,255,255,0.85)',
+    fontSize: 10,
     letterSpacing: 1.5,
     textTransform: 'uppercase',
     marginBottom: 2,
   },
   headerTitle: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.white,
-    letterSpacing: -0.3,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
-  addButton: {
-    width: 40,
-    height: 40,
+
+  // === STAT STRIP ===
+  statStrip: {
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+  },
+  statStripCard: {
+    flexDirection: 'row',
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+  },
+  statCell: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    borderRightWidth: 1,
+    alignItems: 'flex-start',
+  },
+  statCellLast: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 24,
+  },
+  statDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  statLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+
+  // === LIST ===
+  listContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: 140,
+  },
+
+  // === DISCOUNT CARD ===
+  discountCard: {
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+  },
+  heroBlock: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: 110,
+  },
+  heroLeft: {
+    width: 120,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  listContent: {
-    padding: Spacing.lg,
-    paddingBottom: 100,
+  heroValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 48,
+    letterSpacing: -2.5,
+    lineHeight: 50,
   },
-  statsContainer: {
-    marginBottom: Spacing.lg,
+  heroSign: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.5,
+    marginTop: -4,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    alignItems: 'center',
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 1,
-  },
-  statValue: {
-    fontSize: FontSizes['2xl'],
+  heroLabel: {
     fontFamily: FontFamily.bold,
-    color: Colors.gray900,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginTop: 6,
   },
-  statLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+  heroRight: {
+    flex: 1,
+    padding: Spacing.md,
+    justifyContent: 'center',
+    gap: 6,
   },
-  discountCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  cardHeader: {
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
-  codeContainer: {
-    backgroundColor: '#F3E8FF',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: BorderRadius.md,
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  codeText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.bold,
-    color: Colors.primary,
-    letterSpacing: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   statusText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-  },
-  valueText: {
-    fontSize: FontSizes['2xl'],
     fontFamily: FontFamily.bold,
-    color: Colors.gray900,
+    fontSize: 9,
+    letterSpacing: 1.2,
   },
-  valueLabel: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-    marginBottom: Spacing.sm,
+  heroPeriod: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
-  infoRow: {
+  codeBlock: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  codeBlockText: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+    letterSpacing: 3,
+  },
+  heroSub: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+
+  // === META ===
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 4,
   },
-  infoText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
+  metaText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
+
+  // === USAGE BAR ===
+  usageRow: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Spacing.sm,
+  },
+  usageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  usageLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  usagePercent: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 12,
+    letterSpacing: -0.2,
   },
   usageBarBg: {
-    height: 4,
-    backgroundColor: Colors.gray200,
-    borderRadius: 2,
-    marginTop: Spacing.sm,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   usageBarFill: {
-    height: 4,
-    borderRadius: 2,
+    height: 6,
+    borderRadius: 3,
   },
+
+  // === ACTIONS ===
   cardActions: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    paddingTop: Spacing.md,
+    gap: 8,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.md,
     borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
   },
-  actionButton: {
+  actionPill: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: Spacing.sm,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.gray50,
+    gap: 5,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.full,
   },
-  deleteButton: {
-    backgroundColor: Colors.errorLight,
+  actionPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
-  actionText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.primary,
+  actionPillDanger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
   },
+  actionPillDangerText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#DC2626',
+    letterSpacing: 0.2,
+  },
+
+  // === EMPTY ===
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 60,
+    paddingTop: Spacing['3xl'],
     paddingHorizontal: Spacing.xl,
   },
-  emptyTitle: {
-    fontSize: FontSizes.lg,
+  emptyIcon: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.lg,
+  },
+  emptyIconBig: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 56,
+    letterSpacing: -2,
+    lineHeight: 56,
+  },
+  emptyEyebrow: {
     fontFamily: FontFamily.bold,
-    color: Colors.gray900,
-    marginTop: Spacing.lg,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.xs,
+  },
+  emptyTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1,
+    lineHeight: 32,
+    textAlign: 'center',
     marginBottom: Spacing.sm,
   },
   emptySubtitle: {
-    fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    fontSize: 13,
     textAlign: 'center',
+    lineHeight: 19,
     marginBottom: Spacing.xl,
   },
   emptyCta: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
     borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    minWidth: 280,
   },
-  emptyCtaText: {
-    fontSize: FontSizes.md,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+  emptyCtaEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  emptyCtaLabel: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+    marginTop: 2,
+  },
+  emptyCtaArrow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: Spacing.sm,
   },
 });

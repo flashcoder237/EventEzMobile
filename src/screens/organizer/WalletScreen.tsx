@@ -44,6 +44,7 @@ import {
 } from '../../constants/theme';
 import { StaggeredItem } from '../../components/ui/Animations';
 import Badge from '../../components/ui/Badge';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'overview' | 'transactions' | 'payouts' | 'pending';
@@ -262,195 +263,283 @@ export default function WalletScreen() {
     return configs[status] || configs.pending;
   };
 
-  const renderTransactionItem = (transaction: WalletTransaction, index: number) => (
-    <StaggeredItem key={transaction.id} index={index}>
-    <View style={[styles.transactionCard, { backgroundColor: colors.card }]}>
-      <View
-        style={[
-          styles.transactionIcon,
-          { backgroundColor: `${getTransactionColor(transaction.transaction_type)}20` },
-        ]}
-      >
-        <Ionicons
-          name={getTransactionIcon(transaction.transaction_type)}
-          size={20}
-          color={getTransactionColor(transaction.transaction_type)}
-        />
-      </View>
-      <View style={styles.transactionContent}>
-        <Text style={[styles.transactionDescription, { color: colors.gray900 }]} numberOfLines={1}>
-          {transaction.description}
-        </Text>
-        {transaction.event_title && (
-          <Text style={[styles.transactionEvent, { color: colors.gray500 }]} numberOfLines={1}>
-            {transaction.event_title}
-          </Text>
-        )}
-        <Text style={[styles.transactionDate, { color: colors.gray400 }]}>
-          {formatDate(transaction.created_at)}
-        </Text>
-      </View>
-      <View style={styles.transactionAmountContainer}>
-        <Text
-          style={[
-            styles.transactionAmount,
-            { color: getTransactionColor(transaction.transaction_type) },
-          ]}
-        >
-          {transaction.transaction_type === 'credit' ? '+' : '-'}
-          {formatPrice(Math.abs(transaction.amount))}
-        </Text>
-        <Text style={[styles.transactionBalance, { color: colors.gray400 }]}>
-          Solde: {formatPrice(transaction.balance_after)}
-        </Text>
-      </View>
-    </View>
-    </StaggeredItem>
-  );
-
-  const renderPayoutItem = (payout: Payout, index: number) => {
-    const statusConfig = getPayoutStatusConfig(payout.status);
+  const renderTransactionItem = (transaction: WalletTransaction, index: number) => {
+    const txnColor = getTransactionColor(transaction.transaction_type);
+    const isCredit = transaction.transaction_type === 'credit';
+    const date = new Date(transaction.created_at);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
+    const txnEyebrow = transaction.transaction_type === 'credit' ? 'CRÉDIT' :
+                       transaction.transaction_type === 'debit' ? 'DÉBIT' :
+                       transaction.transaction_type === 'fee' ? 'FRAIS' :
+                       transaction.transaction_type === 'refund' ? 'REMB.' : 'TX';
     return (
-      <StaggeredItem key={payout.id} index={index}>
-      <View style={[styles.payoutCard, { backgroundColor: colors.card }]}>
-        <View style={[styles.payoutIcon, {
-          backgroundColor: payout.payout_method === 'bank_transfer' ? '#DBEAFE' : '#FED7AA'
-        }]}>
-          <Ionicons
-            name={payout.payout_method === 'bank_transfer' ? 'business' : 'phone-portrait'}
-            size={20}
-            color={payout.payout_method === 'bank_transfer' ? '#3B82F6' : '#F97316'}
-          />
-        </View>
-        <View style={styles.payoutContent}>
-          <Text style={[styles.payoutAmount, { color: colors.gray900 }]}>
-            {formatPrice(payout.amount)} {wallet?.currency || 'FCFA'}
-          </Text>
-          <Text style={[styles.payoutMethod, { color: colors.gray600 }]}>
-            {payout.payout_method === 'mtn_money' ? 'MTN Mobile Money' :
-             payout.payout_method === 'orange_money' ? 'Orange Money' : 'Virement bancaire'}
-          </Text>
-          <Text style={[styles.payoutDestination, { color: colors.gray400 }]}>
-            {payout.destination_account} - {payout.destination_name}
-          </Text>
-        </View>
-        <View style={styles.payoutRight}>
-          <Badge
-            label={statusConfig.label}
-            variant={getPayoutBadgeVariant(payout.status)}
-            size="sm"
-          />
-          <Text style={[styles.payoutDate, { color: colors.gray400 }]}>{formatDate(payout.requested_at)}</Text>
-          {payout.failure_reason && (
-            <Text style={styles.failureReason} numberOfLines={1}>
-              {payout.failure_reason}
+      <StaggeredItem key={transaction.id} index={index}>
+        <View style={[styles.txnCard, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}>
+          {/* Day tile */}
+          <View style={[styles.txnDayTile, { backgroundColor: `${txnColor}12` }]}>
+            <Text style={[styles.txnDayNumber, { color: txnColor }]}>{day}</Text>
+            <Text style={[styles.txnDayMonth, { color: txnColor }]}>{month}</Text>
+          </View>
+
+          <View style={styles.txnBody}>
+            <View style={styles.txnTopRow}>
+              <View style={[styles.txnEyebrowPill, { backgroundColor: `${txnColor}15` }]}>
+                <Ionicons name={getTransactionIcon(transaction.transaction_type)} size={9} color={txnColor} />
+                <Text style={[styles.txnEyebrowText, { color: txnColor }]}>{txnEyebrow}</Text>
+              </View>
+              <Text style={[styles.txnBalance, { color: colors.gray400 }]}>
+                Solde {formatPrice(transaction.balance_after)}
+              </Text>
+            </View>
+            <Text style={[styles.txnTitle, { color: colors.text }]} numberOfLines={1}>
+              {transaction.description}
             </Text>
-          )}
+            {transaction.event_title && (
+              <Text style={[styles.txnSub, { color: colors.gray500 }]} numberOfLines={1}>
+                {transaction.event_title}
+              </Text>
+            )}
+          </View>
+
+          <View style={styles.txnAmountCol}>
+            <Text style={[styles.txnSign, { color: isCredit ? '#10B981' : colors.gray400 }]}>
+              {isCredit ? '+' : '−'}
+            </Text>
+            <Text style={[styles.txnAmount, { color: colors.text }]}>
+              {formatPrice(Math.abs(transaction.amount))}
+            </Text>
+            <Text style={[styles.txnCurrency, { color: colors.gray500 }]}>
+              {wallet?.currency || 'XAF'}
+            </Text>
+          </View>
         </View>
-      </View>
       </StaggeredItem>
     );
   };
 
-  const renderPendingItem = (earning: PendingEarning, index: number) => (
-    <StaggeredItem key={earning.id} index={index}>
-    <View style={[styles.pendingCard, { backgroundColor: colors.card }]}>
-      <View style={styles.pendingIcon}>
-        <Ionicons name="time" size={20} color="#F59E0B" />
-      </View>
-      <View style={styles.pendingContent}>
-        <Text style={styles.pendingTitle} numberOfLines={1}>
-          {earning.event_title}
-        </Text>
-        <Text style={styles.pendingRelease}>
-          Libération: {formatDate(earning.release_date)}
-        </Text>
-      </View>
-      <View style={styles.pendingRight}>
-        <Text style={styles.pendingAmount}>
-          {formatPrice(earning.amount)} {wallet?.currency || 'FCFA'}
-        </Text>
-        <Text style={styles.pendingDays}>
-          {earning.days_until_release > 0
-            ? `Dans ${earning.days_until_release} jour${earning.days_until_release > 1 ? 's' : ''}`
-            : 'Bientôt disponible'
-          }
-        </Text>
-      </View>
-    </View>
-    </StaggeredItem>
-  );
+  const renderPayoutItem = (payout: Payout, index: number) => {
+    const statusCfg = getPayoutStatusConfig(payout.status);
+    const isBank = payout.payout_method === 'bank_transfer';
+    const methodColor = isBank ? '#3B82F6' : '#F97316';
+    const methodLabel = payout.payout_method === 'mtn_money' ? 'MTN Money' :
+                        payout.payout_method === 'orange_money' ? 'Orange Money' : 'Virement bancaire';
+    const methodMark = payout.payout_method === 'mtn_money' ? 'MTN' :
+                       payout.payout_method === 'orange_money' ? 'OM' : 'BANK';
+    const statusEyebrow = payout.status === 'completed' ? 'EFFECTUÉ' :
+                          payout.status === 'pending' ? 'EN ATTENTE' :
+                          payout.status === 'processing' ? 'EN COURS' :
+                          payout.status === 'failed' ? 'ÉCHEC' : 'ANNULÉ';
+    return (
+      <StaggeredItem key={payout.id} index={index}>
+        <View style={[styles.payoutCardE, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}>
+          {/* Top row: status pill + method mark + amount */}
+          <View style={styles.payoutTopRow}>
+            <View style={[styles.payoutStatusPill, { backgroundColor: `${statusCfg.color}15` }]}>
+              <View style={[styles.payoutStatusDot, { backgroundColor: statusCfg.color }]} />
+              <Text style={[styles.payoutStatusText, { color: statusCfg.color }]}>{statusEyebrow}</Text>
+            </View>
+            <Text style={[styles.methodMark, { color: colors.gray400 }]}>{methodMark}</Text>
+          </View>
+
+          {/* Amount hero */}
+          <View style={styles.payoutAmountRow}>
+            <Text style={[styles.payoutAmountValue, { color: colors.text }]}>
+              {formatPrice(payout.amount)}
+            </Text>
+            <Text style={[styles.payoutAmountCurrency, { color: colors.gray500 }]}>
+              {wallet?.currency || 'XAF'}
+            </Text>
+          </View>
+
+          {/* Method row */}
+          <View style={[styles.payoutMethodRow, { borderTopColor: softBorder }]}>
+            <View style={[styles.payoutMethodIcon, { backgroundColor: `${methodColor}15` }]}>
+              <Ionicons
+                name={isBank ? 'business' : 'phone-portrait'}
+                size={14}
+                color={methodColor}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.payoutMethodLabel, { color: colors.text }]}>{methodLabel}</Text>
+              <Text style={[styles.payoutMethodDest, { color: colors.gray500 }]} numberOfLines={1}>
+                {payout.destination_account} • {payout.destination_name}
+              </Text>
+            </View>
+            <Text style={[styles.payoutDateE, { color: colors.gray400 }]}>{formatDate(payout.requested_at)}</Text>
+          </View>
+
+          {payout.failure_reason && (
+            <View style={[styles.payoutFailure, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+              <Ionicons name="warning" size={11} color="#EF4444" />
+              <Text style={styles.payoutFailureText} numberOfLines={2}>{payout.failure_reason}</Text>
+            </View>
+          )}
+        </View>
+      </StaggeredItem>
+    );
+  };
+
+  const renderPendingItem = (earning: PendingEarning, index: number) => {
+    const days = earning.days_until_release;
+    const releaseDate = new Date(earning.release_date);
+    const day = String(releaseDate.getDate()).padStart(2, '0');
+    const month = releaseDate.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
+    return (
+      <StaggeredItem key={earning.id} index={index}>
+        <View style={[styles.pendingCardE, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}>
+          {/* Date tile (release date) */}
+          <View style={[styles.pendingDateTile, { backgroundColor: '#FEF3C7' }]}>
+            <Text style={[styles.pendingDateDay, { color: '#D97706' }]}>{day}</Text>
+            <Text style={[styles.pendingDateMonth, { color: '#D97706' }]}>{month}</Text>
+          </View>
+
+          <View style={styles.pendingBodyE}>
+            <View style={styles.pendingTopRow}>
+              <View style={[styles.pendingPill, { backgroundColor: '#FEF3C7' }]}>
+                <View style={[styles.pendingPillDot, { backgroundColor: '#F59E0B' }]} />
+                <Text style={[styles.pendingPillText, { color: '#D97706' }]}>EN ATTENTE</Text>
+              </View>
+              <Text style={[styles.pendingDays, { color: days > 0 ? colors.gray500 : '#10B981' }]}>
+                {days > 0 ? `J−${days}` : 'BIENTÔT'}
+              </Text>
+            </View>
+            <Text style={[styles.pendingTitleE, { color: colors.text }]} numberOfLines={1}>
+              {earning.event_title}
+            </Text>
+            <Text style={[styles.pendingReleaseE, { color: colors.gray500 }]}>
+              Libération: {formatDate(earning.release_date)}
+            </Text>
+          </View>
+
+          <View style={styles.pendingAmountColE}>
+            <Text style={[styles.pendingAmountE, { color: colors.text }]}>
+              {formatPrice(earning.amount)}
+            </Text>
+            <Text style={[styles.pendingCurrencyE, { color: colors.gray500 }]}>
+              {wallet?.currency || 'XAF'}
+            </Text>
+          </View>
+        </View>
+      </StaggeredItem>
+    );
+  };
 
   const softBorder = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+  const canvasBg = isDark ? colors.background : '#F4F3F0';
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>{wallet?.currency || 'XAF'}</WatermarkNumeral>
         <LoadingSpinner />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>{wallet?.currency || 'XAF'}</WatermarkNumeral>
       <View style={{ flex: 1 }}>
-        {/* Soft header */}
-        <View style={[styles.softHeader, { backgroundColor: colors.card }]}>
+        {/* === EDITORIAL HEADER (tile) === */}
+        <View
+          style={[
+            styles.softHeader,
+            {
+              backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+              borderBottomColor: isDark ? colors.border : 'rgba(0,0,0,0.06)',
+              borderBottomWidth: 1,
+            },
+          ]}
+        >
           <View style={styles.softHeaderRow}>
             <TouchableOpacity
-              style={[styles.iconDisc, { backgroundColor: colors.gray50, borderColor: softBorder }]}
+              style={[styles.iconDisc, { backgroundColor: colors.gray100, borderWidth: 0 }]}
               onPress={() => navigation.goBack()}
+              activeOpacity={0.7}
             >
-              <Ionicons name="arrow-back" size={18} color={colors.text} />
+              <Ionicons name="chevron-back" size={18} color={colors.gray600} />
             </TouchableOpacity>
             <View style={styles.softHeaderTitleCol}>
-              <Text style={[styles.softHeaderEyebrow, { color: colors.textSecondary }]}>
-                MON PORTEFEUILLE
+              <Text style={[styles.softHeaderEyebrow, { color: colors.accent, textAlign: 'left' }]}>
+                TRÉSORERIE • ORGANISATEUR
               </Text>
-              <Text style={[styles.softHeaderTitle, { color: colors.text }]}>Solde</Text>
+              <Text style={[styles.softHeaderTitle, { color: colors.text, textAlign: 'left' }]}>Mon Wallet</Text>
             </View>
             <TouchableOpacity
-              style={[styles.iconDisc, { backgroundColor: colors.gray50, borderColor: softBorder }]}
+              style={[styles.iconDisc, { backgroundColor: colors.gray100, borderWidth: 0 }]}
               onPress={() => setShowBankModal(true)}
+              activeOpacity={0.7}
             >
-              <Ionicons name="settings-outline" size={18} color={colors.text} />
+              <Ionicons name="settings-outline" size={18} color={colors.gray600} />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Soft gradient credit card */}
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          stickyHeaderIndices={[4]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
+        >
+        {/* === BLACK CARD HERO (premium credit-card vibe) === */}
         <View style={styles.creditCardWrap}>
-          <LinearGradient
-            colors={[colors.primary, colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.creditCard}
-          >
+          <View style={[styles.creditCard, Shadows.lg]}>
+            <LinearGradient
+              colors={['#0F172A', '#1E1B4B', colors.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            {/* Hologram circles */}
+            <View style={styles.cardCircle1} />
+            <View style={styles.cardCircle2} />
+            <View style={styles.cardCircle3} />
+
+            {/* Embossed currency mark */}
+            <Text style={styles.cardCurrencyMark}>{wallet?.currency || 'XAF'}</Text>
+
             <View style={styles.creditCardTopRow}>
-              <Text style={styles.creditCardEyebrow}>
-                WALLET · {wallet?.currency || 'FCFA'}
-              </Text>
+              <Text style={styles.creditCardEyebrow}>WALLET PREMIUM</Text>
               <View style={styles.creditCardLiveBadge}>
                 <View style={styles.liveDot} />
                 <Text style={styles.creditCardLiveText}>LIVE</Text>
               </View>
             </View>
+
             <View style={styles.creditCardBody}>
+              <Text style={styles.creditCardCaption}>FONDS DISPONIBLES</Text>
               <Text style={styles.creditCardBalance} numberOfLines={1} adjustsFontSizeToFit>
                 {formatPrice(wallet?.available_balance || 0)}
               </Text>
-              <Text style={styles.creditCardCaption}>FONDS DISPONIBLES</Text>
+              {/* Card number-like dots for deco */}
+              <View style={styles.cardDotsRow}>
+                <View style={styles.cardDot} />
+                <View style={styles.cardDot} />
+                <View style={styles.cardDot} />
+                <View style={styles.cardDot} />
+                <Text style={styles.cardLastDigits}>{(wallet?.id || 'XXXX').slice(-4).toUpperCase()}</Text>
+              </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
-        {/* Quick action grid */}
-        <View style={styles.quickActionGrid}>
+        {/* === PRIMARY CTA: PILL WITHDRAW === */}
+        <View style={styles.withdrawWrap}>
           <TouchableOpacity
             style={[
-              styles.quickActionCard,
-              { backgroundColor: colors.card, borderColor: softBorder },
+              styles.withdrawPill,
               !wallet?.can_withdraw && { opacity: 0.55 },
+              Shadows.buttonPrimary,
             ]}
             onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
               'Retrait impossible',
@@ -459,129 +548,138 @@ export default function WalletScreen() {
               'warning'
             )}
             disabled={!wallet?.can_withdraw}
+            activeOpacity={0.85}
           >
-            <View style={[styles.quickActionIcon, { backgroundColor: `${colors.primary}15` }]}>
-              <Ionicons name="arrow-up" size={18} color={colors.primary} />
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.withdrawContent}>
+              <Text style={styles.withdrawEyebrow}>RETRAIT MOBILE MONEY · BANQUE</Text>
+              <Text style={styles.withdrawLabel}>Effectuer un retrait</Text>
             </View>
-            <Text style={[styles.quickActionLabel, { color: colors.text }]}>Retirer</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: colors.card, borderColor: softBorder }]}
-            onPress={() => setActiveTab('pending')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: `${colors.accent}15` }]}>
-              <Ionicons name="time-outline" size={18} color={colors.accent} />
+            <View style={styles.withdrawArrow}>
+              <Ionicons name="arrow-up" size={20} color={Colors.white} />
             </View>
-            <Text style={[styles.quickActionLabel, { color: colors.text }]}>En attente</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.quickActionCard, { backgroundColor: colors.card, borderColor: softBorder }]}
-            onPress={() => setActiveTab('transactions')}
-          >
-            <View style={[styles.quickActionIcon, { backgroundColor: `${colors.secondary}15` }]}>
-              <Ionicons name="swap-horizontal" size={18} color={colors.secondary} />
-            </View>
-            <Text style={[styles.quickActionLabel, { color: colors.text }]}>Historique</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Soft mini stats */}
+        {/* === STAT STRIP (mini) === */}
         <View style={[styles.miniStatRow, { backgroundColor: colors.card, borderColor: softBorder }]}>
-          <View style={[styles.miniStatCell, { borderRightColor: colors.gray100 }]}>
+          <View style={[styles.miniStatCell, { borderRightColor: softBorder }]}>
             <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
               {formatPrice(wallet?.pending_balance || 0)}
             </Text>
-            <Text style={[styles.miniStatEyebrow, { color: colors.textSecondary }]}>EN ATTENTE</Text>
+            <Text style={[styles.miniStatEyebrow, { color: colors.gray500 }]}>EN ATTENTE</Text>
           </View>
-          <View style={[styles.miniStatCell, { borderRightColor: colors.gray100 }]}>
-            <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
-              {formatPrice(wallet?.total_earnings || 0)}
-            </Text>
-            <Text style={[styles.miniStatEyebrow, { color: colors.textSecondary }]}>TOTAL GAGNÉ</Text>
+          <View style={[styles.miniStatCell, { borderRightColor: softBorder }]}>
+            <View style={styles.miniStatRowInner}>
+              <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
+                {formatPrice(wallet?.total_earnings || 0)}
+              </Text>
+              <Ionicons name="trending-up" size={11} color="#10B981" style={{ marginLeft: 4 }} />
+            </View>
+            <Text style={[styles.miniStatEyebrow, { color: colors.gray500 }]}>GAGNÉ</Text>
           </View>
-          <View style={styles.miniStatCell}>
+          <View style={styles.miniStatCellLast}>
             <Text style={[styles.miniStatNumber, { color: colors.text }]} numberOfLines={1}>
               {formatPrice(wallet?.total_withdrawn || 0)}
             </Text>
-            <Text style={[styles.miniStatEyebrow, { color: colors.textSecondary }]}>RETIRÉ</Text>
+            <Text style={[styles.miniStatEyebrow, { color: colors.gray500 }]}>RETIRÉ</Text>
           </View>
         </View>
 
-      {/* Commission Info */}
-      <View style={styles.commissionInfo}>
-        <Ionicons name="information-circle" size={18} color="#F59E0B" />
-        <Text style={styles.commissionText}>
-          Commission EventEz: {getServiceFeeLabel(commissionConfig)} par vente. Fonds libérés 48h après l'événement.
-        </Text>
+      {/* === COMMISSION CALLOUT === */}
+      <View style={[styles.commissionCallout, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+        <View style={[styles.commissionIcon, { backgroundColor: '#F59E0B' }]}>
+          <Ionicons name="information" size={12} color={Colors.white} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.commissionEyebrow}>POLITIQUE EVENTEZ</Text>
+          <Text style={styles.commissionTextE}>
+            Commission {getServiceFeeLabel(commissionConfig)} par vente · Fonds libérés 48h après l'événement
+          </Text>
+        </View>
       </View>
 
-      {/* Tabs */}
-      <View style={[styles.tabsContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabsList}>
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.key}
-              style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-              onPress={() => setActiveTab(tab.key)}
-            >
-              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+      {/* === TAB SEGMENTED CONTROL (sticky) === */}
+      <View style={[styles.tabsStickyWrap, { backgroundColor: canvasBg }]}>
+        <View style={[styles.tabsBar, { backgroundColor: colors.gray100 }]}>
+          {tabs.map((tab) => {
+            const active = activeTab === tab.key;
+            return (
+              <TouchableOpacity
+                key={tab.key}
+                style={[
+                  styles.tabSeg,
+                  active && { backgroundColor: colors.card, ...Shadows.xs },
+                ]}
+                onPress={() => setActiveTab(tab.key)}
+                activeOpacity={0.7}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <Text
+                  style={[
+                    styles.tabSegText,
+                    { color: active ? colors.text : colors.gray500 },
+                  ]}
+                  numberOfLines={1}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       {/* Tab Content */}
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.primary}
-            colors={[colors.primary]}
-          />
-        }
-      >
+      <View style={styles.tabContentWrap}>
         {activeTab === 'overview' && (
           <>
-            {/* Recent Transactions */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Transactions récentes</Text>
-                <TouchableOpacity onPress={() => setActiveTab('transactions')}>
-                  <Text style={styles.seeAll}>Voir tout</Text>
+              <View style={styles.sectionHeaderE}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>HISTORIQUE • LEDGER</Text>
+                  <Text style={[styles.sectionTitleE, { color: colors.text }]}>Transactions récentes</Text>
+                </View>
+                <TouchableOpacity onPress={() => setActiveTab('transactions')} style={[styles.seeAllPill, { backgroundColor: colors.gray100 }]}>
+                  <Text style={[styles.seeAllPillText, { color: colors.gray700 }]}>Tout</Text>
+                  <Ionicons name="arrow-forward" size={11} color={colors.gray700} />
                 </TouchableOpacity>
               </View>
               {transactions.slice(0, 5).length > 0 ? (
                 transactions.slice(0, 5).map(renderTransactionItem)
               ) : (
-                <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
-                  <Ionicons name="receipt-outline" size={40} color={colors.gray300} />
-                  <Text style={styles.emptyText}>Aucune transaction</Text>
+                <View style={[styles.emptySectionE, { backgroundColor: colors.card, borderColor: softBorder }]}>
+                  <Ionicons name="receipt-outline" size={36} color={colors.gray300} />
+                  <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>LEDGER VIDE</Text>
+                  <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>Aucune transaction</Text>
                 </View>
               )}
             </View>
 
-            {/* Recent Payouts */}
             <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Derniers retraits</Text>
-                <TouchableOpacity onPress={() => setActiveTab('payouts')}>
-                  <Text style={styles.seeAll}>Voir tout</Text>
+              <View style={styles.sectionHeaderE}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>RETRAITS • PAYOUT</Text>
+                  <Text style={[styles.sectionTitleE, { color: colors.text }]}>Derniers retraits</Text>
+                </View>
+                <TouchableOpacity onPress={() => setActiveTab('payouts')} style={[styles.seeAllPill, { backgroundColor: colors.gray100 }]}>
+                  <Text style={[styles.seeAllPillText, { color: colors.gray700 }]}>Tout</Text>
+                  <Ionicons name="arrow-forward" size={11} color={colors.gray700} />
                 </TouchableOpacity>
               </View>
               {payouts.slice(0, 3).length > 0 ? (
                 payouts.slice(0, 3).map(renderPayoutItem)
               ) : (
-                <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
-                  <Ionicons name="arrow-up-circle-outline" size={40} color={colors.gray300} />
-                  <Text style={styles.emptyText}>Aucun retrait</Text>
+                <View style={[styles.emptySectionE, { backgroundColor: colors.card, borderColor: softBorder }]}>
+                  <Ionicons name="arrow-up-circle-outline" size={36} color={colors.gray300} />
+                  <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>AUCUN RETRAIT</Text>
+                  <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>Effectuez votre premier retrait</Text>
                 </View>
               )}
             </View>
@@ -590,12 +688,19 @@ export default function WalletScreen() {
 
         {activeTab === 'transactions' && (
           <View style={styles.section}>
+            <View style={styles.sectionHeaderE}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>TOUT VOIR</Text>
+                <Text style={[styles.sectionTitleE, { color: colors.text }]}>{transactions.length} transactions</Text>
+              </View>
+            </View>
             {transactions.length > 0 ? (
               transactions.map(renderTransactionItem)
             ) : (
-              <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
-                <Ionicons name="receipt-outline" size={48} color={colors.gray300} />
-                <Text style={styles.emptyText}>Aucune transaction</Text>
+              <View style={[styles.emptySectionE, { backgroundColor: colors.card, borderColor: softBorder }]}>
+                <Ionicons name="receipt-outline" size={36} color={colors.gray300} />
+                <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>LEDGER VIDE</Text>
+                <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>Aucune transaction</Text>
               </View>
             )}
           </View>
@@ -603,12 +708,19 @@ export default function WalletScreen() {
 
         {activeTab === 'payouts' && (
           <View style={styles.section}>
+            <View style={styles.sectionHeaderE}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>HISTORIQUE COMPLET</Text>
+                <Text style={[styles.sectionTitleE, { color: colors.text }]}>{payouts.length} retraits</Text>
+              </View>
+            </View>
             {payouts.length > 0 ? (
               payouts.map(renderPayoutItem)
             ) : (
-              <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
-                <Ionicons name="arrow-up-circle-outline" size={48} color={colors.gray300} />
-                <Text style={styles.emptyText}>Aucun retrait effectué</Text>
+              <View style={[styles.emptySectionE, { backgroundColor: colors.card, borderColor: softBorder }]}>
+                <Ionicons name="arrow-up-circle-outline" size={36} color={colors.gray300} />
+                <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>AUCUN RETRAIT</Text>
+                <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>Effectuez votre premier retrait</Text>
               </View>
             )}
           </View>
@@ -616,17 +728,25 @@ export default function WalletScreen() {
 
         {activeTab === 'pending' && (
           <View style={styles.section}>
+            <View style={styles.sectionHeaderE}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>FONDS EN COURS</Text>
+                <Text style={[styles.sectionTitleE, { color: colors.text }]}>{pendingEarnings.length} en attente</Text>
+              </View>
+            </View>
             {pendingEarnings.length > 0 ? (
               pendingEarnings.map(renderPendingItem)
             ) : (
-              <View style={[styles.emptySection, { backgroundColor: colors.card }]}>
-                <Ionicons name="time-outline" size={48} color={colors.gray300} />
-                <Text style={styles.emptyText}>Aucun revenu en attente</Text>
+              <View style={[styles.emptySectionE, { backgroundColor: colors.card, borderColor: softBorder }]}>
+                <Ionicons name="time-outline" size={36} color={colors.gray300} />
+                <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>RIEN EN ATTENTE</Text>
+                <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>Tous vos fonds sont disponibles</Text>
               </View>
             )}
           </View>
         )}
-      </ScrollView>
+      </View>
+        </ScrollView>
 
       {/* Payout Modal */}
       <Modal
@@ -637,22 +757,42 @@ export default function WalletScreen() {
       >
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Demande de retrait</Text>
-              <TouchableOpacity onPress={() => setShowPayoutModal(false)}>
-                <Ionicons name="close" size={24} color={colors.gray500} />
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.dramatic]}>
+            <View style={styles.modalHeaderE}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalEyebrow, { color: colors.accent }]}>RETRAIT • PAYOUT</Text>
+                <Text style={[styles.modalTitleE, { color: colors.text }]}>Demande de retrait</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowPayoutModal(false)}
+                style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={18} color={colors.gray600} />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.modalSubtitle}>
-              Solde disponible: {formatPrice(wallet?.available_balance || 0)} {wallet?.currency || 'FCFA'}
-            </Text>
+            {/* Available balance pill */}
+            <View style={[styles.balancePill, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '30' }]}>
+              <Ionicons name="wallet" size={14} color={colors.primary} />
+              <Text style={[styles.balancePillLabel, { color: colors.primary }]}>SOLDE DISPONIBLE</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={[styles.balancePillValue, { color: colors.text }]}>
+                {formatPrice(wallet?.available_balance || 0)} {wallet?.currency || 'XAF'}
+              </Text>
+            </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Montant ({wallet?.currency || 'FCFA'})</Text>
+            <View style={styles.inputGroupE}>
+              <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>MONTANT ({wallet?.currency || 'XAF'})</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
+                style={[
+                  styles.inputE,
+                  {
+                    backgroundColor: colors.gray100,
+                    borderColor: softBorder,
+                    color: colors.text,
+                  },
+                ]}
                 value={payoutAmount}
                 onChangeText={setPayoutAmount}
                 keyboardType="numeric"
@@ -661,11 +801,11 @@ export default function WalletScreen() {
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Méthode de retrait</Text>
-              <View style={styles.methodsRow}>
+            <View style={styles.inputGroupE}>
+              <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>MÉTHODE DE RETRAIT</Text>
+              <View style={styles.methodsRowE}>
                 {availableMethods.length === 0 ? (
-                  <Text style={{ color: colors.gray500, fontSize: 13 }}>
+                  <Text style={{ color: colors.gray500, fontSize: 13, fontFamily: FontFamily.regular }}>
                     Aucune méthode de retrait disponible pour votre pays.
                   </Text>
                 ) : (
@@ -676,19 +816,22 @@ export default function WalletScreen() {
                       <TouchableOpacity
                         key={method.id}
                         style={[
-                          styles.methodButton,
-                          isActive && styles.methodButtonActive,
+                          styles.methodChip,
+                          isActive
+                            ? { backgroundColor: colors.primary, borderColor: colors.primary, ...Shadows.buttonPrimary }
+                            : { backgroundColor: colors.card, borderColor: softBorder },
                         ]}
                         onPress={() => setPayoutMethod(method.id)}
+                        activeOpacity={0.85}
                       >
                         <Ionicons
                           name={iconName as any}
-                          size={20}
-                          color={isActive ? colors.primary : colors.gray400}
+                          size={14}
+                          color={isActive ? Colors.white : colors.gray600}
                         />
                         <Text style={[
-                          styles.methodText,
-                          isActive && styles.methodTextActive,
+                          styles.methodChipText,
+                          { color: isActive ? Colors.white : colors.gray700 },
                         ]}>
                           {method.name}
                         </Text>
@@ -700,41 +843,55 @@ export default function WalletScreen() {
             </View>
 
             {payoutMethod !== 'bank_transfer' && !wallet?.mobile_money_number && (
-              <View style={styles.warningBox}>
-                <Ionicons name="alert-circle" size={18} color="#F59E0B" />
-                <Text style={styles.warningText}>
+              <View style={[styles.warningBoxE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+                <Ionicons name="warning" size={14} color="#D97706" />
+                <Text style={styles.warningTextE}>
                   Configurez d'abord votre numéro Mobile Money
                 </Text>
               </View>
             )}
 
             {payoutMethod === 'bank_transfer' && !wallet?.bank_account_number && (
-              <View style={styles.warningBox}>
-                <Ionicons name="alert-circle" size={18} color="#F59E0B" />
-                <Text style={styles.warningText}>
+              <View style={[styles.warningBoxE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+                <Ionicons name="warning" size={14} color="#D97706" />
+                <Text style={styles.warningTextE}>
                   Configurez d'abord vos informations bancaires
                 </Text>
               </View>
             )}
 
-            <View style={styles.modalActions}>
+            <View style={styles.modalActionsE}>
               <TouchableOpacity
-                style={styles.cancelButton}
+                style={[styles.modalCancelE, { backgroundColor: colors.gray100 }]}
                 onPress={() => setShowPayoutModal(false)}
+                activeOpacity={0.85}
               >
-                <Text style={styles.cancelButtonText}>Annuler</Text>
+                <Text style={[styles.modalCancelTextE, { color: colors.text }]}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.confirmButton, (!payoutAmount || processingPayout) && styles.confirmButtonDisabled]}
+                style={[
+                  styles.modalConfirmE,
+                  (!payoutAmount || processingPayout) && { opacity: 0.5 },
+                  Shadows.buttonPrimary,
+                ]}
                 onPress={handleRequestPayout}
                 disabled={!payoutAmount || processingPayout}
+                activeOpacity={0.9}
               >
+                <LinearGradient
+                  colors={[colors.primary, colors.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
                 {processingPayout ? (
                   <ActivityIndicator size="small" color={Colors.white} />
                 ) : (
                   <>
-                    <Ionicons name="arrow-up-circle" size={18} color={Colors.white} />
-                    <Text style={styles.confirmButtonText}>Retirer</Text>
+                    <Text style={styles.modalConfirmTextE}>Retirer</Text>
+                    <View style={styles.modalConfirmArrow}>
+                      <Ionicons name="arrow-up" size={14} color={Colors.white} />
+                    </View>
                   </>
                 )}
               </TouchableOpacity>
@@ -754,25 +911,40 @@ export default function WalletScreen() {
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <View style={styles.modalOverlay}>
           <ScrollView style={styles.bankModalScroll} keyboardShouldPersistTaps="handled">
-            <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Informations de paiement</Text>
-                <TouchableOpacity onPress={() => setShowBankModal(false)}>
-                  <Ionicons name="close" size={24} color={colors.gray500} />
+            <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.dramatic]}>
+              <View style={styles.modalHeaderE}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalEyebrow, { color: colors.accent }]}>CONFIGURATION • PAYOUT</Text>
+                  <Text style={[styles.modalTitleE, { color: colors.text }]}>Infos de paiement</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowBankModal(false)}
+                  style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="close" size={18} color={colors.gray600} />
                 </TouchableOpacity>
               </View>
 
               {/* Mobile Money Section */}
-              <View style={styles.bankSection}>
-                <View style={styles.bankSectionHeader}>
-                  <Ionicons name="phone-portrait" size={18} color={colors.primary} />
-                  <Text style={styles.bankSectionTitle}>Mobile Money</Text>
+              <View style={styles.bankSectionE}>
+                <View style={[styles.bankSectionHeaderE, { borderBottomColor: softBorder }]}>
+                  <View style={[styles.bankSectionIcon, { backgroundColor: '#FF660015' }]}>
+                    <Ionicons name="phone-portrait" size={14} color="#FF6600" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.bankSectionEyebrow, { color: colors.accent }]}>SECTION 01</Text>
+                    <Text style={[styles.bankSectionTitleE, { color: colors.text }]}>Mobile Money</Text>
+                  </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Numéro</Text>
+                <View style={styles.inputGroupE}>
+                  <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>NUMÉRO</Text>
                   <TextInput
-                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
+                    style={[
+                      styles.inputE,
+                      { backgroundColor: colors.gray100, borderColor: softBorder, color: colors.text },
+                    ]}
                     value={bankDetails.mobile_money_number}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, mobile_money_number: text })}
                     placeholder="Ex: 6XX XXX XXX"
@@ -781,45 +953,59 @@ export default function WalletScreen() {
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Opérateur</Text>
-                  <View style={styles.pickerRow}>
+                <View style={styles.inputGroupE}>
+                  <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>OPÉRATEUR</Text>
+                  <View style={styles.methodsRowE}>
                     {availableMethods
                       .filter((m: any) => m.type === 'mobile_money')
-                      .map((option: any) => (
-                        <TouchableOpacity
-                          key={option.id}
-                          style={[
-                            styles.pickerOption,
-                            bankDetails.mobile_money_provider === option.id && styles.pickerOptionActive,
-                          ]}
-                          onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.id })}
-                        >
-                          <Text style={[
-                            styles.pickerOptionText,
-                            bankDetails.mobile_money_provider === option.id && styles.pickerOptionTextActive,
-                          ]}>
-                            {option.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                      .map((option: any) => {
+                        const isActive = bankDetails.mobile_money_provider === option.id;
+                        return (
+                          <TouchableOpacity
+                            key={option.id}
+                            style={[
+                              styles.methodChip,
+                              isActive
+                                ? { backgroundColor: colors.primary, borderColor: colors.primary, ...Shadows.buttonPrimary }
+                                : { backgroundColor: colors.card, borderColor: softBorder },
+                            ]}
+                            onPress={() => setBankDetails({ ...bankDetails, mobile_money_provider: option.id })}
+                            activeOpacity={0.85}
+                          >
+                            <Text style={[
+                              styles.methodChipText,
+                              { color: isActive ? Colors.white : colors.gray700 },
+                            ]}>
+                              {option.name}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                   </View>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.dividerE, { backgroundColor: softBorder }]} />
 
               {/* Bank Account Section */}
-              <View style={styles.bankSection}>
-                <View style={styles.bankSectionHeader}>
-                  <Ionicons name="business" size={18} color={colors.primary} />
-                  <Text style={styles.bankSectionTitle}>Compte bancaire</Text>
+              <View style={styles.bankSectionE}>
+                <View style={[styles.bankSectionHeaderE, { borderBottomColor: softBorder }]}>
+                  <View style={[styles.bankSectionIcon, { backgroundColor: '#3B82F615' }]}>
+                    <Ionicons name="business" size={14} color="#3B82F6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.bankSectionEyebrow, { color: colors.accent }]}>SECTION 02</Text>
+                    <Text style={[styles.bankSectionTitleE, { color: colors.text }]}>Compte bancaire</Text>
+                  </View>
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Nom de la banque</Text>
+                <View style={styles.inputGroupE}>
+                  <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>NOM DE LA BANQUE</Text>
                   <TextInput
-                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
+                    style={[
+                      styles.inputE,
+                      { backgroundColor: colors.gray100, borderColor: softBorder, color: colors.text },
+                    ]}
                     value={bankDetails.bank_name}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_name: text })}
                     placeholder="Ex: Afriland First Bank"
@@ -827,10 +1013,13 @@ export default function WalletScreen() {
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Titulaire du compte</Text>
+                <View style={styles.inputGroupE}>
+                  <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>TITULAIRE DU COMPTE</Text>
                   <TextInput
-                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
+                    style={[
+                      styles.inputE,
+                      { backgroundColor: colors.gray100, borderColor: softBorder, color: colors.text },
+                    ]}
                     value={bankDetails.bank_account_name}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_name: text })}
                     placeholder="Nom complet"
@@ -838,10 +1027,13 @@ export default function WalletScreen() {
                   />
                 </View>
 
-                <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Numéro de compte</Text>
+                <View style={styles.inputGroupE}>
+                  <Text style={[styles.inputLabelE, { color: colors.gray600 }]}>NUMÉRO DE COMPTE</Text>
                   <TextInput
-                    style={[styles.input, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
+                    style={[
+                      styles.inputE,
+                      { backgroundColor: colors.gray100, borderColor: softBorder, color: colors.text },
+                    ]}
                     value={bankDetails.bank_account_number}
                     onChangeText={(text) => setBankDetails({ ...bankDetails, bank_account_number: text })}
                     placeholder="IBAN ou numéro de compte"
@@ -850,22 +1042,35 @@ export default function WalletScreen() {
                 </View>
               </View>
 
-              <View style={styles.modalActions}>
+              <View style={styles.modalActionsE}>
                 <TouchableOpacity
-                  style={styles.cancelButton}
+                  style={[styles.modalCancelE, { backgroundColor: colors.gray100 }]}
                   onPress={() => setShowBankModal(false)}
+                  activeOpacity={0.85}
                 >
-                  <Text style={styles.cancelButtonText}>Annuler</Text>
+                  <Text style={[styles.modalCancelTextE, { color: colors.text }]}>Annuler</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.confirmButton, savingBank && styles.confirmButtonDisabled]}
+                  style={[styles.modalConfirmE, savingBank && { opacity: 0.5 }, Shadows.buttonPrimary]}
                   onPress={handleUpdateBankDetails}
                   disabled={savingBank}
+                  activeOpacity={0.9}
                 >
+                  <LinearGradient
+                    colors={[colors.primary, colors.primaryDark]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
                   {savingBank ? (
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
-                    <Text style={styles.confirmButtonText}>Enregistrer</Text>
+                    <>
+                      <Text style={styles.modalConfirmTextE}>Enregistrer</Text>
+                      <View style={styles.modalConfirmArrow}>
+                        <Ionicons name="checkmark" size={14} color={Colors.white} />
+                      </View>
+                    </>
                   )}
                 </TouchableOpacity>
               </View>
@@ -875,7 +1080,7 @@ export default function WalletScreen() {
         </KeyboardAvoidingView>
           </Modal>
       </View>
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
@@ -901,10 +1106,9 @@ const styles = StyleSheet.create({
   softHeader: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.lg,
+    paddingBottom: Spacing.md,
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
-    ...Shadows.sm,
   },
   softHeaderRow: {
     flexDirection: 'row',
@@ -912,44 +1116,79 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   iconDisc: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   softHeaderTitleCol: {
     flex: 1,
-    alignItems: 'center',
     paddingHorizontal: Spacing.sm,
   },
   softHeaderEyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
     letterSpacing: 1.5,
+    textTransform: 'uppercase',
     marginBottom: 2,
   },
   softHeaderTitle: {
     fontFamily: FontFamily.displayExtraBold,
-    fontSize: 28,
-    lineHeight: 32,
-    letterSpacing: -0.9,
+    fontSize: 30,
+    lineHeight: 34,
+    letterSpacing: -1.2,
   },
 
-  // Soft credit card
+  // === BLACK CARD HERO ===
   creditCardWrap: {
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
   },
   creditCard: {
-    borderRadius: BorderRadius['2xl'],
+    borderRadius: 28,
     padding: Spacing.lg,
-    height: 180,
+    minHeight: 220,
     position: 'relative',
     overflow: 'hidden',
     justifyContent: 'space-between',
-    ...Shadows.md,
+  },
+  cardCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+  },
+  cardCircle2: {
+    position: 'absolute',
+    bottom: -40,
+    left: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,107,107,0.18)',
+  },
+  cardCircle3: {
+    position: 'absolute',
+    top: 40,
+    right: 40,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(190,255,90,0.06)',
+  },
+  cardCurrencyMark: {
+    position: 'absolute',
+    bottom: 16,
+    right: 18,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 60,
+    letterSpacing: -3,
+    color: 'rgba(255,255,255,0.06)',
+    lineHeight: 60,
   },
   creditCardTopRow: {
     flexDirection: 'row',
@@ -959,8 +1198,8 @@ const styles = StyleSheet.create({
   creditCardEyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    letterSpacing: 1.8,
-    color: 'rgba(255,255,255,0.75)',
+    letterSpacing: 2,
+    color: 'rgba(255,255,255,0.7)',
   },
   creditCardLiveBadge: {
     flexDirection: 'row',
@@ -975,7 +1214,7 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#10B981',
+    backgroundColor: '#BEFF5A',
   },
   creditCardLiveText: {
     fontFamily: FontFamily.bold,
@@ -986,19 +1225,66 @@ const styles = StyleSheet.create({
   creditCardBody: {
     justifyContent: 'flex-end',
   },
-  creditCardBalance: {
-    fontFamily: FontFamily.displayExtraBold,
-    fontSize: 30,
-    lineHeight: 44,
-    letterSpacing: -1.2,
-    color: '#FFFFFF',
-  },
   creditCardCaption: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
     letterSpacing: 1.5,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 6,
+    color: 'rgba(255,255,255,0.6)',
+    marginBottom: 4,
+  },
+  creditCardBalance: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 44,
+    lineHeight: 48,
+    letterSpacing: -2,
+    color: '#FFFFFF',
+  },
+  cardDotsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.md,
+  },
+  cardDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.4)',
+  },
+  cardLastDigits: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 2.5,
+    color: 'rgba(255,255,255,0.85)',
+    marginLeft: 6,
+  },
+
+  // === TABS SEGMENTED (sticky) ===
+  tabsStickyWrap: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    zIndex: 10,
+  },
+  tabsBar: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: BorderRadius.full,
+  },
+  tabContentWrap: {
+    paddingTop: Spacing.xs,
+  },
+  tabSeg: {
+    flex: 1,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabSegText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
 
   // Quick action grid
@@ -1369,11 +1655,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: '#F59E0B',
   },
-  pendingDays: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray400,
-    marginTop: 2,
-  },
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -1543,5 +1824,603 @@ const styles = StyleSheet.create({
   pickerOptionTextActive: {
     color: Colors.primary,
     fontFamily: FontFamily.medium,
+  },
+
+  // === EDITORIAL: WITHDRAW PILL CTA ===
+  withdrawWrap: {
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+  },
+  withdrawPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
+  withdrawContent: {
+    flex: 1,
+    paddingVertical: 6,
+  },
+  withdrawEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.8,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  withdrawLabel: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 16,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  withdrawArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+
+  // === EDITORIAL: MINI STAT STRIP ===
+  miniStatRowInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  miniStatCellLast: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+
+  // === EDITORIAL: COMMISSION CALLOUT ===
+  commissionCallout: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  commissionIcon: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  commissionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  commissionTextE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#92400E',
+    lineHeight: 15,
+  },
+
+  // === EDITORIAL: SECTIONS ===
+  sectionHeaderE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  sectionTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+  },
+  seeAllPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+  },
+  seeAllPillText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+  },
+
+  // === EDITORIAL: TXN CARD ===
+  txnCard: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  txnDayTile: {
+    width: 50,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  txnDayNumber: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 18,
+    lineHeight: 20,
+    letterSpacing: -0.6,
+  },
+  txnDayMonth: {
+    fontFamily: FontFamily.bold,
+    fontSize: 8,
+    letterSpacing: 1.2,
+    marginTop: 1,
+  },
+  txnBody: {
+    flex: 1,
+    gap: 4,
+    justifyContent: 'center',
+  },
+  txnTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  txnEyebrowPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  txnEyebrowText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  txnBalance: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.2,
+  },
+  txnTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 13,
+    letterSpacing: -0.3,
+    lineHeight: 16,
+  },
+  txnSub: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
+  txnAmountCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  txnSign: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    lineHeight: 16,
+    letterSpacing: -0.5,
+  },
+  txnAmount: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    letterSpacing: -0.4,
+    lineHeight: 16,
+    marginTop: 2,
+  },
+  txnCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+
+  // === EDITORIAL: PAYOUT CARD ===
+  payoutCardE: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  payoutTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  payoutStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  payoutStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  payoutStatusText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  methodMark: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  payoutAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: Spacing.sm,
+  },
+  payoutAmountValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1,
+    lineHeight: 30,
+  },
+  payoutAmountCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  payoutMethodRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+  },
+  payoutMethodIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  payoutMethodLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: -0.2,
+  },
+  payoutMethodDest: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: -0.1,
+    marginTop: 1,
+  },
+  payoutDateE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.2,
+  },
+  payoutFailure: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.sm,
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  payoutFailureText: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#991B1B',
+    letterSpacing: -0.1,
+  },
+
+  // === EDITORIAL: PENDING CARD ===
+  pendingCardE: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: Spacing.sm,
+    marginBottom: Spacing.sm,
+    gap: Spacing.sm,
+  },
+  pendingDateTile: {
+    width: 56,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingDateDay: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    lineHeight: 24,
+    letterSpacing: -0.8,
+  },
+  pendingDateMonth: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginTop: 2,
+  },
+  pendingBodyE: {
+    flex: 1,
+    gap: 4,
+    justifyContent: 'center',
+  },
+  pendingTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  pendingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  pendingPillDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+  pendingPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+  },
+  pendingDays: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1,
+  },
+  pendingTitleE: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 13,
+    letterSpacing: -0.3,
+    lineHeight: 16,
+  },
+  pendingReleaseE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
+  pendingAmountColE: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  pendingAmountE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    letterSpacing: -0.4,
+    lineHeight: 16,
+  },
+  pendingCurrencyE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+
+  // === EDITORIAL: EMPTY ===
+  emptySectionE: {
+    alignItems: 'center',
+    paddingVertical: Spacing.xl,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 4,
+  },
+  emptyEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: 8,
+  },
+  emptyTextE: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
+
+  // === EDITORIAL: MODALS ===
+  modalHeaderE: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  modalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  modalTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    letterSpacing: -0.8,
+    lineHeight: 28,
+  },
+  balancePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
+  balancePillLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+  },
+  balancePillValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 13,
+    letterSpacing: -0.2,
+  },
+  inputGroupE: {
+    marginBottom: Spacing.md,
+  },
+  inputLabelE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  inputE: {
+    height: 48,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+  },
+  methodsRowE: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  methodChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  methodChipText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
+  warningBoxE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: Spacing.md,
+  },
+  warningTextE: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#92400E',
+    letterSpacing: -0.1,
+  },
+  modalActionsE: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.sm,
+  },
+  modalCancelE: {
+    flex: 1,
+    height: 50,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCancelTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  modalConfirmE: {
+    flex: 1.4,
+    flexDirection: 'row',
+    height: 50,
+    paddingLeft: 18,
+    paddingRight: 6,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  modalConfirmTextE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+  modalConfirmArrow: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  bankSectionE: {
+    marginBottom: Spacing.md,
+  },
+  bankSectionHeaderE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingBottom: Spacing.sm,
+    marginBottom: Spacing.md,
+    borderBottomWidth: 1,
+  },
+  bankSectionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bankSectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  bankSectionTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.5,
+  },
+  dividerE: {
+    height: 1,
+    marginVertical: Spacing.md,
   },
 });

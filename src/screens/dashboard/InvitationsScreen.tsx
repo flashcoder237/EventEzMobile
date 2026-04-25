@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,18 @@ import {
   Alert,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { invitationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
-import { FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { Colors, FontFamily, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 import { Emails, AnimatedIllustration } from '../../components/illustrations';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -47,12 +49,12 @@ export default function InvitationsScreen() {
 
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
-  const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-    pending: { label: 'En attente', color: colors.warning, bg: `${colors.warning}15` },
-    accepted: { label: 'Acceptée', color: colors.success, bg: `${colors.success}15` },
-    declined: { label: 'Refusée', color: colors.error, bg: `${colors.error}15` },
-    cancelled: { label: 'Annulée', color: colors.gray500, bg: `${colors.gray500}15` },
-    expired: { label: 'Expirée', color: colors.gray500, bg: `${colors.gray500}15` },
+  const STATUS_CONFIG: Record<string, { label: string; eyebrow: string; color: string }> = {
+    pending: { label: 'En attente', eyebrow: 'WAIT', color: '#F59E0B' },
+    accepted: { label: 'Acceptée', eyebrow: 'OK', color: '#10B981' },
+    declined: { label: 'Refusée', eyebrow: 'NO', color: '#EF4444' },
+    cancelled: { label: 'Annulée', eyebrow: 'CXL', color: colors.gray500 },
+    expired: { label: 'Expirée', eyebrow: 'EXP', color: colors.gray500 },
   };
 
   useEffect(() => {
@@ -121,186 +123,286 @@ export default function InvitationsScreen() {
     );
   };
 
-  const formatDate = (dateString: string): string => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
-      year: 'numeric',
     });
   };
 
-  const renderInvitationCard = ({ item }: { item: Invitation }) => {
-    const statusConfig = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
+  const formatDay = (dateString: string) => {
+    const date = new Date(dateString);
+    return String(date.getDate()).padStart(2, '0');
+  };
+
+  const formatMonth = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
+  };
+
+  const stats = useMemo(() => {
+    const pendingReceived = received.filter(i => i.status === 'pending').length;
+    const acceptedReceived = received.filter(i => i.status === 'accepted').length;
+    const totalSent = sent.length;
+    return { pendingReceived, acceptedReceived, totalSent };
+  }, [received, sent]);
+
+  const renderInvitationCard = ({ item, index }: { item: Invitation; index: number }) => {
+    const statusCfg = STATUS_CONFIG[item.status] || STATUS_CONFIG.pending;
     const isReceived = activeTab === 'received';
     const isPending = item.status === 'pending';
     const isProcessing = actionLoading === item.id;
 
     return (
-      <View
-        style={[
-          styles.card,
-          { backgroundColor: colors.card, borderColor: hairline },
-          Shadows.sm,
-        ]}
-      >
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIcon, { backgroundColor: `${colors.primary}15` }]}>
-            <Ionicons
-              name={isReceived ? 'mail' : 'send'}
-              size={20}
-              color={colors.primary}
-            />
-          </View>
-          <View style={styles.cardHeaderInfo}>
-            <Text style={[styles.eventName, { color: colors.text }]} numberOfLines={1}>
-              {item.event_title || item.event_name || 'Événement'}
-            </Text>
-            <Text style={[styles.cardSubtitle, { color: colors.gray500 }]}>
-              {isReceived
-                ? `De : ${item.inviter_name || 'Organisateur'}`
-                : `À : ${item.invitee_name || item.invitee_email || 'Invité'}`
-              }
-            </Text>
-          </View>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-          </View>
-        </View>
-
-        {item.message ? (
-          <Text style={[styles.messageText, { color: colors.gray500 }]} numberOfLines={2}>
-            “{item.message}”
-          </Text>
-        ) : null}
-
-        <View style={styles.cardFooter}>
-          <View style={styles.dateRow}>
-            <Ionicons name="calendar-outline" size={12} color={colors.gray500} />
-            <Text style={[styles.dateText, { color: colors.gray500 }]}>
-              {formatDate(item.created_at)}
-            </Text>
-          </View>
-
-          {isReceived && isPending && (
-            <View style={styles.actionButtons}>
-              <TouchableOpacity
-                style={[
-                  styles.actionButton,
-                  { backgroundColor: `${colors.error}15`, borderColor: `${colors.error}30` },
-                ]}
-                onPress={() => handleDecline(item.id)}
-                disabled={isProcessing}
-                activeOpacity={0.75}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color={colors.error} />
-                ) : (
-                  <>
-                    <Ionicons name="close" size={14} color={colors.error} />
-                    <Text style={[styles.declineText, { color: colors.error }]}>Refuser</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: colors.primary, borderColor: colors.primary }]}
-                onPress={() => handleAccept(item.id)}
-                disabled={isProcessing}
-                activeOpacity={0.85}
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark" size={14} color="#FFFFFF" />
-                    <Text style={styles.acceptText}>Accepter</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+      <StaggeredItem index={index}>
+        <View
+          style={[
+            styles.card,
+            { backgroundColor: colors.card, borderColor: hairline },
+            Shadows.sm,
+          ]}
+        >
+          {/* Top row: date tile + status pill + dir icon */}
+          <View style={styles.cardTopRow}>
+            <View style={[styles.dateTile, { backgroundColor: `${statusCfg.color}12` }]}>
+              <Text style={[styles.dateTileDay, { color: statusCfg.color }]}>
+                {formatDay(item.created_at)}
+              </Text>
+              <Text style={[styles.dateTileMonth, { color: statusCfg.color }]}>
+                {formatMonth(item.created_at)}
+              </Text>
             </View>
-          )}
+
+            <View style={styles.cardHeaderCol}>
+              <View style={[styles.statusPill, { backgroundColor: `${statusCfg.color}15` }]}>
+                <View style={[styles.statusDot, { backgroundColor: statusCfg.color }]} />
+                <Text style={[styles.statusText, { color: statusCfg.color }]}>
+                  {statusCfg.eyebrow}
+                </Text>
+              </View>
+              <Text style={[styles.eventName, { color: colors.text }]} numberOfLines={2}>
+                {item.event_title || item.event_name || 'Événement'}
+              </Text>
+            </View>
+
+            <View style={[styles.dirDisc, { backgroundColor: colors.gray100 }]}>
+              <Ionicons
+                name={isReceived ? 'arrow-down' : 'arrow-up'}
+                size={14}
+                color={colors.gray600}
+              />
+            </View>
+          </View>
+
+          {/* Inviter/Invitee row */}
+          <View style={[styles.partyRow, { borderTopColor: hairline }]}>
+            <Text style={[styles.partyEyebrow, { color: colors.gray500 }]}>
+              {isReceived ? 'DE LA PART DE' : 'DESTINATAIRE'}
+            </Text>
+            <Text style={[styles.partyName, { color: colors.text }]} numberOfLines={1}>
+              {isReceived
+                ? (item.inviter_name || 'Organisateur')
+                : (item.invitee_name || item.invitee_email || 'Invité')}
+            </Text>
+          </View>
+
+          {/* Message quote */}
+          {item.message ? (
+            <View style={[styles.quoteBlock, { borderLeftColor: statusCfg.color }]}>
+              <Text style={[styles.quoteText, { color: colors.gray600 }]} numberOfLines={3}>
+                {item.message}
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Actions row */}
+          <View style={styles.actionsFooter}>
+            <Text style={[styles.dateFooter, { color: colors.gray400 }]}>
+              <Ionicons name="time-outline" size={11} color={colors.gray400} />
+              {' '}
+              Reçue le {formatDate(item.created_at)}
+            </Text>
+
+            {isReceived && isPending && (
+              <View style={styles.actionButtons}>
+                <TouchableOpacity
+                  style={[styles.declinePill, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
+                  onPress={() => handleDecline(item.id)}
+                  disabled={isProcessing}
+                  activeOpacity={0.85}
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color="#DC2626" />
+                  ) : (
+                    <>
+                      <Ionicons name="close" size={13} color="#DC2626" />
+                      <Text style={styles.declineText}>Refuser</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.acceptPill, Shadows.buttonPrimary]}
+                  onPress={() => handleAccept(item.id)}
+                  disabled={isProcessing}
+                  activeOpacity={0.9}
+                >
+                  <LinearGradient
+                    colors={['#10B981', '#059669']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={StyleSheet.absoluteFill}
+                  />
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color={Colors.white} />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark" size={13} color={Colors.white} />
+                      <Text style={styles.acceptText}>Accepter</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+      </StaggeredItem>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>RSVP</WatermarkNumeral>
         <LoadingSpinner />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   const currentData = activeTab === 'received' ? received : sent;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: hairline }]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-          activeOpacity={0.7}
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>RSVP</WatermarkNumeral>
+
+      {/* === HEADER (tile) === */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
+        ]}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+          <View style={styles.headerTextCol}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>INVITATIONS • RSVP</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Tu es convié.e</Text>
+          </View>
+          {stats.pendingReceived > 0 && (
+            <View style={[styles.pendingBadge, { backgroundColor: '#FEF3C7' }]}>
+              <View style={[styles.pendingBadgeDot, { backgroundColor: '#F59E0B' }]} />
+              <Text style={styles.pendingBadgeText}>{stats.pendingReceived}</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Stat strip */}
+        <View
+          style={[
+            styles.statStrip,
+            { backgroundColor: colors.card, borderColor: hairline },
+          ]}
         >
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>MES INVITATIONS</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Invitations</Text>
+          <View style={[styles.statCell, { borderRightColor: hairline }]}>
+            <View style={styles.statValueRow}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.pendingReceived}</Text>
+              {stats.pendingReceived > 0 && (
+                <View style={[styles.statDotE, { backgroundColor: '#F59E0B' }]} />
+              )}
+            </View>
+            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>EN ATTENTE</Text>
+          </View>
+          <View style={[styles.statCell, { borderRightColor: hairline }]}>
+            <Text style={[styles.statNumber, { color: colors.text }]}>{stats.acceptedReceived}</Text>
+            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>ACCEPTÉES</Text>
+          </View>
+          <View style={styles.statCellLast}>
+            <Text style={[styles.statNumber, { color: colors.text }]}>{stats.totalSent}</Text>
+            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>ENVOYÉES</Text>
+          </View>
+        </View>
+
+        {/* Tab chips */}
+        <View style={styles.chipsRow}>
+          {(['received', 'sent'] as const).map((tab) => {
+            const active = activeTab === tab;
+            const count = tab === 'received' ? received.length : sent.length;
+            return (
+              <TouchableOpacity
+                key={tab}
+                style={[
+                  styles.chip,
+                  active
+                    ? { backgroundColor: colors.primary, ...Shadows.buttonPrimary }
+                    : { backgroundColor: colors.gray100 },
+                ]}
+                onPress={() => setActiveTab(tab)}
+                activeOpacity={0.75}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+              >
+                <Ionicons
+                  name={tab === 'received' ? 'mail-outline' : 'send-outline'}
+                  size={13}
+                  color={active ? Colors.white : colors.gray600}
+                />
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? Colors.white : colors.gray700 },
+                  ]}
+                >
+                  {tab === 'received' ? 'Reçues' : 'Envoyées'}
+                </Text>
+                {count > 0 && (
+                  <View
+                    style={[
+                      styles.chipBadge,
+                      {
+                        backgroundColor: active
+                          ? 'rgba(255,255,255,0.22)'
+                          : colors.gray200,
+                      },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipBadgeText,
+                        { color: active ? Colors.white : colors.gray600 },
+                      ]}
+                    >
+                      {count}
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
-      {/* Tabs */}
-      <View
-        style={[
-          styles.tabs,
-          { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline },
-        ]}
-      >
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'received' && [styles.activeTab, { backgroundColor: colors.card }, Shadows.sm]]}
-          onPress={() => setActiveTab('received')}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="mail-outline"
-            size={14}
-            color={activeTab === 'received' ? colors.text : colors.gray500}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === 'received' ? colors.text : colors.gray500 },
-            ]}
-          >
-            Reçues ({received.length})
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'sent' && [styles.activeTab, { backgroundColor: colors.card }, Shadows.sm]]}
-          onPress={() => setActiveTab('sent')}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name="send-outline"
-            size={14}
-            color={activeTab === 'sent' ? colors.text : colors.gray500}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              { color: activeTab === 'sent' ? colors.text : colors.gray500 },
-            ]}
-          >
-            Envoyées ({sent.length})
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* List */}
+      {/* === LIST === */}
       <FlatList
         data={currentData}
         contentContainerStyle={styles.listContent}
@@ -314,43 +416,49 @@ export default function InvitationsScreen() {
               <Emails color={colors.primary} size={140} />
             </AnimatedIllustration>
             <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>
-              {activeTab === 'received' ? 'BOÎTE DE RÉCEPTION' : 'ENVOIS'}
+              {activeTab === 'received' ? 'BOÎTE VIDE' : 'AUCUN ENVOI'}
             </Text>
-            <Text style={[styles.emptyText, { color: colors.text }]}>
-              {activeTab === 'received' ? 'Aucune invitation reçue' : 'Aucune invitation envoyée'}
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              {activeTab === 'received' ? 'Aucune invitation' : 'Rien envoyé'}
             </Text>
             <Text style={[styles.emptySubtext, { color: colors.gray500 }]}>
               {activeTab === 'received'
-                ? 'Les invitations que vous recevrez apparaîtront ici.'
-                : 'Les invitations que vous envoyez apparaîtront ici.'
-              }
+                ? 'Les invitations que vous recevrez\napparaîtront ici.'
+                : 'Les invitations que vous envoyez\napparaîtront ici.'}
             </Text>
           </View>
         }
         renderItem={renderInvitationCard}
+        showsVerticalScrollIndicator={false}
       />
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  // === HEADER ===
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    gap: Spacing.md,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   iconDisc: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  headerTextCol: { flex: 1 },
   eyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
@@ -359,130 +467,289 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
-  tabs: {
+  pendingBadge: {
     flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    marginVertical: Spacing.md,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    padding: 4,
-  },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    paddingVertical: Spacing.sm,
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: BorderRadius.full,
+  },
+  pendingBadgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  pendingBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#92400E',
+    letterSpacing: -0.1,
+  },
+
+  // === STAT STRIP ===
+  statStrip: {
+    flexDirection: 'row',
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+  },
+  statCell: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    borderRightWidth: 1,
+    alignItems: 'flex-start',
+  },
+  statCellLast: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'flex-start',
+  },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
   },
-  activeTab: {},
-  tabText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
+  statNumber: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    lineHeight: 24,
+    letterSpacing: -0.7,
   },
+  statDotE: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  statEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.3,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+
+  // === CHIPS ===
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: BorderRadius.full,
+  },
+  chipText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  chipBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  chipBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+  },
+
+  // === LIST ===
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xl,
+    paddingTop: Spacing.lg,
+    paddingBottom: 140,
     gap: Spacing.sm,
   },
+
+  // === CARD ===
   card: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: 20,
     borderWidth: 1,
     padding: Spacing.md,
   },
-  cardHeader: {
+  cardTopRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
+    alignItems: 'flex-start',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
-  cardIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  dateTile: {
+    width: 54,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.lg,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: Spacing.sm,
   },
-  cardHeaderInfo: { flex: 1, marginRight: Spacing.sm },
-  eventName: {
+  dateTileDay: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 20,
+    lineHeight: 22,
+    letterSpacing: -0.7,
+  },
+  dateTileMonth: {
     fontFamily: FontFamily.bold,
-    fontSize: FontSizes.md,
-  },
-  cardSubtitle: {
-    fontSize: FontSizes.xs,
+    fontSize: 9,
+    letterSpacing: 1.5,
     marginTop: 2,
   },
-  statusBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
+  cardHeaderCol: {
+    flex: 1,
+    gap: 6,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  statusDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
   statusText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
   },
-  messageText: {
-    fontSize: FontSizes.sm,
-    marginBottom: Spacing.sm,
-    fontStyle: 'italic',
+  eventName: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.5,
+    lineHeight: 21,
   },
-  cardFooter: {
+  dirDisc: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  partyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: Spacing.sm,
+    borderTopWidth: 1,
+    gap: 8,
   },
-  dateRow: {
+  partyEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  partyName: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+    textAlign: 'right',
+  },
+
+  quoteBlock: {
+    marginTop: Spacing.sm,
+    paddingLeft: 10,
+    paddingVertical: 4,
+    borderLeftWidth: 2,
+  },
+  quoteText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    fontStyle: 'italic',
+  },
+
+  actionsFooter: {
+    marginTop: Spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
   },
-  dateText: { fontSize: FontSizes.xs },
+  dateFooter: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
   actionButtons: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: 6,
   },
-  actionButton: {
+  declinePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 6,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
     borderRadius: BorderRadius.full,
     borderWidth: 1,
-    gap: 4,
   },
   declineText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#DC2626',
+    letterSpacing: 0.2,
+  },
+  acceptPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
   },
   acceptText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
     color: '#FFFFFF',
+    letterSpacing: 0.2,
   },
+
+  // === EMPTY ===
   emptyState: {
     alignItems: 'center',
-    paddingVertical: Spacing.xl * 2,
-    gap: Spacing.xs,
+    paddingVertical: Spacing['2xl'],
+    paddingHorizontal: Spacing.xl,
   },
   emptyEyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    letterSpacing: 1.5,
-    marginTop: Spacing.md,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.xs,
   },
-  emptyText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.md,
-    marginTop: 2,
+  emptyTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    letterSpacing: -0.7,
+    lineHeight: 28,
+    textAlign: 'center',
+    marginBottom: Spacing.sm,
   },
   emptySubtext: {
-    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
     textAlign: 'center',
-    paddingHorizontal: Spacing.xl,
+    lineHeight: 19,
+    maxWidth: 260,
   },
 });

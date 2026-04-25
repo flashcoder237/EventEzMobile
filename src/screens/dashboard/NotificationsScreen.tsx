@@ -9,8 +9,9 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { notificationsAPI } from '../../api';
@@ -21,8 +22,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useNotifications } from '../../contexts/NotificationContext';
 import { MyNotifications, AnimatedIllustration } from '../../components/illustrations';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 
 import {
+  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
@@ -30,7 +33,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { NotificationsScreenSkeleton } from '../../components/ui/Skeleton';
-import { StaggeredItem } from '../../components/ui/Animations';
+import { StaggeredItem, SectionEntrance } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type FilterType = 'all' | 'unread' | 'read';
@@ -107,17 +110,18 @@ interface NotificationTypeConfig {
   icon: keyof typeof Ionicons.glyphMap;
   color: string;
   label: string;
+  eyebrow: string;
 }
 
 const typeConfig: Record<string, NotificationTypeConfig> = {
-  event_update: { icon: 'calendar', color: '#3B82F6', label: 'Événement' },
-  registration_confirmation: { icon: 'person-add', color: '#10B981', label: 'Inscription' },
-  payment_confirmation: { icon: 'card', color: '#6366F1', label: 'Paiement' },
-  event_reminder: { icon: 'alarm', color: '#E0A800', label: 'Rappel' },
-  system_message: { icon: 'information-circle', color: '#6B7280', label: 'Système' },
-  custom_message: { icon: 'chatbubble', color: '#6366F1', label: 'Message' },
-  ticket_purchase: { icon: 'ticket', color: '#A855F7', label: 'Billet' },
-  default: { icon: 'notifications', color: '#6B7280', label: 'Notification' },
+  event_update: { icon: 'calendar', color: '#3B82F6', label: 'Événement', eyebrow: 'EVT' },
+  registration_confirmation: { icon: 'person-add', color: '#10B981', label: 'Inscription', eyebrow: 'REG' },
+  payment_confirmation: { icon: 'card', color: '#6366F1', label: 'Paiement', eyebrow: 'PAY' },
+  event_reminder: { icon: 'alarm', color: '#E0A800', label: 'Rappel', eyebrow: 'RAPPEL' },
+  system_message: { icon: 'information-circle', color: '#6B7280', label: 'Système', eyebrow: 'SYS' },
+  custom_message: { icon: 'chatbubble', color: '#6366F1', label: 'Message', eyebrow: 'MSG' },
+  ticket_purchase: { icon: 'ticket', color: '#A855F7', label: 'Billet', eyebrow: 'TIX' },
+  default: { icon: 'notifications', color: '#6B7280', label: 'Notification', eyebrow: 'INFO' },
 };
 
 const filters: { key: FilterType; label: string }[] = [
@@ -332,55 +336,68 @@ export default function NotificationsScreen() {
     return false;
   };
 
+  // === EDITORIAL NOTIFICATION CARD ===
   const renderNotification = ({ item, index }: { item: Notification; index: number }) => {
     const config = getTypeConfig(item.notification_type);
+    const unread = !item.is_read;
 
     return (
       <StaggeredItem index={index}>
         <TouchableOpacity
           style={[
-            styles.notificationCard,
+            styles.notifCard,
             {
               backgroundColor: colors.card,
-              borderColor: !item.is_read ? `${colors.primary}40` : hairline,
+              borderColor: unread ? `${config.color}55` : hairline,
             },
-            Shadows.sm,
+            unread ? Shadows.sm : Shadows.xs,
           ]}
           onPress={() => handleNotificationPress(item)}
           onLongPress={() => handleDelete(item.id)}
-          activeOpacity={0.7}
+          activeOpacity={0.85}
         >
-          <View style={[styles.iconContainer, { backgroundColor: `${config.color}15` }]}>
+          {/* Left rail color stripe for unread */}
+          {unread && (
+            <View style={[styles.unreadRail, { backgroundColor: config.color }]} />
+          )}
+
+          <View style={[styles.notifIconWrap, { backgroundColor: `${config.color}15` }]}>
             <Ionicons name={config.icon} size={20} color={config.color} />
           </View>
-          <View style={styles.notificationContent}>
-            <View style={styles.notificationHeader}>
-              <Text
-                style={[
-                  styles.notificationTitle,
-                  { color: colors.text, fontFamily: item.is_read ? FontFamily.medium : FontFamily.semiBold },
-                ]}
-                numberOfLines={1}
-              >
-                {item.title}
-              </Text>
-              {!item.is_read && <View style={[styles.unreadDot, { backgroundColor: colors.primary }]} />}
-            </View>
-            <Text style={[styles.notificationMessage, { color: colors.gray500 }]} numberOfLines={2}>
-              {item.message}
-            </Text>
-            <View style={styles.notificationFooter}>
-              <View style={[styles.typeBadge, { backgroundColor: `${config.color}15` }]}>
-                <Text style={[styles.typeBadgeText, { color: config.color }]}>{config.label}</Text>
-              </View>
-              <View style={styles.timeRow}>
-                <Ionicons name="time-outline" size={11} color={colors.gray400} />
-                <Text style={[styles.notificationTime, { color: colors.gray400 }]}>
-                  {formatTime(item.created_at)}
+
+          <View style={styles.notifBody}>
+            {/* Eyebrow + time */}
+            <View style={styles.notifTopRow}>
+              <View style={[styles.eyebrowPill, { backgroundColor: `${config.color}15` }]}>
+                <Text style={[styles.eyebrowText, { color: config.color }]}>
+                  {config.eyebrow}
                 </Text>
               </View>
+              <Text style={[styles.notifTime, { color: colors.gray400 }]}>
+                {formatTime(item.created_at)}
+              </Text>
             </View>
+
+            {/* Display title */}
+            <Text
+              style={[
+                styles.notifTitle,
+                { color: colors.text },
+                unread ? null : { opacity: 0.75 },
+              ]}
+              numberOfLines={2}
+            >
+              {item.title}
+            </Text>
+
+            {/* Body message */}
+            <Text style={[styles.notifMessage, { color: colors.gray500 }]} numberOfLines={2}>
+              {item.message}
+            </Text>
           </View>
+
+          {/* Unread dot at right */}
+          {unread && <View style={[styles.unreadDot, { backgroundColor: config.color }]} />}
         </TouchableOpacity>
       </StaggeredItem>
     );
@@ -388,7 +405,8 @@ export default function NotificationsScreen() {
 
   const renderSectionHeader = ({ section }: { section: { title: string } }) => (
     <View style={styles.sectionHeader}>
-      <Text style={[styles.sectionTitle, { color: colors.gray500 }]}>{section.title}</Text>
+      <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{section.title}</Text>
+      <View style={[styles.sectionLine, { backgroundColor: hairline }]} />
     </View>
   );
 
@@ -397,6 +415,7 @@ export default function NotificationsScreen() {
       <AnimatedIllustration entry="fadeIn" idle="sway">
         <MyNotifications color={colors.primary} size={160} />
       </AnimatedIllustration>
+      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>SILENCE RADIO</Text>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
         {filter === 'unread' ? 'Tout est à jour' : 'Aucune notification'}
       </Text>
@@ -408,246 +427,327 @@ export default function NotificationsScreen() {
     </View>
   );
 
-  const renderHeader = () => (
-    <View style={[styles.header, { borderBottomColor: hairline }]}>
-      <TouchableOpacity
-        style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-        onPress={() => navigation.goBack()}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="chevron-back" size={18} color={colors.text} />
-      </TouchableOpacity>
-      <View style={{ flex: 1, marginLeft: Spacing.md }}>
-        <Text style={[styles.headerEyebrow, { color: colors.accent }]}>MISES À JOUR</Text>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Notifications</Text>
-      </View>
-      {stats.unread > 0 && (
-        <TouchableOpacity
-          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-          onPress={handleMarkAllAsRead}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="checkmark-done" size={18} color={colors.primary} />
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-        {renderHeader()}
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>BUZZ</WatermarkNumeral>
         <NotificationsScreenSkeleton />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {renderHeader()}
-
-      {/* Stats Row */}
-      <View
-        style={[
-          styles.statsCard,
-          { backgroundColor: colors.card, borderColor: hairline },
-          Shadows.sm,
-        ]}
-      >
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Total</Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: hairline }]} />
-        <View style={styles.statItem}>
-          <View style={styles.statValueRow}>
-            <Text style={[styles.statValue, { color: colors.text }]}>{stats.unread}</Text>
-            {stats.unread > 0 && <View style={[styles.statDot, { backgroundColor: colors.primary }]} />}
-          </View>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Non lues</Text>
-        </View>
-        <View style={[styles.statDivider, { backgroundColor: hairline }]} />
-        <View style={styles.statItem}>
-          <Text style={[styles.statValue, { color: colors.text }]}>{stats.today}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>Aujourd'hui</Text>
-        </View>
-      </View>
-
-      {/* Filters pill bar */}
-      <View
-        style={[
-          styles.filtersContainer,
-          { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline },
-        ]}
-      >
-        {filters.map((f) => {
-          const active = filter === f.key;
-          return (
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>BUZZ</WatermarkNumeral>
+      <View style={styles.safeArea}>
+        {/* === EDITORIAL HEADER (tile) === */}
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+              borderBottomColor: hairline,
+            },
+          ]}
+        >
+          <View style={styles.headerTopRow}>
             <TouchableOpacity
-              key={f.key}
-              style={[
-                styles.filterButton,
-                active && [{ backgroundColor: colors.card }, Shadows.sm],
-              ]}
-              onPress={() => dispatch({ type: 'SET_FILTER', payload: f.key })}
+              onPress={() => navigation.goBack()}
+              style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
               activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityLabel="Retour"
             >
-              <Text
-                style={[
-                  styles.filterText,
-                  { color: active ? colors.text : colors.gray500 },
-                ]}
-              >
-                {f.label}
-              </Text>
+              <Ionicons name="chevron-back" size={18} color={colors.gray600} />
             </TouchableOpacity>
-          );
-        })}
-      </View>
 
-      {groupedNotifications.length === 0 ? (
-        renderEmpty()
-      ) : (
-        <SectionList
-          sections={groupedNotifications}
-          renderItem={renderNotification}
-          renderSectionHeader={renderSectionHeader}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + Spacing.lg }]}
-          showsVerticalScrollIndicator={false}
-          stickySectionHeadersEnabled={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-          }
-        />
-      )}
+            <View style={styles.headerTextCol}>
+              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
+                MISES À JOUR • EVENTEZ
+              </Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>
+                Notifications
+              </Text>
+            </View>
 
-      {/* Detail Modal */}
-      <Modal
-        visible={showDetailModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => dispatch({ type: 'CLOSE_DETAIL' })}
-      >
-        <View style={styles.modalOverlay}>
+            {stats.unread > 0 && (
+              <TouchableOpacity
+                onPress={handleMarkAllAsRead}
+                style={[styles.markAllBtn, Shadows.buttonPrimary]}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Tout marquer comme lu"
+              >
+                <LinearGradient
+                  colors={[colors.primary, colors.primaryDark]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={StyleSheet.absoluteFill}
+                />
+                <Ionicons name="checkmark-done" size={16} color={Colors.white} />
+                <Text style={styles.markAllText}>Tout lu</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* === STAT STRIP === */}
           <View
             style={[
-              styles.modalContent,
+              styles.statStrip,
               { backgroundColor: colors.card, borderColor: hairline },
             ]}
           >
-            {selectedNotification && (
-              <>
-                <View style={styles.modalHeader}>
-                  <View
-                    style={[
-                      styles.modalIconContainer,
-                      { backgroundColor: `${getTypeConfig(selectedNotification.notification_type).color}15` },
-                    ]}
-                  >
-                    <Ionicons
-                      name={getTypeConfig(selectedNotification.notification_type).icon}
-                      size={24}
-                      color={getTypeConfig(selectedNotification.notification_type).color}
-                    />
-                  </View>
-                  <TouchableOpacity
-                    style={[styles.iconDisc, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}
-                    onPress={() => dispatch({ type: 'CLOSE_DETAIL' })}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons name="close" size={18} color={colors.text} />
-                  </TouchableOpacity>
-                </View>
+            <View style={[styles.statCell, { borderRightColor: hairline }]}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.total}</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>TOTAL</Text>
+            </View>
+            <View style={[styles.statCell, { borderRightColor: hairline }]}>
+              <View style={styles.statValueRow}>
+                <Text style={[styles.statNumber, { color: colors.text }]}>{stats.unread}</Text>
+                {stats.unread > 0 && (
+                  <View style={[styles.statDot, { backgroundColor: colors.accent }]} />
+                )}
+              </View>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>NON LUES</Text>
+            </View>
+            <View style={styles.statCell}>
+              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.today}</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>AUJOURD'HUI</Text>
+            </View>
+          </View>
 
-                <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
-                  <View
+          {/* === FILTER CHIPS === */}
+          <View style={styles.chipsRow}>
+            {filters.map((f) => {
+              const active = filter === f.key;
+              return (
+                <TouchableOpacity
+                  key={f.key}
+                  style={[
+                    styles.chip,
+                    active
+                      ? { backgroundColor: colors.primary, ...Shadows.buttonPrimary }
+                      : { backgroundColor: colors.gray100 },
+                  ]}
+                  onPress={() => dispatch({ type: 'SET_FILTER', payload: f.key })}
+                  activeOpacity={0.75}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text
                     style={[
-                      styles.modalTypeBadge,
-                      { backgroundColor: `${getTypeConfig(selectedNotification.notification_type).color}15` },
+                      styles.chipText,
+                      { color: active ? Colors.white : colors.gray600 },
                     ]}
                   >
-                    <Text
+                    {f.label}
+                  </Text>
+                  {f.key === 'unread' && stats.unread > 0 && (
+                    <View
                       style={[
-                        styles.modalTypeBadgeText,
-                        { color: getTypeConfig(selectedNotification.notification_type).color },
+                        styles.chipBadge,
+                        {
+                          backgroundColor: active
+                            ? 'rgba(255,255,255,0.22)'
+                            : colors.gray200,
+                        },
                       ]}
                     >
-                      {getTypeConfig(selectedNotification.notification_type).label}
-                    </Text>
-                  </View>
-
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>
-                    {selectedNotification.title}
-                  </Text>
-                  <Text style={[styles.modalMessage, { color: colors.gray500 }]}>
-                    {selectedNotification.message}
-                  </Text>
-
-                  <View style={[styles.modalTimeRow, { borderTopColor: hairline }]}>
-                    <Ionicons name="time-outline" size={14} color={colors.gray400} />
-                    <Text style={[styles.modalTime, { color: colors.gray500 }]}>
-                      {new Date(selectedNotification.created_at).toLocaleDateString('fr-FR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
-                </ScrollView>
-
-                <View style={[styles.modalFooter, { borderTopColor: hairline }]}>
-                  <TouchableOpacity
-                    style={[
-                      styles.modalSecondaryButton,
-                      { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline },
-                    ]}
-                    onPress={() => dispatch({ type: 'CLOSE_DETAIL' })}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={[styles.modalSecondaryButtonText, { color: colors.text }]}>
-                      Fermer
-                    </Text>
-                  </TouchableOpacity>
-                  {canNavigate(selectedNotification) && (
-                    <TouchableOpacity
-                      style={[styles.modalPrimaryButton, { backgroundColor: colors.primary }]}
-                      onPress={handleNavigateToRelated}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={styles.modalPrimaryButtonText}>Voir les détails</Text>
-                      <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
-                    </TouchableOpacity>
+                      <Text
+                        style={[
+                          styles.chipBadgeText,
+                          { color: active ? Colors.white : colors.gray600 },
+                        ]}
+                      >
+                        {stats.unread}
+                      </Text>
+                    </View>
                   )}
-                </View>
-              </>
-            )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
-      </Modal>
-    </SafeAreaView>
+
+        {/* === LIST === */}
+        {groupedNotifications.length === 0 ? (
+          renderEmpty()
+        ) : (
+          <SectionList
+            sections={groupedNotifications}
+            renderItem={renderNotification}
+            renderSectionHeader={renderSectionHeader}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={[
+              styles.listContent,
+              { paddingBottom: insets.bottom + 140 },
+            ]}
+            showsVerticalScrollIndicator={false}
+            stickySectionHeadersEnabled={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.primary}
+                colors={[colors.primary]}
+              />
+            }
+          />
+        )}
+
+        {/* === DETAIL MODAL === */}
+        <Modal
+          visible={showDetailModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => dispatch({ type: 'CLOSE_DETAIL' })}
+        >
+          <View style={styles.modalOverlay}>
+            <View
+              style={[
+                styles.modalCard,
+                { backgroundColor: colors.card, borderColor: hairline },
+                Shadows.dramatic,
+              ]}
+            >
+              {selectedNotification && (
+                <>
+                  {/* Modal header */}
+                  <View style={styles.modalHeader}>
+                    <View
+                      style={[
+                        styles.modalIconWrap,
+                        {
+                          backgroundColor: `${getTypeConfig(
+                            selectedNotification.notification_type,
+                          ).color}15`,
+                        },
+                      ]}
+                    >
+                      <Ionicons
+                        name={getTypeConfig(selectedNotification.notification_type).icon}
+                        size={26}
+                        color={getTypeConfig(selectedNotification.notification_type).color}
+                      />
+                    </View>
+                    <TouchableOpacity
+                      style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+                      onPress={() => dispatch({ type: 'CLOSE_DETAIL' })}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      accessibilityLabel="Fermer"
+                    >
+                      <Ionicons name="close" size={18} color={colors.gray600} />
+                    </TouchableOpacity>
+                  </View>
+
+                  <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                    <View
+                      style={[
+                        styles.eyebrowPill,
+                        {
+                          backgroundColor: `${getTypeConfig(
+                            selectedNotification.notification_type,
+                          ).color}15`,
+                          alignSelf: 'flex-start',
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.eyebrowText,
+                          {
+                            color: getTypeConfig(selectedNotification.notification_type).color,
+                          },
+                        ]}
+                      >
+                        {getTypeConfig(selectedNotification.notification_type).label.toUpperCase()}
+                      </Text>
+                    </View>
+
+                    <Text style={[styles.modalTitle, { color: colors.text }]}>
+                      {selectedNotification.title}
+                    </Text>
+                    <Text style={[styles.modalMessage, { color: colors.gray600 }]}>
+                      {selectedNotification.message}
+                    </Text>
+
+                    <View style={[styles.modalTimeRow, { borderTopColor: hairline }]}>
+                      <Ionicons name="time-outline" size={14} color={colors.gray400} />
+                      <Text style={[styles.modalTime, { color: colors.gray500 }]}>
+                        {new Date(selectedNotification.created_at).toLocaleDateString('fr-FR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+                  </ScrollView>
+
+                  <View style={[styles.modalFooter, { borderTopColor: hairline }]}>
+                    <TouchableOpacity
+                      style={[
+                        styles.modalSecondaryBtn,
+                        { backgroundColor: colors.gray100 },
+                      ]}
+                      onPress={() => dispatch({ type: 'CLOSE_DETAIL' })}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.modalSecondaryBtnText, { color: colors.text }]}>
+                        Fermer
+                      </Text>
+                    </TouchableOpacity>
+                    {canNavigate(selectedNotification) && (
+                      <TouchableOpacity
+                        style={[styles.modalPrimaryBtn, Shadows.buttonPrimary]}
+                        onPress={handleNavigateToRelated}
+                        activeOpacity={0.9}
+                      >
+                        <LinearGradient
+                          colors={[colors.primary, colors.primaryDark]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 1 }}
+                          style={StyleSheet.absoluteFill}
+                        />
+                        <Text style={styles.modalPrimaryBtnText}>Voir détails</Text>
+                        <View style={styles.modalArrowDisc}>
+                          <Ionicons name="arrow-forward" size={14} color={Colors.white} />
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  safeArea: { flex: 1 },
+
+  // === HEADER (tile) ===
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    gap: Spacing.md,
   },
-  iconDisc: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+  headerTopRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: Spacing.sm,
+  },
+  headerTextCol: {
+    flex: 1,
   },
   headerEyebrow: {
     fontFamily: FontFamily.bold,
@@ -657,145 +757,227 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
-  statsCard: {
-    flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    paddingVertical: Spacing.md,
-  },
-  statItem: {
-    flex: 1,
+  iconDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  statValueRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statValue: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+  markAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+  },
+  markAllText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: Colors.white,
+    letterSpacing: 0.2,
+  },
+
+  // === STAT STRIP ===
+  statStrip: {
+    flexDirection: 'row',
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: Spacing.sm,
+  },
+  statCell: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    borderRightWidth: 1,
+    alignItems: 'flex-start',
+  },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statNumber: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    lineHeight: 28,
+    letterSpacing: -0.9,
   },
   statDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
   },
-  statLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.xs,
-    marginTop: 2,
+  statEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginTop: 4,
+    textTransform: 'uppercase',
   },
-  statDivider: { width: 1 },
-  filtersContainer: {
+
+  // === CHIPS ===
+  chipsRow: {
     flexDirection: 'row',
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-    padding: 4,
+    gap: 8,
   },
-  filterButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
+  chip: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: BorderRadius.full,
   },
-  filterText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
+  chipText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.2,
   },
-  sectionHeader: {
-    paddingHorizontal: Spacing.xs,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+  chipBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
   },
-  sectionTitle: {
+  chipBadgeText: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    letterSpacing: 1.5,
   },
+
+  // === LIST ===
   listContent: {
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.xs,
+    paddingTop: Spacing.lg,
   },
-  notificationCard: {
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  sectionLine: {
+    flex: 1,
+    height: 1,
+  },
+
+  // === NOTIF CARD ===
+  notifCard: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    borderRadius: BorderRadius.xl,
+    borderRadius: 20,
     borderWidth: 1,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
+    gap: Spacing.md,
+    overflow: 'hidden',
   },
-  iconContainer: {
+  unreadRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 3,
+  },
+  notifIconWrap: {
     width: 44,
     height: 44,
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  notificationContent: {
+  notifBody: {
     flex: 1,
-    marginLeft: Spacing.md,
+    gap: 6,
   },
-  notificationHeader: {
+  notifTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
     gap: Spacing.sm,
   },
-  notificationTitle: {
-    flex: 1,
-    fontSize: FontSizes.sm,
+  eyebrowPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  unreadDot: { width: 8, height: 8, borderRadius: 4 },
-  typeBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.full,
+  eyebrowText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
-  typeBadgeText: {
+  notifTime: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 10,
+    fontSize: 11,
+    letterSpacing: -0.1,
   },
-  notificationMessage: {
+  notifTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 15,
+    letterSpacing: -0.4,
+    lineHeight: 19,
+  },
+  notifMessage: {
     fontFamily: FontFamily.regular,
-    fontSize: FontSizes.xs,
+    fontSize: 12,
     lineHeight: 18,
-    marginBottom: Spacing.sm,
   },
-  notificationFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 6,
   },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  notificationTime: { fontFamily: FontFamily.regular, fontSize: 11 },
+
+  // === EMPTY ===
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing['2xl'],
+  },
+  emptyEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.xs,
   },
   emptyTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.lg,
-    letterSpacing: -0.3,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.sm,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    letterSpacing: -0.7,
+    lineHeight: 28,
     textAlign: 'center',
+    marginBottom: Spacing.sm,
   },
   emptyText: {
     fontFamily: FontFamily.regular,
     fontSize: FontSizes.sm,
     textAlign: 'center',
     lineHeight: 20,
+    maxWidth: 280,
   },
+
+  // === MODAL ===
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
@@ -803,12 +985,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: Spacing.lg,
   },
-  modalContent: {
-    borderRadius: BorderRadius.xl,
+  modalCard: {
+    borderRadius: 28,
     borderWidth: 1,
     width: '100%',
     maxWidth: 420,
-    maxHeight: '80%',
+    maxHeight: '82%',
     overflow: 'hidden',
   },
   modalHeader: {
@@ -818,37 +1000,29 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
     paddingBottom: 0,
   },
-  modalIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  modalIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
   },
   modalBody: {
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
-  },
-  modalTypeBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.sm,
-  },
-  modalTypeBadgeText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 11,
+    paddingBottom: Spacing.md,
   },
   modalTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.lg,
-    letterSpacing: -0.3,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 24,
+    letterSpacing: -0.8,
+    lineHeight: 28,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
   },
   modalMessage: {
     fontFamily: FontFamily.regular,
-    fontSize: FontSizes.sm,
+    fontSize: 14,
     lineHeight: 22,
     marginBottom: Spacing.md,
   },
@@ -859,37 +1033,52 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
     borderTopWidth: 1,
   },
-  modalTime: { fontFamily: FontFamily.regular, fontSize: FontSizes.xs },
+  modalTime: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
   modalFooter: {
     flexDirection: 'row',
     padding: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     gap: Spacing.sm,
     borderTopWidth: 1,
   },
-  modalSecondaryButton: {
+  modalSecondaryBtn: {
     flex: 1,
     paddingVertical: Spacing.md,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
     alignItems: 'center',
   },
-  modalSecondaryButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
+  modalSecondaryBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
-  modalPrimaryButton: {
-    flex: 1,
+  modalPrimaryBtn: {
+    flex: 1.4,
     flexDirection: 'row',
-    paddingVertical: Spacing.md,
+    paddingVertical: 8,
+    paddingLeft: 18,
+    paddingRight: 8,
     borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  modalPrimaryBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: Colors.white,
+    letterSpacing: 0.2,
+  },
+  modalArrowDisc: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Spacing.xs,
-  },
-  modalPrimaryButtonText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.sm,
-    color: '#FFFFFF',
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
 });

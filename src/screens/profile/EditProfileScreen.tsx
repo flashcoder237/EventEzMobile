@@ -6,12 +6,12 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 
@@ -21,8 +21,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
-import GradientButton from '../../components/ui/GradientButton';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import {
+  Colors,
   FontFamily,
   FontSizes,
   BorderRadius,
@@ -264,19 +265,30 @@ export default function EditProfileScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: hairline }]}>
-        <TouchableOpacity
-          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON PROFIL</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Modifier</Text>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>ME</WatermarkNumeral>
+      {/* === EDITORIAL HEADER (tile) === */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
+        ]}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON IDENTITÉ • PROFIL</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Modifier profil</Text>
+          </View>
         </View>
       </View>
 
@@ -546,36 +558,59 @@ export default function EditProfileScreen() {
         </Section>
 
         <View style={styles.bottomButton}>
-          <GradientButton
-            title={saving ? 'Enregistrement...' : 'Enregistrer les modifications'}
+          <TouchableOpacity
+            style={[
+              styles.savePill,
+              (!hasProfileChanges || saving) && { opacity: 0.5 },
+              Shadows.buttonPrimary,
+            ]}
             onPress={handleSaveProfile}
             disabled={!hasProfileChanges || saving}
-            fullWidth
-            icon={<Ionicons name="checkmark" size={20} color="#FFFFFF" />}
-          />
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.savePillEyebrow}>SAUVEGARDE</Text>
+              <Text style={styles.savePillLabel}>
+                {saving ? 'Enregistrement...' : 'Enregistrer'}
+              </Text>
+            </View>
+            <View style={styles.savePillArrow}>
+              <Ionicons name="checkmark" size={18} color={Colors.white} />
+            </View>
+          </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
 
       {saving && <LoadingSpinner />}
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   iconDisc: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -587,10 +622,47 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
+
+  // === SAVE PILL ===
+  savePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    minHeight: 56,
+  },
+  savePillEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  savePillLabel: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 15,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  savePillArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: Spacing.sm,
+  },
+
   scrollView: { flex: 1 },
   scrollContent: { paddingBottom: Spacing['3xl'] },
   imageSection: {
@@ -641,7 +713,7 @@ const styles = StyleSheet.create({
   section: {
     marginTop: Spacing.md,
     marginHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 18,
     borderWidth: 1,
     overflow: 'hidden',
   },
@@ -653,16 +725,16 @@ const styles = StyleSheet.create({
   },
   sectionHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
   sectionIconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.md,
-    letterSpacing: -0.2,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.4,
   },
   sectionContent: { padding: Spacing.md },
   inputRow: { flexDirection: 'row', gap: Spacing.sm },
@@ -671,17 +743,18 @@ const styles = StyleSheet.create({
   label: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
-    letterSpacing: 1.2,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
-    marginBottom: Spacing.xs,
+    marginBottom: 8,
   },
   input: {
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    fontFamily: FontFamily.regular,
-    fontSize: FontSizes.base,
+    paddingVertical: 13,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 14,
+    height: 50,
   },
   inputWithIcon: { position: 'relative' },
   inputIcon: {

@@ -5,10 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   TextInput,
-  ScrollView,
   ActivityIndicator,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
+import { LinearGradient } from 'expo-linear-gradient';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -24,7 +24,7 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
-  TextStyles,
+  Shadows,
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -34,6 +34,8 @@ interface RefundReason {
   id: string;
   label: string;
   description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  eyebrow: string;
 }
 
 const refundReasons: RefundReason[] = [
@@ -41,26 +43,36 @@ const refundReasons: RefundReason[] = [
     id: 'event_cancelled',
     label: 'Événement annulé',
     description: 'L\'événement a été annulé par l\'organisateur',
+    icon: 'calendar-outline',
+    eyebrow: 'CAUSE 01',
   },
   {
     id: 'cannot_attend',
     label: 'Impossible d\'y assister',
     description: 'Je ne peux plus assister à l\'événement',
+    icon: 'walk-outline',
+    eyebrow: 'CAUSE 02',
   },
   {
     id: 'duplicate_payment',
     label: 'Paiement en double',
     description: 'J\'ai payé deux fois par erreur',
+    icon: 'copy-outline',
+    eyebrow: 'CAUSE 03',
   },
   {
     id: 'wrong_event',
     label: 'Mauvais événement',
     description: 'Je me suis trompé d\'événement',
+    icon: 'swap-horizontal-outline',
+    eyebrow: 'CAUSE 04',
   },
   {
     id: 'other',
     label: 'Autre raison',
     description: 'Une autre raison non listée ci-dessus',
+    icon: 'ellipsis-horizontal',
+    eyebrow: 'CAUSE 05',
   },
 ];
 
@@ -70,6 +82,7 @@ export default function RefundRequestScreen() {
   const { paymentId } = route.params;
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -149,10 +162,8 @@ export default function RefundRequestScreen() {
   if (loading) {
     return (
       <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>RFND</WatermarkNumeral>
-        <View style={{ flex: 1, zIndex: 1 }}>
-          <LoadingSpinner />
-        </View>
+        <WatermarkNumeral>BACK</WatermarkNumeral>
+        <LoadingSpinner />
       </EditorialCanvas>
     );
   }
@@ -160,12 +171,15 @@ export default function RefundRequestScreen() {
   if (!payment) {
     return (
       <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>NO</WatermarkNumeral>
-        <View style={[styles.errorContainer, { zIndex: 1 }]}>
+        <WatermarkNumeral>OOPS</WatermarkNumeral>
+        <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
           <Text style={[styles.errorText, { color: colors.gray500 }]}>Paiement non trouvé</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: colors.primary }]} onPress={() => navigation.goBack()}>
-            <Text style={[styles.retryButtonText, { color: colors.white }]}>Retour</Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: colors.primary }]}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.retryButtonText}>Retour</Text>
           </TouchableOpacity>
         </View>
       </EditorialCanvas>
@@ -174,75 +188,134 @@ export default function RefundRequestScreen() {
 
   return (
     <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>RFND</WatermarkNumeral>
-      <View style={{ flex: 1, zIndex: 1 }}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
+      <WatermarkNumeral>BACK</WatermarkNumeral>
+
+      {/* === HEADER === */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
+        ]}
+      >
+        <View style={styles.headerTopRow}>
           <TouchableOpacity
-            style={styles.closeButton}
             onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
             accessibilityLabel="Fermer"
             accessibilityRole="button"
           >
-            <Ionicons name="close" size={24} color={colors.gray700} />
+            <Ionicons name="close" size={18} color={colors.gray600} />
           </TouchableOpacity>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Demande de remboursement</Text>
-          <View style={{ width: 40 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>REMBOURSEMENT • REFUND</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Réclamer un remb.</Text>
+          </View>
+        </View>
+      </View>
+
+      <KeyboardAwareScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={120}
+      >
+        {/* === PAYMENT REFERENCE CARD === */}
+        <View style={[styles.refCard, Shadows.lg]}>
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark, '#312E81']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          <View style={styles.refCardCircle1} />
+          <View style={styles.refCardCircle2} />
+          <View style={styles.refCardTopRow}>
+            <Text style={styles.refCardEyebrow}>RÉFÉRENCE PAIEMENT</Text>
+            <Text style={styles.refCardId}>#{paymentId.slice(0, 8).toUpperCase()}</Text>
+          </View>
+          <Text style={styles.refCardLabel}>MONTANT PAYÉ</Text>
+          <View style={styles.refCardAmountRow}>
+            <Text style={styles.refCardAmount}>{formatAmount(payment.amount)}</Text>
+            <Text style={styles.refCardCurrency}>{payment.currency || 'XAF'}</Text>
+          </View>
         </View>
 
-        <KeyboardAwareScrollView
-          style={styles.content}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          bottomOffset={80}
-        >
-          {/* Payment Summary */}
-          <View style={[styles.paymentSummary, { backgroundColor: isDark ? colors.card : '#E0E7FF' }]}>
-            <View style={[styles.summaryIcon, { backgroundColor: colors.card }]}>
-              <Ionicons name="card" size={24} color="#6366F1" />
+        {/* === REFUND AMOUNT === */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>ÉTAPE 01 • MONTANT</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Que veux-tu récupérer ?</Text>
+
+          <TouchableOpacity
+            style={[
+              styles.amountOption,
+              {
+                backgroundColor: colors.card,
+                borderColor: !isPartialRefund ? colors.primary : hairline,
+              },
+              !isPartialRefund && Shadows.buttonPrimary,
+            ]}
+            onPress={() => {
+              setIsPartialRefund(false);
+              setRefundAmount(String(payment.amount));
+            }}
+            activeOpacity={0.85}
+          >
+            <View
+              style={[
+                styles.radioOuter,
+                { borderColor: !isPartialRefund ? colors.primary : colors.gray300 },
+              ]}
+            >
+              {!isPartialRefund && <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />}
             </View>
-            <View style={styles.summaryContent}>
-              <Text style={[styles.summaryTitle, { color: isDark ? colors.textSecondary : '#6B21A8' }]}>Paiement #{paymentId.slice(0, 8)}</Text>
-              <Text style={[styles.summaryAmount, { color: isDark ? colors.text : '#6B21A8' }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.amountOptionEyebrow, { color: colors.accent }]}>OPTION A</Text>
+              <Text style={[styles.amountOptionTitle, { color: colors.text }]}>Remboursement total</Text>
+              <Text style={[styles.amountOptionValue, { color: colors.primary }]}>
                 {formatAmount(payment.amount)} {payment.currency || 'XAF'}
               </Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
-          {/* Refund Amount */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray700 }]}>Montant du remboursement</Text>
-
-            <TouchableOpacity
-              style={[styles.amountOption, { borderColor: colors.gray200 }, !isPartialRefund && [styles.amountOptionActive, { backgroundColor: isDark ? colors.card : '#FAF5FF' }]]}
-              onPress={() => {
-                setIsPartialRefund(false);
-                setRefundAmount(String(payment.amount));
-              }}
+          <TouchableOpacity
+            style={[
+              styles.amountOption,
+              {
+                backgroundColor: colors.card,
+                borderColor: isPartialRefund ? colors.primary : hairline,
+              },
+              isPartialRefund && Shadows.buttonPrimary,
+            ]}
+            onPress={() => setIsPartialRefund(true)}
+            activeOpacity={0.85}
+          >
+            <View
+              style={[
+                styles.radioOuter,
+                { borderColor: isPartialRefund ? colors.primary : colors.gray300 },
+              ]}
             >
-              <View style={styles.radioOuter}>
-                {!isPartialRefund && <View style={styles.radioInner} />}
-              </View>
-              <View style={styles.amountOptionContent}>
-                <Text style={[styles.amountOptionTitle, { color: colors.gray900 }]}>Remboursement total</Text>
-                <Text style={styles.amountOptionValue}>
-                  {formatAmount(payment.amount)} {payment.currency || 'XAF'}
-                </Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.amountOption, { borderColor: colors.gray200 }, isPartialRefund && [styles.amountOptionActive, { backgroundColor: isDark ? colors.card : '#FAF5FF' }]]}
-              onPress={() => setIsPartialRefund(true)}
-            >
-              <View style={styles.radioOuter}>
-                {isPartialRefund && <View style={styles.radioInner} />}
-              </View>
-              <View style={styles.amountOptionContent}>
-                <Text style={[styles.amountOptionTitle, { color: colors.gray900 }]}>Remboursement partiel</Text>
-                {isPartialRefund && (
+              {isPartialRefund && <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.amountOptionEyebrow, { color: colors.accent }]}>OPTION B</Text>
+              <Text style={[styles.amountOptionTitle, { color: colors.text }]}>Remboursement partiel</Text>
+              {isPartialRefund && (
+                <View style={styles.partialInputRow}>
                   <TextInput
-                    style={[styles.amountInput, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
+                    style={[
+                      styles.amountInput,
+                      {
+                        backgroundColor: colors.gray100,
+                        borderColor: hairline,
+                        color: colors.text,
+                      },
+                    ]}
                     value={refundAmount}
                     onChangeText={setRefundAmount}
                     keyboardType="numeric"
@@ -250,103 +323,162 @@ export default function RefundRequestScreen() {
                     placeholderTextColor={colors.gray400}
                     accessibilityLabel="Montant du remboursement"
                   />
-                )}
-              </View>
-            </TouchableOpacity>
-          </View>
+                  <Text style={[styles.amountInputCurrency, { color: colors.gray500 }]}>
+                    {payment.currency || 'XAF'}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
+        </View>
 
-          {/* Reason Selection */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray700 }]}>Raison du remboursement</Text>
+        {/* === REASON SELECTION === */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>ÉTAPE 02 • RAISON</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Pourquoi ce retour ?</Text>
 
-            {refundReasons.map((reason) => (
+          {refundReasons.map((reason) => {
+            const isSelected = selectedReason === reason.id;
+            return (
               <TouchableOpacity
                 key={reason.id}
                 style={[
                   styles.reasonOption,
-                  { borderColor: colors.gray200 },
-                  selectedReason === reason.id && [styles.reasonOptionActive, { backgroundColor: isDark ? colors.card : '#FAF5FF' }]
+                  {
+                    backgroundColor: colors.card,
+                    borderColor: isSelected ? colors.primary : hairline,
+                  },
+                  isSelected && Shadows.buttonPrimary,
                 ]}
                 onPress={() => setSelectedReason(reason.id)}
+                activeOpacity={0.85}
               >
-                <View style={styles.radioOuter}>
-                  {selectedReason === reason.id && <View style={styles.radioInner} />}
+                <View
+                  style={[
+                    styles.reasonIconBox,
+                    {
+                      backgroundColor: isSelected ? colors.primary : `${colors.primary}15`,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={reason.icon}
+                    size={16}
+                    color={isSelected ? Colors.white : colors.primary}
+                  />
                 </View>
                 <View style={styles.reasonContent}>
-                  <Text style={[styles.reasonTitle, { color: colors.gray900 }]}>{reason.label}</Text>
-                  <Text style={[styles.reasonDescription, { color: colors.gray500 }]}>{reason.description}</Text>
+                  <Text style={[styles.reasonEyebrow, { color: colors.accent }]}>{reason.eyebrow}</Text>
+                  <Text style={[styles.reasonTitle, { color: colors.text }]}>{reason.label}</Text>
+                  <Text style={[styles.reasonDescription, { color: colors.gray500 }]}>
+                    {reason.description}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.radioOuter,
+                    { borderColor: isSelected ? colors.primary : colors.gray300 },
+                  ]}
+                >
+                  {isSelected && <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />}
                 </View>
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
+        </View>
 
-          {/* Additional Details */}
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray700 }]}>Détails supplémentaires (optionnel)</Text>
-            <TextInput
-              style={[styles.textArea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
-              value={additionalDetails}
-              onChangeText={setAdditionalDetails}
-              placeholder="Ajoutez des détails pour aider à traiter votre demande..."
-              placeholderTextColor={colors.gray400}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              accessibilityLabel="Raison du remboursement"
-            />
-          </View>
+        {/* === ADDITIONAL DETAILS === */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>ÉTAPE 03 • DÉTAILS</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>
+            Détails (optionnel)
+          </Text>
+          <TextInput
+            style={[
+              styles.textArea,
+              {
+                backgroundColor: colors.card,
+                borderColor: hairline,
+                color: colors.text,
+              },
+            ]}
+            value={additionalDetails}
+            onChangeText={setAdditionalDetails}
+            placeholder="Ajoute des détails pour aider à traiter ta demande..."
+            placeholderTextColor={colors.gray400}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            accessibilityLabel="Raison du remboursement"
+          />
+        </View>
 
-          {/* Info Banner */}
-          <View style={[styles.infoBanner, { backgroundColor: isDark ? colors.card : '#EFF6FF', borderColor: isDark ? colors.gray200 : '#BFDBFE' }]}>
-            <Ionicons name="information-circle" size={20} color="#3B82F6" />
-            <Text style={[styles.infoText, { color: isDark ? colors.textSecondary : '#1E40AF' }]}>
-              Le remboursement sera traité dans un délai de 5-10 jours ouvrés.
-              Vous recevrez une notification une fois la demande traitée.
+        {/* === INFO BANNER === */}
+        <View style={[styles.infoCallout, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+          <View style={[styles.infoRail, { backgroundColor: '#3B82F6' }]} />
+          <View style={[styles.infoIcon, { backgroundColor: '#3B82F6' }]}>
+            <Ionicons name="information" size={14} color="#FFFFFF" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.infoEyebrow}>POLITIQUE • DELAI</Text>
+            <Text style={styles.infoText}>
+              Le remboursement sera traité sous 5-10 jours ouvrés. Tu seras notifié dès traitement.
             </Text>
           </View>
-
-          <View style={{ height: 100 }} />
-        </KeyboardAwareScrollView>
-
-        {/* Submit Button */}
-        <View style={[styles.footer, { borderTopColor: colors.gray100, backgroundColor: colors.background }]}>
-          <TouchableOpacity
-            style={[
-              styles.submitButton,
-              (!selectedReason || submitting) && styles.submitButtonDisabled
-            ]}
-            onPress={handleSubmit}
-            disabled={!selectedReason || submitting}
-            accessibilityLabel="Demander le remboursement"
-            accessibilityRole="button"
-          >
-            {submitting ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <>
-                <Ionicons name="refresh-circle" size={20} color={Colors.white} />
-                <Text style={styles.submitButtonText}>
-                  Soumettre la demande ({formatAmount(isPartialRefund ? refundAmount : payment.amount)} {payment.currency || 'XAF'})
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
         </View>
+      </KeyboardAwareScrollView>
+
+      {/* === BOTTOM CTA === */}
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: colors.card,
+            borderTopColor: hairline,
+          },
+          Shadows.dramatic,
+        ]}
+      >
+        <TouchableOpacity
+          style={[
+            styles.submitPill,
+            (!selectedReason || submitting) && { opacity: 0.5 },
+            Shadows.buttonPrimary,
+          ]}
+          onPress={handleSubmit}
+          disabled={!selectedReason || submitting}
+          activeOpacity={0.9}
+          accessibilityLabel="Demander le remboursement"
+          accessibilityRole="button"
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+          {submitting ? (
+            <ActivityIndicator size="small" color={Colors.white} />
+          ) : (
+            <>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.submitEyebrow}>RÉCLAMATION</Text>
+                <Text style={styles.submitLabel} numberOfLines={1}>
+                  Soumettre · {formatAmount(isPartialRefund ? refundAmount : payment.amount)} {payment.currency || 'XAF'}
+                </Text>
+              </View>
+              <View style={styles.submitArrow}>
+                <Ionicons name="return-down-back" size={16} color={Colors.white} />
+              </View>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
     </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.white,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -354,240 +486,342 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   errorText: {
-    fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    fontSize: FontSizes.base,
   },
   retryButton: {
     paddingVertical: Spacing.sm,
     paddingHorizontal: Spacing.lg,
-    backgroundColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.full,
   },
   retryButtonText: {
+    fontFamily: FontFamily.bold,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.white,
+    color: '#FFFFFF',
   },
 
-  // Header
+  // === HEADER ===
   header: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  iconDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1.1,
+    lineHeight: 32,
+  },
+
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: 140,
+  },
+
+  // === REF CARD ===
+  refCard: {
+    borderRadius: 24,
+    padding: Spacing.lg,
+    overflow: 'hidden',
+    minHeight: 160,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xl,
+  },
+  refCardCircle1: {
+    position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  refCardCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,107,107,0.15)',
+  },
+  refCardTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray100,
   },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+  refCardEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    color: 'rgba(255,255,255,0.7)',
   },
-  headerTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
+  refCardId: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: 'rgba(255,255,255,0.85)',
   },
-
-  // Content
-  content: {
-    flex: 1,
-    padding: Spacing.lg,
+  refCardLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1.5,
+    marginBottom: 4,
   },
-
-  // Payment Summary
-  paymentSummary: {
+  refCardAmountRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    backgroundColor: '#E0E7FF',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.xl,
+    alignItems: 'baseline',
+    gap: 8,
   },
-  summaryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
+  refCardAmount: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 38,
+    color: '#FFFFFF',
+    letterSpacing: -1.5,
+    lineHeight: 40,
   },
-  summaryContent: {
-    flex: 1,
-  },
-  summaryTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: '#6B21A8',
-  },
-  summaryAmount: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
-    color: '#6B21A8',
+  refCardCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 0.5,
   },
 
-  // Section
+  // === SECTION ===
   section: {
     marginBottom: Spacing.xl,
   },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
   sectionTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.gray700,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
     marginBottom: Spacing.md,
   },
 
-  // Amount Options
+  // === AMOUNT OPTIONS ===
   amountOption: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 2,
-    borderColor: Colors.gray200,
+    borderRadius: 18,
+    borderWidth: 1.5,
     marginBottom: Spacing.sm,
   },
-  amountOptionActive: {
-    borderColor: '#6366F1',
-    backgroundColor: '#FAF5FF',
-  },
-  amountOptionContent: {
-    flex: 1,
+  amountOptionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginBottom: 2,
   },
   amountOptionTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray900,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 15,
+    letterSpacing: -0.4,
+    lineHeight: 18,
   },
   amountOptionValue: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: '#6366F1',
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.4,
     marginTop: 4,
   },
+  partialInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
   amountInput: {
-    marginTop: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
+    flex: 1,
+    height: 44,
+    borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.gray200,
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray900,
+    paddingHorizontal: 14,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.3,
+  },
+  amountInputCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 1,
   },
 
-  // Radio Button
+  // === RADIO ===
   radioOuter: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 2,
-    borderColor: '#6366F1',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 2,
   },
   radioInner: {
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#6366F1',
   },
 
-  // Reason Options
+  // === REASON OPTIONS ===
   reasonOption: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.md,
+    alignItems: 'center',
+    gap: Spacing.sm,
     padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 2,
-    borderColor: Colors.gray200,
+    borderRadius: 18,
+    borderWidth: 1.5,
     marginBottom: Spacing.sm,
   },
-  reasonOptionActive: {
-    borderColor: '#6366F1',
-    backgroundColor: '#FAF5FF',
+  reasonIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   reasonContent: {
     flex: 1,
   },
+  reasonEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    marginBottom: 2,
+  },
   reasonTitle: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray900,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+    lineHeight: 17,
   },
   reasonDescription: {
-    fontSize: FontSizes.xs,
     fontFamily: FontFamily.regular,
-    color: Colors.gray500,
+    fontSize: 11,
     marginTop: 2,
+    lineHeight: 15,
   },
 
-  // Text Area
+  // === TEXT AREA ===
   textArea: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
+    borderRadius: 18,
     padding: Spacing.md,
-    fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
-    color: Colors.gray900,
-    minHeight: 100,
+    fontSize: 14,
+    minHeight: 110,
     borderWidth: 1,
-    borderColor: Colors.gray200,
-  },
-
-  // Info Banner
-  infoBanner: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-    backgroundColor: '#EFF6FF',
-    padding: Spacing.md,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-  },
-  infoText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: '#1E40AF',
     lineHeight: 20,
   },
 
-  // Footer
-  footer: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xl,
-    borderTopWidth: 1,
-    borderTopColor: Colors.gray100,
-    backgroundColor: Colors.white,
-  },
-  submitButton: {
+  // === INFO CALLOUT ===
+  infoCallout: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    backgroundColor: '#6366F1',
-    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    paddingLeft: Spacing.lg + 6,
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
-  submitButtonDisabled: {
-    opacity: 0.5,
+  infoRail: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
   },
-  submitButtonText: {
-    fontSize: FontSizes.base,
+  infoIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#1E40AF',
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  infoText: {
     fontFamily: FontFamily.semiBold,
-    color: Colors.white,
+    fontSize: 12,
+    color: '#1E3A8A',
+    lineHeight: 17,
+  },
+
+  // === FOOTER ===
+  footer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+    borderTopWidth: 1,
+  },
+  submitPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    minHeight: 56,
+  },
+  submitEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  submitLabel: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+    marginTop: 2,
+  },
+  submitArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: Spacing.sm,
   },
 });

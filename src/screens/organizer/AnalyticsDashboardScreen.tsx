@@ -6,40 +6,36 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
 import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
-import { KPICard, ChartWrapper } from '../../components/charts';
 import {
+  Colors,
   FontFamily,
-  FontSizes,
   BorderRadius,
   Spacing,
   Shadows,
 } from '../../constants/theme';
+import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 type TimeRange = '7d' | '30d' | '90d' | '1y';
 
 export default function AnalyticsDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
-  // Strategie "Event mono-devise" : tous les events de l'organisateur sont
-  // dans la devise de son wallet → on lit directement celle-ci.
   const { currency: walletCurrency } = useOrganizerWallet();
   const platformCurrency = walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
+
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [timeRange, setTimeRange] = useState<TimeRange>('30d');
@@ -76,11 +72,11 @@ export default function AnalyticsDashboardScreen() {
     setRefreshing(false);
   };
 
-  const timeRanges: { key: TimeRange; label: string }[] = [
-    { key: '7d', label: '7j' },
-    { key: '30d', label: '30j' },
-    { key: '90d', label: '90j' },
-    { key: '1y', label: '1 an' },
+  const timeRanges: { key: TimeRange; label: string; eyebrow: string }[] = [
+    { key: '7d', label: '7 jours', eyebrow: '7J' },
+    { key: '30d', label: '30 jours', eyebrow: '30J' },
+    { key: '90d', label: '90 jours', eyebrow: '90J' },
+    { key: '1y', label: '1 an', eyebrow: '1A' },
   ];
 
   const totalRevenue = summary?.total_revenue || revenueData?.total || 0;
@@ -88,196 +84,421 @@ export default function AnalyticsDashboardScreen() {
   const totalEvents = summary?.total_events || 0;
   const avgAttendance = summary?.avg_attendance_rate || 0;
 
-  return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+  const revenueTrend = summary?.revenue_trend || 0;
+  const registrationTrend = summary?.registration_trend || 0;
 
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: hairline }]}>
-        <TouchableOpacity
-          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-        </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TA PERFORMANCE</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Analytics</Text>
+  const KPICardE = ({
+    eyebrow,
+    label,
+    value,
+    icon,
+    color,
+    trend,
+    suffix,
+  }: {
+    eyebrow: string;
+    label: string;
+    value: string | number;
+    icon: keyof typeof Ionicons.glyphMap;
+    color: string;
+    trend?: number;
+    suffix?: string;
+  }) => {
+    const trendUp = trend !== undefined && trend > 0;
+    const trendFlat = trend !== undefined && Math.abs(trend) < 1;
+    return (
+      <View style={[styles.kpiCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+        <View style={styles.kpiTopRow}>
+          <View style={[styles.kpiIcon, { backgroundColor: `${color}15` }]}>
+            <Ionicons name={icon} size={16} color={color} />
+          </View>
+          {trend !== undefined && (
+            <View style={[styles.kpiTrend, { backgroundColor: trendFlat ? colors.gray100 : trendUp ? '#10B98115' : '#EF444415' }]}>
+              <Ionicons
+                name={trendFlat ? 'remove' : trendUp ? 'trending-up' : 'trending-down'}
+                size={9}
+                color={trendFlat ? colors.gray500 : trendUp ? '#10B981' : '#EF4444'}
+              />
+              <Text
+                style={[
+                  styles.kpiTrendText,
+                  { color: trendFlat ? colors.gray500 : trendUp ? '#10B981' : '#EF4444' },
+                ]}
+              >
+                {trendFlat ? '—' : `${trendUp ? '+' : ''}${Math.round(trend)}%`}
+              </Text>
+            </View>
+          )}
         </View>
-        <TouchableOpacity
-          style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-          onPress={() => navigation.navigate('Reports')}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="document-text-outline" size={18} color={colors.text} />
-        </TouchableOpacity>
+        <Text style={[styles.kpiEyebrow, { color: colors.accent }]}>{eyebrow}</Text>
+        <Text style={[styles.kpiValue, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>
+          {value}
+          {suffix && <Text style={[styles.kpiSuffix, { color: colors.gray500 }]}> {suffix}</Text>}
+        </Text>
+        <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>{label}</Text>
+      </View>
+    );
+  };
+
+  return (
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>DATA</WatermarkNumeral>
+
+      {/* === HEADER === */}
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+            borderBottomColor: hairline,
+          },
+        ]}
+      >
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.gray600} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>STATS • PERFORMANCE</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>Analytics</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Reports')}
+            style={[styles.headerCtaPill, Shadows.buttonPrimary]}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[colors.primary, colors.primaryDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <Ionicons name="document-text" size={14} color={Colors.white} />
+            <Text style={styles.headerCtaText}>Rapports</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* === TIME RANGE CHIPS === */}
+        <View style={styles.chipsRow}>
+          {timeRanges.map((range) => {
+            const active = timeRange === range.key;
+            return (
+              <TouchableOpacity
+                key={range.key}
+                style={[
+                  styles.chip,
+                  active
+                    ? { backgroundColor: colors.text}
+                    : {
+                        backgroundColor: colors.card,
+                        borderColor: hairline,
+                        borderWidth: 1,
+                      },
+                ]}
+                onPress={() => setTimeRange(range.key)}
+                activeOpacity={0.75}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    { color: active ? Colors.white : colors.gray700 },
+                  ]}
+                >
+                  {range.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
         contentContainerStyle={styles.scrollContent}
       >
-        {/* Time Range Selector */}
-        <View style={[styles.timeRangeContainer, { backgroundColor: colors.gray100 }]}>
-          {timeRanges.map((range) => (
-            <TouchableOpacity
-              key={range.key}
-              style={[
-                styles.timeRangeButton,
-                timeRange === range.key && { backgroundColor: colors.card },
-              ]}
-              onPress={() => setTimeRange(range.key)}
-            >
-              <Text style={[
-                styles.timeRangeText,
-                { color: colors.gray500 },
-                timeRange === range.key && { color: colors.primary },
-              ]}>
-                {range.label}
+        {/* === REVENUE HERO CARD === */}
+        <StaggeredItem index={0}>
+          <View style={[styles.heroCard, Shadows.lg]}>
+            <LinearGradient
+              colors={['#0F172A', '#1E1B4B', colors.primary]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.heroCircle1} />
+            <View style={styles.heroCircle2} />
+            <Text style={styles.heroWatermark}>{platformCurrency}</Text>
+
+            <View style={styles.heroTopRow}>
+              <Text style={styles.heroEyebrow}>REVENUS TOTAUX</Text>
+              <View style={styles.heroPeriodPill}>
+                <Text style={styles.heroPeriodText}>
+                  {timeRanges.find((r) => r.key === timeRange)?.eyebrow}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.heroAmountRow}>
+              <Text style={styles.heroAmount} numberOfLines={1} adjustsFontSizeToFit>
+                {totalRevenue.toLocaleString()}
               </Text>
+              <Text style={styles.heroCurrency}>{platformCurrency}</Text>
+            </View>
+
+            <View style={styles.heroDivider} />
+
+            <View style={styles.heroBottomRow}>
+              <View style={styles.heroBottomCell}>
+                <Text style={styles.heroBottomEyebrow}>INSCRIPTIONS</Text>
+                <View style={styles.heroBottomValueRow}>
+                  <Text style={styles.heroBottomValue}>{totalRegistrations}</Text>
+                  {registrationTrend !== 0 && (
+                    <Ionicons
+                      name={registrationTrend > 0 ? 'trending-up' : 'trending-down'}
+                      size={12}
+                      color={registrationTrend > 0 ? '#BEFF5A' : '#FFA5A5'}
+                    />
+                  )}
+                </View>
+              </View>
+              <View style={styles.heroBottomDivider} />
+              <View style={styles.heroBottomCell}>
+                <Text style={styles.heroBottomEyebrow}>ÉVÉNEMENTS</Text>
+                <Text style={styles.heroBottomValue}>{totalEvents}</Text>
+              </View>
+            </View>
+          </View>
+        </StaggeredItem>
+
+        {/* === KPI GRID === */}
+        <StaggeredItem index={1}>
+          <View style={styles.kpiGrid}>
+            <KPICardE
+              eyebrow="REVENUS"
+              label="Sur la période"
+              value={totalRevenue.toLocaleString()}
+              suffix={platformCurrency}
+              icon="cash-outline"
+              color="#10B981"
+              trend={revenueTrend}
+            />
+            <KPICardE
+              eyebrow="INSCRITS"
+              label="Total période"
+              value={totalRegistrations}
+              icon="people-outline"
+              color="#4F46E5"
+              trend={registrationTrend}
+            />
+          </View>
+        </StaggeredItem>
+
+        <StaggeredItem index={2}>
+          <View style={styles.kpiGrid}>
+            <KPICardE
+              eyebrow="EVENTS"
+              label="Actifs et passés"
+              value={totalEvents}
+              icon="calendar-outline"
+              color="#A855F7"
+            />
+            <KPICardE
+              eyebrow="PRÉSENCE"
+              label="Taux moyen"
+              value={`${Math.round(avgAttendance)}%`}
+              icon="checkmark-circle-outline"
+              color="#F59E0B"
+            />
+          </View>
+        </StaggeredItem>
+
+        {/* === REGISTRATIONS CHART === */}
+        <StaggeredItem index={3}>
+          <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+            <View style={styles.chartHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.chartEyebrow, { color: colors.accent }]}>
+                  CHART • INSCRIPTIONS
+                </Text>
+                <Text style={[styles.chartTitle, { color: colors.text }]}>Évolution inscriptions</Text>
+                <Text style={[styles.chartSubtitle, { color: colors.gray500 }]}>
+                  {timeRange === '7d' ? '7 derniers jours' : timeRange === '30d' ? '30 derniers jours' : timeRange === '90d' ? '90 derniers jours' : '12 derniers mois'}
+                </Text>
+              </View>
+              <View style={[styles.chartLegend, { backgroundColor: '#4F46E515' }]}>
+                <View style={[styles.legendDot, { backgroundColor: '#4F46E5' }]} />
+                <Text style={styles.legendText}>Inscriptions</Text>
+              </View>
+            </View>
+            <View style={[styles.chartArea, { borderTopColor: hairline }]}>
+              {registrationData?.timeline ? (
+                <View style={styles.barChart}>
+                  {(registrationData.timeline as any[]).slice(-7).map((item: any, idx: number) => {
+                    const maxVal = Math.max(...(registrationData.timeline as any[]).slice(-7).map((i: any) => i.count || 0), 1);
+                    const height = ((item.count || 0) / maxVal) * 100;
+                    return (
+                      <View key={idx} style={styles.barColumn}>
+                        <View style={styles.barWrap}>
+                          <LinearGradient
+                            colors={['#4F46E5', '#312E81']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                            style={[styles.bar, { height: `${height}%` }]}
+                          />
+                        </View>
+                        <Text style={[styles.barLabel, { color: colors.gray400 }]}>
+                          {item.label || idx + 1}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.noDataContainer}>
+                  <Ionicons name="bar-chart-outline" size={36} color={colors.gray300} />
+                  <Text style={[styles.noDataEyebrow, { color: colors.accent }]}>AUCUNE DONNÉE</Text>
+                  <Text style={[styles.noDataText, { color: colors.gray500 }]}>
+                    Pas encore d'inscriptions sur cette période
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </StaggeredItem>
+
+        {/* === REVENUE CHART === */}
+        <StaggeredItem index={4}>
+          <View style={[styles.chartCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+            <View style={styles.chartHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.chartEyebrow, { color: colors.accent }]}>
+                  CHART • REVENUS
+                </Text>
+                <Text style={[styles.chartTitle, { color: colors.text }]}>Évolution revenus</Text>
+                <Text style={[styles.chartSubtitle, { color: colors.gray500 }]}>
+                  En {platformCurrency}
+                </Text>
+              </View>
+              <View style={[styles.chartLegend, { backgroundColor: '#10B98115' }]}>
+                <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
+                <Text style={[styles.legendText, { color: '#059669' }]}>Revenus</Text>
+              </View>
+            </View>
+            <View style={[styles.chartArea, { borderTopColor: hairline }]}>
+              {revenueData?.timeline ? (
+                <View style={styles.barChart}>
+                  {(revenueData.timeline as any[]).slice(-7).map((item: any, idx: number) => {
+                    const maxVal = Math.max(...(revenueData.timeline as any[]).slice(-7).map((i: any) => i.amount || 0), 1);
+                    const height = ((item.amount || 0) / maxVal) * 100;
+                    return (
+                      <View key={idx} style={styles.barColumn}>
+                        <View style={styles.barWrap}>
+                          <LinearGradient
+                            colors={['#10B981', '#047857']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 0, y: 1 }}
+                            style={[styles.bar, { height: `${height}%` }]}
+                          />
+                        </View>
+                        <Text style={[styles.barLabel, { color: colors.gray400 }]}>
+                          {item.label || idx + 1}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={styles.noDataContainer}>
+                  <Ionicons name="trending-up" size={36} color={colors.gray300} />
+                  <Text style={[styles.noDataEyebrow, { color: colors.accent }]}>AUCUNE DONNÉE</Text>
+                  <Text style={[styles.noDataText, { color: colors.gray500 }]}>
+                    Pas encore de revenus sur cette période
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </StaggeredItem>
+
+        {/* === QUICK LINKS === */}
+        <StaggeredItem index={5}>
+          <View style={styles.quickLinksHeader}>
+            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>RACCOURCIS • LINKS</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions rapides</Text>
+          </View>
+          <View style={[styles.quickLinksCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+            <TouchableOpacity
+              style={[styles.quickLink, { borderBottomColor: hairline }]}
+              onPress={() => navigation.navigate('Reports')}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.quickLinkIcon, { backgroundColor: '#4F46E515' }]}>
+                <Ionicons name="document-text-outline" size={16} color="#4F46E5" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.quickLinkTitle, { color: colors.text }]}>Voir les rapports</Text>
+                <Text style={[styles.quickLinkSub, { color: colors.gray500 }]}>
+                  Export CSV, PDF, dashboards
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* KPI Cards */}
-        <View style={styles.kpiRow}>
-          <KPICard
-            title="Revenus"
-            value={`${totalRevenue.toLocaleString()} ${platformCurrency}`}
-            icon="cash-outline"
-            color="#10B981"
-            trend={summary?.revenue_trend ? { value: summary.revenue_trend, label: 'vs prev' } : undefined}
-          />
-          <KPICard
-            title="Inscriptions"
-            value={totalRegistrations}
-            icon="people-outline"
-            color="#4F46E5"
-            trend={summary?.registration_trend ? { value: summary.registration_trend, label: 'vs prev' } : undefined}
-          />
-        </View>
-        <View style={styles.kpiRow}>
-          <KPICard
-            title="Evenements"
-            value={totalEvents}
-            icon="calendar-outline"
-            color="#A855F7"
-          />
-          <KPICard
-            title="Taux presence"
-            value={`${Math.round(avgAttendance)}%`}
-            icon="checkmark-circle-outline"
-            color="#F59E0B"
-          />
-        </View>
-
-        {/* Registrations Chart Placeholder */}
-        <ChartWrapper title="Inscriptions" subtitle={`Derniers ${timeRange === '7d' ? '7 jours' : timeRange === '30d' ? '30 jours' : timeRange === '90d' ? '90 jours' : '12 mois'}`}>
-          <View style={[styles.chartPlaceholder, { backgroundColor: colors.gray50 }]}>
-            {registrationData?.timeline ? (
-              <View style={styles.barChart}>
-                {(registrationData.timeline as any[]).slice(-7).map((item: any, idx: number) => {
-                  const maxVal = Math.max(...(registrationData.timeline as any[]).slice(-7).map((i: any) => i.count || 0), 1);
-                  const height = ((item.count || 0) / maxVal) * 100;
-                  return (
-                    <View key={idx} style={styles.barColumn}>
-                      <View style={[styles.bar, { height, backgroundColor: '#4F46E5' }]} />
-                      <Text style={[styles.barLabel, { color: colors.gray400 }]}>
-                        {item.label || idx + 1}
-                      </Text>
-                    </View>
-                  );
-                })}
+            <TouchableOpacity
+              style={[styles.quickLink, { borderBottomWidth: 0 }]}
+              onPress={() => navigation.navigate('MyEvents')}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.quickLinkIcon, { backgroundColor: '#A855F715' }]}>
+                <Ionicons name="calendar-outline" size={16} color="#A855F7" />
               </View>
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Ionicons name="bar-chart-outline" size={40} color={colors.gray300} />
-                <Text style={[styles.noDataText, { color: colors.gray400 }]}>
-                  Pas encore de donnees
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.quickLinkTitle, { color: colors.text }]}>Mes événements</Text>
+                <Text style={[styles.quickLinkSub, { color: colors.gray500 }]}>
+                  Stats par événement
                 </Text>
               </View>
-            )}
+              <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
+            </TouchableOpacity>
           </View>
-        </ChartWrapper>
+        </StaggeredItem>
 
-        {/* Revenue Chart Placeholder */}
-        <ChartWrapper title="Revenus" subtitle="Evolution des revenus">
-          <View style={[styles.chartPlaceholder, { backgroundColor: colors.gray50 }]}>
-            {revenueData?.timeline ? (
-              <View style={styles.barChart}>
-                {(revenueData.timeline as any[]).slice(-7).map((item: any, idx: number) => {
-                  const maxVal = Math.max(...(revenueData.timeline as any[]).slice(-7).map((i: any) => i.amount || 0), 1);
-                  const height = ((item.amount || 0) / maxVal) * 100;
-                  return (
-                    <View key={idx} style={styles.barColumn}>
-                      <View style={[styles.bar, { height, backgroundColor: '#10B981' }]} />
-                      <Text style={[styles.barLabel, { color: colors.gray400 }]}>
-                        {item.label || idx + 1}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            ) : (
-              <View style={styles.noDataContainer}>
-                <Ionicons name="trending-up" size={40} color={colors.gray300} />
-                <Text style={[styles.noDataText, { color: colors.gray400 }]}>
-                  Pas encore de donnees
-                </Text>
-              </View>
-            )}
-          </View>
-        </ChartWrapper>
-
-        {/* Quick Links */}
-        <View style={[styles.quickLinksCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
-          <Text style={[styles.quickLinksTitle, { color: colors.text }]}>Actions rapides</Text>
-          <TouchableOpacity
-            style={[styles.quickLink, { borderBottomColor: hairline }]}
-            onPress={() => navigation.navigate('Reports')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="document-text-outline" size={20} color={colors.primary} />
-            <Text style={[styles.quickLinkText, { color: colors.text }]}>Voir les rapports</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.quickLink, { borderBottomWidth: 0 }]}
-            onPress={() => navigation.navigate('MyEvents')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-            <Text style={[styles.quickLinkText, { color: colors.text }]}>Mes evenements</Text>
-            <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={{ height: 100 }} />
+        <View style={{ height: 140 }} />
       </ScrollView>
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  // === HEADER ===
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.sm,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing.md,
     borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    gap: Spacing.md,
+  },
+  headerTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   iconDisc: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerEyebrow: {
+  eyebrow: {
     fontFamily: FontFamily.bold,
     fontSize: 10,
     letterSpacing: 1.5,
@@ -285,64 +506,380 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   headerTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.xl,
-    letterSpacing: -0.4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 30,
+    letterSpacing: -1.2,
+    lineHeight: 34,
   },
-  scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
-  timeRangeContainer: {
+  headerCtaPill: {
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: BorderRadius.full,
-    padding: 4,
-    marginBottom: Spacing.lg,
+    overflow: 'hidden',
   },
-  timeRangeButton: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
+  headerCtaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+  },
+
+  // === CHIPS ===
+  chipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  chip: {
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     borderRadius: BorderRadius.full,
+    flex: 1,
     alignItems: 'center',
   },
-  timeRangeText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
-  kpiRow: { flexDirection: 'row', gap: Spacing.sm, marginBottom: Spacing.sm },
-  chartPlaceholder: {
+  chipText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+
+  // === HERO CARD ===
+  heroCard: {
+    borderRadius: 28,
+    padding: Spacing.lg,
+    minHeight: 200,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+  },
+  heroCircle1: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+  },
+  heroCircle2: {
+    position: 'absolute',
+    bottom: -40,
+    left: -40,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(190,255,90,0.12)',
+  },
+  heroWatermark: {
+    position: 'absolute',
+    bottom: 14,
+    right: 18,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 60,
+    letterSpacing: -3,
+    color: 'rgba(255,255,255,0.06)',
+    lineHeight: 60,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  heroEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+  },
+  heroPeriodPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  heroPeriodText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: '#FFFFFF',
+    letterSpacing: 1.2,
+  },
+  heroAmountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: Spacing.md,
+  },
+  heroAmount: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 42,
+    color: '#FFFFFF',
+    letterSpacing: -2,
+    lineHeight: 44,
+  },
+  heroCurrency: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    letterSpacing: 0.3,
+  },
+  heroDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    marginBottom: Spacing.md,
+  },
+  heroBottomRow: {
+    flexDirection: 'row',
+    gap: Spacing.md,
+  },
+  heroBottomCell: {
+    flex: 1,
+  },
+  heroBottomDivider: {
+    width: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  heroBottomEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: 'rgba(255,255,255,0.6)',
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  heroBottomValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  heroBottomValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    color: '#FFFFFF',
+    letterSpacing: -0.7,
+    lineHeight: 24,
+  },
+
+  // === KPI GRID ===
+  kpiGrid: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.sm,
+  },
+  kpiCard: {
+    flex: 1,
+    padding: Spacing.md,
+    borderRadius: 18,
+    borderWidth: 1,
+  },
+  kpiTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.sm,
+  },
+  kpiIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kpiTrend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  kpiTrendText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: -0.1,
+  },
+  kpiEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    marginBottom: 4,
+  },
+  kpiValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+    marginBottom: 2,
+  },
+  kpiSuffix: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.5,
+  },
+  kpiLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: -0.1,
+  },
+
+  // === CHART CARD ===
+  chartCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    padding: Spacing.md,
+    marginTop: Spacing.md,
+  },
+  chartHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: Spacing.md,
+    gap: Spacing.sm,
+  },
+  chartEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  chartTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 17,
+    letterSpacing: -0.5,
+    lineHeight: 21,
+  },
+  chartSubtitle: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  chartLegend: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  legendDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  legendText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    color: '#312E81',
+  },
+  chartArea: {
     width: '100%',
     height: 160,
-    borderRadius: BorderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
+    borderTopWidth: 1,
+    paddingTop: Spacing.sm,
   },
   barChart: {
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-around',
     width: '100%',
-    height: 140,
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.lg,
+    height: '100%',
   },
-  barColumn: { alignItems: 'center', flex: 1 },
-  bar: { width: 20, borderRadius: 4, minHeight: 4 },
-  barLabel: { fontSize: 10, marginTop: 4 },
-  noDataContainer: { alignItems: 'center', gap: Spacing.sm },
-  noDataText: { fontFamily: FontFamily.regular, fontSize: FontSizes.sm },
-  quickLinksCard: {
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    padding: Spacing.md,
-    marginTop: Spacing.md,
+  barColumn: {
+    alignItems: 'center',
+    flex: 1,
+    height: '100%',
+    justifyContent: 'flex-end',
   },
-  quickLinksTitle: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: FontSizes.md,
+  barWrap: {
+    width: 18,
+    height: '85%',
+    justifyContent: 'flex-end',
+  },
+  bar: {
+    width: '100%',
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+    minHeight: 4,
+  },
+  barLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    marginTop: 6,
+  },
+  noDataContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    gap: 4,
+  },
+  noDataEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 2,
+    marginTop: 6,
+  },
+  noDataText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+
+  // === QUICK LINKS ===
+  quickLinksHeader: {
+    marginTop: Spacing.xl,
     marginBottom: Spacing.md,
+  },
+  sectionEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  sectionTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+  },
+  quickLinksCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   quickLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    padding: Spacing.md,
     borderBottomWidth: 1,
     gap: Spacing.md,
   },
-  quickLinkText: { flex: 1, fontFamily: FontFamily.medium, fontSize: FontSizes.sm },
+  quickLinkIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickLinkTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+  },
+  quickLinkSub: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    marginTop: 2,
+    letterSpacing: -0.1,
+  },
 });

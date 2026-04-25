@@ -17,12 +17,14 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useVerificationGuard } from '../../hooks/useVerificationGuard';
 import { RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Colors,
   FontSizes,
   FontFamily,
   BorderRadius,
   Spacing,
+  Shadows,
   TOUCH_OPACITY,
 } from '../../constants/theme';
 
@@ -300,90 +302,200 @@ function FollowEventButtonImpl({
         )}
       </View>
 
-      {/* Preferences Modal */}
+      {/* === EDITORIAL PREFERENCES MODAL === */}
       <Modal
         visible={showPreferences}
         animationType="slide"
         presentationStyle="pageSheet"
         onRequestClose={() => setShowPreferences(false)}
       >
-        <View style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
-          <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity onPress={() => setShowPreferences(false)}>
-              <Text style={[styles.modalCancel, { color: colors.gray600 }]}>Annuler</Text>
-            </TouchableOpacity>
-            <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Préférences</Text>
-            <TouchableOpacity onPress={handleUpdatePreferences} disabled={isLoading}>
-              <Text style={[styles.modalSave, { color: colors.primary }, isLoading && styles.modalSaveDisabled]}>
-                Enregistrer
-              </Text>
-            </TouchableOpacity>
+        <View style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+          {/* Header tile */}
+          <View style={[styles.modalHeaderE, { backgroundColor: colors.background, borderBottomColor: 'rgba(0,0,0,0.06)' }]}>
+            <View style={styles.modalHeaderTopRow}>
+              <TouchableOpacity
+                onPress={() => setShowPreferences(false)}
+                style={[styles.modalIconDisc, { backgroundColor: colors.gray100 }]}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={18} color={colors.gray600} />
+              </TouchableOpacity>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.modalEyebrowE, { color: colors.accent }]}>NOTIFICATIONS • EVENT</Text>
+                <Text style={[styles.modalTitleE, { color: colors.text }]}>Préférences</Text>
+              </View>
+            </View>
           </View>
 
-          <View style={styles.modalContent}>
-            <Text style={[styles.sectionTitle, { color: colors.gray500 }]}>Niveau de notifications</Text>
-            <TouchableOpacity style={[styles.levelSelector, { backgroundColor: colors.gray50 }]} onPress={selectNotificationLevel}>
-              <Text style={[styles.levelText, { color: colors.gray900 }]}>{getNotificationLabel()}</Text>
-              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
+          <View style={styles.modalContentE}>
+            {/* === LEVEL SEGMENTED === */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>ÉTAPE 01 • NIVEAU</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Niveau de notifications</Text>
+              <View style={styles.levelSegmented}>
+                {[
+                  { key: 'all' as const, label: 'Toutes', icon: 'notifications' as const, eyebrow: 'MAX' },
+                  { key: 'important' as const, label: 'Importantes', icon: 'star' as const, eyebrow: 'MOYEN' },
+                  { key: 'none' as const, label: 'Aucune', icon: 'notifications-off' as const, eyebrow: 'OFF' },
+                ].map((level) => {
+                  const active = preferences.notification_preference === level.key;
+                  return (
+                    <TouchableOpacity
+                      key={level.key}
+                      style={[
+                        styles.levelSegment,
+                        {
+                          backgroundColor: colors.card,
+                          borderColor: active ? colors.primary : 'rgba(0,0,0,0.06)',
+                        },
+                        active && Shadows.buttonPrimary,
+                      ]}
+                      onPress={() => setPreferences(p => ({ ...p, notification_preference: level.key }))}
+                      activeOpacity={0.85}
+                    >
+                      <View
+                        style={[
+                          styles.levelIconBox,
+                          { backgroundColor: active ? colors.primary : `${colors.primary}15` },
+                        ]}
+                      >
+                        <Ionicons
+                          name={level.icon}
+                          size={16}
+                          color={active ? '#FFFFFF' : colors.primary}
+                        />
+                      </View>
+                      <Text style={[styles.levelEyebrow, { color: colors.accent }]}>{level.eyebrow}</Text>
+                      <Text style={[styles.levelLabelE, { color: colors.text }]}>{level.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* === CHANNELS === */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>ÉTAPE 02 • CANAUX</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Comment te joindre</Text>
+              <View style={[styles.switchCard, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
+                <View style={styles.switchRowE}>
+                  <View style={[styles.switchIcon, { backgroundColor: '#3B82F615' }]}>
+                    <Ionicons name="mail" size={14} color="#3B82F6" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>Email</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Récap par email</Text>
+                  </View>
+                  <Switch
+                    value={preferences.notify_email}
+                    onValueChange={(value) => setPreferences(p => ({ ...p, notify_email: value }))}
+                    trackColor={{ false: Colors.gray200, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                <View style={[styles.switchDivider, { backgroundColor: 'rgba(0,0,0,0.06)' }]} />
+                <View style={styles.switchRowE}>
+                  <View style={[styles.switchIcon, { backgroundColor: `${colors.primary}15` }]}>
+                    <Ionicons name="notifications" size={14} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>Push</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Notifications app</Text>
+                  </View>
+                  <Switch
+                    value={preferences.notify_push}
+                    onValueChange={(value) => setPreferences(p => ({ ...p, notify_push: value }))}
+                    trackColor={{ false: Colors.gray200, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* === EVENTS === */}
+            <View style={styles.section}>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>ÉTAPE 03 • TYPES</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Me notifier pour</Text>
+              <View style={[styles.switchCard, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
+                <View style={styles.switchRowE}>
+                  <View style={[styles.switchIcon, { backgroundColor: '#A855F715' }]}>
+                    <Ionicons name="megaphone" size={14} color="#A855F7" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>Mises à jour</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Changements de l'event</Text>
+                  </View>
+                  <Switch
+                    value={preferences.notify_updates}
+                    onValueChange={(value) => setPreferences(p => ({ ...p, notify_updates: value }))}
+                    trackColor={{ false: Colors.gray200, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                <View style={[styles.switchDivider, { backgroundColor: 'rgba(0,0,0,0.06)' }]} />
+                <View style={styles.switchRowE}>
+                  <View style={[styles.switchIcon, { backgroundColor: '#F59E0B15' }]}>
+                    <Ionicons name="alarm" size={14} color="#F59E0B" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>Rappels</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>7j et 1j avant</Text>
+                  </View>
+                  <Switch
+                    value={preferences.notify_reminders}
+                    onValueChange={(value) => setPreferences(p => ({ ...p, notify_reminders: value }))}
+                    trackColor={{ false: Colors.gray200, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                <View style={[styles.switchDivider, { backgroundColor: 'rgba(0,0,0,0.06)' }]} />
+                <View style={styles.switchRowE}>
+                  <View style={[styles.switchIcon, { backgroundColor: '#EF444415' }]}>
+                    <Ionicons name="close-circle" size={14} color="#EF4444" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>Annulations</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Si l'event est annulé</Text>
+                  </View>
+                  <Switch
+                    value={preferences.notify_cancellation}
+                    onValueChange={(value) => setPreferences(p => ({ ...p, notify_cancellation: value }))}
+                    trackColor={{ false: Colors.gray200, true: colors.primary }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+
+          {/* === FOOTER CTA === */}
+          <View style={[styles.modalFooter, { backgroundColor: colors.background, borderTopColor: 'rgba(0,0,0,0.06)' }]}>
+            <TouchableOpacity
+              style={[styles.modalSavePill, isLoading && { opacity: 0.5 }, Shadows.buttonPrimary]}
+              onPress={handleUpdatePreferences}
+              disabled={isLoading}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={[colors.primary, colors.primaryDark]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              {isLoading ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.modalSaveEyebrow}>SAUVEGARDE</Text>
+                    <Text style={styles.modalSaveLabel}>Enregistrer mes préférences</Text>
+                  </View>
+                  <View style={styles.modalSaveArrow}>
+                    <Ionicons name="checkmark" size={18} color={Colors.white} />
+                  </View>
+                </>
+              )}
             </TouchableOpacity>
-
-            <Text style={[styles.sectionTitle, { color: colors.gray500 }]}>Canaux de notification</Text>
-            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
-              <View style={styles.switchLabel}>
-                <Ionicons name="mail-outline" size={20} color={colors.gray600} />
-                <Text style={[styles.switchText, { color: colors.gray700 }]}>Notifications par email</Text>
-              </View>
-              <Switch
-                value={preferences.notify_email}
-                onValueChange={(value) => setPreferences(p => ({ ...p, notify_email: value }))}
-                trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-                thumbColor={preferences.notify_email ? Colors.primary : Colors.gray400}
-              />
-            </View>
-
-            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
-              <View style={styles.switchLabel}>
-                <Ionicons name="notifications-outline" size={20} color={colors.gray600} />
-                <Text style={[styles.switchText, { color: colors.gray700 }]}>Notifications push</Text>
-              </View>
-              <Switch
-                value={preferences.notify_push}
-                onValueChange={(value) => setPreferences(p => ({ ...p, notify_push: value }))}
-                trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-                thumbColor={preferences.notify_push ? Colors.primary : Colors.gray400}
-              />
-            </View>
-
-            <Text style={[styles.sectionTitle, { color: colors.gray500 }]}>Me notifier pour</Text>
-            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
-              <Text style={[styles.switchText, { color: colors.gray700 }]}>Mises à jour de l'événement</Text>
-              <Switch
-                value={preferences.notify_updates}
-                onValueChange={(value) => setPreferences(p => ({ ...p, notify_updates: value }))}
-                trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-                thumbColor={preferences.notify_updates ? Colors.primary : Colors.gray400}
-              />
-            </View>
-
-            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
-              <Text style={[styles.switchText, { color: colors.gray700 }]}>Rappels (7j et 1j avant)</Text>
-              <Switch
-                value={preferences.notify_reminders}
-                onValueChange={(value) => setPreferences(p => ({ ...p, notify_reminders: value }))}
-                trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-                thumbColor={preferences.notify_reminders ? Colors.primary : Colors.gray400}
-              />
-            </View>
-
-            <View style={[styles.switchRow, { borderBottomColor: colors.gray100 }]}>
-              <Text style={[styles.switchText, { color: colors.gray700 }]}>Annulations</Text>
-              <Switch
-                value={preferences.notify_cancellation}
-                onValueChange={(value) => setPreferences(p => ({ ...p, notify_cancellation: value }))}
-                trackColor={{ false: Colors.gray200, true: Colors.primaryLight }}
-                thumbColor={preferences.notify_cancellation ? Colors.primary : Colors.gray400}
-              />
-            </View>
           </View>
         </View>
       </Modal>
@@ -553,5 +665,170 @@ const styles = StyleSheet.create({
   switchText: {
     fontSize: FontSizes.base,
     color: Colors.gray700,
+  },
+
+  // === EDITORIAL MODAL ===
+  modalHeaderE: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  modalHeaderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  modalIconDisc: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  modalTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -1.1,
+    lineHeight: 32,
+  },
+  modalContentE: {
+    flex: 1,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+  },
+  section: {
+    marginBottom: Spacing.lg,
+  },
+  sectionEyebrowE: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.8,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  sectionTitleE: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 19,
+    letterSpacing: -0.5,
+    lineHeight: 23,
+    marginBottom: Spacing.sm,
+  },
+
+  // === LEVEL SEGMENTED ===
+  levelSegmented: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  levelSegment: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    alignItems: 'flex-start',
+    gap: 4,
+  },
+  levelIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  levelEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+  },
+  levelLabelE: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 13,
+    letterSpacing: -0.3,
+    lineHeight: 16,
+  },
+
+  // === SWITCH CARD ===
+  switchCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: Spacing.md,
+  },
+  switchRowE: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: 12,
+  },
+  switchIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  switchTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+  },
+  switchSub: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    marginTop: 2,
+    letterSpacing: -0.1,
+  },
+  switchDivider: {
+    height: 1,
+  },
+
+  // === FOOTER ===
+  modalFooter: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+    borderTopWidth: 1,
+  },
+  modalSavePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: Spacing.lg,
+    paddingRight: 6,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    overflow: 'hidden',
+    minHeight: 56,
+  },
+  modalSaveEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.6,
+    color: 'rgba(255,255,255,0.7)',
+    textTransform: 'uppercase',
+  },
+  modalSaveLabel: {
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 14,
+    color: '#FFFFFF',
+    letterSpacing: -0.2,
+    marginTop: 2,
+  },
+  modalSaveArrow: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    marginLeft: Spacing.sm,
   },
 });
