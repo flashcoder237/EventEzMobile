@@ -938,12 +938,71 @@ export default function MyTicketsScreen() {
   };
 
   // ==========================================================
-  // List renderer + Empty
+  // Sectioned list (group by month when > 10 tickets)
   // ==========================================================
-  const renderItem = ({ item, index }: { item: Registration; index: number }) =>
-    renderTicketStub(item, index, activeTab === 'past' || activeTab === 'cancelled' ? 'archived' : 'active');
+  const SECTION_THRESHOLD = 10;
+  const MONTHS_FR_LONG = [
+    'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
+    'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE',
+  ];
+  type ListItem =
+    | { kind: 'header'; key: string; label: string }
+    | { kind: 'ticket'; key: string; registration: Registration; ticketIndex: number };
 
-  const keyExtractor = useCallback((item: Registration) => item.id, []);
+  const sectionedItems = useMemo<ListItem[]>(() => {
+    if (filteredRegistrations.length <= SECTION_THRESHOLD) {
+      return filteredRegistrations.map((r, i) => ({
+        kind: 'ticket' as const,
+        key: r.id,
+        registration: r,
+        ticketIndex: i,
+      }));
+    }
+    const out: ListItem[] = [];
+    let lastKey: string | null = null;
+    let ticketIdx = 0;
+    filteredRegistrations.forEach((r) => {
+      const ev = getEventData(r);
+      const dateStr = ev?.start_date;
+      let key = 'SANS DATE';
+      let label = 'Sans date';
+      if (dateStr) {
+        try {
+          const d = new Date(dateStr);
+          key = `${d.getFullYear()}-${d.getMonth()}`;
+          label = `${MONTHS_FR_LONG[d.getMonth()]} ${d.getFullYear()}`;
+        } catch {
+          // ignore parse failure
+        }
+      }
+      if (key !== lastKey) {
+        out.push({ kind: 'header', key: `h-${key}`, label });
+        lastKey = key;
+      }
+      out.push({ kind: 'ticket', key: r.id, registration: r, ticketIndex: ticketIdx });
+      ticketIdx += 1;
+    });
+    return out;
+  }, [filteredRegistrations, getEventData]);
+
+  const renderItem = ({ item }: { item: ListItem }) => {
+    if (item.kind === 'header') {
+      return (
+        <View style={styles.monthSectionHeader}>
+          <View style={[styles.monthSectionLine, { backgroundColor: colors.gray200 }]} />
+          <Text style={[styles.monthSectionLabel, { color: colors.gray500 }]}>{item.label}</Text>
+          <View style={[styles.monthSectionLine, { backgroundColor: colors.gray200 }]} />
+        </View>
+      );
+    }
+    return renderTicketStub(
+      item.registration,
+      item.ticketIndex,
+      activeTab === 'past' || activeTab === 'cancelled' ? 'archived' : 'active',
+    );
+  };
+
+  const keyExtractor = useCallback((item: ListItem) => item.key, []);
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
@@ -1306,7 +1365,7 @@ export default function MyTicketsScreen() {
 
         {/* Tickets list */}
         <FlatList
-          data={filteredRegistrations}
+          data={sectionedItems}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
           contentContainerStyle={styles.listContent}
@@ -1401,6 +1460,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  // Month section header (only shown for > 10 tickets)
+  monthSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
+  },
+  monthSectionLine: {
+    flex: 1,
+    height: 1,
+  },
+  monthSectionLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
   },
   filterCountBadgeText: {
     fontFamily: FontFamily.bold,

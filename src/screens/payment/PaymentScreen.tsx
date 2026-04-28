@@ -141,6 +141,41 @@ const generateIdempotencyKey = (registrationId: string): string => {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
 
+// Visual progress bar while we poll for the payment status (up to ~3 min)
+function PollingProgressBar({
+  primaryColor,
+  trackColor,
+}: {
+  primaryColor: string;
+  trackColor: string;
+}) {
+  const POLL_DURATION_SECONDS = 180; // 36 attempts × 5s
+  const [elapsed, setElapsed] = React.useState(0);
+  React.useEffect(() => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      setElapsed(Math.min(POLL_DURATION_SECONDS, Math.floor((Date.now() - start) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+  const progress = Math.min(1, elapsed / POLL_DURATION_SECONDS);
+  return (
+    <>
+      <View style={[styles.pollingProgressTrack, { backgroundColor: trackColor }]}>
+        <View
+          style={[
+            styles.pollingProgressFill,
+            { width: `${progress * 100}%`, backgroundColor: primaryColor },
+          ]}
+        />
+      </View>
+      <Text style={[styles.pollingProgressLabel, { color: '#888' }]}>
+        Vérification du paiement · {elapsed}s
+      </Text>
+    </>
+  );
+}
+
 // Les valeurs doivent correspondre aux choix backend (multi-pays)
 type PaymentMethodId = 'mtn_money' | 'orange_money' | 'credit_card' | 'paypal' | 'wave' | 'mpesa' | 'airtel_money';
 
@@ -863,13 +898,22 @@ export default function PaymentScreen() {
           )}
         </View>
 
-        {/* Step indicator bars */}
+        {/* Step indicator bars + labels */}
         {!processing && (
-          <View style={styles.stepBarsContainer}>
-            <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
-            <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
-            <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
-          </View>
+          <>
+            <View style={styles.stepBarsContainer}>
+              <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+              <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+              <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
+            </View>
+            <View style={styles.stepLabelsRow}>
+              <Text style={[styles.stepLabel, { color: colors.gray400 }]}>Sélection</Text>
+              <Text style={[styles.stepLabel, { color: colors.gray400 }]}>Récap</Text>
+              <Text style={[styles.stepLabel, { color: colors.primary, fontFamily: FontFamily.bold }]}>
+                Paiement
+              </Text>
+            </View>
+          </>
         )}
 
         {!processing && (
@@ -918,6 +962,9 @@ export default function PaymentScreen() {
           <Text style={[styles.processingAmount, { color: colors.gray600 }]}>
             {finalTotal.toLocaleString()} {eventCurrencyLabel}
           </Text>
+
+          {/* Polling progress — visual feedback during the up-to-3-min wait */}
+          {isPolling && <PollingProgressBar primaryColor={colors.primary} trackColor={colors.gray100} />}
 
           {/* Instructions détaillées pour Mobile Money */}
           {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
@@ -1452,6 +1499,38 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 4,
     borderRadius: 2,
+  },
+  stepLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    marginTop: 6,
+  },
+  stepLabel: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 9,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+  },
+  // Polling progress bar shown above instructions during processing
+  pollingProgressTrack: {
+    height: 3,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginTop: Spacing.sm,
+    marginHorizontal: Spacing.lg,
+  },
+  pollingProgressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  pollingProgressLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 6,
   },
 
   // Content

@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
+  Linking,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -63,6 +64,25 @@ export default function PaymentSuccessScreen() {
   const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+
+  // Construit l'URL Google Calendar à partir des params reçus (start +2h par défaut)
+  const handleAddToCalendar = useCallback(() => {
+    if (!eventStartDate || !eventTitle) return;
+    try {
+      const start = new Date(eventStartDate);
+      const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+      const fmt = (d: Date) =>
+        d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+      const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(
+        eventTitle,
+      )}&dates=${fmt(start)}/${fmt(end)}`;
+      Linking.openURL(url).catch(() => {
+        /* user can retry from MyTickets if browser fails to open */
+      });
+    } catch {
+      /* ignore parse errors */
+    }
+  }, [eventStartDate, eventTitle]);
 
   // Compte à rebours en jours jusqu'à l'événement (si date fournie)
   const daysUntil = useMemo(() => {
@@ -301,6 +321,21 @@ export default function PaymentSuccessScreen() {
             </View>
           </TouchableOpacity>
 
+          {eventStartDate && eventTitle && (
+            <TouchableOpacity
+              style={[styles.calendarPill, { borderColor: colors.primary }]}
+              onPress={handleAddToCalendar}
+              activeOpacity={0.85}
+              accessibilityLabel="Ajouter à mon calendrier"
+              accessibilityRole="button"
+            >
+              <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+              <Text style={[styles.calendarPillText, { color: colors.primary }]}>
+                Ajouter à mon calendrier
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.secondaryPill, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
@@ -483,6 +518,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
     marginLeft: Spacing.sm,
+  },
+  calendarPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+  },
+  calendarPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
   secondaryPill: {
     flexDirection: 'row',

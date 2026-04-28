@@ -115,6 +115,10 @@ export default function DiscoverScreen() {
   const [recommendations, setRecommendations] = useState<Event[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // 'idle' = pas demandé, 'requesting' = en cours, 'granted'/'denied' = état final
+  const [locationPermStatus, setLocationPermStatus] = useState<
+    'idle' | 'requesting' | 'granted' | 'denied'
+  >('idle');
   // Track fetch failures so we can surface a banner instead of failing silently
   const [fetchErrorCount, setFetchErrorCount] = useState(0);
 
@@ -263,14 +267,42 @@ export default function DiscoverScreen() {
   }, [location]);
 
   const requestLocation = useCallback(async () => {
+    setLocationPermStatus('requesting');
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      // Vérifier d'abord si la perm est déjà accordée (pas de prompt si oui)
+      const existing = await Location.getForegroundPermissionsAsync();
+      let status = existing.status;
+      if (status !== 'granted') {
+        const requested = await Location.requestForegroundPermissionsAsync();
+        status = requested.status;
+      }
       if (status === 'granted') {
         const loc = await Location.getCurrentPositionAsync({});
         setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+        setLocationPermStatus('granted');
+      } else {
+        setLocationPermStatus('denied');
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur localisation:', error);
+      setLocationPermStatus('denied');
+    }
+  }, []);
+
+  // Hydrate l'état de perm au mount (sans déclencher le prompt système)
+  const checkLocationPermSilent = useCallback(async () => {
+    try {
+      const { status } = await Location.getForegroundPermissionsAsync();
+      if (status === 'granted') {
+        setLocationPermStatus('granted');
+        const loc = await Location.getCurrentPositionAsync({});
+        setLocation({ lat: loc.coords.latitude, lng: loc.coords.longitude });
+      } else if (status === 'denied') {
+        setLocationPermStatus('denied');
+      }
+      // sinon 'undetermined' → on garde 'idle' pour afficher la card
+    } catch {
+      // ignore
     }
   }, []);
 
@@ -279,7 +311,8 @@ export default function DiscoverScreen() {
     fetchDiscoveryData();
     const task = InteractionManager.runAfterInteractions(() => {
       fetchRecommendations();
-      requestLocation();
+      // Vérifier la perm sans la demander — la card explicative gère le prompt
+      checkLocationPermSilent();
     });
     return () => task.cancel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1078,6 +1111,77 @@ export default function DiscoverScreen() {
                 <SectionEntrance delay={200}>
                   <View style={styles.heroWrap}>{renderHero(featuredEvents[0])}</View>
                 </SectionEntrance>
+              )}
+
+              {/* === LOCATION PERMISSION CARD — pre-perm rationale === */}
+              {locationPermStatus === 'idle' && nearbyEvents.length === 0 && (
+                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.lg }}>
+                  <TouchableOpacity
+                    activeOpacity={0.88}
+                    onPress={requestLocation}
+                    style={[
+                      {
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: Spacing.sm,
+                        padding: Spacing.md,
+                        borderRadius: 18,
+                        backgroundColor: colors.card,
+                        borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
+                        borderWidth: 1,
+                      },
+                      Shadows.sm,
+                    ]}
+                  >
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: `${colors.primary}15`,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Ionicons name="location" size={20} color={colors.primary} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
+                        PRÈS DE TOI
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.displayBold,
+                          fontSize: 14,
+                          color: colors.text,
+                          letterSpacing: -0.3,
+                          marginTop: 2,
+                        }}
+                      >
+                        Active ta position pour voir ce qui bouge dans ton coin
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        backgroundColor: colors.primary,
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: BorderRadius.full,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.bold,
+                          fontSize: 12,
+                          color: '#fff',
+                          letterSpacing: 0.3,
+                        }}
+                      >
+                        Activer
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               )}
 
               {/* === NEARBY === */}
