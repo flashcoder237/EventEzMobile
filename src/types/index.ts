@@ -1498,6 +1498,9 @@ export type RootStackParamList = {
     registrationStatus?: string;
     approvalStatus?: string;
     eventTitle?: string;
+    eventStartDate?: string;
+    amount?: number;
+    currency?: string;
   };
   PaymentFailed: { paymentId?: string; error?: string };
   QRCode: { ticketId: string };

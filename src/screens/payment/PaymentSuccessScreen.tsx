@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   useSharedValue,
@@ -59,8 +60,24 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, registrationId } = route.params;
+  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate } = route.params;
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // Compte à rebours en jours jusqu'à l'événement (si date fournie)
+  const daysUntil = useMemo(() => {
+    if (!eventStartDate) return null;
+    try {
+      const target = new Date(eventStartDate);
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const ms = target.getTime() - now.getTime();
+      const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+      return days >= 0 ? days : null;
+    } catch {
+      return null;
+    }
+  }, [eventStartDate]);
 
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
@@ -201,6 +218,42 @@ export default function PaymentSuccessScreen() {
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>{content.subtitle}</Text>
           </Animated.View>
 
+          {/* === MINI RECAP — concrete proof of what was just paid === */}
+          {(amount !== undefined || eventTitle || daysUntil !== null) && (
+            <Animated.View
+              style={[
+                styles.recapCard,
+                { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' },
+                contentStyle,
+              ]}
+            >
+              {amount !== undefined && amount > 0 && (
+                <View style={styles.recapRow}>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Montant</Text>
+                  <Text style={[styles.recapValue, { color: colors.text }]}>
+                    {amount.toLocaleString()} {currency || ''}
+                  </Text>
+                </View>
+              )}
+              {eventTitle && (
+                <View style={styles.recapRow}>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Événement</Text>
+                  <Text style={[styles.recapValue, { color: colors.text }]} numberOfLines={1}>
+                    {eventTitle}
+                  </Text>
+                </View>
+              )}
+              {daysUntil !== null && (
+                <View style={styles.recapRow}>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Compte à rebours</Text>
+                  <Text style={[styles.recapValue, { color: content.iconColor }]}>
+                    {daysUntil === 0 ? "C'est aujourd'hui !" : `J−${daysUntil}`}
+                  </Text>
+                </View>
+              )}
+            </Animated.View>
+          )}
+
           {/* === INFO CARDS === */}
           <Animated.View style={[styles.infoCardsCol, contentStyle]}>
             {content.infoItems.map((item, index) => (
@@ -226,7 +279,7 @@ export default function PaymentSuccessScreen() {
         </ScrollView>
 
         {/* === BOTTOM BUTTONS === */}
-        <View style={[styles.bottomButtons, { backgroundColor: colors.background }]}>
+        <View style={[styles.bottomButtons, { backgroundColor: colors.background, paddingBottom: insets.bottom + Spacing.md }]}>
           <TouchableOpacity
             style={[styles.primaryPill, Shadows.buttonPrimary]}
             onPress={handleViewTicket}
@@ -363,6 +416,34 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
+  // Mini recap card
+  recapCard: {
+    width: '100%',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: 18,
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+    gap: Spacing.xs,
+  },
+  recapRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  recapLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    letterSpacing: 0.1,
+  },
+  recapValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: -0.1,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
   // Bottom buttons
   bottomButtons: {
     paddingHorizontal: Spacing.xl,

@@ -761,6 +761,19 @@ export default function MyTicketsScreen() {
                     <Text style={[styles.pendingText, { color: colors.gray600 }]}>
                       Attente paiement
                     </Text>
+                    <TouchableOpacity
+                      style={[styles.payInlineBtn, { backgroundColor: colors.warning }]}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        navigation.navigate('Payment', { registrationId: item.id });
+                      }}
+                      activeOpacity={0.85}
+                      accessibilityRole="button"
+                      accessibilityLabel="Finaliser le paiement"
+                    >
+                      <Ionicons name="card-outline" size={11} color="#fff" />
+                      <Text style={styles.payInlineBtnText}>Payer</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
                 {event?.location_city && !isPendingStack && (
@@ -1020,11 +1033,17 @@ export default function MyTicketsScreen() {
                 onPress={() => dispatch({ type: 'SET_SHOW_FILTERS', payload: !showFilters })}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Filtres"
+                accessibilityLabel={
+                  activeFilterCount > 0
+                    ? `Filtres (${activeFilterCount} actifs)`
+                    : 'Filtres'
+                }
               >
                 <Ionicons name="options" size={18} color={colors.gray600} />
                 {activeFilterCount > 0 && (
-                  <View style={[styles.headerBtnDot, { backgroundColor: colors.accent }]} />
+                  <View style={[styles.filterCountBadge, { backgroundColor: colors.accent }]}>
+                    <Text style={styles.filterCountBadgeText}>{activeFilterCount}</Text>
+                  </View>
                 )}
               </TouchableOpacity>
               <ExportButton endpoint="/registrations/export/" filename="mes-billets" compact />
@@ -1372,6 +1391,23 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 4,
   },
+  filterCountBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCountBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    color: '#fff',
+    letterSpacing: 0,
+  },
 
   // Tab chips row
   tabChipsRow: {
@@ -1641,6 +1677,21 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontSize: 11,
     letterSpacing: -0.1,
+    flex: 1,
+  },
+  payInlineBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: BorderRadius.full,
+  },
+  payInlineBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: '#fff',
+    letterSpacing: 0.3,
   },
 
   // Perforation

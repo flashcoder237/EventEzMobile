@@ -217,9 +217,21 @@ export default function TicketPurchaseScreen() {
     return Object.keys(errors).length === 0;
   };
 
+  const MAX_TICKETS_PER_TYPE = 10;
   const updateQuantity = (ticketTypeId: string, delta: number) => {
     const current = selections.get(ticketTypeId) || 0;
-    const newQuantity = Math.max(0, Math.min(10, current + delta));
+    const intended = current + delta;
+    // Surface a clear message if the user tries to exceed the per-order cap
+    if (intended > MAX_TICKETS_PER_TYPE) {
+      showAlert(
+        'Limite atteinte',
+        `Maximum ${MAX_TICKETS_PER_TYPE} billets par type et par commande. Pour un groupe plus large, contacte l'organisateur directement.`,
+        undefined,
+        'warning',
+      );
+      return;
+    }
+    const newQuantity = Math.max(0, Math.min(MAX_TICKETS_PER_TYPE, intended));
     const newSelections = new Map(selections);
 
     if (newQuantity === 0) {
@@ -722,7 +734,7 @@ export default function TicketPurchaseScreen() {
                       <View style={[styles.bpEyebrowPill, { backgroundColor: isFree ? '#10B98115' : `${colors.primary}15` }]}>
                         <View style={[styles.bpEyebrowDot, { backgroundColor: isFree ? '#10B981' : colors.primary }]} />
                         <Text style={[styles.bpEyebrowText, { color: isFree ? '#10B981' : colors.primary }]}>
-                          {isFree ? 'GRATUIT' : `BILLET 0${idx + 1}`}
+                          {isFree ? 'GRATUIT' : `CAT · 0${idx + 1}`}
                         </Text>
                       </View>
                     </View>

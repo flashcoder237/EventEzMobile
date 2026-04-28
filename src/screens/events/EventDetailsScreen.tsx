@@ -305,9 +305,14 @@ export default function EventDetailsScreen() {
   }
 
   const dateInfo = event ? formatDateShort(event.start_date) : null;
+  // null = pas encore de donnée fiable (chargement en cours ou ticket_types absents)
+  // 0 = vraiment gratuit (event.is_free explicite)
+  // > 0 = prix mini calculé depuis les ticket_types
   const minPrice = event?.ticket_types && event.ticket_types.length > 0
     ? Math.min(...event.ticket_types.map(t => t.price))
-    : 0;
+    : event?.is_free
+    ? 0
+    : null;
 
   const handleFollowChange = (following: boolean) => {
     setIsFollowing(following);
@@ -476,7 +481,7 @@ export default function EventDetailsScreen() {
 
           {/* Eyebrow above title — soft editorial */}
           <Text style={[styles.titleEyebrow, { color: colors.primary }]}>
-            ÉVÉNEMENT · {event.category?.name?.toUpperCase() || 'FEATURED'}
+            {event.category?.name ? `ÉVÉNEMENT · ${event.category.name.toUpperCase()}` : 'ÉVÉNEMENT'}
           </Text>
 
           {/* Date pill — soft editorial */}
@@ -676,17 +681,21 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Stats Row */}
+          {/* Stats Row — vues masquées tant que < 50 (évite l'effet "événement peu populaire") */}
           <View style={[styles.statsRow, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.registration_count || 0}</Text>
               <Text style={[styles.statLabel, { color: colors.gray500 }]}>Inscrits</Text>
             </View>
-            <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.view_count || 0}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Vues</Text>
-            </View>
+            {(event.view_count || 0) >= 50 && (
+              <>
+                <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
+                <View style={styles.statItem}>
+                  <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.view_count}</Text>
+                  <Text style={[styles.statLabel, { color: colors.gray500 }]}>Vues</Text>
+                </View>
+              </>
+            )}
             <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.gray900 }]}>{followersCount}</Text>
@@ -777,21 +786,17 @@ export default function EventDetailsScreen() {
             </View>
           </View>
 
-          {/* Section: Who's Going */}
+          {/* Section: Who's Going — count-only, no fake avatars */}
           {(event.registration_count || 0) > 0 && (
             <View style={[styles.whoIsGoingSection, { borderTopColor: colors.gray100 }]}>
               <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>LA COMMUNAUTÉ</Text>
               <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Qui y va ?</Text>
               <View style={styles.whoIsGoingRow}>
-                <View style={styles.avatarStack}>
-                  {[0, 1, 2].map(i => (
-                    <View key={i} style={[styles.avatarCircle, { marginLeft: i > 0 ? -10 : 0, zIndex: 3 - i, backgroundColor: colors.gray200, borderColor: colors.surface }]}>
-                      <Ionicons name="person" size={14} color={colors.gray400} />
-                    </View>
-                  ))}
+                <View style={[styles.avatarCircle, { backgroundColor: `${colors.primary}15`, borderColor: colors.surface }]}>
+                  <Ionicons name="people" size={16} color={colors.primary} />
                 </View>
                 <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]}>
-                  +{event.registration_count} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
+                  {event.registration_count} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
                 </Text>
               </View>
             </View>
@@ -903,12 +908,16 @@ export default function EventDetailsScreen() {
           ) : (
             <>
               <Text style={[styles.priceLabel, { color: colors.gray500 }]}>
-                {minPrice > 0 ? 'A partir de' : 'Prix'}
+                {minPrice === null ? 'Prix' : minPrice > 0 ? 'A partir de' : 'Prix'}
               </Text>
               <Text style={[styles.priceValue, { color: colors.gray900 }]}>
-                {minPrice > 0 ? `${minPrice.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
+                {minPrice === null
+                  ? '—'
+                  : minPrice > 0
+                  ? `${minPrice.toLocaleString()} ${event?.currency || 'FCFA'}`
+                  : 'Gratuit'}
               </Text>
-              {minPrice > 0 && (
+              {minPrice !== null && minPrice > 0 && (
                 <ConvertedPrice amount={minPrice} eventCurrency={event?.currency || 'XAF'} />
               )}
             </>

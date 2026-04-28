@@ -265,6 +265,9 @@ export default function PaymentScreen() {
         registrationStatus: registration?.status,
         approvalStatus: registration?.approval_status,
         eventTitle: eventObj?.title,
+        eventStartDate: (eventObj as any)?.start_date,
+        amount: finalTotal,
+        currency: eventCurrencyLabel,
       });
     },
     onFailure: (errorMessage, data) => {
