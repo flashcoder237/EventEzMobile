@@ -1,9 +1,12 @@
 # UX Audit — Items différés
 
 Source : [UX_AUDIT_PARCOURS_INVITE.md](./UX_AUDIT_PARCOURS_INVITE.md)
-Mise à jour : 2026-04-28
+Mise à jour : 2026-04-28 (post-phase-6)
 
 Les items ci-dessous ont été **identifiés et différés** car ils nécessitent plus que du polish local : assets externes, refactor architectural, ou décisions produit/backend. Chacun est tracé pour ne pas être perdu.
+
+> ✅ **Phase 6 (commit 04a97d3) a livré** : tutoiement sweep, NetInfo banner 2G/3G, confettis adaptive Android, mute toggle PaymentSuccess, saisie directe quantité (long-press), sticky chips Discover, lazy-load EventDetails sections.
+> Les items ci-dessous sont ceux qui restent vraiment.
 
 ---
 
@@ -25,22 +28,14 @@ Les items ci-dessous ont été **identifiés et différés** car ils nécessiten
 
 ## 🏗 Refactors architecturaux
 
-### Lazy-loading des sections EventDetails
-- **Quoi** : monter `AgendaTab`, `ReviewsTab`, `SponsorsTab`, `LocationTab` (carte) uniquement quand elles entrent dans le viewport.
-- **Pourquoi** : sur réseau lent, cascade de spinners visible au scroll. Sur device bas de gamme, tout charger en parallèle dégrade perf.
-- **Effort** : moyen-haut. Soit `react-native-intersection-observer` (dep), soit logique `onLayout` + `scrollY` partagé.
-- **Risque** : régressions sur le scroll position et les animations entrantes.
+### ~~Lazy-loading des sections EventDetails~~ ✅ Livré (phase 6)
+- Seuil scroll 600px, `runOnJS(setHeavyRevealed)` pour révéler Reviews/Sponsors/Agenda/Location, placeholder pour réserver l'espace. Note : la version actuelle ne défère que le rendu, pas les fetches dans `useEventDetails`. Une vraie déferalisation des fetches serait un suivi (refactor du hook).
 
-### Sticky chips de catégorie sur Discover au scroll
-- **Quoi** : intégrer la rangée de chips dans le `compactHeader` ou un sous-header sticky.
-- **Pourquoi** : sur long feed, l'utilisateur doit remonter pour changer de catégorie.
-- **Effort** : moyen. Refactor du `compactHeader` qui devient deux niveaux.
+### ~~Sticky chips de catégorie sur Discover au scroll~~ ✅ Livré (phase 6)
+- compactHeader passe en deux niveaux (search + chips horizontaux).
 
-### Détection 2G/3G avec NetInfo
-- **Quoi** : `@react-native-community/netinfo` au mount, mini-bandeau "Connexion lente détectée" si `effectiveConnectionType === '2g'`.
-- **Pourquoi** : gérer les attentes de l'utilisateur sur réseau dégradé (paiement long, polling, etc.).
-- **Effort** : 1h dev + ajout dépendance.
-- **Risque** : faible. Compat Expo OK.
+### ~~Détection 2G/3G avec NetInfo~~ ✅ Livré (phase 6)
+- Hook `useNetworkSpeed` + bandeaux sur Discover et Payment.
 
 ### Skeleton léger pour DiscoverScreen
 - **Quoi** : `DiscoverScreenSkeleton` charge sûrement tous les sub-skeletons (hero, nearby, incoming, categories, free). Profiler et ne charger que les 2 premières sections.
@@ -70,10 +65,8 @@ Les items ci-dessous ont été **identifiés et différés** car ils nécessiten
 - **Effort** : moyen. Frontend = 2h. Backend = endpoint `register-light` avec compte non-vérifié.
 - **Risque** : duplications de comptes si l'utilisateur revient avec un mot de passe ensuite.
 
-### Mute toggle / silent mode pour les sons
-- **Quoi** : indicateur visuel sur PaymentSuccess "🔊 Son activé" + lien Paramètres.
-- **État actuel** : `useSoundEffect` respecte une pref globale, mais aucune affordance UI sur l'écran qui joue le son.
-- **Effort** : 30 min.
+### ~~Mute toggle / silent mode pour les sons~~ ✅ Livré (phase 6)
+- Mini-toggle "Son / Muet" en haut à droite de PaymentSuccess.
 
 ### Bouton "Inviter un ami" sur PaymentSuccess
 - **Quoi** : moment haute valeur émotionnelle pour de la viralité. Partage avec deep-link `/events/[id]?ref=user_xxx`.
@@ -84,11 +77,11 @@ Les items ci-dessous ont été **identifiés et différés** car ils nécessiten
 
 ## 📊 Items "nice-to-have"
 
-- Confettis dégradés sur Android < 10 (perf sur vieux devices)
-- Compteur "Tentative N/36" pendant le polling (en plus de la progress bar récemment ajoutée)
-- Limite quantity > 10 : flow "Demander un groupe" qui ouvre un message à l'organisateur
-- Saisie directe de quantité (long-press → bottom-sheet)
-- Voix unique tutoiement : passe finale sur tous les écrans (déjà commencé sur Login)
+- ~~Confettis dégradés sur Android < 10 (perf sur vieux devices)~~ ✅ Livré (phase 6 — cap à 60 particules sur API < 30)
+- Compteur "Tentative N/36" pendant le polling (en plus de la progress bar récemment ajoutée). Nécessite d'exposer les compteurs internes du hook `usePaymentVerification`.
+- Limite quantity > 10 : flow "Demander un groupe" qui ouvre un message à l'organisateur (l'alerte explicite est en place ; reste à câbler le deep-link Messages).
+- ~~Saisie directe de quantité (long-press → modal)~~ ✅ Livré (phase 6)
+- ~~Voix unique tutoiement~~ ✅ Largement livré (phase 6) sur PaymentScreen + PaymentSuccess + TicketPurchase + LoginScreen. Les écrans hors golden-path (MyPayments, RefundRequest, PaymentFailed) restent à passer.
 
 ---
 
