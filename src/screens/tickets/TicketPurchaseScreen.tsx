@@ -823,8 +823,11 @@ export default function TicketPurchaseScreen() {
                   <Text style={[styles.appliedDiscountCode, { color: colors.text }]}>{appliedDiscount.code}</Text>
                   <Text style={styles.appliedDiscountValue}>
                     {appliedDiscount.discount_type === 'percentage'
-                      ? `−${appliedDiscount.value || 0}% (estimation)`
-                      : `−${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency} (estimation)`}
+                      ? `−${appliedDiscount.value || 0}%`
+                      : `−${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency}`}
+                  </Text>
+                  <Text style={[styles.appliedDiscountValue, { fontSize: 9, marginTop: 2, opacity: 0.7 }]}>
+                    Montant final confirmé à la finalisation
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -900,10 +903,10 @@ export default function TicketPurchaseScreen() {
             <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>FACTURE • RECAP</Text>
             <Text style={[styles.sectionTitleE, { color: colors.text }]}>Récapitulatif</Text>
             <View style={[styles.receiptCard, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
-              {/* Receipt header strip */}
+              {/* Receipt header strip — la vraie ref de commande sera générée par le backend à la finalisation */}
               <View style={styles.receiptHeader}>
                 <Text style={styles.receiptHeaderEyebrow}>EVENTEZ · COMMANDE</Text>
-                <Text style={styles.receiptHeaderRef}>#{Date.now().toString().slice(-6)}</Text>
+                <Text style={styles.receiptHeaderRef}>EN COURS</Text>
               </View>
 
               <View style={[styles.receiptDashed, { borderTopColor: 'rgba(0,0,0,0.12)' }]} />

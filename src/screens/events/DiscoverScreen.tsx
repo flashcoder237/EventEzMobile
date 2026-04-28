@@ -390,10 +390,7 @@ export default function DiscoverScreen() {
             <Ionicons name="star" size={11} color={colors.accent} />
             <Text style={[styles.heroEyebrowText, { color: colors.text }]}>EN VEDETTE</Text>
           </View>
-          {/* Bookmark top-right */}
-          <View style={[styles.heroBookmark, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-            <Ionicons name="bookmark-outline" size={18} color={colors.text} />
-          </View>
+          {/* (Decorative bookmark removed — see FollowEventButton on EventDetails for real follow action) */}
           {/* Title overlay */}
           <View style={styles.heroOverlay}>
             <Text style={styles.heroTitle} numberOfLines={2}>
@@ -511,9 +508,7 @@ export default function DiscoverScreen() {
               <Text style={[styles.nearbyDateDay, { color: colors.accent }]}>{day}</Text>
               <Text style={[styles.nearbyDateMonth, { color: colors.accent }]}>{month}</Text>
             </View>
-            <View style={[styles.nearbyBookmark, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-              <Ionicons name="bookmark-outline" size={14} color={colors.text} />
-            </View>
+            {/* (Decorative bookmark removed — favorite from EventDetails) */}
           </View>
           <View style={styles.nearbyBody}>
             {item.category?.name && (
@@ -909,7 +904,15 @@ export default function DiscoverScreen() {
                 <View style={styles.headerTopRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
-                      DÉCOUVRIR • DOUALA
+                      {(() => {
+                        // Ville dérivée des events nearby si géoloc accordée, sinon
+                        // de la première ville parmi featured/upcoming, sinon générique.
+                        const city =
+                          (location && nearbyEvents[0]?.location_city) ||
+                          featuredEvents[0]?.location_city ||
+                          upcomingEvents[0]?.location_city;
+                        return city ? `DÉCOUVRIR • ${city.toUpperCase()}` : 'DÉCOUVRIR';
+                      })()}
                     </Text>
                     <View style={styles.headerTitleRow}>
                       <Text style={[styles.headerTitle, { color: colors.text }]}>

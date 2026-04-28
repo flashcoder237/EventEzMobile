@@ -517,9 +517,10 @@ export default function EventDetailsScreen() {
               style={[styles.organizerFollowBtn, { backgroundColor: colors.primary }]}
               onPress={handleContactOrganizer}
               accessibilityRole="button"
-              accessibilityLabel="Suivre l'organisateur"
+              accessibilityLabel="Contacter l'organisateur"
             >
-              <Text style={styles.organizerFollowText}>Suivre</Text>
+              <Ionicons name="chatbubble-outline" size={14} color={colors.white} />
+              <Text style={styles.organizerFollowText}>Contacter</Text>
             </TouchableOpacity>
           </View>
 
@@ -1224,10 +1225,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   organizerFollowBtn: {
-    paddingHorizontal: 16,
-    height: 34,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    height: 34,
     borderRadius: BorderRadius.full,
   },
   organizerFollowText: {
