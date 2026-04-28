@@ -199,6 +199,8 @@ export default function PaymentScreen() {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId | null>(null);
   const [countryConfig, setCountryConfig] = useState<CountryPaymentConfig | null>(null);
   const [dynamicMethods, setDynamicMethods] = useState<PaymentMethodOption[]>(FALLBACK_METHODS);
+  // Drapeau pour afficher un bandeau "Méthodes par défaut affichées" quand le fetch a échoué
+  const [methodsFetchFailed, setMethodsFetchFailed] = useState(false);
   // Pays du payeur : choix manuel (AsyncStorage) > locale device > pays événement
   const [payerCountry, setPayerCountry] = useState<string>(() => {
     const detected = detectUserCountry();
@@ -414,15 +416,17 @@ export default function PaymentScreen() {
             type: m.type,
           }));
           setDynamicMethods(methods);
+          setMethodsFetchFailed(false);
         }
       } catch (error) {
         if (__DEV__) console.error('[Payment] Error fetching payment methods:', error);
         // Afficher une erreur au lieu d'un fallback silencieux Cameroun
         showError(
           'Méthodes de paiement',
-          'Impossible de charger les méthodes de paiement. Veuillez réessayer.'
+          'Impossible de charger les méthodes de paiement pour ton pays. Les options ci-dessous sont génériques — vérifie qu\'elles correspondent avant de payer.'
         );
         setDynamicMethods(FALLBACK_METHODS);
+        setMethodsFetchFailed(true);
       }
     };
 
@@ -1117,6 +1121,35 @@ export default function PaymentScreen() {
                 onChange={handleCountryChange}
                 disabled={processing || cancelling}
               />
+
+              {methodsFetchFailed && (
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: Spacing.sm,
+                    padding: Spacing.sm + 2,
+                    borderRadius: BorderRadius.lg,
+                    backgroundColor: '#FEF3C7',
+                    borderWidth: 1,
+                    borderColor: '#FDE68A',
+                    marginBottom: Spacing.sm,
+                  }}
+                >
+                  <Ionicons name="warning" size={16} color="#D97706" />
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontFamily: FontFamily.medium,
+                      fontSize: 12,
+                      color: '#92400E',
+                      lineHeight: 16,
+                    }}
+                  >
+                    Méthodes par défaut affichées (Cameroun). Vérifie avant de payer ou réessaie.
+                  </Text>
+                </View>
+              )}
 
               {payerCountry === INTL_CODE && finalTotal > 0 && (
                 <FXIndicator

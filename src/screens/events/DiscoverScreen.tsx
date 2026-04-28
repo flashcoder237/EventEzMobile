@@ -115,6 +115,8 @@ export default function DiscoverScreen() {
   const [recommendations, setRecommendations] = useState<Event[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  // Track fetch failures so we can surface a banner instead of failing silently
+  const [fetchErrorCount, setFetchErrorCount] = useState(0);
 
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
 
@@ -159,6 +161,12 @@ export default function DiscoverScreen() {
 
   // === Fetch data (progressive, cached) ===
   const fetchDiscoveryData = useCallback(async (bypassCache: boolean = false) => {
+    let failures = 0;
+    const trackFailure = (label: string) => (err: unknown) => {
+      failures += 1;
+      if (__DEV__) console.error(`${label}:`, err);
+    };
+
     try {
       if (!bypassCache) {
         const [cachedFeatured, cachedCategories, cachedUpcoming, cachedFree] = await Promise.all([
@@ -176,44 +184,51 @@ export default function DiscoverScreen() {
         }
       }
 
-      eventsAPI
-        .getFeaturedEvents()
-        .then((res) => {
-          const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
-          setFeaturedEvents(data);
-          CacheService.set('discover:featured', data, DISCOVER_CACHE_TTL);
-          setInitialLoading(false);
-        })
-        .catch((err) => __DEV__ && console.error('featured:', err));
+      const fetches = [
+        eventsAPI
+          .getFeaturedEvents()
+          .then((res) => {
+            const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
+            setFeaturedEvents(data);
+            CacheService.set('discover:featured', data, DISCOVER_CACHE_TTL);
+            setInitialLoading(false);
+          })
+          .catch(trackFailure('featured')),
 
-      categoriesAPI
-        .getCategories()
-        .then((res) => {
-          const data = getApiResults<Category>(res);
-          setCategories(data);
-          CacheService.set('discover:categories', data, DISCOVER_CACHE_TTL);
-        })
-        .catch((err) => __DEV__ && console.error('categories:', err));
+        categoriesAPI
+          .getCategories()
+          .then((res) => {
+            const data = getApiResults<Category>(res);
+            setCategories(data);
+            CacheService.set('discover:categories', data, DISCOVER_CACHE_TTL);
+          })
+          .catch(trackFailure('categories')),
 
-      eventsAPI
-        .getEvents({ ordering: 'start_date', limit: 15, status: 'validated' })
-        .then((res) => {
-          const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
-          setUpcomingEvents(data);
-          CacheService.set('discover:upcoming', data, DISCOVER_CACHE_TTL);
-        })
-        .catch((err) => __DEV__ && console.error('upcoming:', err));
+        eventsAPI
+          .getEvents({ ordering: 'start_date', limit: 15, status: 'validated' })
+          .then((res) => {
+            const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
+            setUpcomingEvents(data);
+            CacheService.set('discover:upcoming', data, DISCOVER_CACHE_TTL);
+          })
+          .catch(trackFailure('upcoming')),
 
-      eventsAPI
-        .getEvents({ price: 'free', ordering: 'start_date', limit: 10, status: 'validated' })
-        .then((res) => {
-          const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
-          setFreeEvents(data);
-          CacheService.set('discover:free', data, DISCOVER_CACHE_TTL);
-        })
-        .catch((err) => __DEV__ && console.error('free:', err));
+        eventsAPI
+          .getEvents({ price: 'free', ordering: 'start_date', limit: 10, status: 'validated' })
+          .then((res) => {
+            const data = getApiResults<Event>(res).filter((e) => isEventInFuture(e.start_date));
+            setFreeEvents(data);
+            CacheService.set('discover:free', data, DISCOVER_CACHE_TTL);
+          })
+          .catch(trackFailure('free')),
+      ];
+
+      await Promise.all(fetches);
+      // Update banner state once all fetches settle
+      setFetchErrorCount(failures);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement:', error);
+      setFetchErrorCount((c) => c + 1);
       setInitialLoading(false);
     }
   }, []);
@@ -1171,6 +1186,96 @@ export default function DiscoverScreen() {
                   </View>
                 </SectionEntrance>
               )}
+
+              {/* === ERROR BANNER — visible if 2+ fetches failed === */}
+              {fetchErrorCount >= 2 && (
+                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl }}>
+                  <TouchableOpacity
+                    activeOpacity={0.85}
+                    onPress={onRefresh}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: Spacing.sm,
+                      padding: Spacing.md,
+                      borderRadius: BorderRadius.xl,
+                      backgroundColor: `${colors.warning}15`,
+                      borderWidth: 1,
+                      borderColor: `${colors.warning}40`,
+                    }}
+                  >
+                    <Ionicons name="cloud-offline" size={20} color={colors.warning} />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.bold,
+                          fontSize: 13,
+                          color: colors.warning,
+                        }}
+                      >
+                        Connexion lente
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.regular,
+                          fontSize: 12,
+                          color: colors.gray600,
+                          marginTop: 2,
+                        }}
+                      >
+                        Certaines sections n'ont pas pu se charger. Tape pour réessayer.
+                      </Text>
+                    </View>
+                    <Ionicons name="refresh" size={18} color={colors.warning} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* === EMPTY STATE — when nothing loaded and no errors masking it === */}
+              {!initialLoading &&
+                featuredEvents.length === 0 &&
+                upcomingEvents.length === 0 &&
+                freeEvents.length === 0 &&
+                fetchErrorCount === 0 && (
+                  <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing['2xl'], alignItems: 'center' }}>
+                    <View
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 36,
+                        backgroundColor: colors.gray100,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: Spacing.md,
+                      }}
+                    >
+                      <Ionicons name="calendar-outline" size={32} color={colors.gray400} />
+                    </View>
+                    <Text
+                      style={{
+                        fontFamily: FontFamily.displayBold,
+                        fontSize: 18,
+                        color: colors.text,
+                        textAlign: 'center',
+                        letterSpacing: -0.4,
+                      }}
+                    >
+                      Rien à l'horizon pour l'instant
+                    </Text>
+                    <Text
+                      style={{
+                        fontFamily: FontFamily.regular,
+                        fontSize: 13,
+                        color: colors.gray500,
+                        textAlign: 'center',
+                        marginTop: 6,
+                        maxWidth: 280,
+                      }}
+                    >
+                      Les organisateurs préparent encore leurs événements. Reviens bientôt !
+                    </Text>
+                  </View>
+                )}
 
               <View style={{ height: 140 }} />
             </Animated.ScrollView>

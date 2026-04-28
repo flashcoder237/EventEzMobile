@@ -1461,7 +1461,11 @@ export type RootStackParamList = {
   Auth: undefined;
   Onboarding: undefined;
   // Auth screens (accessible from anywhere for browse-first flow)
-  Login: undefined;
+  Login: {
+    eventTitle?: string;
+    returnScreen?: keyof RootStackParamList;
+    returnParams?: object;
+  } | undefined;
   Register: undefined;
   RegisterOrganizer: undefined;
   ForgotPassword: undefined;

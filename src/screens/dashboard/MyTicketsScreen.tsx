@@ -275,49 +275,10 @@ function ShimmerBand({
   );
 }
 
-// ============================================================
-// Fake QR pattern (5x5 grid placeholder)
-// ============================================================
-function QRPattern({ size = 52, color }: { size?: number; color: string }) {
-  // deterministic pattern — looks QR-ish
-  const pattern = [
-    [1, 1, 1, 0, 1, 1, 1],
-    [1, 0, 1, 1, 0, 0, 1],
-    [1, 1, 0, 1, 1, 1, 0],
-    [0, 1, 1, 0, 1, 0, 1],
-    [1, 0, 1, 1, 0, 1, 1],
-    [1, 1, 0, 0, 1, 1, 0],
-    [0, 1, 1, 1, 0, 1, 1],
-  ];
-  const cells = 7;
-  const cell = size / cells;
-
-  return (
-    <View
-      style={{
-        width: size,
-        height: size,
-        backgroundColor: Colors.white,
-        padding: 3,
-      }}
-    >
-      {pattern.map((row, y) => (
-        <View key={y} style={{ flexDirection: 'row', flex: 1 }}>
-          {row.map((v, x) => (
-            <View
-              key={x}
-              style={{
-                width: cell,
-                height: cell,
-                backgroundColor: v ? color : 'transparent',
-              }}
-            />
-          ))}
-        </View>
-      ))}
-    </View>
-  );
-}
+// SECURITY note: a fake QR pattern used to live here. It was removed because
+// users / staff at venues could mistake it for a scannable code. The real QR
+// is rendered only inside RegistrationDetails / QRCodeScreen. The list view
+// shows a neutral "tap to reveal" placeholder instead.
 
 // ============================================================
 // Component
@@ -867,14 +828,32 @@ export default function MyTicketsScreen() {
                   <View style={[styles.passLines, { backgroundColor: `${typeColor}30`, width: 18 }]} />
                 </View>
               ) : (
-                /* Billetterie: QR */
+                /* Billetterie: neutral QR placeholder — real QR lives in RegistrationDetails */
                 <View
                   style={[
                     styles.qrBox,
-                    { backgroundColor: Colors.white, borderColor: typeColor },
+                    {
+                      backgroundColor: Colors.white,
+                      borderColor: typeColor,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    },
                   ]}
+                  accessibilityLabel="Toucher pour voir le QR code"
                 >
-                  <QRPattern size={42} color={colors.gray900} />
+                  <Ionicons name="qr-code-outline" size={32} color={typeColor} />
+                  <Text
+                    style={{
+                      fontFamily: FontFamily.bold,
+                      fontSize: 8,
+                      letterSpacing: 0.6,
+                      color: typeColor,
+                      marginTop: 2,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Voir QR
+                  </Text>
                 </View>
               )}
 

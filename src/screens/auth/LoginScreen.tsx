@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -40,18 +40,24 @@ type AuthTab = 'email' | 'phone';
 type PhoneStep = 'phone' | 'otp';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Login'>;
+type LoginRouteProp = RouteProp<RootStackParamList, 'Login'>;
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<LoginRouteProp>();
+  const { eventTitle, returnScreen, returnParams } = route.params || {};
   const { login, isLoading, setUser } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
+
+  const emailInputRef = useRef<TextInput>(null);
 
   // Email form
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  // Décoché par défaut — opt-in conscient pour la persistance de session
+  const [rememberMe, setRememberMe] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors<'email' | 'password'>>({});
   const [loginInProgress, setLoginInProgress] = useState(false);
@@ -78,7 +84,19 @@ export default function LoginScreen() {
       }
     };
     loadRememberMe();
+    // Auto-focus du champ email à l'arrivée sur l'onglet email
+    const focusTimer = setTimeout(() => emailInputRef.current?.focus(), 250);
+    return () => clearTimeout(focusTimer);
   }, []);
+
+  // Redirection après login réussi : vers returnScreen si fourni, sinon goBack
+  const dismissAfterLogin = useCallback(() => {
+    if (returnScreen) {
+      navigation.replace(returnScreen as any, returnParams as any);
+      return;
+    }
+    if (navigation.canGoBack()) navigation.goBack();
+  }, [navigation, returnScreen, returnParams]);
 
   // Écouter les événements de retry API pendant le login
   useEffect(() => {
@@ -119,6 +137,7 @@ export default function LoginScreen() {
     const result = await googleSignIn();
     if (result.success && result.user) {
       await setUser(result.user);
+      dismissAfterLogin();
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Google', result.error);
     }
@@ -128,6 +147,7 @@ export default function LoginScreen() {
     const result = await appleSignIn();
     if (result.success && result.user) {
       await setUser(result.user);
+      dismissAfterLogin();
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Apple', result.error);
     }
@@ -157,7 +177,7 @@ export default function LoginScreen() {
     const result = await verifyOTP(otpPhone, otpCode);
     if (result.success && result.user) {
       await setUser(result.user);
-      if (navigation.canGoBack()) navigation.goBack();
+      dismissAfterLogin();
     } else {
       showError('Code invalide', result.error || 'Code incorrect ou expiré');
     }
@@ -196,10 +216,7 @@ export default function LoginScreen() {
       // appliquées côté backend (IsEmailVerified) avec un bandeau UI.
       await login(email.trim().toLowerCase(), password, rememberMe);
       setRetryInfo(null);
-      // Dismiss login modal — tabs will update reactively via auth state
-      if (navigation.canGoBack()) {
-        navigation.goBack();
-      }
+      dismissAfterLogin();
     } catch (error: any) {
       setRetryInfo(null);
       const message = extractErrorMessage(error);
@@ -241,8 +258,50 @@ export default function LoginScreen() {
             <Text style={[styles.eyebrow, { color: colors.accent }]}>Connexion / 01</Text>
             <Text style={[styles.title, { color: colors.gray900 }]}>Bon retour !</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-              Connecte-toi pour découvrir les meilleurs événements
+              {eventTitle
+                ? `Encore une étape avant ton billet pour « ${eventTitle} »`
+                : returnScreen
+                ? 'Connecte-toi pour continuer'
+                : 'Connecte-toi pour découvrir les meilleurs événements'}
             </Text>
+          </View>
+
+          {/* Context banner — visible quand on vient d'une action protégée */}
+          {(eventTitle || returnScreen) && (
+            <View style={[styles.contextBanner, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}30` }]}>
+              <View style={[styles.contextBannerIcon, { backgroundColor: colors.primary }]}>
+                <Ionicons name="lock-closed" size={14} color="#fff" />
+              </View>
+              <Text style={[styles.contextBannerText, { color: colors.gray700 }]} numberOfLines={2}>
+                {eventTitle
+                  ? `🎫 Connecte-toi pour réserver « ${eventTitle} »`
+                  : 'Connecte-toi pour finaliser ton action'}
+              </Text>
+            </View>
+          )}
+
+          {/* Tabs — toujours visibles pour switcher email/téléphone */}
+          <View style={styles.tabsRow}>
+            <TouchableOpacity
+              onPress={() => { setActiveTab('email'); setPhoneStep('phone'); setOtpCode(''); }}
+              style={[styles.tabBtn, activeTab === 'email' && { backgroundColor: colors.primary }]}
+              activeOpacity={0.85}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'email' }}
+            >
+              <Ionicons name="mail-outline" size={14} color={activeTab === 'email' ? '#fff' : colors.gray500} />
+              <Text style={[styles.tabBtnText, { color: activeTab === 'email' ? '#fff' : colors.gray500 }]}>Email</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setActiveTab('phone')}
+              style={[styles.tabBtn, activeTab === 'phone' && { backgroundColor: colors.primary }]}
+              activeOpacity={0.85}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeTab === 'phone' }}
+            >
+              <Ionicons name="phone-portrait-outline" size={14} color={activeTab === 'phone' ? '#fff' : colors.gray500} />
+              <Text style={[styles.tabBtnText, { color: activeTab === 'phone' ? '#fff' : colors.gray500 }]}>Téléphone</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Form */}
@@ -285,24 +344,6 @@ export default function LoginScreen() {
                     : <Text style={styles.primaryButtonText}>Recevoir le code SMS</Text>}
                 </AnimatedPressable>
 
-                <TouchableOpacity
-                  onPress={() => {
-                    setActiveTab('email');
-                    setPhoneStep('phone');
-                    setOtpCode('');
-                  }}
-                  style={styles.methodSwitch}
-                  accessibilityRole="link"
-                  accessibilityLabel="Utiliser mon adresse email à la place"
-                >
-                  <Ionicons name="mail-outline" size={14} color={colors.gray500} />
-                  <Text style={[styles.methodSwitchText, { color: colors.gray500 }]}>
-                    Utiliser mon{' '}
-                    <Text style={{ color: colors.primary, fontFamily: FontFamily.semiBold }}>
-                      adresse email
-                    </Text>
-                  </Text>
-                </TouchableOpacity>
               </View>
             )}
 
@@ -362,6 +403,7 @@ export default function LoginScreen() {
                   />
                 </View>
                 <TextInput
+                  ref={emailInputRef}
                   style={[styles.input, { color: colors.gray900 }]}
                   placeholder="votre@email.com"
                   placeholderTextColor={colors.gray400}
@@ -462,7 +504,7 @@ export default function LoginScreen() {
                   <Ionicons name="checkmark" size={14} color={colors.white} />
                 )}
               </View>
-              <Text style={[styles.rememberMeText, { color: colors.gray600 }]}>Se souvenir de moi</Text>
+              <Text style={[styles.rememberMeText, { color: colors.gray600 }]}>Rester connecté pendant 30 jours</Text>
             </AnimatedPressable>
 
             {/* Login Button — editorial pill CTA */}
@@ -486,20 +528,6 @@ export default function LoginScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              onPress={() => setActiveTab('phone')}
-              style={styles.methodSwitch}
-              accessibilityRole="link"
-              accessibilityLabel="Se connecter avec mon numéro de téléphone"
-            >
-              <Ionicons name="phone-portrait-outline" size={14} color={colors.gray500} />
-              <Text style={[styles.methodSwitchText, { color: colors.gray500 }]}>
-                Se connecter avec{' '}
-                <Text style={{ color: colors.primary, fontFamily: FontFamily.semiBold }}>
-                  mon numéro
-                </Text>
-              </Text>
-            </TouchableOpacity>
             </>}
           </View>
 
@@ -817,6 +845,49 @@ const styles = StyleSheet.create({
   methodSwitchText: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.regular,
+  },
+  // Context banner — visible when login is triggered from a protected action
+  contextBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+  },
+  contextBannerIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contextBannerText: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.sm,
+    lineHeight: FontSizes.sm * 1.4,
+  },
+  // Tabs (email / phone)
+  tabsRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginBottom: Spacing.lg,
+  },
+  tabBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.sm + 2,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(0,0,0,0.04)',
+  },
+  tabBtnText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.sm,
   },
   // Phone OTP styles
   fieldHint: {

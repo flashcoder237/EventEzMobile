@@ -989,7 +989,14 @@ export default function EventDetailsScreen() {
           </View>
         ) : (
           <TouchableOpacity
-            onPress={requireAuth(() => navigation.navigate('TicketPurchase', { eventId }))}
+            onPress={requireAuth(
+              () => navigation.navigate('TicketPurchase', { eventId }),
+              {
+                eventTitle: event.title,
+                returnScreen: 'TicketPurchase',
+                returnParams: { eventId },
+              },
+            )}
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel={event.event_type === 'billetterie' ? 'Acheter des billets' : "S'inscrire"}
