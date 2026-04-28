@@ -73,6 +73,7 @@ interface EventCardProps {
   eventType?: 'billetterie' | 'inscription';
   currency?: string;
   variant?: 'default' | 'featured' | 'horizontal' | 'compact' | 'grid';
+  fullWidth?: boolean;
   onPress?: () => void;
   onLikePress?: () => void;
 }
@@ -96,6 +97,7 @@ function EventCard({
   eventType,
   currency = 'FCFA',
   variant = 'default',
+  fullWidth = false,
   onPress,
   onLikePress,
 }: EventCardProps) {
@@ -465,6 +467,7 @@ function EventCard({
       onPress={onPress}
       style={[
         styles.defaultCard,
+        fullWidth && { width: '100%' },
         { backgroundColor: colors.card, borderColor: hairline },
         Shadows.lg,
       ]}

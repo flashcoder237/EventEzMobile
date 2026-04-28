@@ -21,7 +21,12 @@ import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import VerificationBanner from '../../components/auth/VerificationBanner';
-import { eventsAPI, feedbacksAPI, registrationsAPI } from '../../api';
+import {
+  MenuItem,
+  ProfileSuggestionBanner,
+  DashboardHeroCard,
+} from '../../components/profile';
+import { eventsAPI, feedbacksAPI, registrationsAPI, walletAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -34,57 +39,6 @@ import {
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-
-interface MenuItemProps {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle?: string;
-  onPress?: () => void;
-  showArrow?: boolean;
-  danger?: boolean;
-  badge?: number;
-  loading?: boolean;
-}
-
-const MenuItem = ({ icon, title, subtitle, onPress, showArrow = true, danger, badge, loading }: MenuItemProps) => {
-  const { colors } = useTheme();
-  return (
-    <TouchableOpacity
-      style={[styles.menuItem, { borderBottomColor: colors.gray100 }]}
-      onPress={loading ? undefined : onPress}
-      activeOpacity={loading ? 1 : 0.6}
-      disabled={loading}
-      accessibilityRole="button"
-      accessibilityLabel={subtitle ? `${title} - ${subtitle}` : title}
-    >
-      <View style={[styles.menuIconContainer, { backgroundColor: colors.gray50 }, danger && { backgroundColor: colors.errorBg }]}>
-        {loading ? (
-          <ActivityIndicator size="small" color={danger ? colors.error : colors.gray700} />
-        ) : (
-          <Ionicons
-            name={icon}
-            size={20}
-            color={danger ? colors.error : colors.gray700}
-          />
-        )}
-        {badge != null && badge > 0 && (
-          <View style={[styles.menuBadge, { backgroundColor: colors.error }]}>
-            <Text style={styles.menuBadgeText}>{badge > 99 ? '99+' : badge}</Text>
-          </View>
-        )}
-      </View>
-      <View style={styles.menuTextContainer}>
-        <Text style={[styles.menuTitle, { color: colors.gray900 }, danger && { color: colors.error }]}>{title}</Text>
-        {subtitle && <Text style={[styles.menuSubtitle, { color: colors.gray500 }]}>{subtitle}</Text>}
-      </View>
-      {loading ? (
-        <ActivityIndicator size="small" color={colors.gray300} />
-      ) : showArrow ? (
-        <Ionicons name="chevron-forward" size={20} color={colors.gray300} />
-      ) : null}
-    </TouchableOpacity>
-  );
-};
 
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -99,16 +53,34 @@ export default function ProfileScreen() {
     favorites: 0,
     reviews: 0,
   });
+  const [wallet, setWallet] = useState<{ bank_name?: string; mobile_money_number?: string } | null>(null);
+
+  const isOrganizer = user?.role === 'organizer';
+  const isModerator = user?.role === 'moderator' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     fetchStats();
-  }, []);
+    if (isOrganizer) fetchWallet();
+  }, [isOrganizer]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    await fetchStats();
+    await Promise.all([fetchStats(), isOrganizer ? fetchWallet() : Promise.resolve()]);
     setRefreshing(false);
-  }, []);
+  }, [isOrganizer]);
+
+  const fetchWallet = async () => {
+    try {
+      const res = await walletAPI.getMyWallet();
+      setWallet({
+        bank_name: res.data?.bank_name,
+        mobile_money_number: res.data?.mobile_money_number,
+      });
+    } catch (error) {
+      if (__DEV__) console.warn('Wallet fetch failed:', error);
+    }
+  };
 
   const fetchStats = async () => {
     try {
@@ -159,10 +131,6 @@ export default function ProfileScreen() {
       logout
     );
   };
-
-  const isOrganizer = user?.role === 'organizer';
-  const isModerator = user?.role === 'moderator' || user?.role === 'admin';
-  const isAdmin = user?.role === 'admin';
 
   const softBorder = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -261,33 +229,8 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </FadeInView>
 
-        {/* Stats — 3 soft blocks with dividers */}
-        <FadeInView delay={200} translateY={16}>
-          <View
-            style={[
-              styles.statStrip,
-              {
-                backgroundColor: colors.card,
-                borderColor: softBorder,
-              },
-              Shadows.sm,
-            ]}
-          >
-            <View style={[styles.statCell, { borderRightColor: colors.gray100 }]}>
-              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.tickets}</Text>
-              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>RÉSERVATIONS</Text>
-            </View>
-            <View style={[styles.statCell, { borderRightColor: colors.gray100 }]}>
-              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.favorites}</Text>
-              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>FAVORIS</Text>
-            </View>
-            <View style={styles.statCell}>
-              <Text style={[styles.statNumber, { color: colors.text }]}>{stats.reviews}</Text>
-              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>AVIS</Text>
-            </View>
-          </View>
-
-          {/* Chip strip */}
+        {/* Chips identite (role, ville) */}
+        <FadeInView delay={150} translateY={12}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -310,6 +253,16 @@ export default function ProfileScreen() {
               </View>
             ) : null}
           </ScrollView>
+        </FadeInView>
+
+        {/* Banner "Pour vous" — suggestions context-aware (cache si rien a faire) */}
+        <FadeInView delay={200} translateY={12}>
+          <ProfileSuggestionBanner user={user} wallet={wallet} isOrganizer={isOrganizer} />
+        </FadeInView>
+
+        {/* Hero Tableau de bord — point d'entree #1 du profil */}
+        <FadeInView delay={250} translateY={12}>
+          <DashboardHeroCard stats={stats} />
         </FadeInView>
 
         {/* Become Organizer CTA - Only for regular users */}
@@ -344,6 +297,7 @@ export default function ProfileScreen() {
                 title="File de modération"
                 subtitle="Valider les événements"
                 onPress={() => navigation.navigate('Moderation')}
+                isLast
               />
             </View>
           </View>
@@ -368,6 +322,11 @@ export default function ProfileScreen() {
                 icon="wallet-outline"
                 title="Mon portefeuille"
                 onPress={() => navigation.navigate('Wallet')}
+                alert={
+                  wallet && !wallet.bank_name?.trim() && !wallet.mobile_money_number?.trim()
+                    ? { type: 'warning', label: 'Méthode de retrait à configurer' }
+                    : undefined
+                }
               />
               <MenuItem
                 icon="analytics-outline"
@@ -378,8 +337,14 @@ export default function ProfileScreen() {
               <MenuItem
                 icon={user?.is_verified ? "checkmark-circle" : "shield-outline"}
                 title="Vérification du compte"
-                subtitle={user?.is_verified ? "Compte vérifié" : "Vérifier votre identité"}
+                subtitle={user?.is_verified ? "Compte vérifié" : undefined}
+                alert={
+                  !user?.is_verified
+                    ? { type: 'warning', label: 'Action requise' }
+                    : undefined
+                }
                 onPress={() => navigation.navigate('Verification')}
+                isLast
               />
             </View>
           </View>
@@ -387,13 +352,31 @@ export default function ProfileScreen() {
 
         {/* Menu Sections */}
         <View style={styles.menuSection}>
-          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Compte</Text>
+          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Mon compte</Text>
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="person-outline"
               title="Modifier le profil"
+              alert={
+                !user?.profile_picture && !(user as any)?.image
+                  ? { type: 'info', label: 'Ajoute une photo de profil' }
+                  : undefined
+              }
               onPress={() => navigation.navigate('EditProfile')}
             />
+            {!isOrganizer && (
+              <MenuItem
+                icon={user?.is_verified ? 'checkmark-circle' : 'shield-outline'}
+                title="Vérification du compte"
+                subtitle={user?.is_verified ? 'Compte vérifié' : undefined}
+                alert={
+                  !user?.is_verified
+                    ? { type: 'warning', label: 'Action requise' }
+                    : undefined
+                }
+                onPress={() => navigation.navigate('Verification')}
+              />
+            )}
             <MenuItem
               icon="card-outline"
               title="Mes paiements"
@@ -423,6 +406,7 @@ export default function ProfileScreen() {
               title="Invitations"
               badge={pendingInvitationCount}
               onPress={() => navigation.navigate('Invitations')}
+              isLast
             />
           </View>
         </View>
@@ -434,11 +418,6 @@ export default function ProfileScreen() {
               icon="heart-outline"
               title="Événements favoris"
               onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
-            />
-            <MenuItem
-              icon="grid-outline"
-              title="Tableau de bord"
-              onPress={() => navigation.navigate('UserDashboard')}
             />
             <MenuItem
               icon="trophy-outline"
@@ -455,6 +434,7 @@ export default function ProfileScreen() {
               title="Langue"
               subtitle="Français"
               onPress={() => navigation.navigate('Settings')}
+              isLast
             />
           </View>
         </View>
@@ -498,6 +478,7 @@ export default function ProfileScreen() {
                 title="Tresorerie"
                 subtitle="Finances et paie"
                 onPress={() => navigation.navigate('TreasuryOverview')}
+                isLast
               />
             </View>
           </View>
@@ -521,6 +502,7 @@ export default function ProfileScreen() {
               icon="document-text-outline"
               title="Conditions d'utilisation"
               onPress={() => navigation.navigate('Terms')}
+              isLast
             />
           </View>
         </View>

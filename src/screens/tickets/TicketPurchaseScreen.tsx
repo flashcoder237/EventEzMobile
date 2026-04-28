@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { eventsAPI, ticketTypesAPI, registrationsAPI, discountsAPI } from '../../api';
@@ -42,19 +43,68 @@ interface TicketSelection {
   quantity: number;
 }
 
+// Auto-prefill custom form fields with user profile data when label/type matches
+function autoPrefillFormData(fields: FormField[], user: any): Record<string, any> {
+  const prefilled: Record<string, any> = {};
+
+  for (const field of fields) {
+    const label = (field.label || '').toLowerCase().trim();
+    const type = field.field_type;
+
+    // Email: type-based match (most reliable)
+    if (type === 'email' && user.email) {
+      prefilled[field.label] = user.email;
+      continue;
+    }
+
+    // Phone: type-based match (FieldType doesn't have 'phone'/'tel' but ExtendedFieldType might)
+    if ((type as string) === 'phone' && user.phone_number) {
+      prefilled[field.label] = user.phone_number;
+      continue;
+    }
+
+    // Text fields: heuristic match by French/English label keywords
+    if (type === 'text' || type === 'textarea') {
+      // Full name (combined)
+      if (/(nom\s+(et\s+)?pr[ée]nom|nom\s+complet|full\s*name)/.test(label) && (user.first_name || user.last_name)) {
+        prefilled[field.label] = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+      }
+      // First name only
+      else if (/^(pr[ée]nom|first\s*name|given\s*name)$/.test(label) && user.first_name) {
+        prefilled[field.label] = user.first_name;
+      }
+      // Last name only
+      else if (/^(nom(\s+de\s+famille)?|last\s*name|surname|family\s*name)$/.test(label) && user.last_name) {
+        prefilled[field.label] = user.last_name;
+      }
+      // Email by label fallback
+      else if (/^(e?[-\s]?mail|courriel|adresse\s+email)$/.test(label) && user.email) {
+        prefilled[field.label] = user.email;
+      }
+      // Phone by label fallback
+      else if (/(t[ée]l[ée]phone|portable|mobile|num[ée]ro|phone)/.test(label) && user.phone_number) {
+        prefilled[field.label] = user.phone_number;
+      }
+    }
+  }
+
+  return prefilled;
+}
+
 export default function TicketPurchaseScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<TicketPurchaseRouteProp>();
   const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const { user } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig();
 
-  // Mode d'édition: modifier une inscription existante
-  const isEditMode = !!registrationId;
-  // Mode achat supplémentaire: acheter des billets en plus
+  // Mode achat supplémentaire: acheter des billets en plus (priorité sur edit)
   const isAdditionalMode = !!additionalTickets;
+  // Mode d'édition: modifier une inscription existante (sauf si on est en mode "ajout supplémentaire")
+  const isEditMode = !!registrationId && !isAdditionalMode;
 
   const [event, setEvent] = useState<Event | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -117,9 +167,17 @@ export default function TicketPurchaseScreen() {
         }
       }
 
-      // Set form fields if available
+      // Set form fields if available + auto-prefill from user profile
       if (eventData.form_fields && eventData.form_fields.length > 0) {
         setFormFields(eventData.form_fields);
+
+        // Auto-prefill ONLY in create mode (not edit) and when user is logged in
+        if (!isEditMode && !existingReg && user) {
+          const prefilled = autoPrefillFormData(eventData.form_fields, user);
+          if (Object.keys(prefilled).length > 0) {
+            setFormData(prefilled);
+          }
+        }
       }
 
       // Pre-select if ticketTypeId is provided
@@ -984,7 +1042,15 @@ export default function TicketPurchaseScreen() {
             style={StyleSheet.absoluteFill}
           />
           <Text style={styles.bottomCtaText}>
-            {submitting ? 'Traitement...' : isEditMode ? 'Mettre à jour' : event?.event_type === 'inscription' ? "S'inscrire" : 'Continuer'}
+            {submitting
+              ? 'Traitement...'
+              : isEditMode
+              ? 'Mettre à jour'
+              : isAdditionalMode
+              ? 'Ajouter ces billets'
+              : event?.event_type === 'inscription'
+              ? "S'inscrire"
+              : 'Continuer'}
           </Text>
           <View style={styles.bottomCtaArrow}>
             {submitting ? (

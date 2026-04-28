@@ -112,6 +112,13 @@ function AppContent() {
     initAnalytics();
   }, []);
 
+  // Pre-charge les sons au boot pour eliminer la latence du premier play
+  useEffect(() => {
+    void import('./src/services/soundService').then(({ default: soundService }) => {
+      soundService.initialize();
+    });
+  }, []);
+
   // Barre de navigation Android : fond semi-transparent adapté au thème
   useEffect(() => {
     if (Platform.OS !== 'android') return;

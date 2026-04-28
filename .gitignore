@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# aidesigner local artifacts (generated HTML/JSON snapshots)
+.aidesigner/
+
 # Expo
 .expo/
 dist/

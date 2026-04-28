@@ -259,7 +259,13 @@ export default function RegisterOrganizerScreen() {
         value={formData[field]}
         onChangeText={options?.onChangeText || ((text) => updateField(field, text))}
         onFocus={() => setFocusedField(field)}
-        onBlur={() => setFocusedField(null)}
+        onBlur={() => {
+          setFocusedField(null);
+          const current = formData[field];
+          if (typeof current === 'string' && current !== current.trim()) {
+            updateField(field, current.trim());
+          }
+        }}
         keyboardType={options?.keyboardType || 'default'}
         autoCapitalize={options?.autoCapitalize || 'none'}
         secureTextEntry={options?.secureTextEntry}

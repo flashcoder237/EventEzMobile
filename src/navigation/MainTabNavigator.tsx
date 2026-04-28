@@ -10,6 +10,7 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   useSharedValue,
+  interpolateColor,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { MainTabParamList } from '../types';
@@ -72,19 +73,23 @@ function ProfileTabScreen() {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_BAR_HEIGHT = 68;
-const TAB_BAR_MAX_WIDTH = 360;
+const TAB_BAR_MAX_WIDTH = 320;
 const PILL_HEIGHT = 48;
-const PILL_PADDING_H = 8;
+const PILL_PADDING_H = 6;
 const FADE_HEIGHT = 80;
 
 type TabName = 'Discover' | 'Saved' | 'MyTickets' | 'Profile';
 
 const tabConfig: Record<TabName, { icon: keyof typeof Ionicons.glyphMap; iconFocused: keyof typeof Ionicons.glyphMap; label: string }> = {
-  Discover: { icon: 'compass-outline', iconFocused: 'compass', label: 'Discover' },
-  Saved: { icon: 'bookmark-outline', iconFocused: 'bookmark', label: 'Saved' },
-  MyTickets: { icon: 'ticket-outline', iconFocused: 'ticket', label: 'Tickets' },
+  Discover: { icon: 'compass-outline', iconFocused: 'compass', label: 'Découvrir' },
+  Saved: { icon: 'bookmark-outline', iconFocused: 'bookmark', label: 'Favoris' },
+  MyTickets: { icon: 'ticket-outline', iconFocused: 'ticket', label: 'Billets' },
   Profile: { icon: 'person-outline', iconFocused: 'person', label: 'Profil' },
 };
+
+// Couleurs de la pill active par onglet (interpolees lors du changement)
+const TAB_PILL_COLORS_LIGHT = ['#4F46E5', '#FF6B6B', '#A855F7', '#F59E0B']; // indigo, corail, violet, ambre
+const TAB_PILL_COLORS_DARK  = ['#818CF8', '#FCA5A5', '#C084FC', '#FBBF24'];
 
 function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -102,18 +107,30 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
     });
   }, [state.index]);
 
+  // Selection de la palette selon le theme; on tronque/etend la liste pour
+  // garantir qu'elle a exactement tabCount couleurs (cas degenere : tabCount > 4).
+  const pillPalette = (isDark ? TAB_PILL_COLORS_DARK : TAB_PILL_COLORS_LIGHT).slice(0, tabCount);
+  while (pillPalette.length < tabCount) pillPalette.push(pillPalette[pillPalette.length - 1]);
+  // Couleur de la pill au repos (utilisee pour les bordures/badges hors animation)
+  const pillBg = pillPalette[state.index] ?? (isDark ? colors.primaryBg : colors.primary);
+
   const pillStyle = useAnimatedStyle(() => {
     const tabWidth = TAB_BAR_MAX_WIDTH / tabCount;
     const left = indicatorPosition.value * tabWidth + PILL_PADDING_H;
+    const inputRange = pillPalette.map((_, i) => i);
+    const backgroundColor = interpolateColor(
+      indicatorPosition.value,
+      inputRange,
+      pillPalette,
+    );
     return {
       transform: [{ translateX: left }],
       width: tabWidth - PILL_PADDING_H * 2,
+      backgroundColor,
     };
   });
 
   const bottomPadding = Math.max(insets.bottom, 16);
-  // Active pill uses EventEz primary indigo for brand consistency
-  const pillBg = isDark ? colors.primaryBg : colors.primary;
   const barBg = isDark ? `${colors.card}F2` : `${colors.card}F2`;
 
   return (
@@ -135,8 +152,8 @@ function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           <View style={[styles.androidBg, { backgroundColor: barBg }]} />
         )}
 
-        {/* Active pill background */}
-        <Animated.View style={[styles.pill, { backgroundColor: pillBg }, pillStyle]} />
+        {/* Active pill background — color animates between tabs */}
+        <Animated.View style={[styles.pill, pillStyle]} />
 
         {/* Tab items */}
         {state.routes.map((route, index) => {
@@ -237,17 +254,17 @@ export default function MainTabNavigator() {
       <Tab.Screen
         name="Discover"
         component={DiscoverScreen}
-        options={{ tabBarLabel: 'Discover' }}
+        options={{ tabBarLabel: 'Découvrir' }}
       />
       <Tab.Screen
         name="Saved"
         component={SavedTabScreen}
-        options={{ tabBarLabel: 'Saved' }}
+        options={{ tabBarLabel: 'Favoris' }}
       />
       <Tab.Screen
         name="MyTickets"
         component={TicketsTabScreen}
-        options={{ tabBarLabel: 'Tickets' }}
+        options={{ tabBarLabel: 'Billets' }}
       />
       <Tab.Screen
         name="Profile"
@@ -300,7 +317,7 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   tabLabel: {
-    fontSize: 11,
+    fontSize: 10,
     marginTop: 1,
   },
   tabAvatar: {
@@ -319,7 +336,7 @@ const styles = StyleSheet.create({
   },
   tabAvatarInitialText: {
     fontFamily: FontFamily.bold,
-    fontSize: 13,
+    fontSize: 12,
   },
   profileBadge: {
     position: 'absolute',

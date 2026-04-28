@@ -20,6 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { registrationsAPI, eventsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
 import {
@@ -61,6 +62,7 @@ export default function QRScannerScreen() {
   const [stats, setStats] = useState({ scanned: 0, success: 0, failed: 0 });
   const [autoCheckIn, setAutoCheckIn] = useState(true);
   const [event, setEvent] = useState<Event | null>(null);
+  const { play: playSound } = useSoundEffect();
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -136,6 +138,7 @@ export default function QRScannerScreen() {
         scanned: prev.scanned + 1,
         success: prev.success + 1,
       }));
+      playSound('scan-success');
     } catch (error: any) {
       if (__DEV__) console.error('Scan error:', error);
 
@@ -159,6 +162,7 @@ export default function QRScannerScreen() {
         scanned: prev.scanned + 1,
         failed: prev.failed + 1,
       }));
+      playSound('scan-fail');
     } finally {
       setProcessing(false);
       setShowResult(true);

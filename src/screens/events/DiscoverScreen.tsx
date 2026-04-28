@@ -952,19 +952,19 @@ export default function DiscoverScreen() {
                   </View>
                 </View>
 
-                {/* === EDITORIAL SEARCH BAR — inverse indigo === */}
+                {/* === EDITORIAL SEARCH BAR — inverted: cream bg, indigo text === */}
                 <TouchableOpacity
                   style={[styles.searchTrigger, Shadows.cardViolet]}
                   onPress={() => activateSearch()}
                   activeOpacity={0.9}
                   accessibilityRole="search"
                 >
-                  {/* Indigo gradient bg (full bleed) */}
+                  {/* Cream/light gradient bg (full bleed) */}
                   <LinearGradient
                     colors={
                       isDark
-                        ? ['#312E81', '#1E1B4B']
-                        : [colors.primary, colors.primaryDark]
+                        ? ['#1E293B', '#0F172A']
+                        : ['#F4F0E8', '#FFFFFF']
                     }
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
@@ -977,16 +977,22 @@ export default function DiscoverScreen() {
                       { backgroundColor: colors.accent },
                     ]}
                   />
-                  {/* Decorative diagonal slash (subtle) */}
-                  <View style={styles.searchSlash} pointerEvents="none" />
-                  {/* Search icon disc — cream w/ indigo icon */}
+                  {/* Decorative diagonal slash — dark on cream */}
+                  <View
+                    style={[
+                      styles.searchSlash,
+                      { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(17,17,16,0.06)' },
+                    ]}
+                    pointerEvents="none"
+                  />
+                  {/* Search icon disc — indigo w/ white icon */}
                   <View
                     style={[
                       styles.searchIconDisc,
-                      { backgroundColor: '#F4F0E8' },
+                      { backgroundColor: colors.primary },
                     ]}
                   >
-                    <Ionicons name="search" size={17} color={colors.primary} />
+                    <Ionicons name="search" size={17} color="#FFFFFF" />
                   </View>
                   {/* Text col */}
                   <View style={{ flex: 1 }}>
@@ -994,17 +1000,20 @@ export default function DiscoverScreen() {
                       QUOI · CE SOIR
                     </Text>
                     <Text
-                      style={[styles.searchTriggerText, { color: '#FFFFFF' }]}
+                      style={[
+                        styles.searchTriggerText,
+                        { color: isDark ? '#F4F0E8' : colors.primaryDark },
+                      ]}
                       numberOfLines={1}
                     >
                       {placeholderSuggestions[placeholderIndex]}
                     </Text>
                   </View>
-                  {/* Filter pill — translucent white on indigo */}
+                  {/* Filter pill — solid indigo with white text */}
                   <View
                     style={[
                       styles.searchFilterPill,
-                      { backgroundColor: 'rgba(255,255,255,0.18)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.28)' },
+                      { backgroundColor: colors.primary },
                     ]}
                   >
                     <Ionicons name="options" size={14} color="#FFFFFF" />

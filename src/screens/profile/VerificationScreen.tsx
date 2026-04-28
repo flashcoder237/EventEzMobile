@@ -254,6 +254,15 @@ export default function VerificationScreen() {
           Vérifiez votre identité pour renforcer la confiance des participants et débloquer toutes les fonctionnalités.
         </Text>
 
+        {/* === DISAMBIGUATION HINT === */}
+        <View style={[styles.hintCard, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}30` }]}>
+          <Ionicons name="information-circle" size={18} color={colors.primary} />
+          <Text style={[styles.hintText, { color: colors.gray700 }]}>
+            Cette page concerne la <Text style={{ fontFamily: FontFamily.bold, color: colors.primary }}>vérification d'identité</Text> (pièces officielles).
+            Pour modifier ta photo de profil, va dans <Text style={{ fontFamily: FontFamily.bold, color: colors.primary }}>Modifier le profil</Text>.
+          </Text>
+        </View>
+
         {/* === STATUS CALLOUTS === */}
         {status === 'approved' &&
           renderStatusCallout(
@@ -488,7 +497,22 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     fontSize: 14,
     lineHeight: 21,
+    marginBottom: Spacing.md,
+  },
+  hintCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    padding: 14,
+    borderRadius: 14,
+    borderWidth: 1,
     marginBottom: Spacing.xl,
+  },
+  hintText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 19,
+    flex: 1,
   },
 
   // === STATUS CALLOUT ===

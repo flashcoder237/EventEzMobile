@@ -19,6 +19,7 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -66,6 +67,7 @@ interface OptionCardProps {
   icon: keyof typeof Ionicons.glyphMap;
   eyebrow: string;
   title: string;
+  subtitle?: string;
   right?: React.ReactNode;
   onPress?: () => void;
   disabled?: boolean;
@@ -77,6 +79,7 @@ const OptionCard = ({
   icon,
   eyebrow,
   title,
+  subtitle,
   right,
   onPress,
   disabled,
@@ -158,6 +161,14 @@ const OptionCard = ({
         >
           {title}
         </Text>
+        {subtitle ? (
+          <Text
+            style={[optionStyles.subtitle, { color: colors.gray500 }]}
+            numberOfLines={2}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       {right}
     </Wrapper>
@@ -197,6 +208,11 @@ const optionStyles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     fontSize: 15,
     letterSpacing: -0.2,
+  },
+  subtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    marginTop: 2,
   },
 });
 
@@ -292,6 +308,9 @@ export default function SettingsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [deleteReason, setDeleteReason] = useState('');
+
+  // Effets sonores
+  const { enabled: soundsEnabled, setEnabled: setSoundsEnabled, play: playSound } = useSoundEffect();
 
   // Notifications
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -628,6 +647,21 @@ export default function SettingsScreen() {
             onPress={showTimezonePicker}
             disabled
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
+          />
+          <OptionCard
+            icon="musical-note-outline"
+            eyebrow="EFFETS SONORES"
+            title="Sons aux moments clés"
+            subtitle="Joue un son à la confirmation d'un paiement ou d'un scan QR"
+            right={
+              <SoftToggle
+                value={soundsEnabled}
+                onToggle={async (v) => {
+                  await setSoundsEnabled(v);
+                  if (v) playSound('payment-success');
+                }}
+              />
+            }
           />
         </View>
 

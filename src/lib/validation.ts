@@ -70,13 +70,14 @@ export const validators = {
    * Valide un nom d'utilisateur
    */
   username: (value: string, minLength: number = 3): ValidationResult => {
-    if (!value || !value.trim()) {
+    const trimmed = (value || '').trim();
+    if (!trimmed) {
       return 'Le nom d\'utilisateur est requis';
     }
-    if (value.length < minLength) {
+    if (trimmed.length < minLength) {
       return `Le nom d\'utilisateur doit contenir au moins ${minLength} caracteres`;
     }
-    if (!USERNAME_REGEX.test(value)) {
+    if (!USERNAME_REGEX.test(trimmed)) {
       return 'Lettres, chiffres et underscore (_) uniquement';
     }
     return null;

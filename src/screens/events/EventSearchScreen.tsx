@@ -527,6 +527,7 @@ export default function EventSearchScreen() {
             currency={item.currency || platformCurrency || 'FCFA'}
             attendees={item.registration_count || (item as any).registrations_count}
             variant={columns > 1 ? 'grid' : 'default'}
+            fullWidth={columns === 1}
             onPress={() => handleEventPress(item)}
           />
         </View>

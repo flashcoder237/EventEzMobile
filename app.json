@@ -38,6 +38,11 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.eventez.mobile",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDwIIAssxBr75JB5QBe-WGHzOONMzOjVic"
+        }
+      },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",

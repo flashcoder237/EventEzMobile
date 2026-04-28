@@ -32,6 +32,7 @@ import {
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
+import { useSoundEffect } from '../../hooks/useSoundEffect';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, 'PaymentSuccess'>;
@@ -64,6 +65,7 @@ export default function PaymentSuccessScreen() {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(1);
+  const { play: playSound } = useSoundEffect();
 
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 100 });
@@ -73,6 +75,8 @@ export default function PaymentSuccessScreen() {
       -1,
       false,
     );
+    // Son de confirmation paiement (respecte la pref utilisateur)
+    playSound('payment-success');
   }, []);
 
   const handleViewTicket = async () => {

@@ -10,7 +10,7 @@ import {
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -35,11 +35,17 @@ import {
 } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type EditRouteType = RouteProp<RootStackParamList, 'EventEdit'>;
 
 const CANVAS_LIGHT = '#F4F3F0';
 
 export default function EventCreateScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute();
+  // Le screen est utilise pour Create et Edit. En Edit, route.params.eventId existe.
+  const eventId = (route.params as EditRouteType['params'] | undefined)?.eventId;
+  const isEditing = !!eventId;
+
   const alertActions = useAlert();
   const { showAlert } = alertActions;
   const { colors, isDark } = useTheme();
@@ -105,14 +111,17 @@ export default function EventCreateScreen() {
     resetForm,
     hydrateForm,
     formatDate,
-  } = useEventForm(alertActions);
+  } = useEventForm(alertActions, eventId);
 
+  // Le systeme de brouillon n'a de sens qu'en mode creation : en edition,
+  // la source de verite est l'evenement existant cote backend.
   const { hasDraft, draftTitle, draftLoading, draftJustSaved, loadDraft, scheduleSave, saveNow, clearDraft } = useEventDraft();
   const draftCheckedRef = useRef(false);
   const formRef = useRef(form);
   formRef.current = form;
 
   useEffect(() => {
+    if (isEditing) return;
     if (draftLoading || draftCheckedRef.current) return;
     draftCheckedRef.current = true;
 
@@ -137,9 +146,10 @@ export default function EventCreateScreen() {
         'info'
       );
     }
-  }, [draftLoading, hasDraft, draftTitle, showAlert, clearDraft, loadDraft, hydrateForm]);
+  }, [isEditing, draftLoading, hasDraft, draftTitle, showAlert, clearDraft, loadDraft, hydrateForm]);
 
   useEffect(() => {
+    if (isEditing) return;
     if (draftLoading) return;
     const hasContent =
       form.title.trim() ||
@@ -156,7 +166,7 @@ export default function EventCreateScreen() {
 
     scheduleSave(form);
   }, [
-    draftLoading, scheduleSave,
+    isEditing, draftLoading, scheduleSave,
     form.currentStep, form.title, form.description, form.shortDescription,
     form.eventType, form.categoryId, form.selectedTagIds, form.customTags,
     form.bannerImage, form.galleryImages, form.startDate, form.endDate, form.registrationDeadline,
@@ -171,22 +181,42 @@ export default function EventCreateScreen() {
   ]);
 
   const handleBack = useCallback(async () => {
-    const hasContent =
-      formRef.current.title.trim() ||
-      formRef.current.description.trim() ||
-      formRef.current.bannerImage ||
-      formRef.current.galleryImages.length > 0 ||
-      formRef.current.ticketTypes.length > 0 ||
-      formRef.current.sessions.length > 0;
-    if (hasContent) {
-      await saveNow(formRef.current);
+    if (!isEditing) {
+      const hasContent =
+        formRef.current.title.trim() ||
+        formRef.current.description.trim() ||
+        formRef.current.bannerImage ||
+        formRef.current.galleryImages.length > 0 ||
+        formRef.current.ticketTypes.length > 0 ||
+        formRef.current.sessions.length > 0;
+      if (hasContent) {
+        await saveNow(formRef.current);
+      }
     }
     navigation.goBack();
-  }, [saveNow, navigation]);
+  }, [isEditing, saveNow, navigation]);
 
   const onSubmit = async () => {
-    const eventId = await handleSubmit();
-    if (eventId) {
+    const result = await handleSubmit();
+    if (!result) return;
+
+    if (isEditing) {
+      showAlert(
+        'Succès',
+        "L'événement a été mis à jour avec succès.",
+        [
+          {
+            text: 'Voir mes événements',
+            onPress: () => navigation.navigate('MyEvents'),
+          },
+          {
+            text: 'Continuer',
+            style: 'cancel',
+          },
+        ],
+        'success'
+      );
+    } else {
       await clearDraft();
       showAlert(
         'Succès',
@@ -210,7 +240,51 @@ export default function EventCreateScreen() {
   };
 
   const stepNumeral = String(form.currentStep).padStart(2, '0');
+  const totalNumeral = String(STEPS.length).padStart(2, '0');
   const currentStepConfig = STEPS[form.currentStep - 1];
+
+  const eyebrowText = isEditing
+    ? `Modifier · Étape ${stepNumeral} / ${totalNumeral}`
+    : `Étape ${stepNumeral} / ${totalNumeral}`;
+  const titleFallback = isEditing ? "Modifier l'événement" : 'Créer un événement';
+  const submitLabel = form.loading
+    ? (isEditing ? 'Mise à jour...' : 'Création...')
+    : (isEditing ? 'Mettre à jour' : "Publier l'événement");
+  const submitEyebrow = isEditing ? 'Sauvegarder' : 'Finaliser';
+  const submitA11yLabel = isEditing ? "Mettre à jour l'événement" : "Créer l'événement";
+
+  // Loading initial uniquement en mode edition (le fetch peut prendre quelques centaines de ms)
+  if (isEditing && form.loading && !form.title) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: canvasBg }]} edges={['top', 'bottom']}>
+        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={canvasBg} />
+        <View style={styles.keyboardView}>
+          <View style={styles.headerBar}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBack}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="arrow-back" size={22} color={colors.gray900} />
+            </TouchableOpacity>
+            <View style={styles.headerCenter}>
+              <Text style={[styles.headerBarEyebrow, { color: colors.gray500 }]}>Modifier</Text>
+              <Text style={[styles.headerBarTitle, { color: colors.gray900 }]} numberOfLines={1}>
+                Chargement…
+              </Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.loadingText, { color: colors.gray500 }]}>
+              Chargement de l'événement...
+            </Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: canvasBg }]} edges={['top', 'bottom']}>
@@ -230,12 +304,12 @@ export default function EventCreateScreen() {
 
           <View style={styles.headerCenter}>
             <Text style={[styles.headerBarEyebrow, { color: colors.gray500 }]}>
-              Étape {stepNumeral} / {String(STEPS.length).padStart(2, '0')}
+              {eyebrowText}
             </Text>
             <Text style={[styles.headerBarTitle, { color: colors.gray900 }]} numberOfLines={1}>
-              {currentStepConfig?.shortTitle || 'Créer un événement'}
+              {currentStepConfig?.shortTitle || titleFallback}
             </Text>
-            {draftJustSaved && (
+            {!isEditing && draftJustSaved && (
               <Animated.View
                 entering={FadeIn.duration(300)}
                 exiting={FadeOut.duration(300)}
@@ -477,13 +551,13 @@ export default function EventCreateScreen() {
               onPress={onSubmit}
               disabled={form.loading}
               accessibilityRole="button"
-              accessibilityLabel="Créer l'événement"
+              accessibilityLabel={submitA11yLabel}
               activeOpacity={0.88}
             >
               <View style={styles.nextButtonContent}>
-                <Text style={styles.nextButtonEyebrow}>Finaliser</Text>
+                <Text style={styles.nextButtonEyebrow}>{submitEyebrow}</Text>
                 <Text style={styles.nextButtonLabel} numberOfLines={1}>
-                  {form.loading ? 'Création...' : "Publier l'événement"}
+                  {submitLabel}
                 </Text>
               </View>
               <View style={styles.nextButtonArrow}>
@@ -519,6 +593,16 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.md,
+  },
+  loadingText: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.base,
   },
   // Header — no card bg, transparent, blends with canvas
   headerBar: {

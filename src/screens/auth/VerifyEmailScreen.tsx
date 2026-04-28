@@ -6,10 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -204,16 +202,14 @@ export default function VerifyEmailScreen() {
   return (
     <EditorialCanvas>
       <WatermarkNumeral>✓</WatermarkNumeral>
-      <KeyboardAvoidingView
+      <KeyboardAwareScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        bottomOffset={20}
+        extraKeyboardSpace={20}
       >
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* Back button */}
           <AnimatedPressable
             onPress={() => navigation.navigate('Login')}
@@ -428,8 +424,7 @@ export default function VerifyEmailScreen() {
             <Text style={[styles.wrongEmailText, { color: colors.gray500 }]}>Mauvais email ? </Text>
             <Text style={[styles.wrongEmailLink, { color: colors.primary }]}>Retour à la connexion</Text>
           </TouchableOpacity>
-        </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardAwareScrollView>
     </EditorialCanvas>
   );
 }
