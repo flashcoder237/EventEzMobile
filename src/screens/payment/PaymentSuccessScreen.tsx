@@ -102,7 +102,7 @@ export default function PaymentSuccessScreen() {
   const scale = useSharedValue(0);
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(1);
-  const { play: playSound } = useSoundEffect();
+  const { play: playSound, enabled: soundEnabled, setEnabled: setSoundEnabled } = useSoundEffect();
 
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 100 });
@@ -150,10 +150,10 @@ export default function PaymentSuccessScreen() {
           eyebrow: 'EN ATTENTE',
           watermark: 'WAIT',
           title: 'Inscription soumise',
-          subtitle: `Votre inscription${eventTitle ? ` pour "${eventTitle}"` : ''} a été soumise.\nElle est en attente de validation par l'organisateur.`,
+          subtitle: `Ton inscription${eventTitle ? ` pour « ${eventTitle} »` : ''} a été soumise.\nElle est en attente de validation par l'organisateur.`,
           infoItems: [
-            { icon: 'hourglass-outline', eyebrow: 'ÉTAPE 01', title: 'En attente de validation', description: 'L\'organisateur examinera votre inscription' },
-            { icon: 'notifications-outline', eyebrow: 'ÉTAPE 02', title: 'Notification', description: 'Vous serez notifié dès la validation' },
+            { icon: 'hourglass-outline', eyebrow: 'ÉTAPE 01', title: 'En attente de validation', description: 'L\'organisateur examinera ton inscription' },
+            { icon: 'notifications-outline', eyebrow: 'ÉTAPE 02', title: 'Notification', description: 'Tu seras notifié·e dès la validation' },
           ],
           primaryButtonText: 'Voir mes inscriptions',
           primaryButtonIcon: 'list',
@@ -167,10 +167,10 @@ export default function PaymentSuccessScreen() {
           eyebrow: 'CONFIRMÉ',
           watermark: 'OK!',
           title: 'Tu es inscrit.e !',
-          subtitle: `Votre inscription${eventTitle ? ` pour "${eventTitle}"` : ''} a été confirmée.\nVous recevrez un email de confirmation.`,
+          subtitle: `Ton inscription${eventTitle ? ` pour « ${eventTitle} »` : ''} a été confirmée.\nTu recevras un email de confirmation.`,
           infoItems: [
-            { icon: 'calendar', eyebrow: 'DÉTAILS', title: 'Votre inscription', description: 'Retrouvez les détails dans "Mes Billets"' },
-            { icon: 'qr-code', eyebrow: 'ENTRÉE', title: 'QR Code', description: 'Présentez votre QR code à l\'entrée' },
+            { icon: 'calendar', eyebrow: 'DÉTAILS', title: 'Ton inscription', description: 'Retrouve les détails dans « Mes Billets »' },
+            { icon: 'qr-code', eyebrow: 'ENTRÉE', title: 'QR Code', description: 'Présente ton QR code à l\'entrée' },
           ],
           primaryButtonText: 'Voir mes inscriptions',
           primaryButtonIcon: 'list',
@@ -185,10 +185,10 @@ export default function PaymentSuccessScreen() {
         eyebrow: 'PAIEMENT VALIDÉ',
         watermark: 'OK!',
         title: 'Paiement réussi !',
-        subtitle: 'Votre paiement a été effectué avec succès.\nVous recevrez un email de confirmation.',
+        subtitle: 'Ton paiement a été effectué avec succès.\nTu recevras un email de confirmation.',
         infoItems: [
-          { icon: 'ticket', eyebrow: 'BILLETS', title: 'Vos billets', description: 'Retrouvez vos billets dans "Mes Billets"' },
-          { icon: 'qr-code', eyebrow: 'ENTRÉE', title: 'QR Code', description: 'Présentez votre QR code à l\'entrée' },
+          { icon: 'ticket', eyebrow: 'BILLETS', title: 'Tes billets', description: 'Retrouve-les dans « Mes Billets »' },
+          { icon: 'qr-code', eyebrow: 'ENTRÉE', title: 'QR Code', description: 'Présente ton QR code à l\'entrée' },
         ],
         primaryButtonText: 'Voir mes billets',
         primaryButtonIcon: 'ticket',
@@ -204,6 +204,25 @@ export default function PaymentSuccessScreen() {
       <WatermarkNumeral>{content.watermark}</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
         {showConfetti && <ConfettiEffect />}
+
+        {/* Mini sound toggle — discreet, top-right */}
+        <TouchableOpacity
+          onPress={() => setSoundEnabled(!soundEnabled)}
+          style={[styles.muteToggle, { backgroundColor: colors.gray100 }]}
+          accessibilityRole="switch"
+          accessibilityState={{ checked: soundEnabled }}
+          accessibilityLabel={soundEnabled ? 'Couper le son' : 'Activer le son'}
+          activeOpacity={0.8}
+        >
+          <Ionicons
+            name={soundEnabled ? 'volume-high-outline' : 'volume-mute-outline'}
+            size={14}
+            color={colors.gray600}
+          />
+          <Text style={[styles.muteToggleText, { color: colors.gray600 }]}>
+            {soundEnabled ? 'Son' : 'Muet'}
+          </Text>
+        </TouchableOpacity>
 
         <ScrollView
           contentContainerStyle={styles.content}
@@ -451,6 +470,24 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
+  // Mini sound toggle (top-right corner)
+  muteToggle: {
+    position: 'absolute',
+    top: 12,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    zIndex: 5,
+  },
+  muteToggleText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.2,
+  },
   // Mini recap card
   recapCard: {
     width: '100%',

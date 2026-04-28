@@ -4,8 +4,10 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   ActivityIndicator,
   TextInput,
+  Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -120,6 +122,9 @@ export default function TicketPurchaseScreen() {
   const [validatingDiscount, setValidatingDiscount] = useState(false);
   const [appliedDiscount, setAppliedDiscount] = useState<Discount | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
+  // Direct quantity input modal
+  const [qtyModal, setQtyModal] = useState<{ ticketTypeId: string; ticketName: string } | null>(null);
+  const [qtyModalValue, setQtyModalValue] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -243,6 +248,40 @@ export default function TicketPurchaseScreen() {
     setSelections(newSelections);
   };
 
+  // Direct quantity setter — used by the long-press modal
+  const setQuantityDirect = (ticketTypeId: string, raw: string) => {
+    const parsed = parseInt(raw, 10);
+    if (Number.isNaN(parsed) || parsed < 0) return;
+    if (parsed > MAX_TICKETS_PER_TYPE) {
+      showAlert(
+        'Limite atteinte',
+        `Maximum ${MAX_TICKETS_PER_TYPE} billets par type et par commande. Pour un groupe plus large, contacte l'organisateur directement.`,
+        undefined,
+        'warning',
+      );
+      return;
+    }
+    const newSelections = new Map(selections);
+    if (parsed === 0) {
+      newSelections.delete(ticketTypeId);
+    } else {
+      newSelections.set(ticketTypeId, parsed);
+    }
+    setSelections(newSelections);
+  };
+
+  const openQtyModal = (ticketTypeId: string, ticketName: string) => {
+    setQtyModalValue(String(selections.get(ticketTypeId) || 0));
+    setQtyModal({ ticketTypeId, ticketName });
+  };
+
+  const confirmQtyModal = () => {
+    if (qtyModal) {
+      setQuantityDirect(qtyModal.ticketTypeId, qtyModalValue);
+    }
+    setQtyModal(null);
+  };
+
   const getSubtotal = () => {
     let total = 0;
     selections.forEach((quantity, ticketTypeId) => {
@@ -283,7 +322,7 @@ export default function TicketPurchaseScreen() {
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
-      setDiscountError('Veuillez entrer un code promo');
+      setDiscountError('Entre un code promo');
       return;
     }
 
@@ -359,13 +398,13 @@ export default function TicketPurchaseScreen() {
 
     // Validate tickets for billetterie
     if (isBilletterie && getTotalQuantity() === 0) {
-      showAlert('Attention', 'Veuillez sélectionner au moins un billet', undefined, 'warning');
+      showAlert('Attention', 'Sélectionne au moins un billet', undefined, 'warning');
       return;
     }
 
     // Validate form fields if present
     if (formFields.length > 0 && !validateForm()) {
-      showAlert('Attention', 'Veuillez remplir tous les champs obligatoires', undefined, 'warning');
+      showAlert('Attention', 'Remplis tous les champs obligatoires', undefined, 'warning');
       return;
     }
 
@@ -391,7 +430,7 @@ export default function TicketPurchaseScreen() {
         const response = await registrationsAPI.updateTickets(registrationId, tickets);
         finalRegistrationId = registrationId;
         paymentRequired = response.data.registration?.payment_required || getTotalPrice() > 0;
-        showSuccess('Succès', 'Vos billets ont été mis à jour');
+        showSuccess('Succès', 'Tes billets ont été mis à jour');
       } else if (isAdditionalMode && !existingRegistration) {
         // On est venu en mode "achat supplémentaire" mais aucune inscription
         // active n'a été trouvée -> ne PAS créer silencieusement une nouvelle
@@ -487,7 +526,7 @@ export default function TicketPurchaseScreen() {
         // L'utilisateur a déjà une inscription confirmée
         showConfirm(
           'Déjà inscrit',
-          errorData.message || 'Vous êtes déjà inscrit à cet événement.',
+          errorData.message || 'Tu es déjà inscrit·e à cet événement.',
           () => {
             // Rediriger vers les détails de l'inscription ou acheter plus de billets
             navigation.navigate('TicketPurchase', {
@@ -619,8 +658,8 @@ export default function TicketPurchaseScreen() {
             </View>
             <Text style={styles.existingTextE}>
               {existingRegistration.registration_type === 'inscription'
-                ? 'Votre inscription est '
-                : 'Votre réservation est '}
+                ? 'Ton inscription est '
+                : 'Ta réservation est '}
               <Text style={{ fontFamily: FontFamily.bold }}>
                 {existingRegistration.status === 'confirmed' ? 'confirmée' :
                  existingRegistration.status === 'pending' ? 'en attente de paiement' :
@@ -669,12 +708,12 @@ export default function TicketPurchaseScreen() {
                 onPress={() => {
                   showConfirm(
                     'Annuler l\'inscription',
-                    'Voulez-vous vraiment annuler votre inscription à cet événement ?',
+                    'Veux-tu vraiment annuler ton inscription à cet événement ?',
                     async () => {
                       try {
                         await registrationsAPI.cancelRegistration(existingRegistration.id);
                         setExistingRegistration(null);
-                        showSuccess('Succès', 'Votre inscription a été annulée');
+                        showSuccess('Succès', 'Ton inscription a été annulée');
                       } catch (error) {
                         showError('Erreur', 'Impossible d\'annuler l\'inscription');
                       }
@@ -796,7 +835,14 @@ export default function TicketPurchaseScreen() {
                               color={quantity === 0 ? colors.gray400 : Colors.white}
                             />
                           </TouchableOpacity>
-                          <Text style={[styles.bpQtyValue, { color: colors.text }]}>{quantity}</Text>
+                          <Pressable
+                            onLongPress={() => openQtyModal(String(ticketType.id), ticketType.name)}
+                            delayLongPress={400}
+                            accessibilityRole="adjustable"
+                            accessibilityLabel={`Quantité ${quantity}, appui long pour saisie directe`}
+                          >
+                            <Text style={[styles.bpQtyValue, { color: colors.text }]}>{quantity}</Text>
+                          </Pressable>
                           <TouchableOpacity
                             style={[styles.bpQtyBtn, { backgroundColor: colors.primary }]}
                             onPress={() => updateQuantity(String(ticketType.id), 1)}
@@ -1076,6 +1122,57 @@ export default function TicketPurchaseScreen() {
           </View>
         </TouchableOpacity>
       </View>
+
+      {/* === DIRECT QUANTITY MODAL (triggered by long-press on the qty number) === */}
+      <Modal
+        visible={!!qtyModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setQtyModal(null)}
+      >
+        <Pressable style={styles.qtyModalBackdrop} onPress={() => setQtyModal(null)}>
+          <Pressable
+            style={[styles.qtyModalCard, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.qtyModalEyebrow, { color: colors.accent }]}>QUANTITÉ DIRECTE</Text>
+            <Text style={[styles.qtyModalTitle, { color: colors.text }]} numberOfLines={2}>
+              {qtyModal?.ticketName}
+            </Text>
+            <TextInput
+              style={[
+                styles.qtyModalInput,
+                { borderColor: colors.gray200, color: colors.text, backgroundColor: colors.gray50 },
+              ]}
+              value={qtyModalValue}
+              onChangeText={(t) => setQtyModalValue(t.replace(/\D/g, ''))}
+              keyboardType="number-pad"
+              autoFocus
+              maxLength={2}
+              accessibilityLabel="Saisir la quantité"
+            />
+            <Text style={[styles.qtyModalHint, { color: colors.gray500 }]}>
+              Maximum {MAX_TICKETS_PER_TYPE} billets par type
+            </Text>
+            <View style={styles.qtyModalActions}>
+              <TouchableOpacity
+                style={[styles.qtyModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setQtyModal(null)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.qtyModalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.qtyModalBtn, { backgroundColor: colors.primary }]}
+                onPress={confirmQtyModal}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.qtyModalBtnText, { color: '#fff' }]}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
       </View>
     </EditorialCanvas>
   );
@@ -2061,5 +2158,65 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
     marginLeft: 8,
+  },
+  // Direct quantity modal (long-press)
+  qtyModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  qtyModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  qtyModalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  qtyModalTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 18,
+    letterSpacing: -0.4,
+    lineHeight: 22,
+    marginBottom: Spacing.md,
+  },
+  qtyModalInput: {
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    fontSize: 28,
+    fontFamily: FontFamily.displayExtraBold,
+    textAlign: 'center',
+    letterSpacing: -1,
+  },
+  qtyModalHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  qtyModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  qtyModalBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qtyModalBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
 });

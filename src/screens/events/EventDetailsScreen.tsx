@@ -29,6 +29,7 @@ import Animated, {
   interpolate,
   Extrapolation,
   FadeInUp,
+  runOnJS,
 } from 'react-native-reanimated';
 
 // Wrapper anime autour d'expo-image pour garder parallax + placeholder LQIP
@@ -138,9 +139,17 @@ export default function EventDetailsScreen() {
 
   // All hooks must be called before any early returns
   const scrollY = useSharedValue(0);
+  // Lazy-load heavy below-the-fold sections (Reviews, Sponsors, Agenda, Location).
+  // We reveal them once the user has scrolled past a threshold — saves the
+  // parallel API fetches + map mount on first render.
+  const HEAVY_REVEAL_THRESHOLD = 600;
+  const [heavyRevealed, setHeavyRevealed] = useState(false);
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
       scrollY.value = e.contentOffset.y;
+      if (e.contentOffset.y > HEAVY_REVEAL_THRESHOLD) {
+        runOnJS(setHeavyRevealed)(true);
+      }
     },
   });
 
@@ -846,38 +855,61 @@ export default function EventDetailsScreen() {
             onLeaveWaitlist={handleLeaveWaitlist}
           />
 
-          {/* Section: Agenda */}
-          {sessions && sessions.length > 0 && (
-            <AgendaTab
-              sessions={sessions}
-              loadingSessions={loadingSessions}
-            />
+          {/* === Heavy sections — mounted only after the user scrolls past
+              HEAVY_REVEAL_THRESHOLD. Until then, a thin placeholder reserves
+              minimal vertical space (no skeletons, no API mounts). === */}
+          {heavyRevealed ? (
+            <>
+              {/* Section: Agenda */}
+              {sessions && sessions.length > 0 && (
+                <AgendaTab
+                  sessions={sessions}
+                  loadingSessions={loadingSessions}
+                />
+              )}
+
+              {/* Section: Location */}
+              {event && (
+                <LocationTab event={event} />
+              )}
+
+              {/* Section: Reviews */}
+              <ReviewsTab
+                feedbacks={feedbacks}
+                loadingFeedbacks={loadingFeedbacks}
+                user={user}
+                showReviewForm={showReviewForm}
+                setShowReviewForm={setShowReviewForm}
+                reviewRating={reviewRating}
+                setReviewRating={setReviewRating}
+                reviewComment={reviewComment}
+                setReviewComment={setReviewComment}
+                submittingReview={submittingReview}
+                onSubmitReview={handleSubmitReview}
+                eventId={event?.id}
+                eventTitle={event?.title}
+              />
+
+              {/* Section: Sponsors */}
+              <SponsorsTab eventId={eventId} />
+            </>
+          ) : (
+            <View style={{ height: 320, justifyContent: 'center', alignItems: 'center' }}>
+              <ActivityIndicator size="small" color={colors.gray300} />
+              <Text
+                style={{
+                  fontFamily: FontFamily.medium,
+                  fontSize: 11,
+                  color: colors.gray400,
+                  marginTop: Spacing.sm,
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Agenda · Lieu · Avis · Sponsors
+              </Text>
+            </View>
           )}
-
-          {/* Section: Location */}
-          {event && (
-            <LocationTab event={event} />
-          )}
-
-          {/* Section: Reviews */}
-          <ReviewsTab
-            feedbacks={feedbacks}
-            loadingFeedbacks={loadingFeedbacks}
-            user={user}
-            showReviewForm={showReviewForm}
-            setShowReviewForm={setShowReviewForm}
-            reviewRating={reviewRating}
-            setReviewRating={setReviewRating}
-            reviewComment={reviewComment}
-            setReviewComment={setReviewComment}
-            submittingReview={submittingReview}
-            onSubmitReview={handleSubmitReview}
-            eventId={event?.id}
-            eventTitle={event?.title}
-          />
-
-          {/* Section: Sponsors */}
-          <SponsorsTab eventId={eventId} />
 
           {/* Spacer for bottom bar */}
           <View style={{ height: 120 }} />

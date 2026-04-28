@@ -23,6 +23,7 @@ import { registrationsAPI, paymentsAPI } from '../../api';
 import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -84,13 +85,13 @@ const METHOD_COLORS: Record<string, string> = {
 
 // Descriptions par méthode
 const METHOD_DESCRIPTIONS: Record<string, string> = {
-  mtn_money: 'Payez avec votre compte MTN MoMo',
-  orange_money: 'Payez avec votre compte Orange Money',
+  mtn_money: 'Paie avec ton compte MTN MoMo',
+  orange_money: 'Paie avec ton compte Orange Money',
   credit_card: 'Visa, Mastercard, etc.',
-  wave: 'Payez avec votre compte Wave',
-  mpesa: 'Payez avec M-Pesa',
-  airtel_money: 'Payez avec Airtel Money',
-  paypal: 'Payez avec votre compte PayPal',
+  wave: 'Paie avec ton compte Wave',
+  mpesa: 'Paie avec M-Pesa',
+  airtel_money: 'Paie avec Airtel Money',
+  paypal: 'Paie avec ton compte PayPal',
 };
 
 // Méthodes de type mobile money
@@ -196,14 +197,14 @@ const FALLBACK_METHODS: PaymentMethodOption[] = [
     name: 'MTN Mobile Money',
     icon: PaymentIcons.mtn_money,
     color: '#FFCC00',
-    description: 'Payez avec votre compte MTN MoMo',
+    description: 'Paie avec ton compte MTN MoMo',
   },
   {
     id: 'orange_money',
     name: 'Orange Money',
     icon: PaymentIcons.orange_money,
     color: '#FF6600',
-    description: 'Payez avec votre compte Orange Money',
+    description: 'Paie avec ton compte Orange Money',
   },
   {
     id: 'credit_card',
@@ -222,6 +223,7 @@ export default function PaymentScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { isSlowCellular, isOffline } = useNetworkSpeed();
 
   // Mode billets supplémentaires: on a des newTickets passés en params
   const isAdditionalTicketsMode = !!(newTickets && newTickets.length > 0);
@@ -316,7 +318,7 @@ export default function PaymentScreen() {
       setProcessing(false);
       showAlert(
         'Delai depasse',
-        'Le paiement prend plus de temps que prevu. Si vous avez deja confirme la transaction sur votre telephone, cliquez sur "J\'ai deja paye".',
+        'Le paiement prend plus de temps que prévu. Si tu as déjà confirmé la transaction sur ton téléphone, tape "J\'ai déjà payé".',
         [
           {
             text: 'J\'ai deja paye',
@@ -340,7 +342,7 @@ export default function PaymentScreen() {
       setProcessing(false);
       showAlert(
         'Verification interrompue',
-        'Impossible de verifier le statut du paiement (probleme de connexion). Votre paiement a peut-etre reussi.\n\nSi vous avez deja paye, cliquez sur "J\'ai deja paye" pour verifier.',
+        'Impossible de vérifier le statut du paiement (problème de connexion). Ton paiement a peut-être réussi.\n\nSi tu as déjà payé, tape "J\'ai déjà payé" pour vérifier.',
         [
           {
             text: 'J\'ai deja paye',
@@ -626,7 +628,7 @@ export default function PaymentScreen() {
       // Valider l'email (requis par le backend)
       const userEmail = user?.email;
       if (!userEmail) {
-        throw new Error('Email utilisateur non disponible. Veuillez vous reconnecter.');
+        throw new Error('Email utilisateur non disponible. Reconnecte-toi.');
       }
 
       // Générer une clé d'idempotence si pas encore fait
@@ -701,7 +703,7 @@ export default function PaymentScreen() {
             setProcessing(false);
             showAlert(
               'Paiement interrompu',
-              'Vous avez fermé la page de paiement. Si vous avez déjà effectué le paiement, vous pouvez vérifier son statut.',
+              'Tu as fermé la page de paiement. Si tu as déjà effectué le paiement, tu peux vérifier son statut.',
               [
                 {
                   text: 'Vérifier le statut',
@@ -755,7 +757,7 @@ export default function PaymentScreen() {
 
       showAlert(
         'Paiement annulé',
-        'Votre paiement a été annulé.',
+        'Ton paiement a été annulé.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error: any) {
@@ -816,7 +818,7 @@ export default function PaymentScreen() {
       setVerifyingManually(false);
       showAlert(
         'Vérification en cours',
-        'Le statut de votre paiement n\'a pas pu être confirmé immédiatement. Si vous avez reçu un SMS de confirmation de paiement, votre réservation sera validée automatiquement.\n\nConsultez vos billets dans quelques minutes.',
+        'Le statut de ton paiement n\'a pas pu être confirmé immédiatement. Si tu as reçu un SMS de confirmation, ta réservation sera validée automatiquement.\n\nConsulte tes billets dans quelques minutes.',
         [
           { text: 'Réessayer', onPress: () => handleAlreadyPaid() },
           { text: 'Voir mes billets', onPress: () => {
@@ -832,7 +834,7 @@ export default function PaymentScreen() {
     setVerifyingManually(false);
     showAlert(
       'Paiement en attente',
-      'Votre paiement est encore en cours de traitement. Si vous avez validé la transaction sur votre téléphone, elle sera confirmée automatiquement.\n\nVérifiez vos billets dans quelques minutes.',
+      'Ton paiement est encore en cours de traitement. Si tu as validé la transaction sur ton téléphone, elle sera confirmée automatiquement.\n\nVérifie tes billets dans quelques minutes.',
       [
         { text: 'Continuer à attendre', onPress: () => {
           setVerifyingManually(false);
@@ -976,7 +978,7 @@ export default function PaymentScreen() {
                   <Text style={styles.stepNumberText}>1</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Vous allez recevoir une notification sur votre téléphone
+                  Tu vas recevoir une notification sur ton téléphone
                 </Text>
               </View>
 
@@ -985,7 +987,7 @@ export default function PaymentScreen() {
                   <Text style={styles.stepNumberText}>2</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Entrez votre code PIN {dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money'}
+                  Entre ton code PIN {dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money'}
                 </Text>
               </View>
 
@@ -1027,8 +1029,8 @@ export default function PaymentScreen() {
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
                   {selectedMethod === 'paypal'
-                    ? 'Connectez-vous à votre compte PayPal'
-                    : 'Entrez les informations de votre carte bancaire'}
+                    ? 'Connecte-toi à ton compte PayPal'
+                    : 'Entre les infos de ta carte bancaire'}
                 </Text>
               </View>
 
@@ -1093,6 +1095,42 @@ export default function PaymentScreen() {
             keyboardShouldPersistTaps="handled"
             bottomOffset={120}
           >
+            {/* === SLOW/OFFLINE BANNER (above order summary on Payment) === */}
+            {(isOffline || isSlowCellular) && (
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: Spacing.sm,
+                  padding: Spacing.sm + 2,
+                  borderRadius: BorderRadius.lg,
+                  backgroundColor: isOffline ? '#FEE2E2' : '#FEF3C7',
+                  borderWidth: 1,
+                  borderColor: isOffline ? '#FCA5A5' : '#FDE68A',
+                  marginBottom: Spacing.md,
+                }}
+              >
+                <Ionicons
+                  name={isOffline ? 'cloud-offline' : 'cellular-outline'}
+                  size={16}
+                  color={isOffline ? '#DC2626' : '#D97706'}
+                />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontFamily: FontFamily.medium,
+                    fontSize: 12,
+                    color: isOffline ? '#991B1B' : '#92400E',
+                    lineHeight: 16,
+                  }}
+                >
+                  {isOffline
+                    ? 'Pas de connexion internet — le paiement ne peut pas démarrer.'
+                    : 'Connexion lente détectée — le paiement peut prendre plus de temps que prévu.'}
+                </Text>
+              </View>
+            )}
+
             {/* === ORDER SUMMARY (receipt) === */}
             <View style={styles.sectionE}>
               <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>
@@ -1384,7 +1422,7 @@ export default function PaymentScreen() {
                       ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
                       : selectedMethod === 'orange_money'
                       ? 'Numéros Orange valides: 655-659, 69, 55, 59'
-                      : `Entrez votre numéro ${dynamicMethods.find(m => m.id === selectedMethod)?.name || ''}`}
+                      : `Entre ton numéro ${dynamicMethods.find(m => m.id === selectedMethod)?.name || ''}`}
                   </Text>
                 )}
               </View>

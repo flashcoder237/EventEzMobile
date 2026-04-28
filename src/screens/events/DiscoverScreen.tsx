@@ -31,6 +31,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
+import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
 import { DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
 import { SectionEntrance, StaggeredItem, PulsingBadge } from '../../components/ui/Animations';
@@ -104,6 +105,7 @@ export default function DiscoverScreen() {
   const { colors, isDark } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
   const { unreadNotificationCount, unreadMessageCount } = useUnreadCounts();
+  const { isSlowCellular, isOffline } = useNetworkSpeed();
 
   // === State ===
   const [initialLoading, setInitialLoading] = useState(true);
@@ -872,7 +874,7 @@ export default function DiscoverScreen() {
           <DiscoverScreenSkeleton />
         ) : (
           <View style={{ flex: 1 }}>
-            {/* === COMPACT HEADER (on scroll) === */}
+            {/* === COMPACT HEADER (on scroll) — 2 lignes : search + chips === */}
             <Animated.View
               style={[
                 styles.compactHeader,
@@ -883,30 +885,62 @@ export default function DiscoverScreen() {
                 compactHeaderStyle,
               ]}
             >
-              <TouchableOpacity
-                style={[
-                  styles.compactSearchBar,
-                  { backgroundColor: colors.gray100 },
-                ]}
-                onPress={() => activateSearch()}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="search" size={16} color={colors.gray500} />
-                <Text style={[styles.compactSearchText, { color: colors.gray500 }]} numberOfLines={1}>
-                  {placeholderSuggestions[placeholderIndex]}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.compactBtn, { backgroundColor: colors.gray100 }]}
-                onPress={goToNotifications}
-                accessibilityRole="button"
-                accessibilityLabel="Notifications"
-              >
-                <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
-                {unreadNotificationCount > 0 && (
-                  <View style={[styles.compactBtnDot, { backgroundColor: colors.accent }]} />
-                )}
-              </TouchableOpacity>
+              <View style={styles.compactHeaderTopRow}>
+                <TouchableOpacity
+                  style={[
+                    styles.compactSearchBar,
+                    { backgroundColor: colors.gray100 },
+                  ]}
+                  onPress={() => activateSearch()}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="search" size={16} color={colors.gray500} />
+                  <Text style={[styles.compactSearchText, { color: colors.gray500 }]} numberOfLines={1}>
+                    {placeholderSuggestions[placeholderIndex]}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.compactBtn, { backgroundColor: colors.gray100 }]}
+                  onPress={goToNotifications}
+                  accessibilityRole="button"
+                  accessibilityLabel="Notifications"
+                >
+                  <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
+                  {unreadNotificationCount > 0 && (
+                    <View style={[styles.compactBtnDot, { backgroundColor: colors.accent }]} />
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Sticky category chips — same as in the editorial header above the feed */}
+              {categories.length > 0 && (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.compactChipsRow}
+                >
+                  <TouchableOpacity
+                    style={[styles.compactChip, { backgroundColor: colors.primary }]}
+                    onPress={() => activateSearch()}
+                    activeOpacity={0.75}
+                  >
+                    <Ionicons name="flash" size={11} color={Colors.white} />
+                    <Text style={[styles.compactChipText, { color: Colors.white }]}>Tout</Text>
+                  </TouchableOpacity>
+                  {categories.slice(0, 8).map((cat) => (
+                    <TouchableOpacity
+                      key={`compact-cat-${cat.id}`}
+                      style={[styles.compactChip, { backgroundColor: colors.gray100 }]}
+                      onPress={() => activateSearch(Number(cat.id))}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[styles.compactChipText, { color: colors.gray600 }]}>
+                        {cat.name}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              )}
             </Animated.View>
 
             {/* === FEED === */}
@@ -1105,6 +1139,43 @@ export default function DiscoverScreen() {
                   </ScrollView>
                 )}
               </View>
+
+              {/* === SLOW NETWORK BANNER === */}
+              {(isOffline || isSlowCellular) && (
+                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.md }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: Spacing.sm,
+                      padding: Spacing.sm + 2,
+                      borderRadius: BorderRadius.lg,
+                      backgroundColor: isOffline ? '#FEE2E2' : '#FEF3C7',
+                      borderWidth: 1,
+                      borderColor: isOffline ? '#FCA5A5' : '#FDE68A',
+                    }}
+                  >
+                    <Ionicons
+                      name={isOffline ? 'cloud-offline' : 'cellular-outline'}
+                      size={16}
+                      color={isOffline ? '#DC2626' : '#D97706'}
+                    />
+                    <Text
+                      style={{
+                        flex: 1,
+                        fontFamily: FontFamily.medium,
+                        fontSize: 12,
+                        color: isOffline ? '#991B1B' : '#92400E',
+                        lineHeight: 16,
+                      }}
+                    >
+                      {isOffline
+                        ? 'Tu es hors-ligne. Tes billets téléchargés restent accessibles.'
+                        : 'Connexion lente détectée — le chargement peut prendre plus de temps.'}
+                    </Text>
+                  </View>
+                </View>
+              )}
 
               {/* === HERO === */}
               {featuredEvents[0] && (
@@ -1549,19 +1620,41 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  // === COMPACT HEADER ===
+  // === COMPACT HEADER (2 niveaux : search + chips) ===
   compactHeader: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
+    paddingHorizontal: Spacing.md,
+    paddingTop: 8,
+    paddingBottom: 6,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  compactHeaderTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
     gap: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  compactChipsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingTop: 6,
+    paddingRight: Spacing.sm,
+  },
+  compactChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: BorderRadius.full,
+    gap: 4,
+  },
+  compactChipText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
   compactSearchBar: {
     flex: 1,
