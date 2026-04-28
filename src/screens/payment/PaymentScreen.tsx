@@ -871,6 +871,20 @@ export default function PaymentScreen() {
             <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
           </View>
         )}
+
+        {!processing && (
+          <Text
+            style={{
+              fontFamily: FontFamily.regular,
+              fontSize: 10,
+              color: colors.gray400,
+              marginTop: 6,
+              letterSpacing: 0.2,
+            }}
+          >
+            Paiement chiffré via NotchPay & Stripe
+          </Text>
+        )}
       </View>
 
       {processing ? (

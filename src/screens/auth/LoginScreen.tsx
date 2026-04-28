@@ -593,7 +593,7 @@ export default function LoginScreen() {
 
           {/* Terms & Privacy */}
           <Text style={[styles.termsText, { color: colors.gray500 }]}>
-            En vous connectant, vous acceptez nos{' '}
+            En te connectant, tu acceptes nos{' '}
             <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/terms')}>Conditions d'utilisation</Text> et notre{' '}
             <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/privacy')}>Politique de confidentialité</Text>
           </Text>

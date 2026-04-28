@@ -1327,13 +1327,6 @@ const styles = StyleSheet.create({
     letterSpacing: -1.5,
     lineHeight: 42,
   },
-  headerDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginLeft: 6,
-    marginTop: 4,
-  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
