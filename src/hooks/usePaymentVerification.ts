@@ -98,6 +98,10 @@ export interface PaymentVerificationResult {
   error: string | null;
   /** Last known payment status from the API */
   paymentStatus: string | null;
+  /** Number of polling attempts performed since the current verification started. Resets on startVerification(). */
+  currentAttempt: number;
+  /** Configured ceiling for attempts (mirrors maxAttempts option). */
+  maxAttempts: number;
   /** Start the verification polling for a given paymentId */
   startVerification: (paymentId: string) => void;
   /** Stop the current verification polling */
@@ -176,6 +180,9 @@ export function usePaymentVerification(
   const [status, setStatus] = useState<PaymentVerificationStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string | null>(null);
+  // Exposé au consumer pour afficher "Tentative N/36" pendant le polling.
+  // Réinitialisé à 0 au début de chaque startVerification().
+  const [currentAttempt, setCurrentAttempt] = useState(0);
 
   // Refs to manage the polling loop lifecycle
   const stopRef = useRef<boolean>(false);
@@ -231,6 +238,7 @@ export function usePaymentVerification(
       setStatus('verifying');
       setError(null);
       setPaymentStatus(null);
+      setCurrentAttempt(0);
 
       let attempts = 0;
       let consecutiveErrors = 0;
@@ -272,6 +280,7 @@ export function usePaymentVerification(
           } else if (attempts < maxAttempts) {
             // Still pending
             attempts++;
+            setCurrentAttempt(attempts);
             timeoutRef.current = setTimeout(checkStatus, pollInterval);
           } else {
             // Timeout
@@ -309,6 +318,7 @@ export function usePaymentVerification(
           } else {
             consecutiveErrors++;
             attempts++;
+            setCurrentAttempt(attempts);
 
             if (attempts < maxAttempts && consecutiveErrors < maxConsecutiveErrors) {
               // Calculate delay with optional progressive backoff
@@ -437,6 +447,8 @@ export function usePaymentVerification(
     isVerifying: status === 'verifying',
     error,
     paymentStatus,
+    currentAttempt,
+    maxAttempts,
     startVerification,
     stopVerification,
     manualVerify,

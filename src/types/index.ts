@@ -1504,6 +1504,7 @@ export type RootStackParamList = {
   PaymentSuccess: {
     paymentId: string;
     registrationId?: string;
+    eventId?: string;
     eventType?: 'billetterie' | 'inscription';
     registrationStatus?: string;
     approvalStatus?: string;

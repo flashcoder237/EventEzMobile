@@ -1,12 +1,17 @@
 # UX Audit — Items différés
 
 Source : [UX_AUDIT_PARCOURS_INVITE.md](./UX_AUDIT_PARCOURS_INVITE.md)
-Mise à jour : 2026-04-28 (post-phase-6)
+Mise à jour : 2026-04-29 (post-phase-7)
 
 Les items ci-dessous ont été **identifiés et différés** car ils nécessitent plus que du polish local : assets externes, refactor architectural, ou décisions produit/backend. Chacun est tracé pour ne pas être perdu.
 
-> ✅ **Phase 6 (commit 04a97d3) a livré** : tutoiement sweep, NetInfo banner 2G/3G, confettis adaptive Android, mute toggle PaymentSuccess, saisie directe quantité (long-press), sticky chips Discover, lazy-load EventDetails sections.
-> Les items ci-dessous sont ceux qui restent vraiment.
+> ✅ **Phase 6** (commit 04a97d3) : tutoiement sweep golden-path, NetInfo banner 2G/3G, confettis adaptive Android, mute toggle PaymentSuccess, saisie directe quantité (long-press), sticky chips Discover, lazy-load EventDetails sections.
+>
+> ✅ **Guest checkout** (commits mobile 8afd095 + backend 1d2b9ab) : end-to-end "Continuer en invité" pour events gratuits.
+>
+> ✅ **Phase 7** : compteur tentative polling, bouton "Inviter un ami", flow "Demander un groupe" sur quantity > 10, tutoiement sweep MyPayments/Refund/Failed, skeleton léger Discover.
+>
+> Les items ci-dessous sont ceux qui restent vraiment — tous nécessitent assets, backend, ou décisions produit que je ne peux pas trancher seul.
 
 ---
 
@@ -59,29 +64,25 @@ Les items ci-dessous ont été **identifiés et différés** car ils nécessiten
 
 ## 🗣 Décisions produit en attente
 
-### "Continuer en invité" sur events gratuits
-- **Quoi** : bouton secondaire sur LoginScreen quand le `returnScreen === 'TicketPurchase'` ET que l'event est gratuit. Crée un compte light auto avec email + prénom.
-- **Pourquoi** : conversion énorme sur les events gratuits (workshops, free meetups).
-- **Effort** : moyen. Frontend = 2h. Backend = endpoint `register-light` avec compte non-vérifié.
-- **Risque** : duplications de comptes si l'utilisateur revient avec un mot de passe ensuite.
+### ~~"Continuer en invité" sur events gratuits~~ ✅ Livré (commits mobile 8afd095 + backend 1d2b9ab)
+- LoginScreen propose un bouton secondaire quand `eventIsFree=true`, modal email+prénom, backend `POST /api/auth/guest-register/` + `POST /api/auth/upgrade-guest/`. Migration `0012_user_is_guest`. Permission `IsNotGuest` pour bloquer les guests sur les actions sensibles. Upgrade prompt sur PaymentSuccess.
 
 ### ~~Mute toggle / silent mode pour les sons~~ ✅ Livré (phase 6)
 - Mini-toggle "Son / Muet" en haut à droite de PaymentSuccess.
 
-### Bouton "Inviter un ami" sur PaymentSuccess
-- **Quoi** : moment haute valeur émotionnelle pour de la viralité. Partage avec deep-link `/events/[id]?ref=user_xxx`.
-- **Effort** : 1-2h (deep linking + tracking ref).
-- **Risque** : confidentialité — vérifier qu'on ne leak pas d'info sensible dans le ref.
+### ~~Bouton "Inviter un ami" sur PaymentSuccess~~ ✅ Livré (phase 7)
+- Bouton outline corail sous "Ajouter au calendrier" qui ouvre `Share.share()` avec un deep-link vers l'event. Le `?ref=u<id>` est tronqué à 12 caractères et n'expose ni email ni paymentId.
 
 ---
 
 ## 📊 Items "nice-to-have"
 
-- ~~Confettis dégradés sur Android < 10 (perf sur vieux devices)~~ ✅ Livré (phase 6 — cap à 60 particules sur API < 30)
-- Compteur "Tentative N/36" pendant le polling (en plus de la progress bar récemment ajoutée). Nécessite d'exposer les compteurs internes du hook `usePaymentVerification`.
-- Limite quantity > 10 : flow "Demander un groupe" qui ouvre un message à l'organisateur (l'alerte explicite est en place ; reste à câbler le deep-link Messages).
+- ~~Confettis dégradés sur Android < 10~~ ✅ Livré (phase 6)
+- ~~Compteur "Tentative N/36" pendant le polling~~ ✅ Livré (phase 7) — `usePaymentVerification` expose `currentAttempt` et `maxAttempts`, affichés dans la progress bar.
+- ~~Limite quantity > 10 : flow "Demander un groupe"~~ ✅ Livré (phase 7) — l'alerte propose maintenant un bouton "Contacter l'organisateur" qui navigue vers `Conversation` avec l'organizer pré-sélectionné.
 - ~~Saisie directe de quantité (long-press → modal)~~ ✅ Livré (phase 6)
-- ~~Voix unique tutoiement~~ ✅ Largement livré (phase 6) sur PaymentScreen + PaymentSuccess + TicketPurchase + LoginScreen. Les écrans hors golden-path (MyPayments, RefundRequest, PaymentFailed) restent à passer.
+- ~~Voix unique tutoiement~~ ✅ Complet (phases 6 + 7). MyPayments, RefundRequest, PaymentFailed passés en phase 7.
+- ~~Skeleton léger pour DiscoverScreen~~ ✅ Livré (phase 7) — squelette réduit au search + 1 hero + 1 teaser horizontal.
 
 ---
 

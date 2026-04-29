@@ -896,6 +896,10 @@ export const DiscountCardSkeleton = memo(function DiscountCardSkeleton() {
 // Matches DiscoverScreen: header + featured horizontal scroll + section titles + event cards
 // ============================================
 export const DiscoverScreenSkeleton = memo(function DiscoverScreenSkeleton() {
+  // Squelette réduit : on n'affiche que ce que l'utilisateur verra "above the
+  // fold" pendant le tout premier chargement (search + hero + une rangée de
+  // teasers). Les sections restantes apparaissent quand les fetches arrivent
+  // — pas besoin de squelette complet pour des données qui sont à 600px de scroll.
   const { colors } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
@@ -907,18 +911,10 @@ export const DiscoverScreenSkeleton = memo(function DiscoverScreenSkeleton() {
       <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
         <Skeleton width="40%" height={18} />
       </View>
-      {/* Featured horizontal cards */}
-      <View style={{ flexDirection: 'row', paddingLeft: Spacing.lg, gap: Spacing.md, marginBottom: Spacing.xl }}>
-        <View style={[styles.eventCard, { backgroundColor: colors.card }]}>
-          <Skeleton height={200} borderRadius={0} />
-          <View style={styles.eventCardContent}>
-            <Skeleton width="45%" height={12} style={{ marginBottom: 6 }} />
-            <Skeleton width="85%" height={16} style={{ marginBottom: 6 }} />
-            <Skeleton width="35%" height={16} />
-          </View>
-        </View>
-        <View style={[styles.eventCard, { backgroundColor: colors.card }]}>
-          <Skeleton height={200} borderRadius={0} />
+      {/* Hero card (single, full-bleed visual placeholder) */}
+      <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.lg }}>
+        <View style={[styles.eventCard, { backgroundColor: colors.card, width: '100%' }]}>
+          <Skeleton height={180} borderRadius={0} />
           <View style={styles.eventCardContent}>
             <Skeleton width="45%" height={12} style={{ marginBottom: 6 }} />
             <Skeleton width="85%" height={16} style={{ marginBottom: 6 }} />
@@ -926,13 +922,8 @@ export const DiscoverScreenSkeleton = memo(function DiscoverScreenSkeleton() {
           </View>
         </View>
       </View>
-      {/* Upcoming section */}
-      <View style={{ paddingHorizontal: Spacing.lg, marginBottom: Spacing.sm }}>
-        <Skeleton width="55%" height={18} />
-      </View>
-      <View style={{ paddingHorizontal: Spacing.lg, gap: Spacing.md }}>
-        <EventCardHorizontalSkeleton />
-        <EventCardHorizontalSkeleton />
+      {/* Single teaser row (one horizontal card hint) */}
+      <View style={{ paddingHorizontal: Spacing.lg }}>
         <EventCardHorizontalSkeleton />
       </View>
     </View>

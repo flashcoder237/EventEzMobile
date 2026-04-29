@@ -112,7 +112,7 @@ export default function RefundRequestScreen() {
 
   const handleSubmit = async () => {
     if (!selectedReason) {
-      showError('Erreur', 'Veuillez sélectionner une raison');
+      showError('Erreur', 'Sélectionne une raison');
       return;
     }
 
@@ -140,7 +140,7 @@ export default function RefundRequestScreen() {
         amount: amount,
         reason: fullReason,
       });
-      showSuccess('Succès', 'Votre demande de remboursement a été soumise');
+      showSuccess('Succès', 'Ta demande de remboursement a été soumise');
       navigation.goBack();
     } catch (error: any) {
       if (__DEV__) console.error('Error creating refund:', error);

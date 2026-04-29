@@ -91,7 +91,7 @@ export default function MyPaymentsScreen() {
       setPayments(data);
     } catch (error) {
       if (__DEV__) console.error('Error fetching payments:', error);
-      showError('Erreur', 'Impossible de charger vos paiements');
+      showError('Erreur', 'Impossible de charger tes paiements');
     } finally {
       setLoading(false);
     }
@@ -352,8 +352,8 @@ export default function MyPaymentsScreen() {
       <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun paiement</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || statusFilter !== 'all'
-          ? 'Aucun paiement ne correspond à vos critères.'
-          : "Vous n'avez pas encore effectué de paiement.\nVos transactions apparaîtront ici."}
+          ? 'Aucun paiement ne correspond à tes critères.'
+          : "Tu n'as pas encore effectué de paiement.\nTes transactions apparaîtront ici."}
       </Text>
     </View>
   );

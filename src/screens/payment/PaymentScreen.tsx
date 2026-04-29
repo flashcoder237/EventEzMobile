@@ -146,11 +146,15 @@ type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
 function PollingProgressBar({
   primaryColor,
   trackColor,
+  attempt,
+  maxAttempts,
 }: {
   primaryColor: string;
   trackColor: string;
+  attempt: number;
+  maxAttempts: number;
 }) {
-  const POLL_DURATION_SECONDS = 180; // 36 attempts × 5s
+  const POLL_DURATION_SECONDS = 180; // 36 attempts × 5s (default config)
   const [elapsed, setElapsed] = React.useState(0);
   React.useEffect(() => {
     const start = Date.now();
@@ -159,7 +163,11 @@ function PollingProgressBar({
     }, 1000);
     return () => clearInterval(interval);
   }, []);
-  const progress = Math.min(1, elapsed / POLL_DURATION_SECONDS);
+  // Privilégie le compteur réel d'attempts (plus fidèle à l'état du polling),
+  // tombe sur le timer si le hook n'a pas encore enregistré d'attempt.
+  const attemptProgress = maxAttempts > 0 ? attempt / maxAttempts : 0;
+  const timeProgress = elapsed / POLL_DURATION_SECONDS;
+  const progress = Math.min(1, Math.max(attemptProgress, timeProgress));
   return (
     <>
       <View style={[styles.pollingProgressTrack, { backgroundColor: trackColor }]}>
@@ -172,6 +180,7 @@ function PollingProgressBar({
       </View>
       <Text style={[styles.pollingProgressLabel, { color: '#888' }]}>
         Vérification du paiement · {elapsed}s
+        {attempt > 0 ? ` · tentative ${attempt}/${maxAttempts}` : ''}
       </Text>
     </>
   );
@@ -281,6 +290,8 @@ export default function PaymentScreen() {
   // Shared payment verification hook
   const {
     isVerifying: isPolling,
+    currentAttempt: pollingAttempt,
+    maxAttempts: pollingMaxAttempts,
     startVerification,
     stopVerification,
     manualVerify,
@@ -298,6 +309,7 @@ export default function PaymentScreen() {
       navigation.replace('PaymentSuccess', {
         paymentId: paymentId!,
         registrationId: registrationId,
+        eventId: eventObj?.id,
         eventType: eventObj?.event_type || registration?.registration_type,
         registrationStatus: registration?.status,
         approvalStatus: registration?.approval_status,
@@ -966,7 +978,14 @@ export default function PaymentScreen() {
           </Text>
 
           {/* Polling progress — visual feedback during the up-to-3-min wait */}
-          {isPolling && <PollingProgressBar primaryColor={colors.primary} trackColor={colors.gray100} />}
+          {isPolling && (
+            <PollingProgressBar
+              primaryColor={colors.primary}
+              trackColor={colors.gray100}
+              attempt={pollingAttempt}
+              maxAttempts={pollingMaxAttempts}
+            />
+          )}
 
           {/* Instructions détaillées pour Mobile Money */}
           {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (

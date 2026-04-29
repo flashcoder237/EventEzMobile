@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   ActivityIndicator,
+  Share,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -41,6 +42,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
+import { getEventUrl } from '../../constants/urls';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, 'PaymentSuccess'>;
@@ -67,9 +69,33 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate } = route.params;
+  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  // Hooks d'auth/sound déclarés tôt — utilisés par handleInviteFriend ci-dessous
+  const { isGuest, user, upgradeGuest } = useAuth();
+
+  // Partage l'event via le système OS (whatsapp/sms/etc) avec un deep-link.
+  // Le ref encode l'ID utilisateur pour tracker la viralité côté backend, mais
+  // ne contient AUCUNE donnée sensible (pas d'email, pas de paymentId).
+  const handleInviteFriend = useCallback(async () => {
+    if (!eventId) return;
+    try {
+      const refSegment = user?.id ? `?ref=u${String(user.id).slice(0, 12)}` : '';
+      const url = `${getEventUrl(String(eventId))}${refSegment}`;
+      const message = eventTitle
+        ? `Je viens de prendre ma place pour « ${eventTitle} » sur EventEz 🎫\n\nViens avec moi : ${url}`
+        : `Je viens de prendre ma place sur EventEz 🎫\n\nDécouvre l'événement : ${url}`;
+      await Share.share({
+        message,
+        // iOS : permet d'ouvrir le lien comme URL distincte du texte
+        url,
+        title: eventTitle || 'Mon événement EventEz',
+      });
+    } catch {
+      // L'utilisateur a fermé le bottom sheet — pas une erreur à reporter
+    }
+  }, [eventId, eventTitle, user?.id]);
 
   // Construit l'URL Google Calendar à partir des params reçus (start +2h par défaut)
   const handleAddToCalendar = useCallback(() => {
@@ -109,7 +135,6 @@ export default function PaymentSuccessScreen() {
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(1);
   const { play: playSound, enabled: soundEnabled, setEnabled: setSoundEnabled } = useSoundEffect();
-  const { isGuest, user, upgradeGuest } = useAuth();
   const { showError, showSuccess } = useAlert();
 
   // Upgrade-guest modal
@@ -441,6 +466,21 @@ export default function PaymentSuccessScreen() {
             </TouchableOpacity>
           )}
 
+          {eventId && (
+            <TouchableOpacity
+              style={[styles.invitePill, { backgroundColor: `${colors.accent}15`, borderColor: colors.accent }]}
+              onPress={handleInviteFriend}
+              activeOpacity={0.85}
+              accessibilityLabel="Inviter un ami"
+              accessibilityRole="button"
+            >
+              <Ionicons name="people-outline" size={14} color={colors.accent} />
+              <Text style={[styles.invitePillText, { color: colors.accent }]}>
+                Inviter un ami
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
             style={[styles.secondaryPill, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
@@ -740,6 +780,20 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   calendarPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  invitePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+  },
+  invitePillText: {
     fontFamily: FontFamily.bold,
     fontSize: 13,
     letterSpacing: 0.2,

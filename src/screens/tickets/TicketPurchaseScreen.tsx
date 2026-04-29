@@ -223,6 +223,26 @@ export default function TicketPurchaseScreen() {
   };
 
   const MAX_TICKETS_PER_TYPE = 10;
+  const handleGroupInquiry = () => {
+    // Le user veut > 10 billets — on ouvre une conversation avec l'organisateur
+    // pour qu'il négocie directement (tarif groupe, billets dédiés, etc.).
+    const organizer = event?.organizer;
+    if (!organizer || !(organizer as any).id) {
+      showAlert(
+        'Indisponible',
+        "Impossible d'ouvrir le chat avec l'organisateur. Contacte le support à la place.",
+        undefined,
+        'warning',
+      );
+      return;
+    }
+    const organizerName = `${organizer.first_name || ''} ${organizer.last_name || ''}`.trim() || organizer.email || 'Organisateur';
+    navigation.navigate('Conversation', {
+      userId: String((organizer as any).id),
+      userName: organizerName,
+    });
+  };
+
   const updateQuantity = (ticketTypeId: string, delta: number) => {
     const current = selections.get(ticketTypeId) || 0;
     const intended = current + delta;
@@ -230,8 +250,11 @@ export default function TicketPurchaseScreen() {
     if (intended > MAX_TICKETS_PER_TYPE) {
       showAlert(
         'Limite atteinte',
-        `Maximum ${MAX_TICKETS_PER_TYPE} billets par type et par commande. Pour un groupe plus large, contacte l'organisateur directement.`,
-        undefined,
+        `Maximum ${MAX_TICKETS_PER_TYPE} billets par type et par commande. Pour un groupe plus large, contacte l'organisateur — il pourra te proposer un tarif dédié.`,
+        [
+          { text: 'OK', style: 'cancel' },
+          { text: 'Contacter l\'organisateur', onPress: handleGroupInquiry },
+        ],
         'warning',
       );
       return;

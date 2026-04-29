@@ -33,9 +33,9 @@ export default function PaymentFailedScreen() {
   const { colors } = useTheme();
 
   const reasons = [
-    { icon: 'card-outline' as const, eyebrow: 'CAUSE 01', title: 'Carte refusée', description: 'Vérifiez votre solde ou les infos de votre carte' },
-    { icon: 'wifi-outline' as const, eyebrow: 'CAUSE 02', title: 'Réseau instable', description: 'Vérifiez votre connexion et réessayez' },
-    { icon: 'shield-outline' as const, eyebrow: 'CAUSE 03', title: 'Sécurité', description: 'Le paiement a été bloqué par votre banque' },
+    { icon: 'card-outline' as const, eyebrow: 'CAUSE 01', title: 'Carte refusée', description: 'Vérifie ton solde ou les infos de ta carte' },
+    { icon: 'wifi-outline' as const, eyebrow: 'CAUSE 02', title: 'Réseau instable', description: 'Vérifie ta connexion et réessaie' },
+    { icon: 'shield-outline' as const, eyebrow: 'CAUSE 03', title: 'Sécurité', description: 'Le paiement a été bloqué par ta banque' },
   ];
 
   return (
