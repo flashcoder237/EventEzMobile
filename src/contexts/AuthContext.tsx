@@ -203,9 +203,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true }));
-    // authAPI.logout() appelle déjà clearTokens() dans son finally (blackliste
-    // le refresh côté backend + nettoie SecureStore localement). Pas besoin de
-    // rappeler clearTokens() ici — doublon inutile.
+    // ORDRE IMPORTANT pour l'isolation des push notifications :
+    // 1. Désenregistrer le push token côté backend AVANT de blackliste les
+    //    tokens JWT. Sinon, l'API unregister-device retourne 401 et le
+    //    PushDeviceToken reste actif lié à l'ancien user — risque qu'un push
+    //    en transit soit livré. Voir UX_AUDIT_NOTIFICATIONS_ISOLATION.md §5.2.
+    // 2. Ensuite seulement, authAPI.logout() blackliste le refresh + clear
+    //    SecureStore (clearTokens() dans son finally).
+    try {
+      // Lazy import pour éviter le cycle AuthContext ↔ NotificationContext
+      const pushService = (await import('../services/pushNotificationService')).default;
+      await pushService.unregisterDevice();
+    } catch (error) {
+      if (__DEV__) console.warn('Push unregister failed:', error);
+    }
     try {
       await authAPI.logout();
     } catch (error) {

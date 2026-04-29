@@ -147,7 +147,14 @@ export default function NotificationsScreen() {
   }, []);
 
   const fetchNotifications = async (bypassCache = false) => {
-    const cacheKey = `notifs:${user?.id}`;
+    // Garde-fou : NotificationsScreen est censée n'être visible qu'authentifié
+    // (auth-guard sur l'onglet), mais on protège contre un rare cas de course
+    // où user serait null pendant un fetch en flight au logout.
+    if (!user?.id) {
+      dispatch({ type: 'SET_LOADING', payload: false });
+      return;
+    }
+    const cacheKey = `notifs:${user.id}`;
     try {
       if (!bypassCache) {
         const cached = await CacheService.get<Notification[]>(cacheKey);
