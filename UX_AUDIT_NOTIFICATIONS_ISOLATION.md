@@ -218,7 +218,43 @@ Ajouter un commentaire explicite dans `NotificationViewSet.get_queryset` rappela
 
 ---
 
-## 6. Synthèse
+## 6. Émission — qui notifie qui ?
+
+Vérification que chaque appelant de `NotificationService.send_notification` / `send_bulk_notification` passe le bon destinataire (et pas, par exemple, `request.user` à la place de l'organizer ciblé).
+
+| Source | Destinataire (`user=...`) | Sémantique | ✅ |
+|---|---|---|---|
+| `events.signals._notify_event_cancelled` | tous les `registrations.user` (bulk) | participants prévenus de l'annulation | ✅ |
+| `events.signals._notify_event_validated` | `event.organizer` | son event validé | ✅ |
+| `events.signals._notify_event_rejected` | `event.organizer` | son event rejeté | ✅ |
+| `events.signals.notify_on_new_follower` | `event.organizer` (jamais `instance.user`) | quelqu'un l'a suivi | ✅ |
+| `events.views.request_changes` | `event.organizer` | modifs demandées | ✅ |
+| `registrations.signals` check-in | `registration.user` | son check-in | ✅ |
+| `registrations.signals` transfer créé | `transfer.recipient` | il reçoit un billet | ✅ |
+| `registrations.signals` transfer accepté/refusé | `transfer.sender` | son transfert résolu | ✅ |
+| `payments.signals` refund processed | `payment.user` | son refund traité | ✅ |
+| `payments.tasks` payment_confirmation | `payment.user` | son paiement confirmé | ✅ |
+| `user_messages.signals` new_message | `participants.exclude(id=sender_user.id)` (boucle) | les autres participants | ✅ |
+| `waitlist_models.notify_user_available` | `self.user` | son tour de waitlist | ✅ |
+| `core.tasks` event_reminder | `registration.user` (boucle sur les inscrits confirmés) | rappel J-X | ✅ |
+| `core.tasks` registration_expired | `registration.user` | son inscription expirée | ✅ |
+| `core.tasks` usage_billing | `event.organizer` | facturation usage | ✅ |
+
+**Patterns sains observés** :
+- Aucun call site ne passe `request.user` à la place du destinataire métier.
+- Les bulks (`send_bulk_notification`, boucles `for recipient in recipients`) filtrent toujours sur la relation correcte (participants d'un event, sender exclu de sa propre conversation, etc.).
+- `notify_on_new_follower` exclut explicitement le cas où l'organizer follow son propre event (`if instance.user == event.organizer: return`).
+- Le wrapper deprecated `apps/core/utils.send_notification` passe `user` tel quel — pas de transformation.
+
+**Le cycle complet est étanche** :
+1. Backend code → `NotificationService.send_notification(user=destinataire, ...)`
+2. → `Notification.objects.create(user=destinataire, ...)` en DB
+3. → Push tokens lookup `PushDeviceToken.objects.filter(user=destinataire, is_active=True)`
+4. Le destinataire fetch via `GET /notifications/` → `get_queryset` filtré sur `request.user` → ne voit que les notifs où `user=lui`.
+
+---
+
+## 7. Synthèse
 
 | Couche | Mécanisme | Verdict |
 |---|---|---|
