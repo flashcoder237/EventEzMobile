@@ -72,6 +72,15 @@ export const eventsAPI = {
   requestChanges: (id: string, note: string) =>
     api.post(`/events/${id}/request-changes/`, { note }),
 
+  /**
+   * Notes internes entre modérateurs (admin/moderator only).
+   * Jamais visibles par l'organizer. Persiste sur Event.internal_moderator_notes.
+   */
+  getInternalNotes: (id: string) =>
+    api.get(`/events/${id}/internal-notes/`),
+  saveInternalNotes: (id: string, notes: string) =>
+    api.post(`/events/${id}/internal-notes/`, { notes }),
+
   getPendingValidation: () =>
     api.get('/events/pending_validation/'),
 

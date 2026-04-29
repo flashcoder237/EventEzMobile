@@ -319,6 +319,10 @@ export default function SettingsScreen() {
   const [eventReminders, setEventReminders] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
 
+  // Confidentialité (P19)
+  const [showInAttendees, setShowInAttendees] = useState(true);
+  const [showReadReceipts, setShowReadReceipts] = useState(true);
+
   // Préférences
   const [language, setLanguage] = useState('fr');
   const [timezone, setTimezone] = useState('Africa/Douala');
@@ -349,6 +353,8 @@ export default function SettingsScreen() {
         setTwoFactorAuth(settings.two_factor_auth ?? false);
         setLoginNotifications(settings.login_notifications ?? true);
         setPublicProfile(settings.public_profile ?? true);
+        setShowInAttendees(settings.show_in_attendees ?? true);
+        setShowReadReceipts(settings.show_read_receipts ?? true);
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement paramètres:', error);
@@ -708,6 +714,29 @@ export default function SettingsScreen() {
               <SoftToggle
                 value={publicProfile}
                 onToggle={(v) => handleToggle('public_profile', v, setPublicProfile)}
+              />
+            }
+          />
+          <OptionCard
+            icon="people-outline"
+            eyebrow="ÉVÉNEMENTS"
+            title="Apparaître dans « Qui y va ? »"
+            right={
+              <SoftToggle
+                value={showInAttendees}
+                onToggle={(v) => handleToggle('show_in_attendees', v, setShowInAttendees)}
+              />
+            }
+          />
+          <OptionCard
+            icon="checkmark-done-outline"
+            eyebrow="MESSAGES"
+            title="Confirmer la lecture"
+            subtitle="Quand désactivé, les autres ne voient plus que tu as lu leurs messages"
+            right={
+              <SoftToggle
+                value={showReadReceipts}
+                onToggle={(v) => handleToggle('show_read_receipts', v, setShowReadReceipts)}
               />
             }
           />

@@ -134,6 +134,14 @@ export const usersAPI = {
   getUserSettings: () =>
     api.get('/users/me/settings/'),
 
+  // Privacy : bloquer / débloquer / lister les utilisateurs bloqués
+  blockUser: (userId: string | number) =>
+    api.post(`/users/${userId}/block/`),
+  unblockUser: (userId: string | number) =>
+    api.post(`/users/${userId}/unblock/`),
+  listBlocked: () =>
+    api.get('/users/blocked/'),
+
   updateUserSettings: (settings: any) =>
     api.put('/users/me/settings/', settings),
 

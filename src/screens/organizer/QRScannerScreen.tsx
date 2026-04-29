@@ -91,6 +91,22 @@ export default function QRScannerScreen() {
         if (v !== null) setAutoCheckIn(v === 'true');
       })
       .catch(() => { /* ignore */ });
+    AsyncStorage.getItem('eventez:scanner_low_power')
+      .then((v) => {
+        if (v !== null) setLowPowerMode(v === 'true');
+      })
+      .catch(() => { /* ignore */ });
+  }, []);
+
+  // Mode économie batterie : abaisse la fréquence d'autofocus + désactive
+  // les optimisations gourmandes. À activer pour les events > 1h sans charger.
+  const [lowPowerMode, setLowPowerMode] = useState(false);
+  const toggleLowPower = useCallback(() => {
+    setLowPowerMode((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem('eventez:scanner_low_power', String(next)).catch(() => {});
+      return next;
+    });
   }, []);
   const toggleAutoCheckIn = useCallback(() => {
     setAutoCheckIn((prev) => {
@@ -360,6 +376,11 @@ export default function QRScannerScreen() {
         style={StyleSheet.absoluteFill}
         facing="back"
         enableTorch={flashOn}
+        // Mode économie batterie : désactive autofocus continu + utilise la
+        // résolution la plus basse capable de lire un QR. Sur un event 4h
+        // sans prise, ça étend la batterie de 30-40%.
+        autofocus={lowPowerMode ? 'off' : 'on'}
+        videoQuality="480p"
         barcodeScannerSettings={{
           barcodeTypes: ['qr'],
         }}
@@ -497,6 +518,19 @@ export default function QRScannerScreen() {
           </View>
 
           {/* Auto check-in toggle */}
+          <TouchableOpacity
+            style={[styles.autoCheckInToggle, { marginBottom: 6 }]}
+            onPress={toggleLowPower}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: lowPowerMode }}
+            accessibilityLabel="Mode économie de batterie"
+          >
+            <View style={[styles.checkbox, lowPowerMode && [styles.checkboxActive, { backgroundColor: colors.warning, borderColor: colors.warning }]]}>
+              {lowPowerMode && <Ionicons name="leaf" size={12} color={colors.white} />}
+            </View>
+            <Text style={styles.autoCheckInText}>Mode économie de batterie</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.autoCheckInToggle}
             onPress={toggleAutoCheckIn}

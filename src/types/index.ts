@@ -48,6 +48,9 @@ export interface User {
   // registration_count, mais son avatar/prénom n'est pas exposé).
   // Opt-out — par défaut visible.
   show_in_attendees?: boolean;
+  // Privacy : si false, les messages envoyés par cet utilisateur ne
+  // déclenchent plus de read receipt (✓✓ bleu) côté backend.
+  show_read_receipts?: boolean;
   // Authentification sociale
   auth_provider?: AuthProvider;
   // Parametres de notification
