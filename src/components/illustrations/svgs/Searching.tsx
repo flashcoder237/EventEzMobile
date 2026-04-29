@@ -1,52 +1,46 @@
 import React from 'react';
-import Svg, { Path, Rect, Circle, G, Line } from 'react-native-svg';
-import { ACircle, APath, usePulse } from '../animated';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
 type Props = { color?: string; size?: number };
 
-export default function Searching({ color = '#4F46E5', size = 200 }: Props) {
-  // Magnifying glass glow pulses
-  const glassPulse = usePulse(0.06, 0.18, 2000);
-  // Sparkle accents stagger
-  const spark1 = usePulse(0.15, 0.45, 1600, 0);
-  const spark2 = usePulse(0.1, 0.35, 1800, 400);
-  // Glass shine flickers
-  const shinePulse = usePulse(0.4, 0.8, 1400, 200);
+const CORAL = '#FF6B6B';
+const INDIGO_DARK = '#4338CA';
+const CREAM = '#FDFBF7';
 
+/**
+ * Searching — figure with magnifying glass over a document with a coral pin.
+ * AI Designer v2 (run e042927c).
+ */
+export default function Searching({ color = '#4F46E5', size = 200 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200" fill="none">
-      <Circle cx={95} cy={105} r={75} fill={color} opacity={0.07} />
-
-      {/* Document stack */}
-      <Rect x={45} y={60} width={80} height={100} rx={8} fill="#E5E7EB" opacity={0.5} />
-      <Rect x={50} y={55} width={80} height={100} rx={8} fill="#F3F4F6" />
-      <Rect x={55} y={50} width={80} height={100} rx={8} fill="#fff" stroke="#D1D5DB" strokeWidth={1.5} />
-
-      {/* Document lines */}
-      <Rect x={67} y={68} width={48} height={4} rx={2} fill="#D1D5DB" />
-      <Rect x={67} y={80} width={56} height={4} rx={2} fill="#E5E7EB" />
-      <Rect x={67} y={92} width={40} height={4} rx={2} fill="#E5E7EB" />
-      <Rect x={67} y={104} width={52} height={4} rx={2} fill="#E5E7EB" />
-      <Rect x={67} y={116} width={32} height={4} rx={2} fill="#E5E7EB" />
-
-      {/* Magnifying glass */}
-      <G>
-        <ACircle animatedProps={glassPulse} cx={130} cy={110} r={28} fill={color} />
-        <Circle cx={130} cy={110} r={22} fill="#fff" stroke={color} strokeWidth={3} />
-        <APath
-          animatedProps={shinePulse}
-          d="M120 100a14 14 0 0 1 14-14"
-          stroke="#fff"
-          strokeWidth={2}
-          strokeLinecap="round"
-        />
-        <Line x1={147} y1={127} x2={162} y2={142} stroke={color} strokeWidth={4} strokeLinecap="round" />
-      </G>
-
-      {/* Sparkle accents */}
-      <ACircle animatedProps={spark1} cx={160} cy={85} r={3} fill={color} />
-      <ACircle animatedProps={spark2} cx={40} cy={130} r={4} fill={color} />
-      <Path d="M170 70l2 5-2 5-2-5z" fill={color} opacity={0.25} />
+      <Path
+        d="M50 170C15 150 25 80 60 50C95 20 170 30 180 80C190 130 85 190 50 170Z"
+        fill={color}
+        fillOpacity={0.06}
+      />
+      <Path
+        d="M30 60L140 30V150L60 170ZM60 80L110 70 M65 100L95 95"
+        stroke={INDIGO_DARK}
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path d="M60 130C60 145 75 160 75 160C75 160 90 145 90 130C90 115 60 115 60 130Z" fill={CORAL} />
+      <Circle cx={75} cy={130} r={6} fill={CREAM} />
+      <Circle cx={120} cy={100} r={40} fill={CREAM} stroke={color} strokeWidth={5} />
+      <Path d="M148 128L185 165" stroke={color} strokeWidth={7} strokeLinecap="round" />
+      <Rect
+        x={165}
+        y={145}
+        width={25}
+        height={15}
+        rx={6}
+        fill={CREAM}
+        stroke={color}
+        strokeWidth={5}
+        transform="rotate(45 165 145)"
+      />
     </Svg>
   );
 }

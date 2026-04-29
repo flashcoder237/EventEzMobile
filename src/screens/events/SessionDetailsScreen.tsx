@@ -102,6 +102,29 @@ export default function SessionDetailsScreen() {
     }
   };
 
+  const handleWaitlistAction = async () => {
+    if (!session) return;
+    setIsRegistering(true);
+    try {
+      if (session.is_in_waitlist) {
+        await sessionsAPI.leaveWaitlist(sessionId);
+        setSession((prev) => prev ? { ...prev, is_in_waitlist: false, waitlist_position: null } : prev);
+        showSuccess('Liste d\'attente quittée');
+      } else {
+        const res = await sessionsAPI.joinWaitlist(sessionId);
+        const position = res?.data?.position ?? null;
+        setSession((prev) => prev ? { ...prev, is_in_waitlist: true, waitlist_position: position } : prev);
+        showSuccess('Ajouté à la liste d\'attente', position ? `Position : ${position}` : undefined);
+      }
+    } catch (err: any) {
+      const errorData = err.response?.data;
+      const message = errorData?.detail || errorData?.message || 'Une erreur est survenue.';
+      showError('Erreur', message);
+    } finally {
+      setIsRegistering(false);
+    }
+  };
+
   const handleOpenVirtualLink = useCallback(async () => {
     if (session?.virtual_link) {
       try {
@@ -457,40 +480,87 @@ export default function SessionDetailsScreen() {
       </ScrollView>
 
       {/* Registration Button (sticky at bottom) */}
-      {session.requires_registration && (
-        <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
-          <TouchableOpacity
-            style={[
-              styles.registerButton,
-              { backgroundColor: colors.primary },
-              session.is_registered && { backgroundColor: colors.gray700 },
-              isFull && !session.is_registered && { backgroundColor: colors.gray300 },
-            ]}
-            onPress={handleRegister}
-            activeOpacity={TOUCH_OPACITY}
-            disabled={isRegistering || (isFull && !session.is_registered)}
-          >
-            {isRegistering ? (
-              <ActivityIndicator size="small" color={Colors.white} />
-            ) : (
-              <>
-                <Ionicons
-                  name={session.is_registered ? 'close-circle-outline' : 'checkmark-circle-outline'}
-                  size={20}
-                  color={Colors.white}
-                />
-                <Text style={styles.registerButtonText}>
-                  {session.is_registered
-                    ? 'Se desinscrire'
-                    : isFull
-                      ? 'Complet'
-                      : 'S\'inscrire a cette session'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      )}
+      {session.requires_registration && (() => {
+        const isPast = session.end_time ? new Date(session.end_time) < new Date() : false;
+        const isInWaitlist = session.is_in_waitlist;
+        const waitlistPosition = session.waitlist_position;
+
+        if (isPast) {
+          return (
+            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+              <View style={[styles.registerButton, { backgroundColor: colors.gray300 }]}>
+                <Ionicons name="time-outline" size={20} color={Colors.white} />
+                <Text style={styles.registerButtonText}>Cette session est terminée</Text>
+              </View>
+            </View>
+          );
+        }
+
+        // Cas registered : bouton "Se désinscrire"
+        if (session.is_registered) {
+          return (
+            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.registerButton, { backgroundColor: colors.gray700 }]}
+                onPress={handleRegister}
+                activeOpacity={TOUCH_OPACITY}
+                disabled={isRegistering}
+              >
+                {isRegistering ? <ActivityIndicator size="small" color={Colors.white} /> : (
+                  <>
+                    <Ionicons name="close-circle-outline" size={20} color={Colors.white} />
+                    <Text style={styles.registerButtonText}>Se désinscrire</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          );
+        }
+
+        // Cas full : waitlist
+        if (isFull) {
+          return (
+            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+              <TouchableOpacity
+                style={[styles.registerButton, { backgroundColor: isInWaitlist ? colors.gray700 : colors.warning }]}
+                onPress={handleWaitlistAction}
+                activeOpacity={TOUCH_OPACITY}
+                disabled={isRegistering}
+              >
+                {isRegistering ? <ActivityIndicator size="small" color={Colors.white} /> : (
+                  <>
+                    <Ionicons name={isInWaitlist ? 'exit-outline' : 'hourglass-outline'} size={20} color={Colors.white} />
+                    <Text style={styles.registerButtonText}>
+                      {isInWaitlist
+                        ? `Position ${waitlistPosition ?? '?'} · Quitter la liste`
+                        : 'Rejoindre la liste d\'attente'}
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          );
+        }
+
+        // Cas normal : s'inscrire
+        return (
+          <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+            <TouchableOpacity
+              style={[styles.registerButton, { backgroundColor: colors.primary }]}
+              onPress={handleRegister}
+              activeOpacity={TOUCH_OPACITY}
+              disabled={isRegistering}
+            >
+              {isRegistering ? <ActivityIndicator size="small" color={Colors.white} /> : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={Colors.white} />
+                  <Text style={styles.registerButtonText}>S'inscrire à cette session</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        );
+      })()}
       </View>
     </EditorialCanvas>
   );

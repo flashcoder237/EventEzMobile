@@ -43,3 +43,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Local dev tooling (Claude Code, MCP, AI Designer, agents)
+.claude/
+.agents/
+.mcp.json
+.aidesigner/

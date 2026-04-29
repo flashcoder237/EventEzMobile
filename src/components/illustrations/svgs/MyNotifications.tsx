@@ -1,53 +1,57 @@
 import React from 'react';
-import Svg, { Path, Rect, Circle, G } from 'react-native-svg';
-import { APath, ACircle, useWaveOpacity, usePulse } from '../animated';
+import Svg, { Path, Circle } from 'react-native-svg';
 
 type Props = { color?: string; size?: number };
 
-export default function MyNotifications({ color = '#4F46E5', size = 200 }: Props) {
-  // Sound waves pulse outward staggered
-  const sw1 = useWaveOpacity(0.1, 0.4, 1000, 0);
-  const sw2 = useWaveOpacity(0.08, 0.3, 1000, 250);
-  const sw3 = useWaveOpacity(0.1, 0.4, 1000, 500);
-  const sw4 = useWaveOpacity(0.08, 0.3, 1000, 750);
-  // ZZZ pulse
-  const z1Pulse = usePulse(0.2, 0.5, 3000, 0);
-  const z2Pulse = usePulse(0.2, 0.45, 3400, 300);
-  // Bottom dot
-  const dotPulse = usePulse(0.05, 0.18, 2600, 400);
+const CORAL = '#FF6B6B';
+const INDIGO_DARK = '#4338CA';
+const CREAM = '#FDFBF7';
 
+/**
+ * MyNotifications — bell with motion lines, coral badge with "$" / count detail.
+ * AI Designer v2 (run e042927c).
+ */
+export default function MyNotifications({ color = '#4F46E5', size = 200 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200" fill="none">
-      <Circle cx={100} cy={100} r={78} fill={color} opacity={0.06} />
-
-      {/* Bell */}
-      <G>
-        <Path
-          d="M100 80c-16.6 0-30 13.4-30 30v14c0 0-8 0-8 6h76c0-6-8-6-8-6v-14c0-16.6-13.4-30-30-30z"
-          fill="#fff"
-          stroke={color}
-          strokeWidth={2}
-        />
-        <Circle cx={100} cy={136} r={5} fill={color} />
-        <Path d="M96 80v-6a4 4 0 0 1 8 0v6" stroke={color} strokeWidth={2} fill="none" />
-      </G>
-
-      {/* Animated sound waves */}
-      <APath animatedProps={sw1} d="M60 98a8 8 0 0 0-6 8" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <APath animatedProps={sw2} d="M52 92a16 16 0 0 0-10 16" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <APath animatedProps={sw3} d="M140 98a8 8 0 0 1 6 8" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <APath animatedProps={sw4} d="M148 92a16 16 0 0 1 10 16" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-
-      {/* Animated ZZZ */}
-      <G>
-        <APath animatedProps={z1Pulse} d="M125 55h12l-12 10h12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-        <APath animatedProps={z2Pulse} d="M140 45h8l-8 7h8" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-      </G>
-
-      {/* Floating dots */}
-      <Circle cx={45} cy={75} r={4} fill={color} opacity={0.15} />
-      <Circle cx={160} cy={70} r={3} fill={color} opacity={0.12} />
-      <ACircle animatedProps={dotPulse} cx={100} cy={160} r={5} fill={color} />
+      <Path
+        d="M100 20C150 20 180 80 180 140C180 190 20 190 20 140C20 80 50 20 100 20Z"
+        fill={color}
+        fillOpacity={0.06}
+      />
+      {/* Motion lines */}
+      <Path
+        d="M40 80C30 90 25 110 30 130M160 80C170 90 175 110 170 130"
+        stroke={INDIGO_DARK}
+        strokeWidth={4}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M20 95C10 105 10 120 15 130M180 95C190 105 190 120 185 130"
+        stroke={INDIGO_DARK}
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeDasharray="2 6"
+      />
+      {/* Bell body */}
+      <Path
+        d="M100 40C70 40 60 70 60 110C60 130 50 140 50 140H150C150 140 140 130 140 110C140 70 130 40 100 40Z"
+        fill={CREAM}
+        stroke={color}
+        strokeWidth={5}
+        strokeLinejoin="round"
+      />
+      {/* Clapper */}
+      <Circle cx={100} cy={160} r={10} fill={color} />
+      {/* Coral badge */}
+      <Circle cx={145} cy={55} r={20} fill={CORAL} />
+      <Path
+        d="M138 50H152L145 55C148 55 152 58 152 62C152 66 148 70 145 70C142 70 138 68 138 65"
+        stroke={CREAM}
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </Svg>
   );
 }

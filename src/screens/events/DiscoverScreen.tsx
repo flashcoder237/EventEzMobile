@@ -22,6 +22,8 @@ import Animated, {
   interpolate,
   Extrapolation,
   useAnimatedScrollHandler,
+  FadeInDown,
+  FadeOutUp,
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 
@@ -35,6 +37,7 @@ import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
 import { DiscoverScreenSkeleton } from '../../components/ui/Skeleton';
 import { SectionEntrance, StaggeredItem, PulsingBadge } from '../../components/ui/Animations';
+import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import {
   Colors,
   FontFamily,
@@ -98,6 +101,76 @@ function daysUntil(iso: string): number | null {
   }
 }
 
+// ============================================================================
+// NetworkStatusPill — overlay flottant non-intrusif (offline / slow).
+// Centre horizontalement, ancre en haut sous le header. Slide-in/out via
+// Reanimated. Pointer-events: none → ne bloque pas les taps en dessous.
+// ============================================================================
+function NetworkStatusPill({ isOffline, isSlow }: { isOffline: boolean; isSlow: boolean }) {
+  const visible = isOffline || isSlow;
+  if (!visible) return null;
+
+  // Palette : offline = rouge sombre (etat critique), slow = ambre
+  const isCritical = isOffline;
+  const bg = isCritical ? '#1F1F1F' : '#1F1F1F';
+  const accent = isCritical ? '#F87171' : '#FBBF24';
+  const label = isCritical ? 'Hors-ligne' : 'Connexion lente';
+  const iconName = isCritical ? 'cloud-offline' : 'cellular-outline';
+
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: 'absolute',
+        top: 8,
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 50,
+      }}
+    >
+      <Animated.View
+        entering={FadeInDown.duration(220).springify().damping(18)}
+        exiting={FadeOutUp.duration(180)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+          paddingHorizontal: 12,
+          paddingVertical: 6,
+          borderRadius: BorderRadius.full,
+          backgroundColor: bg,
+          shadowColor: '#000',
+          shadowOpacity: 0.18,
+          shadowRadius: 8,
+          shadowOffset: { width: 0, height: 4 },
+          elevation: 6,
+        }}
+      >
+        <View
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: accent,
+          }}
+        />
+        <Ionicons name={iconName} size={12} color={accent} />
+        <Text
+          style={{
+            fontFamily: FontFamily.bold,
+            fontSize: 11,
+            letterSpacing: 0.3,
+            color: '#FFFFFF',
+          }}
+        >
+          {label}
+        </Text>
+      </Animated.View>
+    </View>
+  );
+}
+
 export default function DiscoverScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
@@ -123,6 +196,9 @@ export default function DiscoverScreen() {
   >('idle');
   // Track fetch failures so we can surface a banner instead of failing silently
   const [fetchErrorCount, setFetchErrorCount] = useState(0);
+  // Bannière dismissable manuellement par l'utilisateur. On la re-montre
+  // automatiquement si fetchErrorCount remonte à 2+ après un retry échoué.
+  const [slowBannerDismissed, setSlowBannerDismissed] = useState(false);
 
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
 
@@ -232,6 +308,10 @@ export default function DiscoverScreen() {
       await Promise.all(fetches);
       // Update banner state once all fetches settle
       setFetchErrorCount(failures);
+      // Si le retry a reussi : reinitialiser le dismiss pour les prochaines pannes
+      if (failures < 2) {
+        setSlowBannerDismissed(false);
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement:', error);
       setFetchErrorCount((c) => c + 1);
@@ -390,16 +470,16 @@ export default function DiscoverScreen() {
     const isSoon = dUntil !== null && dUntil <= 7;
 
     return (
-      <TouchableOpacity
-        activeOpacity={0.92}
+      <AnimatedPressable
+        animationType="shadow"
         onPress={() => navigateToEvent(ev.id, img)}
         style={[
           styles.heroCard,
+          styles.shadowBase,
           {
             backgroundColor: colors.card,
             borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
           },
-          Shadows.lg,
         ]}
       >
         <View style={styles.heroImageWrap}>
@@ -496,7 +576,7 @@ export default function DiscoverScreen() {
             </Text>
           </View>
         </View>
-      </TouchableOpacity>
+      </AnimatedPressable>
     );
   };
 
@@ -509,16 +589,16 @@ export default function DiscoverScreen() {
     const isFree = item.is_free || (range?.min === 0 && range?.max === 0);
     return (
       <StaggeredItem index={index} staggerDelay={70}>
-        <TouchableOpacity
-          activeOpacity={0.9}
+        <AnimatedPressable
+          animationType="shadow"
           onPress={() => navigateToEvent(item.id, img)}
           style={[
             styles.nearbyCard,
+            styles.shadowBase,
             {
               backgroundColor: colors.card,
               borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
             },
-            Shadows.md,
           ]}
         >
           <View style={styles.nearbyImageWrap}>
@@ -543,7 +623,30 @@ export default function DiscoverScreen() {
               <Text style={[styles.nearbyDateDay, { color: colors.accent }]}>{day}</Text>
               <Text style={[styles.nearbyDateMonth, { color: colors.accent }]}>{month}</Text>
             </View>
-            {/* (Decorative bookmark removed — favorite from EventDetails) */}
+            {/* Price pill — coin haut-droit. Toujours visible : "GRATUIT" tinte
+                primary pour les events gratuits, prix sur fond blanc pour payants. */}
+            <View
+              style={[
+                styles.nearbyPricePill,
+                isFree
+                  ? { backgroundColor: colors.primary }
+                  : { backgroundColor: 'rgba(255,255,255,0.95)' },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.nearbyPricePillText,
+                  { color: isFree ? Colors.white : colors.text },
+                ]}
+                numberOfLines={1}
+              >
+                {isFree
+                  ? 'GRATUIT'
+                  : range?.min
+                  ? `${range.min} ${item.currency || platformCurrency || ''}`
+                  : 'PAYANT'}
+              </Text>
+            </View>
           </View>
           <View style={styles.nearbyBody}>
             {item.category?.name && (
@@ -562,20 +665,8 @@ export default function DiscoverScreen() {
                 {item.location_city || 'À confirmer'}
               </Text>
             </View>
-            <Text
-              style={[
-                styles.nearbyPrice,
-                { color: isFree ? colors.primary : colors.text },
-              ]}
-            >
-              {isFree
-                ? 'Gratuit'
-                : range?.min
-                ? `À partir de ${range.min} ${item.currency || platformCurrency || ''}`
-                : ''}
-            </Text>
           </View>
-        </TouchableOpacity>
+        </AnimatedPressable>
       </StaggeredItem>
     );
   };
@@ -594,16 +685,16 @@ export default function DiscoverScreen() {
           const accentBg = isSoon ? `${colors.accent}1A` : colors.primaryBg;
           return (
             <StaggeredItem key={ev.id} index={i} staggerDelay={70}>
-              <TouchableOpacity
-                activeOpacity={0.88}
+              <AnimatedPressable
+                animationType="shadow"
                 onPress={() => navigateToEvent(ev.id, eventImage(ev))}
                 style={[
                   styles.incomingCard,
+                  styles.shadowBase,
                   {
                     backgroundColor: colors.card,
                     borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
                   },
-                  Shadows.sm,
                 ]}
               >
                 <View style={[styles.incomingDateTile, { backgroundColor: accentBg }]}>
@@ -650,7 +741,7 @@ export default function DiscoverScreen() {
                 </View>
 
                 <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
-              </TouchableOpacity>
+              </AnimatedPressable>
             </StaggeredItem>
           );
         })}
@@ -754,16 +845,16 @@ export default function DiscoverScreen() {
             const img = eventImage(item);
             const { day, month } = splitDate(item.start_date);
             return (
-              <TouchableOpacity
-                activeOpacity={0.9}
+              <AnimatedPressable
+                animationType="shadow"
                 onPress={() => navigateToEvent(item.id, img)}
                 style={[
                   styles.freeCard,
+                  styles.shadowBase,
                   {
                     backgroundColor: colors.card,
                     borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
                   },
-                  Shadows.sm,
                 ]}
               >
                 <View style={styles.freeCardLeft}>
@@ -789,7 +880,7 @@ export default function DiscoverScreen() {
                     {item.location_city || 'À confirmer'}
                   </Text>
                 </View>
-              </TouchableOpacity>
+              </AnimatedPressable>
             );
           }}
         />
@@ -805,16 +896,16 @@ export default function DiscoverScreen() {
     const ph = eventPlaceholder(ev);
     const { day, month } = splitDate(ev.start_date);
     return (
-      <TouchableOpacity
-        activeOpacity={0.92}
+      <AnimatedPressable
+        animationType="shadow"
         onPress={() => navigateToEvent(ev.id, img)}
         style={[
           styles.recCard,
+          styles.shadowBase,
           {
             backgroundColor: colors.card,
             borderColor: isDark ? colors.gray200 : 'rgba(255,255,255,0.6)',
           },
-          Shadows.md,
         ]}
       >
         <View style={styles.recImageWrap}>
@@ -861,7 +952,7 @@ export default function DiscoverScreen() {
             <Ionicons name="arrow-forward" size={16} color={Colors.white} />
           </View>
         </View>
-      </TouchableOpacity>
+      </AnimatedPressable>
     );
   };
 
@@ -870,6 +961,11 @@ export default function DiscoverScreen() {
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>EZ</WatermarkNumeral>
       <View style={styles.safeArea}>
+        {/* === FLOATING NETWORK PILL ===
+            Overlay non-intrusif positionne en haut, anime via Reanimated.
+            Auto-dismiss quand la connexion est restauree. */}
+        <NetworkStatusPill isOffline={isOffline} isSlow={isSlowCellular} />
+
         {initialLoading ? (
           <DiscoverScreenSkeleton />
         ) : (
@@ -1037,73 +1133,40 @@ export default function DiscoverScreen() {
                   </View>
                 </View>
 
-                {/* === EDITORIAL SEARCH BAR — inverted: cream bg, indigo text === */}
+                {/* === SEARCH PILL (Option A) — simple, calme, captante via le
+                    placeholder rotatif qui change toutes les 3s. */}
                 <TouchableOpacity
-                  style={[styles.searchTrigger, Shadows.cardViolet]}
+                  style={[
+                    styles.searchTrigger,
+                    {
+                      backgroundColor: isDark ? colors.gray100 : '#F2F1ED',
+                      borderColor: isDark ? colors.gray200 : 'rgba(17,17,16,0.05)',
+                    },
+                  ]}
                   onPress={() => activateSearch()}
-                  activeOpacity={0.9}
+                  activeOpacity={0.85}
                   accessibilityRole="search"
+                  accessibilityLabel="Rechercher un evenement"
                 >
-                  {/* Cream/light gradient bg (full bleed) */}
-                  <LinearGradient
-                    colors={
-                      isDark
-                        ? ['#1E293B', '#0F172A']
-                        : ['#F4F0E8', '#FFFFFF']
-                    }
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={StyleSheet.absoluteFill}
+                  <Ionicons
+                    name="search"
+                    size={18}
+                    color={isDark ? colors.gray400 : colors.gray500}
                   />
-                  {/* Decorative corner accent (corail) */}
-                  <View
+                  <Text
                     style={[
-                      styles.searchCornerDot,
-                      { backgroundColor: colors.accent },
+                      styles.searchTriggerText,
+                      { color: isDark ? colors.gray300 : colors.gray600 },
                     ]}
-                  />
-                  {/* Decorative diagonal slash — dark on cream */}
-                  <View
-                    style={[
-                      styles.searchSlash,
-                      { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(17,17,16,0.06)' },
-                    ]}
-                    pointerEvents="none"
-                  />
-                  {/* Search icon disc — indigo w/ white icon */}
-                  <View
-                    style={[
-                      styles.searchIconDisc,
-                      { backgroundColor: colors.primary },
-                    ]}
+                    numberOfLines={1}
                   >
-                    <Ionicons name="search" size={17} color="#FFFFFF" />
-                  </View>
-                  {/* Text col */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.searchEyebrow, { color: colors.accent }]}>
-                      QUOI · CE SOIR
-                    </Text>
-                    <Text
-                      style={[
-                        styles.searchTriggerText,
-                        { color: isDark ? '#F4F0E8' : colors.primaryDark },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {placeholderSuggestions[placeholderIndex]}
-                    </Text>
-                  </View>
-                  {/* Filter pill — solid indigo with white text */}
-                  <View
-                    style={[
-                      styles.searchFilterPill,
-                      { backgroundColor: colors.primary },
-                    ]}
-                  >
-                    <Ionicons name="options" size={14} color="#FFFFFF" />
-                    <Text style={[styles.searchFilterPillText, { color: '#FFFFFF' }]}>Filtres</Text>
-                  </View>
+                    {placeholderSuggestions[placeholderIndex]}
+                  </Text>
+                  <Ionicons
+                    name="chevron-forward"
+                    size={16}
+                    color={isDark ? colors.gray400 : colors.gray400}
+                  />
                 </TouchableOpacity>
 
                 {/* Category chips row */}
@@ -1140,8 +1203,12 @@ export default function DiscoverScreen() {
                 )}
               </View>
 
-              {/* === SLOW NETWORK BANNER === */}
-              {(isOffline || isSlowCellular) && (
+              {/* Le banner réseau (offline / slow) est rendu en overlay flottant
+                  au niveau du root (NetworkStatusPill) pour éviter de pousser
+                  le contenu et garder le feed propre. */}
+
+              {/* === FETCH-FAILURE BANNER (>= 2 fetches failed; dismissable) === */}
+              {fetchErrorCount >= 2 && !slowBannerDismissed && (
                 <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.md }}>
                   <View
                     style={{
@@ -1150,29 +1217,54 @@ export default function DiscoverScreen() {
                       gap: Spacing.sm,
                       padding: Spacing.sm + 2,
                       borderRadius: BorderRadius.lg,
-                      backgroundColor: isOffline ? '#FEE2E2' : '#FEF3C7',
+                      backgroundColor: `${colors.warning}15`,
                       borderWidth: 1,
-                      borderColor: isOffline ? '#FCA5A5' : '#FDE68A',
+                      borderColor: `${colors.warning}40`,
                     }}
                   >
-                    <Ionicons
-                      name={isOffline ? 'cloud-offline' : 'cellular-outline'}
-                      size={16}
-                      color={isOffline ? '#DC2626' : '#D97706'}
-                    />
-                    <Text
+                    <Ionicons name="cloud-offline" size={16} color={colors.warning} />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.bold,
+                          fontSize: 12,
+                          color: colors.warning,
+                        }}
+                      >
+                        Connexion lente
+                      </Text>
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.regular,
+                          fontSize: 11,
+                          color: colors.gray600,
+                          marginTop: 1,
+                          lineHeight: 15,
+                        }}
+                      >
+                        Certaines sections n'ont pas pu se charger.
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={onRefresh}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Reessayer"
                       style={{
-                        flex: 1,
-                        fontFamily: FontFamily.medium,
-                        fontSize: 12,
-                        color: isOffline ? '#991B1B' : '#92400E',
-                        lineHeight: 16,
+                        padding: 6,
+                        borderRadius: BorderRadius.full,
+                        backgroundColor: `${colors.warning}25`,
                       }}
                     >
-                      {isOffline
-                        ? 'Tu es hors-ligne. Tes billets téléchargés restent accessibles.'
-                        : 'Connexion lente détectée — le chargement peut prendre plus de temps.'}
-                    </Text>
+                      <Ionicons name="refresh" size={14} color={colors.warning} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setSlowBannerDismissed(true)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Masquer"
+                      style={{ padding: 4 }}
+                    >
+                      <Ionicons name="close" size={16} color={colors.gray500} />
+                    </TouchableOpacity>
                   </View>
                 </View>
               )}
@@ -1365,50 +1457,6 @@ export default function DiscoverScreen() {
                 </SectionEntrance>
               )}
 
-              {/* === ERROR BANNER — visible if 2+ fetches failed === */}
-              {fetchErrorCount >= 2 && (
-                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl }}>
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={onRefresh}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: Spacing.sm,
-                      padding: Spacing.md,
-                      borderRadius: BorderRadius.xl,
-                      backgroundColor: `${colors.warning}15`,
-                      borderWidth: 1,
-                      borderColor: `${colors.warning}40`,
-                    }}
-                  >
-                    <Ionicons name="cloud-offline" size={20} color={colors.warning} />
-                    <View style={{ flex: 1 }}>
-                      <Text
-                        style={{
-                          fontFamily: FontFamily.bold,
-                          fontSize: 13,
-                          color: colors.warning,
-                        }}
-                      >
-                        Connexion lente
-                      </Text>
-                      <Text
-                        style={{
-                          fontFamily: FontFamily.regular,
-                          fontSize: 12,
-                          color: colors.gray600,
-                          marginTop: 2,
-                        }}
-                      >
-                        Certaines sections n'ont pas pu se charger. Tape pour réessayer.
-                      </Text>
-                    </View>
-                    <Ionicons name="refresh" size={18} color={colors.warning} />
-                  </TouchableOpacity>
-                </View>
-              )}
-
               {/* === EMPTY STATE — when nothing loaded and no errors masking it === */}
               {!initialLoading &&
                 featuredEvents.length === 0 &&
@@ -1534,69 +1582,24 @@ const styles = StyleSheet.create({
   },
   headerBadgeWrap: { position: 'absolute', top: 0, right: 0 },
 
-  // === SEARCH TRIGGER (editorial with character) ===
+  // === SEARCH TRIGGER (option A — coussin chaud) ===
+  // Pill simple et calme : icone search · placeholder rotatif · chevron.
+  // Le mouvement du texte (placeholderIndex) suffit a capter l'attention.
   searchTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 64,
-    borderRadius: 18,
-    paddingLeft: 8,
-    paddingRight: 8,
-    paddingVertical: 8,
-    gap: 12,
+    height: 52,
+    borderRadius: BorderRadius.full,
+    paddingHorizontal: 16,
+    gap: 10,
     marginBottom: Spacing.md,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  searchCornerDot: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  searchIconDisc: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  searchSlash: {
-    position: 'absolute',
-    top: -10,
-    right: 60,
-    width: 1,
-    height: 80,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    transform: [{ rotate: '18deg' }],
-  },
-  searchEyebrow: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    marginBottom: 1,
+    borderWidth: 1,
   },
   searchTriggerText: {
-    fontFamily: FontFamily.displayBold,
+    flex: 1,
+    fontFamily: FontFamily.medium,
     fontSize: 14,
-    letterSpacing: -0.3,
-  },
-  searchFilterPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: BorderRadius.full,
-  },
-  searchFilterPillText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 11,
-    letterSpacing: 0.2,
+    letterSpacing: -0.1,
   },
 
   // === CATEGORY CHIPS ===
@@ -1734,6 +1737,16 @@ const styles = StyleSheet.create({
   heroWrap: {
     paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
+  },
+  // Base d'ombre des cards : pas d'ombre au repos (shadowOpacity:0), mais
+  // shadowColor/shadowOffset sont presents pour que l'animation 'shadow' de
+  // AnimatedPressable puisse les faire apparaitre via shadowOpacity/shadowRadius.
+  shadowBase: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   heroCard: {
     borderRadius: 24,
@@ -1908,11 +1921,21 @@ const styles = StyleSheet.create({
     fontSize: 11,
     flex: 1,
   },
-  nearbyPrice: {
+  // Pill prix flottante en haut-droite (toujours visible : "GRATUIT" ou prix)
+  nearbyPricePill: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    maxWidth: 100,
+  },
+  nearbyPricePillText: {
     fontFamily: FontFamily.bold,
-    fontSize: 12,
-    letterSpacing: -0.2,
-    marginTop: 2,
+    fontSize: 10,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
   },
 
   // === INCOMING vertical list ===

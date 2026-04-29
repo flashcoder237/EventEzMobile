@@ -9,6 +9,10 @@ export { default as MessageActionModal } from './MessageActionModal';
 export { default as ReactionPickerModal } from './ReactionPickerModal';
 export { default as ForwardModal } from './ForwardModal';
 export { default as InputToolbar } from './InputToolbar';
+export { default as ConversationQuotaBanner } from './ConversationQuotaBanner';
+export type { QuotaState } from './ConversationQuotaBanner';
+export { default as GroupAdminPanel } from './GroupAdminPanel';
+export type { GroupAdminParticipant } from './GroupAdminPanel';
 
 // Re-export types
 export type { MessageActionType } from './MessageActionModal';

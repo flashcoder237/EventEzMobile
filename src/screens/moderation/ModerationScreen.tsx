@@ -11,8 +11,8 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -25,6 +25,8 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AccessDenied, WellDone, AnimatedIllustration } from '../../components/illustrations';
 import Badge from '../../components/ui/Badge';
+import EditorialCanvas from '../../components/ui/editorial/EditorialCanvas';
+import WatermarkNumeral from '../../components/ui/editorial/WatermarkNumeral';
 import {
   FontFamily,
   FontSizes,
@@ -47,6 +49,10 @@ interface PendingEvent {
   status: string;
   created_at: string;
   banner_image?: string;
+  // Le serializer backend (EventListSerializer) expose `organizer_name` (string),
+  // pas un objet `organizer` complet. Le fallback `organizer` reste typé pour
+  // la retro-compat si un autre endpoint retourne l'objet imbrique.
+  organizer_name?: string;
   organizer?: {
     id: string;
     email: string;
@@ -270,17 +276,36 @@ export default function ModerationScreen() {
     return events.filter(e => new Date(e.created_at).getTime() < cutoff).length;
   }, [events]);
 
-  const isOverdue = (createdAt: string) => {
-    return Date.now() - new Date(createdAt).getTime() > 24 * 60 * 60 * 1000;
+  const isOverdue = (createdAt?: string) => {
+    if (!createdAt) return false;
+    const t = new Date(createdAt).getTime();
+    if (isNaN(t)) return false;
+    return Date.now() - t > 24 * 60 * 60 * 1000;
   };
 
-  const formatDate = (dateString: string) => {
+  const isValidDate = (d: Date) => !isNaN(d.getTime());
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '—';
     const date = new Date(dateString);
+    if (!isValidDate(date)) return '—';
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
   };
 
-  const getTimeSince = (dateString: string) => {
+  const getDateTile = (dateString?: string) => {
+    if (!dateString) return { day: '--', month: '---' };
     const date = new Date(dateString);
+    if (!isValidDate(date)) return { day: '--', month: '---' };
+    return {
+      day: date.getDate().toString().padStart(2, '0'),
+      month: date.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase().replace('.', ''),
+    };
+  };
+
+  const getTimeSince = (dateString?: string) => {
+    if (!dateString) return 'date inconnue';
+    const date = new Date(dateString);
+    if (!isValidDate(date)) return 'date inconnue';
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
@@ -291,6 +316,8 @@ export default function ModerationScreen() {
   };
 
   const getOrganizerName = (event: PendingEvent) => {
+    // Le backend expose `organizer_name` (string) sur EventListSerializer.
+    if (event.organizer_name) return event.organizer_name;
     if (event.organizer?.full_name) return event.organizer.full_name;
     if (event.organizer?.first_name || event.organizer?.last_name) {
       return `${event.organizer.first_name || ''} ${event.organizer.last_name || ''}`.trim();
@@ -300,7 +327,8 @@ export default function ModerationScreen() {
 
   if (!isModerator) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <EditorialCanvas edges={['top', 'bottom']}>
+        <WatermarkNumeral>MOD</WatermarkNumeral>
         <View style={styles.accessDenied}>
           <AnimatedIllustration entry="scaleIn" idle="float">
             <AccessDenied color={colors.primary} size={160} />
@@ -318,7 +346,7 @@ export default function ModerationScreen() {
             <Text style={[styles.backCtaText, { color: colors.background }]}>Retour</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -374,14 +402,30 @@ export default function ModerationScreen() {
               />
             </View>
           )}
-          <View style={[styles.typeBadge, { backgroundColor: colors.card, borderColor: hairline }]}>
+          {/* Gradient subtil pour la lisibilite des elements flottants */}
+          <LinearGradient
+            colors={['rgba(0,0,0,0.25)', 'transparent', 'rgba(0,0,0,0.35)']}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          {/* Date tile flottante (canonical EventCard pattern) */}
+          <View style={[styles.dateTileFloat, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
+            <Text style={[styles.dateTileDay, { color: colors.text }]}>
+              {getDateTile(item.start_date).day}
+            </Text>
+            <Text style={[styles.dateTileMonth, { color: colors.accent }]}>
+              {getDateTile(item.start_date).month}
+            </Text>
+          </View>
+          {/* Type badge en haut-droite (eyebrow pill float) */}
+          <View style={[styles.typeBadge, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
             <Ionicons
               name={isBilletterie ? 'ticket' : 'document-text'}
               size={10}
               color={typeColor}
             />
             <Text style={[styles.typeBadgeText, { color: typeColor }]}>
-              {isBilletterie ? 'Billetterie' : 'Inscription'}
+              {isBilletterie ? 'BILLETTERIE' : 'INSCRIPTION'}
             </Text>
           </View>
         </View>
@@ -397,19 +441,17 @@ export default function ModerationScreen() {
 
           <View style={styles.cardMeta}>
             <View style={styles.metaItem}>
-              <Ionicons name="person-outline" size={12} color={colors.gray400} />
-              <Text style={[styles.metaText, { color: colors.gray500 }]} numberOfLines={1}>{getOrganizerName(item)}</Text>
+              <Ionicons name="person-outline" size={11} color={colors.gray500} />
+              <Text style={[styles.metaText, { color: colors.gray500 }]} numberOfLines={1}>
+                {getOrganizerName(item)}
+              </Text>
             </View>
             {item.location_city && (
               <View style={styles.metaItem}>
-                <Ionicons name="location-outline" size={12} color={colors.gray400} />
+                <Ionicons name="location-outline" size={11} color={colors.gray500} />
                 <Text style={[styles.metaText, { color: colors.gray500 }]}>{item.location_city}</Text>
               </View>
             )}
-            <View style={styles.metaItem}>
-              <Ionicons name="calendar-outline" size={12} color={colors.gray400} />
-              <Text style={[styles.metaText, { color: colors.gray500 }]}>{formatDate(item.start_date)}</Text>
-            </View>
           </View>
 
           <View style={[styles.submittedInfo, { borderTopColor: hairline }]}>
@@ -424,7 +466,7 @@ export default function ModerationScreen() {
                 { color: isOverdue(item.created_at) ? '#DC2626' : colors.gray500 },
               ]}
             >
-              {isOverdue(item.created_at) ? 'EN RETARD · ' : 'Soumis '}
+              {isOverdue(item.created_at) ? 'En retard · ' : 'Soumis · '}
               {getTimeSince(item.created_at)}
             </Text>
             {isOverdue(item.created_at) && (
@@ -446,33 +488,19 @@ export default function ModerationScreen() {
         </View>
 
         <View style={[styles.cardActions, { borderTopColor: hairline }]}>
+          {/* Disque "Voir" — action tertiaire (consultation) */}
           <TouchableOpacity
-            style={[styles.actionChip, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }]}
+            style={[styles.actionDisc, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
             activeOpacity={0.7}
+            accessibilityLabel="Voir l'evenement"
           >
-            <Ionicons name="eye-outline" size={14} color={colors.primary} />
-            <Text style={[styles.actionChipText, { color: colors.primary }]}>Voir</Text>
+            <Ionicons name="eye-outline" size={16} color={colors.gray600} />
           </TouchableOpacity>
 
+          {/* Pill "Modifs" — action secondaire (request changes) */}
           <TouchableOpacity
-            style={[styles.actionChip, { backgroundColor: '#EF444415', borderColor: '#EF444430' }]}
-            onPress={() => openRejectModal(item)}
-            disabled={isActionLoading}
-            activeOpacity={0.7}
-          >
-            {isActionLoading ? (
-              <ActivityIndicator size="small" color="#EF4444" />
-            ) : (
-              <>
-                <Ionicons name="close-circle-outline" size={14} color="#EF4444" />
-                <Text style={[styles.actionChipText, { color: '#EF4444' }]}>Rejeter</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionChip, { backgroundColor: '#F59E0B15', borderColor: '#F59E0B40' }]}
+            style={[styles.actionPill, { backgroundColor: '#F59E0B15' }]}
             onPress={() => openChangesModal(item)}
             disabled={isActionLoading}
             activeOpacity={0.7}
@@ -481,24 +509,42 @@ export default function ModerationScreen() {
               <ActivityIndicator size="small" color="#D97706" />
             ) : (
               <>
-                <Ionicons name="create-outline" size={14} color="#D97706" />
-                <Text style={[styles.actionChipText, { color: '#D97706' }]}>Modifs</Text>
+                <Ionicons name="create-outline" size={13} color="#D97706" />
+                <Text style={[styles.actionPillText, { color: '#D97706' }]}>Modifs</Text>
               </>
             )}
           </TouchableOpacity>
 
+          {/* Pill "Rejeter" — action destructive */}
           <TouchableOpacity
-            style={[styles.actionChipFilled, { backgroundColor: '#10B981' }]}
+            style={[styles.actionPill, { backgroundColor: '#EF444415' }]}
+            onPress={() => openRejectModal(item)}
+            disabled={isActionLoading}
+            activeOpacity={0.7}
+          >
+            {isActionLoading ? (
+              <ActivityIndicator size="small" color="#EF4444" />
+            ) : (
+              <>
+                <Ionicons name="close-circle-outline" size={13} color="#EF4444" />
+                <Text style={[styles.actionPillText, { color: '#EF4444' }]}>Rejeter</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {/* Pill primaire "Valider" — action principale, prend l'espace restant */}
+          <TouchableOpacity
+            style={[styles.actionPillPrimary, { backgroundColor: '#10B981' }]}
             onPress={() => handleValidate(item.id)}
             disabled={isActionLoading}
-            activeOpacity={0.8}
+            activeOpacity={0.85}
           >
             {isActionLoading ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
-                <Text style={[styles.actionChipText, { color: '#FFFFFF' }]}>Valider</Text>
+                <Text style={[styles.actionPillPrimaryText, { color: '#FFFFFF' }]}>Valider</Text>
               </>
             )}
           </TouchableOpacity>
@@ -524,9 +570,10 @@ export default function ModerationScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+      <EditorialCanvas edges={['top', 'bottom']}>
+        <WatermarkNumeral>MOD</WatermarkNumeral>
         <LoadingSpinner />
-      </SafeAreaView>
+      </EditorialCanvas>
     );
   }
 
@@ -537,7 +584,8 @@ export default function ModerationScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
+    <EditorialCanvas edges={['top', 'bottom']}>
+      <WatermarkNumeral>MOD</WatermarkNumeral>
       <View style={[styles.header, { borderBottomColor: hairline }]}>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
@@ -650,22 +698,20 @@ export default function ModerationScreen() {
           </View>
         )}
 
-        {/* Stats card */}
-        <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
-          <View style={styles.statItem}>
+        {/* Stats strip — aligne sur NotificationsScreen.statStrip */}
+        <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: hairline }]}>
+          <View style={[styles.statItem, { borderRightColor: hairline }]}>
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
             <Text style={[styles.statLabel, { color: colors.gray500 }]}>EN ATTENTE</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: hairline }]} />
-          <View style={styles.statItem}>
+          <View style={[styles.statItem, { borderRightColor: hairline }]}>
             <View style={styles.statRow}>
               <Ionicons name="ticket" size={13} color={BILLET_COLOR} />
               <Text style={[styles.statValue, { color: colors.text }]}>{stats.billetterie}</Text>
             </View>
             <Text style={[styles.statLabel, { color: colors.gray500 }]}>BILLETTERIE</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: hairline }]} />
-          <View style={styles.statItem}>
+          <View style={[styles.statItem, styles.statItemLast]}>
             <View style={styles.statRow}>
               <Ionicons name="document-text" size={13} color={INSCRIPTION_COLOR} />
               <Text style={[styles.statValue, { color: colors.text }]}>{stats.inscription}</Text>
@@ -675,7 +721,7 @@ export default function ModerationScreen() {
         </View>
 
         {/* Search */}
-        <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+        <View style={[styles.searchInputWrapper, { backgroundColor: colors.card, borderColor: hairline }]}>
           <Ionicons name="search" size={16} color={colors.gray500} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -1081,12 +1127,11 @@ export default function ModerationScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1125,35 +1170,50 @@ const styles = StyleSheet.create({
   countText: { fontFamily: FontFamily.bold, fontSize: FontSizes.sm },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md },
 
-  // Stats
+  // Stats — aligne sur NotificationsScreen.statStrip (canonical editorial)
   statsCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.sm,
+    borderRadius: 18,
     borderWidth: 1,
     marginBottom: Spacing.md,
   },
-  statItem: { flex: 1, alignItems: 'center', gap: 4 },
-  statRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  statValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.xl, letterSpacing: -0.3 },
-  statLabel: { fontFamily: FontFamily.bold, fontSize: 9, letterSpacing: 1.2 },
-  statDivider: { width: 1, height: 32 },
+  statItem: {
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'flex-start',
+    borderRightWidth: 1,
+  },
+  statItemLast: { borderRightWidth: 0 },
+  statRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  statValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 26,
+    lineHeight: 28,
+    letterSpacing: -0.9,
+  },
+  statLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
 
-  // Search
+  // Search — aligne sur FollowingEventsScreen.searchInputWrapper (canonical)
   searchInputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: BorderRadius.full,
+    gap: 8,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    height: 40,
+    borderRadius: BorderRadius.xl,
     borderWidth: 1,
-    gap: Spacing.sm,
   },
   searchInput: {
     flex: 1,
     fontSize: FontSizes.sm,
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.regular,
     paddingVertical: 0,
   },
 
@@ -1167,14 +1227,14 @@ const styles = StyleSheet.create({
   },
   filterText: { fontFamily: FontFamily.semiBold, fontSize: FontSizes.sm },
 
-  // Card
+  // Card — aligne sur EventCard (radius 18, image hero + date tile flottante)
   card: {
-    borderRadius: BorderRadius.xl,
+    borderRadius: 18,
     borderWidth: 1,
     marginBottom: Spacing.md,
     overflow: 'hidden',
   },
-  cardImage: { height: 120, position: 'relative' },
+  cardImage: { height: 160, position: 'relative' },
   image: { width: '100%', height: '100%' },
   imagePlaceholder: {
     width: '100%',
@@ -1182,75 +1242,129 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Date tile flottante (canonical EventCard pattern)
+  dateTileFloat: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    minWidth: 48,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+  },
+  dateTileDay: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 20,
+    lineHeight: 22,
+    letterSpacing: -0.7,
+  },
+  dateTileMonth: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.5,
+    marginTop: 2,
+  },
+  // Type badge — pill flottante en haut-droite (canonical eyebrowPillFloat)
   typeBadge: {
     position: 'absolute',
-    top: Spacing.sm,
-    left: Spacing.sm,
+    top: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
+    paddingHorizontal: 9,
     paddingVertical: 4,
-    paddingHorizontal: Spacing.sm,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
   },
-  typeBadgeText: { fontFamily: FontFamily.bold, fontSize: 10 },
-  cardContent: { padding: Spacing.md },
+  typeBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  cardContent: { padding: Spacing.md, gap: 6 },
   cardTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.base,
-    letterSpacing: -0.2,
-    marginBottom: 4,
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.5,
+    lineHeight: 20,
   },
   cardDescription: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    marginBottom: Spacing.sm,
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 18,
   },
   cardMeta: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    gap: 10,
+    marginTop: 4,
   },
   metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  metaText: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
+  metaText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: -0.1,
+  },
   submittedInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingTop: Spacing.sm,
+    marginTop: 6,
     borderTopWidth: 1,
   },
-  submittedText: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
+  submittedText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
   cardActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 8,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingVertical: 10,
     borderTopWidth: 1,
   },
-  actionChip: {
+  // Disque tertiaire (Voir) — 36×36, juste icone
+  actionDisc: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Pill secondaire (Modifs / Rejeter) — fond teinte, sans border
+  actionPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: 10,
+    height: 36,
     borderRadius: BorderRadius.full,
-    borderWidth: 1,
   },
-  actionChipFilled: {
+  actionPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  // Pill primaire (Valider) — flex 1, fond plein
+  actionPillPrimary: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    gap: 6,
+    height: 36,
     borderRadius: BorderRadius.full,
   },
-  actionChipText: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs },
+  actionPillPrimaryText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.3,
+  },
 
   // Empty
   emptyContainer: {

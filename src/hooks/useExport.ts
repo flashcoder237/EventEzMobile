@@ -39,7 +39,11 @@ function buildExportUrl(
       qs.set(k, String(v));
     }
   }
-  qs.set('format', format);
+  // Utiliser `export_format` et NON `format` : DRF interprete `?format=csv`
+  // comme une format-suffix negotiation et, faute de renderer CSV global,
+  // `BaseContentNegotiation.filter_renderers` raise Http404. L'action backend
+  // lit `export_format` en priorite (apps/registrations/views.py:1153).
+  qs.set('export_format', format);
   return `${baseUrl}${path}${path.includes('?') ? '&' : '?'}${qs.toString()}`;
 }
 

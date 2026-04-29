@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
 import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -33,6 +34,7 @@ type TimeRange = '7d' | '30d' | '90d' | '1y';
 export default function AnalyticsDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { showError } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: walletCurrency } = useOrganizerWallet();
   const platformCurrency = walletCurrency === 'XAF' || walletCurrency === 'XOF' ? 'FCFA' : walletCurrency;
@@ -43,25 +45,60 @@ export default function AnalyticsDashboardScreen() {
   const [summary, setSummary] = useState<any>(null);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [registrationData, setRegistrationData] = useState<any>(null);
+  const [hasFetchError, setHasFetchError] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
   }, [timeRange]);
 
+  const buildDateRange = (range: TimeRange) => {
+    const now = new Date();
+    const end = now.toISOString().slice(0, 10);
+    const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : 365;
+    const startDate = new Date(now.getTime() - days * 86400_000);
+    const start = startDate.toISOString().slice(0, 10);
+    return { start_date: start, end_date: end };
+  };
+
   const fetchAnalytics = async () => {
+    let failures = 0;
     try {
-      const params = { period: timeRange };
+      const params = buildDateRange(timeRange);
       const [summaryRes, revenueRes, registrationRes] = await Promise.all([
-        analyticsAPI.getDashboardSummary(params).catch(() => ({ data: null })),
-        analyticsAPI.getRevenueAnalytics(params).catch(() => ({ data: null })),
-        analyticsAPI.getRegistrationAnalytics(params).catch(() => ({ data: null })),
+        analyticsAPI.getDashboardSummary(params).catch((err) => {
+          failures += 1;
+          if (__DEV__) console.error('summary failed', err);
+          return { data: null };
+        }),
+        analyticsAPI.getRevenueAnalytics(params).catch((err) => {
+          failures += 1;
+          if (__DEV__) console.error('revenue failed', err);
+          return { data: null };
+        }),
+        analyticsAPI.getRegistrationAnalytics(params).catch((err) => {
+          failures += 1;
+          if (__DEV__) console.error('registration failed', err);
+          return { data: null };
+        }),
       ]);
 
       setSummary(summaryRes.data);
       setRevenueData(revenueRes.data);
       setRegistrationData(registrationRes.data);
+
+      if (failures >= 2) {
+        setHasFetchError(true);
+        showError(
+          'Données indisponibles',
+          "Plusieurs données analytics n'ont pas pu être chargées. Vérifie ta connexion et réessaye."
+        );
+      } else {
+        setHasFetchError(false);
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur analytics:', error);
+      setHasFetchError(true);
+      showError('Erreur', "Impossible de charger les analytics.");
     } finally {
       setLoading(false);
     }
@@ -80,13 +117,22 @@ export default function AnalyticsDashboardScreen() {
     { key: '1y', label: '1 an', eyebrow: '1A' },
   ];
 
-  const totalRevenue = summary?.total_revenue || revenueData?.total || 0;
-  const totalRegistrations = summary?.total_registrations || registrationData?.total || 0;
-  const totalEvents = summary?.total_events || 0;
-  const avgAttendance = summary?.avg_attendance_rate || 0;
+  // Backend retourne une structure imbriquée (event_summary, revenue_summary, registration_summary, trends).
+  // On fallback aussi sur les endpoints dédiés (revenue / registrations) si l'organisateur a appelé
+  // ces actions ou si dashboard_summary n'a pas la donnée.
+  const totalRevenue =
+    summary?.revenue_summary?.total_revenue ??
+    revenueData?.total_revenue ??
+    0;
+  const totalRegistrations =
+    summary?.registration_summary?.summary?.total_registrations ??
+    registrationData?.summary?.total_registrations ??
+    0;
+  const totalEvents = summary?.event_summary?.total_events ?? 0;
+  const avgAttendance = summary?.event_summary?.avg_fill_rate ?? 0;
 
-  const revenueTrend = summary?.revenue_trend || 0;
-  const registrationTrend = summary?.registration_trend || 0;
+  const revenueTrend = summary?.trends?.revenue_trend ?? 0;
+  const registrationTrend = summary?.trends?.registration_trend ?? 0;
 
   const KPICardE = ({
     eyebrow,

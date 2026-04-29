@@ -4,12 +4,17 @@ import {
   Text,
   StyleSheet,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Session } from '../../types';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Session, RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export interface AgendaTabProps {
   sessions: Session[];
@@ -21,6 +26,7 @@ export default function AgendaTab({
   loadingSessions,
 }: AgendaTabProps) {
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation<NavigationProp>();
 
   return (
     <View style={styles.section}>
@@ -33,7 +39,14 @@ export default function AgendaTab({
         </View>
       ) : sessions && sessions.length > 0 ? (
         sessions.map((session, index) => (
-          <View key={session.id || index} style={[styles.sessionCard, { backgroundColor: colors.gray50 }]}>
+          <TouchableOpacity
+            key={session.id || index}
+            style={[styles.sessionCard, { backgroundColor: colors.gray50 }]}
+            onPress={() => session.id && navigation.navigate('SessionDetails', { sessionId: String(session.id) })}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Voir détails session ${session.title}`}
+          >
             <View style={[styles.sessionTime, { borderRightColor: colors.primary }]}>
               <Text style={[styles.sessionTimeText, { color: colors.primary }]}>
                 {new Date(session.start_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
@@ -73,7 +86,8 @@ export default function AgendaTab({
                 </Text>
               )}
             </View>
-          </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.gray400} style={{ alignSelf: 'center' }} />
+          </TouchableOpacity>
         ))
       ) : (
         <View style={styles.emptyTab}>

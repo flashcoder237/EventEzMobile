@@ -20,7 +20,7 @@ interface AnimatedPressableProps extends Omit<PressableProps, 'style'> {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
   scaleValue?: number;
-  animationType?: 'scale' | 'opacity' | 'both' | 'lift' | 'editorial';
+  animationType?: 'scale' | 'opacity' | 'both' | 'lift' | 'editorial' | 'shadow';
   disabled?: boolean;
   haptic?: boolean | 'light' | 'medium' | 'heavy';
   /** Label d'accessibilite personnalise */
@@ -94,6 +94,19 @@ export default function AnimatedPressable({
             { rotate: `${editorialRotate}deg` },
           ],
           opacity: interpolate(pressed.value, [0, 1], [1, 0.95]),
+        };
+      }
+      case 'shadow': {
+        // Pas d'ombre au repos — elle apparait uniquement au touch.
+        // Subtle scale (0.99) pour donner une sensation tactile.
+        // shadowColor/shadowOffset doivent etre definis dans le style
+        // de la card pour que l'animation ait un rendu visible sur iOS.
+        const shadowScale = interpolate(pressed.value, [0, 1], [1, 0.99]);
+        return {
+          transform: [{ scale: shadowScale }],
+          shadowOpacity: interpolate(pressed.value, [0, 1], [0, 0.18]),
+          shadowRadius: interpolate(pressed.value, [0, 1], [0, 14]),
+          elevation: interpolate(pressed.value, [0, 1], [0, 8]),
         };
       }
       case 'both':

@@ -1,54 +1,46 @@
 import React from 'react';
-import Svg, { Path, Rect, Circle, G, Line } from 'react-native-svg';
-import { ALine, ACircle, APath, usePulse, useWaveOpacity } from '../animated';
+import Svg, { Path, Rect, Circle } from 'react-native-svg';
 
 type Props = { color?: string; size?: number };
 
-export default function AccessDenied({ color = '#4F46E5', size = 200 }: Props) {
-  // X mark pulses
-  const xPulse = useWaveOpacity(0.6, 1, 1200);
-  // Shield inner glow
-  const shieldGlow = usePulse(0.03, 0.08, 2400);
-  // X circle ring pulses
-  const ringPulse = usePulse(0.08, 0.2, 1800, 200);
-  // Prohibition lines
-  const pLine1 = usePulse(0.1, 0.3, 1600, 0);
-  const pLine2 = usePulse(0.1, 0.3, 1600, 300);
-  // Accent dots
-  const dot1 = usePulse(0.08, 0.25, 2200, 400);
-  const dot2 = usePulse(0.06, 0.2, 2600, 600);
+const CORAL = '#FF6B6B';
+const INDIGO_DARK = '#4338CA';
+const CREAM = '#FDFBF7';
 
+/**
+ * AccessDenied — closed lock with a giant coral X over it, dashed barrier behind.
+ * AI Designer v2 (run e042927c).
+ */
+export default function AccessDenied({ color = '#4F46E5', size = 200 }: Props) {
   return (
     <Svg width={size} height={size} viewBox="0 0 200 200" fill="none">
-      <Circle cx={100} cy={100} r={78} fill={color} opacity={0.06} />
-
-      {/* Shield */}
+      <Circle cx={100} cy={110} r={80} fill={color} fillOpacity={0.06} />
+      {/* Dashed barrier behind */}
       <Path
-        d="M100 35l55 24v44c0 33-22 60-55 70-33-10-55-37-55-70V59l55-24z"
-        fill="#fff"
+        d="M20 180L180 140 M20 160L180 120"
+        stroke={INDIGO_DARK}
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeDasharray="10 10"
+      />
+      {/* Lock body */}
+      <Rect x={60} y={90} width={80} height={70} rx={12} fill={CREAM} stroke={color} strokeWidth={5} strokeLinejoin="round" />
+      {/* Shackle */}
+      <Path
+        d="M75 90V60C75 40 125 40 125 60V90"
         stroke={color}
-        strokeWidth={2}
+        strokeWidth={6}
+        strokeLinecap="round"
       />
-      <APath
-        animatedProps={shieldGlow}
-        d="M100 35l55 24v44c0 33-22 60-55 70V35z"
-        fill={color}
+      {/* Coral X */}
+      <Path
+        d="M80 110L120 140 M80 140L120 110"
+        stroke={CORAL}
+        strokeWidth={7}
+        strokeLinecap="round"
       />
-
-      {/* Animated circle + X */}
-      <ACircle animatedProps={ringPulse} cx={100} cy={95} r={26} fill={color} />
-      <Circle cx={100} cy={95} r={20} fill="#fff" stroke={color} strokeWidth={2} />
-      <ALine animatedProps={xPulse} x1={90} y1={85} x2={110} y2={105} stroke={color} strokeWidth={3} strokeLinecap="round" />
-      <ALine animatedProps={xPulse} x1={110} y1={85} x2={90} y2={105} stroke={color} strokeWidth={3} strokeLinecap="round" />
-
-      {/* Animated prohibition lines */}
-      <APath animatedProps={pLine1} d="M62 55l-8-4" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-      <APath animatedProps={pLine2} d="M138 55l8-4" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
-
-      {/* Accents */}
-      <ACircle animatedProps={dot1} cx={45} cy={80} r={4} fill={color} />
-      <ACircle animatedProps={dot2} cx={158} cy={75} r={3} fill={color} />
-      <Circle cx={100} cy={170} r={5} fill={color} opacity={0.1} />
+      {/* Warning curl */}
+      <Path d="M30 40C40 20 60 30 70 50" stroke={color} strokeWidth={4} strokeLinecap="round" />
     </Svg>
   );
 }

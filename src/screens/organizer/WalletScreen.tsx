@@ -133,10 +133,11 @@ export default function WalletScreen() {
           mobile_money_provider: walletData.mobile_money_provider || '',
         });
 
-        // Charger les méthodes de retrait disponibles pour le pays du wallet
         try {
           const methodsRes = await payoutsAPI.getAvailableMethods();
-          const methods = methodsRes.data?.methods || [];
+          const methods = (methodsRes.data?.methods || []).filter(
+            (m: any) => m.type === 'mobile_money' || m.type === 'bank_transfer'
+          );
           setAvailableMethods(methods);
           if (methods.length && !payoutMethod) {
             const firstMM = methods.find((m: any) => m.type === 'mobile_money');
@@ -144,14 +145,49 @@ export default function WalletScreen() {
           }
         } catch (err) {
           if (__DEV__) console.error('Erreur chargement méthodes:', err);
+          showError(
+            'Méthodes indisponibles',
+            "Impossible de charger les méthodes de retrait pour votre pays. Vérifiez votre connexion."
+          );
         }
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement données portefeuille:', error);
+      showError(
+        'Erreur de chargement',
+        "Impossible de charger ton portefeuille. Vérifie ta connexion et réessaye."
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
+  };
+
+  const handleCancelPayout = async (payout: Payout) => {
+    showAlert(
+      'Annuler le retrait',
+      `Voulez-vous annuler votre demande de ${formatPrice(payout.amount)} ${wallet?.currency || 'XAF'} ? Le montant sera immédiatement re-crédité sur votre solde disponible.`,
+      [
+        { text: 'Garder la demande', style: 'cancel' },
+        {
+          text: 'Annuler le retrait',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await payoutsAPI.cancelPayout(payout.id);
+              showSuccess('Retrait annulé', 'Le montant a été re-crédité sur votre solde.');
+              fetchData();
+            } catch (error: any) {
+              showError(
+                'Annulation impossible',
+                error.response?.data?.detail || "Cette demande ne peut plus être annulée."
+              );
+            }
+          },
+        },
+      ],
+      'warning'
+    );
   };
 
   const onRefresh = () => {
@@ -174,7 +210,7 @@ export default function WalletScreen() {
     }
 
     if (amount < wallet.minimum_payout) {
-      showError('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} ${wallet?.currency || 'FCFA'}`);
+      showError('Erreur', `Le montant minimum est de ${formatPrice(wallet.minimum_payout)} ${wallet?.currency || 'XAF'}`);
       return;
     }
 
@@ -323,10 +359,18 @@ export default function WalletScreen() {
     const statusCfg = getPayoutStatusConfig(payout.status);
     const isBank = payout.payout_method === 'bank_transfer';
     const methodColor = isBank ? '#3B82F6' : '#F97316';
-    const methodLabel = payout.payout_method === 'mtn_money' ? 'MTN Money' :
-                        payout.payout_method === 'orange_money' ? 'Orange Money' : 'Virement bancaire';
-    const methodMark = payout.payout_method === 'mtn_money' ? 'MTN' :
-                       payout.payout_method === 'orange_money' ? 'OM' : 'BANK';
+    const methodMeta = availableMethods.find((m: any) => m.id === payout.payout_method);
+    const methodLabel = methodMeta?.name || (
+      payout.payout_method === 'mtn_money' ? 'MTN Mobile Money' :
+      payout.payout_method === 'orange_money' ? 'Orange Money' :
+      payout.payout_method === 'wave' ? 'Wave' :
+      payout.payout_method === 'mpesa' ? 'M-Pesa' :
+      payout.payout_method === 'airtel_money' ? 'Airtel Money' :
+      payout.payout_method === 'bank_transfer' ? 'Virement bancaire' :
+      payout.payout_method
+    );
+    const methodMark = isBank ? 'BANK' : (methodMeta?.name?.split(' ')[0]?.toUpperCase() || payout.payout_method.split('_')[0].toUpperCase()).slice(0, 6);
+    const canCancel = payout.status === 'pending';
     const statusEyebrow = payout.status === 'completed' ? 'EFFECTUÉ' :
                           payout.status === 'pending' ? 'EN ATTENTE' :
                           payout.status === 'processing' ? 'EN COURS' :
@@ -376,6 +420,19 @@ export default function WalletScreen() {
               <Ionicons name="warning" size={11} color="#EF4444" />
               <Text style={styles.payoutFailureText} numberOfLines={2}>{payout.failure_reason}</Text>
             </View>
+          )}
+
+          {canCancel && (
+            <TouchableOpacity
+              style={[styles.payoutCancelBtn, { borderColor: softBorder }]}
+              onPress={() => handleCancelPayout(payout)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Annuler ce retrait"
+            >
+              <Ionicons name="close-circle-outline" size={13} color={colors.gray600} />
+              <Text style={[styles.payoutCancelText, { color: colors.gray700 }]}>Annuler ce retrait</Text>
+            </TouchableOpacity>
           )}
         </View>
       </StaggeredItem>
@@ -544,7 +601,7 @@ export default function WalletScreen() {
             ]}
             onPress={() => wallet?.can_withdraw ? setShowPayoutModal(true) : showAlert(
               'Retrait impossible',
-              `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} ${wallet?.currency || 'FCFA'}`,
+              `Le montant minimum pour effectuer un retrait est de ${formatPrice(wallet?.minimum_payout || 10000)} ${wallet?.currency || 'XAF'}`,
               undefined,
               'warning'
             )}
@@ -844,21 +901,37 @@ export default function WalletScreen() {
             </View>
 
             {payoutMethod !== 'bank_transfer' && !wallet?.mobile_money_number && (
-              <View style={[styles.warningBoxE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+              <TouchableOpacity
+                style={[styles.warningBoxE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}
+                onPress={() => {
+                  setShowPayoutModal(false);
+                  setShowBankModal(true);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+              >
                 <Ionicons name="warning" size={14} color="#D97706" />
                 <Text style={styles.warningTextE}>
-                  Configurez d'abord votre numéro Mobile Money
+                  Configurez d'abord votre numéro Mobile Money — appuyez ici
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
 
             {payoutMethod === 'bank_transfer' && !wallet?.bank_account_number && (
-              <View style={[styles.warningBoxE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
+              <TouchableOpacity
+                style={[styles.warningBoxE, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}
+                onPress={() => {
+                  setShowPayoutModal(false);
+                  setShowBankModal(true);
+                }}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+              >
                 <Ionicons name="warning" size={14} color="#D97706" />
                 <Text style={styles.warningTextE}>
-                  Configurez d'abord vos informations bancaires
+                  Configurez d'abord vos informations bancaires — appuyez ici
                 </Text>
-              </View>
+              </TouchableOpacity>
             )}
 
             <View style={styles.modalActionsE}>
@@ -869,14 +942,21 @@ export default function WalletScreen() {
               >
                 <Text style={[styles.modalCancelTextE, { color: colors.text }]}>Annuler</Text>
               </TouchableOpacity>
+              {(() => {
+                const destinationMissing =
+                  payoutMethod === 'bank_transfer'
+                    ? !wallet?.bank_account_number
+                    : !wallet?.mobile_money_number;
+                const confirmDisabled = !payoutAmount || processingPayout || destinationMissing;
+                return (
               <TouchableOpacity
                 style={[
                   styles.modalConfirmE,
-                  (!payoutAmount || processingPayout) && { opacity: 0.5 },
+                  confirmDisabled && { opacity: 0.5 },
                   Shadows.buttonPrimary,
                 ]}
                 onPress={handleRequestPayout}
-                disabled={!payoutAmount || processingPayout}
+                disabled={confirmDisabled}
                 activeOpacity={0.9}
               >
                 <LinearGradient
@@ -896,6 +976,8 @@ export default function WalletScreen() {
                   </>
                 )}
               </TouchableOpacity>
+                );
+              })()}
             </View>
           </View>
         </View>
@@ -2138,6 +2220,23 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#991B1B',
     letterSpacing: -0.1,
+  },
+  payoutCancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: Spacing.sm,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  payoutCancelText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
 
   // === EDITORIAL: PENDING CARD ===

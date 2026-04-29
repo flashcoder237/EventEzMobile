@@ -196,8 +196,20 @@ export const payoutsAPI = {
     payout_method: string;
   }) => api.post('/payouts/request_payout/', data),
 
-  processPayout: (id: string, processData: any) =>
+  processPayout: (id: string, processData: {
+    action: 'approve' | 'reject';
+    notes?: string;
+    failure_reason?: string;
+    transaction_reference?: string;
+  }) =>
     api.post(`/payouts/${id}/process/`, processData),
+
+  /**
+   * Annule une demande de retrait pending (organisateur uniquement).
+   * Re-crédite immédiatement le solde disponible.
+   */
+  cancelPayout: (id: string) =>
+    api.post(`/payouts/${id}/cancel/`),
 
   getAvailableMethods: (country?: string) => {
     const params = country ? { country } : {};

@@ -613,15 +613,37 @@ export const MessageSkeleton = memo(function MessageSkeleton({ isOwn = false }: 
 // Matches MessagesScreen conversation card: avatar 40px + name + last message + time
 // ============================================
 export const ConversationItemSkeleton = memo(function ConversationItemSkeleton() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const border = isDark ? colors.gray200 : 'rgba(0,0,0,0.05)';
   return (
-    <View style={[styles.conversationItem, { borderBottomColor: colors.border }]}>
-      <Skeleton width={40} height={40} borderRadius={20} />
-      <View style={styles.conversationItemContent}>
-        <Skeleton width="55%" height={16} style={{ marginBottom: Spacing.xs }} />
-        <Skeleton width="75%" height={12} />
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: 14,
+        paddingHorizontal: Spacing.md,
+        paddingVertical: 14,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: border,
+        backgroundColor: colors.card,
+        marginBottom: 12,
+      }}
+    >
+      {/* Avatar 52x52 — matches MessagesScreen ConversationCard */}
+      <Skeleton width={52} height={52} borderRadius={26} />
+      <View style={{ flex: 1, justifyContent: 'center', gap: 4 }}>
+        {/* Eyebrow row: badge + time */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Skeleton width={70} height={9} borderRadius={3} />
+          <Skeleton width={32} height={9} borderRadius={3} />
+        </View>
+        {/* Name */}
+        <Skeleton width="60%" height={16} borderRadius={4} style={{ marginTop: 2 }} />
+        {/* Preview row */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
+          <Skeleton width="80%" height={12} borderRadius={3} />
+        </View>
       </View>
-      <Skeleton width={35} height={10} />
     </View>
   );
 });
@@ -1059,51 +1081,49 @@ export const PaymentCardSkeleton = memo(LedgerCardSkeleton);
 
 // ============================================
 // MESSAGES SCREEN SKELETON (full page)
-// Matches MessagesScreen: primary header (back + icon + title + newBtn) + search + tabs + conversations
+// Matches MessagesScreen: editorial header (back disc + eyebrow+title + search disc + compose btn)
+// + chips row + conversation list. Uses light canvas + Skeleton (NOT primary/PrimarySkeleton)
+// because the actual screen is editorial-style on `colors.background`.
 // ============================================
 export const MessagesScreenSkeleton = memo(function MessagesScreenSkeleton() {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   return (
-    <View style={{ flex: 1, backgroundColor: colors.primary }}>
-      {/* Header primary */}
-      <View style={{ backgroundColor: colors.primary, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
-        {/* Row: back | icon+title | new */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md }}>
-          <PrimarySkeleton width={40} height={40} borderRadius={20} style={{ marginRight: Spacing.md }} />
-          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-            <PrimarySkeleton width={40} height={40} borderRadius={20} />
-            <View style={{ gap: 5 }}>
-              <PrimarySkeleton width={100} height={16} borderRadius={BorderRadius.sm} />
-              <PrimarySkeleton width={80} height={12} borderRadius={BorderRadius.sm} />
-            </View>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      {/* Editorial header — soft rounded bottom corners, matches MessagesScreen */}
+      <View
+        style={{
+          backgroundColor: isDark ? colors.background : 'rgba(255,255,255,0.6)',
+          paddingHorizontal: Spacing.lg,
+          paddingTop: Spacing.md,
+          paddingBottom: Spacing.sm,
+          borderBottomWidth: 1,
+          borderBottomColor: hairline,
+          borderBottomLeftRadius: 32,
+          borderBottomRightRadius: 32,
+        }}
+      >
+        {/* Top row: back disc | eyebrow+title | search disc | compose btn */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm }}>
+          <Skeleton width={40} height={40} borderRadius={20} />
+          <View style={{ flex: 1, marginLeft: Spacing.md }}>
+            <Skeleton width={120} height={10} borderRadius={3} style={{ marginBottom: 6 }} />
+            <Skeleton width={100} height={28} borderRadius={6} />
           </View>
-          <PrimarySkeleton width={32} height={32} borderRadius={16} />
+          <Skeleton width={40} height={40} borderRadius={20} style={{ marginRight: 8 }} />
+          <Skeleton width={40} height={40} borderRadius={20} />
         </View>
 
-        {/* Search bar (card bg) */}
-        <View style={{
-          backgroundColor: 'rgba(255,255,255,0.12)',
-          borderRadius: BorderRadius.lg,
-          paddingHorizontal: Spacing.md,
-          paddingVertical: 10,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: Spacing.sm,
-          marginBottom: Spacing.sm,
-        }}>
-          <PrimarySkeleton width={18} height={18} borderRadius={9} />
-          <PrimarySkeleton width="70%" height={14} borderRadius={BorderRadius.sm} />
-        </View>
-
-        {/* Tabs */}
-        <View style={{ flexDirection: 'row', gap: Spacing.sm, paddingBottom: Spacing.sm }}>
-          <PrimarySkeleton height={34} borderRadius={BorderRadius.md} style={{ flex: 1 }} />
-          <PrimarySkeleton height={34} borderRadius={BorderRadius.md} style={{ flex: 1 }} />
+        {/* Chips row (Tous / Événements / Archives) */}
+        <View style={{ flexDirection: 'row', gap: 8, paddingTop: Spacing.sm }}>
+          <Skeleton width={70} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={100} height={32} borderRadius={BorderRadius.full} />
+          <Skeleton width={84} height={32} borderRadius={BorderRadius.full} />
         </View>
       </View>
 
-      {/* Conversations list */}
-      <View style={{ flex: 1, backgroundColor: colors.gray50, paddingTop: Spacing.xs }}>
+      {/* Conversations list — editorial padding */}
+      <View style={{ flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
         {Array.from({ length: 6 }).map((_, i) => (
           <ConversationItemSkeleton key={i} />
         ))}

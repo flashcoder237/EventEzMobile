@@ -886,7 +886,7 @@ export interface SubscriptionPayment {
 // WALLET & PAYOUT TYPES
 // ============================================
 
-export type PayoutMethod = 'bank_transfer' | 'mtn_money' | 'orange_money';
+export type PayoutMethod = 'bank_transfer' | 'mtn_money' | 'orange_money' | 'wave' | 'mpesa' | 'airtel_money';
 export type PayoutStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'cancelled';
 export type TransactionType = 'credit' | 'debit' | 'fee' | 'refund' | 'adjustment';
 
@@ -1098,7 +1098,9 @@ export interface Session {
   // --- Client-side ---
   max_participants?: number; // Alias client pour max_capacity
   current_participants?: number; // Alias client pour registration_count
-  is_registered?: boolean; // Client-only
+  is_registered?: boolean; // Backend exposed via SessionSerializer
+  is_in_waitlist?: boolean; // Backend exposed via SessionSerializer
+  waitlist_position?: number | null; // Backend exposed via SessionSerializer
   registration_deadline?: string; // Client-only
   status?: 'scheduled' | 'in_progress' | 'completed' | 'cancelled'; // Client-only
 }

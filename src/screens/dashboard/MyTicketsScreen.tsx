@@ -858,7 +858,7 @@ export default function MyTicketsScreen() {
                   <Text
                     style={{
                       fontFamily: FontFamily.bold,
-                      fontSize: 8,
+                      fontSize: 6,
                       letterSpacing: 0.6,
                       color: typeColor,
                       marginTop: 2,

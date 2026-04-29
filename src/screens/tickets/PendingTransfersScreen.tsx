@@ -79,6 +79,7 @@ export default function PendingTransfersScreen() {
       setSentTransfers(sentRes.data?.results || sentRes.data || []);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement transferts:', error);
+      showError('Erreur', "Impossible de charger les transferts. Vérifie ta connexion.");
     } finally {
       setLoading(false);
       setRefreshing(false);

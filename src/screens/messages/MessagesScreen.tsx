@@ -70,8 +70,15 @@ const ConversationCard = memo(function ConversationCard({
 }: ConversationCardProps) {
   const { colors, isDark } = useTheme();
   const otherUser = conversation.participants?.find(p => p.id !== currentUserId) || conversation.participants?.[0];
-  const displayName = conversation.title || getDisplayName(otherUser || null);
-  const avatar = otherUser?.profile_picture || (otherUser as any)?.image;
+  const conversationType = (conversation as any).conversation_type;
+  const displayName = conversation.title
+    || (conversation as any).name
+    || getDisplayName(otherUser || null);
+  // Pour les conversations groupe / event : avatar dérivé du banner event.
+  // Pour les directes : photo de profil du participant. Fallback : initiales.
+  const groupAvatar = (conversation as any).avatar;
+  const directAvatar = otherUser?.profile_picture || (otherUser as any)?.image;
+  const avatar = groupAvatar || directAvatar;
   const initials = getUserInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
   const isOrganizer = (otherUser as any)?.role === 'organizer' || (otherUser as any)?.user_type === 'organization';

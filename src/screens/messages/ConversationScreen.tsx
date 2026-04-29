@@ -10,7 +10,7 @@
  * - Statut des messages à 3 états
  */
 
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -76,7 +76,10 @@ import {
   ReactionPickerModal,
   ForwardModal,
   InputToolbar,
+  ConversationQuotaBanner,
+  GroupAdminPanel,
   MessageActionType,
+  QuotaState,
 } from '../../components/messages';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -258,6 +261,15 @@ export default function ConversationScreen() {
     }
   };
 
+  // Type de conversation (direct / group / event) — alimente le banner quota.
+  const [conversationType, setConversationType] = useState<'direct' | 'group' | 'event' | null>(null);
+  // État quota / read-only utilisé pour bloquer l'envoi côté UI.
+  const [quotaState, setQuotaState] = useState<QuotaState | null>(null);
+  // Données détaillées de la conversation (pour le panel admin : participants, organizer)
+  const [conversationDetails, setConversationDetails] = useState<any>(null);
+  // Modale d'administration du groupe (organizer uniquement)
+  const [showGroupAdminPanel, setShowGroupAdminPanel] = useState(false);
+
   const fetchConversationDetails = async () => {
     if (!state.conversationId) return;
 
@@ -265,11 +277,18 @@ export default function ConversationScreen() {
       const response = await messagesAPI.getConversation(state.conversationId);
       const conversation = response.data;
 
+      // Mémorise le type pour la gestion du banner et de la lecture seule
+      const ctype: 'direct' | 'group' | 'event' = conversation.conversation_type || 'direct';
+      setConversationType(ctype);
+      // Stocke la conversation détaillée pour le panel admin (participants, event)
+      setConversationDetails(conversation);
+
       const otherParticipant = conversation.participants?.find(
         (p: any) => p.id !== user?.id
       );
 
       const title = conversation.title ||
+        conversation.name ||
         (otherParticipant?.first_name && otherParticipant?.last_name
           ? `${otherParticipant.first_name} ${otherParticipant.last_name}`
           : otherParticipant?.email?.split('@')[0] || 'Conversation');
@@ -345,18 +364,33 @@ export default function ConversationScreen() {
   // ============================================
 
   const handleShowConversationOptions = () => {
-    Alert.alert(
-      'Options',
-      undefined,
-      [
-        {
-          text: 'Bloquer cet utilisateur',
-          style: 'destructive',
-          onPress: handleBlockUser,
-        },
-        { text: 'Annuler', style: 'cancel' },
-      ]
-    );
+    // Pour les groupes / événement où l'utilisateur est organizer/admin/moderator,
+    // on propose "Gérer le groupe" en plus du blocage. Le bouton "Bloquer" ne
+    // s'affiche pas dans les groupes (n'a pas de sens — il faudrait passer par
+    // le mute spécifique au groupe).
+    const buttons: any[] = [];
+
+    const isAdmin = !!quotaState?.is_organizer;
+    const isGroup = conversationType && conversationType !== 'direct';
+
+    if (isGroup && isAdmin) {
+      buttons.push({
+        text: 'Gérer le groupe',
+        onPress: () => setShowGroupAdminPanel(true),
+      });
+    }
+
+    if (!isGroup) {
+      buttons.push({
+        text: 'Bloquer cet utilisateur',
+        style: 'destructive' as const,
+        onPress: handleBlockUser,
+      });
+    }
+
+    buttons.push({ text: 'Annuler', style: 'cancel' as const });
+
+    Alert.alert('Options', undefined, buttons);
   };
 
   const handleBlockUser = async () => {
@@ -413,6 +447,12 @@ export default function ConversationScreen() {
 
   const handlePickImage = async () => {
     try {
+      // Garde-fou : on ne propose pas de joindre si la conversation est en lecture seule.
+      if (quotaState?.is_read_only) {
+        showError('Lecture seule', 'Vous ne pouvez plus envoyer de fichiers dans cette conversation.');
+        return;
+      }
+
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
         showError('Permission requise', 'Autorisez l\'accès aux photos.');
@@ -421,13 +461,33 @@ export default function ConversationScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        quality: 0.8,
+        // 0.7 (au lieu de 0.8) : gain de poids ~30% supplémentaire pour rester
+        // sous le quota groupe de 500 MB sans sacrifier la lisibilité.
+        quality: 0.7,
         allowsMultipleSelection: false,
       });
 
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
         const filename = asset.uri.split('/').pop() || 'image.jpg';
+        // Validation taille par fichier (5 Mo image) + quota cumulé du groupe.
+        const sizeBytes = (asset as any).fileSize || 0;
+        const { validateAttachmentSize, MESSAGE_LIMITS, formatBytes } = await import('../../constants/messaging');
+        const sizeError = validateAttachmentSize(sizeBytes, 'image');
+        if (sizeError && sizeBytes > 0) {
+          showError('Image trop volumineuse', sizeError);
+          return;
+        }
+        if (quotaState && quotaState.max_bytes != null && sizeBytes > 0) {
+          const remaining = Math.max(0, quotaState.max_bytes - quotaState.total_bytes);
+          if (sizeBytes > remaining) {
+            showError(
+              'Plus de place dans ce groupe',
+              `${formatBytes(remaining)} restants sur ${formatBytes(quotaState.max_bytes)}. Demandez à l'organisateur de faire le ménage ou utilisez un lien externe.`,
+            );
+            return;
+          }
+        }
 
         actions.setAttachedFiles([{
           uri: asset.uri,
@@ -702,6 +762,28 @@ export default function ConversationScreen() {
     const hasContent = messageContent.length > 0 || state.attachedFiles.length > 0;
     if (!hasContent) return;
 
+    // Lecture seule : on bloque l'envoi (filet de sécurité, l'UI désactive déjà
+    // visuellement le toolbar).
+    if (quotaState?.is_read_only) {
+      showError(
+        'Discussion en lecture seule',
+        'Sauvegardez vos messages — la conversation sera bientôt supprimée.',
+      );
+      return;
+    }
+    // Permissions d'écriture : muté ou mode restreint
+    if ((quotaState as any)?.is_muted) {
+      showError('Vous êtes muté', "L'organisateur a restreint votre droit d'écriture dans cette discussion.");
+      return;
+    }
+    if (quotaState && (quotaState as any).can_post === false) {
+      showError(
+        'Lecture seule',
+        "Seul l'organisateur peut écrire dans cette discussion.",
+      );
+      return;
+    }
+
     const isEditing = !!state.editingMessage;
 
     actions.setNewMessage('');
@@ -761,6 +843,11 @@ export default function ConversationScreen() {
           type: att.type === 'image' ? 'image/jpeg' : att.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
         } as any);
         formData.append('type', att.type);
+        // Informe le backend de la conversation cible pour ses propres validations
+        // (quota cumulé + read-only — filet de sécurité côté serveur).
+        if (conversationIdToUse) {
+          formData.append('conversation_id', String(conversationIdToUse));
+        }
 
         try {
           let uploadResponse;
@@ -1019,6 +1106,15 @@ export default function ConversationScreen() {
         </View>
       )}
 
+      {/* Banner quota / cycle de vie (groupes / event uniquement) */}
+      {state.conversationId && conversationType && conversationType !== 'direct' && (
+        <ConversationQuotaBanner
+          conversationId={state.conversationId}
+          conversationType={conversationType}
+          onQuotaUpdate={(s) => setQuotaState(s)}
+        />
+      )}
+
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior="padding"
@@ -1059,30 +1155,52 @@ export default function ConversationScreen() {
           <TypingIndicator typingUsers={typingUsers} />
         )}
 
-        {/* Input Toolbar */}
-        <View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
-          <InputToolbar
-            value={state.newMessage}
-            onChangeText={(text) => {
-              actions.setNewMessage(text);
-              handleTyping();
-            }}
-            onSend={handleSend}
-            sending={state.sending}
-            attachedFiles={state.attachedFiles}
-            onPickImage={handlePickImage}
-            onRemoveAttachment={handleRemoveAttachment}
-            isRecording={state.isRecording}
-            recordingDuration={state.recordingDuration}
-            onStartRecording={startRecording}
-            onStopRecording={stopRecording}
-            onCancelRecording={cancelRecording}
-            replyToMessage={state.replyToMessage}
-            editingMessage={state.editingMessage}
-            onCancelReply={actions.cancelReply}
-            onCancelEdit={actions.cancelEdit}
-          />
-        </View>
+        {/* Input Toolbar — masqué entièrement quand la conversation est en lecture seule,
+             que l'utilisateur est muté ou que le mode d'écriture l'exclut. */}
+        {(quotaState?.is_read_only || (quotaState as any)?.is_muted || (quotaState && (quotaState as any).can_post === false)) ? (
+          <View style={{
+            paddingBottom: insets.bottom + 12,
+            paddingTop: 12,
+            paddingHorizontal: 16,
+            backgroundColor: colors.card,
+            borderTopWidth: 1,
+            borderTopColor: colors.gray200,
+            alignItems: 'center',
+          }}>
+            <Ionicons name="lock-closed" size={18} color={colors.gray500} />
+            <Text style={{ color: colors.gray600, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
+              {quotaState?.is_read_only
+                ? 'Discussion en lecture seule. Pensez à sauvegarder.'
+                : (quotaState as any)?.is_muted
+                  ? "Vous avez été muté dans cette discussion par l'organisateur."
+                  : "Seul l'organisateur peut écrire dans cette discussion."}
+            </Text>
+          </View>
+        ) : (
+          <View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+            <InputToolbar
+              value={state.newMessage}
+              onChangeText={(text) => {
+                actions.setNewMessage(text);
+                handleTyping();
+              }}
+              onSend={handleSend}
+              sending={state.sending}
+              attachedFiles={state.attachedFiles}
+              onPickImage={handlePickImage}
+              onRemoveAttachment={handleRemoveAttachment}
+              isRecording={state.isRecording}
+              recordingDuration={state.recordingDuration}
+              onStartRecording={startRecording}
+              onStopRecording={stopRecording}
+              onCancelRecording={cancelRecording}
+              replyToMessage={state.replyToMessage}
+              editingMessage={state.editingMessage}
+              onCancelReply={actions.cancelReply}
+              onCancelEdit={actions.cancelEdit}
+            />
+          </View>
+        )}
       </KeyboardAvoidingView>
 
       {/* Modals */}
@@ -1109,6 +1227,26 @@ export default function ConversationScreen() {
         onClose={actions.hideForwardModal}
         onSelectTarget={handleForwardToUser}
       />
+
+      {/* Panel d'admin du groupe (organizer uniquement) */}
+      {state.conversationId && conversationDetails && (
+        <GroupAdminPanel
+          visible={showGroupAdminPanel}
+          conversationId={state.conversationId}
+          participants={conversationDetails.participants || []}
+          initialPostingMode={(conversationDetails.posting_mode || quotaState?.posting_mode || 'all') as any}
+          organizerId={
+            conversationDetails.event?.organizer_id
+            ?? conversationDetails.event?.organizer
+            ?? null
+          }
+          onClose={() => setShowGroupAdminPanel(false)}
+          onMutationApplied={() => {
+            // Force le banner à re-fetcher l'état quota au prochain render
+            setQuotaState(null);
+          }}
+        />
+      )}
       </View>
     </EditorialCanvas>
   );

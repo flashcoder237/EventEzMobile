@@ -97,4 +97,30 @@ export const messagesAPI = {
 
   getPresence: () =>
     api.get('/conversations/presence/'),
+
+  /** Statut quota + cycle de vie d'une conversation (groupes / événement). */
+  getConversationQuota: (conversationId: string | number) =>
+    api.get(`/conversations/${conversationId}/quota/`),
+
+  /** Manifest JSON complet d'une conversation pour sauvegarde locale. */
+  exportConversation: (conversationId: string | number) =>
+    api.get(`/conversations/${conversationId}/export/`),
+
+  /** Définit qui peut écrire (organizer uniquement). */
+  setPostingMode: (
+    conversationId: string | number,
+    mode: 'all' | 'organizer_only' | 'admins_only',
+  ) => api.patch(`/conversations/${conversationId}/posting-mode/`, { posting_mode: mode }),
+
+  /** Mute un participant (organizer uniquement). */
+  muteParticipant: (conversationId: string | number, userId: string | number) =>
+    api.post(`/conversations/${conversationId}/mute/`, { user_id: userId }),
+
+  /** Retire le mute d'un participant. */
+  unmuteParticipant: (conversationId: string | number, userId: string | number) =>
+    api.post(`/conversations/${conversationId}/unmute/`, { user_id: userId }),
+
+  /** Liste des utilisateurs mutés dans la conversation. */
+  getMutedList: (conversationId: string | number) =>
+    api.get(`/conversations/${conversationId}/muted-list/`),
 };
