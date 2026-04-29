@@ -74,6 +74,7 @@ import ModerationScreen from '../screens/moderation/ModerationScreen';
 // Payment Management Screens
 import MyPaymentsScreen from '../screens/payment/MyPaymentsScreen';
 import RefundRequestScreen from '../screens/payment/RefundRequestScreen';
+import RefundsListScreen from '../screens/payment/RefundsListScreen';
 
 // New Feature Screens
 import GamificationScreen from '../screens/profile/GamificationScreen';
@@ -279,6 +280,7 @@ export default function RootNavigator() {
       {/* Payment Management Screens */}
       <Stack.Screen name="MyPayments" component={MyPaymentsScreen} />
       <Stack.Screen name="RefundRequest" component={RefundRequestScreen} options={{ presentation: 'modal' }} />
+      <Stack.Screen name="RefundsList" component={RefundsListScreen} />
 
       {/* New Feature Screens */}
       <Stack.Screen name="Gamification" component={GamificationScreen} />

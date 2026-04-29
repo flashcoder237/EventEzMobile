@@ -80,7 +80,7 @@ export default function RefundRequestScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RefundRequestRouteProp>();
   const { paymentId } = route.params;
-  const { showSuccess, showError } = useAlert();
+  const { showSuccess, showError, showAlert } = useAlert();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -110,6 +110,46 @@ export default function RefundRequestScreen() {
     }
   };
 
+  const submitRefund = async (amount: number, fullReason: string) => {
+    setSubmitting(true);
+    try {
+      await refundsAPI.createRefund({
+        payment: paymentId,
+        amount: amount,
+        reason: fullReason,
+      });
+      // Modal de confirmation avec délai au lieu d'un simple toast
+      showAlert(
+        'Demande envoyée',
+        "Ta demande est en cours d'examen. Tu recevras une notif et un email à chaque mise à jour. Délai habituel : 3-5 jours ouvrés.",
+        [
+          {
+            text: 'Voir mes demandes',
+            onPress: () => {
+              try {
+                navigation.replace('RefundsList' as any);
+              } catch {
+                navigation.goBack();
+              }
+            },
+          },
+          { text: 'OK', style: 'cancel', onPress: () => navigation.goBack() },
+        ],
+        'success',
+      );
+    } catch (error: any) {
+      if (__DEV__) console.error('Error creating refund:', error);
+      showError(
+        'Erreur',
+        error.response?.data?.detail ||
+        error.response?.data?.error ||
+        'Impossible de soumettre la demande de remboursement'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedReason) {
       showError('Erreur', 'Sélectionne une raison');
@@ -133,26 +173,16 @@ export default function RefundRequestScreen() {
       return;
     }
 
-    setSubmitting(true);
-    try {
-      await refundsAPI.createRefund({
-        payment: paymentId,
-        amount: amount,
-        reason: fullReason,
-      });
-      showSuccess('Succès', 'Ta demande de remboursement a été soumise');
-      navigation.goBack();
-    } catch (error: any) {
-      if (__DEV__) console.error('Error creating refund:', error);
-      showError(
-        'Erreur',
-        error.response?.data?.detail ||
-        error.response?.data?.error ||
-        'Impossible de soumettre la demande de remboursement'
-      );
-    } finally {
-      setSubmitting(false);
-    }
+    // Confirmation explicite — c'est une action financière, pas réversible côté UI
+    showAlert(
+      'Confirmer la demande',
+      `Tu vas demander le remboursement de ${formatAmount(amount)} ${payment?.currency || 'XAF'}. Cette demande ne pourra pas être annulée.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Confirmer', style: 'destructive', onPress: () => submitRefund(amount, fullReason) },
+      ],
+      'warning',
+    );
   };
 
   const formatAmount = (amount: number | string) => {
@@ -242,6 +272,25 @@ export default function RefundRequestScreen() {
           <View style={styles.refCardAmountRow}>
             <Text style={styles.refCardAmount}>{formatAmount(payment.amount)}</Text>
             <Text style={styles.refCardCurrency}>{payment.currency || 'XAF'}</Text>
+          </View>
+        </View>
+
+        {/* === TRANSPARENCY BANNER — conditions + délais avant tout === */}
+        <View style={[styles.transparencyBanner, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}30` }]}>
+          <View style={[styles.transparencyIcon, { backgroundColor: colors.primary }]}>
+            <Ionicons name="information" size={14} color="#fff" />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.transparencyTitle, { color: colors.text }]}>Comment ça marche</Text>
+            <Text style={[styles.transparencyLine, { color: colors.gray600 }]}>
+              <Text style={{ fontFamily: FontFamily.bold }}>Délai :</Text> 3-5 jours ouvrés après validation par l'organisateur.
+            </Text>
+            <Text style={[styles.transparencyLine, { color: colors.gray600 }]}>
+              <Text style={{ fontFamily: FontFamily.bold }}>Frais :</Text> les frais de service ne sont pas remboursables.
+            </Text>
+            <Text style={[styles.transparencyLine, { color: colors.gray600 }]}>
+              <Text style={{ fontFamily: FontFamily.bold }}>Suivi :</Text> tu seras notifié·e par email à chaque étape.
+            </Text>
           </View>
         </View>
 
@@ -823,5 +872,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
     marginLeft: Spacing.sm,
+  },
+  // Transparency banner — conditions + délais
+  transparencyBanner: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+    marginBottom: Spacing.lg,
+  },
+  transparencyIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  transparencyTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: -0.2,
+    marginBottom: 6,
+  },
+  transparencyLine: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 2,
   },
 });

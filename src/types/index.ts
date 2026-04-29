@@ -1562,6 +1562,7 @@ export type RootStackParamList = {
   Moderation: undefined;
   MyPayments: undefined;
   RefundRequest: { paymentId: string };
+  RefundsList: undefined;
   BecomeOrganizer: undefined;
   Verification: undefined;
   Invitations: undefined;

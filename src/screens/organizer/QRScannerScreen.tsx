@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,9 @@ import {
   Modal,
   ActivityIndicator,
   Dimensions,
+  TextInput,
+  Pressable,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -21,6 +24,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
+import { useCheckinQueue } from '../../hooks/useCheckinQueue';
 import { registrationsAPI, eventsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
 import {
@@ -63,6 +67,14 @@ export default function QRScannerScreen() {
   const [autoCheckIn, setAutoCheckIn] = useState(true);
   const [event, setEvent] = useState<Event | null>(null);
   const { play: playSound } = useSoundEffect();
+  const { enqueue: enqueueOfflineScan, flush: flushQueue, pendingCount, isFlushing, isOnline } = useCheckinQueue();
+
+  // Manual entry modal
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualCode, setManualCode] = useState('');
+
+  // Auto-dismiss timer (en mode auto, ferme le modal après 1.5s)
+  const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -108,29 +120,52 @@ export default function QRScannerScreen() {
     return null;
   };
 
-  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
-    if (scanned || processing) return;
+  // Pattern haptique différencié — succès = 1 vibration courte, échec = 2 saccades
+  const vibrateSuccess = () => Vibration.vibrate([0, 80]);
+  const vibrateFail = () => Vibration.vibrate([0, 120, 80, 120]);
 
-    setScanned(true);
+  const processCheckIn = async (registrationId: string, source: 'qr' | 'manual') => {
     setProcessing(true);
-    Vibration.vibrate(100);
-
     try {
-      // Extraire l'ID de registration depuis le QR code
-      const registrationId = extractRegistrationId(data);
-
-      if (!registrationId) {
-        throw new Error('Format de QR code non reconnu');
+      // Si offline, on enqueue et on simule un succès local optimiste
+      if (!isOnline) {
+        await enqueueOfflineScan(registrationId, autoCheckIn, eventId);
+        setScanResult({
+          success: true,
+          message: autoCheckIn
+            ? 'En attente de connexion — check-in en queue'
+            : 'En attente de connexion — vérification en queue',
+          // pas de registration data en mode offline
+        });
+        setStats(prev => ({
+          ...prev,
+          scanned: prev.scanned + 1,
+          success: prev.success + 1,
+        }));
+        playSound('scan-success');
+        vibrateSuccess();
+        return;
       }
 
-      // Vérifier et faire le check-in via l'ID
       const response = await registrationsAPI.verifyAndCheckIn(registrationId, autoCheckIn);
       const registration = response.data;
+
+      // Vérification optionnelle event match — si l'event scanné ne matche pas
+      // l'event courant, on alerte le staff (peut être intentionnel mais à confirmer)
+      const regEventId =
+        (registration as any).event_detail?.id ||
+        (registration as any).event_id ||
+        (registration as any).event;
+      const eventMismatch = regEventId && String(regEventId) !== String(eventId);
 
       setScanResult({
         success: true,
         registration,
-        message: autoCheckIn ? 'Check-in effectué avec succès!' : 'Billet vérifié avec succès!',
+        message: eventMismatch
+          ? '⚠ Billet d\'un autre événement — valide quand même ?'
+          : autoCheckIn
+          ? 'Check-in effectué avec succès!'
+          : 'Billet vérifié avec succès!',
         alreadyCheckedIn: registration.is_checked_in && !autoCheckIn,
       });
       setStats(prev => ({
@@ -139,13 +174,14 @@ export default function QRScannerScreen() {
         success: prev.success + 1,
       }));
       playSound('scan-success');
+      vibrateSuccess();
     } catch (error: any) {
       if (__DEV__) console.error('Scan error:', error);
 
-      let message = 'Code QR invalide ou non reconnu';
-      if (error.message === 'Format de QR code non reconnu') {
-        message = error.message;
-      } else if (error.response?.status === 404) {
+      let message = source === 'manual'
+        ? 'Code de référence invalide'
+        : 'Code QR invalide ou non reconnu';
+      if (error.response?.status === 404) {
         message = 'Aucun billet trouvé pour ce code';
       } else if (error.response?.status === 400) {
         message = error.response.data?.detail || error.response.data?.message || 'Billet déjà utilisé ou invalide';
@@ -163,10 +199,59 @@ export default function QRScannerScreen() {
         failed: prev.failed + 1,
       }));
       playSound('scan-fail');
+      vibrateFail();
     } finally {
       setProcessing(false);
       setShowResult(true);
     }
+  };
+
+  const handleBarCodeScanned = async ({ data }: { type: string; data: string }) => {
+    if (scanned || processing) return;
+    setScanned(true);
+
+    const registrationId = extractRegistrationId(data);
+    if (!registrationId) {
+      setScanResult({ success: false, message: 'Format de QR code non reconnu' });
+      setStats(prev => ({ ...prev, scanned: prev.scanned + 1, failed: prev.failed + 1 }));
+      playSound('scan-fail');
+      vibrateFail();
+      setShowResult(true);
+      return;
+    }
+
+    await processCheckIn(registrationId, 'qr');
+  };
+
+  // Auto-dismiss du modal en mode auto-checkin (rend la main au scanner après 1.5s)
+  useEffect(() => {
+    if (!showResult) return;
+    if (!autoCheckIn) return; // mode manuel = on attend une action explicite
+    if (!scanResult?.success) return; // les erreurs restent affichées
+    // Annuler tout timer précédent
+    if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    autoDismissRef.current = setTimeout(() => {
+      handleContinueScan();
+    }, 1500);
+    return () => {
+      if (autoDismissRef.current) {
+        clearTimeout(autoDismissRef.current);
+        autoDismissRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showResult, autoCheckIn, scanResult?.success]);
+
+  const handleManualEntry = async () => {
+    const code = manualCode.trim();
+    if (!code) return;
+    setManualOpen(false);
+    setManualCode('');
+    setScanned(true);
+    // Si l'utilisateur a tapé un code court (reference_code à 10 chars), on
+    // l'envoie tel quel — le backend le résout. Sinon on tente extractRegistrationId.
+    const resolvedId = extractRegistrationId(code) || code;
+    await processCheckIn(resolvedId, 'manual');
   };
 
   const handleContinueScan = () => {
@@ -214,11 +299,28 @@ export default function QRScannerScreen() {
           </Text>
           <TouchableOpacity
             style={[styles.permissionButton, { backgroundColor: colors.primary }]}
-            onPress={requestPermission}
+            onPress={() => {
+              if (permission?.canAskAgain) {
+                requestPermission();
+              } else {
+                // L'utilisateur a "Refuser pour toujours" → seul Settings peut le débloquer
+                Linking.openSettings().catch(() => {});
+              }
+            }}
             accessibilityRole="button"
             accessibilityLabel="Autoriser l'acces a la camera"
           >
-            <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
+            <Text style={styles.permissionButtonText}>
+              {permission?.canAskAgain ? "Autoriser l'accès" : 'Ouvrir les paramètres'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.backLink}
+            onPress={() => setManualOpen(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Saisie manuelle"
+          >
+            <Text style={[styles.backLinkText, { color: colors.primary }]}>Saisie manuelle de la référence</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backLink}
@@ -298,8 +400,48 @@ export default function QRScannerScreen() {
             )}
           </View>
           <Text style={styles.scanHint}>
-            Placez le QR code du billet dans le cadre
+            Place le QR code du billet dans le cadre
           </Text>
+
+          {/* Offline badge — visible quand pas de réseau ou queue non vide */}
+          {(!isOnline || pendingCount > 0) && (
+            <TouchableOpacity
+              style={styles.offlineBadge}
+              onPress={() => isOnline && pendingCount > 0 && flushQueue()}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={
+                !isOnline
+                  ? `Hors-ligne, ${pendingCount} scan${pendingCount > 1 ? 's' : ''} en queue`
+                  : `Synchroniser ${pendingCount} scan${pendingCount > 1 ? 's' : ''}`
+              }
+            >
+              <Ionicons
+                name={!isOnline ? 'cloud-offline' : isFlushing ? 'sync' : 'cloud-upload'}
+                size={14}
+                color="#fff"
+              />
+              <Text style={styles.offlineBadgeText}>
+                {!isOnline
+                  ? `Hors-ligne · ${pendingCount} en queue`
+                  : isFlushing
+                  ? `Sync...`
+                  : `${pendingCount} scan${pendingCount > 1 ? 's' : ''} à syncer`}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Bouton saisie manuelle — visible toujours, pour les billets sans QR */}
+          <TouchableOpacity
+            style={styles.manualEntryBtn}
+            onPress={() => setManualOpen(true)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Saisir une référence manuellement"
+          >
+            <Ionicons name="keypad-outline" size={14} color="#fff" />
+            <Text style={styles.manualEntryBtnText}>Saisie manuelle</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Bottom Controls */}
@@ -429,6 +571,52 @@ export default function QRScannerScreen() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Manual Entry Modal — saisie de la reference_code à 10 caractères */}
+      <Modal
+        visible={manualOpen}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setManualOpen(false)}
+      >
+        <Pressable style={styles.manualBackdrop} onPress={() => setManualOpen(false)}>
+          <Pressable style={[styles.manualCard, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
+            <Text style={[styles.manualEyebrow, { color: colors.accent }]}>SAISIE MANUELLE</Text>
+            <Text style={[styles.manualTitle, { color: colors.text }]}>Référence du billet</Text>
+            <Text style={[styles.manualHint, { color: colors.gray500 }]}>
+              Entre les 10 caractères du code de référence (ex. A8K9X3M2QR).
+            </Text>
+            <TextInput
+              style={[styles.manualInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
+              value={manualCode}
+              onChangeText={(t) => setManualCode(t.toUpperCase())}
+              placeholder="A8K9X3M2QR"
+              placeholderTextColor={colors.gray400}
+              autoCapitalize="characters"
+              autoCorrect={false}
+              autoFocus
+              maxLength={40}
+            />
+            <View style={styles.manualActions}>
+              <TouchableOpacity
+                style={[styles.manualBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setManualOpen(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.manualBtnText, { color: colors.gray700 }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.manualBtn, { backgroundColor: colors.primary }, !manualCode.trim() && { opacity: 0.5 }]}
+                onPress={handleManualEntry}
+                disabled={!manualCode.trim()}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.manualBtnText, { color: '#fff' }]}>Vérifier</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
@@ -717,5 +905,97 @@ const styles = StyleSheet.create({
   },
   continueButtonText: {
     ...TextStyles.button,
+  },
+  // Offline / queue badge en bas du scan area
+  offlineBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 999,
+    backgroundColor: 'rgba(220, 38, 38, 0.85)',
+    marginTop: Spacing.sm,
+  },
+  offlineBadgeText: {
+    color: '#fff',
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+  // Manual entry button
+  manualEntryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    marginTop: Spacing.sm,
+  },
+  manualEntryBtnText: {
+    color: '#fff',
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  // Manual entry modal
+  manualBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  manualCard: {
+    width: '100%',
+    maxWidth: 380,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  manualEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  manualTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    marginBottom: 6,
+  },
+  manualHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: Spacing.md,
+  },
+  manualInput: {
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: 18,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 2,
+    textAlign: 'center',
+    marginBottom: Spacing.md,
+  },
+  manualActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  manualBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+  },
+  manualBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
 });
