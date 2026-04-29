@@ -122,7 +122,7 @@ export interface AuthState {
 // ============================================
 
 // Statuts d'evenement (events.Event.STATUS_CHOICES)
-export type EventStatus = 'draft' | 'submitted' | 'validated' | 'rejected' | 'completed' | 'cancelled';
+export type EventStatus = 'draft' | 'submitted' | 'changes_requested' | 'validated' | 'rejected' | 'completed' | 'cancelled';
 
 // Types d'evenement (events.Event.TYPE_CHOICES)
 export type EventType = 'billetterie' | 'inscription';
@@ -173,6 +173,8 @@ export interface Event {
   validated_at?: string;
   rejection_reason?: string;
   cancellation_reason?: string;
+  /** Texte du modérateur quand status='changes_requested', visible côté organizer */
+  moderator_notes?: string;
   // SEO
   seo_title?: string;
   seo_description?: string;

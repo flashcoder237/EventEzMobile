@@ -62,6 +62,8 @@ interface EventStep2DateTimeProps {
   onOnlineInstructionsChange: (value: string) => void;
   onOnlineMeetingIdChange: (value: string) => void;
   onOnlinePasscodeChange: (value: string) => void;
+  /** Map field → message d'erreur (peuplé après goToNextStep raté) */
+  stepErrors?: Record<string, string>;
 }
 
 // ============================================
@@ -98,6 +100,7 @@ export default function EventStep2DateTime({
   onOnlineInstructionsChange,
   onOnlineMeetingIdChange,
   onOnlinePasscodeChange,
+  stepErrors = {},
 }: EventStep2DateTimeProps) {
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
@@ -198,12 +201,19 @@ export default function EventStep2DateTime({
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>Ville *</Text>
             <TextInput
-              style={[styles.input, themed.input]}
+              style={[
+                styles.input,
+                themed.input,
+                stepErrors.locationCity && { borderColor: '#EF4444', borderWidth: 1.5 },
+              ]}
               value={locationCity}
               onChangeText={onLocationCityChange}
               placeholder="Ex: Douala"
               placeholderTextColor={colors.gray400}
             />
+            {stepErrors.locationCity && (
+              <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{stepErrors.locationCity}</Text>
+            )}
           </View>
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>Adresse</Text>
@@ -265,7 +275,11 @@ export default function EventStep2DateTime({
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>Lien de connexion <Text style={{ color: colors.error || '#EF4444' }}>*</Text></Text>
             <TextInput
-              style={[styles.input, themed.input]}
+              style={[
+                styles.input,
+                themed.input,
+                stepErrors.onlineUrl && { borderColor: '#EF4444', borderWidth: 1.5 },
+              ]}
               value={onlineUrl}
               onChangeText={onOnlineUrlChange}
               placeholder="https://..."
@@ -273,6 +287,9 @@ export default function EventStep2DateTime({
               keyboardType="url"
               autoCapitalize="none"
             />
+            {stepErrors.onlineUrl && (
+              <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4 }}>{stepErrors.onlineUrl}</Text>
+            )}
           </View>
           <View style={styles.inputGroup}>
             <Text style={[styles.label, themed.label]}>ID de réunion</Text>

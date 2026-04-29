@@ -564,6 +564,18 @@ export default function ConversationScreen() {
 
       case 'edit':
         if (isMyMessage(message, user?.id)) {
+          // Limite de 15 min après envoi (comme WhatsApp). Au-delà,
+          // l'édition n'est plus autorisée pour préserver la confiance dans
+          // l'historique des conversations.
+          const EDIT_WINDOW_MS = 15 * 60 * 1000;
+          const sentAt = message.created_at ? new Date(message.created_at).getTime() : 0;
+          if (sentAt && Date.now() - sentAt > EDIT_WINDOW_MS) {
+            showError(
+              'Édition non disponible',
+              'Tu peux éditer un message uniquement dans les 15 minutes après son envoi.',
+            );
+            return;
+          }
           actions.startEdit(message);
         }
         break;

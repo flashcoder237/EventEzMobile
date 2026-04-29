@@ -74,6 +74,8 @@ interface EventStep1InfoProps {
   onAIApply: (data: AIGeneratedEvent) => void;
   onOptimizeTitle: () => void;
   onGenerateDescription: () => void;
+  /** Map champ → message d'erreur, peuplé après un goToNextStep raté. Optionnel. */
+  stepErrors?: Record<string, string>;
 }
 
 // ============================================
@@ -119,6 +121,7 @@ export default function EventStep1Info({
   onAIApply,
   onOptimizeTitle,
   onGenerateDescription,
+  stepErrors = {},
 }: EventStep1InfoProps) {
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
@@ -233,13 +236,23 @@ export default function EventStep1Info({
           <Text style={[styles.labelRowCounter, themed.labelRowCounter]}>{title.length}/80</Text>
         </View>
         <TextInput
-          style={[styles.input, styles.inputTitle, themed.input]}
+          style={[
+            styles.input,
+            styles.inputTitle,
+            themed.input,
+            stepErrors.title && { borderColor: '#EF4444', borderWidth: 1.5 },
+          ]}
           value={title}
           onChangeText={onTitleChange}
           placeholder="Ex: Masterclass Jazz au Palais"
           placeholderTextColor={colors.gray400}
           maxLength={80}
         />
+        {stepErrors.title && (
+          <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontFamily: FontFamily.medium }}>
+            {stepErrors.title}
+          </Text>
+        )}
         {aiEnabled && (
           <View style={{ marginTop: Spacing.sm, alignSelf: 'flex-start' }}>
             <AIAssistButton
@@ -272,15 +285,25 @@ export default function EventStep1Info({
       <View style={styles.inputGroup}>
         <Text style={[styles.label, themed.label]}>L'histoire de l'événement *</Text>
         <TextInput
-          style={[styles.input, styles.textArea, themed.input]}
+          style={[
+            styles.input,
+            styles.textArea,
+            themed.input,
+            stepErrors.description && { borderColor: '#EF4444', borderWidth: 1.5 },
+          ]}
           value={description}
           onChangeText={onDescriptionChange}
-          placeholder="Qu'est-ce qui rend votre événement unique ? Pourquoi les gens doivent-ils absolument venir ?"
+          placeholder="Qu'est-ce qui rend ton événement unique ? Pourquoi les gens doivent-ils absolument venir ?"
           placeholderTextColor={colors.gray400}
           multiline
           numberOfLines={5}
           textAlignVertical="top"
         />
+        {stepErrors.description && (
+          <Text style={{ color: '#EF4444', fontSize: 12, marginTop: 4, fontFamily: FontFamily.medium }}>
+            {stepErrors.description}
+          </Text>
+        )}
         {aiEnabled && (
           <View style={{ marginTop: Spacing.sm, alignSelf: 'flex-start' }}>
             <AIAssistButton

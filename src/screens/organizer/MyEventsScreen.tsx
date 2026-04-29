@@ -42,6 +42,7 @@ type FilterStatus = 'all' | 'draft' | 'submitted' | 'validated' | 'rejected' | '
 const statusConfig: Record<string, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   draft: { color: '#6B7280', label: 'Brouillon', icon: 'document-outline' },
   submitted: { color: '#F59E0B', label: 'En attente', icon: 'time-outline' },
+  changes_requested: { color: '#D97706', label: 'À corriger', icon: 'create-outline' },
   validated: { color: '#10B981', label: 'Validé', icon: 'checkmark-circle-outline' },
   published: { color: '#10B981', label: 'Publié', icon: 'checkmark-circle-outline' },
   rejected: { color: '#EF4444', label: 'Rejeté', icon: 'close-circle-outline' },
@@ -257,6 +258,7 @@ export default function MyEventsScreen() {
     const time = startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     const statusEyebrow = item.status === 'validated' ? 'EN LIGNE' :
                           item.status === 'submitted' ? 'EN ATTENTE' :
+                          item.status === 'changes_requested' ? 'À CORRIGER' :
                           item.status === 'draft' ? 'BROUILLON' :
                           item.status === 'rejected' ? 'REJETÉ' :
                           item.status === 'completed' ? 'TERMINÉ' :
@@ -357,6 +359,87 @@ export default function MyEventsScreen() {
             </View>
           </View>
 
+          {/* Note modérateur visible sur les events à corriger ou rejetés */}
+          {item.status === 'changes_requested' && item.moderator_notes ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: 8,
+                padding: 10,
+                marginVertical: 8,
+                borderRadius: 12,
+                backgroundColor: '#FEF3C7',
+                borderWidth: 1,
+                borderColor: '#FDE68A',
+              }}
+            >
+              <Ionicons name="create" size={14} color="#D97706" />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: FontFamily.bold,
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    color: '#92400E',
+                    marginBottom: 2,
+                  }}
+                >
+                  NOTE DU MODÉRATEUR
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: FontFamily.medium,
+                    fontSize: 12,
+                    color: '#92400E',
+                    lineHeight: 16,
+                  }}
+                >
+                  {item.moderator_notes}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {item.status === 'rejected' && item.rejection_reason ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                gap: 8,
+                padding: 10,
+                marginVertical: 8,
+                borderRadius: 12,
+                backgroundColor: '#FEE2E2',
+                borderWidth: 1,
+                borderColor: '#FCA5A5',
+              }}
+            >
+              <Ionicons name="close-circle" size={14} color="#DC2626" />
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    fontFamily: FontFamily.bold,
+                    fontSize: 10,
+                    letterSpacing: 1,
+                    color: '#991B1B',
+                    marginBottom: 2,
+                  }}
+                >
+                  RAISON DU REJET
+                </Text>
+                <Text
+                  style={{
+                    fontFamily: FontFamily.medium,
+                    fontSize: 12,
+                    color: '#991B1B',
+                    lineHeight: 16,
+                  }}
+                >
+                  {item.rejection_reason}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
           {/* === ACTIONS === */}
           <View style={styles.actionsRow}>
             {item.status === 'validated' && (
@@ -417,7 +500,7 @@ export default function MyEventsScreen() {
               </TouchableOpacity>
             )}
 
-            {(item.status === 'draft' || item.status === 'rejected') && (
+            {(item.status === 'draft' || item.status === 'rejected' || item.status === 'changes_requested') && (
               <TouchableOpacity
                 style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}

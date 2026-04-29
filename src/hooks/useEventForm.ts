@@ -132,6 +132,9 @@ export interface EventFormState {
   aiTitleLoading: boolean;
   aiDescLoading: boolean;
   aiPricingLoading: boolean;
+
+  // Step validation — populated quand goToNextStep échoue, lu par les Steps
+  stepErrors: Record<string, string>;
 }
 
 export interface AlertActions {
@@ -297,6 +300,11 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   // Step 4 - Sessions
   const [sessions, setSessions] = useState<SessionForm[]>([]);
 
+  // Step validation errors — populated when goToNextStep fails. Les
+  // components Step1/2/3 lisent ce map pour appliquer un border rouge sur
+  // les champs invalides. Reset à null à chaque édition de champ.
+  const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
+
   // AI Assist
   const [aiEnabled, setAiEnabled] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -324,6 +332,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     visibility, accessCode, sessions, categories, availableTags,
     aiEnabled, aiLoading, aiResult, aiError, aiUsage,
     aiTitleLoading, aiDescLoading, aiPricingLoading,
+    stepErrors,
   };
 
   // ============================================
@@ -649,8 +658,17 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const { STEPS } = require('./useEventFormConstants');
 
   const goToNextStep = useCallback(() => {
-    if (validateStep(currentStep)) setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
-  }, [currentStep, validateStep]);
+    const result = validateStep.withDetails(currentStep);
+    if (result.valid) {
+      setStepErrors({});
+      setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+    } else {
+      setStepErrors(result.errors as Record<string, string>);
+      // Toast pour la première erreur (UX existante préservée)
+      const firstError = Object.values(result.errors)[0];
+      if (firstError) showError('Erreur', firstError);
+    }
+  }, [currentStep, validateStep, showError]);
 
   const goToPrevStep = useCallback(() => {
     setCurrentStep(prev => Math.max(prev - 1, 1));

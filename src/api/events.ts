@@ -64,6 +64,14 @@ export const eventsAPI = {
   rejectEvent: (id: string, reason: string) =>
     api.post(`/events/${id}/reject_event/`, { rejection_reason: reason }),
 
+  /**
+   * Demander des modifications à l'organizer (modérateur/admin uniquement).
+   * L'event passe à `changes_requested` et l'organizer voit la note sur
+   * MyEvents. Quand il re-soumet, l'event repasse à `submitted`.
+   */
+  requestChanges: (id: string, note: string) =>
+    api.post(`/events/${id}/request-changes/`, { note }),
+
   getPendingValidation: () =>
     api.get('/events/pending_validation/'),
 

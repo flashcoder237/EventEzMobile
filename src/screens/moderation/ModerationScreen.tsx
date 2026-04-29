@@ -78,6 +78,9 @@ export default function ModerationScreen() {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<PendingEvent | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  // 3e action : demander des modifications (changes_requested) — moins drastique que rejet
+  const [showChangesModal, setShowChangesModal] = useState(false);
+  const [changesNote, setChangesNote] = useState('');
 
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
 
@@ -144,6 +147,32 @@ export default function ModerationScreen() {
     setSelectedEvent(event);
     setRejectionReason('');
     setShowRejectModal(true);
+  };
+
+  const openChangesModal = (event: PendingEvent) => {
+    setSelectedEvent(event);
+    setChangesNote('');
+    setShowChangesModal(true);
+  };
+
+  const handleRequestChanges = async () => {
+    if (!selectedEvent || !changesNote.trim()) {
+      showError('Erreur', 'Indique une note pour l\'organisateur');
+      return;
+    }
+    setActionLoading(selectedEvent.id);
+    try {
+      await eventsAPI.requestChanges(selectedEvent.id, changesNote);
+      showSuccess('Envoyé', 'Demande de modifications envoyée');
+      setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
+      setShowChangesModal(false);
+      setSelectedEvent(null);
+      setChangesNote('');
+    } catch (error: any) {
+      showError('Erreur', error.response?.data?.detail || 'Impossible d\'envoyer la demande');
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const stats = useMemo(() => ({
@@ -342,6 +371,22 @@ export default function ModerationScreen() {
               <>
                 <Ionicons name="close-circle-outline" size={14} color="#EF4444" />
                 <Text style={[styles.actionChipText, { color: '#EF4444' }]}>Rejeter</Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionChip, { backgroundColor: '#F59E0B15', borderColor: '#F59E0B40' }]}
+            onPress={() => openChangesModal(item)}
+            disabled={isActionLoading}
+            activeOpacity={0.7}
+          >
+            {isActionLoading ? (
+              <ActivityIndicator size="small" color="#D97706" />
+            ) : (
+              <>
+                <Ionicons name="create-outline" size={14} color="#D97706" />
+                <Text style={[styles.actionChipText, { color: '#D97706' }]}>Modifs</Text>
               </>
             )}
           </TouchableOpacity>
@@ -654,6 +699,140 @@ export default function ModerationScreen() {
                     <>
                       <Ionicons name="close-circle" size={14} color="#FFFFFF" />
                       <Text style={styles.modalRejectText}>Confirmer</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* === DEMANDER MODIFS MODAL === */}
+      <Modal
+        visible={showChangesModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowChangesModal(false)}
+      >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: hairline }, Shadows.lg]}>
+              <View style={styles.modalHeader}>
+                <View style={[styles.modalIconWell, { backgroundColor: '#F59E0B15' }]}>
+                  <Ionicons name="create" size={20} color="#D97706" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>MODIFICATIONS</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>Note à l'organisateur</Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalClose, { backgroundColor: colors.background, borderColor: hairline }]}
+                  onPress={() => {
+                    setShowChangesModal(false);
+                    setSelectedEvent(null);
+                    setChangesNote('');
+                  }}
+                >
+                  <Ionicons name="close" size={16} color={colors.gray600} />
+                </TouchableOpacity>
+              </View>
+
+              {selectedEvent && (
+                <View style={[styles.modalEventChip, { backgroundColor: colors.background, borderColor: hairline }]}>
+                  <Text style={[styles.modalEventTitle, { color: colors.text }]} numberOfLines={2}>
+                    {selectedEvent.title}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
+                L'organisateur recevra ta note et pourra corriger puis re-soumettre. Moins drastique qu'un rejet.
+              </Text>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: Spacing.sm }}
+                contentContainerStyle={{ gap: 6, paddingRight: 8 }}
+              >
+                {[
+                  'Image bannière de meilleure qualité (>1200px)',
+                  'Description plus détaillée svp',
+                  'Préciser le lieu exact',
+                  'Ajouter au moins un type de billet',
+                  'Date limite d\'inscription manquante',
+                  'Coordonnées de contact à ajouter',
+                ].map((tpl) => {
+                  const isActive = changesNote.trim() === tpl;
+                  return (
+                    <TouchableOpacity
+                      key={tpl}
+                      onPress={() => setChangesNote(tpl)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 999,
+                        backgroundColor: isActive ? '#D97706' : '#F59E0B15',
+                        borderWidth: 1,
+                        borderColor: isActive ? '#D97706' : '#F59E0B40',
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.semiBold,
+                          fontSize: 11,
+                          color: isActive ? '#fff' : '#92400E',
+                        }}
+                      >
+                        {tpl}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              <TextInput
+                style={[styles.modalTextInput, { backgroundColor: colors.background, borderColor: hairline, color: colors.text }]}
+                placeholder="Décris ce qu'il faut corriger..."
+                placeholderTextColor={colors.gray400}
+                value={changesNote}
+                onChangeText={setChangesNote}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, { backgroundColor: colors.background, borderColor: hairline }]}
+                  onPress={() => {
+                    setShowChangesModal(false);
+                    setSelectedEvent(null);
+                    setChangesNote('');
+                  }}
+                  disabled={actionLoading !== null}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalRejectBtn,
+                    { backgroundColor: '#D97706' },
+                    (!changesNote.trim() || actionLoading !== null) && { opacity: 0.5 },
+                  ]}
+                  onPress={handleRequestChanges}
+                  disabled={!changesNote.trim() || actionLoading !== null}
+                  activeOpacity={0.8}
+                >
+                  {actionLoading !== null ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="send" size={14} color="#FFFFFF" />
+                      <Text style={styles.modalRejectText}>Envoyer</Text>
                     </>
                   )}
                 </TouchableOpacity>

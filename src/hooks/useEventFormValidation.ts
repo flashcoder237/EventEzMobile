@@ -1,49 +1,81 @@
 import { useCallback } from 'react';
 import type { EventFormState, AlertActions, TicketTypeForm, FormFieldForm } from './useEventForm';
 
+/**
+ * Liste des clés de champ que le validateStep peut signaler en erreur.
+ * Permet aux components Step* d'appliquer un style "invalide" en lisant
+ * `form.stepErrors[fieldKey]` côté EventCreateScreen.
+ */
+export type StepFieldError =
+  | 'title'
+  | 'description'
+  | 'categoryId'
+  | 'startDate'
+  | 'endDate'
+  | 'locationCity'
+  | 'onlineUrl'
+  | 'ticketTypes'
+  | 'formFields';
+
+export interface StepValidationResult {
+  valid: boolean;
+  errors: Partial<Record<StepFieldError, string>>;
+}
+
 export function useEventFormValidation(
   form: EventFormState,
   showError: AlertActions['showError'],
 ) {
-  const validateStep = useCallback((step: number): boolean => {
+  const validateStepWithDetails = useCallback((step: number): StepValidationResult => {
+    const errors: Partial<Record<StepFieldError, string>> = {};
+
     switch (step) {
       case 1:
-        if (!form.title.trim()) {
-          showError('Erreur', 'Le titre est requis');
-          return false;
-        }
-        if (!form.description.trim()) {
-          showError('Erreur', 'La description est requise');
-          return false;
-        }
-        if (!form.categoryId) {
-          showError('Erreur', 'Veuillez sélectionner une catégorie');
-          return false;
-        }
-        return true;
+        if (!form.title.trim()) errors.title = 'Le titre est requis';
+        if (!form.description.trim()) errors.description = 'La description est requise';
+        if (!form.categoryId) errors.categoryId = 'Sélectionne une catégorie';
+        break;
+
       case 2:
         if (form.endDate <= form.startDate) {
-          showError('Erreur', 'La date de fin doit être après la date de début');
-          return false;
+          errors.endDate = 'La date de fin doit être après la date de début';
         }
         if (form.locationType === 'in_person' || form.locationType === 'hybrid') {
           if (!form.locationCity.trim()) {
-            showError('Erreur', 'La ville est requise pour un événement présentiel');
-            return false;
+            errors.locationCity = 'La ville est requise pour un événement présentiel';
           }
         }
         if (form.locationType === 'online' || form.locationType === 'hybrid') {
           if (!form.onlineUrl.trim()) {
-            showError('Erreur', 'Le lien de connexion est requis pour un événement en ligne');
-            return false;
+            errors.onlineUrl = 'Le lien de connexion est requis pour un événement en ligne';
           }
         }
-        return true;
+        break;
+
       case 3:
-        return validateStep3(form, showError);
-      default:
-        return true;
+        if (form.eventType === 'billetterie') {
+          if (!form.isFree && form.ticketTypes.length === 0) {
+            errors.ticketTypes = 'Ajoute au moins un type de billet';
+          }
+          if (!validateTicketTypes(form.ticketTypes, showError)) {
+            errors.ticketTypes = errors.ticketTypes || 'Vérifie les noms et quantités de billets';
+          }
+          if (form.showFormFieldsForBilletterie && form.formFields.length > 0) {
+            if (!validateFormFields(form.formFields, showError)) {
+              errors.formFields = 'Vérifie les champs du formulaire';
+            }
+          }
+        } else {
+          if (form.formFields.length === 0) {
+            errors.formFields = 'Ajoute au moins un champ de formulaire';
+          } else if (!validateFormFields(form.formFields, showError)) {
+            errors.formFields = 'Vérifie les champs du formulaire';
+          }
+        }
+        break;
     }
+
+    return { valid: Object.keys(errors).length === 0, errors };
   }, [
     form.title, form.description, form.categoryId, form.startDate, form.endDate,
     form.locationType, form.locationCity, form.onlineUrl, form.onlinePlatform,
@@ -51,27 +83,21 @@ export function useEventFormValidation(
     form.showFormFieldsForBilletterie, showError,
   ]);
 
-  return validateStep;
-}
+  // Backward-compat: validateStep retourne toujours un bool, et déclenche un
+  // toast pour la première erreur trouvée. Les components qui ont besoin du
+  // détail utilisent validateStepWithDetails directement.
+  const validateStep = useCallback((step: number): boolean => {
+    const result = validateStepWithDetails(step);
+    if (!result.valid) {
+      const firstError = Object.values(result.errors)[0];
+      if (firstError) showError('Erreur', firstError);
+    }
+    return result.valid;
+  }, [validateStepWithDetails, showError]);
 
-function validateStep3(form: EventFormState, showError: AlertActions['showError']): boolean {
-  if (form.eventType === 'billetterie') {
-    if (!form.isFree && form.ticketTypes.length === 0) {
-      showError('Erreur', 'Veuillez ajouter au moins un type de billet');
-      return false;
-    }
-    if (!validateTicketTypes(form.ticketTypes, showError)) return false;
-    if (form.showFormFieldsForBilletterie && form.formFields.length > 0) {
-      if (!validateFormFields(form.formFields, showError)) return false;
-    }
-  } else {
-    if (form.formFields.length === 0) {
-      showError('Erreur', 'Veuillez ajouter au moins un champ de formulaire');
-      return false;
-    }
-    if (!validateFormFields(form.formFields, showError)) return false;
-  }
-  return true;
+  return Object.assign(validateStep, { withDetails: validateStepWithDetails }) as typeof validateStep & {
+    withDetails: typeof validateStepWithDetails;
+  };
 }
 
 function validateTicketTypes(tickets: TicketTypeForm[], showError: AlertActions['showError']): boolean {

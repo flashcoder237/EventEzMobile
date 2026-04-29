@@ -24,6 +24,7 @@ import { messagesAPI, usersAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useMutedConversations } from '../../hooks/useMutedConversations';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Conversation, RootStackParamList, User } from '../../types';
 import {
@@ -55,6 +56,7 @@ type TabType = 'all' | 'events' | 'archived';
 interface ConversationCardProps {
   conversation: Conversation;
   currentUserId?: string | number;
+  isMuted?: boolean;
   onPress: () => void;
   onLongPress: () => void;
 }
@@ -62,6 +64,7 @@ interface ConversationCardProps {
 const ConversationCard = memo(function ConversationCard({
   conversation,
   currentUserId,
+  isMuted: muted = false,
   onPress,
   onLongPress,
 }: ConversationCardProps) {
@@ -381,7 +384,8 @@ const userStyles = StyleSheet.create({
 export default function MessagesScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
-  const { showConfirm } = useAlert();
+  const { showConfirm, showAlert } = useAlert();
+  const { isMuted, toggle: toggleMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -548,19 +552,30 @@ export default function MessagesScreen() {
         <ConversationCard
           conversation={item}
           currentUserId={user?.id}
+          isMuted={isMuted(String(item.id))}
           onPress={() => navigation.navigate('Conversation', { conversationId: String(item.id) })}
           onLongPress={() => {
-            showConfirm(
+            const convId = String(item.id);
+            const muted = isMuted(convId);
+            showAlert(
               'Options',
-              `${displayName}\n\nQue souhaitez-vous faire ?`,
-              () => handleArchive(String(item.id)),
-              () => handleDelete(String(item.id))
+              `${displayName}\n\nQue veux-tu faire ?`,
+              [
+                {
+                  text: muted ? 'Réactiver les notifs' : 'Couper les notifs',
+                  onPress: () => toggleMute(convId),
+                },
+                { text: 'Archiver', onPress: () => handleArchive(convId) },
+                { text: 'Supprimer', style: 'destructive', onPress: () => handleDelete(convId) },
+                { text: 'Annuler', style: 'cancel' },
+              ],
+              'info',
             );
           }}
         />
       </StaggeredItem>
     );
-  }, [user?.id, navigation, showConfirm]);
+  }, [user?.id, navigation, showAlert, isMuted, toggleMute]);
 
   const renderEmpty = () => {
     const eyebrow = activeTab === 'archived' ? 'BOÎTE ARCHIVÉE' : 'BOÎTE VIDE';

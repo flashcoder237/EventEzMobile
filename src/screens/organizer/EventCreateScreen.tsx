@@ -420,6 +420,7 @@ export default function EventCreateScreen() {
                 onAIApply={handleAIApply}
                 onOptimizeTitle={handleOptimizeTitle}
                 onGenerateDescription={handleGenerateDescription}
+                stepErrors={form.stepErrors}
               />
             )}
 
@@ -454,6 +455,7 @@ export default function EventCreateScreen() {
                 onOnlineInstructionsChange={setOnlineInstructions}
                 onOnlineMeetingIdChange={setOnlineMeetingId}
                 onOnlinePasscodeChange={setOnlinePasscode}
+                stepErrors={form.stepErrors}
               />
             )}
 
