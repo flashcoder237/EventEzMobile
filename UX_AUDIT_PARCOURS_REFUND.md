@@ -6,6 +6,16 @@
 **Parcours** : `RefundRequestScreen` (sélection raison + montant + soumission)
 **Méthodologie** : Lecture du code source, simulation parcours utilisateur en état émotionnel négatif.
 
+## ✅ Statut d'implémentation
+
+- ✅ **Phase 9** (commits mobile 4562783 + backend 395effd) : 
+  - Bandeau de transparence en haut de RefundRequestScreen (délais 3-5j ouvrés, frais service non-remboursables, suivi par email).
+  - Confirmation explicite avant soumission ("Cette demande ne pourra pas être annulée").
+  - Nouveau `RefundsListScreen` `/refunds` avec status pills (EN ATTENTE / EN COURS / REMBOURSÉ / REFUSÉ), montant, raison, note de rejet, ref de transaction. Wired into RootNavigator.
+  - Backend signal sur `Event.cancelled` : crée automatiquement les Refund pour TOUS les paiements completed (idempotent, skip si refund non-rejected existe), avec note `[AUTO]` pour distinguer.
+  - Toast post-soumission redirige vers le tracking au lieu d'un goBack muet.
+- 🔁 Pas livré : "Contacter l'organisateur" depuis le refund (peut-être négocier un report avant refund), mention CGV cliquable, pré-check côté frontend (event terminé > 30j non-éligible), refund partial avec tooltip explicatif.
+
 ---
 
 ## ÉTAPE UNIQUE — RefundRequestScreen

@@ -1,7 +1,7 @@
 # UX Audit — Items différés
 
 Source : [UX_AUDIT_PARCOURS_INVITE.md](./UX_AUDIT_PARCOURS_INVITE.md)
-Mise à jour : 2026-04-29 (post-phase-8)
+Mise à jour : 2026-04-29 (post-phase-16)
 
 > ✅ **Phase 6** (commit 04a97d3) : tutoiement sweep golden-path, NetInfo banner 2G/3G, confettis adaptive Android, mute toggle PaymentSuccess, saisie directe quantité (long-press), sticky chips Discover, lazy-load EventDetails sections.
 >
@@ -10,6 +10,22 @@ Mise à jour : 2026-04-29 (post-phase-8)
 > ✅ **Phase 7** : compteur tentative polling, bouton "Inviter un ami", flow "Demander un groupe" sur quantity > 10, tutoiement sweep MyPayments/Refund/Failed, skeleton léger Discover.
 >
 > ✅ **Phase 8** (icônes payment fournies par utilisateur + backend) : recent_registrants avatars sur EventDetails (opt-out via User.show_in_attendees), Registration.reference_code exposé sur PaymentSuccess (format EZ-XXXXXXXXXX), discount validate accepte subtotal et retourne applied_amount (plus de "(estimation)").
+>
+> ✅ **Phase 9** (commits mobile 4562783 + backend 395effd) : refund transparency banner + RefundsListScreen tracking + auto-refund signal sur Event.cancelled.
+>
+> ✅ **Phase 10** (commit 4562783) : check-in offline queue (useCheckinQueue) + saisie manuelle de référence + auto-dismiss modal en mode auto.
+>
+> ✅ **Phase 11** (commit a836c2b) : moderator reasons templates (8 chips) + tri SLA + badge URGENT > 24h.
+>
+> ✅ **Phase 12** (commit a836c2b) : organizer confirmations avant suppression bannière + tutoiement wizard.
+>
+> ✅ **Phase 13** (commits mobile 26ebf02 + backend ece04a6) : "Demander modifications" 3e action de modération end-to-end (status changes_requested + moderator_notes + reset au re-submit + notification + UI moderator avec modal dédié + UI organizer avec card jaune).
+>
+> ✅ **Phase 14** (commit 26ebf02) : validation par étape visible avec border rouge + texte d'erreur sur les champs invalidés (Step1: title + description, Step2: locationCity + onlineUrl).
+>
+> ✅ **Phase 15** (commit 26ebf02) : messaging edit time limit 15 min + useMutedConversations hook + menu 4 options (Mute/Archive/Delete/Cancel) sur long-press.
+>
+> ✅ **Phase 16** (commit 26ebf02) : useNamedDrafts hook (storage indexé par UUID, saveAsNamed/loadById/deleteById/drafts[] meta).
 
 ---
 

@@ -488,6 +488,49 @@ export default function RefundRequestScreen() {
           Shadows.dramatic,
         ]}
       >
+        {/* Option de désescalade : contacter l'organizer avant de soumettre.
+            Souvent un échange règle le souci sans refund (report sur autre event,
+            geste commercial, etc.) — bénéfique pour les deux parties. */}
+        {(() => {
+          const reg: any = (payment as any).registration_details;
+          const organizerId = reg?.event_detail?.organizer?.id || reg?.event?.organizer?.id;
+          const organizerObj = reg?.event_detail?.organizer || reg?.event?.organizer;
+          if (!organizerId) return null;
+          const organizerName =
+            `${organizerObj?.first_name || ''} ${organizerObj?.last_name || ''}`.trim() ||
+            organizerObj?.email ||
+            'Organisateur';
+          return (
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                paddingVertical: 10,
+                marginBottom: 8,
+                borderRadius: 999,
+                borderWidth: 1.5,
+                borderColor: colors.gray300,
+              }}
+              onPress={() =>
+                navigation.navigate('Conversation', {
+                  userId: String(organizerId),
+                  userName: organizerName,
+                })
+              }
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Contacter l'organisateur avant remboursement"
+            >
+              <Ionicons name="chatbubble-outline" size={14} color={colors.gray700} />
+              <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 13, color: colors.gray700 }}>
+                Contacter l'organisateur d'abord
+              </Text>
+            </TouchableOpacity>
+          );
+        })()}
+
         <TouchableOpacity
           style={[
             styles.submitPill,

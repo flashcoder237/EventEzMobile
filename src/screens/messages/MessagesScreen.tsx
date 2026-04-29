@@ -130,7 +130,7 @@ const ConversationCard = memo(function ConversationCard({
       </View>
 
       <View style={cardStyles.body}>
-        {/* Eyebrow row: organizer badge + time */}
+        {/* Eyebrow row: organizer badge + mute icon + time */}
         <View style={cardStyles.eyebrowRow}>
           {isOrganizer ? (
             <View
@@ -144,6 +144,14 @@ const ConversationCard = memo(function ConversationCard({
           ) : (
             <Text style={[cardStyles.directLabel, { color: colors.gray500 }]}>DIRECT</Text>
           )}
+          {muted ? (
+            <Ionicons
+              name="notifications-off"
+              size={12}
+              color={colors.gray400}
+              style={{ marginLeft: 6 }}
+            />
+          ) : null}
           <Text style={[cardStyles.time, { color: colors.gray500 }]}>
             {conversation.last_message_at ? formatRelativeTime(conversation.last_message_at) : ''}
           </Text>
@@ -172,7 +180,14 @@ const ConversationCard = memo(function ConversationCard({
             {preview}
           </Text>
           {hasUnread && (
-            <View style={[cardStyles.unreadPill, { backgroundColor: colors.accent }]}>
+            <View
+              style={[
+                cardStyles.unreadPill,
+                // Atténue visuellement le badge sur les conversations mutées
+                // (toujours visible mais en gris au lieu de corail)
+                { backgroundColor: muted ? colors.gray400 : colors.accent },
+              ]}
+            >
               <Text style={cardStyles.unreadPillText}>
                 {conversation.unread_count > 99 ? '99+' : conversation.unread_count}
               </Text>

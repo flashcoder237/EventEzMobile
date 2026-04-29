@@ -60,6 +60,7 @@ import ScanScreen from '../screens/scan/ScanScreen';
 
 // Organizer Screens
 import EventCreateScreen from '../screens/organizer/EventCreateScreen';
+import DraftsListScreen from '../screens/organizer/DraftsListScreen';
 import WalletScreen from '../screens/organizer/WalletScreen';
 import MyEventsScreen from '../screens/organizer/MyEventsScreen';
 import QRScannerScreen from '../screens/organizer/QRScannerScreen';
@@ -268,6 +269,7 @@ export default function RootNavigator() {
       <Stack.Screen name="EventEdit" component={EventCreateScreen} />
       <Stack.Screen name="Wallet" component={WalletScreen} />
       <Stack.Screen name="MyEvents" component={MyEventsScreen} />
+      <Stack.Screen name="Drafts" component={DraftsListScreen} />
       <Stack.Screen name="QRScanner" component={QRScannerScreen} options={{ presentation: 'fullScreenModal' }} />
       <Stack.Screen name="EventAnalytics" component={EventAnalyticsScreen} />
       <Stack.Screen name="EventRegistrations" component={EventRegistrationsScreen} />

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -65,6 +66,7 @@ export default function QRScannerScreen() {
   const [showResult, setShowResult] = useState(false);
   const [stats, setStats] = useState({ scanned: 0, success: 0, failed: 0 });
   const [autoCheckIn, setAutoCheckIn] = useState(true);
+  const sessionStartedAtRef = useRef<number>(Date.now());
   const [event, setEvent] = useState<Event | null>(null);
   const { play: playSound } = useSoundEffect();
   const { enqueue: enqueueOfflineScan, flush: flushQueue, pendingCount, isFlushing, isOnline } = useCheckinQueue();
@@ -81,6 +83,22 @@ export default function QRScannerScreen() {
       requestPermission();
     }
   }, [permission]);
+
+  // Hydrate la pref autoCheckIn depuis AsyncStorage au mount + persiste à chaque toggle
+  useEffect(() => {
+    AsyncStorage.getItem('eventez:scanner_auto_checkin')
+      .then((v) => {
+        if (v !== null) setAutoCheckIn(v === 'true');
+      })
+      .catch(() => { /* ignore */ });
+  }, []);
+  const toggleAutoCheckIn = useCallback(() => {
+    setAutoCheckIn((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem('eventez:scanner_auto_checkin', String(next)).catch(() => {});
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -354,7 +372,21 @@ export default function QRScannerScreen() {
         <SafeAreaView style={styles.header}>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              // Récap de session si l'utilisateur a fait au moins un scan
+              if (stats.scanned > 0) {
+                const elapsedMs = Date.now() - sessionStartedAtRef.current;
+                const elapsedMin = Math.max(1, Math.floor(elapsedMs / 60000));
+                showError(
+                  'Bilan de la session',
+                  `${stats.scanned} scan${stats.scanned > 1 ? 's' : ''} en ${elapsedMin} min\n` +
+                    `✓ ${stats.success} validé${stats.success > 1 ? 's' : ''}\n` +
+                    `✗ ${stats.failed} échoué${stats.failed > 1 ? 's' : ''}` +
+                    (pendingCount > 0 ? `\n⏳ ${pendingCount} en queue offline` : ''),
+                );
+              }
+              navigation.goBack();
+            }}
             accessibilityRole="button"
             accessibilityLabel="Fermer le scanner"
           >
@@ -467,7 +499,7 @@ export default function QRScannerScreen() {
           {/* Auto check-in toggle */}
           <TouchableOpacity
             style={styles.autoCheckInToggle}
-            onPress={() => setAutoCheckIn(!autoCheckIn)}
+            onPress={toggleAutoCheckIn}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: autoCheckIn }}
             accessibilityLabel="Check-in automatique apres scan"

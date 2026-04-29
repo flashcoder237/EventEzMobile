@@ -6,6 +6,15 @@
 **Parcours** : `MessagesScreen` (inbox) → `ConversationScreen` (chat temps réel) → ConversationScreen permet attachments, edit, delete, reactions, presence, typing, read receipts.
 **Méthodologie** : Lecture du code source, audit synthétique focalisé sur les frictions principales.
 
+## ✅ Statut d'implémentation
+
+- ✅ **Phase 15** (commit 26ebf02) : 
+  - Edit time limit 15 min (parité WhatsApp) avec toast clair "Tu peux éditer dans les 15 minutes après l'envoi".
+  - `useMutedConversations` hook AsyncStorage local (toggle + isMuted + persist).
+  - Long-press sur conversation card ouvre maintenant un menu 4 options : **Mute/Unmute** / **Archiver** / **Supprimer** / **Annuler**.
+  - `ConversationCard` accepte `isMuted` prop (UI badge cloche barrée à câbler visuellement si besoin).
+- 🔁 Pas livré : blocage utilisateur backend (nécessite User.blocked_users field + hook côté WebSocket pour filtrer), opt-out global des read receipts dans Settings, indicateur réseau "Reconnexion..." dans le header conversation, queue offline pour messages envoyés (existe déjà via useOfflineQueue mémoire), statuts livraison à 3 niveaux (envoyé/livré/lu).
+
 ---
 
 ## ÉTAPE 1 — MessagesScreen (Inbox)

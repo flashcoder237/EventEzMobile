@@ -1546,7 +1546,7 @@ export type RootStackParamList = {
   Conversation: { conversationId?: string; userId?: string; userName?: string };
   NewConversation: { userId?: string };
   Map: { eventId?: string };
-  EventCreate: undefined;
+  EventCreate: { draftId?: string } | undefined;
   EventEdit: { eventId: string };
   MyEvents: undefined;
   EventAnalytics: { eventId: string };
@@ -1565,6 +1565,7 @@ export type RootStackParamList = {
   MyPayments: undefined;
   RefundRequest: { paymentId: string };
   RefundsList: undefined;
+  Drafts: undefined;
   BecomeOrganizer: undefined;
   Verification: undefined;
   Invitations: undefined;

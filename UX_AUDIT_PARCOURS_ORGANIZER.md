@@ -4,7 +4,13 @@
 **Auditeur** : Claude (lecture de code, simulation utilisateur)
 **Profil simulé** : Nouveau créateur d'événement (compte fraîchement promu organisateur), crée son premier event de A à Z et reçoit ses premières inscriptions.
 **Parcours** : EventCreate (4 étapes) → MyEvents → EventRegistrations → Wallet → Analytics
-**Méthodologie** : Lecture du code source, reconstruction de l'expérience, identification des frictions à partir de la logique réelle.
+
+## ✅ Statut d'implémentation
+
+- ✅ **Phase 12** (commit a836c2b) : showConfirm avant suppression bannière + tutoiement (steps 2 + draft prompt + success message).
+- ✅ **Phase 13** (commits 26ebf02 / ece04a6) : status `changes_requested` end-to-end. Card "NOTE DU MODÉRATEUR" sur MyEvents quand statut concerné, badge "À CORRIGER", bouton Modifier accessible. Permet la résolution sans re-créer un event.
+- ✅ **Phase 14** (commit 26ebf02) : validation par étape visible. Champs requis manquants surlignés en rouge avec message d'erreur sous le champ (Step1: title/description, Step2: locationCity/onlineUrl).
+- ✅ **Phase 16** (commit 26ebf02) : hook `useNamedDrafts` livré pour multi-brouillons. UI "Brouillons" tab sur MyEvents pas encore câblée — backlog UI.
 
 > ⚠️ Limite méthodologique : ce rapport reflète ce qu'un utilisateur **devrait** voir d'après le code. Il ne capture pas les bugs runtime, latences réelles, rendus exacts.
 

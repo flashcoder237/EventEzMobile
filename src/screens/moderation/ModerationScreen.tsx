@@ -81,6 +81,11 @@ export default function ModerationScreen() {
   // 3e action : demander des modifications (changes_requested) — moins drastique que rejet
   const [showChangesModal, setShowChangesModal] = useState(false);
   const [changesNote, setChangesNote] = useState('');
+  // Multi-select bulk actions
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const isSelectMode = selectedIds.size > 0;
+  const [bulkRejectModal, setBulkRejectModal] = useState(false);
+  const [bulkReason, setBulkReason] = useState('');
 
   const isModerator = user?.role === 'moderator' || user?.role === 'admin';
 
@@ -153,6 +158,64 @@ export default function ModerationScreen() {
     setSelectedEvent(event);
     setChangesNote('');
     setShowChangesModal(true);
+  };
+
+  const toggleSelected = (eventId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventId)) {
+        next.delete(eventId);
+      } else {
+        next.add(eventId);
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkValidate = async () => {
+    const ids = Array.from(selectedIds);
+    setActionLoading('bulk');
+    let validated = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        await eventsAPI.validateEvent(id);
+        validated += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    setEvents((prev) => prev.filter((e) => !selectedIds.has(e.id)));
+    clearSelection();
+    setActionLoading(null);
+    showSuccess('Bulk', `${validated} validé${validated > 1 ? 's' : ''}${failed > 0 ? ` · ${failed} échoué${failed > 1 ? 's' : ''}` : ''}`);
+  };
+
+  const handleBulkReject = async () => {
+    if (!bulkReason.trim()) {
+      showError('Erreur', 'Indique une raison pour le rejet en masse');
+      return;
+    }
+    const ids = Array.from(selectedIds);
+    setActionLoading('bulk');
+    let rejected = 0;
+    let failed = 0;
+    for (const id of ids) {
+      try {
+        await eventsAPI.rejectEvent(id, bulkReason);
+        rejected += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    setEvents((prev) => prev.filter((e) => !selectedIds.has(e.id)));
+    setBulkRejectModal(false);
+    setBulkReason('');
+    clearSelection();
+    setActionLoading(null);
+    showSuccess('Bulk', `${rejected} rejeté${rejected > 1 ? 's' : ''}${failed > 0 ? ` · ${failed} échoué${failed > 1 ? 's' : ''}` : ''}`);
   };
 
   const handleRequestChanges = async () => {
@@ -260,12 +323,45 @@ export default function ModerationScreen() {
   }
 
   const renderEvent = ({ item }: { item: PendingEvent }) => {
-    const isActionLoading = actionLoading === item.id;
+    const isActionLoading = actionLoading === item.id || actionLoading === 'bulk';
     const isBilletterie = item.event_type === 'billetterie';
     const typeColor = isBilletterie ? BILLET_COLOR : INSCRIPTION_COLOR;
+    const isSelected = selectedIds.has(item.id);
 
     return (
-      <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
+      <TouchableOpacity
+        activeOpacity={0.95}
+        onLongPress={() => toggleSelected(item.id)}
+        onPress={() => {
+          if (isSelectMode) toggleSelected(item.id);
+        }}
+        style={[
+          styles.card,
+          { backgroundColor: colors.card, borderColor: isSelected ? colors.primary : hairline, borderWidth: isSelected ? 2 : 1 },
+          Shadows.sm,
+        ]}
+        accessibilityRole="button"
+        accessibilityState={{ selected: isSelected }}
+      >
+        {isSelected && (
+          <View
+            style={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              width: 24,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: colors.primary,
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
+            <Ionicons name="checkmark" size={14} color="#fff" />
+          </View>
+        )}
+      <View>
         <View style={styles.cardImage}>
           {item.banner_image ? (
             <Image source={getMediaUrl(item.banner_image)!} style={styles.image} cachePolicy="disk" transition={200} />
@@ -408,6 +504,7 @@ export default function ModerationScreen() {
           </TouchableOpacity>
         </View>
       </View>
+      </TouchableOpacity>
     );
   };
 
@@ -459,6 +556,69 @@ export default function ModerationScreen() {
           <Text style={[styles.countText, { color: colors.primary }]}>{stats.total}</Text>
         </View>
       </View>
+
+      {/* Barre d'actions bulk — visible en mode multi-select */}
+      {isSelectMode && (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+            paddingHorizontal: Spacing.lg,
+            paddingVertical: 10,
+            backgroundColor: `${colors.primary}10`,
+            borderBottomWidth: 1,
+            borderBottomColor: `${colors.primary}30`,
+          }}
+        >
+          <TouchableOpacity onPress={clearSelection} style={{ padding: 6 }}>
+            <Ionicons name="close" size={20} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={{ flex: 1, fontFamily: FontFamily.bold, fontSize: 14, color: colors.text }}>
+            {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+          </Text>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: 10,
+              paddingVertical: 7,
+              borderRadius: 999,
+              backgroundColor: '#EF4444',
+            }}
+            onPress={() => setBulkRejectModal(true)}
+            disabled={actionLoading === 'bulk'}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="close-circle-outline" size={14} color="#fff" />
+            <Text style={{ fontFamily: FontFamily.bold, fontSize: 12, color: '#fff' }}>Rejeter</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 4,
+              paddingHorizontal: 10,
+              paddingVertical: 7,
+              borderRadius: 999,
+              backgroundColor: '#10B981',
+            }}
+            onPress={handleBulkValidate}
+            disabled={actionLoading === 'bulk'}
+            activeOpacity={0.85}
+          >
+            {actionLoading === 'bulk' ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle" size={14} color="#fff" />
+                <Text style={{ fontFamily: FontFamily.bold, fontSize: 12, color: '#fff' }}>Valider</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -833,6 +993,86 @@ export default function ModerationScreen() {
                     <>
                       <Ionicons name="send" size={14} color="#FFFFFF" />
                       <Text style={styles.modalRejectText}>Envoyer</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* === BULK REJECT MODAL === */}
+      <Modal
+        visible={bulkRejectModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBulkRejectModal(false)}
+      >
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: hairline }, Shadows.lg]}>
+              <View style={styles.modalHeader}>
+                <View style={[styles.modalIconWell, { backgroundColor: '#EF444415' }]}>
+                  <Ionicons name="layers" size={20} color="#EF4444" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>BULK · REJETER</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>
+                    {selectedIds.size} événement{selectedIds.size > 1 ? 's' : ''}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={[styles.modalClose, { backgroundColor: colors.background, borderColor: hairline }]}
+                  onPress={() => setBulkRejectModal(false)}
+                >
+                  <Ionicons name="close" size={16} color={colors.gray600} />
+                </TouchableOpacity>
+              </View>
+
+              <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
+                Cette raison sera envoyée à tous les organisateurs concernés.
+              </Text>
+
+              <TextInput
+                style={[styles.modalTextInput, { backgroundColor: colors.background, borderColor: hairline, color: colors.text }]}
+                placeholder="Raison commune du rejet..."
+                placeholderTextColor={colors.gray400}
+                value={bulkReason}
+                onChangeText={setBulkReason}
+                multiline
+                numberOfLines={4}
+                textAlignVertical="top"
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, { backgroundColor: colors.background, borderColor: hairline }]}
+                  onPress={() => {
+                    setBulkRejectModal(false);
+                    setBulkReason('');
+                  }}
+                  disabled={actionLoading === 'bulk'}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalRejectBtn,
+                    { backgroundColor: '#EF4444' },
+                    (!bulkReason.trim() || actionLoading === 'bulk') && { opacity: 0.5 },
+                  ]}
+                  onPress={handleBulkReject}
+                  disabled={!bulkReason.trim() || actionLoading === 'bulk'}
+                  activeOpacity={0.8}
+                >
+                  {actionLoading === 'bulk' ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Ionicons name="close-circle" size={14} color="#FFFFFF" />
+                      <Text style={styles.modalRejectText}>Rejeter en masse</Text>
                     </>
                   )}
                 </TouchableOpacity>

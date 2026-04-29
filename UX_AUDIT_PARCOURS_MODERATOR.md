@@ -6,6 +6,12 @@
 **Parcours** : `ModerationScreen` (liste filtrable + actions valider/rejeter avec raison)
 **Méthodologie** : Lecture du code source, simulation d'une session de modération.
 
+## ✅ Statut d'implémentation
+
+- ✅ **Phase 11** (commit a836c2b) : 8 chips de raisons templates sur le rejet ; tri par ancienneté (oldest first) ; bandeau rouge SLA quand events > 24h en attente ; badge URGENT + couleur rouge sur les cards en retard ; tutoiement.
+- ✅ **Phase 13** (commits 26ebf02 / ece04a6) : 3e action "Modifs" entre Rejeter et Valider ; modal dédiée avec 6 templates contextuels ; backend `request_changes` + status `changes_requested` + notification organizer + reset au re-submit. Le rejet n'est plus le seul recours pour des soucis mineurs.
+- 🔁 Pas livré : multi-select + bulk actions, historique des décisions modérateur (annulation 5min), notes internes entre modérateurs, prévisualisation détaillée plein écran, tri configurable, filtres avancés (catégorie/date), mode triage swipe Tinder.
+
 ---
 
 ## ÉTAPE UNIQUE — ModerationScreen

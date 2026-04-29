@@ -6,6 +6,11 @@
 **Parcours** : `QRScannerScreen` (caméra + scan + modal résultat + check-in optionnel)
 **Méthodologie** : Lecture du code source, simulation de scénarios réels (succès, doublon, échec, offline).
 
+## ✅ Statut d'implémentation
+
+- ✅ **Phase 10** (commit 4562783) : offline queue end-to-end via `useCheckinQueue` (AsyncStorage + auto-flush au retour de connexion + drop des erreurs définitives 404/400) ; saisie manuelle de la référence avec modal dédié + lien Settings sur permission denied ; auto-dismiss du modal succès en mode auto-checkin (1.5s) ; haptique différencié succès/échec ; warning event mismatch ; badge offline/sync visible.
+- 🔁 Pas encore livré : batch mode "X sur Y du même groupe", récap de fin de session, pref autoCheckIn persistant, lecteur basse résolution mode économie batterie.
+
 ---
 
 ## ÉTAPE UNIQUE — QRScannerScreen

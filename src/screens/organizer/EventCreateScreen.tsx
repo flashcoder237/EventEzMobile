@@ -27,6 +27,7 @@ import {
 } from '../../components/organizer';
 import { useEventForm, STEPS } from '../../hooks/useEventForm';
 import { useEventDraft } from '../../hooks/useEventDraft';
+import { useNamedDrafts } from '../../hooks/useNamedDrafts';
 import {
   Colors,
   FontFamily,
@@ -44,6 +45,7 @@ export default function EventCreateScreen() {
   const route = useRoute();
   // Le screen est utilise pour Create et Edit. En Edit, route.params.eventId existe.
   const eventId = (route.params as EditRouteType['params'] | undefined)?.eventId;
+  const draftId = (route.params as { draftId?: string } | undefined)?.draftId;
   const isEditing = !!eventId;
 
   const alertActions = useAlert();
@@ -116,9 +118,23 @@ export default function EventCreateScreen() {
   // Le systeme de brouillon n'a de sens qu'en mode creation : en edition,
   // la source de verite est l'evenement existant cote backend.
   const { hasDraft, draftTitle, draftLoading, draftJustSaved, loadDraft, scheduleSave, saveNow, clearDraft } = useEventDraft();
+  const { saveAsNamed, loadById: loadNamedDraftById } = useNamedDrafts();
   const draftCheckedRef = useRef(false);
+  const namedDraftLoadedRef = useRef(false);
   const formRef = useRef(form);
   formRef.current = form;
+
+  // Si on arrive avec un draftId, hydrate le form depuis le brouillon nommé
+  useEffect(() => {
+    if (isEditing) return;
+    if (!draftId) return;
+    if (namedDraftLoadedRef.current) return;
+    namedDraftLoadedRef.current = true;
+    (async () => {
+      const data = await loadNamedDraftById(draftId);
+      if (data) hydrateForm(data);
+    })();
+  }, [draftId, isEditing, loadNamedDraftById, hydrateForm]);
 
   useEffect(() => {
     if (isEditing) return;
@@ -321,6 +337,38 @@ export default function EventCreateScreen() {
             )}
           </View>
 
+          {!isEditing ? (
+            <TouchableOpacity
+              onPress={() => {
+                showAlert(
+                  'Sauvegarder sous...',
+                  'Donne un nom à ce brouillon pour le retrouver dans "Mes brouillons" plus tard.',
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                      text: 'Sauvegarder',
+                      onPress: async () => {
+                        const name = formRef.current.title?.trim() || 'Brouillon sans titre';
+                        const meta = await saveAsNamed(formRef.current, name);
+                        showAlert(
+                          'Brouillon sauvegardé',
+                          `"${meta.name}" est dans Mes brouillons. Tu peux le reprendre depuis MyEvents.`,
+                          undefined,
+                          'success',
+                        );
+                      },
+                    },
+                  ],
+                  'info',
+                );
+              }}
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityRole="button"
+              accessibilityLabel="Sauvegarder ce brouillon sous un nom"
+            >
+              <Ionicons name="bookmark-outline" size={20} color={colors.gray600} />
+            </TouchableOpacity>
+          ) : null}
           {form.aiEnabled ? <AIUsageBadge usage={form.aiUsage} /> : <View style={{ width: 40 }} />}
         </View>
 

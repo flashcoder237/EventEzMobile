@@ -614,6 +614,15 @@ export default function MyEventsScreen() {
           <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Events</Text>
         </View>
         <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: colors.gray100, marginRight: 8 }]}
+          onPress={() => navigation.navigate('Drafts' as any)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Mes brouillons"
+        >
+          <Ionicons name="document-text-outline" size={18} color={colors.gray600} />
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.headerCreateBtn, Shadows.buttonPrimary]}
           onPress={() => navigation.navigate('EventCreate')}
           activeOpacity={0.85}
