@@ -65,11 +65,10 @@ const PaymentIcons: Record<string, ImageSource> = {
   mtn_money: require('../../../assets/payments/momo.png'),
   orange_money: require('../../../assets/payments/om.png'),
   credit_card: require('../../../assets/payments/bank.png'),
-  // Fallback pour les nouvelles méthodes - réutilisent des icônes existantes
-  wave: require('../../../assets/payments/bank.png'),
-  mpesa: require('../../../assets/payments/bank.png'),
-  airtel_money: require('../../../assets/payments/bank.png'),
-  paypal: require('../../../assets/payments/bank.png'),
+  wave: require('../../../assets/payments/wave.png'),
+  mpesa: require('../../../assets/payments/M-pesa-logo.png'),
+  airtel_money: require('../../../assets/payments/airtel.png'),
+  paypal: require('../../../assets/payments/PayPal_Logo.png'),
 };
 
 // Couleurs par méthode de paiement
@@ -317,6 +316,7 @@ export default function PaymentScreen() {
         eventStartDate: (eventObj as any)?.start_date,
         amount: finalTotal,
         currency: eventCurrencyLabel,
+        referenceCode: (registration as any)?.reference_code,
       });
     },
     onFailure: (errorMessage, data) => {

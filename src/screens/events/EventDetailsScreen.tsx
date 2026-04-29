@@ -795,18 +795,73 @@ export default function EventDetailsScreen() {
             </View>
           </View>
 
-          {/* Section: Who's Going — count-only, no fake avatars */}
+          {/* Section: Who's Going — real avatars from opt-in registrants, count fallback otherwise */}
           {(event.registration_count || 0) > 0 && (
             <View style={[styles.whoIsGoingSection, { borderTopColor: colors.gray100 }]}>
               <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>LA COMMUNAUTÉ</Text>
               <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Qui y va ?</Text>
               <View style={styles.whoIsGoingRow}>
-                <View style={[styles.avatarCircle, { backgroundColor: `${colors.primary}15`, borderColor: colors.surface }]}>
-                  <Ionicons name="people" size={16} color={colors.primary} />
-                </View>
-                <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]}>
-                  {event.registration_count} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
-                </Text>
+                {event.recent_registrants && event.recent_registrants.length > 0 ? (
+                  <>
+                    <View style={styles.avatarStack}>
+                      {event.recent_registrants.slice(0, 4).map((reg, i) => (
+                        <View
+                          key={String(reg.id)}
+                          style={[
+                            styles.avatarCircle,
+                            {
+                              marginLeft: i > 0 ? -10 : 0,
+                              zIndex: 4 - i,
+                              backgroundColor: colors.primaryBg,
+                              borderColor: colors.surface,
+                            },
+                          ]}
+                        >
+                          {reg.profile_picture ? (
+                            <Image
+                              source={{ uri: reg.profile_picture }}
+                              style={{ width: '100%', height: '100%', borderRadius: 999 }}
+                              contentFit="cover"
+                              cachePolicy="memory-disk"
+                              transition={200}
+                            />
+                          ) : (
+                            <Text
+                              style={{
+                                fontFamily: FontFamily.bold,
+                                fontSize: 12,
+                                color: colors.primary,
+                              }}
+                            >
+                              {(reg.first_name || '?').charAt(0).toUpperCase()}
+                            </Text>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                    <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]} numberOfLines={2}>
+                      {event.recent_registrants[0].first_name || 'Quelqu\'un'}
+                      {event.recent_registrants.length > 1
+                        ? `, ${event.recent_registrants[1].first_name || ''}`
+                        : ''}
+                      {(event.visible_attendees_count || event.registration_count || 0) > event.recent_registrants.length
+                        ? ` et ${(event.visible_attendees_count || event.registration_count || 0) - event.recent_registrants.length} autre${
+                            (event.visible_attendees_count || event.registration_count || 0) - event.recent_registrants.length > 1 ? 's' : ''
+                          }`
+                        : ''}
+                      {' '}y vont
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <View style={[styles.avatarCircle, { backgroundColor: `${colors.primary}15`, borderColor: colors.surface }]}>
+                      <Ionicons name="people" size={16} color={colors.primary} />
+                    </View>
+                    <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]}>
+                      {event.registration_count} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
+                    </Text>
+                  </>
+                )}
               </View>
             </View>
           )}

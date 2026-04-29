@@ -69,7 +69,7 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId } = route.params;
+  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, referenceCode } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   // Hooks d'auth/sound déclarés tôt — utilisés par handleInviteFriend ci-dessous
@@ -325,7 +325,7 @@ export default function PaymentSuccessScreen() {
           </Animated.View>
 
           {/* === MINI RECAP — concrete proof of what was just paid === */}
-          {(amount !== undefined || eventTitle || daysUntil !== null) && (
+          {(amount !== undefined || eventTitle || daysUntil !== null || referenceCode) && (
             <Animated.View
               style={[
                 styles.recapCard,
@@ -346,6 +346,18 @@ export default function PaymentSuccessScreen() {
                   <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Événement</Text>
                   <Text style={[styles.recapValue, { color: colors.text }]} numberOfLines={1}>
                     {eventTitle}
+                  </Text>
+                </View>
+              )}
+              {referenceCode && (
+                <View style={styles.recapRow}>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Référence</Text>
+                  <Text
+                    style={[styles.recapValue, { color: colors.text, fontFamily: FontFamily.bold, letterSpacing: 0.5 }]}
+                    selectable
+                    numberOfLines={1}
+                  >
+                    EZ-{referenceCode}
                   </Text>
                 </View>
               )}

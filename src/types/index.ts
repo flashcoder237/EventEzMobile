@@ -43,6 +43,11 @@ export interface User {
   // Compte invité — créé via guest checkout sur un event gratuit, sans mot
   // de passe. Upgradable via authAPI.upgradeGuest().
   is_guest?: boolean;
+  // Privacy : si false, l'utilisateur n'apparaît pas dans la section
+  // "Qui y va ?" des pages event (sa registration reste comptée dans
+  // registration_count, mais son avatar/prénom n'est pas exposé).
+  // Opt-out — par défaut visible.
+  show_in_attendees?: boolean;
   // Authentification sociale
   auth_provider?: AuthProvider;
   // Parametres de notification
@@ -174,6 +179,16 @@ export interface Event {
   // Statistiques
   view_count: number;
   registration_count: number;
+  // Recent attendees (5 derniers, opt-in only) — exposé par EventDetailSerializer.
+  // Champs minimaux pour respecter la privacy : id + first_name + photo.
+  recent_registrants?: Array<{
+    id: number | string;
+    first_name: string;
+    profile_picture: string | null;
+  }>;
+  // Nombre total d'inscrits qui ont opt-in à apparaître publiquement.
+  // Distinct de registration_count qui inclut les opt-out.
+  visible_attendees_count?: number;
   // Metriques formulaires personnalises
   form_storage_usage?: number;
   form_active_days?: number;
@@ -1512,6 +1527,8 @@ export type RootStackParamList = {
     eventStartDate?: string;
     amount?: number;
     currency?: string;
+    /** Reference code de l'inscription (Registration.reference_code) — affichée dans le récap */
+    referenceCode?: string;
   };
   PaymentFailed: { paymentId?: string; error?: string };
   QRCode: { ticketId: string };

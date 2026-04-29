@@ -316,10 +316,13 @@ export default function TicketPurchaseScreen() {
     return total;
   };
 
-  // Estimation côté client basée sur la valeur retournée par le backend (appliedDiscount.value).
-  // Le montant final exact sera calculé par le backend lors de la création de l'inscription.
+  // Privilégie le montant exact calculé par le backend (passé via `subtotal` lors
+  // de la validation). Fallback sur le calcul client uniquement si le backend
+  // n'a pas renvoyé applied_amount (compat avec anciennes versions du serveur).
   const getDiscountAmount = () => {
     if (!appliedDiscount) return 0;
+    const serverAmount = (appliedDiscount as any)._serverAppliedAmount;
+    if (typeof serverAmount === 'number') return serverAmount;
     const subtotal = getSubtotal();
     if (appliedDiscount.discount_type === 'percentage') {
       return Math.round((subtotal * appliedDiscount.value) / 100);
@@ -353,15 +356,29 @@ export default function TicketPurchaseScreen() {
     setDiscountError(null);
 
     try {
-      const response = await discountsAPI.validateDiscount(discountCode.trim(), eventId);
+      // Passe le subtotal au backend pour qu'il calcule la remise EXACTE.
+      // La même formule sera ré-appliquée à la création de la registration,
+      // donc le montant retourné est définitif (plus de "(estimation)").
+      const subtotal = getSubtotal();
+      const response = await discountsAPI.validateDiscount(
+        discountCode.trim(),
+        eventId,
+        undefined,
+        subtotal,
+      );
       const data = response.data;
 
       if (data.valid && data.discount) {
         // Convertir value en number si nécessaire (peut être string depuis l'API)
-        const discount = {
+        const discount: Discount = {
           ...data.discount,
-          value: Number(data.discount.value) || 0
+          value: Number(data.discount.value) || 0,
         };
+        // Le backend a renvoyé applied_amount → on le stocke pour affichage
+        // direct, en remplacement du calcul client.
+        if (typeof data.applied_amount === 'number') {
+          (discount as any)._serverAppliedAmount = data.applied_amount;
+        }
         setAppliedDiscount(discount);
         setDiscountError(null);
         showSuccess('Succès', `Code promo "${discountCode}" appliqué !`);
@@ -904,11 +921,8 @@ export default function TicketPurchaseScreen() {
                   <Text style={[styles.appliedDiscountCode, { color: colors.text }]}>{appliedDiscount.code}</Text>
                   <Text style={styles.appliedDiscountValue}>
                     {appliedDiscount.discount_type === 'percentage'
-                      ? `−${appliedDiscount.value || 0}%`
+                      ? `−${appliedDiscount.value || 0}% · −${getDiscountAmount().toLocaleString()} ${commissionCurrency}`
                       : `−${(appliedDiscount.value || 0).toLocaleString()} ${commissionCurrency}`}
-                  </Text>
-                  <Text style={[styles.appliedDiscountValue, { fontSize: 9, marginTop: 2, opacity: 0.7 }]}>
-                    Montant final confirmé à la finalisation
                   </Text>
                 </View>
                 <TouchableOpacity

@@ -1,9 +1,7 @@
 # UX Audit — Items différés
 
 Source : [UX_AUDIT_PARCOURS_INVITE.md](./UX_AUDIT_PARCOURS_INVITE.md)
-Mise à jour : 2026-04-29 (post-phase-7)
-
-Les items ci-dessous ont été **identifiés et différés** car ils nécessitent plus que du polish local : assets externes, refactor architectural, ou décisions produit/backend. Chacun est tracé pour ne pas être perdu.
+Mise à jour : 2026-04-29 (post-phase-8)
 
 > ✅ **Phase 6** (commit 04a97d3) : tutoiement sweep golden-path, NetInfo banner 2G/3G, confettis adaptive Android, mute toggle PaymentSuccess, saisie directe quantité (long-press), sticky chips Discover, lazy-load EventDetails sections.
 >
@@ -11,23 +9,18 @@ Les items ci-dessous ont été **identifiés et différés** car ils nécessiten
 >
 > ✅ **Phase 7** : compteur tentative polling, bouton "Inviter un ami", flow "Demander un groupe" sur quantity > 10, tutoiement sweep MyPayments/Refund/Failed, skeleton léger Discover.
 >
-> Les items ci-dessous sont ceux qui restent vraiment — tous nécessitent assets, backend, ou décisions produit que je ne peux pas trancher seul.
+> ✅ **Phase 8** (icônes payment fournies par utilisateur + backend) : recent_registrants avatars sur EventDetails (opt-out via User.show_in_attendees), Registration.reference_code exposé sur PaymentSuccess (format EZ-XXXXXXXXXX), discount validate accepte subtotal et retourne applied_amount (plus de "(estimation)").
 
 ---
 
 ## 🎨 Assets manquants
 
-### Vraies icônes de paiement officielles
-- **Quoi** : remplacer `bank.png` (fallback générique) utilisé pour Wave, M-Pesa, Airtel Money, PayPal dans `src/screens/payment/PaymentScreen.tsx` (lignes ~63-72).
-- **Pourquoi** : impression visuelle pauvre. Les utilisateurs reconnaissent leurs apps via leurs logos officiels.
-- **Effort** : 1h dev + sourcing assets. Logos disponibles dans les press kits officiels (Wave Senegal, Safaricom, Airtel Africa, PayPal Brand Center).
-- **Risque** : nul. Drop-in replacement dans `assets/payments/`.
+### ~~Vraies icônes de paiement officielles~~ ✅ Livré (assets fournis par l'utilisateur)
+- `wave.png`, `M-pesa-logo.png`, `airtel.png`, `PayPal_Logo.png` ajoutés dans `assets/payments/`.
 
-### Vrais avatars « Qui y va ? » sur EventDetails
-- **Quoi** : afficher 3-5 avatars réels d'inscrits au lieu du compteur seul (`event.registration_count`).
-- **Pourquoi** : preuve sociale forte = effet réseau. Eventbrite/Meetup le font.
-- **Effort** : moyen. Backend doit exposer `event.recent_registrants[]` (3-5 derniers, opt-in via privacy setting). Frontend = 1h.
-- **Risque** : RGPD. Les utilisateurs doivent opt-in à apparaître publiquement comme inscrits.
+### ~~Vrais avatars « Qui y va ? » sur EventDetails~~ ✅ Livré (phase 8)
+- Backend : `User.show_in_attendees` (default True, opt-out), `EventDetailSerializer.recent_registrants` (5 derniers inscrits opt-in, champs minimums : id + first_name + profile_picture). Migration `0013_user_show_in_attendees`.
+- Frontend : EventDetailsScreen affiche les 4 premiers avatars (réels ou initiale colorée), et le compteur "X et N autres y vont". Fallback compteur seul si la liste est vide.
 
 ---
 
@@ -50,15 +43,13 @@ Les items ci-dessous ont été **identifiés et différés** car ils nécessiten
 
 ## 🔌 Backend / API requis
 
-### Vraie ref de commande à la confirmation
-- **Quoi** : afficher le `registration.id` ou un `order_number` formaté lisible dès la création de l'inscription, dans le récap de `TicketPurchaseScreen`.
-- **État actuel** : "EN COURS" comme placeholder honnête.
-- **Effort** : trivial frontend, mais nécessite que le backend retourne un human-readable order ref (ex. `EZ-2026-04-A8K9X3`).
+### ~~Vraie ref de commande à la confirmation~~ ✅ Livré (phase 8)
+- `Registration.reference_code` (10 caractères alphanumériques) existait déjà côté backend, propagé à PaymentSuccess via les params route. Affiché en `EZ-XXXXXXXXXX`, sélectionnable pour copie.
+- TicketPurchaseScreen garde "EN COURS" dans le récap (la ref n'existe pas encore à ce stade) — la vraie ref apparaît seulement sur PaymentSuccess.
 
-### Discount confirmé sans estimation
-- **Quoi** : retirer la nuance "Montant final confirmé à la finalisation" si le backend valide le discount avec le montant exact.
-- **État actuel** : message présent, l'estimation côté front est précise mais le label rappelle qu'elle peut bouger.
-- **Effort** : nul si le backend confirme, sinon backend doit verrouiller le discount au moment de la validation.
+### ~~Discount confirmé sans estimation~~ ✅ Livré (phase 8)
+- Backend : `validate_code` accepte un `subtotal` optionnel et retourne `applied_amount` + `final_total` calculés exactement. Pas de réservation/lock du discount à ce stade — la même formule est ré-appliquée à la création de la registration.
+- Frontend : `validateDiscount()` passe le subtotal, `getDiscountAmount()` privilégie `_serverAppliedAmount`. La mention "Montant final confirmé à la finalisation" est retirée. Affichage : `−10% · −1 500 XAF`.
 
 ---
 

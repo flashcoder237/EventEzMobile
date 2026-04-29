@@ -84,11 +84,15 @@ export const discountsAPI = {
 
   // Validation de code promo
   // Note: Utilise /discounts/validate_code/ (action sans ID)
-  validateDiscount: (code: string, eventId: string, ticketTypeId?: string) =>
+  // Si subtotal est fourni, le backend retourne `applied_amount` (montant
+  // exact de la remise) et `final_total` (subtotal - applied_amount). Le
+  // mobile peut alors afficher le total définitif sans mention "estimation".
+  validateDiscount: (code: string, eventId: string, ticketTypeId?: string, subtotal?: number) =>
     api.post('/discounts/validate_code/', {
       code,
       event: eventId,
-      ticket_type: ticketTypeId
+      ticket_type: ticketTypeId,
+      ...(subtotal !== undefined ? { subtotal } : {}),
     }),
 };
 
