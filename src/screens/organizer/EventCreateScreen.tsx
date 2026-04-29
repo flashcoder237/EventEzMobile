@@ -47,7 +47,7 @@ export default function EventCreateScreen() {
   const isEditing = !!eventId;
 
   const alertActions = useAlert();
-  const { showAlert } = alertActions;
+  const { showAlert, showConfirm } = alertActions;
   const { colors, isDark } = useTheme();
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
   const watermarkColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(17,17,16,0.04)';
@@ -128,7 +128,7 @@ export default function EventCreateScreen() {
     if (hasDraft) {
       showAlert(
         'Brouillon trouvé',
-        `Vous avez un brouillon "${draftTitle}" en cours. Voulez-vous le reprendre ?`,
+        `Tu as un brouillon "${draftTitle}" en cours. Tu veux le reprendre ?`,
         [
           {
             text: 'Supprimer',
@@ -220,7 +220,7 @@ export default function EventCreateScreen() {
       await clearDraft();
       showAlert(
         'Succès',
-        "Votre événement a été soumis pour validation. Vous serez notifié dès qu'il sera approuvé.",
+        "Ton événement a été soumis pour validation. Tu seras notifié·e dès qu'il sera approuvé. Délai habituel : moins de 24h.",
         [
           {
             text: 'Voir mes événements',
@@ -402,7 +402,13 @@ export default function EventCreateScreen() {
                 onCustomTagAdd={handleCustomTagAdd}
                 onCustomTagRemove={handleCustomTagRemove}
                 onPickImage={pickImage}
-                onRemoveImage={() => setBannerImage(null)}
+                onRemoveImage={() =>
+                  showConfirm(
+                    'Supprimer la bannière ?',
+                    "Cette image sera retirée. Tu peux toujours en uploader une nouvelle ensuite.",
+                    () => setBannerImage(null),
+                  )
+                }
                 galleryImages={form.galleryImages}
                 onPickGalleryImages={pickGalleryImages}
                 onRemoveGalleryImage={removeGalleryImage}

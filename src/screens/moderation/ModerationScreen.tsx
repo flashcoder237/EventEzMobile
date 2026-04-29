@@ -166,8 +166,21 @@ export default function ModerationScreen() {
         e.location_city?.toLowerCase().includes(query)
       );
     }
+    // Tri par ancienneté de soumission (les plus anciens d'abord) — respecte le SLA
+    // affiché aux organizers (24h en moyenne).
+    result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
     return result;
   }, [events, filterType, searchQuery]);
+
+  // Compteur d'events en retard (> 24h en attente) pour alerter sur le SLA
+  const overdueCount = useMemo(() => {
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    return events.filter(e => new Date(e.created_at).getTime() < cutoff).length;
+  }, [events]);
+
+  const isOverdue = (createdAt: string) => {
+    return Date.now() - new Date(createdAt).getTime() > 24 * 60 * 60 * 1000;
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -275,8 +288,35 @@ export default function ModerationScreen() {
           </View>
 
           <View style={[styles.submittedInfo, { borderTopColor: hairline }]}>
-            <Ionicons name="time-outline" size={12} color={colors.gray400} />
-            <Text style={[styles.submittedText, { color: colors.gray500 }]}>Soumis {getTimeSince(item.created_at)}</Text>
+            <Ionicons
+              name={isOverdue(item.created_at) ? 'alert-circle' : 'time-outline'}
+              size={12}
+              color={isOverdue(item.created_at) ? '#DC2626' : colors.gray400}
+            />
+            <Text
+              style={[
+                styles.submittedText,
+                { color: isOverdue(item.created_at) ? '#DC2626' : colors.gray500 },
+              ]}
+            >
+              {isOverdue(item.created_at) ? 'EN RETARD · ' : 'Soumis '}
+              {getTimeSince(item.created_at)}
+            </Text>
+            {isOverdue(item.created_at) && (
+              <View
+                style={{
+                  backgroundColor: '#DC2626',
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                  marginLeft: 'auto',
+                }}
+              >
+                <Text style={{ color: '#fff', fontFamily: FontFamily.bold, fontSize: 9, letterSpacing: 0.5 }}>
+                  URGENT
+                </Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -380,6 +420,31 @@ export default function ModerationScreen() {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
+        {/* SLA banner — visible quand des events traînent depuis > 24h */}
+        {overdueCount > 0 && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              padding: 12,
+              borderRadius: 12,
+              backgroundColor: '#FEE2E2',
+              borderWidth: 1,
+              borderColor: '#FCA5A5',
+              marginBottom: Spacing.md,
+            }}
+          >
+            <Ionicons name="alert-circle" size={18} color="#DC2626" />
+            <Text style={{ flex: 1, fontFamily: FontFamily.medium, fontSize: 12, color: '#991B1B', lineHeight: 16 }}>
+              <Text style={{ fontFamily: FontFamily.bold }}>
+                {overdueCount} événement{overdueCount > 1 ? 's' : ''} en retard
+              </Text>
+              {' · '}plus de 24h en attente. Priorise-les pour respecter le SLA.
+            </Text>
+          </View>
+        )}
+
         {/* Stats card */}
         <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           <View style={styles.statItem}>
@@ -500,12 +565,58 @@ export default function ModerationScreen() {
               )}
 
               <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
-                Indiquez la raison du rejet. L'organisateur recevra cette information.
+                Indique la raison du rejet. L'organisateur recevra cette information.
               </Text>
+
+              {/* Templates de raisons fréquentes — tap pour pré-remplir le textarea */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: Spacing.sm }}
+                contentContainerStyle={{ gap: 6, paddingRight: 8 }}
+              >
+                {[
+                  'Image inappropriée ou floue',
+                  'Description trop courte ou incomplète',
+                  'Date ou lieu incohérents',
+                  'Tarification suspecte',
+                  'Doublon d\'événement existant',
+                  'Contenu interdit (politique / haine)',
+                  'Informations de contact manquantes',
+                  'Suspicion de spam',
+                ].map((tpl) => {
+                  const isActive = rejectionReason.trim() === tpl;
+                  return (
+                    <TouchableOpacity
+                      key={tpl}
+                      onPress={() => setRejectionReason(tpl)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 999,
+                        backgroundColor: isActive ? colors.primary : `${colors.primary}15`,
+                        borderWidth: 1,
+                        borderColor: isActive ? colors.primary : `${colors.primary}30`,
+                      }}
+                      activeOpacity={0.85}
+                    >
+                      <Text
+                        style={{
+                          fontFamily: FontFamily.semiBold,
+                          fontSize: 11,
+                          color: isActive ? '#fff' : colors.primary,
+                        }}
+                      >
+                        {tpl}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
 
               <TextInput
                 style={[styles.modalTextInput, { backgroundColor: colors.background, borderColor: hairline, color: colors.text }]}
-                placeholder="Raison du rejet (obligatoire)..."
+                placeholder="Raison personnalisée ou édite un template ci-dessus..."
                 placeholderTextColor={colors.gray400}
                 value={rejectionReason}
                 onChangeText={setRejectionReason}

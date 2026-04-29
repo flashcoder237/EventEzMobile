@@ -105,7 +105,7 @@ export default function EventStep2DateTime({
   return (
     <View style={styles.stepContent}>
       <Text style={[styles.stepTitle, themed.stepTitle]}>Date et Lieu</Text>
-      <Text style={[styles.stepDescription, themed.stepDescription]}>Quand et où se déroulera votre événement ?</Text>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>Quand et où se déroulera ton événement ?</Text>
 
       {/* Dates */}
       <DateTimePickerField
