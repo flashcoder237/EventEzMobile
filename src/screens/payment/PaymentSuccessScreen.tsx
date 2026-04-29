@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,10 @@ import {
   TouchableOpacity,
   ScrollView,
   Linking,
+  TextInput,
+  Modal,
+  Pressable,
+  ActivityIndicator,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -33,6 +37,8 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useAlert } from '../../contexts/AlertContext';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 
@@ -103,6 +109,42 @@ export default function PaymentSuccessScreen() {
   const opacity = useSharedValue(0);
   const ringScale = useSharedValue(1);
   const { play: playSound, enabled: soundEnabled, setEnabled: setSoundEnabled } = useSoundEffect();
+  const { isGuest, user, upgradeGuest } = useAuth();
+  const { showError, showSuccess } = useAlert();
+
+  // Upgrade-guest modal
+  const [upgradeModalVisible, setUpgradeModalVisible] = useState(false);
+  const [upgradePassword, setUpgradePassword] = useState('');
+  const [upgradeConfirm, setUpgradeConfirm] = useState('');
+  const [upgradeLastName, setUpgradeLastName] = useState('');
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [upgradeDismissed, setUpgradeDismissed] = useState(false);
+
+  const handleUpgrade = async () => {
+    if (upgradePassword.length < 8) {
+      showError('Mot de passe trop court', 'Au moins 8 caractères.');
+      return;
+    }
+    if (upgradePassword !== upgradeConfirm) {
+      showError('Mots de passe', "Les deux mots de passe ne correspondent pas.");
+      return;
+    }
+    setUpgradeLoading(true);
+    try {
+      await upgradeGuest({
+        password: upgradePassword,
+        confirm_password: upgradeConfirm,
+        last_name: upgradeLastName.trim() || undefined,
+      });
+      setUpgradeModalVisible(false);
+      showSuccess('Compte créé', 'Tes billets sont maintenant rattachés à ton compte.');
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || error?.response?.data?.password?.[0] || 'Impossible de créer le compte.';
+      showError('Erreur', String(detail));
+    } finally {
+      setUpgradeLoading(false);
+    }
+  };
 
   useEffect(() => {
     scale.value = withSpring(1, { damping: 10, stiffness: 100 });
@@ -293,6 +335,50 @@ export default function PaymentSuccessScreen() {
             </Animated.View>
           )}
 
+          {/* === GUEST UPGRADE PROMPT === */}
+          {isGuest && !upgradeDismissed && (
+            <Animated.View
+              style={[
+                styles.upgradeBanner,
+                { backgroundColor: colors.card, borderColor: `${colors.primary}40` },
+                contentStyle,
+              ]}
+            >
+              <View style={[styles.upgradeBannerIcon, { backgroundColor: colors.primary }]}>
+                <Ionicons name="key" size={16} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.upgradeBannerEyebrow, { color: colors.primary }]}>
+                  COMPTE EXPRESS
+                </Text>
+                <Text style={[styles.upgradeBannerTitle, { color: colors.text }]} numberOfLines={2}>
+                  Crée ton compte en 5 secondes
+                </Text>
+                <Text style={[styles.upgradeBannerHint, { color: colors.gray500 }]} numberOfLines={2}>
+                  Pose juste un mot de passe pour retrouver tes billets sur n'importe quel téléphone.
+                </Text>
+              </View>
+              <View style={styles.upgradeBannerActions}>
+                <TouchableOpacity
+                  onPress={() => setUpgradeModalVisible(true)}
+                  style={[styles.upgradeCta, { backgroundColor: colors.primary }]}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Créer mon compte rapide"
+                >
+                  <Text style={styles.upgradeCtaText}>Créer</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setUpgradeDismissed(true)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel="Plus tard"
+                >
+                  <Text style={[styles.upgradeDismiss, { color: colors.gray500 }]}>Plus tard</Text>
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          )}
+
           {/* === INFO CARDS === */}
           <Animated.View style={[styles.infoCardsCol, contentStyle]}>
             {content.infoItems.map((item, index) => (
@@ -368,6 +454,94 @@ export default function PaymentSuccessScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* === UPGRADE MODAL — guest -> compte complet (pose un mot de passe) === */}
+      <Modal
+        visible={upgradeModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setUpgradeModalVisible(false)}
+      >
+        <Pressable style={styles.upgradeBackdrop} onPress={() => setUpgradeModalVisible(false)}>
+          <Pressable
+            style={[styles.upgradeCard, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.upgradeEyebrow, { color: colors.primary }]}>COMPTE EXPRESS</Text>
+            <Text style={[styles.upgradeTitle, { color: colors.text }]}>
+              Sauvegarde tes billets
+            </Text>
+            <Text style={[styles.upgradeSubtitle, { color: colors.gray500 }]}>
+              On crée un compte pour {user?.email || 'toi'}. Pose juste un mot de passe.
+            </Text>
+
+            <View style={styles.upgradeField}>
+              <Text style={[styles.upgradeFieldLabel, { color: colors.gray700 }]}>
+                Nom (optionnel)
+              </Text>
+              <TextInput
+                style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
+                value={upgradeLastName}
+                onChangeText={setUpgradeLastName}
+                placeholder="Dupont"
+                placeholderTextColor={colors.gray400}
+                autoCapitalize="words"
+              />
+            </View>
+
+            <View style={styles.upgradeField}>
+              <Text style={[styles.upgradeFieldLabel, { color: colors.gray700 }]}>
+                Mot de passe
+              </Text>
+              <TextInput
+                style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
+                value={upgradePassword}
+                onChangeText={setUpgradePassword}
+                placeholder="Au moins 8 caractères"
+                placeholderTextColor={colors.gray400}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.upgradeField}>
+              <Text style={[styles.upgradeFieldLabel, { color: colors.gray700 }]}>
+                Confirme le mot de passe
+              </Text>
+              <TextInput
+                style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
+                value={upgradeConfirm}
+                onChangeText={setUpgradeConfirm}
+                placeholder="Retape-le"
+                placeholderTextColor={colors.gray400}
+                secureTextEntry
+              />
+            </View>
+
+            <View style={styles.upgradeActions}>
+              <TouchableOpacity
+                style={[styles.upgradeBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setUpgradeModalVisible(false)}
+                disabled={upgradeLoading}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.upgradeBtnText, { color: colors.gray700 }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.upgradeBtn, { backgroundColor: colors.primary }, upgradeLoading && { opacity: 0.6 }]}
+                onPress={handleUpgrade}
+                disabled={upgradeLoading}
+                activeOpacity={0.85}
+              >
+                {upgradeLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={[styles.upgradeBtnText, { color: '#fff' }]}>Créer mon compte</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </EditorialCanvas>
   );
 }
@@ -581,6 +755,128 @@ const styles = StyleSheet.create({
   secondaryPillText: {
     fontFamily: FontFamily.bold,
     fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  // Guest upgrade banner (visible when isGuest=true)
+  upgradeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.md,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    width: '100%',
+    marginBottom: Spacing.md,
+  },
+  upgradeBannerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeBannerEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  upgradeBannerTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.3,
+    lineHeight: 17,
+    marginTop: 2,
+  },
+  upgradeBannerHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    lineHeight: 14,
+    marginTop: 2,
+  },
+  upgradeBannerActions: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  upgradeCta: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+  },
+  upgradeCtaText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    color: '#fff',
+    letterSpacing: 0.2,
+  },
+  upgradeDismiss: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    textDecorationLine: 'underline',
+  },
+  // Upgrade modal
+  upgradeBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  upgradeCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  upgradeEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  upgradeTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+    marginBottom: 6,
+  },
+  upgradeSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.lg,
+  },
+  upgradeField: {
+    marginBottom: Spacing.md,
+  },
+  upgradeFieldLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  upgradeInput: {
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+  },
+  upgradeActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  upgradeBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  upgradeBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
     letterSpacing: 0.2,
   },
 });

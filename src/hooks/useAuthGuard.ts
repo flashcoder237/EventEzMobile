@@ -8,6 +8,8 @@ interface AuthGuardOptions {
   eventTitle?: string;
   returnScreen?: keyof RootStackParamList;
   returnParams?: object;
+  /** Si true, propose "Continuer en invité" sur le LoginScreen. */
+  eventIsFree?: boolean;
 }
 
 /**

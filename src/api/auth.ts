@@ -26,6 +26,23 @@ export const authAPI = {
   registerOrganizer: (data: any) =>
     api.post('/register/organizer/', data),
 
+  /**
+   * Guest checkout — crée un compte sans mot de passe pour finaliser un achat
+   * sur un event gratuit. Retourne {access, refresh, user} comme un login.
+   *
+   * Erreur 409 si l'email correspond déjà à un compte complet — le mobile
+   * doit alors basculer vers le formulaire de login normal.
+   */
+  guestRegister: (data: { email: string; first_name: string; last_name?: string }) =>
+    api.post('/auth/guest-register/', data),
+
+  /**
+   * Upgrade un compte guest en compte complet (pose un mot de passe).
+   * Le user doit être authentifié et avoir is_guest=true côté backend.
+   */
+  upgradeGuest: (data: { password: string; confirm_password: string; last_name?: string }) =>
+    api.post('/auth/upgrade-guest/', data),
+
   refreshToken: (refreshToken: string) =>
     api.post('/token/refresh/', { refresh: refreshToken }),
 

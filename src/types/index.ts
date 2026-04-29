@@ -40,6 +40,9 @@ export interface User {
   // Verification
   is_verified?: boolean;
   email_verified?: boolean;
+  // Compte invité — créé via guest checkout sur un event gratuit, sans mot
+  // de passe. Upgradable via authAPI.upgradeGuest().
+  is_guest?: boolean;
   // Authentification sociale
   auth_provider?: AuthProvider;
   // Parametres de notification
@@ -1465,6 +1468,13 @@ export type RootStackParamList = {
     eventTitle?: string;
     returnScreen?: keyof RootStackParamList;
     returnParams?: object;
+    /**
+     * Si true, le LoginScreen affiche un bouton secondaire "Continuer en
+     * invité" qui crée un compte sans mot de passe et redirige vers
+     * returnScreen. Réservé aux events gratuits — la friction d'auth doit
+     * disparaître pour les workshops, meetups, conférences ouvertes.
+     */
+    eventIsFree?: boolean;
   } | undefined;
   Register: undefined;
   RegisterOrganizer: undefined;

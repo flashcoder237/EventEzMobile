@@ -11,6 +11,8 @@ const REMEMBER_ME_KEY = 'eventez_remember_me';
 interface AuthContextType extends AuthState {
   /** True only during initial app startup auth check (splash screen) */
   isInitializing: boolean;
+  /** Convenience derived flag — true when user is signed in as a guest. */
+  isGuest: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (data: {
     email: string;
@@ -21,6 +23,19 @@ interface AuthContextType extends AuthState {
     last_name: string;
     phone_number?: string;
   }) => Promise<{ requires_verification: boolean; email: string }>;
+  /**
+   * Guest checkout : crée (ou réutilise) un compte invité sans mot de passe
+   * pour finaliser une inscription à un event gratuit. Le user retourné a
+   * is_guest=true. Throw avec error.response.status === 409 si l'email
+   * correspond déjà à un compte complet (le mobile bascule alors vers login).
+   */
+  guestRegister: (data: { email: string; first_name: string; last_name?: string }) => Promise<User>;
+  /**
+   * Upgrade le compte courant (qui doit être is_guest=true) en compte complet
+   * en posant un mot de passe. Déclenche aussi l'envoi d'un email de
+   * vérification côté backend.
+   */
+  upgradeGuest: (data: { password: string; confirm_password: string; last_name?: string }) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
   setUser: (user: User) => Promise<void>;  // Pour l'authentification sociale
@@ -145,6 +160,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const guestRegister = useCallback(async (data: { email: string; first_name: string; last_name?: string }) => {
+    setState((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const response = await authAPI.guestRegister(data);
+      const { access, refresh, user } = response.data;
+      // Guest sessions persistent jusqu'à ce que le token refresh expire — on
+      // applique rememberMe=true pour qu'ils survivent au kill (sinon le user
+      // perdrait son billet en quittant l'app).
+      await setTokens(access, refresh, true);
+      await SecureStore.setItemAsync(REMEMBER_ME_KEY, 'true');
+      setState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+      EventEzAnalytics.signup('guest');
+      setAnalyticsUser(user.id, { role: user.role || 'user' });
+      return user;
+    } catch (error) {
+      setState((prev) => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  }, []);
+
+  const upgradeGuest = useCallback(async (data: { password: string; confirm_password: string; last_name?: string }) => {
+    setState((prev) => ({ ...prev, isLoading: true }));
+    try {
+      const response = await authAPI.upgradeGuest(data);
+      // Le backend retourne le user mis à jour (is_guest=false). On rafraîchit
+      // le state local sans toucher aux tokens (l'access token reste valable).
+      setState({
+        user: response.data,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (error) {
+      setState((prev) => ({ ...prev, isLoading: false }));
+      throw error;
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     setState((prev) => ({ ...prev, isLoading: true }));
     // authAPI.logout() appelle déjà clearTokens() dans son finally (blackliste
@@ -199,12 +255,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo(() => ({
     ...state,
     isInitializing,
+    isGuest: !!state.user?.is_guest,
     login,
     register,
+    guestRegister,
+    upgradeGuest,
     logout,
     updateUser,
     setUser: setUserFn,
-  }), [state, isInitializing, login, register, logout, updateUser, setUserFn]);
+  }), [state, isInitializing, login, register, guestRegister, upgradeGuest, logout, updateUser, setUserFn]);
 
   return (
     <AuthContext.Provider value={value}>

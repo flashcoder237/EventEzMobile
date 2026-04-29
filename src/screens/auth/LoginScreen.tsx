@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   Linking,
   TouchableOpacity,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
@@ -45,8 +47,8 @@ type LoginRouteProp = RouteProp<RootStackParamList, 'Login'>;
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LoginRouteProp>();
-  const { eventTitle, returnScreen, returnParams } = route.params || {};
-  const { login, isLoading, setUser } = useAuth();
+  const { eventTitle, returnScreen, returnParams, eventIsFree } = route.params || {};
+  const { login, isLoading, setUser, guestRegister } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
 
@@ -72,6 +74,12 @@ export default function LoginScreen() {
   const [resendCooldown, setResendCooldown] = useState(0);
   const otpInputRef = useRef<TextInput>(null);
 
+  // Guest checkout (only when eventIsFree=true)
+  const [guestModal, setGuestModal] = useState(false);
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestFirstName, setGuestFirstName] = useState('');
+  const [guestLoading, setGuestLoading] = useState(false);
+
   useEffect(() => {
     const loadRememberMe = async () => {
       try {
@@ -88,6 +96,46 @@ export default function LoginScreen() {
     const focusTimer = setTimeout(() => emailInputRef.current?.focus(), 250);
     return () => clearTimeout(focusTimer);
   }, []);
+
+  const handleGuestCheckout = useCallback(async () => {
+    const email = guestEmail.trim().toLowerCase();
+    const firstName = guestFirstName.trim();
+    if (!email.includes('@') || !email.includes('.')) {
+      showError('Email invalide', 'Entre une adresse email valide');
+      return;
+    }
+    if (firstName.length < 2) {
+      showError('Prénom requis', 'Entre au moins 2 caractères pour ton prénom');
+      return;
+    }
+    setGuestLoading(true);
+    try {
+      await guestRegister({ email, first_name: firstName });
+      // Le guestRegister met l'auth context à jour. On ferme le modal et on
+      // redirige vers la destination prévue.
+      setGuestModal(false);
+      if (returnScreen) {
+        navigation.replace(returnScreen as any, returnParams as any);
+      } else if (navigation.canGoBack()) {
+        navigation.goBack();
+      }
+    } catch (error: any) {
+      // 409 = email déjà rattaché à un compte complet → on bascule vers login
+      if (error?.response?.status === 409) {
+        setGuestModal(false);
+        setEmail(email);
+        showError(
+          'Compte existant',
+          'Un compte existe déjà avec cet email. Connecte-toi avec ton mot de passe.',
+        );
+      } else {
+        const msg = extractErrorMessage(error);
+        showError('Erreur', msg);
+      }
+    } finally {
+      setGuestLoading(false);
+    }
+  }, [guestEmail, guestFirstName, guestRegister, navigation, returnScreen, returnParams, showError]);
 
   // Redirection après login réussi : vers returnScreen si fourni, sinon goBack
   const dismissAfterLogin = useCallback(() => {
@@ -611,7 +659,133 @@ export default function LoginScreen() {
               <Text style={[styles.registerLink, { color: colors.primary }]}> Créer un compte</Text>
             </AnimatedPressable>
           </View>
+
+          {/* Guest checkout — uniquement pour les events gratuits */}
+          {eventIsFree && (
+            <View style={styles.guestSection}>
+              <View style={styles.guestDivider}>
+                <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+                <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou</Text>
+                <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+              </View>
+              <TouchableOpacity
+                style={[styles.guestButton, { borderColor: colors.gray200, backgroundColor: colors.surface }]}
+                onPress={() => setGuestModal(true)}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Continuer en invité (sans créer de compte)"
+              >
+                <Ionicons name="flash-outline" size={16} color={colors.gray700} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.guestButtonText, { color: colors.gray900 }]}>
+                    Continuer en invité
+                  </Text>
+                  <Text style={[styles.guestButtonHint, { color: colors.gray500 }]}>
+                    Juste prénom + email · pas de mot de passe
+                  </Text>
+                </View>
+                <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
+              </TouchableOpacity>
+            </View>
+          )}
       </KeyboardAwareScrollView>
+
+      {/* === GUEST CHECKOUT MODAL === */}
+      <Modal
+        visible={guestModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGuestModal(false)}
+      >
+        <Pressable style={styles.guestModalBackdrop} onPress={() => setGuestModal(false)}>
+          <Pressable
+            style={[styles.guestModalCard, { backgroundColor: colors.card }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.guestModalEyebrow, { color: colors.accent }]}>
+              SANS COMPTE
+            </Text>
+            <Text style={[styles.guestModalTitle, { color: colors.gray900 }]}>
+              Récupère ton billet en 2 secondes
+            </Text>
+            <Text style={[styles.guestModalSubtitle, { color: colors.gray500 }]}>
+              {eventTitle
+                ? `Pour « ${eventTitle} ». Tu pourras créer ton compte plus tard.`
+                : 'Tu pourras créer ton compte plus tard.'}
+            </Text>
+
+            <View style={styles.guestModalField}>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Prénom</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="person-outline" size={18} color={colors.gray400} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: colors.gray900 }]}
+                  placeholder="Alice"
+                  placeholderTextColor={colors.gray400}
+                  value={guestFirstName}
+                  onChangeText={setGuestFirstName}
+                  autoCapitalize="words"
+                  autoCorrect={false}
+                  accessibilityLabel="Prénom"
+                />
+              </View>
+            </View>
+
+            <View style={styles.guestModalField}>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
+                <View style={styles.inputIconContainer}>
+                  <Ionicons name="mail-outline" size={18} color={colors.gray400} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: colors.gray900 }]}
+                  placeholder="alice@email.com"
+                  placeholderTextColor={colors.gray400}
+                  value={guestEmail}
+                  onChangeText={setGuestEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  accessibilityLabel="Email"
+                />
+              </View>
+            </View>
+
+            <Text style={[styles.guestModalLegal, { color: colors.gray400 }]}>
+              En continuant tu acceptes nos{' '}
+              <Text style={{ color: colors.primary }} onPress={() => Linking.openURL('https://eventez.online/terms')}>
+                Conditions d'utilisation
+              </Text>
+              .
+            </Text>
+
+            <View style={styles.guestModalActions}>
+              <TouchableOpacity
+                style={[styles.guestModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setGuestModal(false)}
+                disabled={guestLoading}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.guestModalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.guestModalBtn, { backgroundColor: colors.primary }, guestLoading && { opacity: 0.6 }]}
+                onPress={handleGuestCheckout}
+                disabled={guestLoading}
+                activeOpacity={0.85}
+              >
+                {guestLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={[styles.guestModalBtnText, { color: '#fff' }]}>Continuer</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </EditorialCanvas>
   );
 }
@@ -888,6 +1062,95 @@ const styles = StyleSheet.create({
   tabBtnText: {
     fontFamily: FontFamily.semiBold,
     fontSize: FontSizes.sm,
+  },
+  // Guest checkout (only when eventIsFree=true)
+  guestSection: {
+    marginTop: Spacing.xl,
+    gap: Spacing.md,
+  },
+  guestDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  guestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1.5,
+  },
+  guestButtonText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    letterSpacing: -0.2,
+  },
+  guestButtonHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    marginTop: 2,
+  },
+  // Guest modal
+  guestModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  guestModalCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  guestModalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  guestModalTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    lineHeight: 26,
+    marginBottom: Spacing.xs,
+  },
+  guestModalSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.lg,
+  },
+  guestModalField: {
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  guestModalLegal: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    lineHeight: 15,
+    marginTop: 2,
+    marginBottom: Spacing.md,
+  },
+  guestModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  guestModalBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestModalBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    letterSpacing: 0.2,
   },
   // Phone OTP styles
   fieldHint: {

@@ -1037,6 +1037,7 @@ export default function EventDetailsScreen() {
                 eventTitle: event.title,
                 returnScreen: 'TicketPurchase',
                 returnParams: { eventId },
+                eventIsFree: !!event.is_free,
               },
             )}
             activeOpacity={0.85}
