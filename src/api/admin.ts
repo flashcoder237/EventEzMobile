@@ -149,3 +149,10 @@ export const siteSettingsAPI = {
   get: () =>
     api.get('/site-settings/'),
 };
+
+// Toggles publics utilisables avant authentification (login/register).
+// Retourne uniquement les flags exposes publiquement par PublicSettingsView.
+export const publicSettingsAPI = {
+  get: () =>
+    api.get('/public-settings/'),
+};

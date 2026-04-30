@@ -7,18 +7,16 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
-  StatusBar,
   Modal,
   TextInput,
   Share,
   Alert,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -38,6 +36,12 @@ import Badge from '../../components/ui/Badge';
 import RegistrationSearchBar from '../../components/organizer/RegistrationSearchBar';
 import BulkActionBar from '../../components/organizer/BulkActionBar';
 import SendEmailModal from '../../components/organizer/SendEmailModal';
+import {
+  EditorialCanvas,
+  WatermarkNumeral,
+  EditorialHeader,
+  editorial,
+} from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventRegistrations'>;
@@ -485,116 +489,123 @@ export default function EventRegistrationsScreen() {
 
   if (loading) {
     return (
-      <View style={styles.rootContainer}>
-        <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
-            <View style={styles.loadingContainer}>
-              <SkeletonList count={5} Component={RegistrationItemSkeleton} />
-            </View>
+      <EditorialCanvas edges={['top']}>
+        <WatermarkNumeral>RSVP</WatermarkNumeral>
+        <View style={{ flex: 1, zIndex: 1 }}>
+          <EditorialHeader
+            eyebrow="LA FILE D'ENTRÉE"
+            title="Inscriptions"
+            subtitle={eventTitle || undefined}
+            back
+            onBack={() => navigation.goBack()}
+          />
+          <View style={styles.loadingContainer}>
+            <SkeletonList count={5} Component={RegistrationItemSkeleton} />
           </View>
-        </SafeAreaView>
-      </View>
+        </View>
+      </EditorialCanvas>
     );
   }
 
   return (
-    <View style={styles.rootContainer}>
-      <StatusBar barStyle="light-content" backgroundColor="#4F46E5" />
-      <SafeAreaView style={styles.safeArea} edges={['top']}>
-        <View style={[styles.container, { backgroundColor: colors.gray50 }]}>
-          {/* Header */}
-          <LinearGradient
-            colors={['#4F46E5', '#9333EA', '#D946EF']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.header}
-          >
-            <View style={styles.headerTop}>
+    <EditorialCanvas edges={['top']}>
+      <WatermarkNumeral>RSVP</WatermarkNumeral>
+      <View style={{ flex: 1, zIndex: 1 }}>
+        {/* Header éditorial : eyebrow + display title + actions discrètes */}
+        <EditorialHeader
+          eyebrow="LA FILE D'ENTRÉE"
+          title="Inscriptions"
+          subtitle={eventTitle || undefined}
+          back
+          onBack={() => navigation.goBack()}
+          right={
+            <View style={styles.headerActions}>
               <TouchableOpacity
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
+                style={[styles.headerIconBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setShowEmailModal(true)}
+                accessibilityLabel="Envoyer un email"
               >
-                <Ionicons name="arrow-back" size={24} color={Colors.white} />
+                <Ionicons name="mail-outline" size={18} color={colors.gray700} />
               </TouchableOpacity>
-              <View style={styles.headerTitleContainer}>
-                <Text style={styles.headerEyebrow}>La file d'entrée</Text>
-                <Text style={styles.headerTitle}>Inscriptions</Text>
-                {eventTitle && (
-                  <Text style={styles.headerSubtitle} numberOfLines={1}>{eventTitle}</Text>
+              <TouchableOpacity
+                style={[styles.headerIconBtn, { backgroundColor: colors.gray100 }]}
+                onPress={handleExport}
+                disabled={exportLoading}
+                accessibilityLabel="Exporter en CSV"
+              >
+                {exportLoading ? (
+                  <ActivityIndicator size="small" color={colors.gray700} />
+                ) : (
+                  <Ionicons name="download-outline" size={18} color={colors.gray700} />
                 )}
-              </View>
-              <View style={styles.headerActions}>
-                <TouchableOpacity
-                  style={styles.headerActionBtn}
-                  onPress={() => setShowEmailModal(true)}
-                >
-                  <Ionicons name="mail-outline" size={20} color={Colors.white} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.headerActionBtn}
-                  onPress={handleExport}
-                  disabled={exportLoading}
-                >
-                  {exportLoading ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <Ionicons name="download-outline" size={20} color={Colors.white} />
-                  )}
-                </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             </View>
+          }
+        />
 
-            {/* Stats */}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.total}</Text>
-                <Text style={styles.statLabel}>Total</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={[styles.statValue, stats.pending > 0 && { color: '#FCD34D' }]}>
-                  {stats.pending}
-                </Text>
-                <Text style={styles.statLabel}>En attente</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.approved}</Text>
-                <Text style={styles.statLabel}>Approuves</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statValue}>{stats.rejected}</Text>
-                <Text style={styles.statLabel}>Refuses</Text>
-              </View>
-            </View>
-          </LinearGradient>
-
-          {/* Search Bar */}
-          <View style={[styles.searchContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-            <RegistrationSearchBar onSearch={setSearchQuery} />
+        {/* Stats éditoriaux : 4 chiffres XL avec dividers verticaux */}
+        <View style={styles.statsCard}>
+          <View style={styles.statBlock}>
+            <Text style={[editorial.statNumber, { color: colors.gray900 }]}>{stats.total}</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>TOTAL</Text>
           </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
+          <View style={styles.statBlock}>
+            <Text style={[editorial.statNumber, { color: stats.pending > 0 ? '#F59E0B' : colors.gray900 }]}>
+              {stats.pending}
+            </Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>EN ATTENTE</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
+          <View style={styles.statBlock}>
+            <Text style={[editorial.statNumber, { color: '#10B981' }]}>{stats.approved}</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>APPROUVÉS</Text>
+          </View>
+          <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
+          <View style={styles.statBlock}>
+            <Text style={[editorial.statNumber, { color: colors.gray900 }]}>{stats.rejected}</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>REFUSÉS</Text>
+          </View>
+        </View>
 
-          {/* Filters */}
-          <View style={[styles.filtersContainer, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-            {(['all', 'pending', 'approved', 'rejected'] as FilterType[]).map((f) => (
+        {/* Recherche */}
+        <View style={styles.searchContainer}>
+          <RegistrationSearchBar onSearch={setSearchQuery} />
+        </View>
+
+        {/* Filtres éditoriaux : chips ronds avec eyebrow */}
+        <View style={styles.filtersContainer}>
+          {(['all', 'pending', 'approved', 'rejected'] as FilterType[]).map((f) => {
+            const isActive = filter === f;
+            const label = f === 'all' ? 'Tous' : f === 'pending' ? 'En attente' : f === 'approved' ? 'Approuvés' : 'Refusés';
+            return (
               <TouchableOpacity
                 key={f}
-                style={[styles.filterButton, { backgroundColor: colors.gray100 }, filter === f && styles.filterButtonActive]}
                 onPress={() => setFilter(f)}
+                style={[
+                  editorial.chip,
+                  isActive ? editorial.chipActive : { backgroundColor: colors.gray100, borderColor: 'transparent' },
+                ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
               >
-                <Text style={[styles.filterText, { color: colors.gray600 }, filter === f && styles.filterTextActive]}>
-                  {f === 'all' ? 'Tous' : f === 'pending' ? 'En attente' : f === 'approved' ? 'Approuves' : 'Refuses'}
+                <Text
+                  style={[
+                    editorial.chipText,
+                    isActive ? editorial.chipTextActive : { color: colors.gray700 },
+                  ]}
+                >
+                  {label}
                 </Text>
-                {f === 'pending' && stats.pending > 0 && (
-                  <View style={styles.filterBadge}>
-                    <Text style={styles.filterBadgeText}>{stats.pending}</Text>
+                {f === 'pending' && stats.pending > 0 && !isActive && (
+                  <View style={[styles.chipBadge, { backgroundColor: '#F59E0B' }]}>
+                    <Text style={styles.chipBadgeText}>{stats.pending}</Text>
                   </View>
                 )}
               </TouchableOpacity>
-            ))}
-          </View>
+            );
+          })}
+        </View>
 
           {/* List */}
           <FlatList
@@ -779,17 +790,56 @@ export default function EventRegistrationsScreen() {
             </View>
             </KeyboardAvoidingView>
           </Modal>
-        </View>
-      </SafeAreaView>
-    </View>
+      </View>
+    </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  rootContainer: { flex: 1, backgroundColor: '#4F46E5' },
+  rootContainer: { flex: 1 },
   safeArea: { flex: 1 },
   container: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  // Header éditorial : actions discrètes (icônes rondes neutres)
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Stats card éditoriaux : 4 chiffres XL avec dividers verticaux légers
+  statsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.md,
+    paddingVertical: Spacing.md,
+  },
+  statBlock: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 2,
+  },
+
+  // Badge sur le chip "En attente" quand non sélectionné
+  chipBadge: {
+    marginLeft: 6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  chipBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    color: '#FFFFFF',
+  },
   header: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.xl },
   headerTop: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.lg },
   backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginRight: Spacing.md },
@@ -803,9 +853,10 @@ const styles = StyleSheet.create({
   statItem: { flex: 1, alignItems: 'center' },
   statValue: { fontFamily: FontFamily.displayBold, fontSize: FontSizes.xl, color: Colors.white },
   statLabel: { fontSize: FontSizes.xs, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-  statDivider: { width: 1, backgroundColor: 'rgba(255,255,255,0.2)', marginHorizontal: Spacing.sm },
-  searchContainer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1 },
-  filtersContainer: { flexDirection: 'row', paddingHorizontal: Spacing.lg, paddingVertical: Spacing.sm, borderBottomWidth: 1, gap: Spacing.sm },
+  // Divider vertical entre les blocs de stats (canvas éditorial : couleur claire)
+  statDivider: { width: 1, height: 36, marginHorizontal: 4 },
+  searchContainer: { paddingHorizontal: Spacing.lg, paddingVertical: Spacing.xs },
+  filtersContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: Spacing.lg, paddingTop: Spacing.xs, paddingBottom: Spacing.sm, gap: Spacing.xs },
   filterButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.sm, paddingHorizontal: Spacing.md, borderRadius: BorderRadius.full },
   filterButtonActive: { backgroundColor: Colors.primary },
   filterText: { fontFamily: FontFamily.medium, fontSize: FontSizes.sm },

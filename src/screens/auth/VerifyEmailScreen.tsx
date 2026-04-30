@@ -91,9 +91,25 @@ const otpStyles = StyleSheet.create({
 export default function VerifyEmailScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
-  const { email } = route.params;
+  const { email, skippable, returnScreen, returnParams } = route.params || {};
   const { colors, gradients } = useTheme();
   const { showSuccess, showError } = useAlert();
+
+  const handleSkipForLater = useCallback(() => {
+    // L'utilisateur peut continuer sans verification — bandeaux visibles
+    // ailleurs dans l'app rappellent l'etat non-verifie.
+    if (returnScreen) {
+      navigation.reset({
+        index: 1,
+        routes: [
+          { name: 'Main' as never },
+          { name: returnScreen as never, params: returnParams as never },
+        ],
+      });
+    } else {
+      navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] });
+    }
+  }, [navigation, returnScreen, returnParams]);
 
   // Email resend
   const [resendLoading, setResendLoading] = useState(false);
@@ -121,6 +137,7 @@ export default function VerifyEmailScreen() {
   }, [phoneCooldown]);
 
   const maskedEmail = (() => {
+    if (!email) return '';
     const [local, domain] = email.split('@');
     if (!domain) return email;
     const visible = local.length > 2 ? local.slice(0, 2) : local[0] || '';
@@ -128,7 +145,7 @@ export default function VerifyEmailScreen() {
   })();
 
   const handleResendEmail = useCallback(async () => {
-    if (resendLoading || emailCooldown > 0) return;
+    if (resendLoading || emailCooldown > 0 || !email) return;
     setResendLoading(true);
     try {
       await authAPI.resendVerificationEmail(email);
@@ -207,7 +224,8 @@ export default function VerifyEmailScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        bottomOffset={20}
+        // bottomOffset à 100 pour garder le pill CTA visible au-dessus du clavier
+        bottomOffset={100}
         extraKeyboardSpace={20}
       >
           {/* Back button */}
@@ -424,6 +442,29 @@ export default function VerifyEmailScreen() {
             <Text style={[styles.wrongEmailText, { color: colors.gray500 }]}>Mauvais email ? </Text>
             <Text style={[styles.wrongEmailLink, { color: colors.primary }]}>Retour à la connexion</Text>
           </TouchableOpacity>
+
+          {/* Skip for later — visible uniquement quand le user vient de se connecter
+              et que la verification n'est pas obligatoire pour l'action en cours. */}
+          {skippable && (
+            <TouchableOpacity
+              style={[styles.skipBtn, { borderColor: colors.gray200, backgroundColor: colors.surface }]}
+              onPress={handleSkipForLater}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Vérifier plus tard et continuer vers l'accueil"
+            >
+              <Ionicons name="time-outline" size={16} color={colors.gray700} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.skipBtnText, { color: colors.gray900 }]}>
+                  Je vérifie mon compte plus tard
+                </Text>
+                <Text style={[styles.skipBtnHint, { color: colors.gray500 }]}>
+                  Tu pourras explorer les événements et vérifier au moment d'acheter
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
+            </TouchableOpacity>
+          )}
       </KeyboardAwareScrollView>
     </EditorialCanvas>
   );
@@ -651,5 +692,24 @@ const styles = StyleSheet.create({
   wrongEmailLink: {
     fontSize: FontSizes.sm,
     fontFamily: FontFamily.semiBold,
+  },
+  skipBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  skipBtnText: {
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.semiBold,
+  },
+  skipBtnHint: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
   },
 });

@@ -68,6 +68,7 @@ import EventAnalyticsScreen from '../screens/organizer/EventAnalyticsScreen';
 import EventRegistrationsScreen from '../screens/organizer/EventRegistrationsScreen';
 import DiscountManagementScreen from '../screens/organizer/DiscountManagementScreen';
 import DiscountFormScreen from '../screens/organizer/DiscountFormScreen';
+import EventSessionsLinkScreen from '../screens/organizer/EventSessionsLinkScreen';
 
 // Moderation Screens
 import ModerationScreen from '../screens/moderation/ModerationScreen';
@@ -275,6 +276,7 @@ export default function RootNavigator() {
       <Stack.Screen name="EventRegistrations" component={EventRegistrationsScreen} />
       <Stack.Screen name="DiscountManagement" component={DiscountManagementScreen} />
       <Stack.Screen name="DiscountForm" component={DiscountFormScreen} />
+      <Stack.Screen name="EventSessionsLink" component={EventSessionsLinkScreen} />
 
       {/* Moderation Screens */}
       <Stack.Screen name="Moderation" component={ModerationScreen} />

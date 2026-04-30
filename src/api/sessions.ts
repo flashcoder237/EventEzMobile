@@ -44,6 +44,11 @@ export const sessionsAPI = {
   markAttended: (id: string, data?: { user_id?: string }) =>
     api.post(`/sessions/${id}/mark_attended/`, data || {}),
 
+  // Scan QR pour marquer la présence à une session précise. Accepte un QR
+  // ticket-level (/verify/t/{id}) ou registration-level (/verify/{id}).
+  scanAttendance: (id: string, code: string) =>
+    api.post(`/sessions/${id}/scan_attendance/`, { code }),
+
   // Participants
   getAttendees: (id: string) =>
     api.get(`/sessions/${id}/attendees/`),

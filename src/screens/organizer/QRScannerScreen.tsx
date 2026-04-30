@@ -26,8 +26,19 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useCheckinQueue } from '../../hooks/useCheckinQueue';
-import { registrationsAPI, eventsAPI } from '../../api';
+import { registrationsAPI, eventsAPI, sessionsAPI } from '../../api';
 import { RootStackParamList, Registration, Event } from '../../types';
+
+interface ScanSession {
+  id: string;
+  title: string;
+  start_time?: string;
+  end_time?: string;
+}
+
+type ScanMode =
+  | { kind: 'main' }
+  | { kind: 'session'; sessionId: string; sessionTitle: string };
 import {
   Colors,
   FontFamily,
@@ -74,6 +85,28 @@ export default function QRScannerScreen() {
   // Manual entry modal
   const [manualOpen, setManualOpen] = useState(false);
   const [manualCode, setManualCode] = useState('');
+
+  // Mode de scan : entrée principale (registration check-in) ou session (présence)
+  // Géré par un sélecteur en haut de l'écran. Les sessions sont chargées au mount.
+  const [scanMode, setScanMode] = useState<ScanMode>({ kind: 'main' });
+  const [sessions, setSessions] = useState<ScanSession[]>([]);
+  const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    sessionsAPI.getSessions({ event: eventId })
+      .then((res: any) => {
+        if (!active) return;
+        const data = res?.data?.results || res?.data || [];
+        setSessions(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (active) setSessions([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [eventId]);
 
   // Auto-dismiss timer (en mode auto, ferme le modal après 1.5s)
   const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,48 +161,122 @@ export default function QRScannerScreen() {
     fetchEvent();
   }, [eventId]);
 
-  // Extraire l'ID de registration depuis l'URL ou les données JSON
-  const extractRegistrationId = (data: string): string | null => {
-    // Format URL: http://localhost:3000/verify/{registrationId}
-    // ou https://eventez.com/verify/{registrationId}
-    const urlMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
-    if (urlMatch) {
-      return urlMatch[1];
-    }
+  // Parse le QR scanné. Retourne le `kind` (ticket-level vs registration-level)
+  // et un `id` interne (utile pour la queue offline). Le code brut `raw` est
+  // ré-envoyé tel quel au backend qui parse aussi de son côté.
+  type ScanInfo =
+    | { kind: 'ticket_purchase'; ticketId: string; raw: string }
+    | { kind: 'registration'; registrationId: string; raw: string }
+    | null;
 
-    // Format JSON legacy (ancien format)
+  const extractScanInfo = (data: string): ScanInfo => {
+    // Ticket-level : .../verify/t/{ticket_id} — testé EN PREMIER (pattern + précis)
+    const ticketMatch = data.match(/\/verify\/t\/([a-f0-9-]+)/i);
+    if (ticketMatch) return { kind: 'ticket_purchase', ticketId: ticketMatch[1], raw: data };
+
+    // Registration-level : .../verify/{registration_id}
+    const regMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
+    if (regMatch) return { kind: 'registration', registrationId: regMatch[1], raw: data };
+
+    // JSON legacy (ancien format)
     try {
       const jsonData = JSON.parse(data);
-      return jsonData.registration_id || null;
+      if (jsonData.registration_id) {
+        return { kind: 'registration', registrationId: jsonData.registration_id, raw: data };
+      }
     } catch {
-      // Ce n'est ni une URL ni du JSON valide
+      /* not JSON */
     }
 
-    // Si c'est un UUID direct
+    // UUID brut → assumé registration_id (legacy)
     const uuidMatch = data.match(/^[a-f0-9-]{36}$/i);
-    if (uuidMatch) {
-      return data;
-    }
+    if (uuidMatch) return { kind: 'registration', registrationId: data, raw: data };
 
     return null;
+  };
+
+  // Compat helper utilisé par la saisie manuelle (ne change pas la signature
+  // de l'ancien extractor pour ne pas casser les call sites mineurs).
+  const extractRegistrationId = (data: string): string | null => {
+    const info = extractScanInfo(data);
+    if (!info) return null;
+    return info.kind === 'registration' ? info.registrationId : info.ticketId;
   };
 
   // Pattern haptique différencié — succès = 1 vibration courte, échec = 2 saccades
   const vibrateSuccess = () => Vibration.vibrate([0, 80]);
   const vibrateFail = () => Vibration.vibrate([0, 120, 80, 120]);
 
-  const processCheckIn = async (registrationId: string, source: 'qr' | 'manual') => {
+  /**
+   * Traite un scan en routant vers la bonne API selon :
+   *   - le `scanMode` (entrée principale vs session)
+   *   - le format du QR (ticket-level vs registration-level)
+   *
+   * Le code brut est ré-envoyé tel quel au backend qui parse de son côté ;
+   * `info` sert seulement à choisir l'endpoint et à enqueue offline.
+   */
+  const processCheckIn = async (info: NonNullable<ScanInfo>, source: 'qr' | 'manual') => {
     setProcessing(true);
     try {
-      // Si offline, on enqueue et on simule un succès local optimiste
+      const localId = info.kind === 'ticket_purchase' ? info.ticketId : info.registrationId;
+
+      // ─── Mode SESSION : marquer la présence à la session sélectionnée ────
+      if (scanMode.kind === 'session') {
+        if (!isOnline) {
+          await enqueueOfflineScan(info.raw, autoCheckIn, eventId, {
+            kind: 'session_attendance',
+            sessionId: scanMode.sessionId,
+          });
+          setScanResult({
+            success: true,
+            message: 'En attente de connexion — présence en queue',
+          });
+          setStats(prev => ({
+            ...prev,
+            scanned: prev.scanned + 1,
+            success: prev.success + 1,
+          }));
+          playSound('scan-success');
+          vibrateSuccess();
+          return;
+        }
+
+        const response = await sessionsAPI.scanAttendance(scanMode.sessionId, info.raw);
+        const data: any = response.data;
+        setScanResult({
+          success: !!data?.valid,
+          message: data?.message || 'Présence enregistrée à la session.',
+          alreadyCheckedIn: !!data?.already_attended,
+        });
+        setStats(prev => ({
+          ...prev,
+          scanned: prev.scanned + 1,
+          success: data?.valid ? prev.success + 1 : prev.success,
+          failed: data?.valid ? prev.failed : prev.failed + 1,
+        }));
+        if (data?.valid) {
+          playSound('scan-success');
+          vibrateSuccess();
+        } else {
+          playSound('scan-fail');
+          vibrateFail();
+        }
+        return;
+      }
+
+      // ─── Mode ENTRÉE PRINCIPALE : check-in registration / billet ────────
       if (!isOnline) {
-        await enqueueOfflineScan(registrationId, autoCheckIn, eventId);
+        await enqueueOfflineScan(
+          info.kind === 'ticket_purchase' ? info.raw : info.registrationId,
+          autoCheckIn,
+          eventId,
+          { kind: info.kind === 'ticket_purchase' ? 'ticket_purchase' : 'registration' },
+        );
         setScanResult({
           success: true,
           message: autoCheckIn
             ? 'En attente de connexion — check-in en queue'
             : 'En attente de connexion — vérification en queue',
-          // pas de registration data en mode offline
         });
         setStats(prev => ({
           ...prev,
@@ -181,26 +288,35 @@ export default function QRScannerScreen() {
         return;
       }
 
-      const response = await registrationsAPI.verifyAndCheckIn(registrationId, autoCheckIn);
-      const registration = response.data;
+      // Choix endpoint : ticket-level si le QR contient /verify/t/{...},
+      // registration-level (legacy) sinon. Le backend gère les deux flux.
+      const response = info.kind === 'ticket_purchase'
+        ? await registrationsAPI.verifyAndCheckInTicket(info.raw, autoCheckIn)
+        : await registrationsAPI.verifyAndCheckIn(info.registrationId, autoCheckIn);
 
-      // Vérification optionnelle event match — si l'event scanné ne matche pas
-      // l'event courant, on alerte le staff (peut être intentionnel mais à confirmer)
+      const data: any = response.data;
+      const registration = (data?.registration as Registration) || (data as Registration);
+
       const regEventId =
-        (registration as any).event_detail?.id ||
-        (registration as any).event_id ||
-        (registration as any).event;
+        (registration as any)?.event_detail?.id ||
+        (registration as any)?.event_id ||
+        (registration as any)?.event;
       const eventMismatch = regEventId && String(regEventId) !== String(eventId);
+
+      const alreadyCheckedIn = !!data?.already_checked_in
+        || (!!(registration as any)?.is_checked_in && !autoCheckIn);
 
       setScanResult({
         success: true,
         registration,
         message: eventMismatch
           ? '⚠ Billet d\'un autre événement — valide quand même ?'
+          : data?.message
+          ? data.message
           : autoCheckIn
           ? 'Check-in effectué avec succès!'
           : 'Billet vérifié avec succès!',
-        alreadyCheckedIn: registration.is_checked_in && !autoCheckIn,
+        alreadyCheckedIn,
       });
       setStats(prev => ({
         ...prev,
@@ -223,10 +339,7 @@ export default function QRScannerScreen() {
         message = error.response.data.detail;
       }
 
-      setScanResult({
-        success: false,
-        message,
-      });
+      setScanResult({ success: false, message });
       setStats(prev => ({
         ...prev,
         scanned: prev.scanned + 1,
@@ -244,8 +357,8 @@ export default function QRScannerScreen() {
     if (scanned || processing) return;
     setScanned(true);
 
-    const registrationId = extractRegistrationId(data);
-    if (!registrationId) {
+    const info = extractScanInfo(data);
+    if (!info) {
       setScanResult({ success: false, message: 'Format de QR code non reconnu' });
       setStats(prev => ({ ...prev, scanned: prev.scanned + 1, failed: prev.failed + 1 }));
       playSound('scan-fail');
@@ -254,7 +367,7 @@ export default function QRScannerScreen() {
       return;
     }
 
-    await processCheckIn(registrationId, 'qr');
+    await processCheckIn(info, 'qr');
   };
 
   // Auto-dismiss du modal en mode auto-checkin (rend la main au scanner après 1.5s)
@@ -282,10 +395,15 @@ export default function QRScannerScreen() {
     setManualOpen(false);
     setManualCode('');
     setScanned(true);
-    // Si l'utilisateur a tapé un code court (reference_code à 10 chars), on
-    // l'envoie tel quel — le backend le résout. Sinon on tente extractRegistrationId.
-    const resolvedId = extractRegistrationId(code) || code;
-    await processCheckIn(resolvedId, 'manual');
+    // En saisie manuelle l'utilisateur tape généralement un reference_code
+    // court (10 chars) ou un UUID. On reconstruit un ScanInfo registration-level
+    // pour le router via le même processCheckIn que le scan QR.
+    const info = extractScanInfo(code);
+    if (info) {
+      await processCheckIn(info, 'manual');
+    } else {
+      await processCheckIn({ kind: 'registration', registrationId: code, raw: code }, 'manual');
+    }
   };
 
   const handleContinueScan = () => {
@@ -435,6 +553,65 @@ export default function QRScannerScreen() {
             />
           </TouchableOpacity>
         </SafeAreaView>
+
+        {/* Sélecteur de mode : entrée principale OU session précise.
+            Visible uniquement si l'event a au moins une session. */}
+        {sessions.length > 0 && (
+          <View style={styles.modeSelectorRow}>
+            <TouchableOpacity
+              style={[
+                styles.modePill,
+                scanMode.kind === 'main' && styles.modePillActive,
+              ]}
+              onPress={() => setScanMode({ kind: 'main' })}
+              accessibilityRole="button"
+              accessibilityLabel="Scanner pour l'entrée principale"
+            >
+              <Ionicons
+                name="enter-outline"
+                size={14}
+                color={scanMode.kind === 'main' ? colors.primary : '#FFFFFF'}
+              />
+              <Text
+                style={[
+                  styles.modePillText,
+                  scanMode.kind === 'main' && { color: colors.primary },
+                ]}
+              >
+                Entrée principale
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.modePill,
+                scanMode.kind === 'session' && styles.modePillActive,
+              ]}
+              onPress={() => setSessionPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Scanner pour une session"
+            >
+              <Ionicons
+                name="layers-outline"
+                size={14}
+                color={scanMode.kind === 'session' ? colors.primary : '#FFFFFF'}
+              />
+              <Text
+                style={[
+                  styles.modePillText,
+                  scanMode.kind === 'session' && { color: colors.primary },
+                ]}
+                numberOfLines={1}
+              >
+                {scanMode.kind === 'session' ? scanMode.sessionTitle : 'Session…'}
+              </Text>
+              <Ionicons
+                name="chevron-down"
+                size={12}
+                color={scanMode.kind === 'session' ? colors.primary : '#FFFFFF'}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Scan Area */}
         <View style={styles.scanAreaContainer}>
@@ -679,6 +856,74 @@ export default function QRScannerScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={[styles.manualBtnText, { color: '#fff' }]}>Vérifier</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Picker de session : choisir laquelle scanner */}
+      <Modal
+        visible={sessionPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSessionPickerOpen(false)}
+      >
+        <Pressable style={styles.manualBackdrop} onPress={() => setSessionPickerOpen(false)}>
+          <Pressable
+            style={[styles.manualCard, { backgroundColor: colors.card, maxHeight: '70%' }]}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <Text style={[styles.manualEyebrow, { color: colors.accent }]}>SCANNER POUR</Text>
+            <Text style={[styles.manualTitle, { color: colors.text }]}>Choisir une session</Text>
+            <Text style={[styles.manualHint, { color: colors.gray500 }]}>
+              Le QR scanné marquera la présence à la session sélectionnée (et non un check-in d'entrée).
+            </Text>
+            <View style={{ marginTop: Spacing.md, gap: Spacing.xs }}>
+              {sessions.map((session) => {
+                const isActive = scanMode.kind === 'session' && scanMode.sessionId === session.id;
+                return (
+                  <TouchableOpacity
+                    key={session.id}
+                    style={[
+                      styles.sessionPickerItem,
+                      { backgroundColor: isActive ? colors.primary : colors.gray50, borderColor: colors.border },
+                    ]}
+                    onPress={() => {
+                      setScanMode({
+                        kind: 'session',
+                        sessionId: session.id,
+                        sessionTitle: session.title,
+                      });
+                      setSessionPickerOpen(false);
+                    }}
+                  >
+                    <Ionicons
+                      name="layers-outline"
+                      size={16}
+                      color={isActive ? '#FFFFFF' : colors.primary}
+                    />
+                    <Text
+                      style={[
+                        styles.sessionPickerText,
+                        { color: isActive ? '#FFFFFF' : colors.gray900 },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {session.title}
+                    </Text>
+                    {isActive && <Ionicons name="checkmark" size={16} color="#FFFFFF" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <View style={[styles.manualActions, { marginTop: Spacing.md }]}>
+              <TouchableOpacity
+                style={[styles.manualBtn, { backgroundColor: colors.gray100 }]}
+                onPress={() => setSessionPickerOpen(false)}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.manualBtnText, { color: colors.gray800 }]}>Fermer</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -1063,5 +1308,52 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: 14,
     letterSpacing: 0.2,
+  },
+
+  // Sélecteur de mode de scan (entrée principale / session) au-dessus du cadre
+  modeSelectorRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.3)',
+    maxWidth: 200,
+  },
+  modePillActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#FFFFFF',
+  },
+  modePillText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    color: '#FFFFFF',
+    letterSpacing: -0.1,
+  },
+
+  // Picker de session — réutilise manualHint et manualActions du modal saisie
+  sessionPickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  sessionPickerText: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
   },
 });

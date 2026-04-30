@@ -20,3 +20,10 @@ export function getSpeakerUrl(speakerId: string): string {
 export function getVerificationUrl(registrationId: string): string {
   return `${WEB_BASE_URL}/verify/${registrationId}`;
 }
+
+// URL ticket-level : encode l'ID d'un TicketPurchase précis pour permettre
+// un check-in granulaire par billet (et non plus par registration entière).
+// Format reconnu par les scanners web et mobile.
+export function getTicketVerificationUrl(ticketId: string | number): string {
+  return `${WEB_BASE_URL}/verify/t/${ticketId}`;
+}

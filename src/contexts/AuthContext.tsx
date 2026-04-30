@@ -13,7 +13,7 @@ interface AuthContextType extends AuthState {
   isInitializing: boolean;
   /** Convenience derived flag — true when user is signed in as a guest. */
   isGuest: boolean;
-  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<User>;
   register: (data: {
     email: string;
     username: string;
@@ -130,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       EventEzAnalytics.login('email');
       setAnalyticsUser(user.id, { role: user.role || 'user' });
+      return user;
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
       throw error;

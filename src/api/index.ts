@@ -45,7 +45,7 @@ export { socialAPI, invitationsAPI, referralsAPI, gamificationAPI, recommendatio
 export { newslettersAPI, sponsorsAPI, liveAPI, cfpAPI, virtualRoomsAPI, recordingsAPI } from './content';
 
 // Admin — Audit, Treasury & Site Settings
-export { auditAPI, treasuryAPI, siteSettingsAPI } from './admin';
+export { auditAPI, treasuryAPI, siteSettingsAPI, publicSettingsAPI } from './admin';
 
 // Misc — Waitlist, Seating, Volunteers, Currency, Comparison, Export, AI & UTM
 export { waitlistAPI, waitlistSettingsAPI, seatingAPI, floorPlansAPI, volunteersAPI, currencyAPI, comparisonAPI, exportAPI, aiAssistAPI, utmAPI } from './misc';

@@ -21,6 +21,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useGoogleAuth, useAppleAuth, usePhoneAuth } from '../../hooks/useSocialAuth';
+import { useFeatureFlags } from '../../hooks/useFeatureFlags';
+import { dispatchAfterAuth, isAuthScreen } from '../../lib/utils/authNavigation';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -48,9 +50,14 @@ export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LoginRouteProp>();
   const { eventTitle, returnScreen, returnParams, eventIsFree } = route.params || {};
-  const { login, isLoading, setUser, guestRegister } = useAuth();
+  const { login, isLoading, setUser, guestRegister, user } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
+  const { flags: featureFlags } = useFeatureFlags();
+  const phoneOtpAvailable = featureFlags.phone_otp_enabled;
+  // Si returnScreen est un ecran auth (login/register/verify/forgot), on l'ignore
+  // pour ne pas y rediriger apres connexion reussie.
+  const safeReturnScreen = returnScreen && !isAuthScreen(returnScreen) ? returnScreen : null;
 
   const emailInputRef = useRef<TextInput>(null);
 
@@ -65,8 +72,12 @@ export default function LoginScreen() {
   const [loginInProgress, setLoginInProgress] = useState(false);
   const [retryInfo, setRetryInfo] = useState<{ attempt: number; maxRetries: number } | null>(null);
 
-  // Tab & phone form
+  // Tab & phone form. Si l'OTP est desactive cote admin, on force email.
   const [activeTab, setActiveTab] = useState<AuthTab>('email');
+
+  useEffect(() => {
+    if (!phoneOtpAvailable && activeTab === 'phone') setActiveTab('email');
+  }, [phoneOtpAvailable, activeTab]);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneStep, setPhoneStep] = useState<PhoneStep>('phone');
   const [otpCode, setOtpCode] = useState('');
@@ -110,15 +121,10 @@ export default function LoginScreen() {
     }
     setGuestLoading(true);
     try {
-      await guestRegister({ email, first_name: firstName });
-      // Le guestRegister met l'auth context à jour. On ferme le modal et on
-      // redirige vers la destination prévue.
+      const guestUser = await guestRegister({ email, first_name: firstName });
       setGuestModal(false);
-      if (returnScreen) {
-        navigation.replace(returnScreen as any, returnParams as any);
-      } else if (navigation.canGoBack()) {
-        navigation.goBack();
-      }
+      // Guest accounts skipent toujours la verif — direct au returnScreen ou Main
+      dispatchAfterAuth(navigation, guestUser as any, safeReturnScreen, returnParams);
     } catch (error: any) {
       // 409 = email déjà rattaché à un compte complet → on bascule vers login
       if (error?.response?.status === 409) {
@@ -135,16 +141,15 @@ export default function LoginScreen() {
     } finally {
       setGuestLoading(false);
     }
-  }, [guestEmail, guestFirstName, guestRegister, navigation, returnScreen, returnParams, showError]);
+  }, [guestEmail, guestFirstName, guestRegister, navigation, safeReturnScreen, returnParams, showError]);
 
-  // Redirection après login réussi : vers returnScreen si fourni, sinon goBack
-  const dismissAfterLogin = useCallback(() => {
-    if (returnScreen) {
-      navigation.replace(returnScreen as any, returnParams as any);
-      return;
-    }
-    if (navigation.canGoBack()) navigation.goBack();
-  }, [navigation, returnScreen, returnParams]);
+  // Redirection après auth réussie. Logique centralisée dans dispatchAfterAuth :
+  // - compte non verifie → VerifyEmail (avec skip)
+  // - sinon, returnScreen non-auth → reset stack + nav
+  // - sinon → reset stack vers Main
+  const dismissAfterLogin = useCallback((freshUser?: any) => {
+    dispatchAfterAuth(navigation, freshUser ?? user, safeReturnScreen, returnParams);
+  }, [navigation, safeReturnScreen, returnParams, user]);
 
   // Écouter les événements de retry API pendant le login
   useEffect(() => {
@@ -185,7 +190,7 @@ export default function LoginScreen() {
     const result = await googleSignIn();
     if (result.success && result.user) {
       await setUser(result.user);
-      dismissAfterLogin();
+      dismissAfterLogin(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Google', result.error);
     }
@@ -195,7 +200,7 @@ export default function LoginScreen() {
     const result = await appleSignIn();
     if (result.success && result.user) {
       await setUser(result.user);
-      dismissAfterLogin();
+      dismissAfterLogin(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
       showError('Erreur Apple', result.error);
     }
@@ -225,7 +230,7 @@ export default function LoginScreen() {
     const result = await verifyOTP(otpPhone, otpCode);
     if (result.success && result.user) {
       await setUser(result.user);
-      dismissAfterLogin();
+      dismissAfterLogin(result.user);
     } else {
       showError('Code invalide', result.error || 'Code incorrect ou expiré');
     }
@@ -262,9 +267,9 @@ export default function LoginScreen() {
 
       // Les comptes non vérifiés peuvent se connecter — les restrictions sont
       // appliquées côté backend (IsEmailVerified) avec un bandeau UI.
-      await login(email.trim().toLowerCase(), password, rememberMe);
+      const loggedInUser = await login(email.trim().toLowerCase(), password, rememberMe);
       setRetryInfo(null);
-      dismissAfterLogin();
+      dismissAfterLogin(loggedInUser);
     } catch (error: any) {
       setRetryInfo(null);
       const message = extractErrorMessage(error);
@@ -290,7 +295,10 @@ export default function LoginScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        bottomOffset={20}
+        // bottomOffset = espace gardé sous l'input focusé (au-dessus du clavier).
+        // 100 = hauteur du pill CTA "Se connecter" + un peu de marge pour rester visible.
+        // Sans ça, le bouton restait caché derrière le clavier (parité EventCreateScreen).
+        bottomOffset={100}
       >
           {/* Logo */}
           <View style={styles.logoContainer}>
@@ -328,29 +336,31 @@ export default function LoginScreen() {
             </View>
           )}
 
-          {/* Tabs — toujours visibles pour switcher email/téléphone */}
-          <View style={styles.tabsRow}>
-            <TouchableOpacity
-              onPress={() => { setActiveTab('email'); setPhoneStep('phone'); setOtpCode(''); }}
-              style={[styles.tabBtn, activeTab === 'email' && { backgroundColor: colors.primary }]}
-              activeOpacity={0.85}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeTab === 'email' }}
-            >
-              <Ionicons name="mail-outline" size={14} color={activeTab === 'email' ? '#fff' : colors.gray500} />
-              <Text style={[styles.tabBtnText, { color: activeTab === 'email' ? '#fff' : colors.gray500 }]}>Email</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setActiveTab('phone')}
-              style={[styles.tabBtn, activeTab === 'phone' && { backgroundColor: colors.primary }]}
-              activeOpacity={0.85}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeTab === 'phone' }}
-            >
-              <Ionicons name="phone-portrait-outline" size={14} color={activeTab === 'phone' ? '#fff' : colors.gray500} />
-              <Text style={[styles.tabBtnText, { color: activeTab === 'phone' ? '#fff' : colors.gray500 }]}>Téléphone</Text>
-            </TouchableOpacity>
-          </View>
+          {/* Tabs — phone tab masque si l'admin a desactive l'OTP SMS */}
+          {phoneOtpAvailable ? (
+            <View style={styles.tabsRow}>
+              <TouchableOpacity
+                onPress={() => { setActiveTab('email'); setPhoneStep('phone'); setOtpCode(''); }}
+                style={[styles.tabBtn, activeTab === 'email' && { backgroundColor: colors.primary }]}
+                activeOpacity={0.85}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'email' }}
+              >
+                <Ionicons name="mail-outline" size={14} color={activeTab === 'email' ? '#fff' : colors.gray500} />
+                <Text style={[styles.tabBtnText, { color: activeTab === 'email' ? '#fff' : colors.gray500 }]}>Email</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setActiveTab('phone')}
+                style={[styles.tabBtn, activeTab === 'phone' && { backgroundColor: colors.primary }]}
+                activeOpacity={0.85}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: activeTab === 'phone' }}
+              >
+                <Ionicons name="phone-portrait-outline" size={14} color={activeTab === 'phone' ? '#fff' : colors.gray500} />
+                <Text style={[styles.tabBtnText, { color: activeTab === 'phone' ? '#fff' : colors.gray500 }]}>Téléphone</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           {/* Form */}
           <View style={styles.form}>
@@ -650,7 +660,7 @@ export default function LoginScreen() {
           <View style={styles.registerContainer}>
             <Text style={[styles.registerText, { color: colors.gray500 }]}>Pas encore de compte ?</Text>
             <AnimatedPressable
-              onPress={() => navigation.navigate('Register')}
+              onPress={() => navigation.replace('Register', { returnScreen: safeReturnScreen, returnParams })}
               animationType="scale"
               scaleValue={0.95}
               accessibilityRole="link"
@@ -660,34 +670,34 @@ export default function LoginScreen() {
             </AnimatedPressable>
           </View>
 
-          {/* Guest checkout — uniquement pour les events gratuits */}
-          {eventIsFree && (
-            <View style={styles.guestSection}>
-              <View style={styles.guestDivider}>
-                <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
-                <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou</Text>
-                <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
-              </View>
-              <TouchableOpacity
-                style={[styles.guestButton, { borderColor: colors.gray200, backgroundColor: colors.surface }]}
-                onPress={() => setGuestModal(true)}
-                activeOpacity={0.85}
-                accessibilityRole="button"
-                accessibilityLabel="Continuer en invité (sans créer de compte)"
-              >
-                <Ionicons name="flash-outline" size={16} color={colors.gray700} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.guestButtonText, { color: colors.gray900 }]}>
-                    Continuer en invité
-                  </Text>
-                  <Text style={[styles.guestButtonHint, { color: colors.gray500 }]}>
-                    Juste prénom + email · pas de mot de passe
-                  </Text>
-                </View>
-                <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
-              </TouchableOpacity>
+          {/* Guest checkout — toujours visible. Le copy s'adapte selon le contexte. */}
+          <View style={styles.guestSection}>
+            <View style={styles.guestDivider}>
+              <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
+              <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou</Text>
+              <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
             </View>
-          )}
+            <TouchableOpacity
+              style={[styles.guestButton, { borderColor: colors.gray200, backgroundColor: colors.surface }]}
+              onPress={() => setGuestModal(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Continuer en invité (sans créer de compte)"
+            >
+              <Ionicons name="flash-outline" size={16} color={colors.gray700} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.guestButtonText, { color: colors.gray900 }]}>
+                  Continuer en invité
+                </Text>
+                <Text style={[styles.guestButtonHint, { color: colors.gray500 }]}>
+                  {eventIsFree
+                    ? 'Juste prénom + email · pas de mot de passe'
+                    : 'Juste prénom + email · idéal pour les events gratuits'}
+                </Text>
+              </View>
+              <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
+            </TouchableOpacity>
+          </View>
       </KeyboardAwareScrollView>
 
       {/* === GUEST CHECKOUT MODAL === */}

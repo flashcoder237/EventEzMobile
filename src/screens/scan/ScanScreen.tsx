@@ -23,7 +23,13 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { ticketTransfersAPI, usersAPI, registrationsAPI } from '../../api';
+import {
+  ticketTransfersAPI,
+  usersAPI,
+  registrationsAPI,
+  ticketPurchasesAPI,
+  sessionsAPI,
+} from '../../api';
 import { RootStackParamList, Registration } from '../../types';
 import {
   Colors,
@@ -45,7 +51,8 @@ const SCAN_AREA_SIZE = SCREEN_WIDTH * 0.7;
 type QRParseResult =
   | { type: 'transfer'; token: string }
   | { type: 'user'; userId: string }
-  | { type: 'ticket'; registrationId: string }
+  | { type: 'ticket_purchase'; ticketId: string; raw: string }
+  | { type: 'ticket'; registrationId: string; raw: string }
   | { type: 'unknown' };
 
 function parseQRCode(data: string): QRParseResult {
@@ -55,13 +62,19 @@ function parseQRCode(data: string): QRParseResult {
   const userMatch = data.match(/^EVENTEZ-USER-(.+)$/);
   if (userMatch) return { type: 'user', userId: userMatch[1] };
 
-  // Format URL de vérification: .../verify/{registrationId}
-  const verifyMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
-  if (verifyMatch) return { type: 'ticket', registrationId: verifyMatch[1] };
+  // Nouveau format ticket-level : .../verify/t/{ticket_purchase_id}
+  // Testé AVANT le format registration-level pour matcher le pattern le plus
+  // spécifique d'abord (sinon /verify/{...} attraperait aussi les URLs t/...).
+  const ticketMatch = data.match(/\/verify\/t\/([a-f0-9-]+)/i);
+  if (ticketMatch) return { type: 'ticket_purchase', ticketId: ticketMatch[1], raw: data };
 
-  // UUID direct (probablement un ID de registration)
+  // Format legacy registration-level : .../verify/{registrationId}
+  const verifyMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
+  if (verifyMatch) return { type: 'ticket', registrationId: verifyMatch[1], raw: data };
+
+  // UUID brut → considéré comme registration_id (legacy)
   const uuidMatch = data.match(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
-  if (uuidMatch) return { type: 'ticket', registrationId: data };
+  if (uuidMatch) return { type: 'ticket', registrationId: data, raw: data };
 
   return { type: 'unknown' };
 }
@@ -113,6 +126,14 @@ interface TicketData {
   referenceCode: string;
   status: string;
   registrationType: string;
+  // Si le QR est un ticket-level (/verify/t/{id}), on stocke aussi l'ID
+  // du TicketPurchase pour pouvoir appeler verify_and_check_in_ticket
+  // (check-in granulaire). Absent → fallback sur verify_and_check_in (legacy).
+  ticketPurchaseId?: string;
+  ticketPurchase?: any;
+  // QR brut tel que scanné — utile pour le ré-envoyer côté serveur en mode
+  // scan_attendance (session) sans avoir à reconstruire l'URL.
+  scanRaw?: string;
 }
 
 type ResultType = 'transfer' | 'user' | 'ticket' | 'error';
@@ -200,6 +221,33 @@ export default function ScanScreen() {
           user: userRes.data,
           isFollowing: followRes.data?.is_following ?? false,
         });
+      } else if (parsed.type === 'ticket_purchase') {
+        // Nouveau format ticket-level : on récupère le TicketPurchase puis sa
+        // Registration parente pour afficher les mêmes infos qu'un scan legacy.
+        // Le check-in passera par verify_and_check_in_ticket (granulaire).
+        const ticketRes = await ticketPurchasesAPI.getTicketPurchase(parsed.ticketId);
+        const tp = ticketRes.data as any;
+        const regId = String(tp.registration_id || tp.registration || '');
+        const regRes = await registrationsAPI.getRegistration(regId);
+        const reg = regRes.data;
+        const eventDetail = reg.event_detail || {};
+        setResult({
+          type: 'ticket',
+          ticket: {
+            registrationId: regId,
+            registration: reg,
+            eventTitle: eventDetail.title || 'Événement',
+            eventId: eventDetail.id || (typeof reg.event === 'string' ? reg.event : reg.event?.id) || '',
+            userName: reg.user_name || '',
+            userEmail: reg.user_email || '',
+            referenceCode: reg.reference_code || regId.slice(0, 8).toUpperCase(),
+            status: reg.status || 'pending',
+            registrationType: reg.registration_type || 'billetterie',
+            ticketPurchaseId: parsed.ticketId,
+            ticketPurchase: tp,
+            scanRaw: parsed.raw,
+          },
+        });
       } else if (parsed.type === 'ticket') {
         const response = await registrationsAPI.getRegistration(parsed.registrationId);
         const reg = response.data;
@@ -216,6 +264,7 @@ export default function ScanScreen() {
             referenceCode: reg.reference_code || parsed.registrationId.slice(0, 8).toUpperCase(),
             status: reg.status || 'pending',
             registrationType: reg.registration_type || 'billetterie',
+            scanRaw: parsed.raw,
           },
         });
       } else {

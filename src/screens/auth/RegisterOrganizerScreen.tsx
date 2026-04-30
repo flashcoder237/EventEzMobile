@@ -516,7 +516,8 @@ export default function RegisterOrganizerScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        bottomOffset={20}
+        // bottomOffset à 100 pour garder le pill CTA visible au-dessus du clavier
+        bottomOffset={100}
       >
         {/* Back Button */}
         <AnimatedPressable

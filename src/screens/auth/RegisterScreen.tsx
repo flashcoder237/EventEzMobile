@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,6 +30,7 @@ import AnimatedPressable from '../../components/ui/AnimatedPressable';
 import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../components/ui/editorial';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
+type RouteProps = RouteProp<RootStackParamList, 'Register'>;
 
 interface FormData {
   first_name: string;
@@ -53,6 +54,8 @@ interface FormErrors {
 
 export default function RegisterScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteProps>();
+  const { returnScreen, returnParams } = route.params || {};
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showError } = useAlert();
   const { colors, isDark } = useTheme();
@@ -119,8 +122,15 @@ export default function RegisterScreen() {
       });
       setIsSubmitting(false);
       const targetEmail = response.data?.email ?? formData.email.trim().toLowerCase();
-      // Navigation directe vers VerifyEmail — l'écran expliquera la vérification obligatoire
-      navigation.navigate('VerifyEmail', { email: targetEmail });
+      // Navigation vers VerifyEmail. On passe `skippable=true` pour que l'utilisateur
+      // puisse explorer l'app sans verifier tout de suite (la verification reste
+      // obligatoire pour acheter un billet — les bandeaux UI le rappellent ailleurs).
+      navigation.replace('VerifyEmail', {
+        email: targetEmail,
+        skippable: true,
+        returnScreen,
+        returnParams,
+      });
     } catch (error: any) {
       setIsSubmitting(false);
       const message = extractErrorMessage(error);
@@ -204,7 +214,8 @@ export default function RegisterScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        bottomOffset={20}
+        // bottomOffset à 100 pour garder le pill CTA visible au-dessus du clavier
+        bottomOffset={100}
       >
           {/* Back Button */}
           <AnimatedPressable

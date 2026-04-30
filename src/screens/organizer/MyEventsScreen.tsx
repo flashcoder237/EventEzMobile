@@ -218,6 +218,10 @@ export default function MyEventsScreen() {
         text: 'Codes promo',
         onPress: () => navigation.navigate('DiscountManagement', { eventId: event.id }),
       });
+      actions.push({
+        text: 'Lier billets aux sessions',
+        onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.id }),
+      });
     }
 
     if (event.status === 'draft' || event.status === 'rejected') {

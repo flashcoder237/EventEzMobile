@@ -5,11 +5,17 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Share,
   Dimensions,
+  Linking,
 } from 'react-native';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import {
+  EditorialCanvas,
+  WatermarkNumeral,
+  EditorialHeader,
+  EditorialPillCTA,
+  editorial,
+} from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,9 +26,9 @@ import QRCode from 'react-native-qrcode-svg';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { ticketPurchasesAPI, registrationsAPI } from '../../api';
+import { ticketPurchasesAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
-import { getVerificationUrl } from '../../constants/urls';
+import { getTicketVerificationUrl } from '../../constants/urls';
 import {
   FontSizes,
   FontFamily,
@@ -34,7 +40,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type QRCodeRouteProp = RouteProp<RootStackParamList, 'QRCode'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const QR_SIZE = SCREEN_WIDTH - Spacing.xl * 4;
+// Cf. RegistrationDetailsScreen — laisse ~12px de respiration de chaque côté
+const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
 
 export default function QRCodeScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -51,13 +58,10 @@ export default function QRCodeScreen() {
   // API externe (api.qrserver.com) qui peut être indisponible / bloquée.
   const qrSvgRef = useRef<any>(null);
 
-  // URL de vérification (format unifié mobile + web)
-  const verificationUrl = getVerificationUrl(
-    String(ticket?.registration_id || ticket?.registration || '')
-  );
+  // QR ticket-level : encode l'ID du TicketPurchase pour permettre un
+  // check-in granulaire par billet (cf. AUDIT_QR_CODE_INSCRIPTION.md)
+  const verificationUrl = getTicketVerificationUrl(String(ticketId));
 
-  // Récupère le QR rendu en base64 PNG via la ref. Renvoie null si la ref
-  // n'est pas prête (composant pas encore monté).
   const getQrDataUrl = useCallback((): Promise<string | null> => {
     return new Promise((resolve) => {
       const ref = qrSvgRef.current;
@@ -93,9 +97,6 @@ export default function QRCodeScreen() {
 
   const generateTicketHTML = (qrImageUrl: string): string => {
     const eventTitle = event?.title || (ticket as any)?.event_title || 'Événement';
-    // qrImageUrl est de préférence un data URL PNG généré localement via la
-    // ref du composant QRCode (cf. getQrDataUrl). Fallback sur api.qrserver.com
-    // uniquement si la ref n'est pas dispo (sécurité, jamais le chemin nominal).
     const qrUrl = qrImageUrl
       || `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=200x200&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
     const ticketTypeName = ticketType?.name || (ticket as any)?.ticket_type_name || 'Standard';
@@ -201,8 +202,6 @@ export default function QRCodeScreen() {
   const handleDownloadPDF = async () => {
     if (!ticket) return;
     try {
-      // Récupère le QR rendu localement -> embed dans le PDF (pas de dépendance
-      // à api.qrserver.com qui peut être hors-ligne / bloquée).
       const qrDataUrl = await getQrDataUrl();
       const html = generateTicketHTML(qrDataUrl || '');
       const { uri } = await Print.printToFileAsync({ html });
@@ -281,20 +280,15 @@ export default function QRCodeScreen() {
     }
   };
 
-  // Helper pour vérifier si le paiement est requis
   const isPaymentRequired = (t: TicketPurchase | null): boolean => {
     if (!t) return false;
-    // Vérifier d'abord le champ payment_required
     if (t.payment_required === true) return true;
-    // Fallback: vérifier si le total_price > 0 et status pending
     if (t.total_price && t.total_price > 0 && t.status === 'pending') return true;
     return false;
   };
 
   if (loading) {
-    return (
-      <LoadingSpinner />
-    );
+    return <LoadingSpinner />;
   }
 
   if (!ticket) {
@@ -302,13 +296,12 @@ export default function QRCodeScreen() {
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>QR</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
-          <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Retour" accessibilityRole="button">
-              <Ionicons name="arrow-back" size={24} color={colors.gray900} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
-            <View style={{ width: 40 }} />
-          </View>
+          <EditorialHeader
+            eyebrow="BILLET"
+            title="Mon billet"
+            back
+            onBack={() => navigation.goBack()}
+          />
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
             <Text style={[styles.errorText, { color: colors.gray500 }]}>Billet non trouvé</Text>
@@ -321,277 +314,434 @@ export default function QRCodeScreen() {
   const event = (ticket as any)?.event;
   const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
   const statusConfig = getStatusConfig(ticket.status);
+  const reference = String(ticketId).slice(0, 8).toUpperCase();
+  const ticketName = ticketType?.name || ticket.ticket_type_name || 'Standard';
+  const ticketQty = ticket.quantity || 1;
+  const ticketPrice = Number(ticket.total_price) || 0;
+
+  // Détection du contexte d'événement
+  const locationType = event?.location_type;
+  const isOnlineEvent = locationType === 'online';
+  const isHybridEvent = locationType === 'hybrid';
+
+  // Instructions dynamiques selon le contexte du billet
+  const instructions: { icon: string; color: string; text: string }[] = isOnlineEvent
+    ? [
+        { icon: 'wifi-outline', color: colors.primary, text: 'Teste ta connexion internet à l\'avance' },
+        { icon: 'volume-high-outline', color: colors.accent, text: 'Vérifie ton micro et tes haut-parleurs' },
+        { icon: 'log-in-outline', color: '#A855F7', text: 'Connecte-toi 5 min avant le début' },
+      ]
+    : isHybridEvent
+    ? [
+        { icon: 'scan-outline', color: colors.primary, text: 'QR code à scanner si tu viens sur place' },
+        { icon: 'wifi-outline', color: colors.accent, text: 'Sinon teste ta connexion pour le live' },
+        { icon: 'phone-portrait-outline', color: '#A855F7', text: 'Garde ton téléphone chargé' },
+      ]
+    : [
+        { icon: 'scan-outline', color: colors.primary, text: 'Le QR code sera scanné à l\'entrée' },
+        { icon: 'phone-portrait-outline', color: colors.accent, text: 'Garde ton téléphone chargé' },
+        { icon: 'time-outline', color: '#A855F7', text: 'Arrive à l\'heure pour éviter les files' },
+      ];
 
   return (
     <EditorialCanvas edges={['top']}>
       <WatermarkNumeral>QR</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.gray100 }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityLabel="Retour" accessibilityRole="button">
-          <Ionicons name="arrow-back" size={24} color={colors.gray900} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Mon Billet</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handlePrint} accessibilityLabel="Imprimer le billet" accessibilityRole="button">
-            <Ionicons name="print-outline" size={22} color={colors.gray900} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handleDownloadPDF} accessibilityLabel="Telecharger le billet" accessibilityRole="button">
-            <Ionicons name="download-outline" size={22} color={colors.gray900} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerActionButton} onPress={handleShare} accessibilityLabel="Partager le billet" accessibilityRole="button">
-            <Ionicons name="share-outline" size={22} color={colors.gray900} />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Ticket Card */}
-        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-          {/* Event Info */}
-          <View style={styles.eventInfo}>
-            <View style={[styles.typeBadge, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
-              <Ionicons name="ticket" size={14} color={colors.primary} />
-              <Text style={[styles.typeBadgeText, { color: colors.primary }]}>Billet</Text>
+        {/* Header éditorial : eyebrow contexte + actions discrètes (print, dl, share) */}
+        <EditorialHeader
+          eyebrow={`BILLET · ${reference}`}
+          title="Mon billet"
+          back
+          onBack={() => navigation.goBack()}
+          right={
+            <View style={styles.headerActions}>
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={handlePrint}
+                accessibilityLabel="Imprimer le billet"
+              >
+                <Ionicons name="print-outline" size={20} color={colors.gray700} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={handleDownloadPDF}
+                accessibilityLabel="Télécharger le billet"
+              >
+                <Ionicons name="download-outline" size={20} color={colors.gray700} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerIconBtn}
+                onPress={handleShare}
+                accessibilityLabel="Partager le billet"
+              >
+                <Ionicons name="share-outline" size={20} color={colors.gray700} />
+              </TouchableOpacity>
             </View>
+          }
+        />
 
-            <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
-              {event?.title || (ticket as any)?.event_title || 'Événement'}
-            </Text>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Card principale : event info + QR + détails */}
+          <View
+            style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }]}
+          >
+            {/* Event Info */}
+            <View style={styles.eventInfo}>
+              {/* Type pill : BILLET */}
+              <View style={styles.typePillRow}>
+                <View style={[styles.typePill, { backgroundColor: `${colors.primary}15` }]}>
+                  <Ionicons name="ticket" size={10} color={colors.primary} />
+                  <Text style={[styles.typePillText, { color: colors.primary }]}>BILLET INDIVIDUEL</Text>
+                </View>
+                {event?.category?.name && (
+                  <Text style={[styles.categoryEyebrow, { color: colors.gray500 }]} numberOfLines={1}>
+                    · {event.category.name.toUpperCase()}
+                  </Text>
+                )}
+              </View>
 
-            <View style={styles.eventMeta}>
-              {event?.start_date && (
-                <View style={styles.eventMetaItem}>
-                  <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>{formatDate(event.start_date)}</Text>
-                </View>
-              )}
-              {event?.start_date && (
-                <View style={styles.eventMetaItem}>
-                  <Ionicons name="time-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>{formatTime(event.start_date)}</Text>
-                </View>
-              )}
-              {!!(event?.location_name || event?.location_city) && (
-                <View style={styles.eventMetaItem}>
-                  <Ionicons name="location-outline" size={16} color={colors.primary} />
-                  <Text style={[styles.eventMetaText, { color: colors.gray600 }]}>
-                    {event.location_name || event.location_city}
+              {/* Hero row : titre + date tile orange */}
+              <View style={styles.heroRow}>
+                <View style={{ flex: 1, paddingRight: Spacing.md }}>
+                  <Text style={[styles.heroTitle, { color: colors.gray900 }]} numberOfLines={3}>
+                    {event?.title || (ticket as any)?.event_title || 'Événement'}
                   </Text>
                 </View>
-              )}
+                {event?.start_date && (
+                  <View style={[styles.dateTile, { backgroundColor: `${colors.accent}1A` }]}>
+                    <Text style={[styles.dateTileDay, { color: colors.accent }]}>
+                      {new Date(event.start_date).getDate().toString().padStart(2, '0')}
+                    </Text>
+                    <Text style={[styles.dateTileMonth, { color: colors.accent }]}>
+                      {new Date(event.start_date).toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase().replace('.', '')}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Meta chips : date, heure, lieu */}
+              <View style={styles.metaChipsRow}>
+                {event?.start_date && (
+                  <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                    <Ionicons name="calendar-outline" size={12} color={colors.accent} />
+                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>{formatDate(event.start_date)}</Text>
+                  </View>
+                )}
+                {event?.start_date && (
+                  <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                    <Ionicons name="time-outline" size={12} color={colors.primary} />
+                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>{formatTime(event.start_date)}</Text>
+                  </View>
+                )}
+                {isOnlineEvent && (
+                  <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                    <Ionicons name="videocam-outline" size={12} color={colors.primary} />
+                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>En ligne</Text>
+                  </View>
+                )}
+                {!isOnlineEvent && !!(event?.location_name || event?.location_city) && (
+                  <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                    <Ionicons name="location-outline" size={12} color={colors.primary} />
+                    <Text style={[styles.metaChipText, { color: colors.gray700 }]} numberOfLines={1}>
+                      {event.location_name || event.location_city}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* CTA discret : voir l'événement */}
+              <TouchableOpacity
+                style={[styles.editorialChipCTA, { backgroundColor: colors.gray100 }]}
+                onPress={() => {
+                  const eventId = event?.id || (ticket as any)?.event_id;
+                  if (eventId) navigation.navigate('EventDetails', { eventId });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Voir les détails de l'événement"
+              >
+                <Ionicons name="eye-outline" size={14} color={colors.gray700} />
+                <Text style={[styles.editorialChipCTAText, { color: colors.gray800 }]}>Voir l'événement</Text>
+                <Ionicons name="arrow-forward" size={14} color={colors.gray700} />
+              </TouchableOpacity>
             </View>
 
-            {/* View Event Button */}
-            <TouchableOpacity
-              style={[styles.viewEventButton, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}
-              onPress={() => {
-                const eventId = event?.id || (ticket as any)?.event_id;
-                if (eventId) {
-                  navigation.navigate('EventDetails', { eventId });
-                }
-              }}
-            >
-              <Ionicons name="eye-outline" size={18} color={colors.primary} />
-              <Text style={[styles.viewEventButtonText, { color: colors.primary }]}>Voir les détails de l'événement</Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.primary} />
-            </TouchableOpacity>
+            {/* Divider */}
+            <View style={styles.divider}>
+              <View style={[styles.dividerCircleLeft, { backgroundColor: colors.background }]} />
+              <View style={[styles.dividerLine, { borderColor: colors.gray200 }]} />
+              <View style={[styles.dividerCircleRight, { backgroundColor: colors.background }]} />
+            </View>
+
+            {/* QR Section éditoriale */}
+            <View style={styles.qrSection}>
+              <View style={styles.editorialSectionHead}>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>
+                  {isOnlineEvent ? 'RÉFÉRENCE · CODE UNIQUE' : 'SCANNER · ENTRÉE'}
+                </Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
+                  {isOnlineEvent ? 'Ton code de réservation' : 'Ton sésame'}
+                </Text>
+              </View>
+              <View style={{ alignItems: 'center' }}>
+                <View style={styles.qrFrame}>
+                  <View
+                    style={[styles.qrContainer, { borderColor: colors.gray100, backgroundColor: '#FFFFFF' }]}
+                    accessibilityLabel="QR code du billet"
+                    accessibilityRole="image"
+                  >
+                    <QRCode
+                      value={verificationUrl}
+                      size={QR_SIZE}
+                      color={isDark ? '#4C1D95' : '#5B21B6'}
+                      backgroundColor="#FFFFFF"
+                      getRef={(c: any) => {
+                        qrSvgRef.current = c;
+                      }}
+                    />
+                  </View>
+                  {/* Scanner corners éditoriaux */}
+                  <View style={[styles.qrCorner, styles.qrCornerTL, { borderColor: colors.primary }]} />
+                  <View style={[styles.qrCorner, styles.qrCornerTR, { borderColor: colors.primary }]} />
+                  <View style={[styles.qrCorner, styles.qrCornerBL, { borderColor: colors.primary }]} />
+                  <View style={[styles.qrCorner, styles.qrCornerBR, { borderColor: colors.primary }]} />
+                </View>
+                <View style={styles.qrHintRow}>
+                  <Ionicons
+                    name={isOnlineEvent ? 'shield-checkmark-outline' : 'scan-outline'}
+                    size={12}
+                    color={colors.gray500}
+                  />
+                  <Text style={[styles.qrHint, { color: colors.gray500 }]}>
+                    {isOnlineEvent
+                      ? 'À conserver — preuve de ta réservation'
+                      : isHybridEvent
+                      ? 'Présente ce code si tu viens sur place'
+                      : 'Présente ce code à l\'entrée'}
+                  </Text>
+                </View>
+                {/* Explication contenu QR */}
+                <View style={[styles.qrExplain, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                  <Ionicons name="link-outline" size={12} color={colors.primary} />
+                  <Text style={[styles.qrExplainText, { color: colors.gray600 }]}>
+                    Lien unique vers ta page de validation — aucune donnée sensible n'est encodée
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Détails billet — pattern éditorial vertical (eyebrow / valeur) */}
+            <View style={styles.detailsSection}>
+              <View style={styles.editorialSectionHead}>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉCAP · TON BILLET</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Détails</Text>
+              </View>
+
+              {/* Status badge éditorial */}
+              <View style={[styles.statusBadgeEditorial, { backgroundColor: statusConfig.bg }]}>
+                <Ionicons name={statusConfig.icon as any} size={16} color={statusConfig.color} />
+                <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+              </View>
+
+              {/* Grille verticale : eyebrow + valeur */}
+              <View style={styles.detailGrid}>
+                <View style={styles.detailCell}>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>TYPE</Text>
+                  <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>{ticketName}</Text>
+                </View>
+                <View style={styles.detailCell}>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>QUANTITÉ</Text>
+                  <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>×{ticketQty}</Text>
+                </View>
+                {ticket.unit_price ? (
+                  <View style={styles.detailCell}>
+                    <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>PRIX UNITAIRE</Text>
+                    <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>
+                      {ticket.unit_price.toLocaleString()} {event?.currency || 'FCFA'}
+                    </Text>
+                  </View>
+                ) : null}
+                {(ticket.discount_amount ?? 0) > 0 && (
+                  <View style={styles.detailCell}>
+                    <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉDUCTION</Text>
+                    <Text style={[styles.detailValueEditorial, { color: colors.success }]}>
+                      −{ticket.discount_amount!.toLocaleString()} {event?.currency || 'FCFA'}
+                    </Text>
+                  </View>
+                )}
+                <View style={styles.detailCell}>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉFÉRENCE</Text>
+                  <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>{reference}</Text>
+                </View>
+              </View>
+
+              {/* Total payé en grand display */}
+              <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
+                <View>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>TOTAL PAYÉ</Text>
+                  <Text style={[styles.totalSub, { color: colors.gray600 }]}>Tout compris</Text>
+                </View>
+                <Text style={[styles.totalAmount, { color: colors.gray900 }]}>
+                  {ticketPrice > 0 ? `${ticketPrice.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={[styles.dividerCircleLeft, { backgroundColor: colors.background }]} />
-            <View style={[styles.dividerLine, { borderColor: colors.gray200 }]} />
-            <View style={[styles.dividerCircleRight, { backgroundColor: colors.background }]} />
+          {/* Online access (si applicable) */}
+          {(isOnlineEvent || isHybridEvent) && (
+            <View style={[styles.onlineCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+              <View style={styles.editorialSectionHead}>
+                <Text style={[editorial.eyebrowAccent]}>EN DIRECT · ACCÈS LIVE</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Comment rejoindre</Text>
+              </View>
+              {event?.online_platform && (
+                <Text style={[styles.onlinePlatform, { color: colors.info }]}>Via {event.online_platform}</Text>
+              )}
+              {event?.online_instructions && (
+                <Text style={[styles.onlineInstructions, { color: colors.gray600 }]}>{event.online_instructions}</Text>
+              )}
+              {!!(event?.online_meeting_id || event?.online_passcode) && (
+                <View style={[styles.meetingBox, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                  {event.online_meeting_id && (
+                    <View style={styles.meetingRow}>
+                      <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>ID DE RÉUNION</Text>
+                      <Text style={[styles.meetingValue, { color: colors.gray900 }]}>{event.online_meeting_id}</Text>
+                    </View>
+                  )}
+                  {event.online_passcode && (
+                    <View style={styles.meetingRow}>
+                      <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>CODE D'ACCÈS</Text>
+                      <Text style={[styles.meetingValue, { color: colors.gray900 }]}>{event.online_passcode}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
+              {event?.online_url && (
+                <View style={{ marginTop: Spacing.md }}>
+                  <EditorialPillCTA
+                    eyebrow="OUVRIR"
+                    label="Rejoindre maintenant"
+                    onPress={() => {
+                      Linking.openURL(event.online_url!).catch(() => {
+                        showError('Erreur', 'Impossible d\'ouvrir le lien');
+                      });
+                    }}
+                    tone="primary"
+                    icon="videocam"
+                  />
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Participant info */}
+          {!!(ticket.attendee_name || ticket.attendee_email) && (
+            <View style={[styles.attendeeCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
+              <View style={styles.editorialSectionHead}>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>NOMINATIF</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Participant</Text>
+              </View>
+              {ticket.attendee_name && (
+                <View style={styles.attendeeCell}>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>NOM</Text>
+                  <Text style={[styles.attendeeValue, { color: colors.gray900 }]}>{ticket.attendee_name}</Text>
+                </View>
+              )}
+              {ticket.attendee_email && (
+                <View style={styles.attendeeCell}>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>EMAIL</Text>
+                  <Text style={[styles.attendeeValue, { color: colors.gray900 }]}>{ticket.attendee_email}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Bon à savoir dynamique */}
+          <View style={styles.instructions}>
+            <View style={styles.editorialSectionHead}>
+              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>BON À SAVOIR</Text>
+              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
+                {isOnlineEvent ? 'Préparer le live' : isHybridEvent ? 'Sur place ou en ligne' : 'Le jour J'}
+              </Text>
+            </View>
+            {instructions.map((inst, idx) => (
+              <View
+                key={idx}
+                style={[styles.instructionItem, { backgroundColor: colors.gray50, borderColor: colors.border }]}
+              >
+                <View style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: inst.color }]}>
+                  <Ionicons name={inst.icon as any} size={16} color={inst.color} />
+                </View>
+                <Text style={[styles.instructionText, { color: colors.gray700 }]}>{inst.text}</Text>
+              </View>
+            ))}
           </View>
 
-          {/* QR Code Section */}
-          <View style={styles.qrSection}>
-            <View style={[styles.qrContainer, { backgroundColor: '#FFFFFF', borderColor: colors.primary }]} accessibilityLabel="QR code du billet" accessibilityRole="image">
-              <QRCode
-                value={verificationUrl}
-                size={QR_SIZE}
-                color={isDark ? '#4C1D95' : '#5B21B6'}
-                backgroundColor="#FFFFFF"
-                getRef={(c: any) => { qrSvgRef.current = c; }}
+          {/* Banner check-in */}
+          {ticket.is_checked_in && (
+            <View style={[styles.banner, { backgroundColor: colors.successLight, borderColor: colors.success }]}>
+              <Ionicons name="checkmark-done-circle" size={24} color={colors.success} />
+              <View style={styles.bannerText}>
+                <Text style={[styles.bannerTitle, { color: colors.success }]}>Billet validé</Text>
+                {ticket.checked_in_at && (
+                  <Text style={[styles.bannerDesc, { color: colors.gray600 }]}>
+                    Entrée le {formatDate(ticket.checked_in_at)} à {formatTime(ticket.checked_in_at)}
+                  </Text>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Banner paiement requis */}
+          {ticket.status === 'pending' && isPaymentRequired(ticket) && (
+            <View style={[styles.banner, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}>
+              <Ionicons name="warning" size={24} color={colors.warning} />
+              <View style={styles.bannerText}>
+                <Text style={[styles.bannerTitle, { color: colors.warning }]}>Paiement en attente</Text>
+                <Text style={[styles.bannerDesc, { color: colors.gray600 }]}>
+                  Finalise ton paiement pour confirmer
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {/* Actions principales — pill CTAs éditoriaux */}
+          <View style={styles.actionsSection}>
+            {ticket.status === 'pending' && isPaymentRequired(ticket) && (
+              <EditorialPillCTA
+                eyebrow="FINALISER"
+                label="Finaliser le paiement"
+                onPress={() => {
+                  const regId = ticket.registration_id || ticket.registration;
+                  if (regId) navigation.navigate('Payment', { registrationId: regId });
+                }}
+                tone="primary"
+                icon="card"
               />
-            </View>
-            <Text style={[styles.qrHint, { color: colors.gray500 }]}>
-              Présentez ce QR code à l'entrée de l'événement
-            </Text>
-          </View>
-
-          {/* Ticket Details */}
-          <View style={[styles.detailsSection, { backgroundColor: colors.gray50 }]}>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Statut</Text>
-              <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
-                <Ionicons name={statusConfig.icon as any} size={14} color={statusConfig.color} />
-                <Text style={[styles.statusText, { color: statusConfig.color }]}>
-                  {statusConfig.label}
-                </Text>
-              </View>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Type de billet</Text>
-              <Text style={[styles.detailValue, { color: colors.gray900 }]}>
-                {ticketType?.name || ticket.ticket_type_name || 'Standard'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Quantité</Text>
-              <Text style={[styles.detailValue, { color: colors.gray900 }]}>{ticket.quantity || 1}</Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Prix unitaire</Text>
-              <Text style={[styles.detailValue, { color: colors.gray900 }]}>
-                {ticket.unit_price ? `${ticket.unit_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
-              </Text>
-            </View>
-            {(ticket.discount_amount ?? 0) > 0 && (
-              <View style={styles.detailRow}>
-                <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Réduction</Text>
-                <Text style={[styles.detailValue, { color: colors.success }]}>
-                  -{ticket.discount_amount!.toLocaleString()} ${event?.currency || 'FCFA'}
-                </Text>
-              </View>
             )}
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Total payé</Text>
-              <Text style={[styles.detailValue, styles.totalPrice, { color: colors.primary }]}>
-                {ticket.total_price ? `${ticket.total_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
-              </Text>
-            </View>
-            <View style={styles.detailRow}>
-              <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Référence</Text>
-              <Text style={[styles.detailValue, { color: colors.gray900 }]}>{String(ticketId).slice(0, 8).toUpperCase()}</Text>
-            </View>
-          </View>
-        </View>
 
-        {/* Attendee Info if available */}
-        {!!(ticket.attendee_name || ticket.attendee_email) && (
-          <View style={[styles.attendeeCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Participant</Text>
-            {ticket.attendee_name && (
-              <View style={styles.attendeeRow}>
-                <Ionicons name="person-outline" size={18} color={colors.gray500} />
-                <Text style={[styles.attendeeText, { color: colors.gray700 }]}>{ticket.attendee_name}</Text>
-              </View>
-            )}
-            {ticket.attendee_email && (
-              <View style={styles.attendeeRow}>
-                <Ionicons name="mail-outline" size={18} color={colors.gray500} />
-                <Text style={[styles.attendeeText, { color: colors.gray700 }]}>{ticket.attendee_email}</Text>
-              </View>
+            {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
+              <EditorialPillCTA
+                eyebrow="AJOUTER"
+                label="Acheter plus de billets"
+                onPress={() => {
+                  const eventId = event?.id || ticket.event_id;
+                  if (eventId) navigation.navigate('TicketPurchase', { eventId, additionalTickets: true });
+                }}
+                tone="lime"
+                icon="add-circle"
+              />
             )}
           </View>
-        )}
 
-        {/* Instructions */}
-        <View style={styles.instructions}>
-          <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
-              <Ionicons name="scan-outline" size={20} color={colors.primary} />
-            </View>
-            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
-              Le QR code sera scanné à l'entrée
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
-              <Ionicons name="phone-portrait-outline" size={20} color={colors.primary} />
-            </View>
-            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
-              Gardez votre téléphone chargé
-            </Text>
-          </View>
-          <View style={styles.instructionItem}>
-            <View style={[styles.instructionIcon, { backgroundColor: isDark ? 'rgba(167, 139, 250, 0.15)' : 'rgba(99, 102, 241, 0.1)' }]}>
-              <Ionicons name="time-outline" size={20} color={colors.primary} />
-            </View>
-            <Text style={[styles.instructionText, { color: colors.gray600 }]}>
-              Arrivez à l'heure pour éviter les files
-            </Text>
-          </View>
-        </View>
-
-        {/* Check-in status */}
-        {ticket.is_checked_in && (
-          <View style={[styles.checkedInBanner, { backgroundColor: colors.successLight, borderColor: colors.success }]}>
-            <Ionicons name="checkmark-done-circle" size={24} color={colors.success} />
-            <View style={styles.checkedInText}>
-              <Text style={[styles.checkedInTitle, { color: colors.success }]}>Billet validé</Text>
-              {ticket.checked_in_at && (
-                <Text style={[styles.checkedInDate, { color: colors.gray600 }]}>
-                  Entrée le {formatDate(ticket.checked_in_at)} à {formatTime(ticket.checked_in_at)}
-                </Text>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Payment required banner */}
-        {ticket.status === 'pending' && isPaymentRequired(ticket) && (
-          <View style={[styles.paymentRequiredBanner, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}>
-            <Ionicons name="warning" size={24} color={colors.warning} />
-            <View style={styles.paymentRequiredText}>
-              <Text style={[styles.paymentRequiredTitle, { color: colors.warning }]}>Paiement en attente</Text>
-              <Text style={[styles.paymentRequiredDesc, { color: colors.gray600 }]}>
-                Finalisez votre paiement pour confirmer votre inscription
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Complete payment button */}
-        {ticket.status === 'pending' && isPaymentRequired(ticket) && (
-          <TouchableOpacity
-            style={[styles.completePaymentButton, { backgroundColor: colors.primary }]}
-            onPress={() => {
-              const regId = ticket.registration_id || ticket.registration;
-              if (regId) {
-                navigation.navigate('Payment', { registrationId: regId });
-              }
-            }}
-          >
-            <Ionicons name="card-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.completePaymentText}>Finaliser le paiement</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Buy more tickets button - for confirmed tickets */}
-        {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
-          <TouchableOpacity
-            style={[styles.buyMoreButton, { backgroundColor: colors.card, borderColor: colors.primary, borderWidth: 1 }]}
-            onPress={() => {
-              const eventId = event?.id || ticket.event_id;
-              if (eventId) {
-                navigation.navigate('TicketPurchase', { eventId, additionalTickets: true });
-              }
-            }}
-          >
-            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
-            <Text style={[styles.buyMoreButtonText, { color: colors.primary }]}>Acheter plus de billets</Text>
-          </TouchableOpacity>
-        )}
-
-        <View style={{ height: Spacing.xl * 2 }} />
-      </ScrollView>
+          <View style={{ height: Spacing.xl * 2 }} />
+        </ScrollView>
       </View>
     </EditorialCanvas>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -602,32 +752,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
   },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.semiBold,
-  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
+    gap: Spacing.xs,
   },
-  headerActionButton: {
+  headerIconBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -639,63 +769,130 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Card
+  // Card éditoriale principale
   card: {
     marginHorizontal: Spacing.lg,
-    marginTop: Spacing.lg,
-    borderRadius: BorderRadius['2xl'],
+    marginTop: Spacing.md,
+    borderRadius: 24,
     borderWidth: 1,
     overflow: 'hidden',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  eventInfo: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
 
-  // Event Info
-  eventInfo: {
-    padding: Spacing.lg,
-  },
-  typeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
+  // Bloc eyebrow + titre
+  editorialSectionHead: {
     gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-    marginBottom: Spacing.sm,
-  },
-  typeBadgeText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-  },
-  eventTitle: {
-    fontSize: FontSizes.xl,
-    fontFamily: FontFamily.displayBold,
     marginBottom: Spacing.md,
   },
-  eventMeta: {
-    gap: Spacing.sm,
-  },
-  eventMetaItem: {
+
+  // Type pill + catégorie
+  typePillRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: 6,
+    marginBottom: Spacing.sm,
   },
-  eventMetaText: {
-    fontSize: FontSizes.sm,
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
   },
-  viewEventButton: {
+  typePillText: {
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  categoryEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+
+  // Hero row + date tile
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: Spacing.md,
+  },
+  heroTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 26,
+    lineHeight: 30,
+    letterSpacing: -0.5,
+  },
+  dateTile: {
+    width: 64,
+    height: 72,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  dateTileDay: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 26,
+    letterSpacing: -1,
+    lineHeight: 28,
+  },
+  dateTileMonth: {
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+
+  // Meta chips
+  metaChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: Spacing.md,
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+    maxWidth: 200,
+  },
+  metaChipText: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+  },
+
+  // Chip CTA
+  editorialChipCTA: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    marginTop: Spacing.lg,
-    gap: Spacing.sm,
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.full,
+    alignSelf: 'flex-start',
+    marginTop: Spacing.xs,
   },
-  viewEventButtonText: {
-    flex: 1,
-    fontSize: FontSizes.sm,
+  editorialChipCTAText: {
+    fontSize: 13,
     fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.2,
   },
 
   // Divider
@@ -725,120 +922,216 @@ const styles = StyleSheet.create({
 
   // QR Section
   qrSection: {
-    alignItems: 'center',
-    padding: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+  },
+  qrFrame: {
+    position: 'relative',
+    padding: 14,
   },
   qrContainer: {
     backgroundColor: '#FFFFFF',
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    borderWidth: 2,
+    borderWidth: 1,
   },
-  qrImage: {
-    width: QR_SIZE,
-    height: QR_SIZE,
+  qrCorner: {
+    position: 'absolute',
+    width: 22,
+    height: 22,
   },
-  qrPlaceholder: {
-    width: QR_SIZE,
-    height: QR_SIZE,
+  qrCornerTL: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderTopLeftRadius: 6,
+  },
+  qrCornerTR: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 3,
+    borderRightWidth: 3,
+    borderTopRightRadius: 6,
+  },
+  qrCornerBL: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 3,
+    borderLeftWidth: 3,
+    borderBottomLeftRadius: 6,
+  },
+  qrCornerBR: {
+    bottom: 0,
+    right: 0,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderBottomRightRadius: 6,
+  },
+  qrHintRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  qrPlaceholderInner: {
-    width: QR_SIZE - 40,
-    height: QR_SIZE - 40,
-    borderRadius: BorderRadius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
+    marginTop: Spacing.md,
   },
   qrHint: {
     fontSize: FontSizes.sm,
-    marginTop: Spacing.md,
     textAlign: 'center',
+    fontFamily: FontFamily.medium,
+  },
+  qrExplain: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1,
+    marginTop: Spacing.sm,
+    maxWidth: QR_SIZE + 40,
+  },
+  qrExplainText: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 15,
+    fontFamily: FontFamily.medium,
+    letterSpacing: -0.1,
   },
 
-  // Details Section
+  // Détails section
   detailsSection: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+  },
+  statusBadgeEditorial: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    marginBottom: Spacing.md,
+  },
+  statusBadgeText: {
+    fontSize: 12,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.3,
+  },
+  detailGrid: {
+    gap: Spacing.md,
+  },
+  detailCell: {
+    gap: 2,
+  },
+  detailValueEditorial: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.2,
+  },
+  totalRow: {
+    marginTop: Spacing.md,
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  totalSub: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    marginTop: 2,
+  },
+  totalAmount: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 22,
+    letterSpacing: -0.5,
+  },
+
+  // Online card
+  onlineCard: {
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.lg,
     padding: Spacing.lg,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  onlinePlatform: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    marginBottom: Spacing.xs,
+  },
+  onlineInstructions: {
+    fontSize: 13,
+    lineHeight: 19,
+    marginBottom: Spacing.md,
+  },
+  meetingBox: {
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    padding: Spacing.md,
     gap: Spacing.sm,
   },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  meetingRow: {
+    gap: 2,
   },
-  detailLabel: {
-    fontSize: FontSizes.sm,
-  },
-  detailValue: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-  },
-  totalPrice: {
-    fontSize: FontSizes.base,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 4,
-    borderRadius: BorderRadius.full,
-  },
-  statusText: {
-    fontSize: FontSizes.xs,
+  meetingValue: {
+    fontSize: 14,
     fontFamily: FontFamily.semiBold,
   },
 
-  // Attendee Card
+  // Attendee card
   attendeeCard: {
     marginHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
     padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
+    borderRadius: 24,
     borderWidth: 1,
   },
-  sectionTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
+  attendeeCell: {
+    gap: 2,
     marginBottom: Spacing.md,
   },
-  attendeeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  attendeeText: {
-    fontSize: FontSizes.sm,
+  attendeeValue: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.2,
   },
 
   // Instructions
   instructions: {
-    padding: Spacing.lg,
-    marginHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
-    gap: Spacing.md,
+    gap: Spacing.sm,
   },
   instructionItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
   },
-  instructionIcon: {
+  iconDisc: {
     width: 36,
     height: 36,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1.5,
   },
   instructionText: {
-    fontSize: FontSizes.sm,
+    fontSize: 13,
     flex: 1,
+    fontFamily: FontFamily.medium,
+    letterSpacing: -0.1,
   },
 
-  // Checked In Banner
-  checkedInBanner: {
+  // Banners
+  banner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
@@ -848,71 +1141,22 @@ const styles = StyleSheet.create({
     borderRadius: BorderRadius.xl,
     borderWidth: 1,
   },
-  checkedInText: {
+  bannerText: {
     flex: 1,
   },
-  checkedInTitle: {
+  bannerTitle: {
     fontSize: FontSizes.base,
     fontFamily: FontFamily.semiBold,
   },
-  checkedInDate: {
+  bannerDesc: {
     fontSize: FontSizes.sm,
     marginTop: 2,
   },
 
-  // Payment Required Banner
-  paymentRequiredBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginHorizontal: Spacing.lg,
+  // Actions
+  actionsSection: {
+    paddingHorizontal: Spacing.lg,
     marginTop: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-  },
-  paymentRequiredText: {
-    flex: 1,
-  },
-  paymentRequiredTitle: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-  },
-  paymentRequiredDesc: {
-    fontSize: FontSizes.sm,
-    marginTop: 2,
-  },
-
-  // Complete Payment Button
-  completePaymentButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    gap: Spacing.sm,
-  },
-  completePaymentText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
-    color: '#FFFFFF',
-  },
-
-  // Buy More Tickets Button
-  buyMoreButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: Spacing.lg,
-    marginTop: Spacing.md,
-    padding: Spacing.lg,
-    borderRadius: BorderRadius.xl,
-    gap: Spacing.sm,
-  },
-  buyMoreButtonText: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.semiBold,
+    gap: Spacing.md,
   },
 });

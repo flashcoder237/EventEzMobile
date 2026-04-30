@@ -73,6 +73,11 @@ export const registrationsAPI = {
   verifyAndCheckIn: (code: string, autoCheckIn: boolean = true) =>
     api.post('/registrations/verify_and_check_in/', { code, auto_check_in: autoCheckIn }),
 
+  // Check-in ticket-level (granulaire par billet) — accepte les QR /verify/t/{id}
+  // ainsi qu'un UUID brut interprété comme ticket_purchase_id
+  verifyAndCheckInTicket: (code: string, autoCheckIn: boolean = true) =>
+    api.post('/registrations/verify_and_check_in_ticket/', { code, auto_check_in: autoCheckIn }),
+
   bulkCheckIn: (registrationIds: string[]) =>
     api.post('/registrations/bulk_check_in/', { registration_ids: registrationIds }),
 

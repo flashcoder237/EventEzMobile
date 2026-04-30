@@ -15,13 +15,27 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { registrationsAPI } from '../api';
+import { registrationsAPI, sessionsAPI } from '../api';
 
 const QUEUE_KEY = 'eventez:checkin_queue:v1';
+
+/**
+ * Discriminant pour router la requête au flush :
+ * - 'registration' : QR legacy → POST /registrations/verify_and_check_in/
+ * - 'ticket_purchase' : QR ticket-level → POST /registrations/verify_and_check_in_ticket/
+ * - 'session_attendance' : scan dans le contexte d'une session → POST /sessions/{id}/scan_attendance/
+ */
+export type CheckinKind = 'registration' | 'ticket_purchase' | 'session_attendance';
 
 export interface CheckinQueueEntry {
   /** Local UUID for the entry (collision-safe with concurrent scans). */
   localId: string;
+  /**
+   * Identifiant cible. Sémantique selon `kind` :
+   * - 'registration' → registration_id
+   * - 'ticket_purchase' → code QR brut (l'API parse)
+   * - 'session_attendance' → code QR brut (sessionId est dans `sessionId`)
+   */
   registrationId: string;
   autoCheckIn: boolean;
   /** ISO timestamp of the scan (preserved for audit). */
@@ -30,6 +44,10 @@ export interface CheckinQueueEntry {
   eventId?: string;
   /** Nombre de tentatives de flush. */
   attempts: number;
+  /** Type de scan — absent → 'registration' pour rétro-compat avec entries v0. */
+  kind?: CheckinKind;
+  /** Pour 'session_attendance' : ID de la session ciblée. */
+  sessionId?: string;
 }
 
 async function readQueue(): Promise<CheckinQueueEntry[]> {
@@ -78,7 +96,12 @@ export function useCheckinQueue() {
   }, []);
 
   const enqueue = useCallback(
-    async (registrationId: string, autoCheckIn: boolean, eventId?: string) => {
+    async (
+      registrationId: string,
+      autoCheckIn: boolean,
+      eventId?: string,
+      options?: { kind?: CheckinKind; sessionId?: string },
+    ) => {
       const queue = await readQueue();
       queue.push({
         localId: generateLocalId(),
@@ -87,6 +110,8 @@ export function useCheckinQueue() {
         eventId,
         scannedAt: new Date().toISOString(),
         attempts: 0,
+        kind: options?.kind,
+        sessionId: options?.sessionId,
       });
       await writeQueue(queue);
       setPendingCount(queue.length);
@@ -110,7 +135,14 @@ export function useCheckinQueue() {
 
       for (const entry of queue) {
         try {
-          await registrationsAPI.verifyAndCheckIn(entry.registrationId, entry.autoCheckIn);
+          const kind: CheckinKind = entry.kind || 'registration';
+          if (kind === 'ticket_purchase') {
+            await registrationsAPI.verifyAndCheckInTicket(entry.registrationId, entry.autoCheckIn);
+          } else if (kind === 'session_attendance' && entry.sessionId) {
+            await sessionsAPI.scanAttendance(entry.sessionId, entry.registrationId);
+          } else {
+            await registrationsAPI.verifyAndCheckIn(entry.registrationId, entry.autoCheckIn);
+          }
           synced += 1;
         } catch (error: any) {
           const status = error?.response?.status;

@@ -1498,11 +1498,11 @@ export type RootStackParamList = {
      */
     eventIsFree?: boolean;
   } | undefined;
-  Register: undefined;
+  Register: { returnScreen?: string | null; returnParams?: any } | undefined;
   RegisterOrganizer: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token: string };
-  VerifyEmail: { email: string };
+  VerifyEmail: { email?: string; skippable?: boolean; returnScreen?: string | null; returnParams?: any };
   EventDetails: { eventId: string; imageUrl?: string };
   EventReviews: { eventId: string; eventTitle?: string };
   EventSearch: { query?: string; category?: number } | undefined;
@@ -1580,6 +1580,7 @@ export type RootStackParamList = {
   Volunteers: { eventId?: string };
   DiscountManagement: { eventId: string };
   DiscountForm: { eventId: string; discountId?: number };
+  EventSessionsLink: { eventId: string };
   Help: undefined;
   AnalyticsDashboard: undefined;
   Reports: undefined;
@@ -1602,11 +1603,11 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined;
-  Register: undefined;
+  Register: { returnScreen?: string | null; returnParams?: any } | undefined;
   RegisterOrganizer: undefined;
   ForgotPassword: undefined;
   ResetPassword: { token: string };
-  VerifyEmail: { email: string };
+  VerifyEmail: { email?: string; skippable?: boolean; returnScreen?: string | null; returnParams?: any };
 };
 
 export type MainTabParamList = {
