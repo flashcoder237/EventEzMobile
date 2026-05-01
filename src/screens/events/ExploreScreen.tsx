@@ -78,7 +78,7 @@ const defaultFilters: Filters = {
 export default function ExploreScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProp<MainTabParamList, 'Explore'>>();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
   const flatListRef = useRef<FlatList>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -865,6 +865,7 @@ export default function ExploreScreen() {
         initialRegion={region}
         radiusKm={mapRadius}
         showRadius={!!userLocation}
+        isDark={isDark}
       />
 
       {/* Radius Slider Panel */}

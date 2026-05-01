@@ -43,6 +43,11 @@ export const registrationsAPI = {
   generateQrCodes: (id: string) =>
     api.post(`/registrations/${id}/generate_qr_codes/`),
 
+  // Sessions accessibles avec les billets de l'inscription
+  // (union des included_sessions, ou toutes les sessions si all-access)
+  getAccessibleSessions: (id: string) =>
+    api.get(`/registrations/${id}/accessible-sessions/`),
+
   bulkGenerateTickets: (registrationIds: string[]) =>
     api.post('/registrations/bulk_generate_tickets/', { registration_ids: registrationIds }),
 

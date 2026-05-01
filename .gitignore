@@ -37,6 +37,9 @@ yarn-error.*
 .env*.local
 .env
 
+# EAS config (contient des clés API : Maps, OAuth, etc.) — voir eas.json.example
+eas.json
+
 # typescript
 *.tsbuildinfo
 

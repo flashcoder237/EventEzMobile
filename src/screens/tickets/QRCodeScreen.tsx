@@ -18,6 +18,7 @@ import {
 } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -45,6 +46,7 @@ const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
 
 export default function QRCodeScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<QRCodeRouteProp>();
   const { ticketId } = route.params;
   const { showError } = useAlert();
@@ -734,7 +736,8 @@ export default function QRCodeScreen() {
             )}
           </View>
 
-          <View style={{ height: Spacing.xl * 2 }} />
+          {/* Spacer dynamique : insets.bottom + breathing room pour clear la nav bar */}
+          <View style={{ height: insets.bottom + Spacing.xl }} />
         </ScrollView>
       </View>
     </EditorialCanvas>

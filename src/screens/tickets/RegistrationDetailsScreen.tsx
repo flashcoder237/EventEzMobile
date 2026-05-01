@@ -13,10 +13,11 @@ import {
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 
-import { registrationsAPI, ticketTransfersAPI, paymentsAPI, sessionsAPI } from '../../api';
+import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
 import { getVerificationUrl } from '../../constants/urls';
 import { Registration, RootStackParamList } from '../../types';
 import { TransferTicketModal } from '../../components/tickets';
@@ -52,6 +53,7 @@ const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
 
 export default function RegistrationDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<RegistrationDetailsRouteProp>();
   const { registrationId } = route.params;
   const { showError, showSuccess, showConfirm } = useAlert();
@@ -70,9 +72,10 @@ export default function RegistrationDetailsScreen() {
   const [reminderEnabled, setReminderEnabled] = useState(false);
   const [verifyingPayment, setVerifyingPayment] = useState(false);
 
-  // Sessions auxquelles le billet donne accès. On les charge une fois la
-  // registration récupérée (besoin de l'event_id). Vide → pas d'agenda
-  // configuré, on n'affiche rien.
+  // Sessions auxquelles ce billet donne effectivement accès, calculées
+  // côté backend à partir des `included_sessions` du ticket_type acheté
+  // (union, ou toutes les sessions si l'un des billets est all-access).
+  // Vide → pas d'agenda configuré ou inscription pas confirmée, on cache.
   const [sessions, setSessions] = useState<any[]>([]);
 
   useEffect(() => {
@@ -89,15 +92,22 @@ export default function RegistrationDetailsScreen() {
     }
   }, [registration, hasReminder]);
 
-  // Charge les sessions de l'event quand la registration est dispo
+  // Charge les sessions accessibles avec ce billet, en respectant la
+  // restriction par included_sessions du ticket_type (cf. backend
+  // RegistrationViewSet.accessible_sessions).
   useEffect(() => {
     if (!registration) return;
-    const event = registration.event_detail || (typeof registration.event === 'object' ? registration.event : null);
-    const eventId = event?.id || (typeof registration.event === 'string' ? registration.event : null);
-    if (!eventId) return;
+    // On ne charge que pour les inscriptions actives — sinon l'agenda
+    // n'a pas de sens à afficher (et l'endpoint refuserait de toute façon
+    // pour un cancelled / rejected via l'UX).
+    const status = registration.status;
+    if (status === 'cancelled' || status === 'rejected') {
+      setSessions([]);
+      return;
+    }
 
     let active = true;
-    sessionsAPI.getSessions({ event: eventId })
+    registrationsAPI.getAccessibleSessions(String(registration.id))
       .then((res: any) => {
         if (!active) return;
         const data = res?.data?.results || res?.data || [];
@@ -984,7 +994,9 @@ export default function RegistrationDetailsScreen() {
           </View>
         )}
 
-        <View style={{ height: Spacing.xl * 2 }} />
+        {/* Spacer dynamique : insets.bottom + breathing room pour clear la
+            nav bar Android (gesture / 3-button) ou home indicator iOS */}
+        <View style={{ height: insets.bottom + Spacing.xl }} />
       </ScrollView>
 
       {/* Transfer Ticket Modal */}

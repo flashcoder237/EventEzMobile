@@ -503,7 +503,9 @@ export default function DiscoverScreen() {
           {/* Eyebrow pill top-left */}
           <View style={[styles.heroEyebrowPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
             <Ionicons name="star" size={11} color={colors.accent} />
-            <Text style={[styles.heroEyebrowText, { color: colors.text }]}>EN VEDETTE</Text>
+            {/* Texte sur fond blanc fixe → couleur ink statique (Colors.gray900),
+                NE PAS utiliser colors.text qui s'inverse en dark mode */}
+            <Text style={[styles.heroEyebrowText, { color: Colors.gray900 }]}>EN VEDETTE</Text>
           </View>
           {/* (Decorative bookmark removed — see FollowEventButton on EventDetails for real follow action) */}
           {/* Title overlay */}
@@ -999,11 +1001,24 @@ export default function DiscoverScreen() {
                   style={[styles.compactBtn, { backgroundColor: colors.gray100 }]}
                   onPress={goToNotifications}
                   accessibilityRole="button"
-                  accessibilityLabel="Notifications"
+                  accessibilityLabel={
+                    unreadNotificationCount > 0
+                      ? `Notifications, ${unreadNotificationCount} non lue${unreadNotificationCount > 1 ? 's' : ''}`
+                      : 'Notifications'
+                  }
                 >
                   <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
                   {unreadNotificationCount > 0 && (
-                    <View style={[styles.compactBtnDot, { backgroundColor: colors.accent }]} />
+                    <View
+                      style={[
+                        styles.compactBtnBadge,
+                        { backgroundColor: colors.accent, borderColor: colors.gray100 },
+                      ]}
+                    >
+                      <Text style={styles.compactBtnBadgeText}>
+                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                      </Text>
+                    </View>
                   )}
                 </TouchableOpacity>
               </View>
@@ -1107,12 +1122,25 @@ export default function DiscoverScreen() {
                       onPress={goToMessages}
                       activeOpacity={0.7}
                       accessibilityRole="button"
-                      accessibilityLabel="Messages"
+                      accessibilityLabel={
+                        unreadMessageCount > 0
+                          ? `Messages, ${unreadMessageCount} non lu${unreadMessageCount > 1 ? 's' : ''}`
+                          : 'Messages'
+                      }
                     >
                       <Ionicons name="chatbubble-outline" size={18} color={colors.gray600} />
                       {unreadMessageCount > 0 && (
                         <PulsingBadge active style={styles.headerBadgeWrap}>
-                          <View style={[styles.headerBtnDot, { backgroundColor: colors.accent }]} />
+                          <View
+                            style={[
+                              styles.headerBtnBadge,
+                              { backgroundColor: colors.accent, borderColor: colors.gray100 },
+                            ]}
+                          >
+                            <Text style={styles.headerBtnBadgeText}>
+                              {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+                            </Text>
+                          </View>
                         </PulsingBadge>
                       )}
                     </TouchableOpacity>
@@ -1121,12 +1149,25 @@ export default function DiscoverScreen() {
                       onPress={goToNotifications}
                       activeOpacity={0.7}
                       accessibilityRole="button"
-                      accessibilityLabel="Notifications"
+                      accessibilityLabel={
+                        unreadNotificationCount > 0
+                          ? `Notifications, ${unreadNotificationCount} non lue${unreadNotificationCount > 1 ? 's' : ''}`
+                          : 'Notifications'
+                      }
                     >
                       <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
                       {unreadNotificationCount > 0 && (
                         <PulsingBadge active style={styles.headerBadgeWrap}>
-                          <View style={[styles.headerBtnDot, { backgroundColor: colors.accent }]} />
+                          <View
+                            style={[
+                              styles.headerBtnBadge,
+                              { backgroundColor: colors.accent, borderColor: colors.gray100 },
+                            ]}
+                          >
+                            <Text style={styles.headerBtnBadgeText}>
+                              {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
+                            </Text>
+                          </View>
                         </PulsingBadge>
                       )}
                     </TouchableOpacity>
@@ -1580,7 +1621,23 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 4,
   },
-  headerBadgeWrap: { position: 'absolute', top: 0, right: 0 },
+  headerBtnBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  headerBtnBadgeText: {
+    color: '#FFFFFF',
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: 'center',
+  },
+  headerBadgeWrap: { position: 'absolute', top: -4, right: -4 },
 
   // === SEARCH TRIGGER (option A — coussin chaud) ===
   // Pill simple et calme : icone search · placeholder rotatif · chevron.
@@ -1688,6 +1745,25 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 4,
+  },
+  compactBtnBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+  },
+  compactBtnBadgeText: {
+    color: '#FFFFFF',
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: 'center',
   },
 
   // === SECTIONS ===

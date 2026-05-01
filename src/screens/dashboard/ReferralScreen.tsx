@@ -159,7 +159,7 @@ export default function ReferralScreen() {
 
           {/* === HUGE CODE BLOCK (touche unique : ticket-stub style) === */}
           <View style={styles.codeMainBlock}>
-            <View style={[styles.codeStubLeft, { backgroundColor: colors.text }]}>
+            <View style={[styles.codeStubLeft, { backgroundColor: Colors.gray900 }]}>
               <Text style={styles.codeStubLabel}>CODE</Text>
               <Text style={styles.codeStubValue}>{item.code}</Text>
               <Text style={styles.codeStubSub}>EventEz</Text>

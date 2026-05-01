@@ -18,14 +18,17 @@ interface ThemeContextType {
 
 const STORAGE_KEY = '@eventez_theme_mode';
 
-// ✅ Provide a default context value so useTheme() never throws
+// Default = 'light' : sur cette version mobile on force le thème clair par
+// défaut pour tous les nouveaux installs. L'utilisateur peut toujours basculer
+// vers 'dark' ou 'system' depuis Paramètres > Thème — la préférence est
+// persistée dans AsyncStorage et restaurée au lancement suivant.
 const defaultContext: ThemeContextType = {
   colors: Colors,
   shadows: Shadows,
   gradients: Gradients,
   cardFooterBg: CardFooterBg.light,
   isDark: false,
-  mode: 'system',
+  mode: 'light',
   setMode: () => {},
   toggleTheme: () => {},
 };
@@ -34,10 +37,12 @@ const ThemeContext = createContext<ThemeContextType>(defaultContext);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const systemScheme = useColorScheme();
-  const [mode, setModeState] = useState<ThemeMode>('system');
+  const [mode, setModeState] = useState<ThemeMode>('light');
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
+      // Si l'utilisateur a déjà fait un choix explicite (light/dark/system),
+      // on le respecte. Sinon on garde 'light' (défaut au lieu de 'system').
       if (stored === 'light' || stored === 'dark' || stored === 'system') {
         setModeState(stored);
       }

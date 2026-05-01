@@ -1,18 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
   Linking,
+  Image as RNImage,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { sponsorsAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
-import { LoadingSpinner } from '../ui/LoadingOverlay';
 
 interface Sponsor {
   id: string;
@@ -29,119 +28,164 @@ interface SponsorsTabProps {
   eventId: string;
 }
 
+// Tier ordering and visual config
+const TIER_ORDER = ['platinum', 'platine', 'gold', 'or', 'silver', 'argent', 'bronze', 'partner', 'partenaire'];
+
+function tierConfig(level?: string): { color: string; label: string; weight: number } {
+  const lower = (level || '').toLowerCase();
+  if (lower.includes('platinum') || lower.includes('platine')) {
+    return { color: '#A78BFA', label: 'Platine', weight: 4 };
+  }
+  if (lower.includes('gold') || lower === 'or') {
+    return { color: '#F59E0B', label: 'Or', weight: 3 };
+  }
+  if (lower.includes('silver') || lower.includes('argent')) {
+    return { color: '#94A3B8', label: 'Argent', weight: 2 };
+  }
+  if (lower.includes('bronze')) {
+    return { color: '#D97706', label: 'Bronze', weight: 1 };
+  }
+  return { color: '#6B7280', label: level || 'Partenaire', weight: 0 };
+}
+
 export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   const { colors, isDark } = useTheme();
-  const [sponsors, setSponsors] = useState<Sponsor[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [sponsors, setSponsors] = useState<Sponsor[] | null>(null);
 
   useEffect(() => {
-    fetchSponsors();
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await sponsorsAPI.getByEvent(eventId);
+        const data = response.data?.results || response.data || [];
+        if (!cancelled) setSponsors(data);
+      } catch (error) {
+        if (__DEV__) console.error('Erreur chargement sponsors:', error);
+        if (!cancelled) setSponsors([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [eventId]);
 
-  const fetchSponsors = async () => {
-    setLoading(true);
-    try {
-      const response = await sponsorsAPI.getByEvent(eventId);
-      const data = response.data?.results || response.data || [];
-      setSponsors(data);
-    } catch (error) {
-      if (__DEV__) console.error('Erreur chargement sponsors:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Group sponsors by tier (descending weight) — keeps platinum first
+  const tieredGroups = useMemo(() => {
+    if (!sponsors) return [];
+    const map = new Map<string, { config: ReturnType<typeof tierConfig>; sponsors: Sponsor[] }>();
+    sponsors.forEach(s => {
+      const tier = tierConfig(s.sponsor_level || s.package_name);
+      const key = tier.label;
+      if (!map.has(key)) map.set(key, { config: tier, sponsors: [] });
+      map.get(key)!.sponsors.push(s);
+    });
+    return Array.from(map.values()).sort((a, b) => b.config.weight - a.config.weight);
+  }, [sponsors]);
 
-  const handleWebsitePress = async (url: string, sponsorId: string) => {
+  const handleSponsorPress = async (sponsor: Sponsor) => {
+    if (!sponsor.website) return;
     try {
-      sponsorsAPI.trackClick(sponsorId).catch(() => {});
-      const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+      sponsorsAPI.trackClick(sponsor.id).catch(() => {});
+      const fullUrl = sponsor.website.startsWith('http') ? sponsor.website : `https://${sponsor.website}`;
       await Linking.openURL(fullUrl);
     } catch (error) {
       if (__DEV__) console.error('Erreur ouverture URL:', error);
     }
   };
 
-  const getSponsorLevelColor = (level?: string): string => {
-    switch (level?.toLowerCase()) {
-      case 'platinum':
-      case 'platine':
-        return '#94A3B8';
-      case 'gold':
-      case 'or':
-        return '#F59E0B';
-      case 'silver':
-      case 'argent':
-        return '#9CA3AF';
-      case 'bronze':
-        return '#D97706';
-      default:
-        return Colors.primary;
-    }
-  };
-
-  if (loading) {
-    return (
-      <View style={styles.emptyTab}>
-        <LoadingSpinner />
-        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement des sponsors...</Text>
-      </View>
-    );
+  // ─── AUTO-HIDE: render NOTHING if no sponsors (or while loading) ─────────
+  // The user explicitly asked: don't show an empty state, don't show a "no
+  // sponsors" message. Just collapse the section entirely.
+  if (sponsors === null || sponsors.length === 0) {
+    return null;
   }
 
-  if (!sponsors || sponsors.length === 0) {
-    return (
-      <View style={styles.section}>
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>Sponsors</Text>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Ils soutiennent l'événement</Text>
-        <View style={styles.emptyTab}>
-          <Ionicons name="ribbon-outline" size={40} color={colors.gray300} />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun sponsor pour cet evenement</Text>
-        </View>
-      </View>
-    );
-  }
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sponsors</Text>
-      {sponsors.map((sponsor) => (
-        <View key={sponsor.id} style={[styles.sponsorCard, { backgroundColor: colors.gray50 }]}>
-          <View style={styles.sponsorHeader}>
-            {sponsor.logo ? (
-              <Image source={sponsor.logo} style={[styles.sponsorLogo, { backgroundColor: colors.surface }]} contentFit="contain" cachePolicy="disk" transition={200} />
-            ) : (
-              <View style={[styles.sponsorLogoPlaceholder, { backgroundColor: colors.primaryBg }]}>
-                <Ionicons name="ribbon" size={24} color={colors.primary} />
-              </View>
-            )}
-            <View style={styles.sponsorInfo}>
-              <Text style={[styles.sponsorName, { color: colors.gray900 }]}>{sponsor.name}</Text>
-              {(sponsor.sponsor_level || sponsor.package_name) && (
-                <View style={[styles.levelBadge, { backgroundColor: getSponsorLevelColor(sponsor.sponsor_level) + '20' }]}>
-                  <Text style={[styles.levelBadgeText, { color: getSponsorLevelColor(sponsor.sponsor_level) }]}>
-                    {sponsor.sponsor_level || sponsor.package_name}
+      {/* === Header === */}
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>Sponsors</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>
+        Ils soutiennent l&apos;événement
+      </Text>
+
+      {/* === Grouped by tier === */}
+      {tieredGroups.map(group => {
+        // Logo size adapts to tier weight: platinum gets bigger logos
+        const logoSize = group.config.weight >= 3 ? 88 : group.config.weight >= 2 ? 72 : 64;
+
+        return (
+          <View key={group.config.label} style={styles.tierBlock}>
+            {/* Tier label row */}
+            <View style={styles.tierLabelRow}>
+              <View style={[styles.tierBar, { backgroundColor: group.config.color }]} />
+              <Text style={[styles.tierLabel, { color: group.config.color }]}>
+                {group.config.label.toUpperCase()}
+              </Text>
+              <Text style={[styles.tierCount, { color: colors.gray500 }]}>
+                {group.sponsors.length} {group.sponsors.length > 1 ? 'sponsors' : 'sponsor'}
+              </Text>
+            </View>
+
+            {/* Logo grid — wraps */}
+            <View style={styles.logoGrid}>
+              {group.sponsors.map(sponsor => (
+                <TouchableOpacity
+                  key={sponsor.id}
+                  style={[
+                    styles.sponsorCard,
+                    {
+                      backgroundColor: colors.card,
+                      borderColor: hairline,
+                      width: logoSize + 32,
+                    },
+                  ]}
+                  onPress={() => handleSponsorPress(sponsor)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Sponsor ${sponsor.name}`}
+                  disabled={!sponsor.website}
+                >
+                  {sponsor.logo ? (
+                    <Image
+                      source={sponsor.logo}
+                      style={{ width: logoSize, height: logoSize * 0.7 }}
+                      contentFit="contain"
+                      cachePolicy="disk"
+                      transition={200}
+                    />
+                  ) : (
+                    <View
+                      style={[
+                        styles.logoPlaceholder,
+                        {
+                          width: logoSize,
+                          height: logoSize * 0.7,
+                          backgroundColor: `${group.config.color}1A`,
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.logoPlaceholderText, { color: group.config.color }]}>
+                        {sponsor.name.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <Text style={[styles.sponsorName, { color: colors.text }]} numberOfLines={1}>
+                    {sponsor.name}
                   </Text>
-                </View>
-              )}
+                  {sponsor.website && (
+                    <View style={styles.linkRow}>
+                      <Ionicons name="open-outline" size={9} color={colors.gray400} />
+                      <Text style={[styles.linkText, { color: colors.gray400 }]}>Visiter</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
-          {sponsor.description && (
-            <Text style={[styles.sponsorDescription, { color: colors.gray600 }]} numberOfLines={3}>
-              {sponsor.description}
-            </Text>
-          )}
-          {sponsor.website && (
-            <TouchableOpacity
-              style={[styles.websiteButton, { backgroundColor: colors.primaryBg }]}
-              onPress={() => handleWebsitePress(sponsor.website!, sponsor.id)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="globe-outline" size={16} color={colors.primary} />
-              <Text style={[styles.websiteButtonText, { color: colors.primary }]}>Visiter le site</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -152,90 +196,85 @@ const styles = StyleSheet.create({
   },
   eyebrow: {
     ...TextStyles.eyebrow,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   sectionTitle: {
     ...TextStyles.h3,
+    letterSpacing: -0.4,
     marginBottom: Spacing.md,
-    letterSpacing: -0.3,
   },
-  emptyTab: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing['3xl'],
+
+  // === Tier block ===
+  tierBlock: {
+    marginBottom: Spacing.lg,
   },
-  emptyTabText: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray500,
-    marginTop: Spacing.md,
-  },
-  sponsorCard: {
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  sponsorHeader: {
+  tierLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
     marginBottom: Spacing.sm,
   },
-  sponsorLogo: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.white,
+  tierBar: {
+    width: 24,
+    height: 2,
+    borderRadius: 1,
   },
-  sponsorLogoPlaceholder: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.md,
-    backgroundColor: Colors.primaryBg,
-    alignItems: 'center',
-    justifyContent: 'center',
+  tierLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.6,
   },
-  sponsorInfo: {
-    flex: 1,
-    marginLeft: Spacing.md,
-  },
-  sponsorName: {
-    fontSize: FontSizes.base,
-    fontFamily: FontFamily.displayBold,
-    color: Colors.gray900,
-    marginBottom: 4,
-    letterSpacing: -0.2,
-  },
-  levelBadge: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  levelBadgeText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
-    textTransform: 'capitalize',
-  },
-  sponsorDescription: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
-    lineHeight: 20,
-    marginBottom: Spacing.sm,
-  },
-  websiteButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    backgroundColor: Colors.primaryBg,
-    borderRadius: BorderRadius.md,
-  },
-  websiteButtonText: {
-    fontSize: FontSizes.sm,
+  tierCount: {
     fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
+    fontSize: 10,
+    letterSpacing: 0.2,
+    marginLeft: 'auto',
+  },
+
+  // === Logo grid ===
+  logoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+
+  sponsorCard: {
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    gap: 6,
+  },
+  logoPlaceholder: {
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoPlaceholderText: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 28,
+    letterSpacing: -0.6,
+  },
+
+  sponsorName: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+    textAlign: 'center',
+    marginTop: 4,
+    maxWidth: '100%',
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2,
+  },
+  linkText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
   },
 });

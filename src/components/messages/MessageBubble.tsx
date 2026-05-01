@@ -3,12 +3,13 @@
  * Affiche une bulle de message avec contenu, attachments, reactions
  */
 
-import React, { memo, useCallback } from 'react';
+import React, { memo, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,6 +33,14 @@ import {
 } from '../../lib/utils/messagingHelpers';
 import MessageStatusIcon from './MessageStatusIcon';
 
+// État de lecture audio piloté par ConversationScreen (un seul player actif).
+export interface VoicePlaybackState {
+  messageId: string;
+  currentMs: number;
+  durationMs: number;
+  isLoading: boolean;
+}
+
 interface MessageBubbleProps {
   message: Message;
   isMine: boolean;
@@ -39,9 +48,118 @@ interface MessageBubbleProps {
   replyToMessage?: Message | null;
   otherUserId?: string | null;
   playingVoiceId?: string | null;
+  voicePlayback?: VoicePlaybackState | null;
+  uploadingAttachmentIds?: Set<string>;
   onLongPress: (message: Message) => void;
   onPlayVoice?: (uri: string, messageId: string) => void;
 }
+
+// ============================================================================
+// VoiceAttachment — sous-composant dédié pour stabiliser le waveform
+// (Math.random() à chaque render faisait sauter les barres) et afficher la
+// progression réelle de lecture (temps + barres colorées proportionnellement).
+// ============================================================================
+const WAVEFORM_BARS = 22;
+
+function hashStr(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+interface VoiceAttachmentProps {
+  attachment: any;
+  isPlaying: boolean;
+  isLoading: boolean;
+  progressRatio: number; // 0..1
+  currentSeconds: number;
+  totalSeconds: number;
+  onPress: () => void;
+  bg: string;
+  fgIcon: string;
+  activeBar: string;
+  inactiveBar: string;
+  textColor: string;
+}
+
+const VoiceAttachment = memo(function VoiceAttachment({
+  attachment,
+  isPlaying,
+  isLoading,
+  progressRatio,
+  currentSeconds,
+  totalSeconds,
+  onPress,
+  bg,
+  fgIcon,
+  activeBar,
+  inactiveBar,
+  textColor,
+}: VoiceAttachmentProps) {
+  // Waveform stable : on génère les hauteurs une seule fois.
+  // Si le backend fournit waveform_data (array de 0..1), on l'utilise.
+  // Sinon on hash sur duration_seconds uniquement — c'est la seule propriété
+  // qui reste identique entre le tempMessage local (file_size=0, id=tmp:...)
+  // et le vrai message backend (avec vraie taille et UUID). Utiliser file_size
+  // ferait flasher les barres au moment du remplacement.
+  const waveformHeights = useMemo(() => {
+    const data = attachment?.waveform_data;
+    if (Array.isArray(data) && data.length > 0) {
+      return Array.from({ length: WAVEFORM_BARS }, (_, i) => {
+        const sample = data[Math.floor((i / WAVEFORM_BARS) * data.length)];
+        return Math.max(4, Math.min(20, Number(sample) * 20 || 4));
+      });
+    }
+    const durMs = Math.round(Number(attachment?.duration_seconds || 0) * 1000);
+    const seed = `dur:${durMs}`;
+    const base = hashStr(seed) || 1; // évite 0 qui donnerait toutes barres égales
+    return Array.from({ length: WAVEFORM_BARS }, (_, i) => {
+      const v = ((base ^ (i * 2654435761)) >>> 0) % 16;
+      return v + 4;
+    });
+  }, [attachment?.duration_seconds, attachment?.waveform_data]);
+
+  const displayedSeconds = isPlaying || progressRatio > 0 ? currentSeconds : totalSeconds;
+
+  return (
+    <TouchableOpacity
+      style={[styles.voiceAttachment, { backgroundColor: bg }]}
+      onPress={onPress}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={isPlaying ? 'Mettre en pause' : 'Lire le message vocal'}
+    >
+      <View style={styles.voiceIconWrap}>
+        {isLoading ? (
+          <ActivityIndicator size="small" color={fgIcon} />
+        ) : (
+          <Ionicons name={isPlaying ? 'pause' : 'play'} size={22} color={fgIcon} />
+        )}
+      </View>
+      <View style={styles.waveformContainer}>
+        {waveformHeights.map((h, i) => {
+          const barRatio = (i + 0.5) / WAVEFORM_BARS;
+          const active = barRatio <= progressRatio;
+          return (
+            <View
+              key={i}
+              style={[
+                styles.waveformBar,
+                {
+                  height: h,
+                  backgroundColor: active ? activeBar : inactiveBar,
+                },
+              ]}
+            />
+          );
+        })}
+      </View>
+      <Text style={[styles.voiceDuration, { color: textColor }]}>
+        {formatDuration(displayedSeconds)}
+      </Text>
+    </TouchableOpacity>
+  );
+});
 
 function MessageBubble({
   message,
@@ -50,6 +168,8 @@ function MessageBubble({
   replyToMessage,
   otherUserId,
   playingVoiceId,
+  voicePlayback,
+  uploadingAttachmentIds,
   onLongPress,
   onPlayVoice,
 }: MessageBubbleProps) {
@@ -59,6 +179,12 @@ function MessageBubble({
   const hasAttachments = message.attachments && message.attachments.length > 0;
   const status = isMine ? getMessageStatus(message, otherUserId) : undefined;
   const groupedReactions = groupReactions(message.reactions);
+
+  // Bulle interlocuteur : rose doux. Light = blush léger, dark = rose-bordeaux.
+  // On garde l'indigo `colors.primary` pour le sender (mine) — palette cohérente
+  // avec le brand EventEz (indigo + accent corail).
+  const peerBubbleBg = isDark ? '#3B2330' : '#FFE4EC';
+  const peerTextColor = isDark ? '#FCE7F3' : colors.gray900;
 
   const handleLongPress = useCallback(() => {
     onLongPress(message);
@@ -91,69 +217,96 @@ function MessageBubble({
 
   // Render Attachment
   const renderAttachment = (attachment: any, index: number) => {
+    const isUploading = !!(attachment.id && uploadingAttachmentIds?.has(String(attachment.id)));
+
     if (attachment.attachment_type === 'image') {
       return (
-        <Image
-          key={attachment.id || index}
-          source={attachment.file}
-          style={[styles.imageAttachment, { backgroundColor: colors.gray100 }]}
-          contentFit="cover"
-          cachePolicy="disk"
-          transition={200}
-        />
+        <View key={attachment.id || index} style={styles.imageWrap}>
+          <Image
+            source={attachment.file}
+            style={[styles.imageAttachment, { backgroundColor: colors.gray100 }]}
+            contentFit="cover"
+            cachePolicy="disk"
+            transition={200}
+          />
+          {isUploading && (
+            <View style={styles.uploadOverlay}>
+              <ActivityIndicator size="small" color={Colors.white} />
+            </View>
+          )}
+        </View>
       );
     }
 
     if (attachment.attachment_type === 'voice') {
-      const isPlaying = playingVoiceId === message.id;
+      // La card voice est rendue HORS de la bulle text — bg autoporteur.
+      // Sender = primary indigo, peer = bulle rose pour rester aligné avec
+      // le bg de la bulle texte de l'interlocuteur.
+      const voiceBg = isMine ? colors.primary : peerBubbleBg;
+      const voiceFg = isMine ? Colors.white : colors.primary;
+      const activeBar = isMine ? Colors.white : colors.primary;
+      const inactiveBar = isMine ? 'rgba(255,255,255,0.35)' : (isDark ? 'rgba(252,231,243,0.3)' : 'rgba(190,24,93,0.25)');
+      const durationColor = isMine ? 'rgba(255,255,255,0.85)' : peerTextColor;
+
+      const isCurrent = voicePlayback?.messageId === String(message.id);
+      const isPlaying = playingVoiceId === String(message.id);
+      const isLoading = !!isCurrent && !!voicePlayback?.isLoading;
+
+      const totalSeconds = attachment.duration_seconds || (voicePlayback?.durationMs ? voicePlayback.durationMs / 1000 : 0);
+      const currentSeconds = isCurrent ? (voicePlayback!.currentMs / 1000) : 0;
+      const progressRatio = isCurrent && totalSeconds > 0
+        ? Math.min(1, currentSeconds / totalSeconds)
+        : 0;
+
       return (
-        <TouchableOpacity
-          key={attachment.id || index}
-          style={[styles.voiceAttachment, { backgroundColor: colors.gray100 }, isMine && styles.voiceAttachmentMine]}
-          onPress={() => onPlayVoice?.(attachment.file, String(message.id))}
-        >
-          <Ionicons
-            name={isPlaying ? 'pause' : 'play'}
-            size={24}
-            color={isMine ? Colors.white : colors.primary}
+        <View key={attachment.id || index} style={styles.imageWrap}>
+          <VoiceAttachment
+            attachment={attachment}
+            isPlaying={isPlaying}
+            isLoading={isLoading}
+            progressRatio={progressRatio}
+            currentSeconds={currentSeconds}
+            totalSeconds={totalSeconds}
+            onPress={() => onPlayVoice?.(attachment.file, String(message.id))}
+            bg={voiceBg}
+            fgIcon={voiceFg}
+            activeBar={activeBar}
+            inactiveBar={inactiveBar}
+            textColor={durationColor}
           />
-          <View style={styles.waveformContainer}>
-            {[...Array(16)].map((_, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.waveformBar,
-                  { height: Math.random() * 16 + 4, backgroundColor: colors.primary },
-                  isMine && styles.waveformBarMine,
-                ]}
-              />
-            ))}
-          </View>
-          <Text style={[styles.voiceDuration, { color: colors.gray600 }, isMine && styles.voiceDurationMine]}>
-            {formatDuration(attachment.duration_seconds || 0)}
-          </Text>
-        </TouchableOpacity>
+          {isUploading && (
+            <View style={styles.uploadOverlay}>
+              <ActivityIndicator size="small" color={Colors.white} />
+            </View>
+          )}
+        </View>
       );
     }
 
     // Document
     return (
-      <TouchableOpacity
-        key={attachment.id || index}
-        style={[styles.documentAttachment, { backgroundColor: colors.gray100 }, isMine && styles.documentAttachmentMine]}
-      >
-        <Ionicons
-          name="document-outline"
-          size={20}
-          color={isMine ? Colors.white : colors.gray600}
-        />
-        <Text
-          style={[styles.documentName, { color: colors.gray700 }, isMine && styles.documentNameMine]}
-          numberOfLines={1}
+      <View key={attachment.id || index} style={styles.imageWrap}>
+        <TouchableOpacity
+          style={[styles.documentAttachment, { backgroundColor: isMine ? 'rgba(255,255,255,0.2)' : peerBubbleBg }]}
         >
-          {attachment.file_name || 'Document'}
-        </Text>
-      </TouchableOpacity>
+          <Ionicons
+            name="document-outline"
+            size={20}
+            color={isMine ? Colors.white : colors.primary}
+          />
+          <Text
+            style={[styles.documentName, { color: isMine ? Colors.white : peerTextColor }]}
+            numberOfLines={1}
+          >
+            {attachment.file_name || 'Document'}
+          </Text>
+        </TouchableOpacity>
+        {isUploading && (
+          <View style={styles.uploadOverlay}>
+            <ActivityIndicator size="small" color={Colors.white} />
+          </View>
+        )}
+      </View>
     );
   };
 
@@ -238,14 +391,16 @@ function MessageBubble({
           <View
             style={[
               styles.bubble,
-              isMine ? [styles.bubbleMine, { backgroundColor: colors.primary }] : [styles.bubbleOther, { backgroundColor: colors.surface }],
+              isMine
+                ? [styles.bubbleMine, { backgroundColor: colors.primary }]
+                : [styles.bubbleOther, { backgroundColor: peerBubbleBg }],
               hasAttachments && styles.bubbleWithAttachment,
             ]}
           >
             <Text
               accessibilityRole="text"
               accessibilityLabel={`${message.sender_name || 'Utilisateur'}: ${message.content}`}
-              style={[styles.messageText, { color: colors.gray900 }, isMine && styles.messageTextMine]}
+              style={[styles.messageText, { color: isMine ? Colors.white : peerTextColor }]}
             >
               {message.content}
             </Text>
@@ -416,7 +571,23 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
     gap: Spacing.sm,
-    minWidth: 180,
+    minWidth: 200,
+  },
+  voiceIconWrap: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageWrap: {
+    position: 'relative',
+  },
+  uploadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   voiceAttachmentMine: {
     backgroundColor: 'rgba(255,255,255,0.2)',

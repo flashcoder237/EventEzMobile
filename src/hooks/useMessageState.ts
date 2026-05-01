@@ -149,10 +149,51 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
       return { ...state, messages: action.payload };
 
     case 'ADD_MESSAGE': {
-      // Éviter les doublons — prepend pour FlatList inversé (index 0 = bas = plus récent)
-      const exists = state.messages.some(m => m.id === action.payload.id);
+      // Éviter les doublons par id — prepend pour FlatList inversé (index 0 = bas = plus récent)
+      const incoming = action.payload;
+      const exists = state.messages.some(m => m.id === incoming.id);
       if (exists) return state;
-      return { ...state, messages: [action.payload, ...state.messages] };
+
+      // Helper : sender peut être un number (REST/temp) ou un objet
+      // { id, email, full_name } (payload WebSocket).
+      const senderId = (s: any): number | null => {
+        if (s == null) return null;
+        if (typeof s === 'object' && s.id != null) return Number(s.id);
+        const n = Number(s);
+        return Number.isFinite(n) ? n : null;
+      };
+
+      // Dédup tempMessage ↔ vrai message : si on reçoit un message non-temp
+      // et qu'il existe un tempMessage du même sender, avec le même contenu
+      // (ou les deux vides si attachment-only) et créé il y a moins de 60s,
+      // on REMPLACE le tempMessage au lieu d'ajouter un duplicata.
+      // Ce cas se produit en mode WebSocket : le front crée un tempMessage
+      // optimiste, l'envoie via WS, le backend renvoie le vrai message via
+      // le canal ; sans cette dédup, on aurait deux messages identiques.
+      const isIncomingTemp = String(incoming.id).startsWith('temp-');
+      if (!isIncomingTemp) {
+        const incomingSender = senderId(incoming.sender);
+        const incomingContent = (incoming.content || '').trim();
+        const incomingAttCount = incoming.attachments?.length || 0;
+        const incomingTime = new Date(incoming.created_at).getTime();
+        const matchIdx = state.messages.findIndex(m => {
+          if (!String(m.id).startsWith('temp-')) return false;
+          const mSender = senderId(m.sender);
+          if (mSender == null || mSender !== incomingSender) return false;
+          const mContent = (m.content || '').trim();
+          if (mContent !== incomingContent) return false;
+          // Match par compte d'attachments — robuste même si les ids diffèrent
+          if ((m.attachments?.length || 0) !== incomingAttCount) return false;
+          const dt = Math.abs(new Date(m.created_at).getTime() - incomingTime);
+          return dt < 60_000;
+        });
+        if (matchIdx !== -1) {
+          const next = state.messages.slice();
+          next[matchIdx] = incoming;
+          return { ...state, messages: next };
+        }
+      }
+      return { ...state, messages: [incoming, ...state.messages] };
     }
 
     case 'ADD_MESSAGES_BEFORE':

@@ -705,12 +705,14 @@ export default function EventSearchScreen() {
                     <Ionicons
                       name={qf.icon}
                       size={13}
-                      color={qf.active ? Colors.white : colors.gray700}
+                      color={qf.active ? colors.background : colors.gray700}
                     />
                     <Text
                       style={[
                         styles.quickFilterText,
-                        { color: qf.active ? Colors.white : colors.gray700 },
+                        // Inverse du theme pour rester contrasté en dark mode :
+                        // bg=colors.text (qui s'inverse) + text=colors.background
+                        { color: qf.active ? colors.background : colors.gray700 },
                       ]}
                     >
                       {qf.label}
@@ -749,7 +751,7 @@ export default function EventSearchScreen() {
                       <Ionicons
                         name={opt.icon}
                         size={11}
-                        color={active ? Colors.white : colors.gray500}
+                        color={active ? colors.background : colors.gray500}
                       />
                     </TouchableOpacity>
                   );

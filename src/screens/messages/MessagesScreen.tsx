@@ -71,6 +71,7 @@ const ConversationCard = memo(function ConversationCard({
   const { colors, isDark } = useTheme();
   const otherUser = conversation.participants?.find(p => p.id !== currentUserId) || conversation.participants?.[0];
   const conversationType = (conversation as any).conversation_type;
+  const isGroupOrEvent = conversationType === 'event' || conversationType === 'group';
   const displayName = conversation.title
     || (conversation as any).name
     || getDisplayName(otherUser || null);
@@ -81,117 +82,127 @@ const ConversationCard = memo(function ConversationCard({
   const avatar = groupAvatar || directAvatar;
   const initials = getUserInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
-  const isOrganizer = (otherUser as any)?.role === 'organizer' || (otherUser as any)?.user_type === 'organization';
 
   const preview =
     (typeof conversation.last_message === 'object'
       ? conversation.last_message?.content
       : conversation.last_message) || 'Aucun message';
 
+  // Anneau d'accent autour de l'avatar pour les conversations non lues —
+  // pattern Instagram stories. Couleur = corail (accent), atténuée si mute.
+  const ringColor = hasUnread
+    ? muted ? colors.gray400 : colors.accent
+    : 'transparent';
+
   return (
     <TouchableOpacity
-      style={[
-        cardStyles.card,
-        {
-          backgroundColor: colors.card,
-          borderColor: isDark ? colors.gray200 : 'rgba(0,0,0,0.05)',
-        },
-        Shadows.sm,
-      ]}
+      style={cardStyles.row}
       onPress={onPress}
       onLongPress={onLongPress}
-      activeOpacity={0.85}
+      activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel={`Conversation avec ${displayName}${
         hasUnread ? `, ${conversation.unread_count} non lu${conversation.unread_count > 1 ? 's' : ''}` : ''
       }`}
     >
-      {/* Avatar — rounded */}
+      {/* Avatar avec ring unread + petit badge type pour les groupes/events */}
       <View style={cardStyles.avatarWrap}>
-        {avatar ? (
-          <Image
-            source={avatar}
-            style={cardStyles.avatarImg}
-            contentFit="cover"
-            cachePolicy="disk"
-            transition={200}
-          />
-        ) : (
+        <View
+          style={[
+            cardStyles.avatarRing,
+            { borderColor: ringColor },
+          ]}
+        >
+          {avatar ? (
+            <Image
+              source={avatar}
+              style={cardStyles.avatarImg}
+              contentFit="cover"
+              cachePolicy="disk"
+              transition={200}
+            />
+          ) : (
+            <View
+              style={[
+                cardStyles.avatarImg,
+                {
+                  backgroundColor: isGroupOrEvent ? `${colors.accent}20` : `${colors.primary}15`,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  cardStyles.avatarInitials,
+                  { color: isGroupOrEvent ? colors.accent : colors.primary },
+                ]}
+              >
+                {initials}
+              </Text>
+            </View>
+          )}
+        </View>
+        {isGroupOrEvent && (
           <View
             style={[
-              cardStyles.avatarImg,
-              { backgroundColor: `${colors.primary}15`, alignItems: 'center', justifyContent: 'center' },
+              cardStyles.typeBadge,
+              { backgroundColor: colors.primary, borderColor: colors.background },
             ]}
+            accessibilityElementsHidden
           >
-            <Text style={[cardStyles.avatarInitials, { color: colors.primary }]}>{initials}</Text>
+            <Ionicons name="calendar" size={9} color="#FFFFFF" />
           </View>
-        )}
-        {hasUnread && (
-          <View
-            style={[
-              cardStyles.avatarDot,
-              { backgroundColor: colors.accent, borderColor: colors.card },
-            ]}
-          />
         )}
       </View>
 
       <View style={cardStyles.body}>
-        {/* Eyebrow row: organizer badge + mute icon + time */}
-        <View style={cardStyles.eyebrowRow}>
-          {isOrganizer ? (
-            <View
-              style={[
-                cardStyles.organizerBadge,
-                { backgroundColor: `${colors.primary}15` },
-              ]}
-            >
-              <Text style={[cardStyles.organizerText, { color: colors.primary }]}>ORGANIZER</Text>
-            </View>
-          ) : (
-            <Text style={[cardStyles.directLabel, { color: colors.gray500 }]}>DIRECT</Text>
-          )}
-          {muted ? (
-            <Ionicons
-              name="notifications-off"
-              size={12}
-              color={colors.gray400}
-              style={{ marginLeft: 6 }}
-            />
-          ) : null}
-          <Text style={[cardStyles.time, { color: colors.gray500 }]}>
+        {/* Ligne 1 : nom + heure */}
+        <View style={cardStyles.titleRow}>
+          <Text
+            style={[
+              cardStyles.name,
+              { color: colors.text },
+              hasUnread && cardStyles.nameUnread,
+            ]}
+            numberOfLines={1}
+          >
+            {displayName}
+          </Text>
+          <Text
+            style={[
+              cardStyles.time,
+              { color: hasUnread && !muted ? colors.accent : colors.gray400 },
+            ]}
+          >
             {conversation.last_message_at ? formatRelativeTime(conversation.last_message_at) : ''}
           </Text>
         </View>
 
-        <Text
-          style={[
-            cardStyles.name,
-            { color: colors.text },
-            hasUnread && { fontFamily: FontFamily.displayExtraBold },
-          ]}
-          numberOfLines={1}
-        >
-          {displayName}
-        </Text>
-
-        <View style={cardStyles.footerRow}>
+        {/* Ligne 2 : preview + indicateurs (mute + badge unread) */}
+        <View style={cardStyles.previewRow}>
           <Text
             style={[
               cardStyles.preview,
               { color: hasUnread ? colors.text : colors.gray500 },
-              hasUnread && { fontFamily: FontFamily.semiBold },
+              hasUnread && cardStyles.previewUnread,
             ]}
             numberOfLines={1}
           >
             {preview}
           </Text>
+          {muted && (
+            <Ionicons
+              name="notifications-off"
+              size={13}
+              color={colors.gray400}
+              style={{ marginLeft: 6 }}
+            />
+          )}
           {hasUnread && (
             <View
               style={[
                 cardStyles.unreadPill,
-                // Atténue visuellement le badge sur les conversations mutées
-                // (toujours visible mais en gris au lieu de corail)
                 { backgroundColor: muted ? colors.gray400 : colors.accent },
               ]}
             >
@@ -207,21 +218,29 @@ const ConversationCard = memo(function ConversationCard({
 });
 
 const cardStyles = StyleSheet.create({
-  card: {
+  // Design "Editorial List" — pas de card individuelle, juste une row aérée.
+  // Le séparateur entre items est rendu par la liste parente (border-bottom
+  // hairline), pour un look plus moderne, type iMessage / Telegram.
+  row: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: Spacing.md,
-    paddingVertical: 14,
-    borderRadius: 20,
-    borderWidth: 1,
-    marginBottom: 12,
+    paddingVertical: 12,
     gap: 14,
   },
   avatarWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    overflow: 'visible',
+    width: 60,
+    height: 60,
     position: 'relative',
+  },
+  avatarRing: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    padding: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   avatarImg: {
     width: 52,
@@ -233,63 +252,55 @@ const cardStyles = StyleSheet.create({
     fontSize: 18,
     letterSpacing: -0.3,
   },
-  avatarDot: {
+  typeBadge: {
     position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   body: {
     flex: 1,
     justifyContent: 'center',
-    gap: 2,
+    gap: 4,
   },
-  eyebrowRow: {
+  titleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    gap: 8,
   },
-  organizerBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
+  name: {
+    flex: 1,
+    fontFamily: FontFamily.displaySemiBold,
+    fontSize: 16,
+    letterSpacing: -0.3,
   },
-  organizerText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: 1.3,
-  },
-  directLabel: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: 1.5,
+  nameUnread: {
+    fontFamily: FontFamily.displayExtraBold,
   },
   time: {
     fontFamily: FontFamily.semiBold,
     fontSize: 11,
     letterSpacing: 0.2,
   },
-  name: {
-    fontFamily: FontFamily.displaySemiBold,
-    fontSize: 16,
-    letterSpacing: -0.3,
-    marginTop: 2,
-  },
-  footerRow: {
+  previewRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 2,
-    gap: 8,
+    gap: 6,
   },
   preview: {
     flex: 1,
     fontFamily: FontFamily.regular,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 14,
+    lineHeight: 19,
+  },
+  previewUnread: {
+    fontFamily: FontFamily.semiBold,
   },
   unreadPill: {
     minWidth: 22,
@@ -297,12 +308,12 @@ const cardStyles = StyleSheet.create({
     borderRadius: 11,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 6,
+    paddingHorizontal: 7,
+    marginLeft: 2,
   },
   unreadPillText: {
     fontFamily: FontFamily.bold,
-    fontSize: 10,
-    letterSpacing: 0.3,
+    fontSize: 11,
     color: '#FFFFFF',
   },
 });
@@ -794,6 +805,9 @@ export default function MessagesScreen() {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
+        ItemSeparatorComponent={() => (
+          <View style={[styles.itemSeparator, { backgroundColor: hairline, marginLeft: 78 }]} />
+        )}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
@@ -988,10 +1002,15 @@ const styles = StyleSheet.create({
   },
 
   listContent: {
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    // Le design "Editorial List" gère son padding horizontal au niveau de
+    // chaque row. On retire la marge externe pour que le séparateur tire
+    // toute la largeur visible.
+    paddingTop: Spacing.sm,
     paddingBottom: Spacing.lg,
     flexGrow: 1,
+  },
+  itemSeparator: {
+    height: StyleSheet.hairlineWidth,
   },
 
   emptyWrap: {

@@ -87,7 +87,15 @@ export async function fetchUpload(
 
   if (!response.ok) {
     if (__DEV__) console.error(`[fetchUpload] ${method} ${path} → ${response.status}:`, text.slice(0, 2000));
-    const message = data?.detail || data?.non_field_errors?.[0] || JSON.stringify(data) || `HTTP ${response.status}`;
+    // Les endpoints user_messages renvoient `{ error, code, ... }` ; DRF
+    // standard renvoie `{ detail }` ou `{ non_field_errors }`. On essaie
+    // les trois dans cet ordre avant de retomber sur un JSON.stringify.
+    const message =
+      data?.error
+      || data?.detail
+      || data?.non_field_errors?.[0]
+      || (typeof data === 'object' && Object.keys(data || {}).length ? JSON.stringify(data) : null)
+      || `HTTP ${response.status}`;
     const error: any = new Error(message);
     error.response = { status: response.status, data };
     throw error;

@@ -610,38 +610,37 @@ export const MessageSkeleton = memo(function MessageSkeleton({ isOwn = false }: 
 
 // ============================================
 // CONVERSATION ITEM SKELETON
-// Matches MessagesScreen conversation card: avatar 40px + name + last message + time
+// Matches MessagesScreen "Editorial List" : row plate + avatar 60 + 2 lignes
+// (nom/heure et preview/badge), avec hairline en bas. Pas de card wrapper.
 // ============================================
 export const ConversationItemSkeleton = memo(function ConversationItemSkeleton() {
   const { colors, isDark } = useTheme();
-  const border = isDark ? colors.gray200 : 'rgba(0,0,0,0.05)';
+  const hairline = isDark ? colors.gray200 : colors.gray100;
   return (
     <View
       style={{
         flexDirection: 'row',
+        alignItems: 'center',
         gap: 14,
         paddingHorizontal: Spacing.md,
-        paddingVertical: 14,
-        borderRadius: 20,
-        borderWidth: 1,
-        borderColor: border,
-        backgroundColor: colors.card,
-        marginBottom: 12,
+        paddingVertical: 12,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: hairline,
       }}
     >
-      {/* Avatar 52x52 — matches MessagesScreen ConversationCard */}
-      <Skeleton width={52} height={52} borderRadius={26} />
-      <View style={{ flex: 1, justifyContent: 'center', gap: 4 }}>
-        {/* Eyebrow row: badge + time */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Skeleton width={70} height={9} borderRadius={3} />
-          <Skeleton width={32} height={9} borderRadius={3} />
+      {/* Avatar 60x60 (incluant ring) — matches le wrap du design Editorial List */}
+      <View style={{ width: 60, height: 60, alignItems: 'center', justifyContent: 'center' }}>
+        <Skeleton width={52} height={52} borderRadius={26} />
+      </View>
+      <View style={{ flex: 1, justifyContent: 'center', gap: 6 }}>
+        {/* Ligne 1 : nom + heure */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <Skeleton width="55%" height={15} borderRadius={4} />
+          <Skeleton width={36} height={11} borderRadius={3} />
         </View>
-        {/* Name */}
-        <Skeleton width="60%" height={16} borderRadius={4} style={{ marginTop: 2 }} />
-        {/* Preview row */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 2 }}>
-          <Skeleton width="80%" height={12} borderRadius={3} />
+        {/* Ligne 2 : preview + (parfois) badge unread */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Skeleton width="78%" height={13} borderRadius={3} />
         </View>
       </View>
     </View>
@@ -1122,8 +1121,9 @@ export const MessagesScreenSkeleton = memo(function MessagesScreenSkeleton() {
         </View>
       </View>
 
-      {/* Conversations list — editorial padding */}
-      <View style={{ flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
+      {/* Conversations list — chaque skeleton porte son propre padding
+          horizontal pour matcher le design Editorial List du composant réel. */}
+      <View style={{ flex: 1, paddingTop: Spacing.sm }}>
         {Array.from({ length: 6 }).map((_, i) => (
           <ConversationItemSkeleton key={i} />
         ))}

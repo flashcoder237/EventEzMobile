@@ -1,0 +1,62 @@
+{
+  "cli": {
+    "version": ">= 15.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://eventez.online/api",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "<google-oauth-ios-client-id>",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "<google-oauth-android-client-id>",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "<google-oauth-web-client-id>",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "<google-maps-android-key>",
+        "GOOGLE_MAPS_API_KEY": "<google-maps-android-key>"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://eventez.online/api",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "<google-oauth-ios-client-id>",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "<google-oauth-android-client-id>",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "<google-oauth-web-client-id>",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "<google-maps-android-key>",
+        "GOOGLE_MAPS_API_KEY": "<google-maps-android-key>"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://eventez.online/api",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "<google-oauth-ios-client-id>",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "<google-oauth-android-client-id>",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "<google-oauth-web-client-id>",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "<google-maps-android-key>",
+        "GOOGLE_MAPS_API_KEY": "<google-maps-android-key>"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal"
+      }
+    }
+  }
+}

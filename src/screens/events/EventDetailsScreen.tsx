@@ -38,6 +38,7 @@ import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
 import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
+import FollowUserButton from '../../components/common/FollowUserButton';
 import AddToCalendarButton from '../../components/events/AddToCalendarButton';
 import SponsorsTab from '../../components/events/SponsorsTab';
 import VenueTab from '../../components/events/VenueTab';
@@ -504,8 +505,20 @@ export default function EventDetailsScreen() {
           {/* Title — display extra-bold, no italic */}
           <Text style={[styles.title, { color: colors.gray900 }]}>{event.title}</Text>
 
-          {/* Organizer Card — soft editorial */}
-          <View style={[styles.organizerCard, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
+          {/* Organizer Card — toute la card tap → OrganizerProfile.
+              Bouton Follow inline (compact) + chevron pour signaler l'affordance.
+              Le bouton "Contacter" est déplacé vers OrganizerProfile screen. */}
+          <TouchableOpacity
+            style={[styles.organizerCard, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}
+            onPress={() => {
+              if (event.organizer?.id) {
+                navigation.navigate('OrganizerProfile', { organizerId: String(event.organizer.id) });
+              }
+            }}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`Voir le profil de ${event.organizer?.first_name || 'l\'organisateur'}`}
+          >
             <View style={[styles.organizerAvatar, { backgroundColor: colors.primary }]}>
               {event.organizer?.profile_picture ? (
                 <Image
@@ -523,20 +536,24 @@ export default function EventDetailsScreen() {
             </View>
             <View style={styles.organizerInfo}>
               <Text style={[styles.organizerLabel, { color: colors.gray500 }]}>Organisé par</Text>
-              <Text style={[styles.organizerName, { color: colors.gray900 }]}>
+              <Text style={[styles.organizerName, { color: colors.gray900 }]} numberOfLines={1}>
                 {event.organizer?.first_name} {event.organizer?.last_name}
               </Text>
             </View>
-            <TouchableOpacity
-              style={[styles.organizerFollowBtn, { backgroundColor: colors.primary }]}
-              onPress={handleContactOrganizer}
-              accessibilityRole="button"
-              accessibilityLabel="Contacter l'organisateur"
-            >
-              <Ionicons name="chatbubble-outline" size={14} color={colors.white} />
-              <Text style={styles.organizerFollowText}>Contacter</Text>
-            </TouchableOpacity>
-          </View>
+            {event.organizer?.id && (
+              <View style={styles.organizerActions}>
+                {/* Bouton Follow compact (intercepte le tap parent) */}
+                <View onStartShouldSetResponder={() => true}>
+                  <FollowUserButton
+                    userId={Number(event.organizer.id)}
+                    variant="compact"
+                    initialFollowing={!!(event.organizer as any).is_following}
+                  />
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
+              </View>
+            )}
+          </TouchableOpacity>
 
           {/* Share & Calendar Buttons */}
           <View style={styles.shareRow}>
@@ -1330,6 +1347,12 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: BorderRadius.full,
   },
+  // Cluster d'actions à droite : bouton Follow + chevron affordance
+  organizerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   organizerFollowText: {
     fontFamily: FontFamily.bold,
     fontSize: 12,
@@ -1895,7 +1918,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     textAlign: 'center',
   },
-  // ===== BON À SAVOIR =====
+  // ===== BON À SAVOIR (editorial — squircle icons + softer hierarchy) =====
   goodToKnowSection: {
     marginTop: Spacing.xl,
     paddingTop: Spacing.lg,
@@ -1904,24 +1927,25 @@ const styles = StyleSheet.create({
   goodToKnowGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.sm,
+    gap: Spacing.sm + 2,
+    marginTop: Spacing.sm,
   },
   goodToKnowItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.base,
-    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm + 2,
+    paddingVertical: Spacing.md - 2,
+    paddingHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg + 4,
     borderWidth: 1,
     flexGrow: 1,
     flexBasis: '47%',
     minWidth: '47%',
   },
   goodToKnowIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 12, // squircle (not full circle) — softer editorial feel
     alignItems: 'center',
     justifyContent: 'center',
   },

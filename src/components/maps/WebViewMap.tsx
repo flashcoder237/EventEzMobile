@@ -157,6 +157,13 @@ export default function WebViewMap({
       opacity: 0.45;
       filter: saturate(0.3);
     }
+    /* Markers sans label (events gratuits) : pastille compacte 14x14 */
+    .ev-marker:empty {
+      width: 14px;
+      height: 14px;
+      padding: 0;
+      border-radius: 50%;
+    }
 
     /* Cluster styles */
     .marker-cluster-small {
@@ -231,13 +238,16 @@ export default function WebViewMap({
     }
 
     function formatPrice(marker) {
-      if (marker.is_free) return 'Gratuit';
+      // Pas de label "Gratuit" sur la carte — les events gratuits sont
+      // identifiés par l'absence de prix sur le marker (point coloré nu).
+      // Les events payants affichent leur prix raccourci (ex: "5k", "12k").
+      if (marker.is_free) return '';
       var p = marker.min_price || marker.price;
       if (p && p > 0) {
         if (p >= 1000) return Math.round(p/1000) + 'k';
         return p + '';
       }
-      return 'Gratuit';
+      return '';
     }
 
     function isInRadius(lat, lng) {

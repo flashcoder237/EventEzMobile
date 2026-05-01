@@ -10,12 +10,19 @@ import {
   FlatList,
 } from 'react-native';
 import { Image } from 'expo-image';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import {
+  EditorialCanvas,
+  WatermarkNumeral,
+  EditorialHeader,
+  editorial,
+} from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usersAPI, eventsAPI, getMediaUrl } from '../../api';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
+import FollowUserButton from '../../components/common/FollowUserButton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList, User, Event } from '../../types';
@@ -35,6 +42,7 @@ type RouteProps = RouteProp<RootStackParamList, 'OrganizerProfile'>;
 
 export default function OrganizerProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const insets = useSafeAreaInsets();
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
   const { colors } = useTheme();
@@ -119,13 +127,12 @@ export default function OrganizerProfileScreen() {
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>ORG</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
-          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
-            <View style={styles.headerRight} />
-          </View>
+          <EditorialHeader
+            eyebrow="PROFIL"
+            title="Organisateur"
+            back
+            onBack={() => navigation.goBack()}
+          />
           <ProfileSkeleton />
         </View>
       </EditorialCanvas>
@@ -137,13 +144,12 @@ export default function OrganizerProfileScreen() {
       <EditorialCanvas edges={['top']}>
         <WatermarkNumeral>NO</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
-          <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-            <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-              <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-            </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
-            <View style={styles.headerRight} />
-          </View>
+          <EditorialHeader
+            eyebrow="PROFIL"
+            title="Organisateur"
+            back
+            onBack={() => navigation.goBack()}
+          />
           <View style={styles.loadingContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
             <Text style={[styles.errorText, { color: colors.gray500 }]}>Organisateur introuvable</Text>
@@ -158,7 +164,10 @@ export default function OrganizerProfileScreen() {
   const profile = organizer.organizer_profile;
   const description = profile?.description || profile?.company_description || organizer.bio;
   const isVerified = profile?.verified_status || profile?.verified || organizer.is_verified;
-  const rating = profile?.rating;
+  // DRF sérialise les DecimalField en string par défaut → coerce en Number
+  // sinon `rating.toFixed()` crash. NaN si parsing échoue → traité comme 0.
+  const ratingRaw = profile?.rating;
+  const rating = ratingRaw != null ? Number(ratingRaw) : null;
   const eventCount = profile?.event_count ?? events.length;
   const socialLinks = profile?.social_links;
 
@@ -167,228 +176,282 @@ export default function OrganizerProfileScreen() {
       <WatermarkNumeral>ORG</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
 
-      {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-        <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.gray700} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Organisateur</Text>
-        <View style={styles.headerRight} />
-      </View>
+        {/* Header éditorial : eyebrow + titre + back */}
+        <EditorialHeader
+          eyebrow={isVerified ? 'PROFIL · VÉRIFIÉ' : 'PROFIL'}
+          title="Organisateur"
+          back
+          onBack={() => navigation.goBack()}
+        />
 
-      <ScrollView
-        style={styles.content}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          {profileImage ? (
-            <Image source={profileImage} style={styles.avatar} cachePolicy="disk" transition={200} />
-          ) : (
-            <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray100 }]}>
-              <Ionicons name="business" size={40} color={colors.gray400} />
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: insets.bottom + Spacing.xl },
+          ]}
+        >
+          {/* Hero card éditoriale : avatar + nom display + badge vérifié */}
+          <View
+            style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.gray200, shadowColor: colors.primary }]}
+          >
+            {/* Type pill : ORGANISATEUR */}
+            <View style={styles.typePillRow}>
+              <View style={[styles.typePill, { backgroundColor: `${colors.primary}15` }]}>
+                <Ionicons name="business" size={10} color={colors.primary} />
+                <Text style={[styles.typePillText, { color: colors.primary }]}>
+                  {organizer.organizer_type === 'organization' ? 'ORGANISATION' : 'ORGANISATEUR'}
+                </Text>
+              </View>
+              {(organizer.city || organizer.country) && (
+                <Text style={[styles.categoryEyebrow, { color: colors.gray500 }]} numberOfLines={1}>
+                  · {[organizer.city, organizer.country].filter(Boolean).join(', ').toUpperCase()}
+                </Text>
+              )}
+            </View>
+
+            {/* Hero row : avatar à gauche + nom display à droite */}
+            <View style={styles.heroRow}>
+              {profileImage ? (
+                <Image source={profileImage} style={styles.heroAvatar} cachePolicy="disk" transition={200} />
+              ) : (
+                <View style={[styles.heroAvatar, styles.heroAvatarPlaceholder, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.heroAvatarInitial}>
+                    {displayName[0]?.toUpperCase() || 'O'}
+                  </Text>
+                </View>
+              )}
+              <View style={{ flex: 1, paddingLeft: Spacing.md }}>
+                <View style={styles.nameRowInline}>
+                  <Text style={[styles.heroName, { color: colors.gray900 }]} numberOfLines={2}>
+                    {displayName}
+                  </Text>
+                  {isVerified && (
+                    <Ionicons name="checkmark-circle" size={18} color={colors.primary} />
+                  )}
+                </View>
+                {organizer.company_name && organizer.company_name !== displayName && (
+                  <Text style={[styles.heroSubtitle, { color: colors.gray500 }]} numberOfLines={1}>
+                    {organizer.company_name}
+                  </Text>
+                )}
+              </View>
+            </View>
+
+            {/* Stats : 3 blocks éditoriaux (eyebrow + display number) */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statCell}>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>ÉVÉNEMENTS</Text>
+                <Text style={[editorial.statNumberSm, { color: colors.gray900 }]}>{eventCount}</Text>
+              </View>
+              {rating != null && Number.isFinite(rating) && rating > 0 && (
+                <View style={styles.statCell}>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>NOTE</Text>
+                  <View style={styles.ratingRow}>
+                    <Text style={[editorial.statNumberSm, { color: colors.gray900 }]}>{rating.toFixed(1)}</Text>
+                    <Ionicons name="star" size={14} color={colors.warning} />
+                  </View>
+                </View>
+              )}
+              {organizer.created_at && (
+                <View style={styles.statCell}>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>DEPUIS</Text>
+                  <Text style={[editorial.statNumberSm, { color: colors.gray900 }]}>
+                    {new Date(organizer.created_at).getFullYear()}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Action Buttons : Follow plein largeur + Contacter en icône */}
+            <View style={styles.actionsRow}>
+              <View style={{ flex: 1 }}>
+                <FollowUserButton
+                  userId={Number(organizerId)}
+                  variant="default"
+                  showFollowerCount
+                  initialFollowing={!!(organizer as any)?.is_following}
+                />
+              </View>
+              <TouchableOpacity
+                style={[styles.contactIconButton, { backgroundColor: colors.gray100 }]}
+                onPress={handleContact}
+                activeOpacity={TOUCH_OPACITY}
+                accessibilityRole="button"
+                accessibilityLabel="Contacter l'organisateur"
+              >
+                <Ionicons name="chatbubble-outline" size={20} color={colors.gray700} />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Description — pattern éditorial : eyebrow + texte */}
+          {description && (
+            <View style={styles.editorialSection}>
+              <View style={styles.editorialSectionHead}>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>BIO</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>À propos</Text>
+              </View>
+              <Text style={[styles.descriptionText, { color: colors.gray700 }]}>{description}</Text>
             </View>
           )}
 
-          <View style={styles.nameRow}>
-            <Text style={[styles.name, { color: colors.gray900 }]}>{displayName}</Text>
-            {isVerified && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
+          {/* Réseaux sociaux + site web — chips horizontales unifiées */}
+          {(socialLinks?.facebook || socialLinks?.twitter || socialLinks?.instagram || socialLinks?.linkedin || profile?.website) && (
+            <View style={styles.editorialSection}>
+              <View style={styles.editorialSectionHead}>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>EN LIGNE</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Liens</Text>
+              </View>
+              <View style={styles.socialChipsRow}>
+                {profile?.website && (
+                  <TouchableOpacity
+                    style={[styles.socialChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}
+                    onPress={() => handleOpenLink(profile.website)}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    <Ionicons name="globe-outline" size={14} color={colors.primary} />
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Site web</Text>
+                  </TouchableOpacity>
+                )}
+                {socialLinks?.facebook && (
+                  <TouchableOpacity
+                    style={[styles.socialChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}
+                    onPress={() => handleOpenLink(socialLinks.facebook)}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    <Ionicons name="logo-facebook" size={14} color="#1877F2" />
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Facebook</Text>
+                  </TouchableOpacity>
+                )}
+                {socialLinks?.instagram && (
+                  <TouchableOpacity
+                    style={[styles.socialChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}
+                    onPress={() => handleOpenLink(socialLinks.instagram)}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    <Ionicons name="logo-instagram" size={14} color="#E4405F" />
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Instagram</Text>
+                  </TouchableOpacity>
+                )}
+                {socialLinks?.twitter && (
+                  <TouchableOpacity
+                    style={[styles.socialChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}
+                    onPress={() => handleOpenLink(socialLinks.twitter)}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    <Ionicons name="logo-twitter" size={14} color="#1DA1F2" />
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Twitter</Text>
+                  </TouchableOpacity>
+                )}
+                {socialLinks?.linkedin && (
+                  <TouchableOpacity
+                    style={[styles.socialChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}
+                    onPress={() => handleOpenLink(socialLinks.linkedin)}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    <Ionicons name="logo-linkedin" size={14} color="#0A66C2" />
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>LinkedIn</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          )}
+
+          {/* Events — date tile orange + titre display, style cohérent MyTickets */}
+          <View style={styles.editorialSection}>
+            <View style={styles.editorialSectionHead}>
+              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>
+                AGENDA · {events.length} ÉVÉNEMENT{events.length > 1 ? 'S' : ''}
+              </Text>
+              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
+                Événements publiés
+              </Text>
+            </View>
+            {isLoadingEvents ? (
+              <View style={styles.eventsLoadingContainer}>
+                <ActivityIndicator size="small" color={colors.primary} />
+                <Text style={[styles.eventsLoadingText, { color: colors.gray500 }]}>Chargement…</Text>
+              </View>
+            ) : events.length > 0 ? (
+              events.map((event) => {
+                const startDate = event.start_date ? new Date(event.start_date) : null;
+                return (
+                  <TouchableOpacity
+                    key={event.id}
+                    style={[styles.eventRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                    onPress={() => navigateToEvent(event.id)}
+                    activeOpacity={TOUCH_OPACITY}
+                  >
+                    {/* Date tile orange à gauche */}
+                    {startDate ? (
+                      <View style={[styles.eventDateTile, { backgroundColor: `${colors.accent}1A` }]}>
+                        <Text style={[styles.eventDateDay, { color: colors.accent }]}>
+                          {startDate.getDate().toString().padStart(2, '0')}
+                        </Text>
+                        <Text style={[styles.eventDateMonth, { color: colors.accent }]}>
+                          {startDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase().replace('.', '')}
+                        </Text>
+                      </View>
+                    ) : event.banner_image ? (
+                      <Image
+                        source={getMediaUrl(event.banner_image)!}
+                        style={styles.eventDateTile}
+                        cachePolicy="disk"
+                        transition={200}
+                      />
+                    ) : (
+                      <View style={[styles.eventDateTile, { backgroundColor: colors.gray100, alignItems: 'center', justifyContent: 'center' }]}>
+                        <Ionicons name="image-outline" size={20} color={colors.gray400} />
+                      </View>
+                    )}
+
+                    {/* Corps : titre + meta + price */}
+                    <View style={styles.eventBody}>
+                      <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
+                        {event.title}
+                      </Text>
+                      {event.location_name && (
+                        <View style={styles.eventMetaItem}>
+                          <Ionicons name="location-outline" size={11} color={colors.gray500} />
+                          <Text style={[styles.eventMetaText, { color: colors.gray500 }]} numberOfLines={1}>
+                            {event.location_name}
+                          </Text>
+                        </View>
+                      )}
+                      <View style={styles.eventBottomRow}>
+                        {event.is_free ? (
+                          <View style={[styles.freeBadge, { backgroundColor: colors.successLight }]}>
+                            <Text style={[styles.freeBadgeText, { color: colors.successDark }]}>GRATUIT</Text>
+                          </View>
+                        ) : event.base_price != null ? (
+                          <Text style={[styles.eventPrice, { color: colors.gray900 }]}>
+                            {Number(event.base_price).toLocaleString()} {event.currency || 'FCFA'}
+                          </Text>
+                        ) : null}
+                        <View style={styles.eventStatRow}>
+                          <Ionicons name="people-outline" size={11} color={colors.gray400} />
+                          <Text style={[styles.eventStat, { color: colors.gray500 }]}>
+                            {event.registration_count || 0}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={colors.gray400} />
+                  </TouchableOpacity>
+                );
+              })
+            ) : (
+              <View style={[styles.emptyEventsContainer, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                <Ionicons name="calendar-outline" size={32} color={colors.gray400} />
+                <Text style={[styles.emptyEventsText, { color: colors.gray500 }]}>Aucun événement publié</Text>
               </View>
             )}
           </View>
 
-          {organizer.company_name && organizer.company_name !== displayName && (
-            <Text style={[styles.companyName, { color: colors.gray500 }]}>{organizer.company_name}</Text>
-          )}
-
-          {(organizer.city || organizer.country) && (
-            <View style={styles.locationRow}>
-              <Ionicons name="location-outline" size={16} color={colors.gray400} />
-              <Text style={[styles.locationText, { color: colors.gray500 }]}>
-                {[organizer.city, organizer.country].filter(Boolean).join(', ')}
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Stats */}
-        <View style={[styles.statsRow, { backgroundColor: colors.gray50 }]}>
-          <View style={styles.statItem}>
-            <Text style={[styles.statValue, { color: colors.gray900 }]}>{eventCount}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{eventCount === 1 ? 'Evenement' : 'Evenements'}</Text>
-          </View>
-          {rating != null && rating > 0 && (
-            <View style={styles.statItem}>
-              <View style={styles.ratingRow}>
-                <Text style={[styles.statValue, { color: colors.gray900 }]}>{rating.toFixed(1)}</Text>
-                <Ionicons name="star" size={16} color={colors.warning} />
-              </View>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Note</Text>
-            </View>
-          )}
-          {organizer.created_at && (
-            <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: colors.gray900 }]}>
-                {new Date(organizer.created_at).getFullYear()}
-              </Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Membre depuis</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Action Buttons */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity
-            style={[styles.contactButton, { backgroundColor: colors.primary }]}
-            onPress={handleContact}
-            activeOpacity={TOUCH_OPACITY}
-          >
-            <Ionicons name="chatbubble-outline" size={20} color={Colors.white} />
-            <Text style={styles.contactButtonText}>Contacter</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Description */}
-        {description && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>A propos</Text>
-            <Text style={[styles.descriptionText, { color: colors.gray600 }]}>{description}</Text>
-          </View>
-        )}
-
-        {/* Social Links */}
-        {socialLinks && (socialLinks.facebook || socialLinks.twitter || socialLinks.instagram || socialLinks.linkedin) && (
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Reseaux sociaux</Text>
-            <View style={styles.socialLinksRow}>
-              {socialLinks.facebook && (
-                <TouchableOpacity
-                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
-                  onPress={() => handleOpenLink(socialLinks.facebook)}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <Ionicons name="logo-facebook" size={24} color="#1877F2" />
-                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Facebook</Text>
-                </TouchableOpacity>
-              )}
-              {socialLinks.instagram && (
-                <TouchableOpacity
-                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
-                  onPress={() => handleOpenLink(socialLinks.instagram)}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <Ionicons name="logo-instagram" size={24} color="#E4405F" />
-                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Instagram</Text>
-                </TouchableOpacity>
-              )}
-              {socialLinks.twitter && (
-                <TouchableOpacity
-                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
-                  onPress={() => handleOpenLink(socialLinks.twitter)}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <Ionicons name="logo-twitter" size={24} color="#1DA1F2" />
-                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Twitter</Text>
-                </TouchableOpacity>
-              )}
-              {socialLinks.linkedin && (
-                <TouchableOpacity
-                  style={[styles.socialButton, { backgroundColor: colors.gray50 }]}
-                  onPress={() => handleOpenLink(socialLinks.linkedin)}
-                  activeOpacity={TOUCH_OPACITY}
-                >
-                  <Ionicons name="logo-linkedin" size={24} color="#0A66C2" />
-                  <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>LinkedIn</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Website */}
-        {profile?.website && (
-          <TouchableOpacity
-            style={[styles.websiteCard, { backgroundColor: colors.gray50 }]}
-            onPress={() => handleOpenLink(profile.website)}
-            activeOpacity={TOUCH_OPACITY}
-          >
-            <View style={[styles.websiteIconContainer, { backgroundColor: colors.primaryBg }]}>
-              <Ionicons name="globe-outline" size={22} color={colors.primary} />
-            </View>
-            <View style={styles.websiteTextContainer}>
-              <Text style={[styles.websiteLabel, { color: colors.gray500 }]}>Site web</Text>
-              <Text style={[styles.websiteUrl, { color: colors.primary }]} numberOfLines={1}>{profile.website}</Text>
-            </View>
-            <Ionicons name="open-outline" size={18} color={colors.gray400} />
-          </TouchableOpacity>
-        )}
-
-        {/* Events */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Evenements</Text>
-          {isLoadingEvents ? (
-            <View style={styles.eventsLoadingContainer}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.eventsLoadingText, { color: colors.gray500 }]}>Chargement des evenements...</Text>
-            </View>
-          ) : events.length > 0 ? (
-            events.map((event) => (
-              <TouchableOpacity
-                key={event.id}
-                style={[styles.eventCard, { backgroundColor: colors.gray50 }]}
-                onPress={() => navigateToEvent(event.id)}
-                activeOpacity={TOUCH_OPACITY}
-              >
-                {event.banner_image ? (
-                  <Image source={getMediaUrl(event.banner_image)!} style={styles.eventImage} cachePolicy="disk" transition={200} />
-                ) : (
-                  <View style={[styles.eventImagePlaceholder, { backgroundColor: colors.gray200 }]}>
-                    <Ionicons name="image-outline" size={24} color={colors.gray300} />
-                  </View>
-                )}
-                <View style={styles.eventInfo}>
-                  <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>{event.title}</Text>
-                  <View style={styles.eventDateRow}>
-                    <Ionicons name="calendar-outline" size={14} color={colors.gray400} />
-                    <Text style={[styles.eventDate, { color: colors.gray500 }]}>{formatDate(event.start_date)}</Text>
-                  </View>
-                  {event.location_name && (
-                    <View style={styles.eventLocationRow}>
-                      <Ionicons name="location-outline" size={14} color={colors.gray400} />
-                      <Text style={[styles.eventLocation, { color: colors.gray500 }]} numberOfLines={1}>
-                        {event.location_name}
-                      </Text>
-                    </View>
-                  )}
-                  <View style={styles.eventMetaRow}>
-                    {event.is_free ? (
-                      <View style={[styles.freeBadge, { backgroundColor: colors.successLight }]}>
-                        <Text style={[styles.freeBadgeText, { color: colors.successDark }]}>Gratuit</Text>
-                      </View>
-                    ) : event.base_price != null ? (
-                      <Text style={[styles.eventPrice, { color: colors.primary }]}>
-                        {event.base_price.toLocaleString()} {event.currency || 'FCFA'}
-                      </Text>
-                    ) : null}
-                    <View style={styles.eventStatRow}>
-                      <Ionicons name="people-outline" size={14} color={colors.gray400} />
-                      <Text style={[styles.eventStat, { color: colors.gray400 }]}>{event.registration_count || 0}</Text>
-                    </View>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <View style={styles.emptyEventsContainer}>
-              <Ionicons name="calendar-outline" size={32} color={colors.gray300} />
-              <Text style={[styles.emptyEventsText, { color: colors.gray400 }]}>Aucun evenement publie</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+          <View style={{ height: Spacing.xl * 2 }} />
+        </ScrollView>
       </View>
     </EditorialCanvas>
   );
@@ -435,8 +498,189 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: Spacing.lg,
+    paddingTop: Spacing.md,
     paddingBottom: Spacing['3xl'],
+  },
+
+  // ─── Hero card éditoriale ───────────────────────────────────────────
+  heroCard: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: Spacing.lg,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 20,
+    elevation: 4,
+  },
+  typePillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: Spacing.sm,
+  },
+  typePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
+  },
+  typePillText: {
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  categoryEyebrow: {
+    fontSize: 10,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    flexShrink: 1,
+  },
+  heroRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  heroAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 16,
+  },
+  heroAvatarPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroAvatarInitial: {
+    color: '#FFFFFF',
+    fontFamily: FontFamily.displayBold,
+    fontSize: 28,
+    letterSpacing: -0.5,
+  },
+  nameRowInline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  heroName: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 22,
+    lineHeight: 26,
+    letterSpacing: -0.5,
+    flexShrink: 1,
+  },
+  heroSubtitle: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+    marginTop: 4,
+  },
+
+  // Stats grid (3 colonnes éditoriales)
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.06)',
+  },
+  statCell: {
+    flex: 1,
+    alignItems: 'flex-start',
+    gap: 2,
+  },
+
+  // Section éditoriale (description, social, events)
+  editorialSection: {
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.lg,
+  },
+  editorialSectionHead: {
+    gap: 4,
+    marginBottom: Spacing.md,
+  },
+  descriptionText: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontFamily: FontFamily.regular,
+  },
+
+  // Social chips horizontales unifiées
+  socialChipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  socialChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  socialChipText: {
+    fontSize: 12,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.1,
+  },
+
+  // Event row éditorial : date tile orange + titre display
+  eventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+  },
+  eventDateTile: {
+    width: 64,
+    height: 72,
+    borderRadius: BorderRadius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+  },
+  eventDateDay: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 24,
+    letterSpacing: -1,
+    lineHeight: 26,
+  },
+  eventDateMonth: {
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  eventBody: {
+    flex: 1,
+    gap: 4,
+  },
+  eventMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  eventMetaText: {
+    fontSize: 11,
+    fontFamily: FontFamily.medium,
+    flexShrink: 1,
+  },
+  eventBottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
   },
   loadingContainer: {
     flex: 1,
@@ -535,11 +779,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  // Actions
+  // Actions inline dans la hero card
   actionsRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
+    alignItems: 'center',
+    gap: Spacing.sm,
   },
   contactButton: {
     flex: 1,
@@ -556,77 +800,15 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
     color: Colors.white,
   },
-  // Section
-  section: {
-    marginBottom: Spacing.xl,
-  },
-  sectionTitle: {
-    fontSize: FontSizes.lg,
-    fontFamily: FontFamily.displaySemiBold,
-    color: Colors.gray900,
-    marginBottom: Spacing.md,
-  },
-  descriptionText: {
-    fontSize: FontSizes.md,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray600,
-    lineHeight: FontSizes.md * 1.6,
-  },
-  // Social Links
-  socialLinksRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.md,
-  },
-  socialButton: {
-    alignItems: 'center',
-    backgroundColor: Colors.gray50,
+  // Bouton Contacter version icône secondaire (à côté du Follow primaire)
+  contactIconButton: {
+    width: 48,
+    height: 48,
     borderRadius: BorderRadius.lg,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.xs,
-    minWidth: 80,
-  },
-  socialButtonText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray600,
-  },
-  // Website Card
-  websiteCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.md,
-    marginBottom: Spacing.xl,
-    gap: Spacing.md,
-  },
-  websiteIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.primaryBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  websiteTextContainer: {
-    flex: 1,
-  },
-  websiteLabel: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.medium,
-    color: Colors.gray500,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  websiteUrl: {
-    fontSize: FontSizes.md,
-    fontFamily: FontFamily.regular,
-    color: Colors.primary,
-    marginTop: 2,
-  },
-  // Events
+  // Loader des events (pendant fetch)
   eventsLoadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -635,82 +817,30 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   eventsLoadingText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-  },
-  eventCard: {
-    flexDirection: 'row',
-    backgroundColor: Colors.gray50,
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    marginBottom: Spacing.md,
-  },
-  eventImage: {
-    width: 100,
-    height: 100,
-  },
-  eventImagePlaceholder: {
-    width: 100,
-    height: 100,
-    backgroundColor: Colors.gray200,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  eventInfo: {
-    flex: 1,
-    padding: Spacing.md,
-    justifyContent: 'center',
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
   },
   eventTitle: {
-    fontSize: FontSizes.md,
+    fontSize: 14,
     fontFamily: FontFamily.semiBold,
-    color: Colors.gray900,
-    marginBottom: Spacing.xs,
-  },
-  eventDateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  eventDate: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-  },
-  eventLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: 2,
-  },
-  eventLocation: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray500,
-    flex: 1,
-  },
-  eventMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xs,
+    letterSpacing: -0.2,
+    lineHeight: 18,
   },
   freeBadge: {
-    backgroundColor: Colors.successLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    alignSelf: 'flex-start',
   },
   freeBadgeText: {
-    fontSize: FontSizes.xs,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.successDark,
+    fontSize: 9,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.8,
   },
   eventPrice: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.primary,
+    fontSize: 13,
+    fontFamily: FontFamily.displayBold,
+    letterSpacing: -0.2,
   },
   eventStatRow: {
     flexDirection: 'row',
@@ -722,15 +852,17 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.regular,
     color: Colors.gray400,
   },
-  // Empty Events
+  // Empty Events — éditorial : card avec border et icon centré
   emptyEventsContainer: {
     alignItems: 'center',
     paddingVertical: Spacing['2xl'],
+    paddingHorizontal: Spacing.lg,
     gap: Spacing.sm,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
   },
   emptyEventsText: {
-    fontSize: FontSizes.sm,
-    fontFamily: FontFamily.regular,
-    color: Colors.gray400,
+    fontSize: 13,
+    fontFamily: FontFamily.medium,
   },
 });

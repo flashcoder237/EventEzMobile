@@ -37,7 +37,17 @@ export const messagesAPI = {
   getMessages: (params?: { conversation?: string; page?: string }) =>
     api.get('/messages/', { params }),
 
-  sendMessage: (data: { content: string; conversation?: string; reply_to?: string }) =>
+  sendMessage: (data: {
+    content: string;
+    conversation?: string;
+    reply_to?: string;
+    // attachment_ids : ids des MessageAttachment uploadés via
+    // upload_attachment / upload_voice_message (encore "orphelins"). Le
+    // serializer backend les rattache au message créé. Sans ce champ en
+    // mode REST (WS indispo), un message avec image seule est rejeté car
+    // content="" + 0 attachment lié.
+    attachment_ids?: (string | number)[];
+  }) =>
     api.post('/messages/', data),
 
   updateMessage: (id: string, data: { content?: string; is_starred?: boolean }) =>

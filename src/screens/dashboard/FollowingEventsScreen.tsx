@@ -21,12 +21,13 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { eventsAPI, getMediaUrl } from '../../api';
+import { eventsAPI, usersAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
 import { SaveToBookmarks, Authentication, AnimatedIllustration } from '../../components/illustrations';
 import { RootStackParamList, Event } from '../../types';
@@ -49,6 +50,35 @@ const CANVAS_LIGHT = '#FDFBF7';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabFilter = 'all' | 'upcoming' | 'weekend' | 'past';
+type SectionKind = 'events' | 'organizers';
+
+// Le backend (`UserFollowSerializer`) expose les infos enrichies de
+// l'utilisateur suivi sous `following_details` (dict), tandis que `following`
+// est juste l'ID FK. On lit donc `following_details` côté mobile.
+interface OrganizerFollow {
+  id: number;
+  follower: number;
+  following: number;
+  following_details: {
+    id: number;
+    name: string;
+    first_name?: string;
+    last_name?: string;
+    company_name?: string;
+    email: string;
+    profile_picture?: string | null;
+    is_verified?: boolean;
+    role?: string;
+    organizer_profile?: {
+      description?: string;
+      logo?: string | null;
+      event_count?: number;
+      rating?: number;
+    };
+  };
+  notification_preference: string;
+  created_at: string;
+}
 
 interface FollowData {
   id: string;
@@ -140,20 +170,70 @@ export default function FollowingEventsScreen() {
   const { user } = useAuth();
   const { showError, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [follows, setFollows] = useState<FollowData[]>([]);
+  const [organizers, setOrganizers] = useState<OrganizerFollow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingOrganizers, setLoadingOrganizers] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabFilter>('upcoming');
+  // Section toggle : on commute entre les events suivis et les organisateurs suivis
+  const [activeSection, setActiveSection] = useState<SectionKind>('events');
 
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
 
   useFocusEffect(
     useCallback(() => {
-      if (user) loadFollowedEvents();
+      if (user) {
+        loadFollowedEvents();
+        loadFollowedOrganizers();
+      }
     }, [user]),
   );
+
+  const loadFollowedOrganizers = async (bypassCache = false) => {
+    const cacheKey = `following:organizers:${user?.id}`;
+    setLoadingOrganizers(true);
+    try {
+      if (!bypassCache) {
+        const cached = await CacheService.get<OrganizerFollow[]>(cacheKey);
+        if (cached) {
+          setOrganizers(cached.data);
+          if (!cached.isStale) {
+            setLoadingOrganizers(false);
+            return;
+          }
+        }
+      }
+      const response = await usersAPI.getFollowingUsers();
+      const data = response.data?.results || response.data || [];
+      setOrganizers(data);
+      CacheService.set(cacheKey, data, 2 * 60 * 1000);
+    } catch (error) {
+      if (__DEV__) console.error('Error loading followed organizers:', error);
+    } finally {
+      setLoadingOrganizers(false);
+    }
+  };
+
+  const handleUnfollowOrganizer = useCallback((organizerId: number, organizerName: string) => {
+    showConfirm(
+      'Ne plus suivre',
+      `Voulez-vous vraiment ne plus suivre ${organizerName} ?`,
+      async () => {
+        try {
+          await usersAPI.unfollowUser(organizerId);
+          setOrganizers((prev) => prev.filter((o) => o.following !== organizerId));
+          // Invalide le cache pour rester cohérent au prochain mount
+          CacheService.invalidate(`following:organizers:${user?.id}`);
+        } catch {
+          showError('Erreur', 'Impossible de retirer le suivi pour le moment.');
+        }
+      },
+    );
+  }, [user?.id, showConfirm, showError]);
 
   const loadFollowedEvents = async (bypassCache = false) => {
     const cacheKey = `following:${user?.id}`;
@@ -795,6 +875,120 @@ export default function FollowingEventsScreen() {
   );
 
   // ==========================================================
+  // Section "Organisateurs suivis"
+  // ==========================================================
+  const renderOrganizersSection = () => {
+    if (loadingOrganizers && organizers.length === 0) {
+      return (
+        <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl, gap: Spacing.md }}>
+          {[1, 2, 3].map((i) => (
+            <View key={i} style={[styles.organizerRow, { backgroundColor: colors.gray100, opacity: 0.5 }]} />
+          ))}
+        </View>
+      );
+    }
+
+    if (organizers.length === 0) {
+      return (
+        <ScrollView contentContainerStyle={styles.emptyOrganizers}>
+          <AnimatedIllustration entry="fadeIn" idle="sway">
+            <SaveToBookmarks color={colors.primary} size={160} />
+          </AnimatedIllustration>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun organisateur suivi</Text>
+          <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
+            Suis tes organisateurs préférés pour ne rien rater de leurs événements.
+          </Text>
+        </ScrollView>
+      );
+    }
+
+    return (
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: Spacing.lg,
+          paddingTop: Spacing.md,
+          // Floating dock (~80px) + safe area bottom + breathing room.
+          // Garantit que le dernier organisateur n'est pas masqué par le dock
+          // ni la nav bar Android.
+          paddingBottom: insets.bottom + 90,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={loadingOrganizers}
+            onRefresh={() => loadFollowedOrganizers(true)}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {organizers.map((follow) => {
+          // following_details est le dict enrichi servi par UserFollowSerializer.
+          // following (sans _details) n'est que l'ID FK — incompatible avec un render.
+          const target = follow.following_details || ({} as OrganizerFollow['following_details']);
+          const fullName = target.company_name
+            || target.name
+            || `${target.first_name || ''} ${target.last_name || ''}`.trim()
+            || target.email
+            || 'Organisateur';
+          const avatar = target.profile_picture || target.organizer_profile?.logo || null;
+          const isVerified = !!target.is_verified;
+          const eventCount = target.organizer_profile?.event_count || 0;
+
+          return (
+            <TouchableOpacity
+              key={String(target.id)}
+              style={[styles.organizerRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => navigation.navigate('OrganizerProfile', { organizerId: String(target.id) })}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={`Voir le profil de ${fullName}`}
+            >
+              {avatar ? (
+                <Image
+                  source={getMediaUrl(avatar)}
+                  style={styles.organizerRowAvatar}
+                  contentFit="cover"
+                  cachePolicy="disk"
+                  transition={200}
+                />
+              ) : (
+                <View style={[styles.organizerRowAvatar, { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' }]}>
+                  <Text style={{ color: '#FFF', fontFamily: FontFamily.bold, fontSize: 18 }}>
+                    {fullName[0]?.toUpperCase() || 'O'}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.organizerRowBody}>
+                <View style={styles.organizerRowNameRow}>
+                  <Text style={[styles.organizerRowName, { color: colors.text }]} numberOfLines={1}>
+                    {fullName}
+                  </Text>
+                  {isVerified && (
+                    <Ionicons name="checkmark-circle" size={14} color={colors.primary} />
+                  )}
+                </View>
+                <Text style={[styles.organizerRowMeta, { color: colors.gray500 }]} numberOfLines={1}>
+                  {eventCount} événement{eventCount > 1 ? 's' : ''}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleUnfollowOrganizer(target.id, fullName);
+                }}
+                style={[styles.organizerRowUnfollow, { borderColor: colors.border, backgroundColor: colors.gray50 }]}
+                accessibilityRole="button"
+                accessibilityLabel={`Ne plus suivre ${fullName}`}
+              >
+                <Ionicons name="person-remove-outline" size={16} color={colors.gray600} />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    );
+  };
+
+  // ==========================================================
   // Render
   // ==========================================================
   if (!user) {
@@ -847,13 +1041,61 @@ export default function FollowingEventsScreen() {
               </TouchableOpacity>
               <View style={[styles.countPill, { backgroundColor: colors.primaryBg }]}>
                 <Text style={[styles.countPillText, { color: colors.primary }]}>
-                  {follows.length} sauv.
+                  {activeSection === 'events'
+                    ? `${follows.length} sauv.`
+                    : `${organizers.length} suivi${organizers.length > 1 ? 's' : ''}`}
                 </Text>
               </View>
             </View>
           </View>
 
-          {/* Tabs row */}
+          {/* Section tabs éditoriaux underline (style presse) :
+              uppercase tracking + count inline + soulignement corail sur l'actif */}
+          <View style={[styles.editorialTabsRow, { borderBottomColor: colors.border }]}>
+            {(['events', 'organizers'] as SectionKind[]).map((section) => {
+              const isActive = activeSection === section;
+              const label = section === 'events' ? 'ÉVÉNEMENTS' : 'ORGANISATEURS';
+              const count = section === 'events' ? follows.length : organizers.length;
+              return (
+                <TouchableOpacity
+                  key={section}
+                  onPress={() => setActiveSection(section)}
+                  style={styles.editorialTab}
+                  activeOpacity={0.85}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <View style={styles.editorialTabRow}>
+                    <Text
+                      style={[
+                        styles.editorialTabLabel,
+                        { color: isActive ? colors.text : colors.gray500 },
+                      ]}
+                    >
+                      {label}
+                    </Text>
+                    {count > 0 && (
+                      <Text
+                        style={[
+                          styles.editorialTabCount,
+                          { color: isActive ? colors.accent : colors.gray400 },
+                        ]}
+                      >
+                        · {count}
+                      </Text>
+                    )}
+                  </View>
+                  {/* Underline corail : visible uniquement sur l'actif */}
+                  {isActive && (
+                    <View style={[styles.editorialTabUnderline, { backgroundColor: colors.accent }]} />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Tabs row : visibles UNIQUEMENT pour la section Événements */}
+          {activeSection === 'events' && (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -882,7 +1124,11 @@ export default function FollowingEventsScreen() {
                   <Text
                     style={[
                       styles.tabChipText,
-                      { color: isActive ? Colors.white : colors.gray600 },
+                      // Texte inverse du theme : sur ink (bg = colors.text),
+                      // on prend colors.background → contraste garanti dans
+                      // les 2 modes (light: bg sombre + text clair / dark:
+                      // bg clair + text sombre).
+                      { color: isActive ? colors.background : colors.gray600 },
                     ]}
                   >
                     {tab.label}
@@ -891,6 +1137,7 @@ export default function FollowingEventsScreen() {
               );
             })}
           </ScrollView>
+          )}
 
           {/* Search */}
           {searchOpen && (
@@ -918,7 +1165,10 @@ export default function FollowingEventsScreen() {
           )}
         </View>
 
-        {/* Content */}
+        {/* Content : Événements OU Organisateurs selon section active */}
+        {activeSection === 'organizers' ? (
+          renderOrganizersSection()
+        ) : (
         <ContentTransition
           isLoading={loading}
           skeleton={
@@ -1036,6 +1286,7 @@ export default function FollowingEventsScreen() {
             )}
           </ScrollView>
         </ContentTransition>
+        )}
       </View>
     </EditorialCanvas>
   );
@@ -1093,6 +1344,93 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: 11,
     letterSpacing: -0.1,
+  },
+
+  // Section tabs éditoriaux underline (style presse / fanzine)
+  editorialTabsRow: {
+    flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    marginTop: Spacing.md,
+    borderBottomWidth: 1,
+    gap: Spacing.lg,
+  },
+  editorialTab: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    position: 'relative',
+  },
+  editorialTabRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 4,
+  },
+  editorialTabLabel: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 1.5,
+  },
+  editorialTabCount: {
+    fontSize: 11,
+    fontFamily: FontFamily.bold,
+    letterSpacing: 0.3,
+  },
+  // Soulignement corail 3px qui marque le tab actif (overlap la border bottom)
+  editorialTabUnderline: {
+    position: 'absolute',
+    bottom: -1,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderTopLeftRadius: 2,
+    borderTopRightRadius: 2,
+  },
+
+  // Section "Organisateurs suivis" — liste compacte
+  organizerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+  },
+  organizerRowAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  organizerRowBody: {
+    flex: 1,
+    gap: 2,
+  },
+  organizerRowNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  organizerRowName: {
+    fontSize: 15,
+    fontFamily: FontFamily.semiBold,
+    letterSpacing: -0.2,
+  },
+  organizerRowMeta: {
+    fontSize: 12,
+    fontFamily: FontFamily.medium,
+  },
+  organizerRowUnfollow: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyOrganizers: {
+    alignItems: 'center',
+    paddingTop: Spacing['2xl'],
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.md,
   },
 
   tabsRow: {

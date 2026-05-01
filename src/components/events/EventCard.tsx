@@ -160,7 +160,9 @@ function EventCard({
             style={StyleSheet.absoluteFill}
           />
           <View style={[styles.dateTileFloat, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-            <Text style={[styles.dateTileDay, { color: colors.text }]}>{day}</Text>
+            {/* Fond blanc fixe → ink statique (Colors.gray900) pour rester
+                lisible en dark mode où colors.text devient clair */}
+            <Text style={[styles.dateTileDay, { color: Colors.gray900 }]}>{day}</Text>
             <Text style={[styles.dateTileMonth, { color: colors.accent }]}>{month}</Text>
           </View>
         </View>
@@ -246,7 +248,7 @@ function EventCard({
             style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
           />
           <View style={[styles.dateTileFloatSmall, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-            <Text style={[styles.dateTileDaySmall, { color: colors.text }]}>{day}</Text>
+            <Text style={[styles.dateTileDaySmall, { color: Colors.gray900 }]}>{day}</Text>
             <Text style={[styles.dateTileMonthSmall, { color: colors.accent }]}>{month}</Text>
           </View>
         </View>
@@ -312,7 +314,7 @@ function EventCard({
           {isFeatured && (
             <View style={[styles.featuredEyebrowPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
               <Ionicons name="star" size={10} color={colors.accent} />
-              <Text style={[styles.featuredEyebrowText, { color: colors.text }]}>EN VEDETTE</Text>
+              <Text style={[styles.featuredEyebrowText, { color: Colors.gray900 }]}>EN VEDETTE</Text>
             </View>
           )}
 
@@ -326,7 +328,7 @@ function EventCard({
               <Ionicons
                 name={isLiked ? 'bookmark' : 'bookmark-outline'}
                 size={16}
-                color={isLiked ? colors.accent : colors.text}
+                color={isLiked ? colors.accent : Colors.gray900}
               />
             </AnimatedBookmark>
           </TouchableOpacity>
@@ -370,7 +372,15 @@ function EventCard({
             </View>
           ) : (
             <View style={[styles.pricePillPaid, { backgroundColor: colors.text }]}>
-              <Text style={styles.pricePillPaidText} numberOfLines={1}>{shortPriceText}</Text>
+              {/* Texte inverse du theme : bg=colors.text (s'inverse) →
+                  text=colors.background pour garantir le contraste dans
+                  les 2 modes. Override le '#FFFFFF' hardcodé du style. */}
+              <Text
+                style={[styles.pricePillPaidText, { color: colors.background }]}
+                numberOfLines={1}
+              >
+                {shortPriceText}
+              </Text>
             </View>
           )}
         </View>
@@ -413,7 +423,7 @@ function EventCard({
             style={StyleSheet.absoluteFill}
           />
           <View style={[styles.dateTileFloatSmall, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-            <Text style={[styles.dateTileDaySmall, { color: colors.text }]}>{day}</Text>
+            <Text style={[styles.dateTileDaySmall, { color: Colors.gray900 }]}>{day}</Text>
             <Text style={[styles.dateTileMonthSmall, { color: colors.accent }]}>{month}</Text>
           </View>
           <TouchableOpacity
@@ -425,7 +435,7 @@ function EventCard({
               <Ionicons
                 name={isLiked ? 'bookmark' : 'bookmark-outline'}
                 size={14}
-                color={isLiked ? colors.accent : colors.text}
+                color={isLiked ? colors.accent : Colors.gray900}
               />
             </AnimatedBookmark>
           </TouchableOpacity>
@@ -499,11 +509,11 @@ function EventCard({
         {isFeatured ? (
           <View style={[styles.eyebrowPillFloat, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
             <Ionicons name="star" size={10} color={colors.accent} />
-            <Text style={[styles.eyebrowFloatText, { color: colors.text }]}>EN VEDETTE</Text>
+            <Text style={[styles.eyebrowFloatText, { color: Colors.gray900 }]}>EN VEDETTE</Text>
           </View>
         ) : category ? (
           <View style={[styles.eyebrowPillFloat, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
-            <Text style={[styles.eyebrowFloatText, { color: colors.text }]} numberOfLines={1}>
+            <Text style={[styles.eyebrowFloatText, { color: Colors.gray900 }]} numberOfLines={1}>
               {category.toUpperCase()}
             </Text>
           </View>

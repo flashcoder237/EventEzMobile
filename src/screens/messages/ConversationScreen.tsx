@@ -32,15 +32,13 @@ import {
   useAudioPlayer,
   useAudioRecorder,
   type AudioPlayer,
+  createAudioPlayer,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
   RecordingPresets,
 } from 'expo-audio';
 
-// AudioPlayer is exported as a type-only from expo-audio, need runtime reference
-const AudioPlayerClass = require('expo-audio').AudioPlayer;
-
-import { messagesAPI } from '../../api';
+import { messagesAPI, getMediaUrl } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -103,9 +101,24 @@ export default function ConversationScreen() {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const playerRef = useRef<AudioPlayer | null>(null);
+  // Track quel messageId est actuellement chargé dans playerRef. Permet de
+  // distinguer "toggle pause/play sur le même" de "lancer un nouveau message".
+  const currentPlayerMsgIdRef = useRef<string | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
+  // État de lecture audio (un seul audio joué à la fois). Mis à jour via le
+  // listener playbackStatusUpdate du player. null = aucune lecture en cours.
+  const [voicePlayback, setVoicePlayback] = React.useState<{
+    messageId: string;
+    currentMs: number;
+    durationMs: number;
+    isLoading: boolean;
+  } | null>(null);
+  // Set des attachment ids en cours d'upload : permet à MessageBubble
+  // d'afficher un overlay de chargement sur le tempMessage avant que l'upload
+  // ne se termine.
+  const [uploadingIds, setUploadingIds] = React.useState<Set<string>>(new Set());
 
   // WebSocket
   const {
@@ -206,10 +219,13 @@ export default function ConversationScreen() {
   useEffect(() => {
     return () => {
       if (playerRef.current) {
-        playerRef.current.remove();
+        try { playerRef.current.remove(); } catch { /* noop */ }
+        playerRef.current = null;
       }
+      currentPlayerMsgIdRef.current = null;
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
       }
     };
   }, []);
@@ -462,7 +478,9 @@ export default function ConversationScreen() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        // expo-image-picker v17+ : `MediaTypeOptions.Images` est deprecated,
+        // l'API actuelle attend une string ou un array de strings.
+        mediaTypes: 'images',
         // 0.7 (au lieu de 0.8) : gain de poids ~30% supplémentaire pour rester
         // sous le quota groupe de 500 MB sans sacrifier la lisibilité.
         quality: 0.7,
@@ -576,31 +594,65 @@ export default function ConversationScreen() {
 
   const playVoiceMessage = async (uri: string, messageId: string) => {
     try {
-      // Stop current playback
-      if (playerRef.current) {
-        playerRef.current.remove();
-        playerRef.current = null;
-      }
-
-      if (state.playingVoiceId === messageId) {
-        actions.setPlayingVoice(null);
+      // Cas 1 : tap sur le message déjà chargé → toggle pause / play sans
+      // détruire le player (préserve la position de lecture).
+      if (playerRef.current && currentPlayerMsgIdRef.current === messageId) {
+        const player: any = playerRef.current;
+        const isCurrentlyPlaying = state.playingVoiceId === messageId;
+        if (isCurrentlyPlaying) {
+          try { player.pause(); } catch { /* noop */ }
+          actions.setPlayingVoice(null);
+        } else {
+          try { player.play(); } catch { /* noop */ }
+          actions.setPlayingVoice(messageId);
+        }
         return;
       }
 
-      const player = new AudioPlayerClass(uri);
-      playerRef.current = player;
+      // Cas 2 : tap sur un autre message → couper le player précédent
+      if (playerRef.current) {
+        try { playerRef.current.remove(); } catch { /* noop */ }
+        playerRef.current = null;
+        currentPlayerMsgIdRef.current = null;
+      }
+
+      const playableUri = getMediaUrl(uri) || uri;
+
+      // Loading visible immédiatement (entre tap et premier sample).
+      setVoicePlayback({ messageId, currentMs: 0, durationMs: 0, isLoading: true });
       actions.setPlayingVoice(messageId);
 
-      player.play();
+      const player = createAudioPlayer({ uri: playableUri });
+      playerRef.current = player;
+      currentPlayerMsgIdRef.current = messageId;
 
-      // Listen for playback end
       const subscription = player.addListener('playbackStatusUpdate', (status: any) => {
-        if (status.didJustFinish) {
+        // status: { isLoaded, currentTime (s), duration (s), didJustFinish, playing }
+        if (status?.didJustFinish) {
           actions.setPlayingVoice(null);
-          subscription.remove();
+          setVoicePlayback(null);
+          try { subscription.remove(); } catch { /* noop */ }
+          try { player.remove(); } catch { /* noop */ }
+          if (playerRef.current === player) playerRef.current = null;
+          if (currentPlayerMsgIdRef.current === messageId) currentPlayerMsgIdRef.current = null;
+          return;
+        }
+        if (status?.isLoaded) {
+          setVoicePlayback({
+            messageId,
+            currentMs: Math.round((status.currentTime ?? 0) * 1000),
+            durationMs: Math.round((status.duration ?? 0) * 1000),
+            isLoading: false,
+          });
         }
       });
+
+      player.play();
     } catch (error) {
+      if (__DEV__) console.error('[playVoiceMessage] uri=', uri, 'err=', error);
+      actions.setPlayingVoice(null);
+      setVoicePlayback(null);
+      currentPlayerMsgIdRef.current = null;
       showError('Erreur', 'Impossible de lire le message vocal');
     }
   };
@@ -834,41 +886,25 @@ export default function ConversationScreen() {
         throw new Error('Pas de conversation disponible');
       }
 
-      // IMPORTANT: Upload attachments AVANT l'optimistic update
-      let attachmentIds: string[] = [];
+      // Optimistic update IMMÉDIAT — le tempMessage apparaît dans la liste
+      // dès le tap sur "envoyer", même si les attachments ne sont pas encore
+      // uploadés. Chaque attachment temporaire reçoit un id `tmp:...` qu'on
+      // ajoute à `uploadingIds` ; MessageBubble affiche un overlay loader
+      // tant que l'id figure dans ce Set.
+      const tempMessageId = `temp-${Date.now()}`;
+      const tempAttachments = state.attachedFiles.map((f, i) => ({
+        id: `tmp:${tempMessageId}:${i}`,
+        file: f.uri,
+        attachment_type: f.type,
+        file_name: f.name,
+        file_size: 0,
+        mime_type: f.type === 'image' ? 'image/jpeg' : f.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
+        duration_seconds: f.duration,
+        uploaded_at: new Date().toISOString(),
+      }));
 
-      for (const att of state.attachedFiles) {
-        const formData = new FormData();
-        formData.append('file', {
-          uri: att.uri,
-          name: att.name,
-          type: att.type === 'image' ? 'image/jpeg' : att.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
-        } as any);
-        formData.append('type', att.type);
-        // Informe le backend de la conversation cible pour ses propres validations
-        // (quota cumulé + read-only — filet de sécurité côté serveur).
-        if (conversationIdToUse) {
-          formData.append('conversation_id', String(conversationIdToUse));
-        }
-
-        try {
-          let uploadResponse;
-          if (att.type === 'voice') {
-            uploadResponse = await messagesAPI.uploadVoiceMessage(formData);
-          } else {
-            uploadResponse = await messagesAPI.uploadAttachment(formData);
-          }
-          if (uploadResponse.data?.id) {
-            attachmentIds.push(uploadResponse.data.id);
-          }
-        } catch (uploadError) {
-          if (__DEV__) console.error('Erreur upload attachment:', uploadError);
-        }
-      }
-
-      // Maintenant faire l'optimistic update avec les vrais attachment IDs
       const tempMessage: Message = {
-        id: `temp-${Date.now()}`,
+        id: tempMessageId,
         conversation: conversationIdToUse,
         sender: (user?.id ?? '') as any,
         sender_name: `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || user?.email || '',
@@ -880,21 +916,134 @@ export default function ConversationScreen() {
         is_deleted: false,
         read_by: [],
         reply_to: state.replyToMessage?.id,
-        attachments: state.attachedFiles.map((f, i) => ({
-          id: attachmentIds[i] || `temp-${Date.now()}-${i}`,
-          file: f.uri,
-          attachment_type: f.type,
-          file_name: f.name,
-          file_size: 0,
-          mime_type: f.type === 'image' ? 'image/jpeg' : f.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
-          duration_seconds: f.duration,
-          uploaded_at: new Date().toISOString(),
-        })),
+        attachments: tempAttachments,
       };
 
       actions.addMessage(tempMessage);
       actions.clearAttachedFiles();
       actions.cancelReply();
+
+      // Marquer tous les attachments en upload pour l'overlay loader
+      if (tempAttachments.length > 0) {
+        setUploadingIds(prev => {
+          const next = new Set(prev);
+          tempAttachments.forEach(a => next.add(String(a.id)));
+          return next;
+        });
+      }
+
+      // Upload des attachments en parallèle pour réduire la latence totale.
+      // Le backend distingue le field selon l'endpoint :
+      //   - upload_attachment lit `request.FILES['file']`
+      //   - upload_voice_message lit `request.FILES['audio']`
+      // Cf. apps/user_messages/views.py:703,862.
+      // Chaque promise retourne un { ok, id?, error?, code?, fileType }
+      // pour qu'on puisse remonter à l'UI les raisons exactes des échecs
+      // (taille, quota, mute, etc.) — l'erreur silencieuse précédente
+      // laissait l'utilisateur dans le noir si une image était rejetée.
+      type UploadOutcome =
+        | { ok: true; id: string; tmpIdx: number; fileType: 'image' | 'voice' | 'document'; fileName: string }
+        | { ok: false; error: string; code?: string; tmpIdx: number; fileType: 'image' | 'voice' | 'document'; fileName: string };
+
+      const uploadOutcomes: UploadOutcome[] = await Promise.all(
+        state.attachedFiles.map(async (att, idx): Promise<UploadOutcome> => {
+          const formData = new FormData();
+          const fileFieldName = att.type === 'voice' ? 'audio' : 'file';
+          formData.append(fileFieldName, {
+            uri: att.uri,
+            name: att.name,
+            type: att.type === 'image' ? 'image/jpeg' : att.type === 'voice' ? 'audio/m4a' : 'application/octet-stream',
+          } as any);
+          formData.append('type', att.type);
+          if (conversationIdToUse) {
+            formData.append('conversation_id', String(conversationIdToUse));
+          }
+
+          try {
+            const uploadResponse = att.type === 'voice'
+              ? await messagesAPI.uploadVoiceMessage(formData)
+              : await messagesAPI.uploadAttachment(formData);
+            const id = uploadResponse.data?.id ? String(uploadResponse.data.id) : '';
+            if (!id) {
+              return { ok: false, error: 'Réponse serveur invalide', tmpIdx: idx, fileType: att.type, fileName: att.name };
+            }
+            return { ok: true, id, tmpIdx: idx, fileType: att.type, fileName: att.name };
+          } catch (uploadError: any) {
+            if (__DEV__) console.error('Erreur upload attachment:', uploadError);
+            const data = uploadError?.response?.data || {};
+            const errorMsg: string = data.error || uploadError?.message || 'Échec de l\'upload';
+            return {
+              ok: false,
+              error: errorMsg,
+              code: data.code,
+              tmpIdx: idx,
+              fileType: att.type,
+              fileName: att.name,
+            };
+          } finally {
+            // Lever l'overlay loader sur cet attachment dès qu'il est résolu
+            setUploadingIds(prev => {
+              if (!prev.has(`tmp:${tempMessageId}:${idx}`)) return prev;
+              const next = new Set(prev);
+              next.delete(`tmp:${tempMessageId}:${idx}`);
+              return next;
+            });
+          }
+        })
+      );
+
+      const failedUploads = uploadOutcomes.filter((o): o is Extract<UploadOutcome, { ok: false }> => !o.ok);
+      const attachmentIds: string[] = uploadOutcomes
+        .filter((o): o is Extract<UploadOutcome, { ok: true }> => o.ok)
+        .map(o => o.id);
+
+      // Surface des erreurs d'upload à l'utilisateur. On distingue :
+      //   - Tous échouent + pas de texte : envoi annulé (rollback complet)
+      //   - Au moins un réussit OU il y a du texte : envoi du reste, on alerte
+      //     juste sur les fichiers rejetés
+      if (failedUploads.length > 0) {
+        const labelOf = (t: string) => t === 'image' ? 'image' : t === 'voice' ? 'message vocal' : 'fichier';
+        const codeMap: Record<string, string> = {
+          file_too_large: 'trop volumineux(e)',
+          conversation_quota_exceeded: 'plus de place dans le groupe',
+          conversation_read_only: 'discussion en lecture seule',
+          user_muted: 'vous êtes muté',
+          posting_mode_restricted: 'écriture restreinte',
+        };
+        const summary = failedUploads
+          .map(f => {
+            const reason = (f.code && codeMap[f.code]) || f.error;
+            return `• ${labelOf(f.fileType)} — ${reason}`;
+          })
+          .join('\n');
+
+        // Cas 1 : tous échouent + pas de texte → on rollback le tempMessage
+        if (attachmentIds.length === 0 && messageContent.length === 0) {
+          actions.removeTempMessages();
+          showError(
+            failedUploads.length > 1 ? 'Fichiers refusés' : 'Fichier refusé',
+            summary,
+          );
+          return; // sort du try, le finally remet sending=false
+        }
+
+        // Cas 2 : au moins un succès OU du texte → on alerte ET on retire les
+        // attachments échoués du tempMessage pour ne pas afficher de fantômes
+        // (l'image apparaîtrait jusqu'à ce que le vrai message arrive et la
+        // remplace, ce qui est trompeur).
+        const failedTmpIds = new Set(
+          failedUploads.map(f => `tmp:${tempMessageId}:${f.tmpIdx}`)
+        );
+        const remainingAttachments = (tempMessage.attachments || []).filter(
+          a => !failedTmpIds.has(String(a.id))
+        );
+        actions.updateMessage(tempMessageId, { attachments: remainingAttachments });
+
+        showError(
+          failedUploads.length > 1 ? 'Certains fichiers refusés' : 'Fichier refusé',
+          summary,
+        );
+      }
 
       // Envoi via WebSocket ou REST
       const wsSent = isConnected && isAuthenticated && wsSendMessage(
@@ -909,6 +1058,7 @@ export default function ConversationScreen() {
           conversation: conversationIdToUse,
           content: messageContent,
           reply_to: state.replyToMessage?.id != null ? String(state.replyToMessage.id) : undefined,
+          attachment_ids: attachmentIds.length > 0 ? attachmentIds : undefined,
         });
 
         actions.updateMessage(String(tempMessage.id), response.data);
@@ -919,6 +1069,8 @@ export default function ConversationScreen() {
       if (__DEV__) console.error('Erreur envoi message:', error);
       actions.removeTempMessages();
       actions.setNewMessage(messageContent);
+      // Cleanup des overlays loader si on a interrompu un upload
+      setUploadingIds(new Set());
       showError('Erreur', 'Impossible d\'envoyer le message');
     } finally {
       actions.setSending(false);
@@ -965,9 +1117,17 @@ export default function ConversationScreen() {
 
     // Message grouping: in inverted FlatList, index+1 is the visually previous (above) message
     const nextItem = index < state.messages.length - 1 ? state.messages[index + 1] : null;
+    // sender peut être un number (REST/temp) ou un objet { id, ... } (payload WS).
+    // On extrait l'id de manière robuste pour que le grouping fonctionne aussi
+    // après dédup tempMessage ↔ vrai message (cf. useMessageState ADD_MESSAGE).
+    const senderIdOf = (s: any): string => {
+      if (s == null) return '';
+      if (typeof s === 'object' && s.id != null) return String(s.id);
+      return String(s);
+    };
     const isGrouped = nextItem &&
       nextItem.message_type !== 'system' &&
-      Number(nextItem.sender) === Number(item.sender) &&
+      senderIdOf(nextItem.sender) === senderIdOf(item.sender) &&
       (new Date(item.created_at).getTime() - new Date(nextItem.created_at).getTime()) < 120000;
 
     return (
@@ -984,12 +1144,14 @@ export default function ConversationScreen() {
           replyToMessage={replyToContent}
           otherUserId={state.otherUserId}
           playingVoiceId={state.playingVoiceId}
+          voicePlayback={voicePlayback}
+          uploadingAttachmentIds={uploadingIds}
           onLongPress={handleMessageLongPress}
           onPlayVoice={playVoiceMessage}
         />
       </View>
     );
-  }, [state.messages, state.otherUserId, state.playingVoiceId, user?.id, handleMessageLongPress]);
+  }, [state.messages, state.otherUserId, state.playingVoiceId, voicePlayback, uploadingIds, user?.id, handleMessageLongPress]);
 
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
