@@ -66,6 +66,11 @@ interface UseMessagingWebSocketOptions {
 // Configuration reconnexion
 const MAX_RECONNECT_ATTEMPTS = 5;
 const TYPING_TIMEOUT_MS = 5000;
+// Si le socket reste en CONNECTING au-delà de ce délai, on force-close pour
+// sortir de l'état "Connexion..." infini (réseau bloqué, proxy/captive portal,
+// pas de réponse 101 Switching Protocols). ws.close() depuis CONNECTING
+// déclenche onclose et relance la chaîne de reconnexion automatique.
+const CONNECTING_TIMEOUT_MS = 15000;
 
 export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}) {
   const {
@@ -87,6 +92,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   // Si le serveur envoie un code d'erreur "permanent" (max_connections, etc.),
   // on bloque la reconnexion auto pour éviter un storm.
@@ -343,8 +349,31 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
       const ws = new WebSocket(wsUrl);
 
+      // Watchdog handshake : si le socket ne dépasse pas l'état CONNECTING
+      // dans le délai imparti, on le ferme pour relancer la boucle de
+      // reconnexion. Sans ça, l'UI reste sur "Connexion..." indéfiniment
+      // quand le serveur est joignable mais ne répond pas au handshake.
+      if (connectingTimeoutRef.current) {
+        clearTimeout(connectingTimeoutRef.current);
+      }
+      connectingTimeoutRef.current = setTimeout(() => {
+        if (ws.readyState === WebSocket.CONNECTING) {
+          if (__DEV__) console.warn('[WS] handshake timeout, fermeture forcée');
+          setConnectionError('Délai de connexion dépassé. Le serveur ne répond pas.');
+          try {
+            ws.close();
+          } catch {
+            // ignore
+          }
+        }
+      }, CONNECTING_TIMEOUT_MS);
+
       ws.onopen = () => {
         if (__DEV__) console.log('WebSocket connected, authenticating...');
+        if (connectingTimeoutRef.current) {
+          clearTimeout(connectingTimeoutRef.current);
+          connectingTimeoutRef.current = null;
+        }
         setIsConnected(true);
         // Ne PAS reset reconnectAttemptsRef ici — le backend accepte toujours
         // le WS avant d'authentifier, donc onopen ne signifie pas "session OK".
@@ -360,6 +389,10 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
       ws.onclose = (event) => {
         if (__DEV__) console.log('WebSocket closed:', event.code, event.reason);
+        if (connectingTimeoutRef.current) {
+          clearTimeout(connectingTimeoutRef.current);
+          connectingTimeoutRef.current = null;
+        }
         setIsConnected(false);
         setIsAuthenticated(false);
         onConnectionChange?.(false);
@@ -419,6 +452,10 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
+    }
+    if (connectingTimeoutRef.current) {
+      clearTimeout(connectingTimeoutRef.current);
+      connectingTimeoutRef.current = null;
     }
 
     if (wsRef.current) {

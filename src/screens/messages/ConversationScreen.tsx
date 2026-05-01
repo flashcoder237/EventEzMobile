@@ -111,6 +111,8 @@ export default function ConversationScreen() {
   const {
     isConnected,
     isAuthenticated,
+    connectionError: wsConnectionError,
+    reconnect: wsReconnect,
     sendMessage: wsSendMessage,
     editMessage: wsEditMessage,
     deleteMessage: wsDeleteMessage,
@@ -1099,10 +1101,38 @@ export default function ConversationScreen() {
 
       {/* Connection Status Warning */}
       {!isConnected && state.conversationId && (
-        <View style={[styles.connectionStatus, { backgroundColor: colors.warning }]}>
-          <Text style={[styles.connectionStatusText, { color: colors.white }]}>
-            Mode hors-ligne - Rafraîchissement automatique
+        <View
+          style={[
+            styles.connectionStatus,
+            {
+              backgroundColor: wsConnectionError ? colors.error : colors.warning,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            },
+          ]}
+        >
+          <Text style={[styles.connectionStatusText, { color: colors.white, flex: 1 }]}>
+            {wsConnectionError
+              ? wsConnectionError
+              : 'Connexion en cours… (mode hors-ligne)'}
           </Text>
+          <TouchableOpacity
+            onPress={() => wsReconnect()}
+            accessibilityRole="button"
+            accessibilityLabel="Réessayer la connexion au serveur de messagerie"
+            style={{
+              paddingHorizontal: 10,
+              paddingVertical: 4,
+              borderRadius: 8,
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              marginLeft: 8,
+            }}
+          >
+            <Text style={[styles.connectionStatusText, { color: colors.white }]}>
+              Réessayer
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 
