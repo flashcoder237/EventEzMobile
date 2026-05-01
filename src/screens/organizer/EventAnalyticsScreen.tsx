@@ -252,7 +252,7 @@ export default function EventAnalyticsScreen() {
               </View>
               <Text style={[styles.insightText, { color: colors.text }]}>
                 {views > 0
-                  ? `Votre événement a été vu ${views} fois`
+                  ? `Votre événement a été vu ${formatNumber(views)} fois`
                   : 'Partagez votre événement pour obtenir plus de vues'}
               </Text>
             </View>
@@ -262,7 +262,7 @@ export default function EventAnalyticsScreen() {
                   <Ionicons name="people" size={18} color={colors.primary} />
                 </View>
                 <Text style={[styles.insightText, { color: colors.text }]}>
-                  {registrations} personne{registrations > 1 ? 's' : ''} inscrite
+                  {formatNumber(registrations)} personne{registrations > 1 ? 's' : ''} inscrite
                   {registrations > 1 ? 's' : ''}
                 </Text>
               </View>

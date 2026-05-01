@@ -18,6 +18,7 @@ import { useVerificationGuard } from '../../hooks/useVerificationGuard';
 import { RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import {
   Colors,
   FontSizes,
@@ -78,6 +79,16 @@ function FollowEventButtonImpl({
       loadFollowersCount();
     }
   }, [eventId, user]);
+
+  // Sync avec le prop `initialFollowing` quand il change après mount.
+  // Cas typique : sur EventDetailsScreen il y a 2 instances de ce composant
+  // (icône-only dans le header + default dans la section "Reste connecté").
+  // Quand l'une toggle, le parent met à jour son state et le rediffuse via
+  // initialFollowing — sans cet effet, l'autre instance reste désynchronisée
+  // (l'icône reste "non suivi" alors que le bouton "Sauvegardé" l'est, etc.).
+  useEffect(() => {
+    setIsFollowing(initialFollowing);
+  }, [initialFollowing]);
 
   const loadFollowStatus = async () => {
     try {
@@ -282,8 +293,11 @@ function FollowEventButtonImpl({
               </Text>
               {showFollowerCount && followersCount > 0 && (
                 <View style={[styles.badge, isFollowing && { backgroundColor: colors.accent + '26' }]}>
-                  <Text style={[styles.badgeText, isFollowing && { color: colors.accent }]}>
-                    {followersCount}
+                  <Text
+                    style={[styles.badgeText, isFollowing && { color: colors.accent }]}
+                    numberOfLines={1}
+                  >
+                    {formatCompactNumber(followersCount, { fallbackZero: true })}
                   </Text>
                 </View>
               )}

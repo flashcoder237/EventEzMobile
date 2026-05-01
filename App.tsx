@@ -63,6 +63,7 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
 import { StatusProvider } from './src/contexts/StatusContext';
+import { FeatureTourProvider } from './src/components/tour';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import MaintenanceGate from './src/components/common/MaintenanceGate';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
@@ -91,6 +92,9 @@ const linking: LinkingOptions<RootStackParamList> = {
       SpeakerDetails: 'speakers/:speakerId',
       PaymentSuccess: 'payment-success/:paymentId',
       PaymentFailed: 'payment-failed/:paymentId',
+      // Deep link consommé après clic sur le lien email de vérification.
+      // Cf. tasks.py:43 (envoi) et VerifyEmailTokenScreen (consommation).
+      VerifyEmailToken: 'verify-email/:token',
       Main: {
         screens: {
           Discover: 'discover',
@@ -153,11 +157,13 @@ function AppContent() {
             <NotificationProvider>
               <AlertProvider>
                 <StatusProvider>
-                  <StatusBar style={isDark ? 'light' : 'dark'} />
-                  <MaintenanceGate>
-                    <RootNavigator />
-                  </MaintenanceGate>
-                  <VerificationGuardModal />
+                  <FeatureTourProvider>
+                    <StatusBar style={isDark ? 'light' : 'dark'} />
+                    <MaintenanceGate>
+                      <RootNavigator />
+                    </MaintenanceGate>
+                    <VerificationGuardModal />
+                  </FeatureTourProvider>
                 </StatusProvider>
               </AlertProvider>
             </NotificationProvider>

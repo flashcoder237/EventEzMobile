@@ -13,6 +13,7 @@ import { virtualRoomsAPI, recordingsAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
+import { formatCount } from '../../lib/utils/numberFormatters';
 
 interface VirtualRoom {
   id: string;
@@ -270,7 +271,9 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
                 {recording.view_count !== undefined && (
                   <View style={styles.viewCountRow}>
                     <Ionicons name="eye-outline" size={12} color={colors.gray500} />
-                    <Text style={[styles.viewCountText, { color: colors.gray500 }]}>{recording.view_count} vue{recording.view_count !== 1 ? 's' : ''}</Text>
+                    <Text style={[styles.viewCountText, { color: colors.gray500 }]} numberOfLines={1}>
+                      {formatCount(recording.view_count, 'vue')}
+                    </Text>
                   </View>
                 )}
               </View>

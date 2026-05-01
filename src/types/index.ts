@@ -1503,6 +1503,10 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: { token: string };
   VerifyEmail: { email?: string; skippable?: boolean; returnScreen?: string | null; returnParams?: any };
+  // Écran consommé par le deep link `https://eventez.online/verify-email/{token}`.
+  // Différent de `VerifyEmail` (page de relance post-inscription) : ici on a un
+  // token à valider via l'API et on affiche le résultat (succès/expiré/invalide).
+  VerifyEmailToken: { token: string };
   EventDetails: { eventId: string; imageUrl?: string };
   EventReviews: { eventId: string; eventTitle?: string };
   EventSearch: { query?: string; category?: number } | undefined;
@@ -1608,6 +1612,10 @@ export type AuthStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: { token: string };
   VerifyEmail: { email?: string; skippable?: boolean; returnScreen?: string | null; returnParams?: any };
+  // Écran consommé par le deep link `https://eventez.online/verify-email/{token}`.
+  // Différent de `VerifyEmail` (page de relance post-inscription) : ici on a un
+  // token à valider via l'API et on affiche le résultat (succès/expiré/invalide).
+  VerifyEmailToken: { token: string };
 };
 
 export type MainTabParamList = {

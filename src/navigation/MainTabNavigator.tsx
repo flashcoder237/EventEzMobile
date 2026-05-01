@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Platform, Pressable, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -23,6 +23,12 @@ import { FontFamily, Spacing, Shadows } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUnreadCounts } from '../contexts/NotificationContext';
+import {
+  useTour,
+  MAIN_TABS_TOUR_STEPS,
+  MAIN_TABS_TOUR_STORAGE_KEY,
+  MAIN_TABS_TOUR_DELAY_MS,
+} from '../components/tour';
 
 import AuthGuardScreen from '../components/auth/AuthGuardScreen';
 
@@ -138,6 +144,8 @@ interface TabSlotProps {
   totalPendingCount: number;
   isDark: boolean;
   cardColor: string;
+  /** ID enregistre dans le FeatureTourContext pour le spotlight */
+  tourId?: string;
 }
 
 function TabSlot({
@@ -150,9 +158,22 @@ function TabSlot({
   totalPendingCount,
   isDark,
   cardColor,
+  tourId,
 }: TabSlotProps) {
   const config = tabConfig[routeName];
   const widthValue = useSharedValue(isFocused ? 1 : 0);
+  const slotRef = useRef<any>(null);
+  const tourCtx = useTour();
+
+  // Register this tab as a tour target. Registered once per id; unregistered
+  // when the slot unmounts (rare — tab navigator persists the dock).
+  useEffect(() => {
+    if (!tourId) return;
+    tourCtx.__register(tourId, { ref: slotRef });
+    return () => {
+      tourCtx.__unregister(tourId);
+    };
+  }, [tourId, tourCtx]);
   // Shimmer : balaye la pilule active toutes les ~4s pour un effet "lumière"
   // discret. Reste à 0 (off-screen gauche) tant que le tab n'est pas actif.
   const shimmerValue = useSharedValue(0);
@@ -209,6 +230,7 @@ function TabSlot({
 
   return (
     <AnimatedPressable
+      ref={slotRef}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={isFocused ? { selected: true } : {}}
@@ -411,6 +433,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
               totalPendingCount={totalPendingCount}
               isDark={isDark}
               cardColor={isDark ? '#0F172A' : '#FFFFFF'}
+              tourId={`tab-${routeName.toLowerCase()}`}
             />
           );
         })}
@@ -421,6 +444,17 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
 
 export default function MainTabNavigator() {
   const { colors } = useTheme();
+  const tour = useTour();
+
+  // Auto-start the feature tour on the first authenticated MainTab mount.
+  // The seenKey persists in AsyncStorage — won't re-trigger on subsequent boots.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      tour.start(MAIN_TABS_TOUR_STEPS, { seenKey: MAIN_TABS_TOUR_STORAGE_KEY });
+    }, MAIN_TABS_TOUR_DELAY_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Tab.Navigator

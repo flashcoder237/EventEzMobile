@@ -34,6 +34,7 @@ import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
+import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -339,17 +340,21 @@ export default function MyEventsScreen() {
             </View>
           </View>
 
-          {/* === STATS BAR === */}
+          {/* === STATS BAR ===
+              Compteurs formatés en notation compacte ("1,2 k", "1,5 M") pour
+              ne pas casser le layout sur les events viraux. */}
           <View style={[styles.eventStats, { borderTopColor: hairline, borderBottomColor: hairline }]}>
             <View style={styles.statBlockE}>
-              <Text style={[styles.statBlockValueE, { color: colors.text }]}>
-                {item.registration_count || item.registrations_count || 0}
+              <Text style={[styles.statBlockValueE, { color: colors.text }]} numberOfLines={1}>
+                {formatCompactNumber(item.registration_count || item.registrations_count, { fallbackZero: true })}
               </Text>
               <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>INSCRITS</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: hairline }]} />
             <View style={styles.statBlockE}>
-              <Text style={[styles.statBlockValueE, { color: colors.text }]}>{item.view_count || 0}</Text>
+              <Text style={[styles.statBlockValueE, { color: colors.text }]} numberOfLines={1}>
+                {formatCompactNumber(item.view_count, { fallbackZero: true })}
+              </Text>
               <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>VUES</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: hairline }]} />

@@ -18,6 +18,7 @@ import RegisterOrganizerScreen from '../screens/auth/RegisterOrganizerScreen';
 import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
+import VerifyEmailTokenScreen from '../screens/auth/VerifyEmailTokenScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
 // Event Screens
@@ -194,6 +195,14 @@ export default function RootNavigator() {
       <Stack.Screen
         name="VerifyEmail"
         component={VerifyEmailScreen}
+      />
+      {/* VerifyEmailToken : ouverte par le deep link
+          https://eventez.online/verify-email/{token} (Universal Link).
+          Browsable sans auth car le user est souvent juste après inscription
+          et n'est pas encore connecté. */}
+      <Stack.Screen
+        name="VerifyEmailToken"
+        component={VerifyEmailTokenScreen}
       />
 
       {/* Event Screens (public — browsable without auth) */}

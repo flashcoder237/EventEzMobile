@@ -26,6 +26,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { formatCount } from '../../lib/utils/numberFormatters';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -360,8 +361,8 @@ function EventCard({
             {attendees != null && attendees > 0 && (
               <View style={[styles.metaRow, { marginTop: 4 }]}>
                 <Ionicons name="people-outline" size={11} color={colors.gray500} />
-                <Text style={[styles.metaText, { color: colors.gray500 }]}>
-                  {attendees} inscrit{attendees > 1 ? 's' : ''}
+                <Text style={[styles.metaText, { color: colors.gray500 }]} numberOfLines={1}>
+                  {formatCount(attendees, 'inscrit')}
                 </Text>
               </View>
             )}

@@ -26,6 +26,7 @@ import FollowUserButton from '../../components/common/FollowUserButton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList, User, Event } from '../../types';
+import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import {
   Colors,
   FontSizes,
@@ -432,8 +433,8 @@ export default function OrganizerProfileScreen() {
                         ) : null}
                         <View style={styles.eventStatRow}>
                           <Ionicons name="people-outline" size={11} color={colors.gray400} />
-                          <Text style={[styles.eventStat, { color: colors.gray500 }]}>
-                            {event.registration_count || 0}
+                          <Text style={[styles.eventStat, { color: colors.gray500 }]} numberOfLines={1}>
+                            {formatCompactNumber(event.registration_count, { fallbackZero: true })}
                           </Text>
                         </View>
                       </View>

@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { usersAPI } from '../../api';
+import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -77,6 +78,13 @@ function FollowUserButtonImpl({
       loadFollowersCount();
     }
   }, [userId, user]);
+
+  // Sync avec initialFollowing quand le parent le met à jour (cas où
+  // plusieurs instances du même bouton coexistent sur un écran et qu'une
+  // autre toggle l'état). Sans cet effet, les instances se désynchronisent.
+  useEffect(() => {
+    setIsFollowing(initialFollowing);
+  }, [initialFollowing]);
 
   const loadFollowStatus = async () => {
     try {
@@ -298,7 +306,7 @@ function FollowUserButtonImpl({
                 ]}
                 numberOfLines={1}
               >
-                {followersCount}
+                {formatCompactNumber(followersCount, { fallbackZero: true })}
               </Text>
             </View>
           )}

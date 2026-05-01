@@ -28,6 +28,7 @@ import {
 } from '../../components/profile';
 import { eventsAPI, feedbacksAPI, registrationsAPI, walletAPI } from '../../api';
 import { RootStackParamList } from '../../types';
+import { useTour, MAIN_TABS_TOUR_STEPS } from '../../components/tour';
 import {
   Colors,
   FontFamily,
@@ -43,6 +44,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 export default function ProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user, logout, isLoading: authLoading } = useAuth();
+  const tour = useTour();
   const { showAlert, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
   const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount } = useUnreadCounts();
@@ -491,6 +493,14 @@ export default function ProfileScreen() {
               icon="help-circle-outline"
               title="Centre d'aide"
               onPress={() => navigation.navigate('Help')}
+            />
+            <MenuItem
+              icon="compass-outline"
+              title="Revoir le guide"
+              subtitle="Présentation des onglets principaux"
+              onPress={() => {
+                tour.start(MAIN_TABS_TOUR_STEPS, { force: true });
+              }}
             />
             <MenuItem
               icon="pulse-outline"

@@ -60,6 +60,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Badge } from '../../components/ui/Badge';
 import ConvertedPrice from '../../components/common/ConvertedPrice';
 import { EditorialCanvas, WatermarkNumeral, EditorialPillCTA, EditorialColors } from '../../components/ui/editorial';
+import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 
 type RouteProps = RouteProp<RootStackParamList, 'EventDetails'>;
 
@@ -707,17 +708,23 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Stats Row — vues masquées tant que < 50 (évite l'effet "événement peu populaire") */}
+          {/* Stats Row — vues masquées tant que < 50 (évite l'effet "événement peu populaire").
+              Compteurs formatés en notation compacte (ex: "1,2 k", "1,5 M") pour ne pas
+              casser le layout sur les events viraux (1 milliard de vues → "1 Md"). */}
           <View style={[styles.statsRow, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
             <View style={styles.statItem}>
-              <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.registration_count || 0}</Text>
+              <Text style={[styles.statValue, { color: colors.gray900 }]} numberOfLines={1}>
+                {formatCompactNumber(event.registration_count, { fallbackZero: true })}
+              </Text>
               <Text style={[styles.statLabel, { color: colors.gray500 }]}>Inscrits</Text>
             </View>
             {(event.view_count || 0) >= 50 && (
               <>
                 <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
                 <View style={styles.statItem}>
-                  <Text style={[styles.statValue, { color: colors.gray900 }]}>{event.view_count}</Text>
+                  <Text style={[styles.statValue, { color: colors.gray900 }]} numberOfLines={1}>
+                    {formatCompactNumber(event.view_count, { fallbackZero: true })}
+                  </Text>
                   <Text style={[styles.statLabel, { color: colors.gray500 }]}>Vues</Text>
                 </View>
               </>
@@ -862,7 +869,10 @@ export default function EventDetailsScreen() {
                         ? `, ${event.recent_registrants[1].first_name || ''}`
                         : ''}
                       {(event.visible_attendees_count || event.registration_count || 0) > event.recent_registrants.length
-                        ? ` et ${(event.visible_attendees_count || event.registration_count || 0) - event.recent_registrants.length} autre${
+                        ? ` et ${formatCompactNumber(
+                            (event.visible_attendees_count || event.registration_count || 0) - event.recent_registrants.length,
+                            { fallbackZero: true },
+                          )} autre${
                             (event.visible_attendees_count || event.registration_count || 0) - event.recent_registrants.length > 1 ? 's' : ''
                           }`
                         : ''}
@@ -875,7 +885,7 @@ export default function EventDetailsScreen() {
                       <Ionicons name="people" size={16} color={colors.primary} />
                     </View>
                     <Text style={[styles.whoIsGoingText, { color: colors.gray700 }]}>
-                      {event.registration_count} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
+                      {formatCompactNumber(event.registration_count, { fallbackZero: true })} personne{(event.registration_count || 0) > 1 ? 's' : ''} inscrite{(event.registration_count || 0) > 1 ? 's' : ''}
                     </Text>
                   </>
                 )}
