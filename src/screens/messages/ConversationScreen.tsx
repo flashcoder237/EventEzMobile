@@ -29,6 +29,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import {
   useAudioPlayer,
   useAudioRecorder,
@@ -599,7 +600,26 @@ export default function ConversationScreen() {
       if (!result.canceled && result.assets[0]) {
         const asset = result.assets[0];
         const filename = asset.uri.split('/').pop() || 'image.jpg';
+        // Compression : resize à 1920px de large + JPEG 0.7. Une photo 4K à
+        // qualité 0.7 brute peut faire 3-5 Mo ; après resize on tombe sous
+        // ~800 Ko, ce qui rentre confortablement dans la limite 5 Mo et
+        // libère du quota de groupe pour les autres uploads.
+        let workingUri = asset.uri;
+        try {
+          const compressed = await ImageManipulator.manipulateAsync(
+            asset.uri,
+            [{ resize: { width: 1920 } }],
+            { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+          );
+          workingUri = compressed.uri;
+        } catch {
+          // Fallback : si la compression échoue (HEIC corrompu, etc.), on
+          // tente l'upload tel quel — la limite 5 Mo le rejettera si besoin.
+        }
         // Validation taille par fichier (5 Mo image) + quota cumulé du groupe.
+        // Note : sur l'image compressée, fileSize n'est pas exposé par
+        // ImageManipulator → on garde fileSize de l'asset original comme
+        // borne haute pessimiste (l'image effective sera plus petite).
         const sizeBytes = (asset as any).fileSize || 0;
         const { validateAttachmentSize, MESSAGE_LIMITS, formatBytes } = await import('../../constants/messaging');
         const sizeError = validateAttachmentSize(sizeBytes, 'image');
@@ -619,7 +639,7 @@ export default function ConversationScreen() {
         }
 
         actions.setAttachedFiles([{
-          uri: asset.uri,
+          uri: workingUri,
           name: filename,
           type: 'image',
         }]);

@@ -26,6 +26,26 @@ async function persistImageToDisk(uri: string): Promise<string> {
   }
 }
 
+/**
+ * Compresse + redimensionne une image avant upload. La galerie d'événements
+ * accepte jusqu'à 10 images : sans compression, un user qui pick 10 photos
+ * 4K à 8 Mo chacune envoie 80 Mo → upload lent + bandwidth gâchée. On garde
+ * la même politique que la banner (resize 1920w + JPEG 0.7) qui suffit pour
+ * tous les usages d'affichage natifs (full-screen 1080×1920 = 2 Mpx max).
+ */
+async function compressImage(uri: string): Promise<string> {
+  try {
+    const result = await ImageManipulator.manipulateAsync(
+      uri,
+      [{ resize: { width: 1920 } }],
+      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+    );
+    return result.uri;
+  } catch {
+    return uri;
+  }
+}
+
 interface UseEventFormImagesOptions {
   alertActions: AlertActions;
   setBannerImage: (value: string | null) => void;
@@ -78,8 +98,12 @@ export function useEventFormImages({ alertActions, setBannerImage, setGalleryIma
       selectionLimit: 10,
     });
     if (!result.canceled && result.assets.length > 0) {
+      // Compression avant persistance : 10 photos 4K → 80 Mo → 6 Mo après resize.
       const persistedUris = await Promise.all(
-        result.assets.map(a => persistImageToDisk(a.uri))
+        result.assets.map(async (a) => {
+          const compressed = await compressImage(a.uri);
+          return persistImageToDisk(compressed);
+        }),
       );
       setGalleryImages(prev => [...prev, ...persistedUris].slice(0, 10));
     }
