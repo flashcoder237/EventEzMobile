@@ -169,28 +169,39 @@ export default function QRScannerScreen() {
     | { kind: 'registration'; registrationId: string; raw: string }
     | null;
 
+  // Format strict UUID (toutes versions) : 8-4-4-4-12 hex. On évite ainsi
+  // d'accepter des QR codes étrangers qui matchent une regex trop large
+  // (`[a-f0-9-]+` acceptait `a-b`, `123`, etc.) — ces scans pollueraient
+  // la queue offline et alourdiraient le batch resync sans valeur ajoutée.
+  // Les QR EventEz sont générés par `qrcode.QRCode` côté backend avec un
+  // UUID Django, donc le format est garanti côté émetteur.
+  const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  const isValidUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
+
   const extractScanInfo = (data: string): ScanInfo => {
-    // Ticket-level : .../verify/t/{ticket_id} — testé EN PREMIER (pattern + précis)
-    const ticketMatch = data.match(/\/verify\/t\/([a-f0-9-]+)/i);
+    // Ticket-level : .../verify/t/{uuid} — testé EN PREMIER (pattern + précis)
+    const ticketMatch = data.match(new RegExp(`\\/verify\\/t\\/(${UUID_RE.source})`, 'i'));
     if (ticketMatch) return { kind: 'ticket_purchase', ticketId: ticketMatch[1], raw: data };
 
-    // Registration-level : .../verify/{registration_id}
-    const regMatch = data.match(/\/verify\/([a-f0-9-]+)/i);
+    // Registration-level : .../verify/{uuid}
+    const regMatch = data.match(new RegExp(`\\/verify\\/(${UUID_RE.source})`, 'i'));
     if (regMatch) return { kind: 'registration', registrationId: regMatch[1], raw: data };
 
-    // JSON legacy (ancien format)
+    // JSON legacy (ancien format) — validation stricte de l'UUID
     try {
       const jsonData = JSON.parse(data);
-      if (jsonData.registration_id) {
-        return { kind: 'registration', registrationId: jsonData.registration_id, raw: data };
+      const candidateId = jsonData?.registration_id;
+      if (typeof candidateId === 'string' && isValidUUID(candidateId)) {
+        return { kind: 'registration', registrationId: candidateId, raw: data };
       }
     } catch {
       /* not JSON */
     }
 
     // UUID brut → assumé registration_id (legacy)
-    const uuidMatch = data.match(/^[a-f0-9-]{36}$/i);
-    if (uuidMatch) return { kind: 'registration', registrationId: data, raw: data };
+    if (isValidUUID(data.trim())) {
+      return { kind: 'registration', registrationId: data.trim(), raw: data.trim() };
+    }
 
     return null;
   };
@@ -389,21 +400,39 @@ export default function QRScannerScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showResult, autoCheckIn, scanResult?.success]);
 
+  // Reference code = 10 caractères [A-Z0-9] générés par secrets.choice
+  // côté backend (apps/registrations/models.py:172-183). On accepte aussi
+  // 16 caractères (fallback collision) et un peu de marge (8-20).
+  const REFERENCE_CODE_RE = /^[A-Z0-9]{8,20}$/;
+
   const handleManualEntry = async () => {
-    const code = manualCode.trim();
+    const code = manualCode.trim().toUpperCase();
     if (!code) return;
     setManualOpen(false);
     setManualCode('');
     setScanned(true);
-    // En saisie manuelle l'utilisateur tape généralement un reference_code
-    // court (10 chars) ou un UUID. On reconstruit un ScanInfo registration-level
-    // pour le router via le même processCheckIn que le scan QR.
+    // En saisie manuelle l'utilisateur tape soit un reference_code (10 chars
+    // alphanumériques) soit un UUID. On valide avant pour éviter d'enqueuer
+    // des saisies invalides en mode offline (alourdiraient la queue resync
+    // et seraient rejetées en bloc côté backend).
     const info = extractScanInfo(code);
     if (info) {
       await processCheckIn(info, 'manual');
-    } else {
-      await processCheckIn({ kind: 'registration', registrationId: code, raw: code }, 'manual');
+      return;
     }
+    if (REFERENCE_CODE_RE.test(code)) {
+      // Reference code : registration-level uniquement (pas de version ticket).
+      await processCheckIn({ kind: 'registration', registrationId: code, raw: code }, 'manual');
+      return;
+    }
+    setScanResult({
+      success: false,
+      message: 'Code invalide : attendu UUID ou code de référence (8-20 caractères A-Z/0-9).',
+    });
+    setStats(prev => ({ ...prev, scanned: prev.scanned + 1, failed: prev.failed + 1 }));
+    playSound('scan-fail');
+    vibrateFail();
+    setShowResult(true);
   };
 
   const handleContinueScan = () => {
