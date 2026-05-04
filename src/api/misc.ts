@@ -126,11 +126,14 @@ export const volunteersAPI = {
 // ============================================
 // CURRENCY API
 // ============================================
+//
+// `getAll()` ciblait /currencies/ (CurrencyViewSet existe mais n'est pas
+// enregistré côté router → 404). N'a jamais été consommée par un écran ;
+// retirée pour ne pas exposer d'API morte. La conversion indicative passe
+// par /commissions/convert/ qui est déjà disponible via commissionsAPI.
 
 export const currencyAPI = {
-  getAll: () =>
-    api.get('/currencies/'),
-
+  /** @deprecated utilise commissionsAPI.convert — endpoint cible identique */
   convert: (amount: number, from: string, to: string) =>
     api.get('/commissions/convert/', { params: { amount, from, to } }),
 };
