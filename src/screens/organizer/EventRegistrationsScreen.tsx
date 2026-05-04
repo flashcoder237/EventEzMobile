@@ -20,8 +20,8 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
-import { useExport } from '../../hooks/useExport';
 import { registrationsAPI, eventsAPI } from '../../api';
+import ExportButton from '../../components/common/ExportButton';
 import { Registration, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -51,19 +51,19 @@ type FilterType = 'all' | 'pending' | 'approved' | 'rejected';
 const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   pending: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
   pending_approval: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
-  confirmed: { label: 'Confirme', color: '#10B981', bgColor: '#D1FAE5' },
-  approved: { label: 'Approuve', color: '#10B981', bgColor: '#D1FAE5' },
-  rejected: { label: 'Refuse', color: '#EF4444', bgColor: '#FEE2E2' },
-  cancelled: { label: 'Annule', color: '#6B7280', bgColor: '#F3F4F6' },
-  completed: { label: 'Complete', color: '#3B82F6', bgColor: '#DBEAFE' },
-  checked_in: { label: 'Enregistre', color: '#6366F1', bgColor: '#E0E7FF' },
+  confirmed: { label: 'Confirmé', color: '#10B981', bgColor: '#D1FAE5' },
+  approved: { label: 'Approuvé', color: '#10B981', bgColor: '#D1FAE5' },
+  rejected: { label: 'Refusé', color: '#EF4444', bgColor: '#FEE2E2' },
+  cancelled: { label: 'Annulé', color: '#6B7280', bgColor: '#F3F4F6' },
+  completed: { label: 'Complété', color: '#3B82F6', bgColor: '#DBEAFE' },
+  checked_in: { label: 'Enregistré', color: '#6366F1', bgColor: '#E0E7FF' },
 };
 
 const approvalStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
   not_required: { label: 'Auto', color: '#6B7280', bgColor: '#F3F4F6' },
   pending: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
-  approved: { label: 'Approuve', color: '#10B981', bgColor: '#D1FAE5' },
-  rejected: { label: 'Refuse', color: '#EF4444', bgColor: '#FEE2E2' },
+  approved: { label: 'Approuvé', color: '#10B981', bgColor: '#D1FAE5' },
+  rejected: { label: 'Refusé', color: '#EF4444', bgColor: '#FEE2E2' },
 };
 
 const getApprovalBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' => {
@@ -83,7 +83,6 @@ export default function EventRegistrationsScreen() {
   const { showAlert, showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
-  const { exportData, loading: exportLoading } = useExport();
 
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -214,7 +213,7 @@ export default function EventRegistrationsScreen() {
           : r
         )
       );
-      showSuccess('Succes', `${ids.length} inscription(s) approuvee(s)`);
+      showSuccess('Succès', `${ids.length} inscription(s) approuvée(s)`);
       cancelSelection();
     } catch (error) {
       showError('Erreur', 'Impossible d\'approuver les inscriptions');
@@ -240,7 +239,7 @@ export default function EventRegistrationsScreen() {
                 : r
               )
             );
-            showSuccess('Succes', `${ids.length} inscription(s) refusee(s)`);
+            showSuccess('Succès', `${ids.length} inscription(s) refusée(s)`);
             cancelSelection();
           } catch (error) {
             showError('Erreur', 'Impossible de refuser les inscriptions');
@@ -252,7 +251,7 @@ export default function EventRegistrationsScreen() {
     } else {
       // Fallback for Android (no Alert.prompt)
       setBulkLoading(true);
-      registrationsAPI.bulkReject(ids, 'Refuse par l\'organisateur')
+      registrationsAPI.bulkReject(ids, 'Refusé par l\'organisateur')
         .then(() => {
           setRegistrations(prev =>
             prev.map(r => ids.includes(r.id)
@@ -260,7 +259,7 @@ export default function EventRegistrationsScreen() {
               : r
             )
           );
-          showSuccess('Succes', `${ids.length} inscription(s) refusee(s)`);
+          showSuccess('Succès', `${ids.length} inscription(s) refusée(s)`);
           cancelSelection();
         })
         .catch(() => showError('Erreur', 'Impossible de refuser les inscriptions'))
@@ -279,24 +278,13 @@ export default function EventRegistrationsScreen() {
           : r
         )
       );
-      showSuccess('Succes', `${ids.length} participant(s) enregistre(s)`);
+      showSuccess('Succès', `${ids.length} participant(s) enregistré(s)`);
       cancelSelection();
     } catch (error) {
       showError('Erreur', 'Impossible d\'enregistrer les participants');
     } finally {
       setBulkLoading(false);
     }
-  };
-
-  // Export (CSV by default — writes file and opens native share sheet)
-  const handleExport = async () => {
-    const safeTitle = (eventTitle || 'evenement').slice(0, 40);
-    await exportData(
-      '/registrations/export/',
-      'csv',
-      `inscriptions_${safeTitle}`,
-      { event_id: eventId }
-    );
   };
 
   const handleApprove = async (registration: Registration) => {
@@ -310,7 +298,7 @@ export default function EventRegistrationsScreen() {
         )
       );
       setShowDetailModal(false);
-      showSuccess('Succes', 'Inscription approuvee avec succes');
+      showSuccess('Succès', 'Inscription approuvée avec succès');
     } catch (error) {
       if (__DEV__) console.error('Erreur approbation:', error);
       showError('Erreur', 'Impossible d\'approuver l\'inscription');
@@ -339,7 +327,7 @@ export default function EventRegistrationsScreen() {
       setShowRejectModal(false);
       setShowDetailModal(false);
       setRejectReason('');
-      showSuccess('Succes', 'Inscription refusee');
+      showSuccess('Succès', 'Inscription refusée');
     } catch (error) {
       if (__DEV__) console.error('Erreur refus:', error);
       showError('Erreur', 'Impossible de refuser l\'inscription');
@@ -527,18 +515,12 @@ export default function EventRegistrationsScreen() {
               >
                 <Ionicons name="mail-outline" size={18} color={colors.gray700} />
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.headerIconBtn, { backgroundColor: colors.gray100 }]}
-                onPress={handleExport}
-                disabled={exportLoading}
-                accessibilityLabel="Exporter en CSV"
-              >
-                {exportLoading ? (
-                  <ActivityIndicator size="small" color={colors.gray700} />
-                ) : (
-                  <Ionicons name="download-outline" size={18} color={colors.gray700} />
-                )}
-              </TouchableOpacity>
+              <ExportButton
+                endpoint="/registrations/export/"
+                filename={`inscriptions_${(eventTitle || 'evenement').slice(0, 40)}`}
+                params={{ event_id: eventId }}
+                compact
+              />
             </View>
           }
         />

@@ -77,6 +77,9 @@ export const paymentsAPI = {
 
   processMobileMoney: (id: string, data: { phone: string; channel?: string }) =>
     api.post(`/payments/${id}/process_mobile_money/`, data),
+
+  // Export — use `useExport()` hook instead.
+  // Endpoint kept for reference: GET /payments/export/?status=&export_format=csv|xlsx|pdf
 };
 
 // ============================================
@@ -178,6 +181,9 @@ export const walletAPI = {
 
   getStats: () =>
     api.get('/wallet/stats/'),
+
+  // Export — use `useExport()` hook instead.
+  // Endpoint kept for reference: GET /wallet/transactions/export/?type=&export_format=csv|xlsx|pdf
 };
 
 // ============================================

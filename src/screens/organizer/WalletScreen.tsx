@@ -46,6 +46,7 @@ import {
 import { StaggeredItem } from '../../components/ui/Animations';
 import Badge from '../../components/ui/Badge';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import ExportButton from '../../components/common/ExportButton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'overview' | 'transactions' | 'payouts' | 'pending';
@@ -751,6 +752,12 @@ export default function WalletScreen() {
                 <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>TOUT VOIR</Text>
                 <Text style={[styles.sectionTitleE, { color: colors.text }]}>{transactions.length} transactions</Text>
               </View>
+              {transactions.length > 0 && (
+                <ExportButton
+                  endpoint="/wallet/transactions/export/"
+                  filename="transactions_wallet"
+                />
+              )}
             </View>
             {transactions.length > 0 ? (
               transactions.map(renderTransactionItem)

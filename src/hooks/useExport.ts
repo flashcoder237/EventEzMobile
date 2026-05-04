@@ -25,6 +25,12 @@ const FORMAT_UTI: Record<ExportFormat, string | undefined> = {
   pdf: 'com.adobe.pdf',
 };
 
+const FORMAT_LABEL: Record<ExportFormat, string> = {
+  csv: 'CSV',
+  excel: 'Excel',
+  pdf: 'PDF',
+};
+
 function buildExportUrl(
   endpoint: string,
   params: Record<string, string>,
@@ -128,7 +134,7 @@ export function useExport() {
         if (sharingAvailable) {
           await Sharing.shareAsync(downloaded.uri, {
             mimeType: FORMAT_MIME[format],
-            dialogTitle: `Exporter en ${format.toUpperCase()}`,
+            dialogTitle: `Exporter en ${FORMAT_LABEL[format]}`,
             UTI: FORMAT_UTI[format],
           });
         } else {

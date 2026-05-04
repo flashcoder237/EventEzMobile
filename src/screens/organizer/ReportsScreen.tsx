@@ -15,10 +15,10 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
-import { useExport } from '../../hooks/useExport';
 import { analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
+import ExportButton from '../../components/common/ExportButton';
 import {
   Colors,
   FontFamily,
@@ -44,7 +44,6 @@ export default function ReportsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError } = useAlert();
-  const { exportData, loading: exportLoading } = useExport();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -79,23 +78,13 @@ export default function ReportsScreen() {
         report_type: 'custom',
         title: `Rapport ${new Date().toLocaleDateString('fr-FR')}`,
       });
-      showSuccess('Succes', 'Rapport genere avec succes');
+      showSuccess('Succès', 'Rapport généré avec succès');
       fetchReports();
     } catch (error) {
-      showError('Erreur', 'Impossible de generer le rapport');
+      showError('Erreur', 'Impossible de générer le rapport');
     } finally {
       setGenerating(false);
     }
-  };
-
-  const handleExport = async (reportId: string) => {
-    const report = reports.find(r => r.id === reportId);
-    const filename = (report?.title || `rapport_${reportId}`).slice(0, 40);
-    await exportData(
-      `/analytics/reports/${reportId}/export/`,
-      'pdf',
-      filename
-    );
   };
 
   const formatDate = (dateStr: string) => {
@@ -108,9 +97,9 @@ export default function ReportsScreen() {
 
   const getStatusBadge = (status?: string): { label: string; variant: 'success' | 'warning' | 'info' | 'secondary' } => {
     switch (status) {
-      case 'completed': return { label: 'Complete', variant: 'success' };
+      case 'completed': return { label: 'Complété', variant: 'success' };
       case 'processing': return { label: 'En cours', variant: 'warning' };
-      case 'scheduled': return { label: 'Planifie', variant: 'info' };
+      case 'scheduled': return { label: 'Planifié', variant: 'info' };
       default: return { label: status || 'Nouveau', variant: 'secondary' };
     }
   };
@@ -140,18 +129,10 @@ export default function ReportsScreen() {
           </Text>
         )}
         <View style={styles.reportActions}>
-          <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: colors.gray100 }]}
-            onPress={() => handleExport(item.id)}
-            disabled={exportLoading}
-          >
-            {exportLoading ? (
-              <ActivityIndicator size="small" color={colors.gray600} />
-            ) : (
-              <Ionicons name="download-outline" size={16} color={colors.gray600} />
-            )}
-            <Text style={[styles.actionBtnText, { color: colors.gray600 }]}>Exporter</Text>
-          </TouchableOpacity>
+          <ExportButton
+            endpoint={`/analytics/reports/${item.id}/export/`}
+            filename={(item.title || `rapport_${item.id}`).slice(0, 40)}
+          />
         </View>
       </View>
     );
@@ -164,7 +145,7 @@ export default function ReportsScreen() {
       </View>
       <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun rapport</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        Generez votre premier rapport pour analyser vos evenements
+        Générez votre premier rapport pour analyser vos événements
       </Text>
     </View>
   );
@@ -195,7 +176,7 @@ export default function ReportsScreen() {
           ) : (
             <>
               <Ionicons name="add" size={18} color="#FFFFFF" />
-              <Text style={styles.generateBtnText}>Generer</Text>
+              <Text style={styles.generateBtnText}>Générer</Text>
             </>
           )}
         </TouchableOpacity>

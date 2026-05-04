@@ -98,7 +98,9 @@ export const registrationsAPI = {
     api.post('/registrations/send_email/', data),
 
   // Export — use `useExport()` hook instead (needs arraybuffer + file write + share)
-  // Endpoint path kept for reference: GET /registrations/export/?event_id=&format=csv|xlsx|pdf
+  // Endpoint path kept for reference:
+  //   GET /registrations/export/?event_id=&export_format=csv|xlsx|pdf      → inscriptions
+  //   GET /ticket-purchases/export/?event_id=&export_format=csv|xlsx|pdf  → achats de billets
 
   // Approbation par l'organisateur
   getPendingApproval: (params?: any) =>

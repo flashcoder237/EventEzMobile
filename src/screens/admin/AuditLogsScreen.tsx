@@ -17,6 +17,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { auditAPI } from '../../api';
 import { AuditLog, AuditSeverity, RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
+import ExportButton from '../../components/common/ExportButton';
 import {
   FontFamily,
   FontSizes,
@@ -149,6 +150,11 @@ export default function AuditLogsScreen() {
           <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TRAÇABILITÉ</Text>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Logs d'audit</Text>
         </View>
+        <ExportButton
+          endpoint="/audit/logs/export/"
+          filename="audit_logs"
+          compact
+        />
       </View>
 
       {/* Stats summary */}

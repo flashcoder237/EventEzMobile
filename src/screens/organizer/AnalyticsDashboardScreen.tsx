@@ -27,6 +27,7 @@ import {
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { AnalyticsDashboardScreenSkeleton } from '../../components/ui/Skeleton';
+import ExportButton from '../../components/common/ExportButton';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TimeRange = '7d' | '30d' | '90d' | '1y';
@@ -59,6 +60,10 @@ export default function AnalyticsDashboardScreen() {
     const start = startDate.toISOString().slice(0, 10);
     return { start_date: start, end_date: end };
   };
+
+  // Nombre de barres à afficher selon la période — équilibre entre densité et lisibilité.
+  // 7d → 7 barres (jour par jour) ; 30d → 10 ; 90d → 12 (par semaine) ; 1y → 12 (mois).
+  const chartBarCount: Record<TimeRange, number> = { '7d': 7, '30d': 10, '90d': 12, '1y': 12 };
 
   const fetchAnalytics = async () => {
     let failures = 0;
@@ -222,6 +227,12 @@ export default function AnalyticsDashboardScreen() {
             <Text style={[styles.eyebrow, { color: colors.accent }]}>STATS • PERFORMANCE</Text>
             <Text style={[styles.headerTitle, { color: colors.text }]}>Analytics</Text>
           </View>
+          <ExportButton
+            endpoint="/analytics/export/"
+            filename={`analytics_${timeRange}`}
+            params={buildDateRange(timeRange)}
+            compact
+          />
           <TouchableOpacity
             onPress={() => navigation.navigate('Reports')}
             style={[styles.headerCtaPill, Shadows.buttonPrimary]}
@@ -394,28 +405,33 @@ export default function AnalyticsDashboardScreen() {
               </View>
             </View>
             <View style={[styles.chartArea, { borderTopColor: hairline }]}>
-              {registrationData?.timeline ? (
-                <View style={styles.barChart}>
-                  {(registrationData.timeline as any[]).slice(-7).map((item: any, idx: number) => {
-                    const maxVal = Math.max(...(registrationData.timeline as any[]).slice(-7).map((i: any) => i.count || 0), 1);
-                    const height = ((item.count || 0) / maxVal) * 100;
-                    return (
-                      <View key={idx} style={styles.barColumn}>
-                        <View style={styles.barWrap}>
-                          <LinearGradient
-                            colors={['#4F46E5', '#312E81']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 0, y: 1 }}
-                            style={[styles.bar, { height: `${height}%` }]}
-                          />
-                        </View>
-                        <Text style={[styles.barLabel, { color: colors.gray400 }]}>
-                          {item.label || idx + 1}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
+              {registrationData?.timeline && (registrationData.timeline as any[]).length > 0 ? (
+                (() => {
+                  const slice = (registrationData.timeline as any[]).slice(-chartBarCount[timeRange]);
+                  const maxVal = Math.max(...slice.map((i: any) => i.count || 0), 1);
+                  return (
+                    <View style={styles.barChart}>
+                      {slice.map((item: any, idx: number) => {
+                        const height = ((item.count || 0) / maxVal) * 100;
+                        return (
+                          <View key={idx} style={styles.barColumn}>
+                            <View style={styles.barWrap}>
+                              <LinearGradient
+                                colors={['#4F46E5', '#312E81']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
+                                style={[styles.bar, { height: `${height}%` }]}
+                              />
+                            </View>
+                            <Text style={[styles.barLabel, { color: colors.gray400 }]} numberOfLines={1}>
+                              {item.label || ''}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })()
               ) : (
                 <View style={styles.noDataContainer}>
                   <Ionicons name="bar-chart-outline" size={36} color={colors.gray300} />
@@ -448,28 +464,33 @@ export default function AnalyticsDashboardScreen() {
               </View>
             </View>
             <View style={[styles.chartArea, { borderTopColor: hairline }]}>
-              {revenueData?.timeline ? (
-                <View style={styles.barChart}>
-                  {(revenueData.timeline as any[]).slice(-7).map((item: any, idx: number) => {
-                    const maxVal = Math.max(...(revenueData.timeline as any[]).slice(-7).map((i: any) => i.amount || 0), 1);
-                    const height = ((item.amount || 0) / maxVal) * 100;
-                    return (
-                      <View key={idx} style={styles.barColumn}>
-                        <View style={styles.barWrap}>
-                          <LinearGradient
-                            colors={['#10B981', '#047857']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 0, y: 1 }}
-                            style={[styles.bar, { height: `${height}%` }]}
-                          />
-                        </View>
-                        <Text style={[styles.barLabel, { color: colors.gray400 }]}>
-                          {item.label || idx + 1}
-                        </Text>
-                      </View>
-                    );
-                  })}
-                </View>
+              {revenueData?.timeline && (revenueData.timeline as any[]).length > 0 ? (
+                (() => {
+                  const slice = (revenueData.timeline as any[]).slice(-chartBarCount[timeRange]);
+                  const maxVal = Math.max(...slice.map((i: any) => i.amount || 0), 1);
+                  return (
+                    <View style={styles.barChart}>
+                      {slice.map((item: any, idx: number) => {
+                        const height = ((item.amount || 0) / maxVal) * 100;
+                        return (
+                          <View key={idx} style={styles.barColumn}>
+                            <View style={styles.barWrap}>
+                              <LinearGradient
+                                colors={['#10B981', '#047857']}
+                                start={{ x: 0, y: 0 }}
+                                end={{ x: 0, y: 1 }}
+                                style={[styles.bar, { height: `${height}%` }]}
+                              />
+                            </View>
+                            <Text style={[styles.barLabel, { color: colors.gray400 }]} numberOfLines={1}>
+                              {item.label || ''}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })()
               ) : (
                 <View style={styles.noDataContainer}>
                   <Ionicons name="trending-up" size={36} color={colors.gray300} />

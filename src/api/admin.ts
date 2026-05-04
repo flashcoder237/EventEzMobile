@@ -22,6 +22,9 @@ export const auditAPI = {
 
   getRecentLogs: (params?: { limit?: number }) =>
     api.get('/audit/logs/recent/', { params }),
+
+  // Export — use `useExport()` hook instead.
+  // Endpoint kept for reference: GET /audit/logs/export/?user=&export_format=csv|xlsx|pdf
 };
 
 // ============================================

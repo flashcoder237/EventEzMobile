@@ -83,7 +83,9 @@ export const analyticsAPI = {
     api.delete(`/analytics/reports/${id}/`),
 
   // Export — use `useExport()` hook instead (needs arraybuffer + file write + share)
-  // Endpoint path kept for reference: GET /analytics/reports/{id}/export/?format=csv|xlsx|pdf
+  // Endpoints kept for reference:
+  //   GET /analytics/export/?start_date=&end_date=&export_format=csv|xlsx|pdf  → dashboard global
+  //   GET /analytics/reports/{id}/export/?export_format=csv|xlsx|pdf|json    → rapport individuel
 
   generateReport: (data: any) =>
     api.post('/analytics/reports/generate/', data),
