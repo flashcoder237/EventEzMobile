@@ -151,6 +151,15 @@ export const treasuryAPI = {
 export const siteSettingsAPI = {
   get: () =>
     api.get('/site-settings/'),
+
+  /**
+   * PATCH partiel des paramètres site — admin uniquement (le backend renvoie 403
+   * sinon). Champs supportés : ai_moderation_enabled, ai_assist_enabled,
+   * phone_otp_enabled, sms_notifications_enabled, sms_pre_payment_enabled,
+   * sms_post_payment_enabled, payout_approval_mode, etc. (cf SiteSettings).
+   */
+  update: (data: Record<string, any>) =>
+    api.patch('/site-settings/', data),
 };
 
 // Toggles publics utilisables avant authentification (login/register).
