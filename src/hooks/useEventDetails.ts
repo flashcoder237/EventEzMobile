@@ -2,11 +2,26 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ScrollView, Share, Linking } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI } from '../api';
+import { eventsAPI, feedbacksAPI, messagesAPI, waitlistAPI, registrationsAPI, sessionsAPI, recommendationsAPI } from '../api';
 import { Event, RootStackParamList, Feedback, WaitlistEntry, Registration, Session } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useAlert } from '../contexts/AlertContext';
 import { getEventUrl } from '../constants/urls';
+
+// Dedup module-level — un même event ouvert plusieurs fois dans la session ne
+// remonte qu'une seule view au backend. Évite de polluer le signal recommandation
+// avec du back-navigation ou des re-mounts dûs au focus effect.
+const viewedEventsThisSession = new Set<string>();
+
+function trackEventInteraction(
+  eventId: string,
+  interactionType: 'view' | 'share' | 'follow' | 'register' | 'search',
+) {
+  // Best effort : recommandation = signal, jamais bloquant. On no-op silencieusement.
+  recommendationsAPI
+    .recordInteraction({ event: eventId, interaction_type: interactionType })
+    .catch(() => {});
+}
 
 export type TabType = 'about' | 'tickets' | 'agenda' | 'location' | 'reviews' | 'live' | 'sponsors' | 'venue' | 'volunteers' | 'newsletter' | 'cfp' | 'virtual' | 'social';
 
@@ -139,6 +154,11 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
       setEvent(eventResponse.data);
       setIsFollowing(followResponse.data?.is_following || eventResponse.data.is_following || false);
       setFollowersCount(countResponse.data?.followers_count || eventResponse.data.followers_count || 0);
+      // Track view côté reco (une fois par session par event). Best effort.
+      if (!viewedEventsThisSession.has(eventId)) {
+        viewedEventsThisSession.add(eventId);
+        trackEventInteraction(eventId, 'view');
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement evenement:', error);
     } finally {
@@ -196,7 +216,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
     try {
       const response = await waitlistAPI.joinWaitlist({ event: eventId });
       setWaitlistEntry(response.data);
-      showSuccess('Succes', 'Vous avez rejoint la liste d\'attente. Vous serez notifie des qu\'une place se libere.');
+      showSuccess('Succès', 'Vous avez rejoint la liste d\'attente. Vous serez notifié dès qu\'une place se libère.');
     } catch (error: any) {
       const message = error.response?.data?.detail || 'Impossible de rejoindre la liste d\'attente';
       showError('Erreur', message);
@@ -210,12 +230,12 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
 
     showConfirm(
       'Quitter la liste d\'attente',
-      'Etes-vous sur de vouloir quitter la liste d\'attente ?',
+      'Êtes-vous sûr de vouloir quitter la liste d\'attente ?',
       async () => {
         try {
           await waitlistAPI.cancelWaitlist(waitlistEntry.id);
           setWaitlistEntry(null);
-          showSuccess('Succes', 'Vous avez quitte la liste d\'attente');
+          showSuccess('Succès', 'Vous avez quitté la liste d\'attente');
         } catch (error) {
           showError('Erreur', 'Impossible de quitter la liste d\'attente');
         }
@@ -230,11 +250,15 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
     const shareMessage = `${event.title}\n\n${event.short_description || event.description?.slice(0, 100) || ''}\n\n${formatDate(event.start_date)}\n${event.location_city || event.location_name || 'Lieu a confirmer'}\n\nDecouvre cet evenement sur EventEz: ${shareUrl}`;
 
     try {
-      await Share.share({
+      const result = await Share.share({
         message: shareMessage,
         title: event.title,
         url: shareUrl,
       });
+      // L'utilisateur a effectivement partagé (action !== 'dismissed') : signal fort.
+      if ((result as any)?.action === Share.sharedAction) {
+        trackEventInteraction(event.id, 'share');
+      }
     } catch (error) {
       if (__DEV__) console.error('Erreur partage:', error);
     }
@@ -250,6 +274,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
       const canOpen = await Linking.canOpenURL(url);
       if (canOpen) {
         await Linking.openURL(url);
+        trackEventInteraction(event.id, 'share');
       } else {
         showError('Erreur', 'WhatsApp n\'est pas installe sur cet appareil');
       }
