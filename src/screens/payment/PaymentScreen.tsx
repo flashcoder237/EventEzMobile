@@ -55,6 +55,7 @@ import CountryBadgeSelector, {
 } from '../../components/payment/CountryBadgeSelector';
 import FXIndicator from '../../components/payment/FXIndicator';
 import { formatPhoneInput, formatPhoneForDisplay, preparePhoneForInput } from '../../lib/utils/phoneFormatters';
+import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../lib/utils/paymentIdempotency';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SUPPORTED_CODES = new Set(SUPPORTED_COUNTRIES.map((c) => c.code));
@@ -128,15 +129,6 @@ function detectUserCountry(): string | null {
     return null;
   }
 }
-
-/**
- * Génère une clé d'idempotence unique pour éviter les doubles paiements
- */
-const generateIdempotencyKey = (registrationId: string): string => {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  return `${registrationId}-${timestamp}-${random}`;
-};
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentRouteProp = RouteProp<RootStackParamList, 'Payment'>;
@@ -271,9 +263,6 @@ export default function PaymentScreen() {
     markAsUsed,
   } = useSavedPaymentMethods();
 
-  // Ref pour la clé d'idempotence (évite les doubles paiements)
-  const idempotencyKeyRef = useRef<string | null>(null);
-
   // Helper to save payment method on success
   const savePaymentMethodOnSuccess = useCallback(() => {
     if (selectedMethod && !REDIRECT_METHODS.has(selectedMethod) && phoneNumber) {
@@ -303,6 +292,9 @@ export default function PaymentScreen() {
     onSuccess: (data) => {
       setProcessing(false);
       savePaymentMethodOnSuccess();
+      // Statut terminal → on libère la clé d'idempotence (un futur paiement
+      // sur la même registration aura besoin d'une nouvelle clé).
+      void clearIdempotencyKey(registrationId);
 
       const eventObj = typeof registration?.event === 'object' ? registration.event : null;
       navigation.replace('PaymentSuccess', {
@@ -321,6 +313,8 @@ export default function PaymentScreen() {
     },
     onFailure: (errorMessage, data) => {
       setProcessing(false);
+      // Statut terminal → on libère la clé d'idempotence.
+      void clearIdempotencyKey(registrationId);
       navigation.replace('PaymentFailed', {
         paymentId: paymentId!,
         error: errorMessage,
@@ -643,10 +637,11 @@ export default function PaymentScreen() {
         throw new Error('Email utilisateur non disponible. Reconnecte-toi.');
       }
 
-      // Générer une clé d'idempotence si pas encore fait
-      if (!idempotencyKeyRef.current) {
-        idempotencyKeyRef.current = generateIdempotencyKey(registrationId);
-      }
+      // Récupère la clé d'idempotence persistée (ou en crée une) — réutilisée
+      // tant que le paiement n'a pas atteint un statut terminal. Évite le double
+      // débit si un retry intervient APRÈS que createPayment a réussi côté serveur
+      // mais que la réponse n'est jamais arrivée au client.
+      const idempotencyKey = await getOrCreateIdempotencyKey(registrationId);
 
       // Create payment avec les bons noms de champs + clé d'idempotence
       // Le montant inclut les frais de service (modèle client-paye)
@@ -657,7 +652,7 @@ export default function PaymentScreen() {
         payment_method: selectedMethod,
         billing_phone: formattedPhone,
         billing_email: userEmail,
-        idempotency_key: idempotencyKeyRef.current,
+        idempotency_key: idempotencyKey,
       });
 
       // Extraire l'ID du paiement de la réponse de manière sécurisée
@@ -676,8 +671,11 @@ export default function PaymentScreen() {
         throw new Error('ID de paiement non reçu du serveur');
       }
 
-      // Réinitialiser la clé d'idempotence après succès
-      idempotencyKeyRef.current = null;
+      // ⚠️ NE PAS clear l'idempotency key ici : le paiement est créé mais pas
+      // encore confirmé. Si on échoue plus loin (processMobileMoney, redirection
+      // navigateur), un retry sans clé persistée créerait un doublon serveur.
+      // La clé est supprimée seulement en statut terminal (success / failed /
+      // cancellation explicite) — voir onSuccess / onFailure / cancelPayment.
 
       setPaymentId(newPaymentId);
 
@@ -754,6 +752,10 @@ export default function PaymentScreen() {
   const cancelPayment = async () => {
     if (!paymentId) {
       setProcessing(false);
+      // Annulation pré-paiement (l'utilisateur revient en arrière avant
+      // d'avoir tapé "Payer") → on libère la clé pour que la prochaine
+      // tentative reparte sur une nouvelle session d'idempotence.
+      void clearIdempotencyKey(registrationId);
       return;
     }
 
@@ -766,6 +768,8 @@ export default function PaymentScreen() {
 
       setProcessing(false);
       setCancelling(false);
+      // Statut terminal explicite → libérer la clé.
+      void clearIdempotencyKey(registrationId);
 
       showAlert(
         'Paiement annulé',
