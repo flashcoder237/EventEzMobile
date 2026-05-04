@@ -44,6 +44,13 @@ export const REFRESH_TOKEN_KEY = 'eventez_refresh_token';
 // Gère aussi le refresh d'access token sur 401 (un upload long peut dépasser la
 // durée de vie de l'access token de 30 min). Réutilise ensureFreshAccessToken
 // du même mutex que l'intercepteur Axios pour éviter les refresh concurrents.
+//
+// Timeout : `fetch` en RN utilise les valeurs par défaut de URLSession/OkHttp
+// (60-90s) qui sont trop longues pour une UX correcte sur connexion lente.
+// On wrappe avec AbortController pour aligner sur le timeout d'upload Axios
+// (60s) et émettre une erreur lisible plutôt que de pendre indéfiniment.
+const UPLOAD_TIMEOUT_MS = 60_000;
+
 export async function fetchUpload(
   method: 'POST' | 'PATCH' | 'PUT',
   path: string,
@@ -52,15 +59,31 @@ export async function fetchUpload(
   const url = `${API_BASE_URL}${path}`;
 
   const doRequest = async (token: string | null) => {
-    const response = await fetch(url, {
-      method,
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-      body: formData,
-    });
-    const text = await response.text();
-    let data: any = {};
-    try { data = JSON.parse(text); } catch { /* HTML error page */ }
-    return { response, data, text };
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS);
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+        signal: controller.signal,
+      });
+      const text = await response.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch { /* HTML error page */ }
+      return { response, data, text };
+    } catch (error: any) {
+      if (error?.name === 'AbortError') {
+        const timeoutError: any = new Error(
+          `Upload timeout (${UPLOAD_TIMEOUT_MS / 1000}s) — vérifie ta connexion et réessaie.`,
+        );
+        timeoutError.code = 'ECONNABORTED';
+        throw timeoutError;
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   };
 
   // On importe getAccessToken en lazy pour éviter le cycle config.ts ↔ instance.ts.
