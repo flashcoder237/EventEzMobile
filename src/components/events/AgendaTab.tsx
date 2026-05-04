@@ -258,7 +258,7 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                       accessibilityRole="button"
                       accessibilityLabel={`Session ${session.title} à ${fmtTime(start)}`}
                     >
-                      {/* Top row: status + type */}
+                      {/* Top row: status + type + registration badge */}
                       <View style={styles.cardTopRow}>
                         {status === 'live' && (
                           <View style={[styles.livePill, { backgroundColor: colors.accent }]}>
@@ -269,6 +269,20 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                         {status === 'past' && (
                           <View style={[styles.statusPill, { backgroundColor: colors.gray100 }]}>
                             <Text style={[styles.statusPillText, { color: colors.gray500 }]}>TERMINÉ</Text>
+                          </View>
+                        )}
+                        {/* Badge "Inscrit" / "Liste d'attente" pour rendre l'état de l'utilisateur
+                            visible sans ouvrir le détail de la session. */}
+                        {status !== 'past' && session.is_registered && (
+                          <View style={[styles.regPill, { backgroundColor: '#10B981' }]}>
+                            <Ionicons name="checkmark" size={10} color="#fff" />
+                            <Text style={styles.regPillText}>INSCRIT</Text>
+                          </View>
+                        )}
+                        {status !== 'past' && !session.is_registered && session.is_in_waitlist && (
+                          <View style={[styles.regPill, { backgroundColor: '#F59E0B' }]}>
+                            <Ionicons name="hourglass" size={10} color="#fff" />
+                            <Text style={styles.regPillText}>EN ATTENTE</Text>
                           </View>
                         )}
                         {typeLabel && (
@@ -548,6 +562,20 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.bold,
     fontSize: 9,
     letterSpacing: 1.2,
+  },
+  regPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+  },
+  regPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+    color: '#fff',
   },
   typePill: {
     paddingHorizontal: 8,
