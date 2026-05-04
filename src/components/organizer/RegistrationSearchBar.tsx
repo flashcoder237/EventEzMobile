@@ -3,6 +3,7 @@ import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useDebouncedCallback } from '../../hooks/useDebounce';
 import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 
 interface RegistrationSearchBarProps {
@@ -13,18 +14,18 @@ interface RegistrationSearchBarProps {
 function RegistrationSearchBar({ onSearch, placeholder = 'Rechercher un participant...' }: RegistrationSearchBarProps) {
   const { colors } = useTheme();
   const [query, setQuery] = useState('');
-  const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedSearch = useDebouncedCallback(onSearch, 300);
 
   const handleChange = useCallback((text: string) => {
     setQuery(text);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => onSearch(text), 300);
-  }, [onSearch]);
+    debouncedSearch(text);
+  }, [debouncedSearch]);
 
   const handleClear = useCallback(() => {
     setQuery('');
+    debouncedSearch.cancel();
     onSearch('');
-  }, [onSearch]);
+  }, [onSearch, debouncedSearch]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.gray100, borderColor: colors.gray200 }]}>

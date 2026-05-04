@@ -379,7 +379,7 @@ export default function SubscriptionScreen() {
   const handleCancel = () => {
     Alert.alert(
       'Annuler l\'abonnement',
-      'Etes-vous sur de vouloir annuler votre abonnement ? Vous passerez au plan gratuit a la fin de la periode en cours.',
+      'Êtes-vous sûr de vouloir annuler votre abonnement ? Vous passerez au plan gratuit à la fin de la période en cours.',
       [
         { text: 'Non', style: 'cancel' },
         {

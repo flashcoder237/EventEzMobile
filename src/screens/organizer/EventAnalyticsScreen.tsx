@@ -24,38 +24,14 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { SkeletonList, StatCardSkeleton } from '../../components/ui/Skeleton';
+import { KPICard } from '../../components/charts';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RouteProps = RouteProp<RootStackParamList, 'EventAnalytics'>;
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  subtitle?: string;
-}
-
-const StatCard = ({ title, value, icon, color, subtitle }: StatCardProps) => {
-  const { colors, isDark } = useTheme();
-  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
-  return (
-    <View
-      style={[styles.statCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
-      accessibilityRole="summary"
-      accessibilityLabel={`${title}: ${value}${subtitle ? `, ${subtitle}` : ''}`}
-    >
-      <View style={[styles.statIcon, { backgroundColor: `${color}15` }]}>
-        <Ionicons name={icon} size={22} color={color} />
-      </View>
-      <Text style={[styles.statValue, { color: colors.text }]}>{value}</Text>
-      <Text style={[styles.statTitle, { color: colors.gray500 }]}>{title}</Text>
-      {subtitle && <Text style={[styles.statSubtitle, { color: colors.gray400 }]}>{subtitle}</Text>}
-    </View>
-  );
-};
+const STAT_CARD_WIDTH = (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md) / 2;
 
 export default function EventAnalyticsScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -163,10 +139,10 @@ export default function EventAnalyticsScreen() {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <StatCard title="Vues" value={formatNumber(views)} icon="eye-outline" color={colors.primary} />
-          <StatCard title="Inscriptions" value={formatNumber(registrations)} icon="people-outline" color="#10B981" />
-          <StatCard title="Conversion" value={`${conversionRate}%`} icon="trending-up-outline" color="#F59E0B" />
-          <StatCard title="Revenus" value={formatCurrency(revenue)} icon="wallet-outline" color="#6366F1" />
+          <KPICard title="Vues" value={formatNumber(views)} icon="eye-outline" color={colors.primary} style={{ width: STAT_CARD_WIDTH }} />
+          <KPICard title="Inscriptions" value={formatNumber(registrations)} icon="people-outline" color="#10B981" style={{ width: STAT_CARD_WIDTH }} />
+          <KPICard title="Conversion" value={`${conversionRate}%`} icon="trending-up-outline" color="#F59E0B" style={{ width: STAT_CARD_WIDTH }} />
+          <KPICard title="Revenus" value={formatCurrency(revenue)} icon="wallet-outline" color="#6366F1" style={{ width: STAT_CARD_WIDTH }} />
         </View>
 
         {/* Performance Section */}
@@ -351,34 +327,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: Spacing.md,
     marginBottom: Spacing.sm,
-  },
-  statCard: {
-    width: (SCREEN_WIDTH - Spacing.lg * 2 - Spacing.md) / 2,
-    borderRadius: BorderRadius.xl,
-    borderWidth: 1,
-    padding: Spacing.md,
-  },
-  statIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  statValue: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes['2xl'],
-    letterSpacing: -0.5,
-  },
-  statTitle: {
-    fontFamily: FontFamily.medium,
-    fontSize: FontSizes.sm,
-    marginTop: 2,
-  },
-  statSubtitle: {
-    fontSize: FontSizes.xs,
-    marginTop: 2,
   },
   section: {
     marginTop: Spacing.lg,

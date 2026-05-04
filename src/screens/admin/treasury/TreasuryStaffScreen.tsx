@@ -84,10 +84,10 @@ function TreasuryStaffContent() {
     setGeneratingPayroll(true);
     try {
       await treasuryAPI.generatePayroll({ month: now.getMonth() + 1, year: now.getFullYear() });
-      showSuccess('Succes', 'Paie generee avec succes');
+      showSuccess('Succès', 'Paie générée avec succès');
       fetchData();
     } catch (error) {
-      showError('Erreur', 'Impossible de generer la paie');
+      showError('Erreur', 'Impossible de générer la paie');
     } finally {
       setGeneratingPayroll(false);
     }

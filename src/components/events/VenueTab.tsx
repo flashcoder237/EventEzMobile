@@ -98,12 +98,12 @@ export default function VenueTab({ eventId }: VenueTabProps) {
         zone: selectedZone,
         seat_label: seatLabel.trim(),
       });
-      Alert.alert('Succes', 'Votre place a ete reservee !');
+      Alert.alert('Succès', 'Votre place a été réservée !');
       setSeatLabel('');
       setSelectedZone('');
       fetchData();
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || 'Erreur lors de la reservation';
+      const msg = error?.response?.data?.detail || 'Erreur lors de la réservation';
       Alert.alert('Erreur', msg);
     } finally {
       setReserving(false);

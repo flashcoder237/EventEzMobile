@@ -51,9 +51,9 @@ interface VolunteerApplication {
 
 const APPLICATION_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   pending: { label: 'En attente', color: Colors.warning, bg: Colors.warningLight },
-  approved: { label: 'Approuvee', color: Colors.success, bg: Colors.successLight },
-  rejected: { label: 'Refusee', color: Colors.error, bg: Colors.errorLight },
-  withdrawn: { label: 'Retiree', color: Colors.textLight, bg: Colors.gray100 },
+  approved: { label: 'Approuvée', color: Colors.success, bg: Colors.successLight },
+  rejected: { label: 'Refusée', color: Colors.error, bg: Colors.errorLight },
+  withdrawn: { label: 'Retirée', color: Colors.textLight, bg: Colors.gray100 },
 };
 
 export default function VolunteerScreen() {
@@ -97,8 +97,8 @@ export default function VolunteerScreen() {
 
   const handleApply = (role: VolunteerRole) => {
     Alert.alert(
-      'Postuler comme benevole',
-      `Souhaitez-vous postuler pour le role "${role.title}" ?`,
+      'Postuler comme bénévole',
+      `Souhaitez-vous postuler pour le rôle "${role.title}" ?`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -107,7 +107,7 @@ export default function VolunteerScreen() {
             setActionLoading(role.id);
             try {
               await volunteersAPI.apply({ role: role.id });
-              Alert.alert('Succes', 'Votre candidature a ete envoyee !');
+              Alert.alert('Succès', 'Votre candidature a été envoyée !');
               fetchData();
             } catch (error: any) {
               if (__DEV__) console.error('Erreur apply volunteer:', error);
@@ -125,7 +125,7 @@ export default function VolunteerScreen() {
   const handleWithdraw = (applicationId: string) => {
     Alert.alert(
       'Retirer la candidature',
-      'Etes-vous sur de vouloir retirer votre candidature ?',
+      'Êtes-vous sûr de vouloir retirer votre candidature ?',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -135,7 +135,7 @@ export default function VolunteerScreen() {
             setActionLoading(applicationId);
             try {
               await volunteersAPI.withdrawApplication(applicationId);
-              Alert.alert('Succes', 'Candidature retiree.');
+              Alert.alert('Succès', 'Candidature retirée.');
               fetchData();
             } catch (error) {
               if (__DEV__) console.error('Erreur withdraw:', error);
@@ -248,9 +248,9 @@ export default function VolunteerScreen() {
   const renderApplicationCard = ({ item }: { item: VolunteerApplication }) => {
     const statusColors: Record<string, { label: string; color: string; bg: string }> = {
       pending: { label: 'En attente', color: colors.warning, bg: colors.warningLight },
-      approved: { label: 'Approuvee', color: colors.success, bg: colors.successLight },
-      rejected: { label: 'Refusee', color: colors.error, bg: colors.errorLight },
-      withdrawn: { label: 'Retiree', color: colors.textLight, bg: colors.gray100 },
+      approved: { label: 'Approuvée', color: colors.success, bg: colors.successLight },
+      rejected: { label: 'Refusée', color: colors.error, bg: colors.errorLight },
+      withdrawn: { label: 'Retirée', color: colors.textLight, bg: colors.gray100 },
     };
     const statusConfig = statusColors[item.status] || statusColors.pending;
     const isPending = item.status === 'pending';

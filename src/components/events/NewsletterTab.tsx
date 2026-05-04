@@ -63,7 +63,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
         name: name.trim() || undefined,
       });
       setSubscribed(true);
-      Alert.alert('Succes', 'Vous etes inscrit a la newsletter !');
+      Alert.alert('Succès', 'Vous êtes inscrit à la newsletter !');
     } catch (error: any) {
       const msg = error?.response?.data?.detail || error?.response?.data?.message || "Erreur lors de l'inscription";
       Alert.alert('Erreur', msg);

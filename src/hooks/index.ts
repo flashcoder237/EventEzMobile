@@ -4,6 +4,7 @@
 
 export { useReducedMotion } from './useReducedMotion';
 export { useTabletLayout } from './useTabletLayout';
+export { useDebounce, useDebouncedCallback } from './useDebounce';
 export { useLoadingState, useAsyncOperation } from './useLoadingState';
 export { useMessagingWebSocket } from './useMessagingWebSocket';
 export { useMessageState } from './useMessageState';

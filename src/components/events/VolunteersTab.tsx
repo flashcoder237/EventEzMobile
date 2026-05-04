@@ -73,7 +73,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
         availability: availability || undefined,
         experience: experience || undefined,
       });
-      Alert.alert('Succes', 'Votre candidature a ete envoyee !');
+      Alert.alert('Succès', 'Votre candidature a été envoyée !');
       setMyApplications((prev) => [...prev, roleId]);
       setApplyingRole(null);
       setMotivation('');

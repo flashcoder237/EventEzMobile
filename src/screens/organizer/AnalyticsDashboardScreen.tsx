@@ -28,6 +28,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { StaggeredItem } from '../../components/ui/Animations';
 import { AnalyticsDashboardScreenSkeleton } from '../../components/ui/Skeleton';
 import ExportButton from '../../components/common/ExportButton';
+import { KPICard, BarChart } from '../../components/charts';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TimeRange = '7d' | '30d' | '90d' | '1y';
@@ -139,58 +140,7 @@ export default function AnalyticsDashboardScreen() {
   const revenueTrend = summary?.trends?.revenue_trend ?? 0;
   const registrationTrend = summary?.trends?.registration_trend ?? 0;
 
-  const KPICardE = ({
-    eyebrow,
-    label,
-    value,
-    icon,
-    color,
-    trend,
-    suffix,
-  }: {
-    eyebrow: string;
-    label: string;
-    value: string | number;
-    icon: keyof typeof Ionicons.glyphMap;
-    color: string;
-    trend?: number;
-    suffix?: string;
-  }) => {
-    const trendUp = trend !== undefined && trend > 0;
-    const trendFlat = trend !== undefined && Math.abs(trend) < 1;
-    return (
-      <View style={[styles.kpiCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
-        <View style={styles.kpiTopRow}>
-          <View style={[styles.kpiIcon, { backgroundColor: `${color}15` }]}>
-            <Ionicons name={icon} size={16} color={color} />
-          </View>
-          {trend !== undefined && (
-            <View style={[styles.kpiTrend, { backgroundColor: trendFlat ? colors.gray100 : trendUp ? '#10B98115' : '#EF444415' }]}>
-              <Ionicons
-                name={trendFlat ? 'remove' : trendUp ? 'trending-up' : 'trending-down'}
-                size={9}
-                color={trendFlat ? colors.gray500 : trendUp ? '#10B981' : '#EF4444'}
-              />
-              <Text
-                style={[
-                  styles.kpiTrendText,
-                  { color: trendFlat ? colors.gray500 : trendUp ? '#10B981' : '#EF4444' },
-                ]}
-              >
-                {trendFlat ? '—' : `${trendUp ? '+' : ''}${Math.round(trend)}%`}
-              </Text>
-            </View>
-          )}
-        </View>
-        <Text style={[styles.kpiEyebrow, { color: colors.accent }]}>{eyebrow}</Text>
-        <Text style={[styles.kpiValue, { color: colors.text }]} numberOfLines={1} adjustsFontSizeToFit>
-          {value}
-          {suffix && <Text style={[styles.kpiSuffix, { color: colors.gray500 }]}> {suffix}</Text>}
-        </Text>
-        <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>{label}</Text>
-      </View>
-    );
-  };
+  // KPI cards via le composant partagé `<KPICard variant="editorial" />`.
 
   if (loading) {
     return (
@@ -347,7 +297,7 @@ export default function AnalyticsDashboardScreen() {
         {/* === KPI GRID === */}
         <StaggeredItem index={1}>
           <View style={styles.kpiGrid}>
-            <KPICardE
+            <KPICard variant="editorial"
               eyebrow="REVENUS"
               label="Sur la période"
               value={totalRevenue.toLocaleString()}
@@ -356,7 +306,7 @@ export default function AnalyticsDashboardScreen() {
               color="#10B981"
               trend={revenueTrend}
             />
-            <KPICardE
+            <KPICard variant="editorial"
               eyebrow="INSCRITS"
               label="Total période"
               value={totalRegistrations}
@@ -369,14 +319,14 @@ export default function AnalyticsDashboardScreen() {
 
         <StaggeredItem index={2}>
           <View style={styles.kpiGrid}>
-            <KPICardE
+            <KPICard variant="editorial"
               eyebrow="EVENTS"
               label="Actifs et passés"
               value={totalEvents}
               icon="calendar-outline"
               color="#A855F7"
             />
-            <KPICardE
+            <KPICard variant="editorial"
               eyebrow="PRÉSENCE"
               label="Taux moyen"
               value={`${Math.round(avgAttendance)}%`}
@@ -406,32 +356,13 @@ export default function AnalyticsDashboardScreen() {
             </View>
             <View style={[styles.chartArea, { borderTopColor: hairline }]}>
               {registrationData?.timeline && (registrationData.timeline as any[]).length > 0 ? (
-                (() => {
-                  const slice = (registrationData.timeline as any[]).slice(-chartBarCount[timeRange]);
-                  const maxVal = Math.max(...slice.map((i: any) => i.count || 0), 1);
-                  return (
-                    <View style={styles.barChart}>
-                      {slice.map((item: any, idx: number) => {
-                        const height = ((item.count || 0) / maxVal) * 100;
-                        return (
-                          <View key={idx} style={styles.barColumn}>
-                            <View style={styles.barWrap}>
-                              <LinearGradient
-                                colors={['#4F46E5', '#312E81']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 0, y: 1 }}
-                                style={[styles.bar, { height: `${height}%` }]}
-                              />
-                            </View>
-                            <Text style={[styles.barLabel, { color: colors.gray400 }]} numberOfLines={1}>
-                              {item.label || ''}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  );
-                })()
+                <BarChart
+                  data={(registrationData.timeline as any[])
+                    .slice(-chartBarCount[timeRange])
+                    .map((i: any) => ({ label: i.label || '', value: i.count || 0 }))}
+                  gradientColors={['#4F46E5', '#312E81']}
+                  height={150}
+                />
               ) : (
                 <View style={styles.noDataContainer}>
                   <Ionicons name="bar-chart-outline" size={36} color={colors.gray300} />
@@ -465,32 +396,13 @@ export default function AnalyticsDashboardScreen() {
             </View>
             <View style={[styles.chartArea, { borderTopColor: hairline }]}>
               {revenueData?.timeline && (revenueData.timeline as any[]).length > 0 ? (
-                (() => {
-                  const slice = (revenueData.timeline as any[]).slice(-chartBarCount[timeRange]);
-                  const maxVal = Math.max(...slice.map((i: any) => i.amount || 0), 1);
-                  return (
-                    <View style={styles.barChart}>
-                      {slice.map((item: any, idx: number) => {
-                        const height = ((item.amount || 0) / maxVal) * 100;
-                        return (
-                          <View key={idx} style={styles.barColumn}>
-                            <View style={styles.barWrap}>
-                              <LinearGradient
-                                colors={['#10B981', '#047857']}
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 0, y: 1 }}
-                                style={[styles.bar, { height: `${height}%` }]}
-                              />
-                            </View>
-                            <Text style={[styles.barLabel, { color: colors.gray400 }]} numberOfLines={1}>
-                              {item.label || ''}
-                            </Text>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  );
-                })()
+                <BarChart
+                  data={(revenueData.timeline as any[])
+                    .slice(-chartBarCount[timeRange])
+                    .map((i: any) => ({ label: i.label || '', value: i.amount || 0 }))}
+                  gradientColors={['#10B981', '#047857']}
+                  height={150}
+                />
               ) : (
                 <View style={styles.noDataContainer}>
                   <Ionicons name="trending-up" size={36} color={colors.gray300} />
@@ -750,61 +662,6 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
   },
-  kpiCard: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  kpiTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: Spacing.sm,
-  },
-  kpiIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  kpiTrend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-  },
-  kpiTrendText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: -0.1,
-  },
-  kpiEyebrow: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: 1.4,
-    marginBottom: 4,
-  },
-  kpiValue: {
-    fontFamily: FontFamily.displayExtraBold,
-    fontSize: 22,
-    letterSpacing: -0.7,
-    lineHeight: 26,
-    marginBottom: 2,
-  },
-  kpiSuffix: {
-    fontFamily: FontFamily.bold,
-    fontSize: 11,
-    letterSpacing: 0.5,
-  },
-  kpiLabel: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 10,
-    letterSpacing: -0.1,
-  },
 
   // === CHART CARD ===
   chartCard: {
@@ -861,36 +718,6 @@ const styles = StyleSheet.create({
     height: 160,
     borderTopWidth: 1,
     paddingTop: Spacing.sm,
-  },
-  barChart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    width: '100%',
-    height: '100%',
-  },
-  barColumn: {
-    alignItems: 'center',
-    flex: 1,
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  barWrap: {
-    width: 18,
-    height: '85%',
-    justifyContent: 'flex-end',
-  },
-  bar: {
-    width: '100%',
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
-    minHeight: 4,
-  },
-  barLabel: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: 0.5,
-    marginTop: 6,
   },
   noDataContainer: {
     alignItems: 'center',

@@ -213,6 +213,9 @@ export const usersAPI = {
 
   getFollowingUsers: () =>
     api.get('/users/following_users/'),
+
+  // Export — admin only — use `useExport()` hook instead.
+  // Endpoint kept for reference: GET /users/export/?role=&export_format=csv|xlsx|pdf
 };
 
 // ============================================
