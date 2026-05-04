@@ -6,6 +6,10 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
+  Modal,
+  TextInput,
+  ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -41,9 +45,9 @@ const statusVariant = (s: string): 'warning' | 'success' | 'destructive' | 'info
 const statusLabel = (s: string): string => {
   switch (s) {
     case 'pending': return 'En attente';
-    case 'approved': return 'Approuve';
-    case 'rejected': return 'Rejete';
-    case 'paid': return 'Paye';
+    case 'approved': return 'Approuvé';
+    case 'rejected': return 'Rejeté';
+    case 'paid': return 'Payé';
     default: return s;
   }
 };
@@ -56,6 +60,19 @@ export default function TreasuryExpensesScreen() {
   );
 }
 
+// Catégories proposées en preset — l'admin peut taper sa propre valeur via le
+// champ catégorie. Aligné avec les buckets compta classiques.
+const EXPENSE_CATEGORIES = [
+  'infrastructure',
+  'marketing',
+  'software',
+  'travel',
+  'office',
+  'legal',
+  'tax',
+  'other',
+] as const;
+
 function TreasuryExpensesContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
@@ -65,6 +82,66 @@ function TreasuryExpensesContent() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Création d'une dépense
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState('');
+  const [createAmount, setCreateAmount] = useState('');
+  const [createCategory, setCreateCategory] = useState<string>('other');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createIsRecurring, setCreateIsRecurring] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
+
+  const resetCreateForm = () => {
+    setCreateTitle('');
+    setCreateAmount('');
+    setCreateCategory('other');
+    setCreateDescription('');
+    setCreateIsRecurring(false);
+  };
+
+  const closeCreateModal = () => {
+    if (createLoading) return;
+    setCreateOpen(false);
+    resetCreateForm();
+  };
+
+  const submitCreateExpense = async () => {
+    const trimmedTitle = createTitle.trim();
+    const numericAmount = parseFloat(createAmount.replace(',', '.'));
+    if (!trimmedTitle) {
+      showError('Titre requis', 'Donne un titre court à cette dépense.');
+      return;
+    }
+    if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
+      showError('Montant invalide', 'Le montant doit être un nombre supérieur à 0.');
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      const res = await treasuryAPI.createExpense({
+        title: trimmedTitle,
+        amount: numericAmount,
+        category: createCategory,
+        description: createDescription.trim() || undefined,
+        is_recurring: createIsRecurring,
+      });
+      const newExpense: Expense | undefined = res.data;
+      if (newExpense?.id) {
+        setExpenses(prev => [newExpense, ...prev]);
+      } else {
+        await fetchExpenses();
+      }
+      showSuccess('Dépense créée', "Statut initial : en attente d'approbation.");
+      setCreateOpen(false);
+      resetCreateForm();
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || error?.response?.data?.amount?.[0];
+      showError('Erreur', detail || 'Impossible de créer la dépense.');
+    } finally {
+      setCreateLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchExpenses();
@@ -92,7 +169,7 @@ function TreasuryExpensesContent() {
     try {
       await treasuryAPI.approveExpense(id);
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: 'approved' as const } : e));
-      showSuccess('Succes', 'Depense approuvee');
+      showSuccess('Succès', 'Dépense approuvée');
     } catch (error) {
       showError('Erreur', 'Impossible d\'approuver');
     }
@@ -100,9 +177,9 @@ function TreasuryExpensesContent() {
 
   const handleReject = async (id: string) => {
     try {
-      await treasuryAPI.rejectExpense(id, 'Rejete par l\'administrateur');
+      await treasuryAPI.rejectExpense(id, 'Rejeté par l\'administrateur');
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: 'rejected' as const } : e));
-      showSuccess('Succes', 'Depense rejetee');
+      showSuccess('Succès', 'Dépense rejetée');
     } catch (error) {
       showError('Erreur', 'Impossible de rejeter');
     }
@@ -168,6 +245,15 @@ function TreasuryExpensesContent() {
           <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LES SORTIES</Text>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Dépenses</Text>
         </View>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
+          onPress={() => setCreateOpen(true)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Nouvelle dépense"
+        >
+          <Ionicons name="add" size={20} color={colors.primary} />
+        </TouchableOpacity>
       </View>
 
       <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
@@ -203,6 +289,132 @@ function TreasuryExpensesContent() {
           </View>
         }
       />
+
+      {/* === CREATE EXPENSE MODAL === */}
+      <Modal
+        visible={createOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCreateModal}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVELLE DÉPENSE</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Enregistrer une sortie</Text>
+
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Titre</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text }]}
+                value={createTitle}
+                onChangeText={setCreateTitle}
+                placeholder="Ex : Hébergement serveur AWS Mai"
+                placeholderTextColor={colors.gray400}
+                editable={!createLoading}
+                maxLength={120}
+              />
+
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Montant ({platformCurrency})</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text }]}
+                value={createAmount}
+                onChangeText={setCreateAmount}
+                placeholder="0"
+                placeholderTextColor={colors.gray400}
+                keyboardType="decimal-pad"
+                editable={!createLoading}
+              />
+
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Catégorie</Text>
+              <View style={styles.categoryGrid}>
+                {EXPENSE_CATEGORIES.map(cat => {
+                  const active = cat === createCategory;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[
+                        styles.categoryChip,
+                        {
+                          backgroundColor: active ? colors.primary : colors.gray50,
+                          borderColor: active ? colors.primary : hairline,
+                        },
+                      ]}
+                      onPress={() => !createLoading && setCreateCategory(cat)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={[styles.categoryChipText, { color: active ? '#fff' : colors.gray700 }]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Description (optionnel)</Text>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text },
+                ]}
+                value={createDescription}
+                onChangeText={setCreateDescription}
+                placeholder="Justificatif, fournisseur, contrat…"
+                placeholderTextColor={colors.gray400}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                editable={!createLoading}
+                maxLength={500}
+              />
+
+              <TouchableOpacity
+                style={styles.recurringRow}
+                onPress={() => !createLoading && setCreateIsRecurring(v => !v)}
+                activeOpacity={0.85}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      backgroundColor: createIsRecurring ? colors.primary : 'transparent',
+                      borderColor: createIsRecurring ? colors.primary : colors.gray300,
+                    },
+                  ]}
+                >
+                  {createIsRecurring && <Ionicons name="checkmark" size={12} color="#fff" />}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+                  Dépense récurrente (mensuelle)
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.gray100 }]}
+                  onPress={closeCreateModal}
+                  disabled={createLoading}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.primary }, createLoading && { opacity: 0.6 }]}
+                  onPress={submitCreateExpense}
+                  disabled={createLoading}
+                  activeOpacity={0.85}
+                >
+                  {createLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>Créer</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -296,4 +508,101 @@ const styles = StyleSheet.create({
   actionText: { fontFamily: FontFamily.bold, fontSize: FontSizes.xs },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], gap: Spacing.md },
   emptyText: { fontFamily: FontFamily.medium, fontSize: FontSizes.base },
+
+  // Create-expense modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '85%',
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  modalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.5,
+    marginBottom: Spacing.md,
+  },
+  fieldLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    marginTop: Spacing.sm,
+    marginBottom: 6,
+  },
+  input: {
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+  },
+  textArea: {
+    minHeight: 70,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  categoryChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  categoryChipText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    letterSpacing: 0.2,
+    textTransform: 'capitalize',
+  },
+  recurringRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: Spacing.md,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 13,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
 });
