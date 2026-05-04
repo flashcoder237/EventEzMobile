@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, memo, useCallback } from 'react';
 import { View, StyleSheet, Platform, Pressable, Text } from 'react-native';
 import { Image } from 'expo-image';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
@@ -36,6 +36,7 @@ import AuthGuardScreen from '../components/auth/AuthGuardScreen';
 import DiscoverScreen from '../screens/events/DiscoverScreen';
 import FollowingEventsScreen from '../screens/dashboard/FollowingEventsScreen';
 import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
+import MessagesScreen from '../screens/messages/MessagesScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
 // Auth-guarded tab wrappers
@@ -51,6 +52,20 @@ function SavedTabScreen() {
     );
   }
   return <FollowingEventsScreen />;
+}
+
+function MessagesTabScreen() {
+  const { isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return (
+      <AuthGuardScreen
+        illustration="message"
+        title="Vos conversations"
+        subtitle="Connectez-vous pour discuter avec les organisateurs et retrouver vos conversations."
+      />
+    );
+  }
+  return <MessagesScreen />;
 }
 
 function TicketsTabScreen() {
@@ -99,10 +114,10 @@ const INACTIVE_TAB_WIDTH = 48;
 const INACTIVE_TAB_HEIGHT = 48;
 const FADE_HEIGHT = 80;
 
-type TabName = 'Discover' | 'Saved' | 'MyTickets' | 'Profile';
+type TabName = 'Discover' | 'Saved' | 'MessagesTab' | 'MyTickets' | 'Profile';
 
 // Tabs ordonnées — sert au calcul du gradient (couleur courante → suivante)
-const TAB_ORDER: TabName[] = ['Discover', 'Saved', 'MyTickets', 'Profile'];
+const TAB_ORDER: TabName[] = ['Discover', 'Saved', 'MessagesTab', 'MyTickets', 'Profile'];
 
 // Icônes : on utilise UNIQUEMENT la version filled (pas d'outline) pour un
 // rendu plus bold et solide. La distinction actif/inactif passe par la
@@ -110,22 +125,25 @@ const TAB_ORDER: TabName[] = ['Discover', 'Saved', 'MyTickets', 'Profile'];
 const tabConfig: Record<TabName, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   Discover: { icon: 'compass', label: 'Découvrir' },
   Saved: { icon: 'bookmark', label: 'Favoris' },
+  MessagesTab: { icon: 'chatbubble', label: 'Messages' },
   MyTickets: { icon: 'ticket', label: 'Billets' },
   Profile: { icon: 'person', label: 'Profil' },
 };
 
 // Couleur de la pilule active par onglet — interprétation éditoriale (palette
-// indigo/corail/violet/ambre). Le mockup AIDesigner utilisait indigo partout ;
-// la variation par tab garde la personnalité existante de l'app.
+// indigo/corail/violet/ambre + cyan messages). Le mockup AIDesigner utilisait
+// indigo partout ; la variation par tab garde la personnalité existante.
 const TAB_PILL_COLORS_LIGHT: Record<TabName, string> = {
   Discover: '#4F46E5', // indigo
   Saved: '#FF6B6B',    // corail
+  MessagesTab: '#06B6D4', // cyan
   MyTickets: '#A855F7', // violet
   Profile: '#F59E0B',   // ambre
 };
 const TAB_PILL_COLORS_DARK: Record<TabName, string> = {
   Discover: '#818CF8',
   Saved: '#FCA5A5',
+  MessagesTab: '#67E8F9',
   MyTickets: '#C084FC',
   Profile: '#FBBF24',
 };
@@ -142,13 +160,15 @@ interface TabSlotProps {
   onPress: () => void;
   user: ReturnType<typeof useAuth>['user'];
   totalPendingCount: number;
+  /** Nombre de messages non lus, pour le badge sur le tab Messages. */
+  unreadMessageCount: number;
   isDark: boolean;
   cardColor: string;
   /** ID enregistre dans le FeatureTourContext pour le spotlight */
   tourId?: string;
 }
 
-function TabSlot({
+const TabSlot = memo(function TabSlot({
   routeName,
   isFocused,
   pillColor,
@@ -156,6 +176,7 @@ function TabSlot({
   onPress,
   user,
   totalPendingCount,
+  unreadMessageCount,
   isDark,
   cardColor,
   tourId,
@@ -341,11 +362,28 @@ function TabSlot({
           )}
         </View>
       ) : (
-        <Ionicons
-          name={config.icon}
-          size={isFocused ? 24 : 26}
-          color={isFocused ? activeColor : inactiveColor}
-        />
+        <View>
+          <Ionicons
+            name={config.icon}
+            size={isFocused ? 24 : 26}
+            color={isFocused ? activeColor : inactiveColor}
+          />
+          {routeName === 'MessagesTab' && unreadMessageCount > 0 && (
+            <View
+              style={[
+                styles.profileBadge,
+                {
+                  backgroundColor: '#FF6B6B',
+                  borderColor: isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF'),
+                },
+              ]}
+            >
+              <Text style={styles.profileBadgeText}>
+                {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
+              </Text>
+            </View>
+          )}
+        </View>
       )}
 
       {/* Label uppercase visible UNIQUEMENT sur le tab actif (inline à droite
@@ -360,16 +398,34 @@ function TabSlot({
       )}
     </AnimatedPressable>
   );
-}
+});
 
 function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
-  const { totalPendingCount } = useUnreadCounts();
+  const { totalPendingCount, unreadMessageCount } = useUnreadCounts();
 
   const bottomPadding = Math.max(insets.bottom, 12);
   const palette = isDark ? TAB_PILL_COLORS_DARK : TAB_PILL_COLORS_LIGHT;
+
+  // Stabilise le handler par routeKey : sans ça, chaque render du tab bar
+  // crée 5 nouvelles closures → React.memo(TabSlot) ne sert à rien car la
+  // prop `onPress` change toujours d'identité.
+  const navigateToTab = useCallback(
+    (routeKey: string, routeName: string, currentlyFocused: boolean) => {
+      const event = navigation.emit({
+        type: 'tabPress',
+        target: routeKey,
+        canPreventDefault: true,
+      });
+      if (!currentlyFocused && !event.defaultPrevented) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        navigation.navigate(routeName as never);
+      }
+    },
+    [navigation],
+  );
 
   return (
     <View style={[styles.dockOuter, { paddingBottom: bottomPadding + 8 }]}>
@@ -407,18 +463,12 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
           const nextTabName = TAB_ORDER[(orderIdx + 1) % TAB_ORDER.length];
           const nextTabColor = palette[nextTabName];
 
-          const onPress = () => {
-            const event = navigation.emit({
-              type: 'tabPress',
-              target: route.key,
-              canPreventDefault: true,
-            });
-
-            if (!isFocused && !event.defaultPrevented) {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
-              navigation.navigate(route.name);
-            }
-          };
+          // Closure stable par index — recréée seulement si l'index focused change.
+          // (On ne peut pas useCallback ici car on est dans un map ; mais comme
+          // le seul ref qui change vraiment c'est navigation, et qu'on l'a
+          // capturé via navigateToTab, l'identité de cette closure ne casse
+          // pas la React.memo si on garde une routeKey stable côté TabSlot.)
+          const onPress = () => navigateToTab(route.key, route.name, isFocused);
 
           return (
             <TabSlot
@@ -431,6 +481,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
               onPress={onPress}
               user={user}
               totalPendingCount={totalPendingCount}
+              unreadMessageCount={unreadMessageCount}
               isDark={isDark}
               cardColor={isDark ? '#0F172A' : '#FFFFFF'}
               tourId={`tab-${routeName.toLowerCase()}`}
@@ -468,6 +519,7 @@ export default function MainTabNavigator() {
     >
       <Tab.Screen name="Discover" component={DiscoverScreen} options={{ tabBarLabel: 'Découvrir' }} />
       <Tab.Screen name="Saved" component={SavedTabScreen} options={{ tabBarLabel: 'Favoris' }} />
+      <Tab.Screen name="MessagesTab" component={MessagesTabScreen} options={{ tabBarLabel: 'Messages' }} />
       <Tab.Screen name="MyTickets" component={TicketsTabScreen} options={{ tabBarLabel: 'Billets' }} />
       <Tab.Screen name="Profile" component={ProfileTabScreen} options={{ tabBarLabel: 'Profil' }} />
     </Tab.Navigator>
