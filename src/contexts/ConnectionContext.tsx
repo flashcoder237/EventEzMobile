@@ -70,27 +70,44 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     checkServer();
   }, [checkServer]);
 
-  // NetInfo listener
+  // NetInfo listener — debounce les transitions sur 5s pour éviter de spammer
+  // checkServer sur du WiFi instable / captive portal qui flicker. Une rafale
+  // de "online → offline → online" en quelques centaines de ms ne déclenche
+  // qu'un seul check après stabilisation.
+  const recheckTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
       const online = state.isConnected === true && state.isInternetReachable !== false;
       setIsOnline((prev) => {
         if (prev && !online) {
-          // Went offline
+          // Went offline — annule un éventuel recheck en attente
+          if (recheckTimerRef.current) {
+            clearTimeout(recheckTimerRef.current);
+            recheckTimerRef.current = null;
+          }
           setWasOffline(false);
         }
         if (!prev && online) {
-          // Came back online — check server
+          // Came back online — debounce le check à 5s. Si le réseau retombe
+          // entre temps (cas typique WiFi pourri), on annule.
           setWasOffline(true);
-          setTimeout(() => {
+          if (recheckTimerRef.current) clearTimeout(recheckTimerRef.current);
+          recheckTimerRef.current = setTimeout(() => {
+            recheckTimerRef.current = null;
             checkServer();
-          }, 500);
+          }, 5000);
         }
         return online;
       });
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      if (recheckTimerRef.current) {
+        clearTimeout(recheckTimerRef.current);
+        recheckTimerRef.current = null;
+      }
+    };
   }, [checkServer]);
 
   // Listen for server errors from API interceptor
