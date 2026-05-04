@@ -96,10 +96,20 @@ export function useOfflineTickets() {
     ticket_type_name?: string;
     quantity?: number;
     qr_code?: string;
-  }) => {
+  }, options?: { force?: boolean }) => {
     if (!ticket.qr_code) {
       if (__DEV__) console.warn('Pas de QR code à mettre en cache');
       return false;
+    }
+
+    // Skip si déjà caché et non expiré — l'URL d'un QR code est stable
+    // (basée sur l'UUID du ticket), il est inutile de la re-télécharger à
+    // chaque visite de RegistrationDetails. loadCacheIndex purge déjà les
+    // entrées au-delà de CACHE_EXPIRY_DAYS, donc la présence dans l'index
+    // garantit la fraîcheur. options.force=true pour invalidation explicite.
+    if (!options?.force && ticket.id in cachedTickets) {
+      if (__DEV__) console.log(`[OfflineTickets] ${ticket.id} déjà caché — skip download`);
+      return true;
     }
 
     try {
