@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   RefreshControl,
   TextInput,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -75,6 +77,13 @@ export default function MyEventsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  // Modal d'annulation : on demande une raison qui apparaîtra aux inscrits
+  // (email + notification). Pas obligatoire côté backend mais fortement
+  // recommandé pour la transparence — un cancel silencieux est une mauvaise UX.
+  const [cancelEventTarget, setCancelEventTarget] = useState<Event | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [duplicateLoading, setDuplicateLoading] = useState<string | null>(null);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -146,6 +155,66 @@ export default function MyEventsScreen() {
         }
       }
     );
+  };
+
+  const handleDuplicateEvent = async (event: Event) => {
+    if (duplicateLoading) return;
+    setDuplicateLoading(event.id);
+    try {
+      const res = await eventsAPI.duplicateEvent(event.id);
+      const newEvent: Event | null = res.data || null;
+      // On rajoute le nouveau brouillon en tête de liste pour qu'il soit
+      // immédiatement visible. Si la réponse n'inclut pas l'event complet
+      // (selon le backend), on tombe sur un fetch.
+      if (newEvent && newEvent.id) {
+        setEvents(prev => [newEvent, ...prev]);
+      } else {
+        await fetchEvents(true);
+      }
+      if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
+      showSuccess('Événement dupliqué', 'Un nouveau brouillon a été créé.');
+    } catch (error: any) {
+      if (__DEV__) console.error('Erreur duplication:', error);
+      showError('Erreur', error.response?.data?.detail || "Impossible de dupliquer l'événement");
+    } finally {
+      setDuplicateLoading(null);
+    }
+  };
+
+  const openCancelModal = (event: Event) => {
+    setCancelEventTarget(event);
+    setCancelReason('');
+  };
+
+  const closeCancelModal = () => {
+    if (cancelLoading) return;
+    setCancelEventTarget(null);
+    setCancelReason('');
+  };
+
+  const submitCancelEvent = async () => {
+    if (!cancelEventTarget) return;
+    const reason = cancelReason.trim();
+    if (!reason) {
+      showError('Raison requise', 'Indique une raison qui sera communiquée aux inscrits.');
+      return;
+    }
+    setCancelLoading(true);
+    try {
+      await eventsAPI.cancelEvent(cancelEventTarget.id, reason);
+      setEvents(prev => prev.map(e =>
+        e.id === cancelEventTarget.id ? { ...e, status: 'cancelled' } : e,
+      ));
+      if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
+      showSuccess('Événement annulé', 'Les inscrits seront notifiés.');
+      setCancelEventTarget(null);
+      setCancelReason('');
+    } catch (error: any) {
+      if (__DEV__) console.error('Erreur annulation:', error);
+      showError('Erreur', error.response?.data?.detail || "Impossible d'annuler l'événement");
+    } finally {
+      setCancelLoading(false);
+    }
   };
 
   const handleSubmitForValidation = (eventId: string) => {
@@ -236,6 +305,26 @@ export default function MyEventsScreen() {
       actions.push({
         text: 'Soumettre pour validation',
         onPress: () => handleSubmitForValidation(event.id),
+      });
+    }
+
+    // Dupliquer : permis sur tous les statuts non-annulés (l'organisateur peut
+    // vouloir relancer un event terminé sur la base de l'ancien). Backend
+    // copie l'event en tant que nouveau draft propre du même organizer.
+    if (event.status !== 'cancelled') {
+      actions.push({
+        text: 'Dupliquer',
+        onPress: () => handleDuplicateEvent(event),
+      });
+    }
+
+    // Annuler : seulement les events publiés ou pendants. Les drafts/rejected
+    // se suppriment, les completed/cancelled ne se réannulent pas.
+    if (event.status === 'validated' || event.status === 'submitted') {
+      actions.push({
+        text: "Annuler l'événement",
+        onPress: () => openCancelModal(event),
+        style: 'destructive',
       });
     }
 
@@ -800,6 +889,68 @@ export default function MyEventsScreen() {
         windowSize={5}
         removeClippedSubviews
       />
+
+      {/* === MODAL ANNULATION D'ÉVÉNEMENT === */}
+      <Modal
+        visible={!!cancelEventTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCancelModal}
+      >
+        <View style={styles.cancelModalBackdrop}>
+          <View style={[styles.cancelModalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cancelModalEyebrow, { color: '#EF4444' }]}>ACTION IRRÉVERSIBLE</Text>
+            <Text style={[styles.cancelModalTitle, { color: colors.text }]}>
+              Annuler "{cancelEventTarget?.title}" ?
+            </Text>
+            <Text style={[styles.cancelModalBody, { color: colors.gray500 }]}>
+              Tous les inscrits seront notifiés. La raison ci-dessous apparaîtra
+              dans l'email + la notification push.
+            </Text>
+            <TextInput
+              style={[
+                styles.cancelModalInput,
+                {
+                  backgroundColor: inputBg,
+                  borderColor: hairline,
+                  color: colors.text,
+                },
+              ]}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              placeholder="Ex : conditions sanitaires, indisponibilité du lieu…"
+              placeholderTextColor={colors.gray400}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              maxLength={500}
+              editable={!cancelLoading}
+            />
+            <View style={styles.cancelModalActions}>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={closeCancelModal}
+                disabled={cancelLoading}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>Garder</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: '#EF4444' }, cancelLoading && { opacity: 0.6 }]}
+                onPress={submitCancelEvent}
+                disabled={cancelLoading}
+                activeOpacity={0.85}
+              >
+                {cancelLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>Annuler l'événement</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </EditorialCanvas>
   );
 }
@@ -1176,5 +1327,65 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.18)',
     marginLeft: Spacing.sm,
+  },
+
+  // Cancel-event modal
+  cancelModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  cancelModalCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  cancelModalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  cancelModalTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 20,
+    letterSpacing: -0.5,
+    lineHeight: 24,
+    marginBottom: 8,
+  },
+  cancelModalBody: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: Spacing.md,
+  },
+  cancelModalInput: {
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+    minHeight: 100,
+  },
+  cancelModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.md,
+  },
+  cancelModalBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelModalBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
   },
 });
