@@ -5,6 +5,7 @@ import CacheService from '../services/CacheService';
 import { eventBus } from '../lib/eventBus';
 import { User, AuthState } from '../types';
 import { EventEzAnalytics, setAnalyticsUser, clearAnalyticsUser } from '../services/analyticsService';
+import { getJWTUserId } from '../lib/utils/jwt';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
 
@@ -97,6 +98,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const response = await usersAPI.getCurrentUser();
       const user = response.data;
+
+      // Defense-in-depth : si le JWT contient un user_id différent de celui
+      // retourné par /users/me/, c'est que le token mémoire et SecureStore
+      // sont désynchronisés (corruption, restore atypique, bug). On ferme
+      // la session pour repartir d'un état propre. Voir AUDIT §2.4.
+      const jwtUserId = getJWTUserId(token);
+      if (jwtUserId && String(user.id) !== jwtUserId) {
+        if (__DEV__) {
+          console.warn(
+            `[Auth] JWT user_id (${jwtUserId}) ≠ /users/me/ id (${user.id}) — clearing session`,
+          );
+        }
+        await clearTokens();
+        try { await CacheService.clearAll(); } catch { /* ignore */ }
+        setState({ user: null, isAuthenticated: false, isLoading: false });
+        return;
+      }
+
       setState({
         user,
         isAuthenticated: true,
