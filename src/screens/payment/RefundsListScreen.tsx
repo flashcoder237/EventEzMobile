@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -90,6 +90,32 @@ export default function RefundsListScreen() {
   useEffect(() => {
     fetchRefunds();
   }, [fetchRefunds]);
+
+  // Refresh quand l'écran reprend le focus (typiquement: retour depuis
+  // RefundRequestScreen après soumission, ou retour app après quelques
+  // heures où l'organizer a pu traiter une demande). Évite d'avoir à
+  // pull-to-refresh manuellement à chaque visite.
+  useFocusEffect(
+    useCallback(() => {
+      fetchRefunds();
+    }, [fetchRefunds]),
+  );
+
+  // Auto-refresh léger pendant que l'écran est ouvert : si l'utilisateur
+  // a récemment soumis une demande, la transition `requested → processing`
+  // ou `processing → completed` est intéressante à voir sans interaction.
+  // 30s = compromis entre fraîcheur et load serveur. Déclenché uniquement
+  // si au moins un refund est encore non-terminal.
+  useEffect(() => {
+    const hasPending = refunds.some(
+      r => r.status === 'requested' || r.status === 'processing',
+    );
+    if (!hasPending) return;
+    const timer = setInterval(() => {
+      fetchRefunds();
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [refunds, fetchRefunds]);
 
   const onRefresh = async () => {
     setRefreshing(true);
