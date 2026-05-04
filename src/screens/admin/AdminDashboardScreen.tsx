@@ -17,6 +17,7 @@ import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { usersAPI, auditAPI, analyticsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { KPICard } from '../../components/charts';
+import RoleGuard from '../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -28,6 +29,14 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AdminDashboardScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="ADM" title="Cockpit administrateur">
+      <AdminDashboardContent />
+    </RoleGuard>
+  );
+}
+
+function AdminDashboardContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -42,7 +51,10 @@ export default function AdminDashboardScreen() {
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   useEffect(() => {
+    // Le RoleGuard parent garantit que user.role === 'admin' (ou is_staff). Le
+    // fetch est inutile pour les non-admins, mais le guard les a déjà bloqués.
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchData = async () => {

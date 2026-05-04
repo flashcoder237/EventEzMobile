@@ -20,6 +20,7 @@ import { useAlert } from '../../../contexts/AlertContext';
 import { treasuryAPI } from '../../../api';
 import { RootStackParamList, StaffMember, StaffPayment } from '../../../types';
 import Badge from '../../../components/ui/Badge';
+import RoleGuard from '../../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -33,6 +34,14 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'staff' | 'payments';
 
 export default function TreasuryStaffScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="STF" title="Personnel & Paie">
+      <TreasuryStaffContent />
+    </RoleGuard>
+  );
+}
+
+function TreasuryStaffContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';

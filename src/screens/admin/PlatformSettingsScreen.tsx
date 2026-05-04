@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
+import RoleGuard from '../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -34,6 +35,14 @@ interface SettingRowProps {
 }
 
 export default function PlatformSettingsScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="CFG" title="Paramètres plateforme">
+      <PlatformSettingsContent />
+    </RoleGuard>
+  );
+}
+
+function PlatformSettingsContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';

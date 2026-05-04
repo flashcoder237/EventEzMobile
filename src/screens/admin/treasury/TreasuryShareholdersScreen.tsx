@@ -18,6 +18,7 @@ import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
 import { RootStackParamList, Shareholder, DividendDistribution } from '../../../types';
 import Badge from '../../../components/ui/Badge';
+import RoleGuard from '../../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -33,6 +34,14 @@ type TabType = 'shareholders' | 'dividends';
 const SHAREHOLDER_COLOR = '#A855F7';
 
 export default function TreasuryShareholdersScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="SHA" title="Actionnaires">
+      <TreasuryShareholdersContent />
+    </RoleGuard>
+  );
+}
+
+function TreasuryShareholdersContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';

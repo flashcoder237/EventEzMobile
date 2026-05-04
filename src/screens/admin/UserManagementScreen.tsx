@@ -18,6 +18,8 @@ import { usersAPI } from '../../api';
 import { User, RootStackParamList } from '../../types';
 import RegistrationSearchBar from '../../components/organizer/RegistrationSearchBar';
 import Badge from '../../components/ui/Badge';
+import ExportButton from '../../components/common/ExportButton';
+import RoleGuard from '../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -49,6 +51,14 @@ const roleLabel = (role: string): string => {
 };
 
 export default function UserManagementScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="USR" title="Utilisateurs">
+      <UserManagementContent />
+    </RoleGuard>
+  );
+}
+
+function UserManagementContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -157,6 +167,12 @@ export default function UserManagementScreen() {
         <View style={[styles.countPill, { backgroundColor: `${colors.primary}15` }]}>
           <Text style={[styles.countText, { color: colors.primary }]}>{filteredUsers.length}</Text>
         </View>
+        <ExportButton
+          endpoint="/users/export/"
+          filename="utilisateurs"
+          params={roleFilter !== 'all' ? { role: roleFilter } : {}}
+          compact
+        />
       </View>
 
       <View style={styles.searchSection}>

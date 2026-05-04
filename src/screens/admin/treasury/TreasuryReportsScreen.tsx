@@ -17,6 +17,7 @@ import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
 import { RootStackParamList } from '../../../types';
 import { KPICard } from '../../../components/charts';
+import RoleGuard from '../../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -28,6 +29,14 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function TreasuryReportsScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="RPT" title="Rapports financiers">
+      <TreasuryReportsContent />
+    </RoleGuard>
+  );
+}
+
+function TreasuryReportsContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';

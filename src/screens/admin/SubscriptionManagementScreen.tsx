@@ -17,6 +17,7 @@ import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { subscriptionsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
+import RoleGuard from '../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -41,6 +42,14 @@ interface SubscriptionPlan {
 }
 
 export default function SubscriptionManagementScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="SUB" title="Abonnements">
+      <SubscriptionManagementContent />
+    </RoleGuard>
+  );
+}
+
+function SubscriptionManagementContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';

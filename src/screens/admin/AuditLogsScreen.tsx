@@ -18,6 +18,7 @@ import { auditAPI } from '../../api';
 import { AuditLog, AuditSeverity, RootStackParamList } from '../../types';
 import Badge from '../../components/ui/Badge';
 import ExportButton from '../../components/common/ExportButton';
+import RoleGuard from '../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -38,6 +39,14 @@ const severityConfig: Record<string, { label: string; color: string; variant: 'd
 };
 
 export default function AuditLogsScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="LOG" title="Audit & journaux">
+      <AuditLogsContent />
+    </RoleGuard>
+  );
+}
+
+function AuditLogsContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';

@@ -18,6 +18,7 @@ import { useAlert } from '../../../contexts/AlertContext';
 import { treasuryAPI } from '../../../api';
 import { RootStackParamList, Expense } from '../../../types';
 import Badge from '../../../components/ui/Badge';
+import RoleGuard from '../../../components/auth/RoleGuard';
 import {
   FontFamily,
   FontSizes,
@@ -48,6 +49,14 @@ const statusLabel = (s: string): string => {
 };
 
 export default function TreasuryExpensesScreen() {
+  return (
+    <RoleGuard allow={['admin']} watermark="EXP" title="Dépenses">
+      <TreasuryExpensesContent />
+    </RoleGuard>
+  );
+}
+
+function TreasuryExpensesContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
