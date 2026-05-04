@@ -24,6 +24,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import GradientButton from '../ui/GradientButton';
+import { captureException } from '../../services/crashReporting';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -55,6 +56,12 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     if (__DEV__) console.error('[ErrorBoundary] Uncaught error:', error);
     if (__DEV__) console.error('[ErrorBoundary] Component stack:', errorInfo.componentStack);
+    // Remontée vers Sentry — le componentStack aide à localiser quelle UI a
+    // déclenché le crash. No-op en dev ou si le module natif est absent.
+    captureException(error, {
+      componentStack: errorInfo.componentStack,
+      digest: (errorInfo as any).digest,
+    });
   }
 
   handleRetry = () => {

@@ -5,6 +5,7 @@ import CacheService from '../services/CacheService';
 import { eventBus } from '../lib/eventBus';
 import { User, AuthState } from '../types';
 import { EventEzAnalytics, setAnalyticsUser, clearAnalyticsUser } from '../services/analyticsService';
+import { setUser as setCrashUser, clearUser as clearCrashUser } from '../services/crashReporting';
 import { getJWTUserId } from '../lib/utils/jwt';
 
 const REMEMBER_ME_KEY = 'eventez_remember_me';
@@ -122,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading: false,
       });
       setAnalyticsUser(user.id, { role: user.role || 'user' });
+      setCrashUser({ id: user.id, email: user.email, role: user.role });
     } catch (error) {
       if (__DEV__) console.error('Erreur de vérification auth:', error);
       try {
@@ -158,6 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       EventEzAnalytics.login('email');
       setAnalyticsUser(user.id, { role: user.role || 'user' });
+      setCrashUser({ id: user.id, email: user.email, role: user.role });
       return user;
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -206,6 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       EventEzAnalytics.signup('guest');
       setAnalyticsUser(user.id, { role: user.role || 'user' });
+      setCrashUser({ id: user.id, email: user.email, role: user.role });
       return user;
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -253,6 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     EventEzAnalytics.logout();
     clearAnalyticsUser();
+    clearCrashUser();
     // Purge mémoire ET AsyncStorage : sans ça, un user qui se reconnecte sur
     // le même device verrait brièvement les données cachées du user précédent
     // (events suivis, conversations, dashboard) le temps qu'une requête fraîche

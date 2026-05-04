@@ -5,6 +5,7 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { eventBus } from '../lib/eventBus';
+import { captureMessage } from '../services/crashReporting';
 import { API_BASE_URL, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from './config';
 
 // Création de l'instance Axios
@@ -145,6 +146,9 @@ export async function ensureFreshAccessToken(): Promise<string | null> {
         if (__DEV__) console.log('[API] Refresh token invalid/blacklisted — clearing session');
         await clearTokensInternal();
         eventBus.emit('api-auth-error');
+        // Logout forcé après refresh invalide → utile pour suivre les blacklist
+        // anormales (rotation cassée) en prod.
+        captureMessage('Refresh token invalid/blacklisted', 'warning', { status });
       } else if (__DEV__) {
         console.warn(`[API] Refresh transient error (${status ?? axErr.code}) — session preserved`);
       }
@@ -205,6 +209,13 @@ api.interceptors.response.use(
         }
         if (__DEV__) console.error(`[API] Max retries reached for ${originalRequest.url}`);
         eventBus.emit('api-server-error');
+        // 3 retries successifs en échec sur le même endpoint → backend ou réseau
+        // probablement KO. Remonter en warning pour suivre les patterns.
+        captureMessage('API max retries reached', 'warning', {
+          url: originalRequest.url,
+          method: originalRequest.method,
+          errorType: isTimeoutError ? 'timeout' : 'network',
+        });
       } else {
         if (__DEV__) console.error(`[API] File upload failed for ${originalRequest.url} (no retry for FormData)`);
         eventBus.emit('api-server-error');

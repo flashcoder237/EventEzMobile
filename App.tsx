@@ -74,7 +74,13 @@ import { RootStackParamList } from './src/types';
 
 // Services
 import { initAnalytics, trackScreenView } from './src/services/analyticsService';
+import { initCrashReporting } from './src/services/crashReporting';
 import './src/i18n';
+
+// Init Sentry au plus tôt — avant tout require de modules métier — pour
+// capturer les erreurs lors du chargement initial. No-op si EXPO_PUBLIC_SENTRY_DSN
+// n'est pas défini ou si le module natif est absent (Expo Go).
+initCrashReporting();
 
 // Google Sign-In — configure once at module level before any component mounts.
 // Lazy require + try-catch : le module natif n'existe pas dans Expo Go,
