@@ -9,7 +9,7 @@
  * on l'envoie à l'API et on affiche le résultat.
  */
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,11 +39,13 @@ export default function VerifyEmailTokenScreen() {
   const route = useRoute<RoutePropType>();
   const { token } = route.params || {};
   const { colors } = useTheme();
-  const { isAuthenticated, user } = useAuth();
-  const { showError } = useAlert();
+  const { isAuthenticated, user, refreshUser } = useAuth();
+  const { showError, showSuccess } = useAlert();
 
   const [state, setState] = useState<VerifyState>('loading');
   const [resending, setResending] = useState(false);
+  // Champ email inline pour le cas token expiré + non connecté (#5)
+  const [fallbackEmail, setFallbackEmail] = useState('');
 
   const verify = useCallback(async () => {
     if (!token) {
@@ -53,20 +55,22 @@ export default function VerifyEmailTokenScreen() {
     try {
       await authAPI.verifyEmail(token);
       setState('success');
+      // Rafraîchir l'état local du user si connecté (#2) — évite que les
+      // prochains dispatchAfterAuth redirigent encore vers VerifyEmail.
+      if (isAuthenticated) {
+        await refreshUser();
+      }
     } catch (err: any) {
       const code = err?.response?.data?.code;
       setState(code === 'token_expired' ? 'expired' : 'invalid');
     }
-  }, [token]);
+  }, [token, isAuthenticated, refreshUser]);
 
   useEffect(() => {
     verify();
   }, [verify]);
 
-  const goToLogin = useCallback(() => {
-    // L'utilisateur peut déjà être authentifié sur l'app (cas où il a vérifié
-    // son email depuis un autre device). On le renvoie alors directement sur
-    // l'accueil, sinon sur Login.
+  const goHome = useCallback(() => {
     if (isAuthenticated) {
       navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] });
     } else {
@@ -75,17 +79,16 @@ export default function VerifyEmailTokenScreen() {
   }, [navigation, isAuthenticated]);
 
   const handleResend = useCallback(async () => {
-    // On a un token expiré mais pas l'email associé. Si l'utilisateur est
-    // connecté, on prend son email ; sinon on l'envoie sur l'écran de relance
-    // qui lui demandera son email.
-    const email = user?.email;
-    if (!email) {
-      navigation.navigate('VerifyEmail', {});
+    // Priorité : email du user connecté, sinon email saisi dans le champ inline.
+    const email = user?.email || fallbackEmail.trim();
+    if (!email || !email.includes('@')) {
+      showError('Email requis', 'Entre ton adresse email pour recevoir un nouveau lien.');
       return;
     }
     setResending(true);
     try {
       await authAPI.resendVerificationEmail(email);
+      showSuccess('Email envoyé', `Un nouveau lien a été envoyé à ${email}.`);
       navigation.navigate('VerifyEmail', { email });
     } catch (err: any) {
       const msg = err?.response?.data?.detail || 'Impossible de renvoyer le lien.';
@@ -93,7 +96,7 @@ export default function VerifyEmailTokenScreen() {
     } finally {
       setResending(false);
     }
-  }, [navigation, user?.email, showError]);
+  }, [navigation, user?.email, fallbackEmail, showError, showSuccess]);
 
   return (
     <EditorialCanvas>
@@ -119,14 +122,14 @@ export default function VerifyEmailTokenScreen() {
               <Text style={[styles.eyebrow, { color: '#10B981' }]}>COMPTE ACTIVÉ</Text>
               <Text style={[styles.title, { color: colors.gray900 }]}>Email vérifié !</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                Ton adresse email est maintenant confirmée. Tu peux te connecter
-                et accéder à ton compte.
+                Ton adresse email est maintenant confirmée.{' '}
+                {isAuthenticated ? 'Tu peux continuer à utiliser l\'app.' : 'Tu peux te connecter.'}
               </Text>
               <View style={styles.ctaWrap}>
                 <EditorialPillCTA
                   eyebrow="Continuer"
                   label={isAuthenticated ? 'Aller à l\'accueil' : 'Se connecter'}
-                  onPress={goToLogin}
+                  onPress={goHome}
                   icon="arrow-forward"
                   tone="primary"
                 />
@@ -145,6 +148,20 @@ export default function VerifyEmailTokenScreen() {
                 Ce lien de vérification n'est plus valide. On peut t'en envoyer
                 un nouveau immédiatement.
               </Text>
+              {/* Champ email inline quand non connecté — évite le tunnel sans issue (#5) */}
+              {!isAuthenticated && !user?.email && (
+                <TextInput
+                  style={[styles.emailInput, { borderColor: colors.gray200, color: colors.gray900, backgroundColor: colors.gray50 }]}
+                  placeholder="ton@email.com"
+                  placeholderTextColor={colors.gray400}
+                  value={fallbackEmail}
+                  onChangeText={setFallbackEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  accessibilityLabel="Adresse email pour recevoir un nouveau lien"
+                />
+              )}
               <View style={styles.ctaWrap}>
                 <EditorialPillCTA
                   eyebrow="Nouveau lien"
@@ -156,7 +173,7 @@ export default function VerifyEmailTokenScreen() {
                   tone="primary"
                 />
               </View>
-              <TouchableOpacity onPress={goToLogin} style={styles.secondaryLink}>
+              <TouchableOpacity onPress={goHome} style={styles.secondaryLink}>
                 <Text style={[styles.secondaryLinkText, { color: colors.gray500 }]}>
                   Retour à la connexion
                 </Text>
@@ -179,7 +196,7 @@ export default function VerifyEmailTokenScreen() {
                 <EditorialPillCTA
                   eyebrow="Continuer"
                   label="Retour à la connexion"
-                  onPress={goToLogin}
+                  onPress={goHome}
                   icon="arrow-forward"
                   tone="primary"
                 />
@@ -239,6 +256,16 @@ const styles = StyleSheet.create({
   ctaWrap: {
     width: '100%',
     marginTop: Spacing.sm,
+  },
+  emailInput: {
+    width: '100%',
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: FontSizes.base,
+    fontFamily: FontFamily.regular,
+    marginBottom: Spacing.sm,
   },
   secondaryLink: {
     paddingVertical: Spacing.sm,

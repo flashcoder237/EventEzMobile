@@ -73,16 +73,11 @@ export default function SpeakerDetailsScreen() {
     }
   };
 
-  const handleOpenLink = useCallback(async (url: string | undefined) => {
+  const handleOpenLink = useCallback((url: string | undefined, title?: string) => {
     if (!url) return;
-    // Prepend https:// if not present
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-    try {
-      await Linking.openURL(fullUrl);
-    } catch {
-      showError('Erreur', 'Impossible d\'ouvrir le lien.');
-    }
-  }, []);
+    navigation.navigate('Browser', { url: fullUrl, title });
+  }, [navigation]);
 
   const navigateToSession = useCallback((sessionId: string) => {
     navigation.navigate('SessionDetails', { sessionId });

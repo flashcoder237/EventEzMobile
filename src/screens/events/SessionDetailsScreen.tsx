@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -125,27 +124,18 @@ export default function SessionDetailsScreen() {
     }
   };
 
-  const handleOpenVirtualLink = useCallback(async () => {
+  const handleOpenVirtualLink = useCallback(() => {
     if (session?.virtual_link) {
-      try {
-        await Linking.openURL(session.virtual_link);
-      } catch {
-        showError('Erreur', 'Impossible d\'ouvrir le lien.');
-      }
+      navigation.navigate('Browser', { url: session.virtual_link, title: session.title });
     }
-  }, [session?.virtual_link]);
+  }, [session?.virtual_link, session?.title, navigation]);
 
-  const handleOpenResource = useCallback(async (resource: SessionResource) => {
+  const handleOpenResource = useCallback((resource: SessionResource) => {
     const url = resource.url || resource.file;
     if (!url) return;
-    // Fire-and-forget counter increment — don't block opening if tracking fails
     sessionResourcesAPI.downloadResource(resource.id).catch(() => {});
-    try {
-      await Linking.openURL(url);
-    } catch {
-      showError('Erreur', 'Impossible d\'ouvrir la ressource.');
-    }
-  }, []);
+    navigation.navigate('Browser', { url, title: resource.title });
+  }, [navigation]);
 
   const navigateToSpeaker = useCallback((speakerId: string) => {
     navigation.navigate('SpeakerDetails', { speakerId });

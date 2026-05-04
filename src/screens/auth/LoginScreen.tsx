@@ -5,7 +5,7 @@ import {
   TextInput,
   StyleSheet,
   ActivityIndicator,
-  Linking,
+
   TouchableOpacity,
   Modal,
   Pressable,
@@ -652,8 +652,8 @@ export default function LoginScreen() {
           {/* Terms & Privacy */}
           <Text style={[styles.termsText, { color: colors.gray500 }]}>
             En te connectant, tu acceptes nos{' '}
-            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/terms')}>Conditions d'utilisation</Text> et notre{' '}
-            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/privacy')}>Politique de confidentialité</Text>
+            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>Conditions d'utilisation</Text> et notre{' '}
+            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>Politique de confidentialité</Text>
           </Text>
 
           {/* Register Link */}
@@ -670,7 +670,8 @@ export default function LoginScreen() {
             </AnimatedPressable>
           </View>
 
-          {/* Guest checkout — toujours visible. Le copy s'adapte selon le contexte. */}
+          {/* Guest checkout — visible uniquement quand eventIsFree=true (#9) */}
+          {eventIsFree && (
           <View style={styles.guestSection}>
             <View style={styles.guestDivider}>
               <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
@@ -698,6 +699,7 @@ export default function LoginScreen() {
               <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
             </TouchableOpacity>
           </View>
+          )}
       </KeyboardAwareScrollView>
 
       {/* === GUEST CHECKOUT MODAL === */}
@@ -765,7 +767,7 @@ export default function LoginScreen() {
 
             <Text style={[styles.guestModalLegal, { color: colors.gray400 }]}>
               En continuant tu acceptes nos{' '}
-              <Text style={{ color: colors.primary }} onPress={() => Linking.openURL('https://eventez.online/terms')}>
+              <Text style={{ color: colors.primary }} onPress={() => navigation.navigate('Terms')}>
                 Conditions d'utilisation
               </Text>
               .

@@ -4,22 +4,10 @@
 
 import { useState, useEffect } from 'react';
 import { Platform } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Crypto from 'expo-crypto';
 import { authAPI, setTokens } from '../api';
 import { User } from '../types';
-
-// Fermer le navigateur web après l'authentification
-WebBrowser.maybeCompleteAuthSession();
-
-// Configuration Google - à remplacer par vos vraies valeurs
-const GOOGLE_CONFIG = {
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '',
-  androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || '',
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '',
-};
 
 interface SocialAuthResult {
   success: boolean;
@@ -27,62 +15,69 @@ interface SocialAuthResult {
   error?: string;
 }
 
+// Lazy loader pour Google Sign-In : le module natif n'est pas dans Expo Go,
+// l'instanciation crash à l'import statique. On charge en runtime avec require()
+// pour pouvoir capter l'erreur et désactiver proprement le bouton.
+function loadGoogleSignin(): {
+  GoogleSignin: any;
+  statusCodes: any;
+} | null {
+  try {
+    return require('@react-native-google-signin/google-signin/lib/commonjs');
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Hook pour l'authentification Google
+ * Hook pour l'authentification Google via le SDK natif.
+ * Utilise @react-native-google-signin (Credential Manager sur Android,
+ * native API sur iOS) — pas de flux implicite navigateur.
  */
 export function useGoogleAuth() {
   const [isLoading, setIsLoading] = useState(false);
-
-  // Configurer la requête Google OAuth
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    iosClientId: GOOGLE_CONFIG.iosClientId,
-    androidClientId: GOOGLE_CONFIG.androidClientId,
-    webClientId: GOOGLE_CONFIG.webClientId,
-  });
+  const googleModule = loadGoogleSignin();
+  const isReady = googleModule !== null;
 
   const signIn = async (): Promise<SocialAuthResult> => {
-    if (!request) {
+    if (!googleModule) {
       return {
         success: false,
-        error: 'Google Sign-In non configuré. Vérifiez les credentials.',
+        error: 'Google Sign-In nécessite un dev build (indisponible dans Expo Go).',
       };
     }
+    const { GoogleSignin, statusCodes } = googleModule;
 
     setIsLoading(true);
-
     try {
-      const result = await promptAsync();
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      // v11 API : signIn() retourne le User directement (lance sur cancel/error).
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo?.idToken;
 
-      if (result.type === 'success') {
-        const { id_token } = result.params;
-
-        if (!id_token) {
-          return {
-            success: false,
-            error: 'Aucun token reçu de Google',
-          };
-        }
-
-        // Envoyer le token au backend pour vérification
-        const response = await authAPI.googleSignIn(id_token);
-        const { access, refresh, user } = response.data;
-
-        // Stocker les tokens
-        await setTokens(access, refresh);
-
-        return { success: true, user };
-      } else if (result.type === 'cancel') {
-        return { success: false, error: 'Connexion annulée' };
-      } else {
-        return { success: false, error: 'Échec de la connexion Google' };
+      if (!idToken) {
+        return { success: false, error: 'Aucun token reçu de Google' };
       }
+
+      const apiResponse = await authAPI.googleSignIn(idToken);
+      const { access, refresh, user } = apiResponse.data;
+      await setTokens(access, refresh);
+      return { success: true, user };
     } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        return { success: false, error: 'Connexion annulée' };
+      }
+      if (error.code === statusCodes.IN_PROGRESS) {
+        return { success: false, error: 'Connexion déjà en cours' };
+      }
+      if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        return { success: false, error: 'Google Play Services non disponible' };
+      }
       if (__DEV__) console.error('Google Sign-In error:', error);
-      const errorMessage =
-        error.response?.data?.detail ||
-        error.message ||
-        'Erreur lors de la connexion Google';
-      return { success: false, error: errorMessage };
+      return {
+        success: false,
+        error: error.response?.data?.detail || error.message || 'Erreur lors de la connexion Google',
+      };
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +86,7 @@ export function useGoogleAuth() {
   return {
     signIn,
     isLoading,
-    isReady: !!request,
+    isReady,
   };
 }
 

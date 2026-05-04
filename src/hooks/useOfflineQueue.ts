@@ -1,87 +1,116 @@
 /**
  * Hook pour gérer la file d'attente des messages hors ligne
- * Persiste les messages non envoyés et les renvoie quand la connexion revient
+ * Persiste les messages non envoyés (AsyncStorage scopé par userId) et les
+ * renvoie quand la connexion revient.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueuedMessage, createQueuedMessage } from '../lib/utils/messagingHelpers';
 
-const QUEUE_STORAGE_KEY = '@eventez_message_queue';
+const QUEUE_STORAGE_KEY_BASE = 'offline_queue';
 const MAX_RETRY_COUNT = 3;
 const RETRY_DELAY_MS = 5000;
 
 interface UseOfflineQueueOptions {
   onSendMessage: (message: QueuedMessage) => Promise<boolean>;
   isConnected: boolean;
+  /**
+   * UserId du user courant — la queue est scopée par user pour éviter la
+   * contamination entre comptes au logout / login successif.
+   */
+  userId?: string | number | null;
   /** Called when a message is permanently abandoned after MAX_RETRY_COUNT failures */
   onMessageFailed?: (message: QueuedMessage) => void;
 }
 
-export function useOfflineQueue({ onSendMessage, isConnected, onMessageFailed }: UseOfflineQueueOptions) {
+export function useOfflineQueue({
+  onSendMessage,
+  isConnected,
+  userId,
+  onMessageFailed,
+}: UseOfflineQueueOptions) {
   const [queue, setQueue] = useState<QueuedMessage[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const syncTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  const storageKey = userId
+    ? `${QUEUE_STORAGE_KEY_BASE}:${userId}`
+    : QUEUE_STORAGE_KEY_BASE;
+
   // Charger la file depuis le storage
   const loadQueue = useCallback(async () => {
     try {
-      const stored = await AsyncStorage.getItem(QUEUE_STORAGE_KEY);
+      const stored = await AsyncStorage.getItem(storageKey);
       if (stored) {
         const parsed = JSON.parse(stored) as QueuedMessage[];
         setQueue(parsed);
+      } else {
+        setQueue([]);
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement file offline:', error);
     }
-  }, []);
+  }, [storageKey]);
 
   // Sauvegarder la file dans le storage
-  const saveQueue = useCallback(async (newQueue: QueuedMessage[]) => {
-    try {
-      await AsyncStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(newQueue));
-    } catch (error) {
-      if (__DEV__) console.error('Erreur sauvegarde file offline:', error);
-    }
-  }, []);
+  const saveQueue = useCallback(
+    async (newQueue: QueuedMessage[]) => {
+      try {
+        await AsyncStorage.setItem(storageKey, JSON.stringify(newQueue));
+      } catch (error) {
+        if (__DEV__) console.error('Erreur sauvegarde file offline:', error);
+      }
+    },
+    [storageKey],
+  );
 
   // Ajouter un message à la file
-  const enqueue = useCallback(async (
-    conversationId: string,
-    content: string,
-    replyTo?: string,
-    attachments: any[] = []
-  ) => {
-    const message = createQueuedMessage(conversationId, content, replyTo, attachments);
+  const enqueue = useCallback(
+    async (
+      conversationId: string,
+      content: string,
+      replyTo?: string,
+      attachments: any[] = [],
+    ) => {
+      const message = createQueuedMessage(conversationId, content, replyTo, attachments);
 
-    setQueue(prev => {
-      const newQueue = [...prev, message];
-      saveQueue(newQueue);
-      return newQueue;
-    });
+      setQueue(prev => {
+        const newQueue = [...prev, message];
+        saveQueue(newQueue);
+        return newQueue;
+      });
 
-    return message.id;
-  }, [saveQueue]);
+      return message.id;
+    },
+    [saveQueue],
+  );
 
   // Retirer un message de la file
-  const dequeue = useCallback(async (messageId: string) => {
-    setQueue(prev => {
-      const newQueue = prev.filter(m => m.id !== messageId);
-      saveQueue(newQueue);
-      return newQueue;
-    });
-  }, [saveQueue]);
+  const dequeue = useCallback(
+    async (messageId: string) => {
+      setQueue(prev => {
+        const newQueue = prev.filter(m => m.id !== messageId);
+        saveQueue(newQueue);
+        return newQueue;
+      });
+    },
+    [saveQueue],
+  );
 
   // Mettre à jour le compteur de retry
-  const incrementRetry = useCallback(async (messageId: string) => {
-    setQueue(prev => {
-      const newQueue = prev.map(m =>
-        m.id === messageId ? { ...m, retryCount: m.retryCount + 1 } : m
-      );
-      saveQueue(newQueue);
-      return newQueue;
-    });
-  }, [saveQueue]);
+  const incrementRetry = useCallback(
+    async (messageId: string) => {
+      setQueue(prev => {
+        const newQueue = prev.map(m =>
+          m.id === messageId ? { ...m, retryCount: m.retryCount + 1 } : m,
+        );
+        saveQueue(newQueue);
+        return newQueue;
+      });
+    },
+    [saveQueue],
+  );
 
   // Synchroniser les messages en attente
   const syncQueue = useCallback(async () => {
@@ -92,7 +121,10 @@ export function useOfflineQueue({ onSendMessage, isConnected, onMessageFailed }:
     for (const message of queue) {
       if (message.retryCount >= MAX_RETRY_COUNT) {
         // Abandonner après trop de tentatives
-        if (__DEV__) console.warn(`[OfflineQueue] Message ${message.id} abandoned after ${MAX_RETRY_COUNT} retries`);
+        if (__DEV__)
+          console.warn(
+            `[OfflineQueue] Message ${message.id} abandoned after ${MAX_RETRY_COUNT} retries`,
+          );
         onMessageFailed?.(message);
         await dequeue(message.id);
         continue;
@@ -112,9 +144,9 @@ export function useOfflineQueue({ onSendMessage, isConnected, onMessageFailed }:
     }
 
     setIsSyncing(false);
-  }, [queue, isConnected, isSyncing, onSendMessage, dequeue, incrementRetry]);
+  }, [queue, isConnected, isSyncing, onSendMessage, dequeue, incrementRetry, onMessageFailed]);
 
-  // Charger la file au montage
+  // Charger la file au montage et quand l'userId change (post-login)
   useEffect(() => {
     loadQueue();
   }, [loadQueue]);
@@ -139,7 +171,9 @@ export function useOfflineQueue({ onSendMessage, isConnected, onMessageFailed }:
   useEffect(() => {
     if (!isConnected) return;
 
-    const hasFailedMessages = queue.some(m => m.retryCount > 0 && m.retryCount < MAX_RETRY_COUNT);
+    const hasFailedMessages = queue.some(
+      m => m.retryCount > 0 && m.retryCount < MAX_RETRY_COUNT,
+    );
 
     if (hasFailedMessages && !isSyncing) {
       const timeout = setTimeout(() => {

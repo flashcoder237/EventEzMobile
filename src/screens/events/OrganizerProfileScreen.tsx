@@ -96,15 +96,11 @@ export default function OrganizerProfileScreen() {
     });
   }, [organizer, navigation]);
 
-  const handleOpenLink = useCallback(async (url: string | undefined) => {
+  const handleOpenLink = useCallback((url: string | undefined, title?: string) => {
     if (!url) return;
     const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-    try {
-      await Linking.openURL(fullUrl);
-    } catch {
-      showError('Erreur', 'Impossible d\'ouvrir le lien.');
-    }
-  }, []);
+    navigation.navigate('Browser', { url: fullUrl, title });
+  }, [navigation]);
 
   const navigateToEvent = useCallback((eventId: string) => {
     navigation.navigate('EventDetails', { eventId });

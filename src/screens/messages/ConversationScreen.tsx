@@ -20,6 +20,7 @@ import {
   Alert,
   TouchableOpacity,
   Clipboard,
+  TextInput,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -38,12 +39,15 @@ import {
   RecordingPresets,
 } from 'expo-audio';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { messagesAPI, getMediaUrl } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
 import { useMessageState, AttachedFile } from '../../hooks/useMessageState';
+import { useOfflineQueue } from '../../hooks/useOfflineQueue';
+import type { QueuedMessage } from '../../lib/utils/messagingHelpers';
 import { Message, RootStackParamList, User } from '../../types';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import {
@@ -71,12 +75,14 @@ import {
   MessageBubble,
   TypingIndicator,
   MessageActionModal,
+  ReportMessageModal,
   ReactionPickerModal,
   ForwardModal,
   InputToolbar,
   ConversationQuotaBanner,
   GroupAdminPanel,
   MessageActionType,
+  ReportReason,
   QuotaState,
 } from '../../components/messages';
 
@@ -105,8 +111,26 @@ export default function ConversationScreen() {
   // distinguer "toggle pause/play sur le même" de "lancer un nouveau message".
   const currentPlayerMsgIdRef = useRef<string | null>(null);
   const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [forwardSearchQuery, setForwardSearchQuery] = React.useState('');
   const [showScrollToBottom, setShowScrollToBottom] = React.useState(false);
+
+  // Feature: voice preview before send
+  const [pendingVoiceUri, setPendingVoiceUri] = useState<string | null>(null);
+  const [pendingVoiceDuration, setPendingVoiceDuration] = useState<number>(0);
+  const [voicePreviewPlaying, setVoicePreviewPlaying] = useState(false);
+  const previewPlayerRef = useRef<AudioPlayer | null>(null);
+
+  // Feature: message search
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Message[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  // Feature: report message modal
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTargetMessage, setReportTargetMessage] = useState<Message | null>(null);
+  const [submittingReport, setSubmittingReport] = useState(false);
   // État de lecture audio (un seul audio joué à la fois). Mis à jour via le
   // listener playbackStatusUpdate du player. null = aucune lecture en cours.
   const [voicePlayback, setVoicePlayback] = React.useState<{
@@ -173,6 +197,17 @@ export default function ConversationScreen() {
         attachments: [],
       });
     },
+    onServerError: (code, message) => {
+      if (code === 'rate_limited') {
+        showError('Trop de messages', 'Vous envoyez des messages trop rapidement.');
+      } else if (code === 'blocked') {
+        showError('Message bloqué', 'Vous avez été bloqué par cet utilisateur.');
+      } else if (code === 'quota_exceeded') {
+        showError('Espace insuffisant', 'La conversation a atteint sa limite de stockage.');
+      } else if (code === 'posting_mode_restricted') {
+        showError('Écriture restreinte', "Seul l'organisateur peut écrire dans cette discussion.");
+      }
+    },
   });
 
   // Typing users for current conversation
@@ -181,6 +216,38 @@ export default function ConversationScreen() {
     const users = getTypingUsersForConversation(state.conversationId);
     return users.map(u => u.userName);
   }, [state.conversationId, getTypingUsersForConversation]);
+
+  // Offline queue : persiste les messages envoyés hors connexion (AsyncStorage
+  // scopé par userId) et les rejoue dès que la connexion revient. Le banner
+  // "X message(s) en attente" s'affiche au-dessus de l'InputToolbar quand
+  // queue.length > 0.
+  const offlineQueue = useOfflineQueue({
+    isConnected,
+    userId: user?.id,
+    onSendMessage: useCallback(async (queued: QueuedMessage): Promise<boolean> => {
+      try {
+        const response = await messagesAPI.sendMessage({
+          conversation: queued.conversationId,
+          content: queued.content,
+          reply_to: queued.replyTo,
+          attachment_ids: queued.attachments?.length ? queued.attachments : undefined,
+        });
+        // Replace any temp message in current view if applicable
+        if (String(queued.conversationId) === String(state.conversationId) && response.data) {
+          actions.addMessage(response.data);
+        }
+        return true;
+      } catch {
+        return false;
+      }
+    }, [state.conversationId, actions]),
+    onMessageFailed: useCallback((queued: QueuedMessage) => {
+      showError(
+        'Message non envoyé',
+        'Un message en attente n\'a pas pu être envoyé après plusieurs tentatives.',
+      );
+    }, [showError]),
+  });
 
   // ============================================
   // EFFECTS
@@ -222,6 +289,10 @@ export default function ConversationScreen() {
         try { playerRef.current.remove(); } catch { /* noop */ }
         playerRef.current = null;
       }
+      if (previewPlayerRef.current) {
+        try { previewPlayerRef.current.remove(); } catch { /* noop */ }
+        previewPlayerRef.current = null;
+      }
       currentPlayerMsgIdRef.current = null;
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
@@ -229,6 +300,16 @@ export default function ConversationScreen() {
       }
     };
   }, []);
+
+  // Restore draft on mount
+  useEffect(() => {
+    const convId = state.conversationId;
+    if (!convId) return;
+    AsyncStorage.getItem(`draft:${convId}`)
+      .then(draft => { if (draft) actions.setNewMessage(draft); })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.conversationId]);
 
   // ============================================
   // DATA FETCHING
@@ -460,6 +541,34 @@ export default function ConversationScreen() {
   }, [state.conversationId, startTyping, stopTyping]);
 
   // ============================================
+  // MESSAGE SEARCH
+  // ============================================
+
+  const handleMessageSearch = useCallback(async (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim() || !state.conversationId) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const res = await messagesAPI.searchMessages(query, state.conversationId);
+      const results: Message[] = res.data?.results || res.data || [];
+      setSearchResults(results);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [state.conversationId]);
+
+  const closeSearch = useCallback(() => {
+    setSearchOpen(false);
+    setSearchQuery('');
+    setSearchResults([]);
+  }, []);
+
+  // ============================================
   // ATTACHMENTS
   // ============================================
 
@@ -479,8 +588,8 @@ export default function ConversationScreen() {
 
       const result = await ImagePicker.launchImageLibraryAsync({
         // expo-image-picker v17+ : `MediaTypeOptions.Images` est deprecated,
-        // l'API actuelle attend une string ou un array de strings.
-        mediaTypes: 'images',
+        // l'API actuelle attend un array de strings (MediaType[]).
+        mediaTypes: ['images'],
         // 0.7 (au lieu de 0.8) : gain de poids ~30% supplémentaire pour rester
         // sous le quota groupe de 500 MB sans sacrifier la lisibilité.
         quality: 0.7,
@@ -559,23 +668,104 @@ export default function ConversationScreen() {
     try {
       if (recordingIntervalRef.current) {
         clearInterval(recordingIntervalRef.current);
+        recordingIntervalRef.current = null;
       }
 
       await recorder.stop();
       const uri = recorder.uri;
+      const duration = state.recordingDuration;
 
       actions.setRecording(false);
 
-      if (uri && state.recordingDuration >= 1) {
-        actions.setAttachedFiles([{
-          uri,
-          name: `voice_${Date.now()}.m4a`,
-          type: 'voice',
-          duration: state.recordingDuration,
-        }]);
+      // Instead of immediately attaching the file, store it for preview
+      if (uri && duration >= 1) {
+        // Pré-validation taille audio. expo-audio n'expose pas la taille
+        // directement — on s'appuie sur la durée comme heuristique (HIGH_QUALITY
+        // m4a ~ 32 kbps ≈ 4 Ko/s). On bloque au-delà de ~22 minutes pour rester
+        // sous les 5 Mo backend.
+        const APPROX_BYTES_PER_SEC = 4 * 1024;
+        const estimatedBytes = duration * APPROX_BYTES_PER_SEC;
+        const { MESSAGE_LIMITS, formatBytes } = await import('../../constants/messaging');
+        if (estimatedBytes > MESSAGE_LIMITS.VOICE_MAX_BYTES) {
+          showError(
+            'Message vocal trop long',
+            `Limite : ${formatBytes(MESSAGE_LIMITS.VOICE_MAX_BYTES)}. Réduis la durée de ton enregistrement.`,
+          );
+          return;
+        }
+        setPendingVoiceUri(uri);
+        setPendingVoiceDuration(duration);
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur arrêt enregistrement:', error);
+    }
+  };
+
+  const sendPendingVoice = () => {
+    if (!pendingVoiceUri) return;
+    const uri = pendingVoiceUri;
+    const duration = pendingVoiceDuration;
+    // Stop preview player if running
+    if (previewPlayerRef.current) {
+      try { previewPlayerRef.current.remove(); } catch { /* noop */ }
+      previewPlayerRef.current = null;
+    }
+    setVoicePreviewPlaying(false);
+    setPendingVoiceUri(null);
+    setPendingVoiceDuration(0);
+    // Attach the voice file and trigger send
+    actions.setAttachedFiles([{
+      uri,
+      name: `voice_${Date.now()}.m4a`,
+      type: 'voice',
+      duration,
+    }]);
+    // handleSend reads from state.attachedFiles asynchronously, so we defer
+    // by one tick to let the state update propagate before the send fires.
+    setTimeout(() => { handleSend(); }, 0);
+  };
+
+  const discardPendingVoice = () => {
+    if (previewPlayerRef.current) {
+      try { previewPlayerRef.current.remove(); } catch { /* noop */ }
+      previewPlayerRef.current = null;
+    }
+    setVoicePreviewPlaying(false);
+    setPendingVoiceUri(null);
+    setPendingVoiceDuration(0);
+  };
+
+  const toggleVoicePreview = async () => {
+    if (!pendingVoiceUri) return;
+    try {
+      if (voicePreviewPlaying) {
+        // Pause / stop playback
+        if (previewPlayerRef.current) {
+          try { (previewPlayerRef.current as any).pause(); } catch { /* noop */ }
+        }
+        setVoicePreviewPlaying(false);
+      } else {
+        // Start or resume playback
+        if (!previewPlayerRef.current) {
+          const player = createAudioPlayer({ uri: pendingVoiceUri });
+          previewPlayerRef.current = player;
+          // SharedObject<AudioEvents> expose addListener à runtime mais le
+          // typing expo-modules-core (typeof ExpoGlobal.SharedObject) n'expose
+          // pas la méthode héritée d'EventEmitter. Cast nécessaire.
+          (player as any).addListener('playbackStatusUpdate', (status: any) => {
+            if (status?.didJustFinish) {
+              setVoicePreviewPlaying(false);
+              try { (player as any).remove?.(); } catch { /* noop */ }
+              if (previewPlayerRef.current === player) previewPlayerRef.current = null;
+            }
+          });
+        }
+        (previewPlayerRef.current as any).play();
+        setVoicePreviewPlaying(true);
+      }
+    } catch (error) {
+      if (__DEV__) console.error('Erreur lecture preview vocal:', error);
+      setVoicePreviewPlaying(false);
     }
   };
 
@@ -626,7 +816,9 @@ export default function ConversationScreen() {
       playerRef.current = player;
       currentPlayerMsgIdRef.current = messageId;
 
-      const subscription = player.addListener('playbackStatusUpdate', (status: any) => {
+      // Cf. note plus haut : addListener existe au runtime mais pas dans le
+      // typing expo-modules-core de SharedObject — d'où le cast.
+      const subscription = (player as any).addListener('playbackStatusUpdate', (status: any) => {
         // status: { isLoaded, currentTime (s), duration (s), didJustFinish, playing }
         if (status?.didJustFinish) {
           actions.setPlayingVoice(null);
@@ -712,8 +904,77 @@ export default function ConversationScreen() {
           showSuccess('Copié', 'Message copié dans le presse-papiers');
         }
         break;
+
+      case 'report':
+        // Conserver le message ciblé et ouvrir la modale dédiée
+        setReportTargetMessage(message);
+        setShowReportModal(true);
+        break;
+
+      case 'block': {
+        // Bloquer l'expéditeur du message — uniquement en conversation directe
+        const senderId = (() => {
+          const s: any = message.sender;
+          if (s == null) return null;
+          if (typeof s === 'object' && s.id != null) return String(s.id);
+          return String(s);
+        })();
+        if (senderId) {
+          handleBlockUserById(senderId, message.sender_name || 'cet utilisateur');
+        }
+        break;
+      }
     }
   }, [state.selectedMessage, user?.id, actions]);
+
+  const handleBlockUserById = (targetUserId: string, targetName: string) => {
+    Alert.alert(
+      'Bloquer utilisateur',
+      `Bloquer ${targetName} ? Vous ne recevrez plus ses messages.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Bloquer',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await messagesAPI.blockUser(targetUserId);
+              showSuccess('Utilisateur bloqué', '');
+              // Pour une conversation directe, on remonte. Pour un groupe, on
+              // reste sur place mais l'user n'aura plus ses futurs messages.
+              if (conversationType === 'direct') {
+                navigation.goBack();
+              }
+            } catch (error) {
+              showError('Erreur', 'Impossible de bloquer cet utilisateur');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleSubmitReport = async (reason: ReportReason, description?: string) => {
+    if (!reportTargetMessage) return;
+    setSubmittingReport(true);
+    try {
+      await messagesAPI.reportMessage(reportTargetMessage.id, { reason, description });
+      setShowReportModal(false);
+      setReportTargetMessage(null);
+      showSuccess(
+        'Signalement envoyé',
+        'Notre équipe de modération examinera ce message sous 24h.',
+      );
+    } catch (error: any) {
+      const msg =
+        error?.response?.data?.detail ||
+        error?.response?.data?.error ||
+        'Impossible d\'envoyer le signalement';
+      showError('Erreur', msg);
+    } finally {
+      setSubmittingReport(false);
+    }
+  };
 
   const handleDeleteMessage = (messageId: string) => {
     Alert.alert(
@@ -1064,14 +1325,42 @@ export default function ConversationScreen() {
         actions.updateMessage(String(tempMessage.id), response.data);
       }
 
+      // Clear draft after successful send
+      AsyncStorage.removeItem(`draft:${conversationIdToUse || state.conversationId}`).catch(() => {});
+
       // FlatList inversé affiche automatiquement les nouveaux messages en bas (index 0)
     } catch (error) {
       if (__DEV__) console.error('Erreur envoi message:', error);
       actions.removeTempMessages();
-      actions.setNewMessage(messageContent);
       // Cleanup des overlays loader si on a interrompu un upload
       setUploadingIds(new Set());
-      showError('Erreur', 'Impossible d\'envoyer le message');
+
+      // Si pas de connexion, on enqueue le message dans la queue offline
+      // persistante (AsyncStorage). Il sera rejoué dès que isConnected===true.
+      // Note : on ne peut pas enqueue les attachments (ils sont locaux uri),
+      // donc on enqueue le texte seul. Si l'utilisateur veut renvoyer les
+      // attachments, il devra les ré-attacher.
+      const conversationIdToUse = state.conversationId;
+      if (!isConnected && conversationIdToUse && messageContent) {
+        try {
+          await offlineQueue.enqueue(
+            String(conversationIdToUse),
+            messageContent,
+            state.replyToMessage?.id ? String(state.replyToMessage.id) : undefined,
+            [],
+          );
+          showSuccess(
+            'Message en attente',
+            'Il sera envoyé dès le retour de la connexion.',
+          );
+        } catch {
+          actions.setNewMessage(messageContent);
+          showError('Erreur', "Impossible d'envoyer le message");
+        }
+      } else {
+        actions.setNewMessage(messageContent);
+        showError('Erreur', "Impossible d'envoyer le message");
+      }
     } finally {
       actions.setSending(false);
     }
@@ -1227,6 +1516,17 @@ export default function ConversationScreen() {
           {headerTitle}
         </Text>
       </View>
+      <TouchableOpacity
+        style={styles.headerMenuButton}
+        onPress={() => {
+          setSearchOpen(s => !s);
+          setSearchQuery('');
+          setSearchResults([]);
+        }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name={searchOpen ? 'close' : 'search'} size={20} color={colors.gray700} />
+      </TouchableOpacity>
       {state.conversationId ? (
         <TouchableOpacity
           style={styles.headerMenuButton}
@@ -1261,7 +1561,59 @@ export default function ConversationScreen() {
       <View style={{ flex: 1, zIndex: 1 }}>
       {renderCustomHeader()}
 
-      {/* Connection Status Warning */}
+      {/* Search bar (shown when searchOpen) */}
+      {searchOpen && (
+        <View style={[styles.searchBar, { backgroundColor: colors.gray100, borderBottomColor: colors.gray200 }]}>
+          <Ionicons name="search" size={16} color={colors.gray400} style={{ marginLeft: 12 }} />
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Rechercher dans la conversation…"
+            placeholderTextColor={colors.gray400}
+            value={searchQuery}
+            onChangeText={handleMessageSearch}
+            autoFocus
+          />
+          {searchLoading && <ActivityIndicator size="small" color={colors.primary} style={{ marginRight: 12 }} />}
+        </View>
+      )}
+
+      {/* Search results */}
+      {searchOpen && searchResults.length > 0 && (
+        <FlatList
+          data={searchResults}
+          keyExtractor={item => String(item.id)}
+          style={[styles.searchResultsList, { backgroundColor: colors.background }]}
+          keyboardShouldPersistTaps="handled"
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[styles.searchResultItem, { borderBottomColor: colors.gray100 }]}
+              onPress={closeSearch}
+            >
+              <Text style={[styles.searchResultSender, { color: colors.primary }]} numberOfLines={1}>
+                {item.sender_name}
+              </Text>
+              <Text style={[styles.searchResultContent, { color: colors.text }]} numberOfLines={2}>
+                {item.content}
+              </Text>
+              <Text style={[styles.searchResultTime, { color: colors.gray400 }]}>
+                {new Date(item.created_at).toLocaleDateString('fr-FR')}
+              </Text>
+            </TouchableOpacity>
+          )}
+        />
+      )}
+
+      {/* No results hint */}
+      {searchOpen && searchQuery.trim().length > 0 && !searchLoading && searchResults.length === 0 && (
+        <View style={[styles.searchNoResults, { backgroundColor: colors.background }]}>
+          <Text style={[styles.searchNoResultsText, { color: colors.gray400 }]}>
+            Aucun résultat pour « {searchQuery} »
+          </Text>
+        </View>
+      )}
+
+      {/* Connection Status — banner orange "Reconnexion…" avec spinner ;
+           rouge si erreur fatale (max_connections, etc.) */}
       {!isConnected && state.conversationId && (
         <View
           style={[
@@ -1271,14 +1623,21 @@ export default function ConversationScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
             },
           ]}
         >
-          <Text style={[styles.connectionStatusText, { color: colors.white, flex: 1 }]}>
-            {wsConnectionError
-              ? wsConnectionError
-              : 'Connexion en cours… (mode hors-ligne)'}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
+            {!wsConnectionError ? (
+              <ActivityIndicator size="small" color={colors.white} />
+            ) : (
+              <Ionicons name="warning-outline" size={16} color={colors.white} />
+            )}
+            <Text style={[styles.connectionStatusText, { color: colors.white, flex: 1 }]}>
+              {wsConnectionError ? wsConnectionError : 'Reconnexion…'}
+            </Text>
+          </View>
           <TouchableOpacity
             onPress={() => wsReconnect()}
             accessibilityRole="button"
@@ -1370,11 +1729,62 @@ export default function ConversationScreen() {
           </View>
         ) : (
           <View style={{ paddingBottom: insets.bottom, backgroundColor: colors.card }}>
+            {/* Voice preview bar — shown after stopping a recording, before send */}
+            {pendingVoiceUri && (
+              <View style={[styles.voicePreviewBar, { backgroundColor: colors.card, borderTopColor: colors.gray200 }]}>
+                <TouchableOpacity
+                  onPress={toggleVoicePreview}
+                  style={[styles.voicePreviewPlayBtn, { backgroundColor: colors.primary }]}
+                  accessibilityLabel={voicePreviewPlaying ? 'Arrêter la lecture' : 'Écouter le message vocal'}
+                >
+                  <Ionicons name={voicePreviewPlaying ? 'stop' : 'play'} size={18} color="#fff" />
+                </TouchableOpacity>
+                <Text style={[styles.voicePreviewLabel, { color: colors.gray700 }]}>
+                  {`Écouter avant d'envoyer (${pendingVoiceDuration}s)`}
+                </Text>
+                <View style={styles.voicePreviewActions}>
+                  <TouchableOpacity
+                    onPress={discardPendingVoice}
+                    style={[styles.voicePreviewBtn, { backgroundColor: colors.gray100 }]}
+                    accessibilityLabel="Supprimer l'enregistrement"
+                  >
+                    <Ionicons name="trash-outline" size={18} color={colors.gray500} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={sendPendingVoice}
+                    style={[styles.voicePreviewBtn, { backgroundColor: colors.primary }]}
+                    accessibilityLabel="Envoyer le message vocal"
+                  >
+                    <Ionicons name="send" size={18} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+            {/* Banner "messages en attente" : visible quand la queue offline
+                contient au moins un message non envoyé pour cette conv. */}
+            {offlineQueue.queueLength > 0 && (
+              <View style={styles.offlineQueueBanner}>
+                <Ionicons name="time-outline" size={14} color="#92400E" />
+                <Text style={styles.offlineQueueBannerText}>
+                  {offlineQueue.queueLength === 1
+                    ? '1 message en attente d\'envoi'
+                    : `${offlineQueue.queueLength} messages en attente d'envoi`}
+                  {offlineQueue.isSyncing ? ' — envoi en cours…' : ''}
+                </Text>
+              </View>
+            )}
             <InputToolbar
               value={state.newMessage}
               onChangeText={(text) => {
                 actions.setNewMessage(text);
                 handleTyping();
+                if (draftSaveTimeoutRef.current) clearTimeout(draftSaveTimeoutRef.current);
+                const convId = state.conversationId;
+                if (convId) {
+                  draftSaveTimeoutRef.current = setTimeout(() => {
+                    AsyncStorage.setItem(`draft:${convId}`, text).catch(() => {});
+                  }, 500);
+                }
               }}
               onSend={handleSend}
               sending={state.sending}
@@ -1400,8 +1810,21 @@ export default function ConversationScreen() {
         visible={state.showActionMenu}
         message={state.selectedMessage}
         userId={user?.id}
+        conversationType={conversationType}
         onClose={actions.hideActionMenu}
         onAction={handleMessageAction}
+      />
+
+      <ReportMessageModal
+        visible={showReportModal}
+        submitting={submittingReport}
+        onClose={() => {
+          if (!submittingReport) {
+            setShowReportModal(false);
+            setReportTargetMessage(null);
+          }
+        }}
+        onSubmit={handleSubmitReport}
       />
 
       <ReactionPickerModal
@@ -1454,6 +1877,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   keyboardView: {
+    flex: 1,
+  },
+
+  // Offline queue banner (au-dessus de l'InputToolbar)
+  offlineQueueBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    backgroundColor: '#FEF3C7',
+    borderTopWidth: 1,
+    borderTopColor: '#FDE68A',
+  },
+  offlineQueueBannerText: {
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.xs,
+    color: '#92400E',
     flex: 1,
   },
 
@@ -1603,5 +2044,84 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...Shadows.lg,
     borderWidth: 1,
+  },
+
+  // Voice preview bar
+  voicePreviewBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    gap: 10,
+  },
+  voicePreviewPlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voicePreviewLabel: {
+    flex: 1,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.medium,
+  },
+  voicePreviewActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  voicePreviewBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Message search
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    height: 44,
+  },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 8,
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+  },
+  searchResultsList: {
+    maxHeight: 280,
+  },
+  searchResultItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  searchResultSender: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.semiBold,
+    marginBottom: 2,
+  },
+  searchResultContent: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    lineHeight: 18,
+  },
+  searchResultTime: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
+  },
+  searchNoResults: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  searchNoResultsText: {
+    fontSize: FontSizes.sm,
+    fontFamily: FontFamily.regular,
+    textAlign: 'center',
   },
 });

@@ -84,7 +84,16 @@ export const messagesAPI = {
   getUserMessagingSettings: () =>
     api.get('/user-messaging-settings/'),
 
-  updateUserMessagingSettings: (settingsId: string, data: { messaging_enabled?: boolean; blocked_users?: string[] }) =>
+  updateUserMessagingSettings: (
+    settingsId: string,
+    data: {
+      messaging_enabled?: boolean;
+      blocked_users?: string[];
+      muted_conversations?: (string | number)[];
+      read_receipts_enabled?: boolean;
+      presence_visible?: boolean;
+    },
+  ) =>
     api.patch(`/user-messaging-settings/${settingsId}/`, data),
 
   blockUser: (userId: string) =>
@@ -95,6 +104,35 @@ export const messagesAPI = {
 
   getBlockedUsers: () =>
     api.get('/user-messaging-settings/blocked_list/'),
+
+  /** Mute serveur d'une conversation — remplace l'ancien stockage AsyncStorage local. */
+  muteConversation: (conversationId: string | number) =>
+    api.post('/user-messaging-settings/mute_conversation/', {
+      conversation_id: conversationId,
+    }),
+
+  /** Retire le mute serveur d'une conversation. */
+  unmuteConversation: (conversationId: string | number) =>
+    api.post('/user-messaging-settings/unmute_conversation/', {
+      conversation_id: conversationId,
+    }),
+
+  /**
+   * Signale un message à la modération.
+   * reason : spam | harassment | hate_speech | inappropriate | scam | other
+   */
+  reportMessage: (
+    messageId: string | number,
+    data: {
+      reason: 'spam' | 'harassment' | 'hate_speech' | 'inappropriate' | 'scam' | 'other';
+      description?: string;
+    },
+  ) =>
+    api.post('/message-reports/', {
+      message: messageId,
+      reason: data.reason,
+      description: data.description,
+    }),
 
   searchMessages: (query: string, conversationId?: string) => {
     const params: any = { q: query };

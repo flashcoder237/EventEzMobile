@@ -1549,6 +1549,7 @@ export type RootStackParamList = {
   Profile: { userId?: string };
   EditProfile: undefined;
   Settings: undefined;
+  BlockedUsers: undefined;
   Notifications: undefined;
   UserDashboard: undefined;
   Messages: undefined;
@@ -1603,6 +1604,8 @@ export type RootStackParamList = {
   SystemStatus: undefined;
   Maintenance: undefined;
   IncidentDetails: { incidentId: string };
+  // In-app browser for external links (websites, virtual rooms, etc.)
+  Browser: { url: string; title?: string };
 };
 
 export type AuthStackParamList = {
@@ -1743,7 +1746,8 @@ export type WebSocketIncomingMessage =
   | { type: 'message.read'; message_id: string | number; user_id: number; read_at: string }
   | { type: 'reaction.add'; message_id: string | number; user_id: number; emoji: string; reaction_id?: string | number }
   | { type: 'reaction.remove'; message_id: string | number; user_id: number; emoji: string; reaction_id?: string | number }
-  | { type: 'presence.changed'; user_id: number; status: string; last_seen: string };
+  | { type: 'presence.changed'; user_id: number; status: string; last_seen: string }
+  | { type: 'unread.decrement'; message_ids: (string | number)[]; conversation_ids: (string | number)[] };
 
 export type WebSocketOutgoingMessage =
   | { type: 'authenticate'; token: string }

@@ -324,8 +324,8 @@ export default function RegisterScreen() {
             {/* Terms */}
             <Text style={[styles.termsText, { color: colors.gray500 }]}>
               En vous inscrivant, vous acceptez nos{' '}
-              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/terms')}>Conditions d'utilisation</Text> et notre{' '}
-              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => Linking.openURL('https://eventez.online/privacy')}>Politique de confidentialité</Text>
+              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>Conditions d'utilisation</Text> et notre{' '}
+              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>Politique de confidentialité</Text>
             </Text>
 
             {/* Register Button — editorial pill CTA */}
@@ -364,7 +364,7 @@ export default function RegisterScreen() {
           <View style={styles.loginContainer}>
             <Text style={[styles.loginText, { color: colors.gray500 }]}>Déjà un compte ?</Text>
             <AnimatedPressable
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => navigation.replace('Login', { returnScreen: (returnScreen as keyof RootStackParamList | undefined) ?? undefined, returnParams })}
               animationType="scale"
               scaleValue={0.95}
               accessibilityRole="link"

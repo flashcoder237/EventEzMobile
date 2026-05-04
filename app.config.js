@@ -28,5 +28,17 @@ module.exports = ({ config }) => {
     },
   };
 
+  // Plugin Google Sign-In : iosUrlScheme lu depuis l'env, jamais commité.
+  const iosUrlScheme = process.env.EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME || '';
+  if (!iosUrlScheme && process.env.NODE_ENV !== 'test') {
+    console.warn(
+      '[app.config] EXPO_PUBLIC_GOOGLE_IOS_URL_SCHEME absent — Google Sign-In iOS ne fonctionnera pas.',
+    );
+  }
+  expo.plugins = [
+    ...(expo.plugins || []),
+    ['@react-native-google-signin/google-signin', { iosUrlScheme }],
+  ];
+
   return { ...config, ...expo };
 };

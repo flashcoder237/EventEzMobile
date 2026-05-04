@@ -14,6 +14,8 @@ interface AuthContextType extends AuthState {
   /** Convenience derived flag — true when user is signed in as a guest. */
   isGuest: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<User>;
+  /** Re-fetch the current user from the API and update local state (e.g. after email verification). */
+  refreshUser: () => Promise<void>;
   register: (data: {
     email: string;
     username: string;
@@ -233,6 +235,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const response = await usersAPI.getCurrentUser();
+      setState((prev) => ({ ...prev, user: response.data }));
+    } catch (error) {
+      if (__DEV__) console.warn('[Auth] refreshUser failed:', error);
+    }
+  }, []);
+
   const updateUser = useCallback(async (data: Partial<User>) => {
     try {
       const response = await usersAPI.updateCurrentUser(data);
@@ -273,9 +284,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     guestRegister,
     upgradeGuest,
     logout,
+    refreshUser,
     updateUser,
     setUser: setUserFn,
-  }), [state, isInitializing, login, register, guestRegister, upgradeGuest, logout, updateUser, setUserFn]);
+  }), [state, isInitializing, login, register, guestRegister, upgradeGuest, logout, refreshUser, updateUser, setUserFn]);
 
   return (
     <AuthContext.Provider value={value}>

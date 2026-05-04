@@ -13,6 +13,7 @@ import {
   TextInput,
   Modal,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
@@ -20,13 +21,15 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { messagesAPI, usersAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useMutedConversations } from '../../hooks/useMutedConversations';
+import { useMessagingWebSocket } from '../../hooks/useMessagingWebSocket';
 import { useTheme } from '../../contexts/ThemeContext';
-import { Conversation, RootStackParamList, User } from '../../types';
+import { Conversation, Message, RootStackParamList, User } from '../../types';
 import {
   FontFamily,
   FontSizes,
@@ -47,7 +50,7 @@ import { NewMessage, PeopleSearch, AnimatedIllustration } from '../../components
 import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type TabType = 'all' | 'events' | 'archived';
+type TabType = 'all' | 'unread' | 'events' | 'archived';
 
 // ============================================
 // CONVERSATION CARD — soft rounded
@@ -57,6 +60,8 @@ interface ConversationCardProps {
   conversation: Conversation;
   currentUserId?: string | number;
   isMuted?: boolean;
+  /** True si l'autre user (conversation directe) est en ligne. */
+  isOnline?: boolean;
   onPress: () => void;
   onLongPress: () => void;
 }
@@ -65,6 +70,7 @@ const ConversationCard = memo(function ConversationCard({
   conversation,
   currentUserId,
   isMuted: muted = false,
+  isOnline = false,
   onPress,
   onLongPress,
 }: ConversationCardProps) {
@@ -153,6 +159,16 @@ const ConversationCard = memo(function ConversationCard({
           >
             <Ionicons name="calendar" size={9} color="#FFFFFF" />
           </View>
+        )}
+        {/* Pastille de présence en ligne — direct conversation uniquement */}
+        {!isGroupOrEvent && isOnline && (
+          <View
+            style={[
+              cardStyles.presenceDot,
+              { backgroundColor: '#22C55E', borderColor: colors.background },
+            ]}
+            accessibilityLabel="En ligne"
+          />
         )}
       </View>
 
@@ -262,6 +278,15 @@ const cardStyles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  presenceDot: {
+    position: 'absolute',
+    bottom: 2,
+    right: 2,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
   },
   body: {
     flex: 1,
@@ -428,6 +453,14 @@ export default function MessagesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Recherche globale dans les messages (en plus du filtre conversations)
+  const [messageSearchResults, setMessageSearchResults] = useState<Message[]>([]);
+  const [searchingMessages, setSearchingMessages] = useState(false);
+  const messageSearchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Presence map : userId → status. Alimentée par REST au mount + WS events.
+  const [presenceMap, setPresenceMap] = useState<Map<number, string>>(new Map());
+
   const [showNewModal, setShowNewModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -436,7 +469,116 @@ export default function MessagesScreen() {
 
   useEffect(() => {
     fetchConversations();
+    fetchPresence();
   }, []);
+
+  // Récupérer la presence map au mount (REST snapshot)
+  const fetchPresence = async () => {
+    try {
+      const response = await messagesAPI.getPresence();
+      const data = response.data?.results || response.data || [];
+      const next = new Map<number, string>();
+      if (Array.isArray(data)) {
+        data.forEach((entry: any) => {
+          if (entry && entry.user_id != null) {
+            next.set(Number(entry.user_id), entry.status || 'offline');
+          }
+        });
+      }
+      setPresenceMap(next);
+    } catch (error) {
+      if (__DEV__) console.warn('[MessagesScreen] fetchPresence failed', error);
+    }
+  };
+
+  // WebSocket — écoute les nouveaux messages, les changements de présence et
+  // les unread.decrement (déclenchés quand l'user marque comme lu depuis un
+  // autre device). Côté inbox, on met à jour les compteurs et la preview en
+  // place sans refresh complet.
+  useMessagingWebSocket({
+    onNewMessage: (msg) => {
+      // Toast / haptic léger quand un message arrive depuis l'inbox
+      // (l'utilisateur n'est pas dans la conversation correspondante puisqu'il
+      // est sur la liste). On évite l'haptic si c'est un message envoyé par
+      // l'user lui-même (ex. retour serveur d'un envoi local).
+      const senderId = (() => {
+        const s: any = msg.sender;
+        if (s == null) return null;
+        if (typeof s === 'object' && s.id != null) return Number(s.id);
+        return Number(s);
+      })();
+      if (senderId !== Number(user?.id)) {
+        try {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        } catch {
+          // ignore — haptic non critique
+        }
+      }
+      // Met à jour la conversation correspondante
+      setConversations(prev => {
+        const convId = String(msg.conversation);
+        const idx = prev.findIndex(c => String(c.id) === convId);
+        if (idx === -1) return prev;
+        const updated = { ...prev[idx] };
+        updated.last_message = msg;
+        updated.last_message_at = msg.created_at;
+        if (senderId !== Number(user?.id)) {
+          updated.unread_count = (updated.unread_count || 0) + 1;
+        }
+        // Remonte la conversation en tête de liste
+        const next = [updated, ...prev.filter((_, i) => i !== idx)];
+        return next;
+      });
+    },
+    onPresenceChanged: (data) => {
+      setPresenceMap(prev => {
+        const next = new Map(prev);
+        next.set(data.userId, data.status);
+        return next;
+      });
+    },
+    onUnreadDecrement: (data) => {
+      // Décrémente le compteur des conversations correspondantes.
+      // Le serveur envoie aussi `message_ids` mais on traite via conversation_ids
+      // pour simplifier — la décrémentation fine est implicite (on met à 0 si
+      // tous les messages d'une conversation sont marqués lus).
+      const ids = new Set(data.conversationIds.map(String));
+      if (ids.size === 0) return;
+      setConversations(prev =>
+        prev.map(c => (ids.has(String(c.id)) ? { ...c, unread_count: 0 } : c)),
+      );
+      // Invalide le cache pour cohérence après reload
+      CacheService.invalidate(`convos:${user?.id}`);
+    },
+  });
+
+  // Search globale messages : debounce + appel REST
+  useEffect(() => {
+    if (messageSearchTimerRef.current) {
+      clearTimeout(messageSearchTimerRef.current);
+    }
+    const q = searchQuery.trim();
+    if (!searchOpen || q.length < 2) {
+      setMessageSearchResults([]);
+      setSearchingMessages(false);
+      return;
+    }
+    setSearchingMessages(true);
+    messageSearchTimerRef.current = setTimeout(async () => {
+      try {
+        const res = await messagesAPI.searchMessages(q);
+        const results: Message[] = res.data?.results || res.data || [];
+        setMessageSearchResults(results);
+      } catch {
+        setMessageSearchResults([]);
+      } finally {
+        setSearchingMessages(false);
+      }
+    }, 300);
+    return () => {
+      if (messageSearchTimerRef.current) clearTimeout(messageSearchTimerRef.current);
+    };
+  }, [searchQuery, searchOpen]);
 
   useEffect(() => {
     if (userSearchTimerRef.current) {
@@ -555,6 +697,9 @@ export default function MessagesScreen() {
       } else {
         if (conv.is_archived) return false;
       }
+      if (activeTab === 'unread') {
+        if ((conv.unread_count || 0) <= 0) return false;
+      }
       if (activeTab === 'events') {
         const otherUser = conv.participants?.find(p => p.id !== user?.id);
         const role = (otherUser as any)?.role;
@@ -579,6 +724,11 @@ export default function MessagesScreen() {
   const renderConversation = useCallback(({ item, index }: { item: Conversation; index: number }) => {
     const otherUser = item.participants?.find(p => p.id !== user?.id);
     const displayName = item.title || getDisplayName(otherUser || null);
+    const otherUserId = otherUser?.id != null ? Number(otherUser.id) : null;
+    const isOnline =
+      item.conversation_type === 'direct' &&
+      otherUserId != null &&
+      presenceMap.get(otherUserId) === 'online';
 
     return (
       <StaggeredItem index={index}>
@@ -586,6 +736,7 @@ export default function MessagesScreen() {
           conversation={item}
           currentUserId={user?.id}
           isMuted={isMuted(String(item.id))}
+          isOnline={isOnline}
           onPress={() => navigation.navigate('Conversation', { conversationId: String(item.id) })}
           onLongPress={() => {
             const convId = String(item.id);
@@ -608,7 +759,7 @@ export default function MessagesScreen() {
         />
       </StaggeredItem>
     );
-  }, [user?.id, navigation, showAlert, isMuted, toggleMute]);
+  }, [user?.id, navigation, showAlert, isMuted, toggleMute, presenceMap]);
 
   const renderEmpty = () => {
     const eyebrow = activeTab === 'archived' ? 'BOÎTE ARCHIVÉE' : 'BOÎTE VIDE';
@@ -662,6 +813,7 @@ export default function MessagesScreen() {
   type ChipDef = { key: TabType; label: string };
   const chips: ChipDef[] = [
     { key: 'all', label: 'Tous' },
+    { key: 'unread', label: 'Non lus' },
     { key: 'events', label: 'Événements' },
     { key: 'archived', label: 'Archives' },
   ];
@@ -744,7 +896,7 @@ export default function MessagesScreen() {
               <Ionicons name="search" size={16} color={colors.gray500} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Chercher une conversation…"
+                placeholder="Chercher une conversation ou un message…"
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -796,6 +948,70 @@ export default function MessagesScreen() {
           })}
         </View>
       </View>
+
+      {/* Section "Messages" — résultats de recherche globale.
+          Affichée uniquement quand la search bar est ouverte avec un terme. */}
+      {searchOpen && searchQuery.trim().length >= 2 && (
+        <View
+          style={[
+            styles.messageSearchSection,
+            {
+              backgroundColor: colors.background,
+              borderBottomColor: hairline,
+            },
+          ]}
+        >
+          <View style={styles.messageSearchHeader}>
+            <Text style={[styles.messageSearchEyebrow, { color: colors.accent }]}>
+              MESSAGES
+            </Text>
+            {searchingMessages && (
+              <ActivityIndicator size="small" color={colors.primary} />
+            )}
+          </View>
+          {messageSearchResults.length > 0 ? (
+            messageSearchResults.slice(0, 6).map(msg => (
+              <TouchableOpacity
+                key={String(msg.id)}
+                style={[
+                  styles.messageSearchItem,
+                  { borderBottomColor: hairline },
+                ]}
+                activeOpacity={TOUCH_OPACITY}
+                onPress={() => {
+                  setSearchOpen(false);
+                  setSearchQuery('');
+                  navigation.navigate('Conversation', {
+                    conversationId: String(msg.conversation),
+                  });
+                }}
+              >
+                <View style={[styles.messageSearchIcon, { backgroundColor: `${colors.primary}15` }]}>
+                  <Ionicons name="chatbubble-outline" size={14} color={colors.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={[styles.messageSearchSender, { color: colors.primary }]}
+                    numberOfLines={1}
+                  >
+                    {msg.sender_name || 'Utilisateur'}
+                  </Text>
+                  <Text
+                    style={[styles.messageSearchContent, { color: colors.text }]}
+                    numberOfLines={2}
+                  >
+                    {msg.content || '[Pièce jointe]'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))
+          ) : !searchingMessages ? (
+            <Text style={[styles.messageSearchEmpty, { color: colors.gray400 }]}>
+              Aucun message ne correspond
+            </Text>
+          ) : null}
+        </View>
+      )}
 
       {/* List */}
       <FlatList
@@ -1011,6 +1227,59 @@ const styles = StyleSheet.create({
   },
   itemSeparator: {
     height: StyleSheet.hairlineWidth,
+  },
+
+  // Recherche globale messages
+  messageSearchSection: {
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xs,
+    borderBottomWidth: 1,
+  },
+  messageSearchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.xs,
+  },
+  messageSearchEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  messageSearchItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  messageSearchIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messageSearchSender: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+    marginBottom: 2,
+  },
+  messageSearchContent: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 17,
+  },
+  messageSearchEmpty: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.sm,
+    fontStyle: 'italic',
   },
 
   emptyWrap: {

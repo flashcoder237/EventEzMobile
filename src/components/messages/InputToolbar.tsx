@@ -227,12 +227,13 @@ function InputToolbar({
       {renderAttachmentPreview()}
 
       <View style={styles.inputRow}>
-        {/* Image Button */}
+        {/* Image Button — limites taille rappelées via accessibilityHint */}
         <TouchableOpacity
           style={styles.actionButton}
           onPress={onPickImage}
           activeOpacity={TOUCH_OPACITY}
           accessibilityLabel="Joindre un fichier"
+          accessibilityHint="Images max 5 Mo, fichiers max 10 Mo"
           accessibilityRole="button"
         >
           <Ionicons name="image-outline" size={22} color={colors.primary} />

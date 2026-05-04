@@ -8,8 +8,10 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import * as WebBrowser from 'expo-web-browser';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { virtualRoomsAPI, recordingsAPI } from '../../api';
+import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
@@ -43,6 +45,7 @@ interface VirtualTabProps {
 
 export default function VirtualTab({ eventId, isRegistered = false }: VirtualTabProps) {
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [rooms, setRooms] = useState<VirtualRoom[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,12 +112,12 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
             { text: 'Annuler', style: 'cancel' },
             {
               text: 'Rejoindre',
-              onPress: () => WebBrowser.openBrowserAsync(finalUrl),
+              onPress: () => navigation.navigate('Browser', { url: finalUrl }),
             },
           ]
         );
       } else {
-        await WebBrowser.openBrowserAsync(finalUrl);
+        navigation.navigate('Browser', { url: finalUrl });
       }
 
       fetchVirtualData();

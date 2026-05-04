@@ -230,7 +230,10 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                               styles.connector,
                               {
                                 borderLeftColor: status === 'past' ? colors.gray200 : colors.primary + '33',
-                                borderLeftStyle: 'dashed',
+                                // RN n'expose pas borderLeftStyle ; on utilise
+                                // borderStyle qui s'applique aux 4 côtés (les
+                                // autres sont à 0 dans le style de base).
+                                borderStyle: 'dashed',
                               },
                             ]}
                           />

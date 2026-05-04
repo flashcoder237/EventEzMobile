@@ -211,7 +211,7 @@ export default function EventDetailsScreen() {
           <Text style={[editorialStyles.eyebrow, { color: colors.primary }]}>Introuvable</Text>
           <Text style={[editorialStyles.errorTitle, { color: colors.gray900 }]}>Evenement non trouve</Text>
           <Text style={[styles.errorText, { color: colors.gray500 }]}>Le lien a peut-etre expire.</Text>
-          <View style={{ marginTop: 24 }}>
+          <View style={{ marginTop: 24, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
               eyebrow="Retour"
               label="Revenir en arriere"
@@ -241,7 +241,7 @@ export default function EventDetailsScreen() {
             Cet événement est réservé aux personnes invitées.
             Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.
           </Text>
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: 16, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
               eyebrow="Retour"
               label="Revenir a l'accueil"
@@ -299,7 +299,7 @@ export default function EventDetailsScreen() {
               placeholderTextColor={colors.gray400}
               autoFocus
             />
-            <View style={{ marginTop: 8 }}>
+            <View style={{ marginTop: 8, flexDirection: 'row' }}>
               <EditorialPillCTA
                 eyebrow="Valider"
                 label="Acceder"
@@ -623,9 +623,7 @@ export default function EventDetailsScreen() {
                     <TouchableOpacity
                       style={styles.joinOnlineButton}
                       onPress={() => {
-                        Linking.openURL(event.online_url!).catch(() => {
-                          showError('Erreur', 'Impossible d\'ouvrir le lien de l\'evenement');
-                        });
+                        navigation.navigate('Browser', { url: event.online_url!, title: event.title });
                       }}
                     >
                       <Ionicons name="videocam" size={18} color={colors.white} />
@@ -1213,7 +1211,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.white,
     padding: Spacing.xl,
   },
   errorText: {

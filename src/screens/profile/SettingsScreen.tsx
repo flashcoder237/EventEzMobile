@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
-import { usersAPI } from '../../api';
+import { usersAPI, messagesAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
   FontFamily,
@@ -323,6 +323,13 @@ export default function SettingsScreen() {
   const [showInAttendees, setShowInAttendees] = useState(true);
   const [showReadReceipts, setShowReadReceipts] = useState(true);
 
+  // Messagerie — opt-outs serveur (UserMessagingSettings)
+  const [messagingEnabled, setMessagingEnabled] = useState(true);
+  const [messagingReadReceipts, setMessagingReadReceipts] = useState(true);
+  const [messagingPresenceVisible, setMessagingPresenceVisible] = useState(true);
+  const [messagingSettingsId, setMessagingSettingsId] = useState<string | null>(null);
+  const [blockedCount, setBlockedCount] = useState(0);
+
   // Préférences
   const [language, setLanguage] = useState('fr');
   const [timezone, setTimezone] = useState('Africa/Douala');
@@ -334,7 +341,64 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     fetchSettings();
+    fetchMessagingSettings();
   }, []);
+
+  // Ref pour les settings — accessible immédiatement dans les callbacks async
+  // sans attendre le re-render React (évite la race au tap rapide).
+  const messagingSettingsIdRef = useRef<string | null>(null);
+
+  const resolveSettings = async (): Promise<string | null> => {
+    try {
+      const response = await messagesAPI.getUserMessagingSettings();
+      const data = response.data;
+      const settings = Array.isArray(data?.results)
+        ? data.results[0]
+        : Array.isArray(data)
+          ? data[0]
+          : data;
+      if (settings) {
+        const sid = settings.id != null ? String(settings.id) : null;
+        if (sid) {
+          messagingSettingsIdRef.current = sid;
+          setMessagingSettingsId(sid);
+        }
+        setMessagingEnabled(settings.messaging_enabled ?? true);
+        setMessagingReadReceipts(settings.read_receipts_enabled ?? true);
+        setMessagingPresenceVisible(settings.presence_visible ?? true);
+        const blocked = Array.isArray(settings.blocked_users) ? settings.blocked_users : [];
+        setBlockedCount(blocked.length);
+        return sid;
+      }
+    } catch (error) {
+      if (__DEV__) console.warn('[Settings] resolveSettings failed', error);
+    }
+    return null;
+  };
+
+  const fetchMessagingSettings = async () => {
+    await resolveSettings();
+  };
+
+  const updateMessagingSetting = async (
+    key: 'messaging_enabled' | 'read_receipts_enabled' | 'presence_visible',
+    value: boolean,
+  ) => {
+    let sid = messagingSettingsIdRef.current;
+    if (!sid) {
+      sid = await resolveSettings();
+    }
+    if (!sid) return;
+    try {
+      await messagesAPI.updateUserMessagingSettings(sid, {
+        [key]: value,
+      });
+    } catch (error) {
+      if (__DEV__) console.error('[Settings] updateMessagingSetting failed', error);
+      // Rollback en cas d'erreur
+      fetchMessagingSettings();
+    }
+  };
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -739,6 +803,72 @@ export default function SettingsScreen() {
                 onToggle={(v) => handleToggle('show_read_receipts', v, setShowReadReceipts)}
               />
             }
+          />
+        </View>
+
+        {/* Section: Confidentialité messagerie */}
+        <View style={styles.sectionBlock}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>
+              CONFIDENTIALITÉ MESSAGERIE
+            </Text>
+            <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
+          </View>
+
+          <OptionCard
+            icon="chatbubbles-outline"
+            eyebrow="MESSAGERIE"
+            title="Activer la messagerie"
+            subtitle="Désactive pour ne plus recevoir aucun message"
+            tone="primary"
+            right={
+              <SoftToggle
+                value={messagingEnabled}
+                onToggle={(v) => {
+                  setMessagingEnabled(v);
+                  updateMessagingSetting('messaging_enabled', v);
+                }}
+              />
+            }
+          />
+          <OptionCard
+            icon="checkmark-done-outline"
+            eyebrow="LECTURE"
+            title="Confirmations de lecture"
+            subtitle="Affiche le double-check bleu quand tu lis un message"
+            right={
+              <SoftToggle
+                value={messagingReadReceipts}
+                onToggle={(v) => {
+                  setMessagingReadReceipts(v);
+                  updateMessagingSetting('read_receipts_enabled', v);
+                }}
+              />
+            }
+          />
+          <OptionCard
+            icon="radio-outline"
+            eyebrow="PRÉSENCE"
+            title="Présence visible"
+            subtitle="Les autres voient quand tu es en ligne"
+            right={
+              <SoftToggle
+                value={messagingPresenceVisible}
+                onToggle={(v) => {
+                  setMessagingPresenceVisible(v);
+                  updateMessagingSetting('presence_visible', v);
+                }}
+              />
+            }
+          />
+          <OptionCard
+            icon="ban-outline"
+            eyebrow={blockedCount > 0 ? `${blockedCount} BLOQUÉ${blockedCount > 1 ? 'S' : ''}` : 'AUCUN'}
+            title="Utilisateurs bloqués"
+            subtitle="Gère la liste des comptes que tu as bloqués"
+            tone="accent"
+            onPress={() => navigation.navigate('BlockedUsers')}
+            right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
         </View>
 

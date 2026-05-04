@@ -61,6 +61,13 @@ interface UseMessagingWebSocketOptions {
   onMessageDeleted?: (data: { messageId: string | number; userId: number }) => void;
   onMessageUpdated?: (data: { messageId: string | number; content: string; editedAt: string; userId: number }) => void;
   onPresenceChanged?: (data: { userId: number; status: string; lastSeen: string }) => void;
+  /**
+   * Diffusé par le backend au group `user_{id}` quand l'utilisateur marque
+   * des messages comme lus depuis un autre device. Permet de décrémenter
+   * `conversation.unread_count` localement sans refresh REST.
+   */
+  onUnreadDecrement?: (data: { messageIds: (string | number)[]; conversationIds: (string | number)[] }) => void;
+  onServerError?: (code: string, message: string) => void;
 }
 
 // Configuration reconnexion
@@ -83,6 +90,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onMessageDeleted,
     onMessageUpdated,
     onPresenceChanged,
+    onUnreadDecrement,
+    onServerError,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
@@ -289,6 +298,15 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           }
           break;
 
+        case 'unread.decrement':
+          if (onUnreadDecrement) {
+            onUnreadDecrement({
+              messageIds: data.message_ids || [],
+              conversationIds: data.conversation_ids || [],
+            });
+          }
+          break;
+
         case 'error': {
           if (__DEV__) console.error('WebSocket error from server:', data);
           const errData = data as WebSocketErrorMessage;
@@ -297,6 +315,10 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           if (errData.code === 'max_connections') {
             fatalErrorRef.current = true;
             setConnectionError(errData.error || 'Trop de connexions ouvertes');
+          }
+          // Propagate all error codes to caller for user-facing feedback
+          if (onServerError && errData.code) {
+            onServerError(errData.code, errData.error || 'Erreur serveur');
           }
           break;
         }
@@ -318,6 +340,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onMessageDeleted,
     onMessageUpdated,
     onPresenceChanged,
+    onUnreadDecrement,
+    onServerError,
     clearTypingTimeout,
   ]);
 

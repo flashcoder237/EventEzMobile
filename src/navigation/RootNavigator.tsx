@@ -46,6 +46,7 @@ import OfflineTicketsScreen from '../screens/tickets/OfflineTicketsScreen';
 import NotificationsScreen from '../screens/dashboard/NotificationsScreen';
 import DashboardScreen from '../screens/dashboard/DashboardScreen';
 import SettingsScreen from '../screens/profile/SettingsScreen';
+import BlockedUsersScreen from '../screens/profile/BlockedUsersScreen';
 import EditProfileScreen from '../screens/profile/EditProfileScreen';
 import TermsScreen from '../screens/profile/TermsScreen';
 import PrivacyScreen from '../screens/profile/PrivacyScreen';
@@ -113,6 +114,9 @@ import TreasuryReportsScreen from '../screens/admin/treasury/TreasuryReportsScre
 import MaintenanceScreen from '../screens/status/MaintenanceScreen';
 import StatusScreen from '../screens/status/StatusScreen';
 import IncidentDetailsScreen from '../screens/status/IncidentDetailsScreen';
+
+// Common Screens
+import WebViewScreen from '../screens/common/WebViewScreen';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -254,6 +258,7 @@ export default function RootNavigator() {
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
       <Stack.Screen name="UserDashboard" component={DashboardScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
+      <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
       <Stack.Screen
         name="EditProfile"
         component={EditProfileScreen}
@@ -329,6 +334,9 @@ export default function RootNavigator() {
       <Stack.Screen name="SystemStatus" component={StatusScreen} />
       <Stack.Screen name="IncidentDetails" component={IncidentDetailsScreen} />
       <Stack.Screen name="Maintenance" component={MaintenanceScreen} options={{ presentation: 'fullScreenModal' }} />
+
+      {/* In-app browser */}
+      <Stack.Screen name="Browser" component={WebViewScreen} />
     </Stack.Navigator>
   );
 }

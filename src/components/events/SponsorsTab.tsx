@@ -4,12 +4,14 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Linking,
   Image as RNImage,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { sponsorsAPI } from '../../api';
+import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -50,6 +52,7 @@ function tierConfig(level?: string): { color: string; label: string; weight: num
 
 export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   const { colors, isDark } = useTheme();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [sponsors, setSponsors] = useState<Sponsor[] | null>(null);
 
   useEffect(() => {
@@ -82,15 +85,11 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
     return Array.from(map.values()).sort((a, b) => b.config.weight - a.config.weight);
   }, [sponsors]);
 
-  const handleSponsorPress = async (sponsor: Sponsor) => {
+  const handleSponsorPress = (sponsor: Sponsor) => {
     if (!sponsor.website) return;
-    try {
-      sponsorsAPI.trackClick(sponsor.id).catch(() => {});
-      const fullUrl = sponsor.website.startsWith('http') ? sponsor.website : `https://${sponsor.website}`;
-      await Linking.openURL(fullUrl);
-    } catch (error) {
-      if (__DEV__) console.error('Erreur ouverture URL:', error);
-    }
+    sponsorsAPI.trackClick(sponsor.id).catch(() => {});
+    const fullUrl = sponsor.website.startsWith('http') ? sponsor.website : `https://${sponsor.website}`;
+    navigation.navigate('Browser', { url: fullUrl, title: sponsor.name });
   };
 
   // ─── AUTO-HIDE: render NOTHING if no sponsors (or while loading) ─────────

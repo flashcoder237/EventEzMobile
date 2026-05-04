@@ -27,12 +27,25 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { isMyMessage } from '../../lib/utils/messagingHelpers';
 import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
 
-export type MessageActionType = 'reply' | 'react' | 'forward' | 'edit' | 'delete' | 'copy';
+export type MessageActionType =
+  | 'reply'
+  | 'react'
+  | 'forward'
+  | 'edit'
+  | 'delete'
+  | 'copy'
+  | 'report'
+  | 'block';
 
 interface MessageActionModalProps {
   visible: boolean;
   message: Message | null;
   userId?: string | number;
+  /**
+   * Type de la conversation : `direct` autorise "Bloquer", les autres non.
+   * Si non fourni, on cache "Bloquer" par sécurité.
+   */
+  conversationType?: 'direct' | 'group' | 'event' | null;
   onClose: () => void;
   onAction: (action: MessageActionType) => void;
 }
@@ -43,21 +56,30 @@ interface ActionItem {
   label: string;
   destructive?: boolean;
   ownerOnly?: boolean;
+  /** Visible uniquement sur les messages des autres (pas les miens). */
+  othersOnly?: boolean;
+  /** Visible uniquement en conversation directe (pas group/event). */
+  directOnly?: boolean;
+  /** Caché si message system (welcome, join, etc.). */
+  hideOnSystem?: boolean;
 }
 
 const ACTIONS: ActionItem[] = [
-  { type: 'reply',   icon: 'arrow-undo-outline', label: 'Répondre' },
-  { type: 'react',   icon: 'happy-outline',      label: 'Réagir' },
-  { type: 'forward', icon: 'arrow-redo-outline', label: 'Transférer' },
-  { type: 'copy',    icon: 'copy-outline',        label: 'Copier' },
-  { type: 'edit',    icon: 'create-outline',      label: 'Modifier',  ownerOnly: true },
-  { type: 'delete',  icon: 'trash-outline',       label: 'Supprimer', destructive: true, ownerOnly: true },
+  { type: 'reply',   icon: 'arrow-undo-outline', label: 'Répondre',                                                hideOnSystem: true },
+  { type: 'react',   icon: 'happy-outline',      label: 'Réagir',                                                  hideOnSystem: true },
+  { type: 'forward', icon: 'arrow-redo-outline', label: 'Transférer',                                              hideOnSystem: true },
+  { type: 'copy',    icon: 'copy-outline',       label: 'Copier' },
+  { type: 'edit',    icon: 'create-outline',     label: 'Modifier',                          ownerOnly: true,     hideOnSystem: true },
+  { type: 'delete',  icon: 'trash-outline',      label: 'Supprimer', destructive: true,      ownerOnly: true,     hideOnSystem: true },
+  { type: 'report',  icon: 'flag-outline',       label: 'Signaler',  destructive: true,      othersOnly: true,    hideOnSystem: true },
+  { type: 'block',   icon: 'ban-outline',        label: 'Bloquer',   destructive: true,      othersOnly: true,    directOnly: true, hideOnSystem: true },
 ];
 
 function MessageActionModal({
   visible,
   message,
   userId,
+  conversationType,
   onClose,
   onAction,
 }: MessageActionModalProps) {
@@ -66,13 +88,21 @@ function MessageActionModal({
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
   const isMine = message ? isMyMessage(message, userId) : false;
+  const isSystem = message?.message_type === 'system';
+  const isDirect = conversationType === 'direct';
 
   const handleAction = (action: MessageActionType) => {
     onAction(action);
     onClose();
   };
 
-  const filteredActions = ACTIONS.filter(a => !(a.ownerOnly && !isMine));
+  const filteredActions = ACTIONS.filter(a => {
+    if (a.hideOnSystem && isSystem) return false;
+    if (a.ownerOnly && !isMine) return false;
+    if (a.othersOnly && isMine) return false;
+    if (a.directOnly && !isDirect) return false;
+    return true;
+  });
 
   return (
     <Modal

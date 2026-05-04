@@ -76,6 +76,25 @@ import { RootStackParamList } from './src/types';
 import { initAnalytics, trackScreenView } from './src/services/analyticsService';
 import './src/i18n';
 
+// Google Sign-In — configure once at module level before any component mounts.
+// Lazy require + try-catch : le module natif n'existe pas dans Expo Go,
+// l'instanciation du singleton crash à l'import si on utilise `import`.
+// Avec require() dans un try-catch, l'app continue de fonctionner — seul
+// le bouton Google sera désactivé. Le dev build inclut le module natif.
+try {
+  const { GoogleSignin } = require('@react-native-google-signin/google-signin/lib/commonjs');
+  GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    offlineAccess: false,
+    scopes: ['email', 'profile'],
+  });
+} catch (e) {
+  if (__DEV__) {
+    console.warn('[Google Sign-In] Native module unavailable (Expo Go?). Use a development build.');
+  }
+}
+
 // Keep native splash visible while we load fonts
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -92,9 +111,13 @@ const linking: LinkingOptions<RootStackParamList> = {
       SpeakerDetails: 'speakers/:speakerId',
       PaymentSuccess: 'payment-success/:paymentId',
       PaymentFailed: 'payment-failed/:paymentId',
+      // Ouverture login depuis le web (ex : après vérification email via browser).
+      Login: 'login',
       // Deep link consommé après clic sur le lien email de vérification.
       // Cf. tasks.py:43 (envoi) et VerifyEmailTokenScreen (consommation).
       VerifyEmailToken: 'verify-email/:token',
+      // Deep link consommé après clic sur le lien de réinitialisation mot de passe.
+      ResetPassword: 'reset-password/:token',
       Main: {
         screens: {
           Discover: 'discover',

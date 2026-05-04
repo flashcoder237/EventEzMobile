@@ -14,8 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { authAPI } from '../../api';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { dispatchAfterAuth } from '../../lib/utils/authNavigation';
 import { RootStackParamList } from '../../types';
 import {
   Colors,
@@ -94,10 +96,9 @@ export default function VerifyEmailScreen() {
   const { email, skippable, returnScreen, returnParams } = route.params || {};
   const { colors, gradients } = useTheme();
   const { showSuccess, showError } = useAlert();
+  const { refreshUser } = useAuth();
 
   const handleSkipForLater = useCallback(() => {
-    // L'utilisateur peut continuer sans verification — bandeaux visibles
-    // ailleurs dans l'app rappellent l'etat non-verifie.
     if (returnScreen) {
       navigation.reset({
         index: 1,
@@ -189,6 +190,8 @@ export default function VerifyEmailScreen() {
     setPhoneError(null);
     try {
       await authAPI.phoneVerifyAccount(otpPhone, otpCode);
+      // Rafraîchir l'état local du user (#2) avant de naviguer
+      await refreshUser();
       setPhoneStep('done');
       showSuccess('Téléphone vérifié !', 'Votre compte est maintenant activé.');
     } catch (error: any) {
@@ -228,9 +231,9 @@ export default function VerifyEmailScreen() {
         bottomOffset={100}
         extraKeyboardSpace={20}
       >
-          {/* Back button */}
+          {/* Back button — goBack() ramène à Main (pas navigate vers Login qui empilerait) (#4) */}
           <AnimatedPressable
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.goBack()}
             style={[styles.backButton, { backgroundColor: colors.gray50 }]}
             animationType="scale"
             scaleValue={0.9}
@@ -238,15 +241,16 @@ export default function VerifyEmailScreen() {
             <Ionicons name="arrow-back" size={24} color={colors.gray800} />
           </AnimatedPressable>
 
-          {/* Mandatory badge */}
+          {/* Badge : "obligatoire" quand non-skippable, "recommandée" sinon (#7) */}
           <View style={[styles.mandatoryBadge, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
             <Ionicons name="shield-checkmark" size={16} color={colors.success} />
             <Text style={[styles.mandatoryText, { color: colors.success }]}>
-              Étape obligatoire pour activer votre compte
+              {skippable ? 'Vérification recommandée' : 'Étape obligatoire pour activer votre compte'}
             </Text>
           </View>
 
-          {/* ── Email card ── */}
+          {/* ── Email card — masquée quand le téléphone est déjà vérifié (#8) ── */}
+          {phoneStep !== 'done' && (
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
             {/* Icon */}
             <View style={[styles.iconContainer, { backgroundColor: `${colors.primary}15` }]}>
@@ -293,13 +297,16 @@ export default function VerifyEmailScreen() {
               />
             )}
           </View>
+          )}
 
-          {/* ── Divider ── */}
+          {/* ── Divider — masqué aussi quand téléphone vérifié ── */}
+          {phoneStep !== 'done' && (
           <View style={styles.divider}>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
             <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou</Text>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
           </View>
+          )}
 
           {/* ── Phone OTP card ── */}
           <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
@@ -318,7 +325,20 @@ export default function VerifyEmailScreen() {
                   Votre numéro a été confirmé. Votre compte est maintenant actif.
                 </Text>
                 <AnimatedPressable
-                  onPress={() => navigation.navigate('Login')}
+                  onPress={() => {
+                    // Naviguer vers returnScreen ou Main — jamais Login (#1)
+                    if (returnScreen) {
+                      navigation.reset({
+                        index: 1,
+                        routes: [
+                          { name: 'Main' as never },
+                          { name: returnScreen as never, params: returnParams as never },
+                        ],
+                      });
+                    } else {
+                      navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] });
+                    }
+                  }}
                   style={styles.successButton}
                   animationType="scale"
                   scaleValue={0.97}
@@ -437,10 +457,13 @@ export default function VerifyEmailScreen() {
             )}
           </View>
 
-          {/* Wrong email? */}
-          <TouchableOpacity style={styles.wrongEmailRow} onPress={() => navigation.navigate('Login')}>
+          {/* Mauvais email → Register (pour le corriger) ; sinon Login (#6) */}
+          <TouchableOpacity
+            style={styles.wrongEmailRow}
+            onPress={() => navigation.replace('Register', { returnScreen: returnScreen ?? undefined, returnParams })}
+          >
             <Text style={[styles.wrongEmailText, { color: colors.gray500 }]}>Mauvais email ? </Text>
-            <Text style={[styles.wrongEmailLink, { color: colors.primary }]}>Retour à la connexion</Text>
+            <Text style={[styles.wrongEmailLink, { color: colors.primary }]}>Corriger et s'inscrire</Text>
           </TouchableOpacity>
 
           {/* Skip for later — visible uniquement quand le user vient de se connecter
