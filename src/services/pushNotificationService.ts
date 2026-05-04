@@ -7,7 +7,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationsAPI } from '../api';
 
 const PUSH_TOKEN_KEY = '@eventez_push_token';
+const PUSH_REGISTERED_AT_KEY = '@eventez_push_registered_at';
 const MAX_REGISTER_RETRIES = 3;
+// Au-delà de cette durée, on force un re-register côté backend pour rafraîchir
+// l'enregistrement (le serveur peut dropper un token inactif). 7 jours est un
+// compromis sain : suffisamment long pour ne pas spammer, court pour rester
+// au-dessus de l'éviction Expo Push (qui peut révoquer un token dormant).
+const PUSH_RE_REGISTER_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Get project ID from app config
 const getProjectId = (): string => {
@@ -228,7 +234,33 @@ class PushNotificationService {
       app_version: '1.0.0',
     };
 
-    return this.registerDeviceWithRetry(deviceInfo);
+    const ok = await this.registerDeviceWithRetry(deviceInfo);
+    if (ok) {
+      try { await AsyncStorage.setItem(PUSH_REGISTERED_AT_KEY, String(Date.now())); } catch { /* ignore */ }
+    }
+    return ok;
+  }
+
+  /**
+   * Re-register le device si l'enregistrement précédent date de plus de
+   * PUSH_RE_REGISTER_INTERVAL_MS. Appelé depuis App.tsx sur AppState=active
+   * pour rafraîchir l'enregistrement et éviter qu'un token expiré silencieusement
+   * ne fasse rater des notifs critiques (paiements, check-in).
+   *
+   * No-op si l'utilisateur n'est pas authentifié (pas de token stocké).
+   */
+  async refreshRegistrationIfStale(): Promise<void> {
+    try {
+      const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
+      if (!token) return;
+      const lastStr = await AsyncStorage.getItem(PUSH_REGISTERED_AT_KEY);
+      const last = lastStr ? Number(lastStr) : 0;
+      if (Number.isFinite(last) && Date.now() - last < PUSH_RE_REGISTER_INTERVAL_MS) return;
+      if (__DEV__) console.log('[Push] Token registration stale — refreshing');
+      await this.registerTokenWithBackend(token);
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] refreshRegistrationIfStale failed:', error);
+    }
   }
 
   /**
@@ -246,8 +278,9 @@ class PushNotificationService {
           // Ignore API errors (401 is expected if called after logout)
           if (__DEV__) console.log('[Push] Backend unregister skipped (user may be logged out)');
         }
-        // Always clear local token
+        // Always clear local token + stale-check timestamp
         await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
+        await AsyncStorage.removeItem(PUSH_REGISTERED_AT_KEY);
         if (__DEV__) console.log('[Push] Device unregistered locally');
       }
     } catch (error) {

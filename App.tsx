@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Text as RNText, TextInput as RNTextInput } from 'react-native';
+import { AppState, AppStateStatus, Platform, Text as RNText, TextInput as RNTextInput } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 // Clamp le font scaling global : l'accessibilite reste active (zoom jusqu'a 1.3x)
@@ -150,6 +150,24 @@ function AppContent() {
     void import('./src/services/soundService').then(({ default: soundService }) => {
       soundService.initialize();
     });
+  }, []);
+
+  // Re-register le push token sur retour au foreground si l'enregistrement
+  // précédent date de plus de 7j. Évite qu'un token expiré silencieusement ne
+  // fasse rater des notifs critiques (paiement, check-in). No-op si l'utilisateur
+  // n'est pas authentifié — la fonction lit le token AsyncStorage local.
+  useEffect(() => {
+    let lastState: AppStateStatus = AppState.currentState;
+    const onChange = (next: AppStateStatus) => {
+      if (next === 'active' && lastState !== 'active') {
+        void import('./src/services/pushNotificationService').then(({ default: pushService }) => {
+          pushService.refreshRegistrationIfStale();
+        });
+      }
+      lastState = next;
+    };
+    const sub = AppState.addEventListener('change', onChange);
+    return () => sub.remove();
   }, []);
 
   // Barre de navigation Android : fond semi-transparent adapté au thème
