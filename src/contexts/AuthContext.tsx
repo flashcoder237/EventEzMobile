@@ -68,6 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (clearError) {
         if (__DEV__) console.warn('Failed to clear tokens on auth error:', clearError);
       }
+      // Refresh définitif échoué → purger le cache (mémoire + AsyncStorage) pour
+      // qu'un nouveau login ne voie pas les données du user expulsé.
+      try {
+        await CacheService.clearAll();
+      } catch (cacheError) {
+        if (__DEV__) console.warn('Failed to clear cache on auth error:', cacheError);
+      }
       setState({ user: null, isAuthenticated: false, isLoading: false });
     });
     return unsub;
@@ -227,7 +234,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     EventEzAnalytics.logout();
     clearAnalyticsUser();
-    CacheService.clearMemory();
+    // Purge mémoire ET AsyncStorage : sans ça, un user qui se reconnecte sur
+    // le même device verrait brièvement les données cachées du user précédent
+    // (events suivis, conversations, dashboard) le temps qu'une requête fraîche
+    // arrive. Voir AUDIT_PROFOND_2026-05-04.md §2.3.
+    try {
+      await CacheService.clearAll();
+    } catch (cacheError) {
+      if (__DEV__) console.warn('Cache clearAll on logout failed:', cacheError);
+    }
     setState({
       user: null,
       isAuthenticated: false,

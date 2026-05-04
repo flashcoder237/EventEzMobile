@@ -128,10 +128,26 @@ const CacheService = {
 
   /**
    * Vide uniquement le cache mémoire (sans toucher AsyncStorage).
-   * À appeler à la déconnexion pour forcer un rechargement propre.
+   * Utile pour forcer une re-lecture immédiate sans purger le disque.
    */
   clearMemory(): void {
     mem.clear();
+  },
+
+  /**
+   * Purge le cache mémoire ET toutes les entrées AsyncStorage préfixées
+   * par STORAGE_PREFIX. À appeler au logout pour qu'un nouveau user ne
+   * voie pas brièvement les données cachées de l'utilisateur précédent.
+   */
+  async clearAll(): Promise<void> {
+    mem.clear();
+    try {
+      const allKeys = await AsyncStorage.getAllKeys();
+      const toRemove = allKeys.filter(k => k.startsWith(STORAGE_PREFIX));
+      if (toRemove.length) await AsyncStorage.multiRemove(toRemove);
+    } catch (e) {
+      if (__DEV__) console.warn(`[CacheService] clearAll() failed:`, e instanceof Error ? e.message : e);
+    }
   },
 };
 
