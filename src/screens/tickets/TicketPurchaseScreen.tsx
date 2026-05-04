@@ -101,7 +101,6 @@ export default function TicketPurchaseScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-  const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig();
 
   // Mode achat supplémentaire: acheter des billets en plus (priorité sur edit)
   const isAdditionalMode = !!additionalTickets;
@@ -117,6 +116,14 @@ export default function TicketPurchaseScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [existingRegistration, setExistingRegistration] = useState<any>(null);
+
+  // Commission config dynamique par pays — la commission backend varie selon la
+  // zone (CommissionConfig par country_code), il faut donc fournir le pays de
+  // l'événement, pas le default. Sans ça, un event en XOF (Côte d'Ivoire)
+  // afficherait la commission XAF par défaut → frais affichés faux. Voir
+  // AUDIT_PROFOND §3.4 (useCommissionConfig sans countryCode).
+  const eventCountry = event?.location_country_code || event?.location_country;
+  const { config: commissionConfig, currency: commissionCurrency } = useCommissionConfig(eventCountry);
   // Discount state
   const [discountCode, setDiscountCode] = useState('');
   const [validatingDiscount, setValidatingDiscount] = useState(false);
