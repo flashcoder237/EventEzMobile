@@ -155,4 +155,31 @@ describe('useCurrencyConversion (mobile)', () => {
 
     expect(result.current.userCurrency).toBeNull();
   });
+
+  it('infers EUR from country code for mixed locale en-FR (regression fr/en in France)', async () => {
+    restoreLocale = setLocale('en-FR'); // anglophone vivant en France
+    mockConvert.mockResolvedValueOnce({
+      data: { converted_amount: 1.52, rate: 0.00152, from_currency: 'XAF', to_currency: 'EUR' },
+    } as any);
+
+    const { result } = renderHook(() => useCurrencyConversion('XAF'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Sans le fallback pays, ce locale tombait sur lang=en → USD, ce qui est faux.
+    // Maintenant la pays FR prend le pas → EUR.
+    expect(result.current.userCurrency).toBe('EUR');
+    expect(result.current.convertedPrice(5000)).toMatch(/EUR/);
+  });
+
+  it('infers KES from country code for mixed locale fr-KE', async () => {
+    restoreLocale = setLocale('fr-KE'); // francophone au Kenya
+    mockConvert.mockResolvedValueOnce({
+      data: { converted_amount: 0.5, rate: 0.001, from_currency: 'XAF', to_currency: 'KES' },
+    } as any);
+
+    const { result } = renderHook(() => useCurrencyConversion('XAF'));
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.userCurrency).toBe('KES');
+  });
 });

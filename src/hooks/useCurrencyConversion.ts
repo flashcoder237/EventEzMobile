@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { currencyAPI } from '../api';
 
-// Map navigator locale to currency code
+// Map locale précis (lang-country) vers devise. Reste utile pour les cas où le
+// même pays a plusieurs devises selon la langue parlée (CH = CHF/EUR mixte).
 const localeToCurrency: Record<string, string> = {
   'fr-FR': 'EUR',
   'fr-BE': 'EUR',
@@ -38,24 +39,63 @@ const localeToCurrency: Record<string, string> = {
   'fr-CD': 'CDF',
 };
 
+// Map pays → devise — c'est le pays qui détermine la devise, pas la langue.
+// Sans ça, un utilisateur anglais en France (locale `en-FR`) tombait sur le
+// fallback langue `en → USD` au lieu d'EUR. Voir AUDIT_PROFOND §3.4.
+const countryToCurrency: Record<string, string> = {
+  // Zone euro
+  FR: 'EUR', DE: 'EUR', BE: 'EUR', NL: 'EUR', LU: 'EUR', AT: 'EUR',
+  IE: 'EUR', FI: 'EUR', PT: 'EUR', ES: 'EUR', IT: 'EUR', GR: 'EUR',
+  MT: 'EUR', CY: 'EUR', SI: 'EUR', SK: 'EUR', EE: 'EUR', LV: 'EUR', LT: 'EUR',
+  // Autres Europe
+  GB: 'GBP', CH: 'CHF', SE: 'SEK', NO: 'NOK', DK: 'DKK', PL: 'PLN',
+  CZ: 'CZK', HU: 'HUF', RO: 'RON', BG: 'BGN', HR: 'EUR',
+  // Amérique
+  US: 'USD', CA: 'CAD', MX: 'MXN', BR: 'BRL', AR: 'ARS', CL: 'CLP', CO: 'COP',
+  // Asie
+  JP: 'JPY', CN: 'CNY', KR: 'KRW', IN: 'INR', ID: 'IDR', VN: 'VND',
+  TH: 'THB', PH: 'PHP', MY: 'MYR', SG: 'SGD', HK: 'HKD', TW: 'TWD',
+  // Moyen-Orient
+  SA: 'SAR', AE: 'AED', QA: 'QAR', KW: 'KWD', BH: 'BHD', OM: 'OMR', JO: 'JOD',
+  IL: 'ILS', TR: 'TRY',
+  // Afrique
+  MA: 'MAD', TN: 'TND', DZ: 'DZD', EG: 'EGP', NG: 'NGN', GH: 'GHS', KE: 'KES',
+  UG: 'UGX', TZ: 'TZS', ZA: 'ZAR', RW: 'RWF', ET: 'ETB',
+  // Zone CFA
+  CM: 'XAF', CG: 'XAF', CF: 'XAF', TD: 'XAF', GA: 'XAF', GQ: 'XAF',
+  CI: 'XOF', SN: 'XOF', BF: 'XOF', BJ: 'XOF', ML: 'XOF', NE: 'XOF', TG: 'XOF',
+  CD: 'CDF',
+  // Océanie
+  AU: 'AUD', NZ: 'NZD',
+  // Russie
+  RU: 'RUB',
+};
+
 function detectUserCurrency(): string | null {
   try {
     // Hermes / React Native: Intl.DateTimeFormat works
     const locale = Intl.DateTimeFormat().resolvedOptions().locale; // e.g. "fr-FR"
 
-    // Exact match
+    // 1. Exact match locale précis (ex: fr-CH → CHF, distinct de fr-FR → EUR)
     if (localeToCurrency[locale]) return localeToCurrency[locale];
 
-    // Try matching by language-country (e.g. "fr-CM")
     const parts = locale.split('-');
     if (parts.length >= 2) {
       const langCountry = `${parts[0]}-${parts[parts.length - 1]}`;
       if (localeToCurrency[langCountry]) return localeToCurrency[langCountry];
     }
 
-    // Fallback by language prefix
+    // 2. Match par PAYS (priorité sur la langue) — couvre les locales mixtes
+    // type `en-FR`, `en-DE`, `pt-FR`, etc. C'est la nationalité du device qui
+    // détermine la devise utile, pas la langue d'affichage.
+    if (parts.length >= 2) {
+      const country = parts[parts.length - 1].toUpperCase();
+      if (countryToCurrency[country]) return countryToCurrency[country];
+    }
+
+    // 3. Fallback final : par langue. Très imparfait mais évite null.
     const lang = parts[0];
-    const fallbacks: Record<string, string> = {
+    const langFallbacks: Record<string, string> = {
       fr: 'EUR',
       en: 'USD',
       de: 'EUR',
@@ -69,7 +109,7 @@ function detectUserCurrency(): string | null {
       sw: 'KES',
     };
 
-    return fallbacks[lang] || null;
+    return langFallbacks[lang] || null;
   } catch {
     return null;
   }
