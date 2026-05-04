@@ -43,6 +43,8 @@ import { useAlert } from '../../contexts/AlertContext';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { getEventUrl } from '../../constants/urls';
+import { paymentsAPI, invoicesAPI } from '../../api';
+import { getMediaUrl } from '../../api/config';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type PaymentSuccessRouteProp = RouteProp<RootStackParamList, 'PaymentSuccess'>;
@@ -69,11 +71,63 @@ interface SuccessContent {
 export default function PaymentSuccessScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<PaymentSuccessRouteProp>();
-  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, referenceCode } = route.params;
+  const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, referenceCode, paymentId } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   // Hooks d'auth/sound déclarés tôt — utilisés par handleInviteFriend ci-dessous
   const { isGuest, user, upgradeGuest } = useAuth();
+
+  // Invoice download — l'ID de la facture est exposé via PaymentSerializer
+  // (`invoice = InvoiceSerializer(read_only=True)`), donc on récupère le payment
+  // pour extraire invoice.id, puis on appelle invoicesAPI.downloadPdf qui
+  // retourne `{ pdf_url }` qu'on ouvre via Linking. La facture peut ne pas
+  // exister immédiatement (générée async par Celery) → bouton désactivé jusqu'à
+  // ce que l'invoice ID soit disponible.
+  const [invoiceId, setInvoiceId] = useState<string | null>(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
+  const isPaidEvent = amount !== undefined && amount > 0 && approvalStatus !== 'pending';
+
+  useEffect(() => {
+    if (!paymentId || !isPaidEvent) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await paymentsAPI.getPayment(paymentId);
+        const id = res.data?.invoice?.id;
+        if (!cancelled && id) setInvoiceId(String(id));
+      } catch {
+        // La facture peut être générée plus tard (async). On laisse le bouton
+        // caché plutôt que d'afficher une erreur — l'utilisateur la trouvera
+        // dans MyPayments si besoin.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [paymentId, isPaidEvent]);
+
+  const handleDownloadInvoice = useCallback(async () => {
+    if (!invoiceId || invoiceLoading) return;
+    setInvoiceLoading(true);
+    try {
+      const res = await invoicesAPI.downloadPdf(invoiceId);
+      const rawUrl = res.data?.pdf_url;
+      const absoluteUrl = getMediaUrl(rawUrl);
+      if (!absoluteUrl) {
+        showError('Facture indisponible', "La facture n'est pas encore disponible.");
+        return;
+      }
+      const supported = await Linking.canOpenURL(absoluteUrl);
+      if (!supported) {
+        showError('Ouverture impossible', 'Aucune application installée pour ouvrir le PDF.');
+        return;
+      }
+      await Linking.openURL(absoluteUrl);
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail;
+      showError('Facture', String(detail || 'Téléchargement de la facture impossible.'));
+    } finally {
+      setInvoiceLoading(false);
+    }
+  }, [invoiceId, invoiceLoading]);
 
   // Partage l'event via le système OS (whatsapp/sms/etc) avec un deep-link.
   // Le ref encode l'ID utilisateur pour tracker la viralité côté backend, mais
@@ -474,6 +528,26 @@ export default function PaymentSuccessScreen() {
               <Ionicons name="calendar-outline" size={14} color={colors.primary} />
               <Text style={[styles.calendarPillText, { color: colors.primary }]}>
                 Ajouter à mon calendrier
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {invoiceId && (
+            <TouchableOpacity
+              style={[styles.calendarPill, { borderColor: colors.gray400 }, invoiceLoading && { opacity: 0.6 }]}
+              onPress={handleDownloadInvoice}
+              activeOpacity={0.85}
+              disabled={invoiceLoading}
+              accessibilityLabel="Télécharger ma facture"
+              accessibilityRole="button"
+            >
+              {invoiceLoading ? (
+                <ActivityIndicator size="small" color={colors.gray700} />
+              ) : (
+                <Ionicons name="document-text-outline" size={14} color={colors.gray700} />
+              )}
+              <Text style={[styles.calendarPillText, { color: colors.gray700 }]}>
+                Télécharger ma facture
               </Text>
             </TouchableOpacity>
           )}
