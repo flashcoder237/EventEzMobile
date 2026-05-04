@@ -65,7 +65,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const colors = useMemo(() => (isDark ? DarkColors : Colors), [isDark]);
 
-  const shadows = useMemo(() => ({ ...Shadows }), [isDark]);
+  // `Shadows` est statique et identique en mode clair/sombre — on partage la
+  // référence directement plutôt que de la spread dans un useMemo qui suggère
+  // une variation par thème inexistante. Si on introduit un jour des shadows
+  // dark dédiées, les remplacer ici par un ternaire `isDark ? DarkShadows : Shadows`.
+  const shadows = Shadows;
 
   const gradients = useMemo((): typeof Gradients => {
     if (!isDark) return Gradients;
