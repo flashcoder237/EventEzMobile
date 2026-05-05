@@ -30,6 +30,23 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 type SeverityFilter = 'all' | AuditSeverity;
+type DateFilter = 'all' | '7d' | '30d' | '90d';
+
+/**
+ * Renvoie les query params backend pour une plage relative.
+ * `start_date` et `end_date` sont au format ISO date (YYYY-MM-DD), backend
+ * les compare via `timestamp__gte` / `timestamp__lte`.
+ */
+function buildDateRangeParams(range: DateFilter): Record<string, string> {
+  if (range === 'all') return {};
+  const days = range === '7d' ? 7 : range === '30d' ? 30 : 90;
+  const now = new Date();
+  const start = new Date(now.getTime() - days * 86400_000);
+  return {
+    start_date: start.toISOString().slice(0, 10),
+    end_date: now.toISOString().slice(0, 10),
+  };
+}
 
 const severityConfig: Record<string, { label: string; color: string; variant: 'default' | 'info' | 'warning' | 'destructive' }> = {
   info: { label: 'Info', color: '#3B82F6', variant: 'info' },
@@ -54,16 +71,20 @@ function AuditLogsContent() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [stats, setStats] = useState<any>(null);
 
   useEffect(() => {
     fetchData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateFilter]);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
+      const dateParams = buildDateRangeParams(dateFilter);
       const [logsRes, statsRes] = await Promise.all([
-        auditAPI.getLogs({ page_size: 50, ordering: '-timestamp' }),
+        auditAPI.getLogs({ page_size: 50, ordering: '-timestamp', ...dateParams }),
         auditAPI.getStatistics().catch(() => ({ data: null })),
       ]);
 
@@ -143,6 +164,13 @@ function AuditLogsContent() {
     { key: 'critical', label: 'Critique' },
   ];
 
+  const dateFilters: { key: DateFilter; label: string }[] = [
+    { key: 'all', label: 'Tout' },
+    { key: '7d', label: '7 jours' },
+    { key: '30d', label: '30 jours' },
+    { key: '90d', label: '90 jours' },
+  ];
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'bottom']}>
       <View style={[styles.header, { borderBottomColor: hairline }]}>
@@ -162,6 +190,7 @@ function AuditLogsContent() {
         <ExportButton
           endpoint="/audit/logs/export/"
           filename="audit_logs"
+          params={buildDateRangeParams(dateFilter)}
           compact
         />
       </View>
@@ -191,7 +220,35 @@ function AuditLogsContent() {
         </View>
       )}
 
-      {/* Severity Filters */}
+      {/* Date Range Filters — pilote la requête backend (start_date / end_date) */}
+      <View style={styles.filtersRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingHorizontal: Spacing.lg }}>
+          {dateFilters.map((f) => {
+            const active = dateFilter === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[
+                  styles.filterPill,
+                  active
+                    ? { backgroundColor: colors.primary, borderColor: colors.primary }
+                    : { backgroundColor: colors.card, borderColor: hairline },
+                ]}
+                onPress={() => setDateFilter(f.key)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityLabel={`Période : ${f.label}`}
+              >
+                <Text style={[styles.filterText, { color: active ? '#FFFFFF' : colors.gray600 }]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Severity Filters — filtre côté client sur les logs déjà chargés */}
       <View style={styles.filtersRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: Spacing.sm, paddingHorizontal: Spacing.lg }}>
           {filters.map((f) => {

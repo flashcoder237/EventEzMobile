@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import GradientButton from '../ui/GradientButton';
@@ -11,29 +12,47 @@ import {
   SaveToBookmarks,
   OnlinePayments,
   Authentication,
+  NewMessage,
   AnimatedIllustration,
 } from '../illustrations';
 
-type IllustrationKey = 'bookmark' | 'ticket' | 'profile';
+type IllustrationKey = 'bookmark' | 'ticket' | 'profile' | 'message';
 
 const illustrationMap: Record<IllustrationKey, React.FC<{ color: string; size: number }>> = {
   bookmark: SaveToBookmarks,
   ticket: OnlinePayments,
   profile: Authentication,
+  message: NewMessage,
 };
 
 interface AuthGuardScreenProps {
   illustration?: IllustrationKey;
-  title: string;
-  subtitle: string;
+  /** Override du titre. Si absent, on utilise la clé i18n par défaut selon `illustration`. */
+  title?: string;
+  /** Override du sous-titre. Si absent, on utilise la clé i18n par défaut. */
+  subtitle?: string;
 }
+
+// Mapping illustration → clé i18n par défaut. Permet aux callers de juste passer
+// `illustration` et de récupérer un titre+sous-titre cohérents (utile pour les
+// 4 wrappers de tabs qui ont chacun leur copy dédiée dans authGuard.*).
+const defaultI18nKeys: Record<IllustrationKey, { title: string; subtitle: string }> = {
+  bookmark: { title: 'authGuard.savedTitle', subtitle: 'authGuard.savedSubtitle' },
+  message: { title: 'authGuard.messagesTitle', subtitle: 'authGuard.messagesSubtitle' },
+  ticket: { title: 'authGuard.ticketsTitle', subtitle: 'authGuard.ticketsSubtitle' },
+  profile: { title: 'authGuard.profileTitle', subtitle: 'authGuard.profileSubtitle' },
+};
 
 export default function AuthGuardScreen({ illustration = 'profile', title, subtitle }: AuthGuardScreenProps) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
 
   const Illustration = illustrationMap[illustration];
+  const defaults = defaultI18nKeys[illustration];
+  const displayTitle = title ?? t(defaults.title);
+  const displaySubtitle = subtitle ?? t(defaults.subtitle);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background, paddingTop: insets.top }]}>
@@ -44,19 +63,19 @@ export default function AuthGuardScreen({ illustration = 'profile', title, subti
           </View>
         </AnimatedIllustration>
 
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>Accès réservé</Text>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-        <Text style={[styles.subtitle, { color: colors.gray500 }]}>{subtitle}</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('authGuard.eyebrow')}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{displayTitle}</Text>
+        <Text style={[styles.subtitle, { color: colors.gray500 }]}>{displaySubtitle}</Text>
 
         <View style={styles.actions}>
           <GradientButton
-            title="Se connecter"
+            title={t('authGuard.loginCta')}
             onPress={() => navigation.navigate('Login')}
             fullWidth
             size="lg"
           />
           <GradientButton
-            title="Creer un compte"
+            title={t('authGuard.registerCta')}
             onPress={() => navigation.navigate('Register')}
             variant="outline"
             fullWidth

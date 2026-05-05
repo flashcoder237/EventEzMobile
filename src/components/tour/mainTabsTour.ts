@@ -8,7 +8,8 @@
 
 import type { TourStep } from './FeatureTourContext';
 
-export const MAIN_TABS_TOUR_STORAGE_KEY = 'eventez_tour_main_v1_seen';
+// Bumpé v1 → v2 lors de l'ajout du tab Messages : les users existants re-verront le tour.
+export const MAIN_TABS_TOUR_STORAGE_KEY = 'eventez_tour_main_v2_seen';
 export const MAIN_TABS_TOUR_DELAY_MS = 1200;
 
 export const MAIN_TABS_TOUR_STEPS: TourStep[] = [
@@ -31,8 +32,17 @@ export const MAIN_TABS_TOUR_STEPS: TourStep[] = [
     padding: 6,
   },
   {
+    id: 'tab-messagestab',
+    eyebrow: '03 · MESSAGES',
+    title: 'Discute en direct.',
+    body: 'Tes conversations avec les organisateurs et les participants. WhatsApp-like, dans l\'app.',
+    placement: 'top',
+    shape: 'rect',
+    padding: 6,
+  },
+  {
     id: 'tab-mytickets',
-    eyebrow: '03 · BILLETS',
+    eyebrow: '04 · BILLETS',
     title: 'Tes accès, dans ta poche.',
     body: 'Tous tes billets et inscriptions, scannables hors-ligne. Plus besoin de papier.',
     placement: 'top',
@@ -41,7 +51,7 @@ export const MAIN_TABS_TOUR_STEPS: TourStep[] = [
   },
   {
     id: 'tab-profile',
-    eyebrow: '04 · PROFIL',
+    eyebrow: '05 · PROFIL',
     title: 'Ton espace personnel.',
     body: 'Réglages, paiements, notifications. Tu peux aussi devenir organisateur·ice depuis ici.',
     placement: 'top',

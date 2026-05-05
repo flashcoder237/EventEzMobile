@@ -52,8 +52,23 @@
   "tabs": {
     "discover": "Découvrir",
     "saved": "Favoris",
+    "messages": "Messages",
     "tickets": "Billets",
     "profile": "Profil"
+  },
+
+  "authGuard": {
+    "eyebrow": "Accès réservé",
+    "loginCta": "Se connecter",
+    "registerCta": "Créer un compte",
+    "savedTitle": "Vos événements sauvegardés",
+    "savedSubtitle": "Connectez-vous pour retrouver les événements que vous suivez et ne rien manquer.",
+    "messagesTitle": "Vos conversations",
+    "messagesSubtitle": "Connectez-vous pour discuter avec les organisateurs et retrouver vos conversations.",
+    "ticketsTitle": "Vos billets",
+    "ticketsSubtitle": "Connectez-vous pour accéder à vos billets, inscriptions et QR codes.",
+    "profileTitle": "Votre profil",
+    "profileSubtitle": "Connectez-vous pour gérer votre profil, vos préférences et accéder à toutes les fonctionnalités."
   },
 
   "discover": {

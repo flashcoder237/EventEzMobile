@@ -4,54 +4,18 @@ import * as Sharing from 'expo-sharing';
 import { Alert, Platform } from 'react-native';
 import { API_BASE_URL } from '../api/config';
 import { getAccessToken, ensureFreshAccessToken } from '../api/instance';
+import {
+  ExportFormat,
+  FORMAT_EXT,
+  FORMAT_MIME,
+  FORMAT_UTI,
+  FORMAT_LABEL,
+  buildExportUrl,
+  sanitizeFilename,
+  mapExportError,
+} from '../lib/utils/exportHelpers';
 
-export type ExportFormat = 'csv' | 'excel' | 'pdf';
-
-const FORMAT_EXT: Record<ExportFormat, string> = {
-  csv: '.csv',
-  excel: '.xlsx',
-  pdf: '.pdf',
-};
-
-const FORMAT_MIME: Record<ExportFormat, string> = {
-  csv: 'text/csv',
-  excel: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  pdf: 'application/pdf',
-};
-
-const FORMAT_UTI: Record<ExportFormat, string | undefined> = {
-  csv: 'public.comma-separated-values-text',
-  excel: 'org.openxmlformats.spreadsheetml.sheet',
-  pdf: 'com.adobe.pdf',
-};
-
-const FORMAT_LABEL: Record<ExportFormat, string> = {
-  csv: 'CSV',
-  excel: 'Excel',
-  pdf: 'PDF',
-};
-
-function buildExportUrl(
-  endpoint: string,
-  params: Record<string, string>,
-  format: ExportFormat,
-): string {
-  const baseUrl = API_BASE_URL.replace(/\/$/, '');
-  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  // URLSearchParams encode correctement clés et valeurs (même avec espaces / accents).
-  const qs = new URLSearchParams();
-  for (const [k, v] of Object.entries(params || {})) {
-    if (v !== undefined && v !== null && v !== '') {
-      qs.set(k, String(v));
-    }
-  }
-  // Utiliser `export_format` et NON `format` : DRF interprete `?format=csv`
-  // comme une format-suffix negotiation et, faute de renderer CSV global,
-  // `BaseContentNegotiation.filter_renderers` raise Http404. L'action backend
-  // lit `export_format` en priorite (apps/registrations/views.py:1153).
-  qs.set('export_format', format);
-  return `${baseUrl}${path}${path.includes('?') ? '&' : '?'}${qs.toString()}`;
-}
+export type { ExportFormat };
 
 /**
  * Hook d'export (CSV / Excel / PDF) avec partage système.
@@ -79,9 +43,9 @@ export function useExport() {
       setError(null);
 
       try {
-        const url = buildExportUrl(endpoint, params, format);
+        const url = buildExportUrl(API_BASE_URL, endpoint, params, format);
         const ext = FORMAT_EXT[format];
-        const safeName = (filename || 'export').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
+        const safeName = sanitizeFilename(filename);
         const target = new File(Paths.cache, `${safeName}${ext}`);
 
         const buildHeaders = (token: string | null): Record<string, string> => ({
@@ -146,20 +110,7 @@ export function useExport() {
           );
         }
       } catch (err: any) {
-        const rawMsg = err?.message || '';
-        // Mapper les erreurs natives en messages plus utiles à l'utilisateur.
-        let msg = 'Erreur lors de l\'export.';
-        if (rawMsg.includes('401') || rawMsg.toLowerCase().includes('unauthor')) {
-          msg = 'Session expirée. Reconnectez-vous puis réessayez.';
-        } else if (rawMsg.includes('403') || rawMsg.toLowerCase().includes('forbidden')) {
-          msg = 'Vous n\'avez pas les droits pour exporter ces données.';
-        } else if (rawMsg.includes('404')) {
-          msg = 'Cette exportation n\'est pas disponible.';
-        } else if (rawMsg.toLowerCase().includes('network') || rawMsg.toLowerCase().includes('timeout')) {
-          msg = 'Connexion impossible. Vérifiez votre réseau et réessayez.';
-        } else if (rawMsg) {
-          msg = rawMsg;
-        }
+        const msg = mapExportError(err?.message || '');
         setError(msg);
         Alert.alert('Erreur', msg);
         if (__DEV__) console.error('[useExport]', err);

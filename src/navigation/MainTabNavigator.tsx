@@ -39,17 +39,12 @@ import MyTicketsScreen from '../screens/dashboard/MyTicketsScreen';
 import MessagesScreen from '../screens/messages/MessagesScreen';
 import ProfileScreen from '../screens/profile/ProfileScreen';
 
-// Auth-guarded tab wrappers
+// Auth-guarded tab wrappers — title/subtitle viennent désormais d'i18n
+// (authGuard.* dans fr.json/en.json), il suffit de passer `illustration`.
 function SavedTabScreen() {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) {
-    return (
-      <AuthGuardScreen
-        illustration="bookmark"
-        title="Vos evenements sauvegardes"
-        subtitle="Connectez-vous pour retrouver les evenements que vous suivez et ne rien manquer."
-      />
-    );
+    return <AuthGuardScreen illustration="bookmark" />;
   }
   return <FollowingEventsScreen />;
 }
@@ -57,13 +52,7 @@ function SavedTabScreen() {
 function MessagesTabScreen() {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) {
-    return (
-      <AuthGuardScreen
-        illustration="message"
-        title="Vos conversations"
-        subtitle="Connectez-vous pour discuter avec les organisateurs et retrouver vos conversations."
-      />
-    );
+    return <AuthGuardScreen illustration="message" />;
   }
   return <MessagesScreen />;
 }
@@ -71,13 +60,7 @@ function MessagesTabScreen() {
 function TicketsTabScreen() {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) {
-    return (
-      <AuthGuardScreen
-        illustration="ticket"
-        title="Vos billets"
-        subtitle="Connectez-vous pour acceder a vos billets, inscriptions et QR codes."
-      />
-    );
+    return <AuthGuardScreen illustration="ticket" />;
   }
   return <MyTicketsScreen />;
 }
@@ -85,13 +68,7 @@ function TicketsTabScreen() {
 function ProfileTabScreen() {
   const { isAuthenticated } = useAuth();
   if (!isAuthenticated) {
-    return (
-      <AuthGuardScreen
-        illustration="profile"
-        title="Votre profil"
-        subtitle="Connectez-vous pour gerer votre profil, vos preferences et acceder a toutes les fonctionnalites."
-      />
-    );
+    return <AuthGuardScreen illustration="profile" />;
   }
   return <ProfileScreen />;
 }

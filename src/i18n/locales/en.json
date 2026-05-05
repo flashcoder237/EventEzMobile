@@ -52,8 +52,23 @@
   "tabs": {
     "discover": "Discover",
     "saved": "Saved",
+    "messages": "Messages",
     "tickets": "Tickets",
     "profile": "Profile"
+  },
+
+  "authGuard": {
+    "eyebrow": "Members only",
+    "loginCta": "Sign in",
+    "registerCta": "Create an account",
+    "savedTitle": "Your saved events",
+    "savedSubtitle": "Sign in to find the events you follow and never miss one.",
+    "messagesTitle": "Your conversations",
+    "messagesSubtitle": "Sign in to chat with organizers and find your conversations.",
+    "ticketsTitle": "Your tickets",
+    "ticketsSubtitle": "Sign in to access your tickets, registrations and QR codes.",
+    "profileTitle": "Your profile",
+    "profileSubtitle": "Sign in to manage your profile, preferences and access all features."
   },
 
   "discover": {

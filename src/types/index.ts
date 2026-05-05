@@ -1624,6 +1624,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Discover: { category?: number } | undefined;
   Saved: undefined;
+  MessagesTab: undefined;
   MyTickets: undefined;
   Profile: undefined;
   // Legacy aliases (kept for backward compatibility in navigation params)
