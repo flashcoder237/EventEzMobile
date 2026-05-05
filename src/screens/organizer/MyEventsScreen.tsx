@@ -157,6 +157,64 @@ export default function MyEventsScreen() {
     );
   };
 
+  const handleAddPhotos = async (event: Event) => {
+    try {
+      // Lazy imports : ImagePicker + ImageManipulator sont déjà tirés côté
+      // EventCreate, on les charge à la demande pour ne pas alourdir le bundle
+      // initial de MyEventsScreen.
+      const ImagePicker = await import('expo-image-picker');
+      const ImageManipulator = await import('expo-image-manipulator');
+
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (perm.status !== 'granted') {
+        showError('Permission requise', "Autorise l'accès à la galerie pour ajouter des photos.");
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        selectionLimit: 10,
+      });
+      if (result.canceled || result.assets.length === 0) return;
+
+      // Compression homogène avec la galerie créée à la création (1920px JPEG 0.7)
+      const compressed = await Promise.all(
+        result.assets.map(async (a) => {
+          try {
+            const out = await ImageManipulator.manipulateAsync(
+              a.uri,
+              [{ resize: { width: 1920 } }],
+              { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
+            );
+            return out.uri;
+          } catch {
+            return a.uri;
+          }
+        }),
+      );
+
+      const formData = new FormData();
+      compressed.forEach((uri, idx) => {
+        const filename = uri.split('/').pop() || `gallery_${idx}.jpg`;
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
+        formData.append('images', { uri, name: filename, type } as any);
+      });
+
+      await eventsAPI.uploadImages(event.id, formData);
+      if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
+      showSuccess(
+        'Photos ajoutées',
+        `${compressed.length} photo${compressed.length > 1 ? 's' : ''} envoyée${compressed.length > 1 ? 's' : ''}.`,
+      );
+    } catch (error: any) {
+      if (__DEV__) console.error('Erreur upload photos:', error);
+      showError('Erreur', error.response?.data?.detail || "Impossible d'ajouter les photos");
+    }
+  };
+
   const handleRequestFeature = (event: Event) => {
     showConfirm(
       'Mise en avant',
@@ -313,6 +371,10 @@ export default function MyEventsScreen() {
       actions.push({
         text: 'Lier billets aux sessions',
         onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.id }),
+      });
+      actions.push({
+        text: 'Ajouter des photos',
+        onPress: () => handleAddPhotos(event),
       });
     }
 
