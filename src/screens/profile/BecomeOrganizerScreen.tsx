@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useAuth } from '../../contexts/AuthContext';
@@ -69,6 +70,7 @@ const BENEFITS = [
 
 export default function BecomeOrganizerScreen() {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const { user, updateUser } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors } = useTheme();
@@ -578,8 +580,19 @@ export default function BecomeOrganizerScreen() {
         {renderCurrentStep()}
       </KeyboardAwareScrollView>
 
-      {/* Footer Buttons */}
-      <View style={[styles.footer, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+      {/* Footer Buttons — paddingBottom inclut insets.bottom pour ne pas
+          être recouvert par la barre de navigation Android (gestures ou
+          3-button) ni le home indicator iOS. */}
+      <View
+        style={[
+          styles.footer,
+          {
+            borderTopColor: colors.gray100,
+            backgroundColor: colors.card,
+            paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm,
+          },
+        ]}
+      >
         {currentStep > 1 && (
           <AnimatedPressable
             onPress={handleBack}

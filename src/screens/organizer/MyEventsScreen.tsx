@@ -35,6 +35,10 @@ import {
 import { MyEventsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import EventActionsSheet, {
+  EventActionSection,
+  EventAction,
+} from '../../components/organizer/EventActionsSheet';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 
@@ -94,6 +98,10 @@ export default function MyEventsScreen() {
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
   const [recurrenceCount, setRecurrenceCount] = useState('4');
   const [recurrenceLoading, setRecurrenceLoading] = useState(false);
+
+  // Bottom sheet d'actions — remplace l'Alert natif qui débordait sur Android
+  // quand le menu dépassait 12 actions (event validated complet).
+  const [actionsSheetEvent, setActionsSheetEvent] = useState<Event | null>(null);
 
   const closeRecurrence = () => {
     if (recurrenceLoading) return;
@@ -378,52 +386,113 @@ export default function MyEventsScreen() {
     return { icon: 'location-outline' as const, text: event.location_city || 'Non spécifié', color: colors.gray500 };
   };
 
+  /**
+   * Ouvre le bottom sheet d'actions pour un event. Les sections sont
+   * construites dynamiquement selon le statut, puis lues par le sheet
+   * via `actionsSheetEvent` + `eventActionSections` (mémoizé).
+   *
+   * Refonte 2026-05-05 : avant on appelait `showAlert` (Alert natif), mais
+   * sur Android avec 12-15 actions le menu débordait sur le statusbar.
+   */
   const showEventActions = (event: Event) => {
-    const actions: { text: string; onPress: () => void; style?: 'destructive' | 'cancel' | 'default' }[] = [
+    setActionsSheetEvent(event);
+  };
+
+  // Construction des sections d'actions pour le bottom sheet, mémoizée.
+  const eventActionSections: EventActionSection[] = useMemo(() => {
+    const event = actionsSheetEvent;
+    if (!event) return [];
+
+    const sections: EventActionSection[] = [];
+
+    // ─── Suivi : visible sur tous les events ───
+    const trackingActions: EventAction[] = [
       {
-        text: 'Voir l\'événement',
+        label: "Voir l'événement",
+        icon: 'eye-outline',
         onPress: () => navigation.navigate('EventDetails', { eventId: event.id }),
       },
     ];
-
     if (event.status === 'validated') {
-      actions.push({
-        text: 'Scanner QR (Check-in)',
-        onPress: () => navigation.navigate('QRScanner', { eventId: event.id }),
-      });
-      actions.push({
-        text: 'Voir les statistiques',
-        onPress: () => navigation.navigate('EventAnalytics', { eventId: event.id }),
-      });
-      actions.push({
-        text: 'Gérer les inscriptions',
-        onPress: () => navigation.navigate('EventRegistrations', { eventId: event.id }),
-      });
-      actions.push({
-        text: 'Bénévoles',
-        onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
-      });
-      actions.push({
-        text: 'Plans de placement',
-        onPress: () => navigation.navigate('SeatingPlans', { eventId: event.id }),
-      });
-      // Demander mise en avant : envoie une notif aux admins. Backend
-      // limite déjà à un envoi par event (cf. request_feature view) — pas
-      // besoin de gating côté mobile, on relaye juste le 400 si conflit.
-      actions.push({
-        text: 'Demander mise en avant',
-        onPress: () => handleRequestFeature(event),
-      });
-      actions.push({
-        text: 'Gérer les sponsors',
-        onPress: () => navigation.navigate('SponsorManagement', { eventId: event.id }),
-      });
-      // Récurrence : seulement si l'event n'est pas déjà marqué récurrent.
-      // is_recurring est posé par le backend après create_recurrence ; le
-      // re-créer renverrait 400.
+      trackingActions.push(
+        {
+          label: 'Scanner QR (Check-in)',
+          icon: 'qr-code-outline',
+          onPress: () => navigation.navigate('QRScanner', { eventId: event.id }),
+        },
+        {
+          label: 'Statistiques',
+          icon: 'stats-chart-outline',
+          onPress: () => navigation.navigate('EventAnalytics', { eventId: event.id }),
+        },
+        {
+          label: 'Inscriptions',
+          icon: 'people-outline',
+          onPress: () => navigation.navigate('EventRegistrations', { eventId: event.id }),
+        },
+      );
+    }
+    sections.push({ title: 'Suivi', actions: trackingActions });
+
+    // ─── Configuration : promo + médias ───
+    const configActions: EventAction[] = [];
+    if (event.status === 'validated' || event.status === 'draft') {
+      configActions.push(
+        {
+          label: 'Codes promo',
+          icon: 'pricetag-outline',
+          onPress: () => navigation.navigate('DiscountManagement', { eventId: event.id }),
+        },
+        {
+          label: 'Lier billets aux sessions',
+          icon: 'link-outline',
+          onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.id }),
+        },
+        {
+          label: 'Ajouter des photos',
+          icon: 'images-outline',
+          onPress: () => handleAddPhotos(event),
+        },
+      );
+    }
+    if (event.status === 'validated') {
+      configActions.push(
+        {
+          label: 'Bénévoles',
+          icon: 'hand-left-outline',
+          onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
+        },
+        {
+          label: 'Sponsors',
+          icon: 'briefcase-outline',
+          onPress: () => navigation.navigate('SponsorManagement', { eventId: event.id }),
+        },
+        {
+          label: 'Plans de placement',
+          icon: 'grid-outline',
+          onPress: () => navigation.navigate('SeatingPlans', { eventId: event.id }),
+        },
+      );
+    }
+    if (configActions.length > 0) {
+      sections.push({ title: 'Configuration', actions: configActions });
+    }
+
+    // ─── Promotion : visibilité + récurrence ───
+    if (event.status === 'validated') {
+      const promoActions: EventAction[] = [
+        {
+          label: 'Demander mise en avant',
+          icon: 'star-outline',
+          description: 'Notifier les admins',
+          onPress: () => handleRequestFeature(event),
+        },
+      ];
       if (!(event as any).is_recurring) {
-        actions.push({
-          text: 'Programmer des occurrences',
+        promoActions.push({
+          label: 'Programmer des occurrences',
+          icon: 'repeat-outline',
+          description: 'Récurrence hebdo / mensuelle',
           onPress: () => {
             setRecurrenceFrequency('weekly');
             setRecurrenceInterval('1');
@@ -432,71 +501,52 @@ export default function MyEventsScreen() {
           },
         });
       }
+      sections.push({ title: 'Promotion', actions: promoActions });
     }
 
-    if (event.status === 'validated' || event.status === 'draft') {
-      actions.push({
-        text: 'Codes promo',
-        onPress: () => navigation.navigate('DiscountManagement', { eventId: event.id }),
-      });
-      actions.push({
-        text: 'Lier billets aux sessions',
-        onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.id }),
-      });
-      actions.push({
-        text: 'Ajouter des photos',
-        onPress: () => handleAddPhotos(event),
-      });
-    }
-
+    // ─── Actions sur l'event ───
+    const eventActions: EventAction[] = [];
     if (event.status === 'draft' || event.status === 'rejected') {
-      actions.push({
-        text: 'Modifier',
+      eventActions.push({
+        label: 'Modifier',
+        icon: 'create-outline',
         onPress: () => navigation.navigate('EventEdit', { eventId: event.id }),
       });
     }
-
     if (event.status === 'draft') {
-      actions.push({
-        text: 'Soumettre pour validation',
+      eventActions.push({
+        label: 'Soumettre pour validation',
+        icon: 'send-outline',
         onPress: () => handleSubmitForValidation(event.id),
       });
     }
-
-    // Dupliquer : permis sur tous les statuts non-annulés (l'organisateur peut
-    // vouloir relancer un event terminé sur la base de l'ancien). Backend
-    // copie l'event en tant que nouveau draft propre du même organizer.
     if (event.status !== 'cancelled') {
-      actions.push({
-        text: 'Dupliquer',
+      eventActions.push({
+        label: 'Dupliquer',
+        icon: 'copy-outline',
         onPress: () => handleDuplicateEvent(event),
       });
     }
-
-    // Annuler : seulement les events publiés ou pendants. Les drafts/rejected
-    // se suppriment, les completed/cancelled ne se réannulent pas.
     if (event.status === 'validated' || event.status === 'submitted') {
-      actions.push({
-        text: "Annuler l'événement",
-        onPress: () => openCancelModal(event),
+      eventActions.push({
+        label: "Annuler l'événement",
+        icon: 'close-circle-outline',
         style: 'destructive',
+        description: 'Notifie les inscrits',
+        onPress: () => openCancelModal(event),
       });
     }
-
-    actions.push({
-      text: 'Supprimer',
-      onPress: () => handleDeleteEvent(event.id),
+    eventActions.push({
+      label: 'Supprimer',
+      icon: 'trash-outline',
       style: 'destructive',
+      description: 'Action irréversible',
+      onPress: () => handleDeleteEvent(event.id),
     });
+    sections.push({ title: 'Actions', actions: eventActions });
 
-    actions.push({
-      text: 'Annuler',
-      style: 'cancel',
-      onPress: () => {},
-    });
-
-    showAlert('Actions', event.title, actions);
-  };
+    return sections;
+  }, [actionsSheetEvent, navigation]);
 
   const renderEvent = ({ item, index }: { item: Event; index: number }) => {
     const config = statusConfig[item.status] || statusConfig.draft;
@@ -1209,6 +1259,15 @@ export default function MyEventsScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Bottom sheet d'actions — remplace l'ancien Alert natif. */}
+      <EventActionsSheet
+        visible={!!actionsSheetEvent}
+        onClose={() => setActionsSheetEvent(null)}
+        title={actionsSheetEvent?.title || ''}
+        subtitle="Actions"
+        sections={eventActionSections}
+      />
     </EditorialCanvas>
   );
 }

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
-import GradientButton from '../ui/GradientButton';
+import { EditorialButton } from '../ui/editorial';
 import { RootStackParamList } from '../../types';
 import {
   SaveToBookmarks,
@@ -68,18 +68,21 @@ export default function AuthGuardScreen({ illustration = 'profile', title, subti
         <Text style={[styles.subtitle, { color: colors.gray500 }]}>{displaySubtitle}</Text>
 
         <View style={styles.actions}>
-          <GradientButton
-            title={t('authGuard.loginCta')}
+          {/* Cohérence avec LoginScreen : style éditorial pilule + eyebrow.
+              "Entrer" / "Se connecter" — même couple que le CTA du LoginScreen
+              pour une transition visuelle continue. */}
+          <EditorialButton
+            label={t('authGuard.loginCta')}
+            eyebrow="Entrer"
             onPress={() => navigation.navigate('Login')}
+            variant="primary"
             fullWidth
-            size="lg"
           />
-          <GradientButton
-            title={t('authGuard.registerCta')}
+          <EditorialButton
+            label={t('authGuard.registerCta')}
             onPress={() => navigation.navigate('Register')}
-            variant="outline"
+            variant="secondary"
             fullWidth
-            size="lg"
           />
         </View>
       </View>

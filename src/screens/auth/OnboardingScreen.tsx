@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -116,6 +117,7 @@ interface Props {
 
 export default function OnboardingScreen({ onComplete }: Props) {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -271,8 +273,9 @@ export default function OnboardingScreen({ onComplete }: Props) {
           />
         </View>
 
-        {/* === FOOTER : dots + CTA === */}
-        <View style={styles.footer}>
+        {/* === FOOTER : dots + CTA === paddingBottom dynamique pour ne pas
+            être recouvert par la barre de nav Android (gestures ou 3-button). */}
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 16 }]}>
           {/* Pager dots */}
           <View style={styles.dotsRow}>
             {SLIDES.map((_, i) => (

@@ -32,6 +32,37 @@ import { EditorialCanvas, EditorialPillCTA, WatermarkNumeral } from '../../compo
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
 type RouteProps = RouteProp<RootStackParamList, 'Register'>;
 
+/**
+ * Mapping field → hints autofill. Sur Android, sans ces hints, le Credential
+ * Manager / Smart Lock ne propose pas d'enregistrer le mot de passe créé.
+ *
+ * Spécificité : sur un formulaire d'INSCRIPTION, on doit utiliser
+ * `autoComplete="new-password"` (et non "password"), sinon Android pense
+ * qu'on veut un mot de passe existant et ne propose pas d'enregistrer.
+ */
+const getAutofillHints = (field: string): {
+  autoComplete?: any;
+  textContentType?: any;
+} => {
+  switch (field) {
+    case 'first_name':
+      return { autoComplete: 'given-name', textContentType: 'givenName' };
+    case 'last_name':
+      return { autoComplete: 'family-name', textContentType: 'familyName' };
+    case 'username':
+      return { autoComplete: 'username-new', textContentType: 'username' };
+    case 'email':
+      return { autoComplete: 'email', textContentType: 'emailAddress' };
+    case 'phone_number':
+      return { autoComplete: 'tel', textContentType: 'telephoneNumber' };
+    case 'password':
+    case 'confirm_password':
+      return { autoComplete: 'new-password', textContentType: 'newPassword' };
+    default:
+      return {};
+  }
+};
+
 interface FormData {
   first_name: string;
   last_name: string;
@@ -186,6 +217,10 @@ export default function RegisterScreen() {
         autoCapitalize={options?.autoCapitalize || 'none'}
         secureTextEntry={options?.secureTextEntry}
         autoCorrect={false}
+        // Hints autofill dérivés du nom du champ — sans ça, Android ne
+        // propose pas d'enregistrer les credentials après inscription.
+        {...getAutofillHints(field)}
+        importantForAutofill="yes"
       />
       {options?.showPasswordToggle && (
         <AnimatedPressable

@@ -60,6 +60,7 @@ export default function LoginScreen() {
   const safeReturnScreen = returnScreen && !isAuthScreen(returnScreen) ? returnScreen : null;
 
   const emailInputRef = useRef<TextInput>(null);
+  const passwordInputRef = useRef<TextInput>(null);
 
   // Email form
   const [email, setEmail] = useState('');
@@ -476,6 +477,11 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   autoComplete="email"
+                  textContentType="emailAddress"
+                  importantForAutofill="yes"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordInputRef.current?.focus()}
+                  blurOnSubmit={false}
                   accessibilityLabel="Adresse email"
                 />
               </View>
@@ -510,6 +516,7 @@ export default function LoginScreen() {
                   />
                 </View>
                 <TextInput
+                  ref={passwordInputRef}
                   style={[styles.input, { color: colors.gray900 }]}
                   placeholder="••••••••"
                   placeholderTextColor={colors.gray400}
@@ -522,6 +529,10 @@ export default function LoginScreen() {
                   onBlur={() => setFocusedField(null)}
                   secureTextEntry={!showPassword}
                   autoComplete="password"
+                  textContentType="password"
+                  importantForAutofill="yes"
+                  returnKeyType="go"
+                  onSubmitEditing={handleLogin}
                   accessibilityLabel="Mot de passe"
                 />
                 <AnimatedPressable

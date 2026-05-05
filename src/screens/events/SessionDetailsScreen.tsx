@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -53,6 +54,7 @@ const LEVEL_LABELS: Record<string, string> = {
 export default function SessionDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
+  const insets = useSafeAreaInsets();
   const { showError, showSuccess } = useAlert();
   const { user } = useAuth();
   const { colors } = useTheme();
@@ -477,7 +479,7 @@ export default function SessionDetailsScreen() {
 
         if (isPast) {
           return (
-            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
               <View style={[styles.registerButton, { backgroundColor: colors.gray300 }]}>
                 <Ionicons name="time-outline" size={20} color={Colors.white} />
                 <Text style={styles.registerButtonText}>Cette session est terminée</Text>
@@ -489,7 +491,7 @@ export default function SessionDetailsScreen() {
         // Cas registered : bouton "Se désinscrire"
         if (session.is_registered) {
           return (
-            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
               <TouchableOpacity
                 style={[styles.registerButton, { backgroundColor: colors.gray700 }]}
                 onPress={handleRegister}
@@ -510,7 +512,7 @@ export default function SessionDetailsScreen() {
         // Cas full : waitlist
         if (isFull) {
           return (
-            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
               <TouchableOpacity
                 style={[styles.registerButton, { backgroundColor: isInWaitlist ? colors.gray700 : colors.warning }]}
                 onPress={handleWaitlistAction}
@@ -534,7 +536,7 @@ export default function SessionDetailsScreen() {
 
         // Cas normal : s'inscrire
         return (
-          <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card }]}>
+          <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
             <TouchableOpacity
               style={[styles.registerButton, { backgroundColor: colors.primary }]}
               onPress={handleRegister}

@@ -75,20 +75,23 @@ function ProfileTabScreen() {
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
-// ─── Variant 01 — Dock Flottante avec labels ──────────────────────────────
-// Pattern :
-//   - Tab actif = pilule horizontale colorée avec icône + label uppercase
-//   - Tabs inactifs = layout vertical compact, icône au-dessus + label en dessous
-//   - Animation : seule la largeur du slot s'anime (l'actif s'étend), les
-//     labels sont rendus directement à pleine opacité (pas de fade pour éviter
-//     le bug "certains textes disparaissent seuls")
-const DOCK_HEIGHT = 70;
+// ─── Variant 03 — Dock flottante (actif élargi + inactifs compactés) ────
+// Refonte 2026-05-05 v2 : on conserve la pilule active qui s'étend avec son
+// label inline, mais on serre les inactifs (36px au lieu de 48) + gap réduit
+// (2px) + dock 94% (au lieu de 92%) pour que les 5 tabs rentrent sur écrans
+// étroits (≥ 320px).
+//
+// Calcul worst-case (320px) :
+//   dock 94% × 320 = 301px - padding 16 - gap 8 = 277 utilisables
+//   4 inactifs × 36 = 144 → reste 133px pour l'actif
+//   actif : icon 22 + gap 6 + label uppercase 9 chars × 7.5px ≈ 68 + padding 24 = 120px ✅
+const DOCK_HEIGHT = 64;
 const DOCK_MAX_WIDTH = 380;
 const DOCK_HORIZONTAL_PADDING = 8;
-const ACTIVE_PILL_HEIGHT = 54;
-// Tabs inactifs : icône seule, format disque compact (icône 26px + padding).
-const INACTIVE_TAB_WIDTH = 48;
-const INACTIVE_TAB_HEIGHT = 48;
+const ACTIVE_PILL_HEIGHT = 50;
+const INACTIVE_TAB_WIDTH = 36;
+const INACTIVE_TAB_HEIGHT = 44;
+const SLOT_GAP = 2;
 const FADE_HEIGHT = 80;
 
 type TabName = 'Discover' | 'Saved' | 'MessagesTab' | 'MyTickets' | 'Profile';
@@ -205,16 +208,14 @@ const TabSlot = memo(function TabSlot({
     };
   }, [isFocused, shimmerValue]);
 
-  // Animation : seule la largeur du slot est interpolée (l'actif s'étend, les
-  // inactifs gardent leur largeur fixe). PAS de fade sur les labels — sinon
-  // ils apparaissent invisibles pendant ~120ms à chaque transition.
+  // Animation : seul le slot actif s'étend en largeur via flexGrow.
+  // Les inactifs gardent leur largeur fixe (INACTIVE_TAB_WIDTH).
   const wrapperStyle = useAnimatedStyle(() => ({
     flexGrow: widthValue.value,
   }));
 
-  // Stripe shimmer : translation horizontale de -50 (off gauche) à 250 (off droite).
-  // 250 dépasse largement la largeur max d'une pilule (≈150px) → invisible
-  // hors-cycle grâce à overflow:hidden du slot parent.
+  // Stripe shimmer qui balaye la pilule active. Position de départ -50 (hors
+  // écran à gauche), arrivée à 250 (largement après la fin de la pilule).
   const shimmerStyle = useAnimatedStyle(() => ({
     transform: [
       { translateX: interpolate(shimmerValue.value, [0, 1], [-50, 250]) },
@@ -240,7 +241,7 @@ const TabSlot = memo(function TabSlot({
           ? {
               flexDirection: 'row',
               borderColor: cardColor,
-              paddingHorizontal: 14,
+              paddingHorizontal: 12,
               minWidth: ACTIVE_PILL_HEIGHT,
               height: ACTIVE_PILL_HEIGHT,
             }
@@ -254,9 +255,8 @@ const TabSlot = memo(function TabSlot({
         wrapperStyle,
       ]}
     >
-      {/* Gradient de fond UNIQUEMENT pour l'actif : de la couleur courante
-          vers la couleur de la tab suivante (wrap-around sur Profile→Discover).
-          Donne plus de profondeur et lie visuellement les onglets entre eux. */}
+      {/* Gradient de fond UNIQUEMENT pour l'actif — couleur courante vers
+          couleur de la tab suivante (wrap-around sur Profile→Discover). */}
       {isFocused && (
         <>
           <LinearGradient
@@ -265,10 +265,8 @@ const TabSlot = memo(function TabSlot({
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFillObject}
           />
-          {/* Shimmer : stripe diagonale blanche translucide qui balaie la pilule
-              toutes les ~4s. Effet "lumière qui passe" subtil. Le slot parent
-              a overflow:hidden, donc la stripe est clippée à la forme de la
-              pilule. pointerEvents=none pour ne pas bloquer le tap. */}
+          {/* Shimmer : stripe diagonale blanche translucide qui balaye la pilule
+              toutes les ~15s. Effet "lumière qui passe" subtil. */}
           <Animated.View style={[styles.shimmerStripe, shimmerStyle]} pointerEvents="none">
             <LinearGradient
               colors={['transparent', 'rgba(255,255,255,0.55)', 'transparent']}
@@ -291,9 +289,9 @@ const TabSlot = memo(function TabSlot({
                 styles.tabAvatar,
                 {
                   borderColor: isFocused ? activeColor : 'transparent',
-                  width: isFocused ? 30 : 28,
-                  height: isFocused ? 30 : 28,
-                  borderRadius: isFocused ? 15 : 14,
+                  width: isFocused ? 28 : 26,
+                  height: isFocused ? 28 : 26,
+                  borderRadius: isFocused ? 14 : 13,
                 },
               ]}
               cachePolicy="disk"
@@ -306,16 +304,16 @@ const TabSlot = memo(function TabSlot({
                 {
                   backgroundColor: isFocused ? 'rgba(255,255,255,0.2)' : (isDark ? '#1E293B' : '#E2E8F0'),
                   borderColor: isFocused ? activeColor : 'transparent',
-                  width: isFocused ? 30 : 28,
-                  height: isFocused ? 30 : 28,
-                  borderRadius: isFocused ? 15 : 14,
+                  width: isFocused ? 28 : 26,
+                  height: isFocused ? 28 : 26,
+                  borderRadius: isFocused ? 14 : 13,
                 },
               ]}
             >
               <Text
                 style={[
                   styles.tabAvatarInitialText,
-                  { color: isFocused ? activeColor : inactiveColor, fontSize: isFocused ? 13 : 12 },
+                  { color: isFocused ? activeColor : inactiveColor, fontSize: isFocused ? 13 : 11 },
                 ]}
               >
                 {(user!.first_name?.[0] || user!.email?.[0] || 'U').toUpperCase()}
@@ -342,7 +340,7 @@ const TabSlot = memo(function TabSlot({
         <View>
           <Ionicons
             name={config.icon}
-            size={isFocused ? 24 : 26}
+            size={isFocused ? 22 : 24}
             color={isFocused ? activeColor : inactiveColor}
           />
           {routeName === 'MessagesTab' && unreadMessageCount > 0 && (
@@ -363,8 +361,8 @@ const TabSlot = memo(function TabSlot({
         </View>
       )}
 
-      {/* Label uppercase visible UNIQUEMENT sur le tab actif (inline à droite
-          de l'icône dans la pilule). Inactifs = icon-only. */}
+      {/* Label uppercase visible UNIQUEMENT sur le tab actif, inline à droite
+          de l'icône dans la pilule. Inactifs = icon-only. */}
       {isFocused && (
         <Text
           numberOfLines={1}
@@ -520,18 +518,21 @@ const styles = StyleSheet.create({
   dock: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '92%',
+    width: '94%',
     maxWidth: DOCK_MAX_WIDTH,
     height: DOCK_HEIGHT,
     borderRadius: DOCK_HEIGHT / 2,
     overflow: 'hidden',
     paddingHorizontal: DOCK_HORIZONTAL_PADDING,
-    gap: 4,
+    gap: SLOT_GAP,
     ...Shadows.dramatic,
   },
   dockBg: {
     ...StyleSheet.absoluteFillObject,
   },
+  // Inactifs = largeur fixe INACTIVE_TAB_WIDTH (36px). Actif = flexGrow,
+  // s'élargit pour accommoder son label inline. Les inactifs gardent toujours
+  // leur largeur, donc le layout est prévisible.
   tabSlot: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -539,16 +540,17 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     overflow: 'hidden',
   },
-  // Label uppercase de l'actif — inline à droite de l'icône dans la pilule
+  // Label uppercase de l'actif — inline à droite de l'icône dans la pilule.
+  // 9.5px font + letter-spacing 1.1 → "DÉCOUVRIR" (9 chars) ≈ 68px width.
   tabLabelActive: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontFamily: FontFamily.bold,
-    letterSpacing: 1.2,
+    letterSpacing: 1.1,
     marginLeft: 6,
   },
   // Stripe diagonale du shimmer — width 50px (largeur de la lumière), légèrement
   // plus haute que la pilule pour qu'avec la rotation 15deg elle reste pleine
-  // hauteur sur toute la course du sweep
+  // hauteur sur toute la course du sweep.
   shimmerStripe: {
     position: 'absolute',
     top: -10,
