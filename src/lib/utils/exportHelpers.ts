@@ -70,26 +70,61 @@ export function sanitizeFilename(filename: string): string {
   return (filename || 'export').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 60);
 }
 
+/** Catégorie d'erreur d'export — sortie de `classifyExportError`. */
+export type ExportErrorKind = 'session_expired' | 'forbidden' | 'not_available' | 'network' | 'unknown';
+
 /**
- * Mappe un message d'erreur brut (axios / native module) vers un message
- * utilisateur en français. Ordre des regex matters : les codes HTTP avant les
- * mots-clés génériques (un 401 contient parfois "Unauthorized").
+ * Catégorise un message d'erreur brut (axios / native module).
+ * Ordre des regex matters : les codes HTTP avant les mots-clés génériques (un
+ * 401 contient parfois "Unauthorized").
+ *
+ * Pure → testable sans i18n. Le hook React appelle `mapExportError` qui mappe
+ * la catégorie vers le texte traduit.
  */
-export function mapExportError(rawMsg: string): string {
+export function classifyExportError(rawMsg: string): ExportErrorKind {
   const msg = rawMsg || '';
   const lower = msg.toLowerCase();
 
-  if (msg.includes('401') || lower.includes('unauthor')) {
-    return 'Session expirée. Reconnectez-vous puis réessayez.';
-  }
-  if (msg.includes('403') || lower.includes('forbidden')) {
-    return 'Vous n\'avez pas les droits pour exporter ces données.';
-  }
-  if (msg.includes('404')) {
-    return 'Cette exportation n\'est pas disponible.';
-  }
-  if (lower.includes('network') || lower.includes('timeout')) {
-    return 'Connexion impossible. Vérifiez votre réseau et réessayez.';
-  }
-  return msg || 'Erreur lors de l\'export.';
+  if (msg.includes('401') || lower.includes('unauthor')) return 'session_expired';
+  if (msg.includes('403') || lower.includes('forbidden')) return 'forbidden';
+  if (msg.includes('404')) return 'not_available';
+  if (lower.includes('network') || lower.includes('timeout')) return 'network';
+  return 'unknown';
+}
+
+// Fallback français si pas de translator fourni — préserve le comportement
+// existant pour les callers non-React (services, tests).
+const DEFAULT_FR_MESSAGES: Record<ExportErrorKind, string> = {
+  session_expired: 'Session expirée. Reconnectez-vous puis réessayez.',
+  forbidden: 'Vous n\'avez pas les droits pour exporter ces données.',
+  not_available: 'Cette exportation n\'est pas disponible.',
+  network: 'Connexion impossible. Vérifiez votre réseau et réessayez.',
+  unknown: 'Erreur lors de l\'export.',
+};
+
+const I18N_KEYS: Record<ExportErrorKind, string> = {
+  session_expired: 'exportErrors.sessionExpired',
+  forbidden: 'exportErrors.forbidden',
+  not_available: 'exportErrors.notAvailable',
+  network: 'exportErrors.network',
+  unknown: 'exportErrors.generic',
+};
+
+/**
+ * Mappe un message d'erreur brut vers un message utilisateur.
+ *
+ * - Si `translate` (de useTranslation) est fourni → message traduit i18n.
+ * - Sinon → fallback français hardcodé (compat existante).
+ * - Pour `unknown`, on préfère renvoyer le message brut s'il est non vide
+ *   (utile pour debug : "Le fichier exporté est vide" reste plus parlant
+ *   que "Erreur lors de l'export").
+ */
+export function mapExportError(
+  rawMsg: string,
+  translate?: (key: string) => string,
+): string {
+  const kind = classifyExportError(rawMsg);
+  if (kind === 'unknown' && rawMsg) return rawMsg;
+  if (translate) return translate(I18N_KEYS[kind]);
+  return DEFAULT_FR_MESSAGES[kind];
 }

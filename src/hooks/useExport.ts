@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Alert, Platform } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { API_BASE_URL } from '../api/config';
 import { getAccessToken, ensureFreshAccessToken } from '../api/instance';
 import {
@@ -31,6 +32,7 @@ export type { ExportFormat };
 export function useExport() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const exportData = useCallback(
     async (
@@ -110,15 +112,15 @@ export function useExport() {
           );
         }
       } catch (err: any) {
-        const msg = mapExportError(err?.message || '');
+        const msg = mapExportError(err?.message || '', t);
         setError(msg);
-        Alert.alert('Erreur', msg);
+        Alert.alert(t('common.error'), msg);
         if (__DEV__) console.error('[useExport]', err);
       } finally {
         setLoading(false);
       }
     },
-    [],
+    [t],
   );
 
   return { exportData, loading, error };

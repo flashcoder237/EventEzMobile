@@ -14,6 +14,7 @@
  */
 
 import React, { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   View,
   Text,
@@ -500,6 +501,13 @@ interface AlertState {
 }
 
 export function useCustomAlert() {
+  // NOTE: paramètre `t` du callback renommé en `title` pour éviter le shadow
+  // avec la fonction `t` de `useTranslation`.
+  const { t: translate } = useTranslation();
+  const okLabel = translate('common.ok');
+  const cancelLabel = translate('common.cancel');
+  const confirmLabel = translate('common.confirm');
+
   const [alertState, setAlertState] = useState<AlertState>({
     visible: false,
     type: 'info',
@@ -514,16 +522,16 @@ export function useCustomAlert() {
     type: AlertType = 'info',
     buttons?: AlertButton[]
   ) => {
-    setAlertState({ visible: true, type, title, message, buttons: buttons || [{ text: 'OK' }] });
-  }, []);
+    setAlertState({ visible: true, type, title, message, buttons: buttons || [{ text: okLabel }] });
+  }, [okLabel]);
 
   const hideAlert = useCallback(() => {
     setAlertState(prev => ({ ...prev, visible: false }));
   }, []);
 
-  const showSuccess = useCallback((t: string, m?: string) => showAlert(t, m, 'success'), [showAlert]);
-  const showError = useCallback((t: string, m?: string) => showAlert(t, m, 'error'), [showAlert]);
-  const showWarning = useCallback((t: string, m?: string) => showAlert(t, m, 'warning'), [showAlert]);
+  const showSuccess = useCallback((title: string, m?: string) => showAlert(title, m, 'success'), [showAlert]);
+  const showError = useCallback((title: string, m?: string) => showAlert(title, m, 'error'), [showAlert]);
+  const showWarning = useCallback((title: string, m?: string) => showAlert(title, m, 'warning'), [showAlert]);
 
   const showConfirm = useCallback((
     title: string,
@@ -532,10 +540,10 @@ export function useCustomAlert() {
     onCancel?: () => void
   ) => {
     showAlert(title, message, 'confirm', [
-      { text: 'Annuler', style: 'cancel', onPress: onCancel },
-      { text: 'Confirmer', style: 'default', onPress: onConfirm },
+      { text: cancelLabel, style: 'cancel', onPress: onCancel },
+      { text: confirmLabel, style: 'default', onPress: onConfirm },
     ]);
-  }, [showAlert]);
+  }, [showAlert, cancelLabel, confirmLabel]);
 
   return {
     alertState,

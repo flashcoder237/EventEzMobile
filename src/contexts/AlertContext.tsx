@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import CustomAlert, { AlertType } from '../components/common/CustomAlert';
 
 interface AlertButton {
@@ -27,6 +28,14 @@ interface AlertContextType {
 const AlertContext = createContext<AlertContextType | undefined>(undefined);
 
 export function AlertProvider({ children }: { children: ReactNode }) {
+  const { t } = useTranslation();
+  // Labels par défaut résolus au moment du render — si l'utilisateur change
+  // de langue dans Settings, les boutons se mettent à jour à la prochaine
+  // ouverture de l'alert. Pas besoin de re-render des callers.
+  const okLabel = t('common.ok');
+  const cancelLabel = t('common.cancel');
+  const confirmLabel = t('common.confirm');
+
   const [alertState, setAlertState] = useState<AlertState>({
     visible: false,
     type: 'info',
@@ -46,25 +55,25 @@ export function AlertProvider({ children }: { children: ReactNode }) {
       type,
       title,
       message,
-      buttons: buttons || [{ text: 'OK' }],
+      buttons: buttons || [{ text: okLabel }],
     });
-  }, []);
+  }, [okLabel]);
 
   const hideAlert = useCallback(() => {
     setAlertState(prev => ({ ...prev, visible: false }));
   }, []);
 
   const showSuccess = useCallback((title: string, message?: string) => {
-    showAlert(title, message, [{ text: 'OK' }], 'success');
-  }, [showAlert]);
+    showAlert(title, message, [{ text: okLabel }], 'success');
+  }, [showAlert, okLabel]);
 
   const showError = useCallback((title: string, message?: string) => {
-    showAlert(title, message, [{ text: 'OK' }], 'error');
-  }, [showAlert]);
+    showAlert(title, message, [{ text: okLabel }], 'error');
+  }, [showAlert, okLabel]);
 
   const showWarning = useCallback((title: string, message?: string) => {
-    showAlert(title, message, [{ text: 'OK' }], 'warning');
-  }, [showAlert]);
+    showAlert(title, message, [{ text: okLabel }], 'warning');
+  }, [showAlert, okLabel]);
 
   const showConfirm = useCallback((
     title: string,
@@ -73,10 +82,10 @@ export function AlertProvider({ children }: { children: ReactNode }) {
     onCancel?: () => void
   ) => {
     showAlert(title, message, [
-      { text: 'Annuler', style: 'cancel', onPress: onCancel },
-      { text: 'Confirmer', onPress: onConfirm },
+      { text: cancelLabel, style: 'cancel', onPress: onCancel },
+      { text: confirmLabel, onPress: onConfirm },
     ], 'confirm');
-  }, [showAlert]);
+  }, [showAlert, cancelLabel, confirmLabel]);
 
   const value = useMemo(() => ({
     showAlert,

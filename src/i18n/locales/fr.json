@@ -230,6 +230,14 @@
     "goHome": "Retour à l'accueil"
   },
 
+  "exportErrors": {
+    "sessionExpired": "Session expirée. Reconnectez-vous puis réessayez.",
+    "forbidden": "Vous n'avez pas les droits pour exporter ces données.",
+    "notAvailable": "Cette exportation n'est pas disponible.",
+    "network": "Connexion impossible. Vérifiez votre réseau et réessayez.",
+    "generic": "Erreur lors de l'export."
+  },
+
   "empty": {
     "events": "Aucun événement",
     "eventsMessage": "Il n'y a pas encore d'événements à afficher",
