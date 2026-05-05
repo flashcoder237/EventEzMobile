@@ -85,6 +85,55 @@ export default function MyEventsScreen() {
   const [cancelLoading, setCancelLoading] = useState(false);
   const [duplicateLoading, setDuplicateLoading] = useState<string | null>(null);
 
+  // Modal de récurrence — programmer plusieurs occurrences à partir d'un event.
+  // Backend `/events/{id}/create_recurrence/` crée le pattern + génère les
+  // instances. Une fois fait, l'event a `is_recurring=true` et ne peut pas
+  // recréer un autre pattern (le backend renvoie 400).
+  const [recurrenceTarget, setRecurrenceTarget] = useState<Event | null>(null);
+  const [recurrenceFrequency, setRecurrenceFrequency] = useState<'weekly' | 'monthly' | 'daily'>('weekly');
+  const [recurrenceInterval, setRecurrenceInterval] = useState('1');
+  const [recurrenceCount, setRecurrenceCount] = useState('4');
+  const [recurrenceLoading, setRecurrenceLoading] = useState(false);
+
+  const closeRecurrence = () => {
+    if (recurrenceLoading) return;
+    setRecurrenceTarget(null);
+  };
+
+  const submitRecurrence = async () => {
+    if (!recurrenceTarget) return;
+    const interval = parseInt(recurrenceInterval, 10);
+    const count = parseInt(recurrenceCount, 10);
+    if (!Number.isFinite(interval) || interval < 1) {
+      showError('Intervalle invalide', 'L\'intervalle doit être au moins 1.');
+      return;
+    }
+    if (!Number.isFinite(count) || count < 1 || count > 52) {
+      showError('Nombre invalide', 'Entre 1 et 52 occurrences.');
+      return;
+    }
+    setRecurrenceLoading(true);
+    try {
+      await eventsAPI.createRecurrence(recurrenceTarget.id, {
+        frequency: recurrenceFrequency,
+        interval,
+        occurrence_count: count,
+      });
+      // Refetch pour récupérer is_recurring=true côté serveur.
+      await fetchEvents(true);
+      if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
+      showSuccess(
+        'Récurrence créée',
+        `${count} occurrence${count > 1 ? 's' : ''} programmée${count > 1 ? 's' : ''}.`,
+      );
+      setRecurrenceTarget(null);
+    } catch (error: any) {
+      showError('Erreur', error?.response?.data?.detail || 'Impossible de créer la récurrence.');
+    } finally {
+      setRecurrenceLoading(false);
+    }
+  };
+
   useFocusEffect(
     React.useCallback(() => {
       fetchEvents();
@@ -365,6 +414,20 @@ export default function MyEventsScreen() {
         text: 'Gérer les sponsors',
         onPress: () => navigation.navigate('SponsorManagement', { eventId: event.id }),
       });
+      // Récurrence : seulement si l'event n'est pas déjà marqué récurrent.
+      // is_recurring est posé par le backend après create_recurrence ; le
+      // re-créer renverrait 400.
+      if (!(event as any).is_recurring) {
+        actions.push({
+          text: 'Programmer des occurrences',
+          onPress: () => {
+            setRecurrenceFrequency('weekly');
+            setRecurrenceInterval('1');
+            setRecurrenceCount('4');
+            setRecurrenceTarget(event);
+          },
+        });
+      }
     }
 
     if (event.status === 'validated' || event.status === 'draft') {
@@ -1033,6 +1096,109 @@ export default function MyEventsScreen() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>Annuler l'événement</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* === MODAL RÉCURRENCE === */}
+      <Modal
+        visible={!!recurrenceTarget}
+        transparent
+        animationType="fade"
+        onRequestClose={closeRecurrence}
+      >
+        <View style={styles.cancelModalBackdrop}>
+          <View style={[styles.cancelModalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.cancelModalEyebrow, { color: colors.accent }]}>RÉCURRENCE</Text>
+            <Text style={[styles.cancelModalTitle, { color: colors.text }]}>
+              Programmer "{recurrenceTarget?.title}"
+            </Text>
+            <Text style={[styles.cancelModalBody, { color: colors.gray500 }]}>
+              Crée plusieurs occurrences à partir de cet événement. Chaque occurrence est un nouvel event indépendant que tu peux ajuster.
+            </Text>
+
+            {/* Fréquence */}
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: Spacing.md }}>
+              {(['daily', 'weekly', 'monthly'] as const).map(f => {
+                const active = f === recurrenceFrequency;
+                const label = f === 'daily' ? 'Quotidien' : f === 'weekly' ? 'Hebdo' : 'Mensuel';
+                return (
+                  <TouchableOpacity
+                    key={f}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      borderRadius: BorderRadius.full,
+                      borderWidth: 1.5,
+                      backgroundColor: active ? colors.primary : 'transparent',
+                      borderColor: active ? colors.primary : hairline,
+                      alignItems: 'center',
+                    }}
+                    onPress={() => !recurrenceLoading && setRecurrenceFrequency(f)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{
+                      fontFamily: FontFamily.bold,
+                      fontSize: 12,
+                      color: active ? '#fff' : colors.text,
+                      letterSpacing: 0.2,
+                    }}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: FontFamily.bold, fontSize: 11, color: colors.gray500, marginBottom: 6, letterSpacing: 0.8 }}>
+                  TOUS LES
+                </Text>
+                <TextInput
+                  style={[styles.cancelModalInput, { backgroundColor: inputBg, borderColor: hairline, color: colors.text, minHeight: 0, paddingVertical: 12 }]}
+                  value={recurrenceInterval}
+                  onChangeText={setRecurrenceInterval}
+                  keyboardType="number-pad"
+                  editable={!recurrenceLoading}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontFamily: FontFamily.bold, fontSize: 11, color: colors.gray500, marginBottom: 6, letterSpacing: 0.8 }}>
+                  OCCURRENCES
+                </Text>
+                <TextInput
+                  style={[styles.cancelModalInput, { backgroundColor: inputBg, borderColor: hairline, color: colors.text, minHeight: 0, paddingVertical: 12 }]}
+                  value={recurrenceCount}
+                  onChangeText={setRecurrenceCount}
+                  keyboardType="number-pad"
+                  editable={!recurrenceLoading}
+                />
+              </View>
+            </View>
+
+            <View style={styles.cancelModalActions}>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.gray100 }]}
+                onPress={closeRecurrence}
+                disabled={recurrenceLoading}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.cancelModalBtn, { backgroundColor: colors.primary }, recurrenceLoading && { opacity: 0.6 }]}
+                onPress={submitRecurrence}
+                disabled={recurrenceLoading}
+                activeOpacity={0.85}
+              >
+                {recurrenceLoading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>Programmer</Text>
                 )}
               </TouchableOpacity>
             </View>
