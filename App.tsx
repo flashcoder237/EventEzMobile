@@ -69,6 +69,7 @@ import MaintenanceGate from './src/components/common/MaintenanceGate';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
+import LockGate from './src/components/auth/LockGate';
 import { DEEP_LINK_SCHEME, WEB_BASE_URL } from './src/constants/urls';
 import { RootStackParamList } from './src/types';
 
@@ -206,9 +207,11 @@ function AppContent() {
                 <StatusProvider>
                   <FeatureTourProvider>
                     <StatusBar style={isDark ? 'light' : 'dark'} />
-                    <MaintenanceGate>
-                      <RootNavigator />
-                    </MaintenanceGate>
+                    <LockGate>
+                      <MaintenanceGate>
+                        <RootNavigator />
+                      </MaintenanceGate>
+                    </LockGate>
                     <VerificationGuardModal />
                   </FeatureTourProvider>
                 </StatusProvider>

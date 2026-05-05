@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
+import { useAppLock } from '../../hooks/useAppLock';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI, messagesAPI } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -338,6 +339,11 @@ export default function SettingsScreen() {
   const [twoFactorAuth, setTwoFactorAuth] = useState(false);
   const [loginNotifications, setLoginNotifications] = useState(true);
   const [publicProfile, setPublicProfile] = useState(true);
+
+  // App lock biométrique — la pref vit en SecureStore (cf. useAppLock).
+  // Hook désactivé ici pour éviter de re-déclencher l'auth au mount du
+  // SettingsScreen ; on ne tape qu'aux helpers exposés.
+  const { isSupported: appLockSupported, isEnabled: appLockEnabled, setEnabled: setAppLockEnabled } = useAppLock();
 
   useEffect(() => {
     fetchSettings();
@@ -761,6 +767,26 @@ export default function SettingsScreen() {
               ) : (
                 <SoftToggle value={twoFactorAuth} onToggle={() => {}} disabled />
               )
+            }
+          />
+          <OptionCard
+            icon="finger-print"
+            eyebrow={appLockSupported ? 'BIOMÉTRIE' : 'INDISPONIBLE'}
+            title="Verrouiller l'app"
+            subtitle={
+              appLockSupported
+                ? 'FaceID / Empreinte requise au lancement et après 1 min en arrière-plan'
+                : 'Aucune biométrie enrôlée sur ce téléphone'
+            }
+            disabled={!appLockSupported}
+            right={
+              <SoftToggle
+                value={appLockEnabled}
+                onToggle={async (v) => {
+                  await setAppLockEnabled(v);
+                }}
+                disabled={!appLockSupported}
+              />
             }
           />
           <OptionCard
