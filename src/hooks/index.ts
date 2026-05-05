@@ -7,6 +7,8 @@ export { useTabletLayout } from './useTabletLayout';
 export { useDebounce, useDebouncedCallback } from './useDebounce';
 export { useBiometricConfirm } from './useBiometricConfirm';
 export type { BiometricConfirmOptions } from './useBiometricConfirm';
+export { useBiometricPrefs, getBiometricPref } from './useBiometricPrefs';
+export type { BiometricCategory, BiometricPrefsMap } from './useBiometricPrefs';
 export { useLoadingState, useAsyncOperation } from './useLoadingState';
 export { useMessagingWebSocket } from './useMessagingWebSocket';
 export { useMessageState } from './useMessageState';

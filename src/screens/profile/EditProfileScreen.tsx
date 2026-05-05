@@ -19,6 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
@@ -80,6 +81,7 @@ export default function EditProfileScreen() {
   const { user, updateUser, setUser } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? colors.gray100 : colors.gray50;
 
@@ -227,6 +229,13 @@ export default function EditProfileScreen() {
       showError('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
       return;
     }
+
+    // Confirmation biométrique catégorie 'account' avant change password.
+    const confirmed = await biometric.confirm({
+      promptMessage: 'Confirmer le changement de mot de passe',
+      category: 'account',
+    });
+    if (!confirmed) return;
 
     setSaving(true);
     try {

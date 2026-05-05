@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
 import { User, RootStackParamList } from '../../types';
 import RegistrationSearchBar from '../../components/organizer/RegistrationSearchBar';
@@ -63,6 +64,7 @@ function UserManagementContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -126,6 +128,14 @@ function UserManagementContent() {
     if (ids.length === 0) return;
 
     showConfirm(confirmTitle, confirmBody, async () => {
+      // Confirmation biométrique catégorie 'admin' AVANT d'exécuter l'action
+      // bulk. Posée APRÈS le showConfirm OK pour ne pas double-prompter.
+      const okBio = await biometric.confirm({
+        promptMessage: confirmTitle,
+        category: 'admin',
+      });
+      if (!okBio) return;
+
       setBulkLoading(true);
       let ok = 0;
       let fail = 0;

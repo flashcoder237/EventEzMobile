@@ -23,6 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { AccessDenied, WellDone, AnimatedIllustration } from '../../components/illustrations';
 import Badge from '../../components/ui/Badge';
 import EditorialCanvas from '../../components/ui/editorial/EditorialCanvas';
@@ -72,6 +73,7 @@ export default function ModerationScreen() {
   const { user } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [events, setEvents] = useState<PendingEvent[]>([]);
@@ -121,6 +123,12 @@ export default function ModerationScreen() {
   };
 
   const handleValidate = async (eventId: string) => {
+    const okBio = await biometric.confirm({
+      promptMessage: 'Confirmer la validation de l\'événement',
+      category: 'admin',
+    });
+    if (!okBio) return;
+
     setActionLoading(eventId);
     try {
       await eventsAPI.validateEvent(eventId);
@@ -138,6 +146,12 @@ export default function ModerationScreen() {
       showError('Erreur', 'Veuillez indiquer une raison de rejet');
       return;
     }
+
+    const okBio = await biometric.confirm({
+      promptMessage: 'Confirmer le rejet de l\'événement',
+      category: 'admin',
+    });
+    if (!okBio) return;
 
     setActionLoading(selectedEvent.id);
     try {
@@ -182,6 +196,13 @@ export default function ModerationScreen() {
 
   const handleBulkValidate = async () => {
     const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const okBio = await biometric.confirm({
+      promptMessage: `Confirmer la validation de ${ids.length} événement${ids.length > 1 ? 's' : ''}`,
+      category: 'admin',
+    });
+    if (!okBio) return;
+
     setActionLoading('bulk');
     let validated = 0;
     let failed = 0;
@@ -205,6 +226,13 @@ export default function ModerationScreen() {
       return;
     }
     const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    const okBio = await biometric.confirm({
+      promptMessage: `Confirmer le rejet de ${ids.length} événement${ids.length > 1 ? 's' : ''}`,
+      category: 'admin',
+    });
+    if (!okBio) return;
+
     setActionLoading('bulk');
     let rejected = 0;
     let failed = 0;

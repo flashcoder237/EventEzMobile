@@ -22,6 +22,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useAppLock } from '../../hooks/useAppLock';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
+import { useBiometricPrefs } from '../../hooks/useBiometricPrefs';
 import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI, messagesAPI } from '../../api';
@@ -302,7 +303,7 @@ const shortcutStyles = StyleSheet.create({
 
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const { showAlert, showError, showConfirm } = useAlert();
   const { colors, isDark, mode: themeMode, setMode: setThemeMode } = useTheme();
 
@@ -347,6 +348,7 @@ export default function SettingsScreen() {
   // SettingsScreen ; on ne tape qu'aux helpers exposés.
   const { isSupported: appLockSupported, isEnabled: appLockEnabled, setEnabled: setAppLockEnabled } = useAppLock();
   const biometric = useBiometricConfirm();
+  const { enabled: bioPrefs, setEnabled: setBioPref } = useBiometricPrefs();
   const { isEnabled: ticketLockEnabled, setEnabled: setTicketLockEnabled } = useTicketLockPref();
 
   useEffect(() => {
@@ -470,10 +472,11 @@ export default function SettingsScreen() {
     }
 
     // Double-barrière : password (savoir) + biométrique (être). Critique pour
-    // une action irréversible. Si l'user n'a pas de biométrique enrôlée, on
-    // se contente du password (le hook renvoie true silencieusement).
+    // une action irréversible. Catégorie 'account' — l'user peut désactiver
+    // dans Settings s'il préfère ne se reposer que sur le password.
     const confirmed = await biometric.confirm({
       promptMessage: 'Confirmer la suppression définitive de votre compte',
+      category: 'account',
     });
     if (!confirmed) return;
 
@@ -821,6 +824,62 @@ export default function SettingsScreen() {
               />
             }
           />
+          <OptionCard
+            icon="card-outline"
+            eyebrow={appLockSupported ? 'BIOMÉTRIE · PAIEMENTS' : 'INDISPONIBLE'}
+            title="Confirmer mes paiements"
+            subtitle={
+              appLockSupported
+                ? 'FaceID / Empreinte avant retrait, paiement, modif IBAN, remboursement'
+                : 'Aucune biométrie enrôlée sur ce téléphone'
+            }
+            disabled={!appLockSupported}
+            right={
+              <SoftToggle
+                value={bioPrefs.payments}
+                onToggle={(v) => setBioPref('payments', v)}
+                disabled={!appLockSupported}
+              />
+            }
+          />
+          <OptionCard
+            icon="person-outline"
+            eyebrow={appLockSupported ? 'BIOMÉTRIE · COMPTE' : 'INDISPONIBLE'}
+            title="Confirmer les changements de compte"
+            subtitle={
+              appLockSupported
+                ? 'FaceID / Empreinte pour suppression de compte ou changement de mot de passe'
+                : 'Aucune biométrie enrôlée sur ce téléphone'
+            }
+            disabled={!appLockSupported}
+            right={
+              <SoftToggle
+                value={bioPrefs.account}
+                onToggle={(v) => setBioPref('account', v)}
+                disabled={!appLockSupported}
+              />
+            }
+          />
+          {(user?.role === 'admin' || user?.role === 'moderator' || (user as any)?.is_staff) && (
+            <OptionCard
+              icon="shield-checkmark-outline"
+              eyebrow={appLockSupported ? 'BIOMÉTRIE · ADMIN' : 'INDISPONIBLE'}
+              title="Confirmer les actions admin"
+              subtitle={
+                appLockSupported
+                  ? 'FaceID / Empreinte pour validation/rejet d\'événements et actions sur utilisateurs'
+                  : 'Aucune biométrie enrôlée sur ce téléphone'
+              }
+              disabled={!appLockSupported}
+              right={
+                <SoftToggle
+                  value={bioPrefs.admin}
+                  onToggle={(v) => setBioPref('admin', v)}
+                  disabled={!appLockSupported}
+                />
+              }
+            />
+          )}
           <OptionCard
             icon="notifications-outline"
             eyebrow="CONNEXIONS · BIENTÔT"

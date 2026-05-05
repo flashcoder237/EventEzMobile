@@ -21,6 +21,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
+import { BiometricCategory, getBiometricPref } from './useBiometricPrefs';
 
 export interface BiometricConfirmOptions {
   /** Texte affiché dans le prompt OS. Court et explicite. */
@@ -38,6 +39,15 @@ export interface BiometricConfirmOptions {
   requireBiometric?: boolean;
   /** Permet le fallback PIN/passcode device. Défaut : true. */
   allowDeviceFallback?: boolean;
+  /**
+   * Catégorie de l'action (payments / account / tickets / admin). Si fournie,
+   * le hook lit la pref utilisateur correspondante via `getBiometricPref` :
+   *   - pref OFF → renvoie true sans prompter (l'utilisateur a explicitement
+   *     désactivé la confirmation pour ce type d'action).
+   *   - pref ON  → comportement standard (prompt si biométrique disponible).
+   * Si la catégorie n'est pas fournie, on prompt toujours (legacy behavior).
+   */
+  category?: BiometricCategory;
 }
 
 interface UseBiometricConfirmResult {
@@ -94,6 +104,14 @@ export function useBiometricConfirm(): UseBiometricConfirmResult {
   }, []);
 
   const confirm = useCallback(async (opts: BiometricConfirmOptions): Promise<boolean> => {
+    // Si une catégorie est fournie, vérifier d'abord la pref utilisateur.
+    // L'user qui a désactivé la confirmation pour cette catégorie passe sans
+    // prompt (politique opt-in/opt-out par bucket).
+    if (opts.category) {
+      const prefEnabled = await getBiometricPref(opts.category);
+      if (!prefEnabled) return true;
+    }
+
     // Pas de biométrique enrôlée → comportement selon `requireBiometric`.
     if (!isSupported) {
       return !opts.requireBiometric;

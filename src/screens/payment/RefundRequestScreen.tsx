@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -18,6 +19,7 @@ import { Payment, RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import {
   Colors,
   FontFamily,
@@ -79,9 +81,11 @@ const refundReasons: RefundReason[] = [
 export default function RefundRequestScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RefundRequestRouteProp>();
+  const insets = useSafeAreaInsets();
   const { paymentId } = route.params;
   const { showSuccess, showError, showAlert } = useAlert();
   const { colors, isDark } = useTheme();
+  const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [payment, setPayment] = useState<Payment | null>(null);
@@ -111,6 +115,14 @@ export default function RefundRequestScreen() {
   };
 
   const submitRefund = async (amount: number, fullReason: string) => {
+    // Confirmation biométrique avant d'envoyer la demande de remboursement.
+    // Catégorie 'payments' (même bucket que retrait/paiement).
+    const confirmed = await biometric.confirm({
+      promptMessage: `Confirmer la demande de remboursement de ${amount.toLocaleString()}`,
+      category: 'payments',
+    });
+    if (!confirmed) return;
+
     setSubmitting(true);
     try {
       await refundsAPI.createRefund({
@@ -477,13 +489,14 @@ export default function RefundRequestScreen() {
         </View>
       </KeyboardAwareScrollView>
 
-      {/* === BOTTOM CTA === */}
+      {/* === BOTTOM CTA === paddingBottom dynamique pour la nav bar Android. */}
       <View
         style={[
           styles.footer,
           {
             backgroundColor: colors.card,
             borderTopColor: hairline,
+            paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm,
           },
           Shadows.dramatic,
         ]}

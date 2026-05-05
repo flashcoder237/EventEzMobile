@@ -12,7 +12,7 @@ import {
 import { Image, ImageSource } from 'expo-image';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
+import { EditorialCanvas, WatermarkNumeral, EditorialButton } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,6 +56,7 @@ import CountryBadgeSelector, {
 import FXIndicator from '../../components/payment/FXIndicator';
 import { formatPhoneInput, formatPhoneForDisplay, preparePhoneForInput } from '../../lib/utils/phoneFormatters';
 import { getOrCreateIdempotencyKey, clearIdempotencyKey } from '../../lib/utils/paymentIdempotency';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const SUPPORTED_CODES = new Set(SUPPORTED_COUNTRIES.map((c) => c.code));
@@ -224,6 +225,7 @@ export default function PaymentScreen() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { isSlowCellular, isOffline } = useNetworkSpeed();
+  const biometric = useBiometricConfirm();
 
   // Mode billets supplémentaires: on a des newTickets passés en params
   const isAdditionalTicketsMode = !!(newTickets && newTickets.length > 0);
@@ -627,6 +629,15 @@ export default function PaymentScreen() {
     }
 
     const formattedPhone = validation.formatted || '';
+
+    // Confirmation biométrique avant d'initier le paiement (catégorie payments).
+    // Posé AVANT setProcessing pour ne pas bloquer le bouton si l'user annule.
+    // Le 3DS / OTP du gateway viendra par-dessus pour les paiements carte.
+    const confirmed = await biometric.confirm({
+      promptMessage: `Confirmer le paiement de ${finalTotal.toLocaleString()} ${eventCurrencyCode}`,
+      category: 'payments',
+    });
+    if (!confirmed) return;
 
     setProcessing(true);
 
@@ -1075,38 +1086,29 @@ export default function PaymentScreen() {
             </View>
           )}
 
-          {/* Bouton J'ai déjà payé — toujours visible */}
-          {verifyingManually ? (
-            <View style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}>
-              <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.alreadyPaidButtonTextActive, { color: colors.primary }]}>Vérification en cours...</Text>
-            </View>
-          ) : (
-            <TouchableOpacity
-              style={[styles.alreadyPaidButton, { borderColor: colors.primary, backgroundColor: colors.primaryBg }]}
+          {/* Bouton J'ai déjà payé — primary, cohérent avec LoginScreen/AuthGuard */}
+          <View style={{ marginBottom: Spacing.sm }}>
+            <EditorialButton
+              label={verifyingManually ? 'Vérification en cours…' : "J'ai déjà payé"}
+              eyebrow={verifyingManually ? 'Patientez' : 'Confirmer'}
+              icon="checkmark-circle"
               onPress={handleAlreadyPaid}
+              loading={verifyingManually}
               disabled={cancelling || verifyingManually}
-            >
-              <Ionicons name="checkmark-circle-outline" size={20} color={colors.primary} />
-              <Text style={[styles.alreadyPaidButtonText, { color: colors.primary }]}>J'ai déjà payé</Text>
-            </TouchableOpacity>
-          )}
+              variant="primary"
+              fullWidth
+            />
+          </View>
 
-          {/* Bouton Annuler — toujours visible */}
-          <TouchableOpacity
-            style={[styles.cancelButton, { borderColor: colors.error, backgroundColor: colors.card }, (cancelling || verifyingManually) && [styles.cancelButtonDisabled, { borderColor: colors.gray300, backgroundColor: colors.gray50 }]]}
+          {/* Bouton Annuler — danger outline */}
+          <EditorialButton
+            label={cancelling ? 'Annulation…' : 'Annuler le paiement'}
             onPress={cancelPayment}
+            loading={cancelling}
             disabled={cancelling || verifyingManually}
-          >
-            {cancelling ? (
-              <View style={styles.cancellingContainer}>
-                <ActivityIndicator size="small" color={colors.error} />
-                <Text style={[styles.cancelButtonTextActive, { color: colors.error }]}>Annulation...</Text>
-              </View>
-            ) : (
-              <Text style={[styles.cancelButtonText, { color: colors.error }]}>Annuler le paiement</Text>
-            )}
-          </TouchableOpacity>
+            variant="danger"
+            fullWidth
+          />
         </ScrollView>
       ) : (
         /* ===== Payment Form (normal state) ===== */

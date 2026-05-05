@@ -218,10 +218,11 @@ export default function WalletScreen() {
     }
 
     // Confirmation biométrique avant d'envoyer la demande de retrait — pattern
-    // standard banking. Si l'user n'a pas FaceID/empreinte enrôlée, le hook
-    // renvoie true silencieusement (pas de friction inutile pour eux).
+    // standard banking. Catégorie 'payments' : si l'user a désactivé cette
+    // catégorie dans Settings, le hook renvoie true sans prompter.
     const confirmed = await biometric.confirm({
       promptMessage: `Confirmer le retrait de ${formatPrice(amount)} ${wallet?.currency || 'XAF'}`,
+      category: 'payments',
     });
     if (!confirmed) {
       // L'user a annulé ou la biométrique a échoué — pas d'alerte rouge,
@@ -250,9 +251,10 @@ export default function WalletScreen() {
   const handleUpdateBankDetails = async () => {
     // Coordonnées bancaires = données sensibles : un attaquant qui aurait
     // brièvement accès au téléphone pourrait sinon rediriger les futurs
-    // payouts vers son propre compte. Biométrique = barrière minimale.
+    // payouts vers son propre compte. Catégorie 'payments'.
     const confirmed = await biometric.confirm({
       promptMessage: 'Confirmer la modification des coordonnées bancaires',
+      category: 'payments',
     });
     if (!confirmed) return;
 
