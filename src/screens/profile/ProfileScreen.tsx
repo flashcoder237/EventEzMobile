@@ -337,6 +337,12 @@ export default function ProfileScreen() {
                 onPress={() => navigation.navigate('AnalyticsDashboard')}
               />
               <MenuItem
+                icon="git-network-outline"
+                title="Webhooks"
+                subtitle="Intégrations Zapier, Make, etc."
+                onPress={() => navigation.navigate('Webhooks')}
+              />
+              <MenuItem
                 icon={user?.is_verified ? "checkmark-circle" : "shield-outline"}
                 title="Vérification du compte"
                 subtitle={user?.is_verified ? "Compte vérifié" : undefined}

@@ -47,8 +47,8 @@ export { newslettersAPI, sponsorsAPI, liveAPI, cfpAPI, virtualRoomsAPI, recordin
 // Admin — Audit, Treasury & Site Settings
 export { auditAPI, treasuryAPI, siteSettingsAPI, publicSettingsAPI } from './admin';
 
-// Misc — Waitlist, Seating, Volunteers, Currency, Comparison, Export, AI & UTM
-export { waitlistAPI, waitlistSettingsAPI, seatingAPI, floorPlansAPI, volunteersAPI, currencyAPI, comparisonAPI, exportAPI, aiAssistAPI, utmAPI } from './misc';
+// Misc — Waitlist, Seating, Volunteers, Currency, Comparison, Export, AI, UTM & Webhooks
+export { waitlistAPI, waitlistSettingsAPI, seatingAPI, floorPlansAPI, volunteersAPI, currencyAPI, comparisonAPI, exportAPI, aiAssistAPI, utmAPI, webhooksAPI } from './misc';
 
 // System Status / Incidents
 export { statusAPI } from './status';

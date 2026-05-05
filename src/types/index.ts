@@ -1588,6 +1588,7 @@ export type RootStackParamList = {
   DiscountForm: { eventId: string; discountId?: number };
   EventSessionsLink: { eventId: string };
   SponsorManagement: { eventId: string };
+  Webhooks: undefined;
   Help: undefined;
   AnalyticsDashboard: undefined;
   Reports: undefined;

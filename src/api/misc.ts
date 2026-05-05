@@ -221,6 +221,53 @@ export const aiAssistAPI = {
 };
 
 // ============================================
+// WEBHOOKS API (intégrations Zapier-style)
+// ============================================
+//
+// Permet à un organisateur de pousser ses events EventEz vers un endpoint
+// externe (Zapier, Make, propre back-office). Une signature HMAC est calculée
+// côté backend avec le `secret` enregistré ici, headers `X-EventEz-Signature`.
+
+export const webhooksAPI = {
+  getAll: (params?: any) =>
+    api.get('/webhooks/', { params }),
+
+  getById: (id: string) =>
+    api.get(`/webhooks/${id}/`),
+
+  create: (data: {
+    url: string;
+    secret: string;
+    event_types: string[];
+    event?: string | null;
+    is_active?: boolean;
+  }) => api.post('/webhooks/', data),
+
+  update: (id: string, data: any) =>
+    api.patch(`/webhooks/${id}/`, data),
+
+  delete: (id: string) =>
+    api.delete(`/webhooks/${id}/`),
+
+  /** Liste des dernières livraisons pour debug. */
+  deliveries: (id: string) =>
+    api.get(`/webhooks/${id}/deliveries/`),
+
+  /** Envoie un payload de test sur l'endpoint configuré. */
+  test: (id: string) =>
+    api.post(`/webhooks/${id}/test/`),
+
+  toggleActive: (id: string) =>
+    api.post(`/webhooks/${id}/toggle_active/`),
+
+  retry: (deliveryId: string) =>
+    api.post(`/webhook-deliveries/${deliveryId}/retry/`),
+
+  stats: () =>
+    api.get('/webhooks/stats/'),
+};
+
+// ============================================
 // UTM TRACKING API
 // ============================================
 
