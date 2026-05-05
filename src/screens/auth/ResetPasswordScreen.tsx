@@ -107,6 +107,10 @@ export default function ResetPasswordScreen() {
       }
     } finally {
       setIsLoading(false);
+      // Sécurité : on retire le token des route.params une fois consommé pour
+      // qu'il ne traîne pas dans la navigation state (back stack visible si
+      // l'app est ouverte sur device volé). Voir AUDIT §3.4.
+      navigation.setParams({ token: undefined } as never);
     }
   };
 

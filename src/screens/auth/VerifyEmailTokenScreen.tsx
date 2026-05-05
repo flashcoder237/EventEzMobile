@@ -63,8 +63,14 @@ export default function VerifyEmailTokenScreen() {
     } catch (err: any) {
       const code = err?.response?.data?.code;
       setState(code === 'token_expired' ? 'expired' : 'invalid');
+    } finally {
+      // Sécurité : on retire le token des route.params dès qu'il a été consommé
+      // (succès, expiré ou invalide — peu importe). Sans ça, le token persiste
+      // dans la navigation state et donc dans le back stack — accessible si
+      // l'app est laissée ouverte sur un device volé. Voir AUDIT §3.4.
+      navigation.setParams({ token: undefined } as never);
     }
-  }, [token, isAuthenticated, refreshUser]);
+  }, [token, isAuthenticated, refreshUser, navigation]);
 
   useEffect(() => {
     verify();
