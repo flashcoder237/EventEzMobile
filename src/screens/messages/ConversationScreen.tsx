@@ -545,23 +545,50 @@ export default function ConversationScreen() {
   // MESSAGE SEARCH
   // ============================================
 
-  const handleMessageSearch = useCallback(async (query: string) => {
+  // Debounce + abort controller pour la recherche serveur. Sans ça, chaque
+  // keystroke déclenchait un appel API, et la dernière réponse pouvait
+  // arriver après-coup et écraser des résultats plus récents (race classique).
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchAbortRef = useRef<AbortController | null>(null);
+
+  const handleMessageSearch = useCallback((query: string) => {
     setSearchQuery(query);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    if (searchAbortRef.current) searchAbortRef.current.abort();
+
     if (!query.trim() || !state.conversationId) {
       setSearchResults([]);
+      setSearchLoading(false);
       return;
     }
     setSearchLoading(true);
-    try {
-      const res = await messagesAPI.searchMessages(query, state.conversationId);
-      const results: Message[] = res.data?.results || res.data || [];
-      setSearchResults(results);
-    } catch {
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
+    searchDebounceRef.current = setTimeout(async () => {
+      const ctrl = new AbortController();
+      searchAbortRef.current = ctrl;
+      try {
+        // searchMessages prend (query, conversationId) ; pas de signal natif —
+        // on gère l'abort côté state (si une requête plus récente arrive, on
+        // ignore le résultat de l'ancienne).
+        const res = await messagesAPI.searchMessages(query, state.conversationId || undefined);
+        if (ctrl.signal.aborted) return;
+        const results: Message[] = res.data?.results || res.data || [];
+        setSearchResults(results);
+      } catch {
+        if (!ctrl.signal.aborted) setSearchResults([]);
+      } finally {
+        if (!ctrl.signal.aborted) setSearchLoading(false);
+      }
+    }, 300);
   }, [state.conversationId]);
+
+  // Cleanup au démontage : évite les setState après unmount sur la dernière
+  // requête en vol.
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+      if (searchAbortRef.current) searchAbortRef.current.abort();
+    };
+  }, []);
 
   const closeSearch = useCallback(() => {
     setSearchOpen(false);
