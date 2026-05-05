@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAlert } from '../../contexts/AlertContext';
 import { usersAPI } from '../../api';
 import { User, RootStackParamList } from '../../types';
 import RegistrationSearchBar from '../../components/organizer/RegistrationSearchBar';
@@ -61,12 +62,21 @@ export default function UserManagementScreen() {
 function UserManagementContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
+
+  // Multi-select state — long-press sur une card pour entrer en mode sélection.
+  // Tap sur les cards toggle l'inclusion dans selectedIds (string user.id).
+  // Fallback : pas d'API bulk côté backend → on appelle Promise.all sur l'API
+  // single-user, ce qui marche pour les batches de quelques dizaines.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const isSelecting = selectedIds.size > 0;
 
   useEffect(() => {
     fetchUsers();
@@ -90,6 +100,85 @@ function UserManagementContent() {
     setRefreshing(false);
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const cancelSelection = () => setSelectedIds(new Set());
+
+  /**
+   * Exécute `op` sur chaque id sélectionné en parallèle (max 8 concurrentes
+   * pour ne pas saturer le backend). Compte succès/échecs et affiche un
+   * résumé. Pas d'abort en cours — si un appel échoue, les autres continuent.
+   */
+  const runBulk = async (
+    op: (id: string) => Promise<unknown>,
+    confirmTitle: string,
+    confirmBody: string,
+    successLabel: (n: number) => string,
+  ) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    showConfirm(confirmTitle, confirmBody, async () => {
+      setBulkLoading(true);
+      let ok = 0;
+      let fail = 0;
+      // Pool de 8 — équilibre entre rapidité et charge backend
+      const POOL = 8;
+      for (let i = 0; i < ids.length; i += POOL) {
+        const batch = ids.slice(i, i + POOL);
+        const results = await Promise.allSettled(batch.map(op));
+        for (const r of results) {
+          if (r.status === 'fulfilled') ok += 1;
+          else fail += 1;
+        }
+      }
+      setBulkLoading(false);
+
+      if (fail === 0) {
+        showSuccess('Succès', successLabel(ok));
+      } else {
+        showError(
+          'Action partielle',
+          `${ok} traité(s), ${fail} en échec. Réessaye plus tard pour les utilisateurs en échec.`,
+        );
+      }
+      // Refetch pour synchroniser l'UI avec l'état serveur
+      await fetchUsers();
+      cancelSelection();
+    });
+  };
+
+  const handleBulkVerify = () =>
+    runBulk(
+      (id) => usersAPI.verifyProfile(id, { verified_status: true }),
+      'Vérifier la sélection',
+      `Marquer ${selectedIds.size} utilisateur(s) comme vérifié(s) ?`,
+      (n) => `${n} utilisateur(s) vérifié(s)`,
+    );
+
+  const handleBulkDeactivate = () =>
+    runBulk(
+      (id) => usersAPI.updateUser(id, { is_active: false }),
+      'Désactiver la sélection',
+      `Désactiver ${selectedIds.size} compte(s) ? Les utilisateurs ne pourront plus se connecter.`,
+      (n) => `${n} compte(s) désactivé(s)`,
+    );
+
+  const handleBulkActivate = () =>
+    runBulk(
+      (id) => usersAPI.updateUser(id, { is_active: true }),
+      'Réactiver la sélection',
+      `Réactiver ${selectedIds.size} compte(s) ?`,
+      (n) => `${n} compte(s) réactivé(s)`,
+    );
+
   const filteredUsers = users.filter(u => {
     const matchesRole = roleFilter === 'all' || u.role === roleFilter;
     if (!matchesRole) return false;
@@ -100,45 +189,79 @@ function UserManagementContent() {
     return name.includes(q) || email.includes(q);
   });
 
-  const renderUser = ({ item }: { item: User }) => (
-    <TouchableOpacity
-      style={[
-        styles.userCard,
-        { backgroundColor: colors.card, borderColor: hairline },
-        Shadows.sm,
-      ]}
-      onPress={() => navigation.navigate('UserEdit', { userId: String(item.id) })}
-      activeOpacity={0.85}
-    >
-      <View style={styles.userRow}>
-        <View style={[styles.avatar, { backgroundColor: `${colors.primary}15` }]}>
-          <Text style={[styles.avatarText, { color: colors.primary }]}>
-            {(item.first_name?.[0] || item.email?.[0] || '?').toUpperCase()}
-          </Text>
+  const renderUser = ({ item }: { item: User }) => {
+    const id = String(item.id);
+    const isSelected = selectedIds.has(id);
+    return (
+      <TouchableOpacity
+        style={[
+          styles.userCard,
+          { backgroundColor: colors.card, borderColor: hairline },
+          Shadows.sm,
+          isSelected && {
+            borderColor: colors.primary,
+            borderWidth: 2,
+            backgroundColor: `${colors.primary}08`,
+          },
+        ]}
+        onPress={() => {
+          // En mode sélection, tap = toggle. Sinon, navigation classique.
+          if (isSelecting) toggleSelect(id);
+          else navigation.navigate('UserEdit', { userId: id });
+        }}
+        onLongPress={() => toggleSelect(id)}
+        delayLongPress={300}
+        activeOpacity={0.85}
+      >
+        <View style={styles.userRow}>
+          {isSelecting && (
+            <View
+              style={[
+                styles.selectMark,
+                {
+                  backgroundColor: isSelected ? colors.primary : 'transparent',
+                  borderColor: isSelected ? colors.primary : colors.gray300,
+                },
+              ]}
+            >
+              {isSelected && <Ionicons name="checkmark" size={14} color="#FFFFFF" />}
+            </View>
+          )}
+          <View style={[styles.avatar, { backgroundColor: `${colors.primary}15` }]}>
+            <Text style={[styles.avatarText, { color: colors.primary }]}>
+              {(item.first_name?.[0] || item.email?.[0] || '?').toUpperCase()}
+            </Text>
+          </View>
+          <View style={styles.userInfo}>
+            <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
+              {item.first_name && item.last_name ? `${item.first_name} ${item.last_name}` : item.email}
+            </Text>
+            <Text style={[styles.userEmail, { color: colors.gray500 }]} numberOfLines={1}>
+              {item.email}
+            </Text>
+          </View>
+          <Badge label={roleLabel(item.role || 'user')} variant={roleBadgeVariant(item.role || 'user')} size="sm" />
         </View>
-        <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: colors.text }]} numberOfLines={1}>
-            {item.first_name && item.last_name ? `${item.first_name} ${item.last_name}` : item.email}
-          </Text>
-          <Text style={[styles.userEmail, { color: colors.gray500 }]} numberOfLines={1}>
-            {item.email}
-          </Text>
-        </View>
-        <Badge label={roleLabel(item.role || 'user')} variant={roleBadgeVariant(item.role || 'user')} size="sm" />
-      </View>
-      <View style={[styles.userMeta, { borderTopColor: hairline }]}>
-        <View style={styles.metaItem}>
-          <Ionicons name={item.is_verified ? 'checkmark-circle' : 'close-circle-outline'} size={13} color={item.is_verified ? '#10B981' : '#EF4444'} />
+        <View style={[styles.userMeta, { borderTopColor: hairline }]}>
+          <View style={styles.metaItem}>
+            <Ionicons name={item.is_verified ? 'checkmark-circle' : 'close-circle-outline'} size={13} color={item.is_verified ? '#10B981' : '#EF4444'} />
+            <Text style={[styles.metaText, { color: colors.gray500 }]}>
+              {item.is_verified ? 'Vérifié' : 'Non vérifié'}
+            </Text>
+          </View>
+          {item.is_active === false && (
+            <View style={styles.metaItem}>
+              <Ionicons name="ban" size={12} color="#EF4444" />
+              <Text style={[styles.metaText, { color: '#EF4444' }]}>Désactivé</Text>
+            </View>
+          )}
           <Text style={[styles.metaText, { color: colors.gray500 }]}>
-            {item.is_verified ? 'Vérifié' : 'Non vérifié'}
+            {item.date_joined ? new Date(item.date_joined).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
           </Text>
         </View>
-        <Text style={[styles.metaText, { color: colors.gray500 }]}>
-          {item.date_joined ? new Date(item.date_joined).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   const roles: { key: RoleFilter; label: string }[] = [
     { key: 'all', label: 'Tous' },
@@ -208,7 +331,12 @@ function UserManagementContent() {
         data={filteredUsers}
         renderItem={renderUser}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[
+          styles.listContent,
+          // Padding extra en bas quand la barre bulk est visible pour ne pas
+          // qu'elle masque le dernier item.
+          isSelecting ? { paddingBottom: 120 } : null,
+        ]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
         ListEmptyComponent={
@@ -218,6 +346,56 @@ function UserManagementContent() {
           </View>
         }
       />
+
+      {/* Bulk action bar — apparaît dès qu'au moins un user est sélectionné */}
+      {isSelecting && (
+        <View style={[styles.bulkBar, { backgroundColor: colors.text, borderTopColor: hairline }]}>
+          <TouchableOpacity
+            onPress={cancelSelection}
+            disabled={bulkLoading}
+            style={[styles.bulkClose, { backgroundColor: 'rgba(255,255,255,0.12)' }]}
+            accessibilityRole="button"
+            accessibilityLabel="Annuler la sélection"
+          >
+            <Ionicons name="close" size={18} color={colors.background} />
+          </TouchableOpacity>
+          <Text style={[styles.bulkCount, { color: colors.background }]}>
+            {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+          </Text>
+          <View style={styles.bulkActions}>
+            <TouchableOpacity
+              onPress={handleBulkVerify}
+              disabled={bulkLoading}
+              style={[styles.bulkBtn, { backgroundColor: '#10B981' }, bulkLoading && { opacity: 0.5 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Vérifier la sélection"
+            >
+              <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
+              <Text style={styles.bulkBtnText}>Vérifier</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleBulkActivate}
+              disabled={bulkLoading}
+              style={[styles.bulkBtn, { backgroundColor: '#3B82F6' }, bulkLoading && { opacity: 0.5 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Réactiver la sélection"
+            >
+              <Ionicons name="power" size={14} color="#FFFFFF" />
+              <Text style={styles.bulkBtnText}>Activer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleBulkDeactivate}
+              disabled={bulkLoading}
+              style={[styles.bulkBtn, { backgroundColor: '#EF4444' }, bulkLoading && { opacity: 0.5 }]}
+              accessibilityRole="button"
+              accessibilityLabel="Désactiver la sélection"
+            >
+              <Ionicons name="ban" size={14} color="#FFFFFF" />
+              <Text style={styles.bulkBtnText}>Désactiver</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -304,4 +482,63 @@ const styles = StyleSheet.create({
   metaText: { fontFamily: FontFamily.medium, fontSize: FontSizes.xs },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], gap: Spacing.md },
   emptyText: { fontFamily: FontFamily.medium, fontSize: FontSizes.base },
+
+  // Multi-select
+  selectMark: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: Spacing.sm,
+  },
+
+  // Bulk action bar (sticky bottom when selection mode active)
+  bulkBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    borderTopWidth: 1,
+  },
+  bulkClose: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bulkCount: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
+  bulkActions: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  bulkBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: BorderRadius.full,
+  },
+  bulkBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+    color: '#FFFFFF',
+  },
 });

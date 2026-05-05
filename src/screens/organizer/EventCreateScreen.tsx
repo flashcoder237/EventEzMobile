@@ -28,6 +28,7 @@ import {
 import { useEventForm, STEPS } from '../../hooks/useEventForm';
 import { useEventDraft } from '../../hooks/useEventDraft';
 import { useNamedDrafts } from '../../hooks/useNamedDrafts';
+import { formToPreviewEvent } from '../../lib/utils/eventPreview';
 import {
   Colors,
   FontFamily,
@@ -337,6 +338,33 @@ export default function EventCreateScreen() {
             )}
           </View>
 
+          {/* Aperçu — disponible dès qu'un titre est saisi (sinon on n'a vraiment
+              rien à montrer dans la preview). Empêche aussi un tap accidentel
+              sur un form vide qui afficherait "Titre de votre événement" placeholder. */}
+          <TouchableOpacity
+            onPress={() => {
+              if (!formRef.current.title.trim()) {
+                showAlert(
+                  'Titre requis',
+                  'Saisis au moins le titre de l\'événement avant de prévisualiser.',
+                  undefined,
+                  'info',
+                );
+                return;
+              }
+              const previewEvent = formToPreviewEvent(formRef.current);
+              navigation.navigate('EventDetails', {
+                eventId: 'preview',
+                previewEvent,
+              });
+            }}
+            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+            accessibilityRole="button"
+            accessibilityLabel="Prévisualiser l'événement"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="eye-outline" size={20} color={colors.gray600} />
+          </TouchableOpacity>
           {!isEditing ? (
             <TouchableOpacity
               onPress={() => {

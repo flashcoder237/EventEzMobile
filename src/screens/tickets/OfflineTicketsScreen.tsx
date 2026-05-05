@@ -17,6 +17,7 @@ import { useOfflineTickets, CachedTicket } from '../../hooks/useOfflineTickets';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { formatTimeAgo } from '../../lib/utils/dateFormatters';
 import {
   Colors,
   FontSizes,
@@ -130,6 +131,11 @@ export default function OfflineTicketsScreen() {
                 {isOnline ? 'En ligne' : 'Hors-ligne'}
               </Text>
             </View>
+            {item.cachedAt && (
+              <Text style={[styles.cachedAtText, { color: colors.gray400 }]}>
+                Synchro {formatTimeAgo(new Date(item.cachedAt).toISOString())}
+              </Text>
+            )}
             <TouchableOpacity
               style={styles.removeButton}
               onPress={() => handleRemoveTicket(item.ticketId)}
@@ -202,19 +208,28 @@ export default function OfflineTicketsScreen() {
         )}
       </View>
 
-      {/* Connection Status */}
+      {/* Connection Status — affiche aussi la fraîcheur du sync le plus récent */}
       <View style={[styles.connectionStatus, { backgroundColor: isOnline ? colors.successLight : colors.warningLight }]}>
         <Ionicons
           name={isOnline ? 'wifi' : 'wifi-outline'}
           size={18}
           color={isOnline ? colors.success : colors.warning}
         />
-        <Text style={[styles.connectionText, { color: isOnline ? colors.success : colors.warning }]}>
-          {isOnline
-            ? 'Connecté - Vos billets sont synchronisés'
-            : 'Hors-ligne - Utilisation du cache local'
-          }
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.connectionText, { color: isOnline ? colors.success : colors.warning }]}>
+            {isOnline
+              ? 'Connecté - Vos billets sont synchronisés'
+              : 'Hors-ligne - Utilisation du cache local'
+            }
+          </Text>
+          {tickets.length > 0 && (
+            <Text style={[styles.connectionSubtext, { color: isOnline ? colors.success : colors.warning, opacity: 0.7 }]}>
+              Dernière synchro {formatTimeAgo(
+                new Date(Math.max(...tickets.map(t => t.cachedAt))).toISOString()
+              )}
+            </Text>
+          )}
+        </View>
       </View>
 
       {loading ? (
@@ -302,6 +317,11 @@ const styles = StyleSheet.create({
     color: Colors.success,
     fontFamily: FontFamily.medium,
   },
+  connectionSubtext: {
+    fontSize: FontSizes.xs,
+    fontFamily: FontFamily.regular,
+    marginTop: 2,
+  },
   connectionTextOffline: {
     color: Colors.warning,
   },
@@ -368,6 +388,12 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.xs,
     color: Colors.success,
     fontFamily: FontFamily.medium,
+  },
+  cachedAtText: {
+    fontSize: 10,
+    fontFamily: FontFamily.regular,
+    letterSpacing: 0.2,
+    marginTop: 4,
   },
   offlineBadgeTextActive: {
     color: Colors.warning,

@@ -69,7 +69,7 @@ const { width } = Dimensions.get('window');
 
 export default function EventDetailsScreen() {
   const route = useRoute<RouteProps>();
-  const { eventId, imageUrl: routeImageUrl } = route.params;
+  const { eventId, imageUrl: routeImageUrl, previewEvent } = route.params;
   const { colors, isDark, gradients } = useTheme();
   const { requireAuth } = useAuthGuard();
   const insets = useSafeAreaInsets();
@@ -78,6 +78,7 @@ export default function EventDetailsScreen() {
   const {
     event,
     loading,
+    isPreview,
     isFollowing,
     setIsFollowing,
     followersCount,
@@ -116,7 +117,7 @@ export default function EventDetailsScreen() {
     navigation,
     user,
     showError,
-  } = useEventDetails(eventId);
+  } = useEventDetails(eventId, previewEvent);
 
   // Toutes les images : banner en premier, puis gallery_images
   const allImages = useMemo(() => {
@@ -1003,8 +1004,26 @@ export default function EventDetailsScreen() {
         ) : null}
       </Animated.ScrollView>
 
-      {/* Bottom CTA with glass effect */}
-      {!loading && event ? <BlurView
+      {/* Bottom CTA — remplacé par un message "Aperçu" en mode preview */}
+      {!loading && event && isPreview ? (
+        <View style={[styles.previewBottomBar, { backgroundColor: colors.text, paddingBottom: insets.bottom + Spacing.md }]}>
+          <Ionicons name="eye-outline" size={18} color={colors.background} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.previewBottomEyebrow, { color: colors.background, opacity: 0.6 }]}>APERÇU</Text>
+            <Text style={[styles.previewBottomText, { color: colors.background }]}>Mode lecture seule — actions désactivées</Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.previewCloseBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
+            onPress={() => navigation.goBack()}
+            accessibilityRole="button"
+            accessibilityLabel="Fermer l'aperçu"
+          >
+            <Text style={[styles.previewCloseText, { color: colors.background }]}>Fermer</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {!loading && event && !isPreview ? <BlurView
         intensity={Platform.OS === 'ios' ? 80 : 0}
         tint={isDark ? 'dark' : 'light'}
         style={styles.bottomBar}
@@ -1532,6 +1551,39 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     overflow: 'hidden',
+  },
+  // ===== PREVIEW BOTTOM BAR =====
+  previewBottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+  },
+  previewBottomEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.4,
+    marginBottom: 2,
+  },
+  previewBottomText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: -0.1,
+  },
+  previewCloseBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: BorderRadius.full,
+  },
+  previewCloseText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.3,
   },
   bottomBarAndroidBg: {
     ...StyleSheet.absoluteFillObject,

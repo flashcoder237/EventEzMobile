@@ -1507,7 +1507,17 @@ export type RootStackParamList = {
   // Différent de `VerifyEmail` (page de relance post-inscription) : ici on a un
   // token à valider via l'API et on affiche le résultat (succès/expiré/invalide).
   VerifyEmailToken: { token: string };
-  EventDetails: { eventId: string; imageUrl?: string };
+  EventDetails: {
+    eventId: string;
+    imageUrl?: string;
+    /**
+     * Mode preview : ouvert depuis EventCreate avec les données du form
+     * encore non sauvegardées. EventDetails affiche `previewEvent` au lieu
+     * de fetch par id, et désactive toutes les actions interactives
+     * (follow, register, share, contact organizer).
+     */
+    previewEvent?: Partial<Event>;
+  };
   EventReviews: { eventId: string; eventTitle?: string };
   EventSearch: { query?: string; category?: number; city?: string } | undefined;
   TicketPurchase: {

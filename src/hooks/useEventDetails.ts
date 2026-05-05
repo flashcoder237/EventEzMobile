@@ -31,6 +31,8 @@ export interface UseEventDetailsReturn {
   // Core data
   event: Event | null;
   loading: boolean;
+  /** True si le hook a été ouvert avec previewEvent (mode lecture seule). */
+  isPreview: boolean;
   // Follow state
   isFollowing: boolean;
   setIsFollowing: React.Dispatch<React.SetStateAction<boolean>>;
@@ -90,13 +92,25 @@ export interface UseEventDetailsReturn {
   showConfirm: ReturnType<typeof useAlert>['showConfirm'];
 }
 
-export function useEventDetails(eventId: string): UseEventDetailsReturn {
+/**
+ * @param previewEvent — si fourni, le hook bascule en mode preview : pas de
+ * fetch backend, pas de tracking interaction, pas de WS recommandation. Le
+ * `event` retourné est une fusion `previewEvent` + valeurs par défaut. Toutes
+ * les sub-fetches (feedbacks, sessions, waitlist) sont skippées.
+ */
+export function useEventDetails(
+  eventId: string,
+  previewEvent?: Partial<Event>,
+): UseEventDetailsReturn {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
 
-  const [event, setEvent] = useState<Event | null>(null);
-  const [loading, setLoading] = useState(true);
+  const isPreview = !!previewEvent;
+  const [event, setEvent] = useState<Event | null>(
+    isPreview ? (previewEvent as Event) : null,
+  );
+  const [loading, setLoading] = useState(!isPreview);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
   const [activeTab, setActiveTab] = useState<TabType>('about');
@@ -124,6 +138,14 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
   const tabsOffsetY = useRef(0);
 
   useEffect(() => {
+    // En preview : event est déjà set depuis previewEvent au useState init.
+    // On skip toutes les fetches (rien à fetcher pour un event pas encore créé)
+    // et on remet à jour si le caller passe un nouveau previewEvent.
+    if (isPreview) {
+      setEvent(previewEvent as Event);
+      setLoading(false);
+      return;
+    }
     fetchEvent();
     fetchFeedbacks();
     fetchSessions();
@@ -131,7 +153,8 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
       fetchWaitlistStatus();
       fetchUserRegistration();
     }
-  }, [eventId, user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, user, isPreview]);
 
   const fetchUserRegistration = async () => {
     try {
@@ -398,6 +421,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
     // Core data
     event,
     loading,
+    isPreview,
     // Follow state
     isFollowing,
     setIsFollowing,
