@@ -52,6 +52,7 @@ import AboutTab from '../../components/events/AboutTab';
 import TicketsTab from '../../components/events/TicketsTab';
 import AgendaTab from '../../components/events/AgendaTab';
 import ReviewsTab from '../../components/events/ReviewsTab';
+import SimilarEventsSection from '../../components/events/SimilarEventsSection';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { useAuthGuard } from '../../hooks/useAuthGuard';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
@@ -990,6 +991,10 @@ export default function EventDetailsScreen() {
               </Text>
             </View>
           )}
+
+          {/* Recommandations : events similaires (silencieux si vide). Affiché
+              en bas, après tous les onglets et avant le spacer du bottom bar. */}
+          {!loading && event ? <SimilarEventsSection eventId={String(event.id)} /> : null}
 
           {/* Spacer for bottom bar */}
           <View style={{ height: 120 }} />
