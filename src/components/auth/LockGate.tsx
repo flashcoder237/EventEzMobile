@@ -11,6 +11,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { useAppLock } from '../../hooks/useAppLock';
 import { useTheme } from '../../contexts/ThemeContext';
+import { AnimatedIllustration, BiometricLock } from '../illustrations';
 import {
   Colors,
   FontFamily,
@@ -45,8 +46,10 @@ export default function LockGate({ children }: Props) {
   // Status === 'locked' → overlay
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.iconCircle, { backgroundColor: `${colors.primary}15` }]}>
-        <Ionicons name="lock-closed" size={48} color={colors.primary} />
+      <View style={styles.illoWrap}>
+        <AnimatedIllustration entry="scaleIn" idle="breathe">
+          <BiometricLock color={colors.primary} size={180} />
+        </AnimatedIllustration>
       </View>
       <Text style={[styles.eyebrow, { color: colors.accent }]}>VERROUILLÉ</Text>
       <Text style={[styles.title, { color: colors.text }]}>EventEz est verrouillé</Text>
@@ -75,10 +78,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: Spacing.xl,
   },
-  iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+  illoWrap: {
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.lg,

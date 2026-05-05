@@ -18,6 +18,7 @@ export { default as Empty } from './svgs/Empty';
 // ─── Auth ────────────────────────────────────────────────────────────────────
 export { default as Authentication } from './svgs/Authentication';
 export { default as AccessDenied } from './svgs/AccessDenied';
+export { default as BiometricLock } from './svgs/BiometricLock';
 
 // ─── Messaging ───────────────────────────────────────────────────────────────
 export { default as NewMessage } from './svgs/NewMessage';
