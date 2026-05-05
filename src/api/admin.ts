@@ -133,6 +133,14 @@ export const treasuryAPI = {
   distributeDividend: (id: string) =>
     api.post(`/admin/treasury/dividends/${id}/distribute/`),
 
+  /**
+   * Calcule la répartition pour une période sans créer de DividendDistribution.
+   * Utilisé par l'écran "Distribuer les dividendes" pour montrer aux admins
+   * combien chaque shareholder toucherait avant validation.
+   */
+  previewDividend: (data: { period_start: string; period_end: string; distribution_percentage: number }) =>
+    api.post('/admin/treasury/dividends/preview/', data),
+
   // Reports
   getProfitLoss: (params?: { start_date?: string; end_date?: string }) =>
     api.get('/admin/treasury/reports/profit-loss/', { params }),

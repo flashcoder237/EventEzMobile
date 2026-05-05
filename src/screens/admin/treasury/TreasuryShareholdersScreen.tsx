@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   RefreshControl,
   ScrollView,
+  Modal,
+  TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +17,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../../contexts/ThemeContext';
+import { useAlert } from '../../../contexts/AlertContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
 import { RootStackParamList, Shareholder, DividendDistribution } from '../../../types';
@@ -44,10 +48,82 @@ export default function TreasuryShareholdersScreen() {
 function TreasuryShareholdersContent() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { showSuccess, showError } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
   const [activeTab, setActiveTab] = useState<TabType>('shareholders');
   const [shareholders, setShareholders] = useState<Shareholder[]>([]);
+
+  // Distribution preview / création
+  const today = new Date();
+  const firstOfMonthIso = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+  const lastDayMonthIso = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewStart, setPreviewStart] = useState(firstOfMonthIso);
+  const [previewEnd, setPreviewEnd] = useState(lastDayMonthIso);
+  const [previewPercentage, setPreviewPercentage] = useState('30');
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewData, setPreviewData] = useState<any | null>(null);
+  const [creatingDist, setCreatingDist] = useState(false);
+
+  const closePreview = () => {
+    if (previewLoading || creatingDist) return;
+    setPreviewOpen(false);
+    setPreviewData(null);
+  };
+
+  const runPreview = async () => {
+    const pct = parseFloat(previewPercentage.replace(',', '.'));
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
+      showError('Pourcentage invalide', 'Le pourcentage à distribuer doit être entre 0 et 100.');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(previewStart) || !/^\d{4}-\d{2}-\d{2}$/.test(previewEnd)) {
+      showError('Format de date', 'Format attendu : YYYY-MM-DD.');
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewData(null);
+    try {
+      const res = await treasuryAPI.previewDividend({
+        period_start: previewStart,
+        period_end: previewEnd,
+        distribution_percentage: pct,
+      });
+      setPreviewData(res.data);
+    } catch (error: any) {
+      showError('Erreur', error?.response?.data?.detail || 'Aperçu impossible.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const createDistribution = async () => {
+    if (!previewData) return;
+    const pct = parseFloat(previewPercentage.replace(',', '.'));
+    setCreatingDist(true);
+    try {
+      // L'API createDividend prend un payload qu'on construit à partir des
+      // mêmes paramètres que le preview. Le backend répartit ensuite selon
+      // les ownership_percentage de chaque actionnaire actif.
+      await treasuryAPI.createDividend({
+        period_start: previewStart,
+        period_end: previewEnd,
+        distribution_percentage: pct,
+      });
+      showSuccess('Distribution créée', "Elle apparaît dans l'onglet Dividendes en attente d'approbation.");
+      setPreviewOpen(false);
+      setPreviewData(null);
+      // Refresh la liste des dividendes
+      fetchData();
+      setActiveTab('dividends');
+    } catch (error: any) {
+      showError('Erreur', error?.response?.data?.detail || 'Impossible de créer la distribution.');
+    } finally {
+      setCreatingDist(false);
+    }
+  };
   const [dividends, setDividends] = useState<DividendDistribution[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -146,6 +222,18 @@ function TreasuryShareholdersContent() {
           <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LE CAPITAL</Text>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Actionnaires</Text>
         </View>
+        <TouchableOpacity
+          style={[styles.iconDisc, { backgroundColor: `${SHAREHOLDER_COLOR}15`, borderColor: `${SHAREHOLDER_COLOR}30` }, Shadows.sm]}
+          onPress={() => {
+            setPreviewData(null);
+            setPreviewOpen(true);
+          }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Distribuer les dividendes"
+        >
+          <Ionicons name="cash-outline" size={18} color={SHAREHOLDER_COLOR} />
+        </TouchableOpacity>
       </View>
 
       <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
@@ -210,6 +298,136 @@ function TreasuryShareholdersContent() {
           </View>
         }
       />
+
+      {/* === DIVIDEND PREVIEW + DISTRIBUTE MODAL === */}
+      <Modal visible={previewOpen} transparent animationType="fade" onRequestClose={closePreview}>
+        <View style={styles.divModalBackdrop}>
+          <View style={[styles.divModalCard, { backgroundColor: colors.card }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[styles.divModalEyebrow, { color: SHAREHOLDER_COLOR }]}>RÉPARTITION</Text>
+              <Text style={[styles.divModalTitle, { color: colors.text }]}>Distribuer les dividendes</Text>
+
+              {/* Période */}
+              <View style={styles.divDateRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.divLabel, { color: colors.gray500 }]}>Période début</Text>
+                  <TextInput
+                    style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+                    value={previewStart}
+                    onChangeText={setPreviewStart}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.gray400}
+                    autoCapitalize="none"
+                    editable={!previewLoading && !creatingDist}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.divLabel, { color: colors.gray500 }]}>Période fin</Text>
+                  <TextInput
+                    style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+                    value={previewEnd}
+                    onChangeText={setPreviewEnd}
+                    placeholder="YYYY-MM-DD"
+                    placeholderTextColor={colors.gray400}
+                    autoCapitalize="none"
+                    editable={!previewLoading && !creatingDist}
+                  />
+                </View>
+              </View>
+
+              <Text style={[styles.divLabel, { color: colors.gray500, marginTop: Spacing.md }]}>
+                % du résultat à distribuer
+              </Text>
+              <TextInput
+                style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
+                value={previewPercentage}
+                onChangeText={setPreviewPercentage}
+                placeholder="30"
+                placeholderTextColor={colors.gray400}
+                keyboardType="decimal-pad"
+                editable={!previewLoading && !creatingDist}
+              />
+
+              <TouchableOpacity
+                style={[styles.divPreviewBtn, { backgroundColor: `${SHAREHOLDER_COLOR}15`, borderColor: `${SHAREHOLDER_COLOR}40` }]}
+                onPress={runPreview}
+                disabled={previewLoading || creatingDist}
+                activeOpacity={0.85}
+              >
+                {previewLoading ? (
+                  <ActivityIndicator size="small" color={SHAREHOLDER_COLOR} />
+                ) : (
+                  <>
+                    <Ionicons name="calculator-outline" size={16} color={SHAREHOLDER_COLOR} />
+                    <Text style={[styles.divPreviewText, { color: SHAREHOLDER_COLOR }]}>
+                      Calculer l'aperçu
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              {previewData && (
+                <View style={[styles.divResultCard, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
+                  <Text style={[styles.divResultEyebrow, { color: colors.gray500 }]}>RÉSULTAT NET PÉRIODE</Text>
+                  <Text style={[styles.divResultValue, { color: colors.text }]}>
+                    {Number(previewData.net_profit ?? previewData.profit ?? 0).toLocaleString()} {platformCurrency}
+                  </Text>
+                  <Text style={[styles.divResultEyebrow, { color: colors.gray500, marginTop: Spacing.sm }]}>
+                    À DISTRIBUER ({previewPercentage}%)
+                  </Text>
+                  <Text style={[styles.divResultValue, { color: SHAREHOLDER_COLOR }]}>
+                    {Number(previewData.total_distribution ?? previewData.amount_to_distribute ?? 0).toLocaleString()} {platformCurrency}
+                  </Text>
+
+                  {Array.isArray(previewData.allocations) && previewData.allocations.length > 0 && (
+                    <View style={{ marginTop: Spacing.md }}>
+                      <Text style={[styles.divResultEyebrow, { color: colors.gray500, marginBottom: 8 }]}>RÉPARTITION</Text>
+                      {previewData.allocations.map((a: any, idx: number) => (
+                        <View key={idx} style={[styles.divAllocRow, idx > 0 && { borderTopColor: hairline, borderTopWidth: 1 }]}>
+                          <Text style={[styles.divAllocName, { color: colors.text }]} numberOfLines={1}>
+                            {a.shareholder_name || a.name || 'Actionnaire'}
+                          </Text>
+                          <Text style={[styles.divAllocPct, { color: colors.gray500 }]}>
+                            {Number(a.ownership_percentage ?? a.percentage ?? 0).toFixed(1)}%
+                          </Text>
+                          <Text style={[styles.divAllocAmount, { color: colors.text }]}>
+                            {Number(a.amount ?? 0).toLocaleString()} {platformCurrency}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              <View style={styles.divModalActions}>
+                <TouchableOpacity
+                  style={[styles.divModalBtn, { backgroundColor: colors.gray100 }]}
+                  onPress={closePreview}
+                  disabled={previewLoading || creatingDist}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.divModalBtnText, { color: colors.gray700 }]}>Fermer</Text>
+                </TouchableOpacity>
+                {previewData && (
+                  <TouchableOpacity
+                    style={[styles.divModalBtn, { backgroundColor: SHAREHOLDER_COLOR }, creatingDist && { opacity: 0.6 }]}
+                    onPress={createDistribution}
+                    disabled={creatingDist}
+                    activeOpacity={0.85}
+                  >
+                    {creatingDist ? (
+                      <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                      <Text style={[styles.divModalBtnText, { color: '#fff' }]}>Créer la distribution</Text>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -309,4 +527,123 @@ const styles = StyleSheet.create({
   bar: { height: 4, borderRadius: 2 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: Spacing['3xl'], gap: Spacing.md },
   emptyText: { fontFamily: FontFamily.medium, fontSize: FontSizes.base },
+
+  // Dividend preview modal
+  divModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  divModalCard: {
+    width: '100%',
+    maxWidth: 480,
+    maxHeight: '90%',
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  divModalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  divModalTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.5,
+    marginBottom: Spacing.md,
+  },
+  divDateRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  divLabel: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  divInput: {
+    borderWidth: 1.5,
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+  },
+  divPreviewBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1.5,
+    marginTop: Spacing.lg,
+  },
+  divPreviewText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.4,
+  },
+  divResultCard: {
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+  },
+  divResultEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1.2,
+  },
+  divResultValue: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  divAllocRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    gap: 8,
+  },
+  divAllocName: {
+    flex: 1,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+  },
+  divAllocPct: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    width: 50,
+    textAlign: 'right',
+  },
+  divAllocAmount: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    minWidth: 100,
+    textAlign: 'right',
+  },
+  divModalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+  },
+  divModalBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  divModalBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.4,
+  },
 });
