@@ -75,6 +75,8 @@ import EventSessionsLinkScreen from '../screens/organizer/EventSessionsLinkScree
 import SponsorManagementScreen from '../screens/organizer/SponsorManagementScreen';
 import WebhooksScreen from '../screens/organizer/WebhooksScreen';
 import NewslettersScreen from '../screens/organizer/NewslettersScreen';
+import DashboardsScreen from '../screens/organizer/DashboardsScreen';
+import DashboardDetailsScreen from '../screens/organizer/DashboardDetailsScreen';
 
 // Moderation Screens
 import ModerationScreen from '../screens/moderation/ModerationScreen';
@@ -299,6 +301,8 @@ export default function RootNavigator() {
       <Stack.Screen name="SponsorManagement" component={SponsorManagementScreen} />
       <Stack.Screen name="Webhooks" component={WebhooksScreen} />
       <Stack.Screen name="Newsletters" component={NewslettersScreen} />
+      <Stack.Screen name="Dashboards" component={DashboardsScreen} />
+      <Stack.Screen name="DashboardDetails" component={DashboardDetailsScreen} />
 
       {/* Moderation Screens */}
       <Stack.Screen name="Moderation" component={ModerationScreen} />

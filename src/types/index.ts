@@ -1590,6 +1590,8 @@ export type RootStackParamList = {
   SponsorManagement: { eventId: string };
   Webhooks: undefined;
   Newsletters: undefined;
+  Dashboards: undefined;
+  DashboardDetails: { dashboardId: string };
   Help: undefined;
   AnalyticsDashboard: undefined;
   Reports: undefined;
@@ -1838,4 +1840,56 @@ export interface ServiceUnavailablePayload {
   public_message: string;
   started_at: string | null;
   latest_update: { message: string; created_at: string } | null;
+}
+
+// ============================================
+// Dashboard builder
+// ============================================
+// Aligné avec apps/analytics/models.py — DashboardWidget + Dashboard.
+
+export type WidgetType = 'number' | 'chart' | 'table' | 'map' | 'list';
+export type ChartType = 'line' | 'bar' | 'pie' | 'doughnut' | 'area' | 'radar' | 'scatter';
+export type WidgetDataSource =
+  | 'event_count'
+  | 'registration_count'
+  | 'revenue'
+  | 'user_count'
+  | 'event_types'
+  | 'payment_methods'
+  | 'revenue_trends'
+  | 'registration_trends'
+  | 'geographical'
+  | 'custom_query';
+
+export interface DashboardWidget {
+  id: string;
+  title: string;
+  description?: string;
+  widget_type: WidgetType;
+  chart_type?: ChartType | null;
+  data_source: WidgetDataSource;
+  config?: Record<string, any>;
+  position_x: number;
+  position_y: number;
+  width: number;
+  height: number;
+  user: number;
+  is_public: boolean;
+  shared_with?: number[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Dashboard {
+  id: string;
+  title: string;
+  description?: string;
+  owner: number;
+  layout?: Record<string, any>;
+  theme?: string;
+  is_public: boolean;
+  shared_with?: number[];
+  widgets_count?: number;
+  created_at: string;
+  updated_at: string;
 }

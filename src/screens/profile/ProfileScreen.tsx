@@ -349,6 +349,12 @@ export default function ProfileScreen() {
                 onPress={() => navigation.navigate('Newsletters')}
               />
               <MenuItem
+                icon="grid-outline"
+                title="Dashboards"
+                subtitle="Vues personnalisées de tes KPIs"
+                onPress={() => navigation.navigate('Dashboards')}
+              />
+              <MenuItem
                 icon={user?.is_verified ? "checkmark-circle" : "shield-outline"}
                 title="Vérification du compte"
                 subtitle={user?.is_verified ? "Compte vérifié" : undefined}
