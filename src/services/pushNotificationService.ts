@@ -28,15 +28,41 @@ const getProjectId = (): string => {
   return Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId ?? '';
 };
 
-// Configure how notifications are handled when app is in foreground
+// Configure how notifications are handled when app is in foreground.
+// Quand une notif arrive et que l'app est ouverte :
+//   - On NE laisse PAS le système afficher la notif basique Expo
+//     (shouldShowBanner: false / shouldShowAlert: false)
+//   - On rend nous-mêmes via Notifee avec un layout riche (BigPictureStyle,
+//     MessagingStyle selon le type) → cf. addNotificationReceivedListener
+//     plus bas dans pushNotificationService.initialize()
+// Si Notifee ne peut pas rendre (iOS, ou erreur), Expo reprend la main :
+// shouldShowList=true garde au moins l'entrée dans le centre de notifs.
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
+  handleNotification: async (notification) => {
+    const isAndroid = Platform.OS === 'android';
+    const data = notification.request.content.data as any;
+    const hasRichStyle = isAndroid && data?.style && data.style !== 'default';
+
+    if (hasRichStyle) {
+      // On va render via Notifee → masquer la version Expo native
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: true,
+        shouldShowBanner: false,
+        shouldShowList: true,
+      };
+    }
+
+    // Fallback standard
+    return {
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    };
+  },
 });
 
 export interface PushNotificationData {
@@ -80,6 +106,20 @@ class PushNotificationService {
       return null;
     }
 
+    // Init des channels Notifee (Android-only) — sont créés idempotemment.
+    // Channels Expo et Notifee partagent les mêmes IDs ("default", "messages",
+    // "event_reminders", "payments") donc le système les fusionne.
+    try {
+      const { ensureNotifeeChannels } = await import('./richNotificationRenderer');
+      await ensureNotifeeChannels();
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] Notifee channel init failed:', error);
+    }
+
+    // Notifee event handlers — pour les actions custom des notifs riches
+    // (Marquer comme lu, Voir l'événement, etc.)
+    this.setupNotifeeHandlers();
+
     // Get push token
     try {
       const token = await this.getPushToken();
@@ -95,6 +135,82 @@ class PushNotificationService {
     }
 
     return null;
+  }
+
+  /**
+   * Setup handlers Notifee pour les pressActions des notifs riches.
+   * Foreground et background — le handler est appelé quand l'utilisateur
+   * tape une action (ex. "Voir l'événement", "Marquer comme lu").
+   */
+  private setupNotifeeHandlers(): void {
+    if (Platform.OS !== 'android') return;
+
+    import('@notifee/react-native')
+      .then(({ default: notifee, EventType }) => {
+        // Foreground : déjà handled via setNotificationHandler/listener Expo,
+        // mais on ajoute Notifee pour les pressActions custom (Marquer lu, etc.)
+        notifee.onForegroundEvent(async ({ type, detail }) => {
+          if (type === EventType.PRESS) {
+            // Tap sur la notif elle-même → délègue au callback existant
+            const data = detail.notification?.data as any;
+            if (data) this.handleNotificationTap(data);
+          } else if (type === EventType.ACTION_PRESS) {
+            const data = detail.notification?.data as any;
+            const actionId = detail.pressAction?.id;
+            await this.handleActionPress(actionId, data, detail);
+          }
+        });
+      })
+      .catch((error) => {
+        if (__DEV__) console.warn('[Push] Notifee setup failed:', error);
+      });
+  }
+
+  /**
+   * Gère les actions custom posées sur les notifs riches.
+   * Exemples : "Marquer comme lu" → appelle l'API, "Répondre" → ouvre la
+   * conversation avec le texte pré-rempli, "Voir l'événement" → navigue.
+   */
+  private async handleActionPress(actionId: string | undefined, data: any, detail: any): Promise<void> {
+    if (!actionId) return;
+    try {
+      switch (actionId) {
+        case 'mark_read': {
+          const notifId = data?.notification_id;
+          if (notifId) {
+            const { notificationsAPI } = await import('../api');
+            await notificationsAPI.markAsRead(notifId);
+          }
+          break;
+        }
+        case 'reply': {
+          // Si l'utilisateur a tapé un texte dans le quick reply
+          const replyText = detail?.input;
+          if (replyText && data?.conversation_id) {
+            const { messagesAPI } = await import('../api');
+            try {
+              await messagesAPI.sendMessage({
+                content: replyText,
+                conversation: data.conversation_id,
+              });
+            } catch (error) {
+              if (__DEV__) console.warn('[Push] reply send failed:', error);
+            }
+          }
+          break;
+        }
+        case 'view_event':
+        case 'view_user':
+        case 'view_tickets':
+        case 'view_refund':
+        case 'default':
+          // Navigation gérée par le callback existant (via data.event_id, etc.)
+          this.handleNotificationTap(data);
+          break;
+      }
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] action handler failed:', error);
+    }
   }
 
   /**
@@ -321,9 +437,25 @@ class PushNotificationService {
   private setupListeners(): void {
     // Listener for notifications received while app is in foreground
     this.notificationListener = Notifications.addNotificationReceivedListener(
-      (notification) => {
+      async (notification) => {
         if (__DEV__) console.log('[Push] Notification received in foreground:', notification);
-        // The notification will be shown automatically due to setNotificationHandler
+
+        // Si la notif a un style riche (data.style), on la rend nous-mêmes via
+        // Notifee avec BigPictureStyle/MessagingStyle/etc. Le setNotificationHandler
+        // a déjà désactivé l'affichage Expo natif pour ces cas.
+        const data = notification.request.content.data as any;
+        if (Platform.OS === 'android' && data?.style && data.style !== 'default') {
+          try {
+            const { displayRichNotification } = await import('./richNotificationRenderer');
+            await displayRichNotification(
+              notification.request.content.title || '',
+              notification.request.content.body || '',
+              data,
+            );
+          } catch (error) {
+            if (__DEV__) console.warn('[Push] Rich render failed, fallback to native:', error);
+          }
+        }
       }
     );
 

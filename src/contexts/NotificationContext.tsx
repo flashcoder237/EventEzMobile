@@ -6,6 +6,7 @@ import { notificationsAPI, messagesAPI, invitationsAPI, ticketTransfersAPI } fro
 import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
 import PushPermissionModal from '../components/common/PushPermissionModal';
+import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
 
 const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
 // ID de la dernière notification déjà consommée par `getLastNotificationResponse`.
@@ -432,6 +433,34 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       active = false;
     };
   }, [isAuthenticated]);
+
+  // WebSocket temps-réel — coexiste avec le polling 30s (filet de sécurité).
+  // Le WS pousse les nouvelles notifs et synchronise le badge multi-device.
+  useNotificationWebSocket({
+    enabled: isAuthenticated,
+    onNotificationNew: (notif) => {
+      // Préfixer en début de liste, inc. compteur seulement si non lue.
+      setNotifications((prev) => {
+        // Dédup au cas où le polling l'a déjà chopée
+        if (prev.some((n) => n.id === notif.id)) return prev;
+        return [notif as any, ...prev];
+      });
+      if (!notif.is_read) {
+        setUnreadNotificationCount((prev) => prev + 1);
+      }
+    },
+    onNotificationRead: (notifId, unreadCount) => {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notifId ? { ...n, is_read: true } : n)),
+      );
+      setUnreadNotificationCount(unreadCount);
+    },
+    onUnreadCountChanged: (count) => {
+      setUnreadNotificationCount(count);
+      // Aligner aussi le badge OS
+      pushNotificationService.setBadgeCount(count).catch(() => {});
+    },
+  });
 
   // Handle app state changes (refresh when app comes to foreground)
   useEffect(() => {
