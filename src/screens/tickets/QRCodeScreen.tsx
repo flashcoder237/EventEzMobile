@@ -27,6 +27,8 @@ import QRCode from 'react-native-qrcode-svg';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
+import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { ticketPurchasesAPI } from '../../api';
 import { TicketPurchase, RootStackParamList } from '../../types';
 import { getTicketVerificationUrl } from '../../constants/urls';
@@ -54,6 +56,21 @@ export default function QRCodeScreen() {
 
   const [ticket, setTicket] = useState<TicketPurchase | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Gate biométrique opt-in : si la pref `eventez_ticket_lock_enabled` est
+  // active, on cache le QR derrière un placeholder "Tap to reveal" jusqu'à
+  // confirmation FaceID/empreinte. Pratique anti-vol à la queue d'entrée.
+  const biometric = useBiometricConfirm();
+  const { isEnabled: ticketLockEnabled, loading: lockPrefLoading } = useTicketLockPref();
+  const [revealed, setRevealed] = useState(false);
+  const isLocked = ticketLockEnabled && biometric.isSupported && !revealed;
+
+  const handleReveal = useCallback(async () => {
+    const confirmed = await biometric.confirm({
+      promptMessage: 'Authentification requise pour afficher le QR code',
+    });
+    if (confirmed) setRevealed(true);
+  }, [biometric]);
 
   // Ref vers le composant QRCode SVG affiché : permet de récupérer son contenu
   // en base64 PNG (toDataURL) pour l'embed dans le PDF — évite de dépendre d'une
@@ -491,15 +508,42 @@ export default function QRCodeScreen() {
                     accessibilityLabel="QR code du billet"
                     accessibilityRole="image"
                   >
-                    <QRCode
-                      value={verificationUrl}
-                      size={QR_SIZE}
-                      color={isDark ? '#4C1D95' : '#5B21B6'}
-                      backgroundColor="#FFFFFF"
-                      getRef={(c: any) => {
-                        qrSvgRef.current = c;
-                      }}
-                    />
+                    {isLocked ? (
+                      // Placeholder verrouillé : carré de la même taille que le QR pour
+                      // ne pas faire bouger la mise en page au reveal. Le QR est aussi
+                      // RENDU mais en off-screen (zéro IO) — on évite juste l'affichage.
+                      <TouchableOpacity
+                        style={[styles.qrLockPlaceholder, { width: QR_SIZE, height: QR_SIZE }]}
+                        onPress={handleReveal}
+                        accessibilityRole="button"
+                        accessibilityLabel="Authentifier pour afficher le QR code"
+                        activeOpacity={0.85}
+                      >
+                        <Ionicons
+                          name={biometric.type === 'face' ? 'scan-circle-outline' : 'finger-print'}
+                          size={64}
+                          color={colors.primary}
+                        />
+                        <Text style={[styles.qrLockTitle, { color: colors.gray900 }]}>
+                          QR verrouillé
+                        </Text>
+                        <Text style={[styles.qrLockHint, { color: colors.gray500 }]}>
+                          {biometric.type === 'face'
+                            ? 'Touche pour déverrouiller avec Face ID'
+                            : 'Touche pour déverrouiller avec ton empreinte'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <QRCode
+                        value={verificationUrl}
+                        size={QR_SIZE}
+                        color={isDark ? '#4C1D95' : '#5B21B6'}
+                        backgroundColor="#FFFFFF"
+                        getRef={(c: any) => {
+                          qrSvgRef.current = c;
+                        }}
+                      />
+                    )}
                   </View>
                   {/* Scanner corners éditoriaux */}
                   <View style={[styles.qrCorner, styles.qrCornerTL, { borderColor: colors.primary }]} />
@@ -943,6 +987,24 @@ const styles = StyleSheet.create({
     position: 'absolute',
     width: 22,
     height: 22,
+  },
+  qrLockPlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.xl,
+  },
+  qrLockTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: FontSizes.md,
+    letterSpacing: -0.3,
+    marginTop: 4,
+  },
+  qrLockHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.sm,
+    textAlign: 'center',
+    paddingHorizontal: Spacing.md,
   },
   qrCornerTL: {
     top: 0,

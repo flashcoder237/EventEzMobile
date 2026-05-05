@@ -5,6 +5,8 @@
 export { useReducedMotion } from './useReducedMotion';
 export { useTabletLayout } from './useTabletLayout';
 export { useDebounce, useDebouncedCallback } from './useDebounce';
+export { useBiometricConfirm } from './useBiometricConfirm';
+export type { BiometricConfirmOptions } from './useBiometricConfirm';
 export { useLoadingState, useAsyncOperation } from './useLoadingState';
 export { useMessagingWebSocket } from './useMessagingWebSocket';
 export { useMessageState } from './useMessageState';

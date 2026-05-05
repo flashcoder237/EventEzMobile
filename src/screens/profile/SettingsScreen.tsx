@@ -21,6 +21,8 @@ import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useAppLock } from '../../hooks/useAppLock';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
+import { useTicketLockPref } from '../../hooks/useTicketLockPref';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { usersAPI, messagesAPI } from '../../api';
 import { RootStackParamList } from '../../types';
@@ -344,6 +346,8 @@ export default function SettingsScreen() {
   // Hook désactivé ici pour éviter de re-déclencher l'auth au mount du
   // SettingsScreen ; on ne tape qu'aux helpers exposés.
   const { isSupported: appLockSupported, isEnabled: appLockEnabled, setEnabled: setAppLockEnabled } = useAppLock();
+  const biometric = useBiometricConfirm();
+  const { isEnabled: ticketLockEnabled, setEnabled: setTicketLockEnabled } = useTicketLockPref();
 
   useEffect(() => {
     fetchSettings();
@@ -464,6 +468,14 @@ export default function SettingsScreen() {
       showError('Erreur', 'Veuillez entrer votre mot de passe');
       return;
     }
+
+    // Double-barrière : password (savoir) + biométrique (être). Critique pour
+    // une action irréversible. Si l'user n'a pas de biométrique enrôlée, on
+    // se contente du password (le hook renvoie true silencieusement).
+    const confirmed = await biometric.confirm({
+      promptMessage: 'Confirmer la suppression définitive de votre compte',
+    });
+    if (!confirmed) return;
 
     setSaving(true);
     try {
@@ -784,6 +796,26 @@ export default function SettingsScreen() {
                 value={appLockEnabled}
                 onToggle={async (v) => {
                   await setAppLockEnabled(v);
+                }}
+                disabled={!appLockSupported}
+              />
+            }
+          />
+          <OptionCard
+            icon="qr-code-outline"
+            eyebrow={appLockSupported ? 'BIOMÉTRIE · BILLETS' : 'INDISPONIBLE'}
+            title="Verrouiller mes billets"
+            subtitle={
+              appLockSupported
+                ? 'FaceID / Empreinte requise pour révéler le QR code à l\'entrée'
+                : 'Aucune biométrie enrôlée sur ce téléphone'
+            }
+            disabled={!appLockSupported}
+            right={
+              <SoftToggle
+                value={ticketLockEnabled}
+                onToggle={async (v) => {
+                  await setTicketLockEnabled(v);
                 }}
                 disabled={!appLockSupported}
               />

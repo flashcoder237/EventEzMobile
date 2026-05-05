@@ -47,6 +47,7 @@ import { StaggeredItem } from '../../components/ui/Animations';
 import Badge from '../../components/ui/Badge';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import ExportButton from '../../components/common/ExportButton';
+import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'overview' | 'transactions' | 'payouts' | 'pending';
@@ -74,6 +75,7 @@ export default function WalletScreen() {
   const { showAlert, showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
   const { config: commissionConfig } = useCommissionConfig();
+  const biometric = useBiometricConfirm();
   const [wallet, setWallet] = useState<OrganizerWallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -215,6 +217,19 @@ export default function WalletScreen() {
       return;
     }
 
+    // Confirmation biométrique avant d'envoyer la demande de retrait — pattern
+    // standard banking. Si l'user n'a pas FaceID/empreinte enrôlée, le hook
+    // renvoie true silencieusement (pas de friction inutile pour eux).
+    const confirmed = await biometric.confirm({
+      promptMessage: `Confirmer le retrait de ${formatPrice(amount)} ${wallet?.currency || 'XAF'}`,
+    });
+    if (!confirmed) {
+      // L'user a annulé ou la biométrique a échoué — pas d'alerte rouge,
+      // juste on ne soumet pas. Le modal reste ouvert pour qu'il puisse
+      // réessayer ou modifier le montant.
+      return;
+    }
+
     setProcessingPayout(true);
     try {
       await payoutsAPI.requestPayout({
@@ -233,6 +248,14 @@ export default function WalletScreen() {
   };
 
   const handleUpdateBankDetails = async () => {
+    // Coordonnées bancaires = données sensibles : un attaquant qui aurait
+    // brièvement accès au téléphone pourrait sinon rediriger les futurs
+    // payouts vers son propre compte. Biométrique = barrière minimale.
+    const confirmed = await biometric.confirm({
+      promptMessage: 'Confirmer la modification des coordonnées bancaires',
+    });
+    if (!confirmed) return;
+
     setSavingBank(true);
     try {
       await walletAPI.updateBankDetails(bankDetails);
