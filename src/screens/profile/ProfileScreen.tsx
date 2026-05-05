@@ -422,6 +422,11 @@ export default function ProfileScreen() {
               onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
             />
             <MenuItem
+              icon="people-outline"
+              title="Organisateurs suivis"
+              onPress={() => navigation.navigate('FollowingUsers')}
+            />
+            <MenuItem
               icon="trophy-outline"
               title="Badges & Points"
               onPress={() => navigation.navigate('Gamification')}

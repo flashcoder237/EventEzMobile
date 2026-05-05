@@ -52,6 +52,7 @@ import TermsScreen from '../screens/profile/TermsScreen';
 import PrivacyScreen from '../screens/profile/PrivacyScreen';
 import BecomeOrganizerScreen from '../screens/profile/BecomeOrganizerScreen';
 import VerificationScreen from '../screens/profile/VerificationScreen';
+import FollowingUsersScreen from '../screens/profile/FollowingUsersScreen';
 
 // Messages Screens
 import MessagesScreen from '../screens/messages/MessagesScreen';
@@ -270,6 +271,7 @@ export default function RootNavigator() {
         name="Verification"
         component={VerificationScreen}
       />
+      <Stack.Screen name="FollowingUsers" component={FollowingUsersScreen} />
 
       {/* Messages Screens */}
       <Stack.Screen name="Messages" component={MessagesScreen} />

@@ -1578,6 +1578,7 @@ export type RootStackParamList = {
   Drafts: undefined;
   BecomeOrganizer: undefined;
   Verification: undefined;
+  FollowingUsers: undefined;
   Invitations: undefined;
   Referrals: undefined;
   Gamification: undefined;
