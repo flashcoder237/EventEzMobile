@@ -132,7 +132,7 @@ export const gamificationAPI = {
 // ============================================
 
 export const recommendationsAPI = {
-  getRecommendations: (params?: { limit?: number }) =>
+  getRecommendations: (params?: { limit?: number; page?: number; page_size?: number }) =>
     api.get('/recommendations/', { params }),
 
   recordInteraction: (data: { event?: string; category?: number; interaction_type: string }) =>
@@ -141,4 +141,71 @@ export const recommendationsAPI = {
   /** Events similaires à un event donné — utilisé en bas de EventDetails. */
   getSimilar: (eventId: string, params?: { limit?: number }) =>
     api.get(`/recommendations/similar/${eventId}/`, { params }),
+};
+
+// ============================================
+// ADVERTISEMENTS API
+// ============================================
+
+export interface AdvertisementPublic {
+  id: string;
+  title: string;
+  subtitle: string;
+  image_url: string | null;
+  cta_label: string;
+  target_event_id: string | null;
+  link_url: string;
+  placement: 'feed_top' | 'feed_inline' | 'feed_bottom';
+  priority: number;
+}
+
+export interface AdvertisementAdmin extends AdvertisementPublic {
+  image: string;
+  target_event: string | null;
+  target_event_title: string | null;
+  country: string;
+  city: string;
+  latitude: number | null;
+  longitude: number | null;
+  radius_km: number | null;
+  starts_at: string;
+  ends_at: string | null;
+  is_active: boolean;
+  view_count: number;
+  click_count: number;
+  is_currently_active: boolean;
+  created_by: number | null;
+  created_by_email: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export const advertisementsAPI = {
+  /**
+   * Liste publique géo-filtrée. Tous les params sont optionnels — sans aucun
+   * param, on récupère les pubs sans contrainte géo. Avec country/city/lat/lng,
+   * on récupère seulement celles qui matchent.
+   */
+  getNearby: (params?: { country?: string; city?: string; lat?: number; lng?: number }) =>
+    api.get<{ results: AdvertisementPublic[]; count: number }>(
+      '/advertisements/nearby/',
+      { params },
+    ),
+
+  /** Tracking — fire and forget. */
+  recordView: (id: string) => api.post(`/advertisements/${id}/view/`),
+  recordClick: (id: string) => api.post(`/advertisements/${id}/click/`),
+
+  // === Admin CRUD ===
+  list: (params?: any) => api.get('/advertisements/', { params }),
+  get: (id: string) => api.get(`/advertisements/${id}/`),
+  create: (data: FormData | Record<string, any>) =>
+    api.post('/advertisements/', data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    }),
+  update: (id: string, data: FormData | Record<string, any>) =>
+    api.patch(`/advertisements/${id}/`, data, {
+      headers: data instanceof FormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    }),
+  delete: (id: string) => api.delete(`/advertisements/${id}/`),
 };

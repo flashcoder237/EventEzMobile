@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { memo, useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -163,6 +163,426 @@ function PulsingHeart({ color = Colors.accent, size = 24 }: { color?: string; si
 }
 
 // ============================================================
+// Module-level memoized card components
+// ============================================================
+type ThemeColorsType = typeof Colors;
+
+interface HeroCardProps {
+  follow: FollowData;
+  event: Event;
+  days: number | null;
+  colors: ThemeColorsType;
+  onPress: (event: Event) => void;
+  onToggleNotification: (follow: FollowData) => void;
+}
+
+function HeroCardComponent({
+  follow,
+  event,
+  days,
+  colors,
+  onPress,
+  onToggleNotification,
+}: HeroCardProps) {
+  const dm = formatDayMonth(event.start_date);
+  const weekday = formatWeekday(event.start_date);
+  const time = formatTime(event.start_date);
+  const isNotified = follow.notification_preference !== 'none';
+  return (
+    <TouchableOpacity
+      activeOpacity={0.88}
+      style={[styles.heroCard, { backgroundColor: colors.card }, Shadows.lg]}
+      onPress={() => onPress(event)}
+    >
+      <Image
+        source={
+          getMediaUrl(event.banner_image || event.category?.default_event_image) ||
+          require('../../../assets/defaults/default-event.png')
+        }
+        placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
+        placeholderContentFit="cover"
+        style={StyleSheet.absoluteFillObject}
+        contentFit="cover"
+        cachePolicy="memory-disk"
+        transition={300}
+      />
+      {/* Dark gradient overlay */}
+      <LinearGradient
+        colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.9)']}
+        style={StyleSheet.absoluteFillObject}
+      />
+      {/* Giant outline date numeral (top-left, blend-diff approximation) */}
+      <Text style={styles.heroDayNumeral} numberOfLines={1}>
+        {dm.day}
+      </Text>
+
+      {/* Countdown pill top-right */}
+      {days !== null && (
+        <View style={[styles.heroCountdownPill, { backgroundColor: colors.accent }]}>
+          <Ionicons name="hourglass" size={13} color={Colors.white} />
+          <Text style={styles.heroCountdownText}>
+            {days <= 0 ? 'AUJ.' : `J-${days}`}
+          </Text>
+        </View>
+      )}
+
+      {/* Content bottom */}
+      <View style={styles.heroContent}>
+        <View style={{ flex: 1 }}>
+          {weekday && time && (
+            <Text style={styles.heroSubtitle}>
+              {weekday.toUpperCase()} • {time}
+            </Text>
+          )}
+          <Text style={styles.heroTitle} numberOfLines={2}>
+            {event.title}
+          </Text>
+          {event.location_city && (
+            <View style={styles.heroMetaRow}>
+              <Ionicons name="location" size={14} color={colors.accent} />
+              <Text style={styles.heroMetaText} numberOfLines={1}>
+                {event.location_city}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Pulsing heart button */}
+        <TouchableOpacity
+          style={styles.heroHeartBtn}
+          onPress={() => onToggleNotification(follow)}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel={isNotified ? 'Notifications activées' : 'Notifications désactivées'}
+        >
+          <PulsingHeart color={Colors.accent} size={22} />
+        </TouchableOpacity>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const HeroCard = memo(
+  HeroCardComponent,
+  (prev, next) =>
+    prev.event.id === next.event.id &&
+    prev.days === next.days &&
+    prev.follow.id === next.follow.id &&
+    prev.follow.notification_preference === next.follow.notification_preference &&
+    prev.colors === next.colors &&
+    prev.onPress === next.onPress &&
+    prev.onToggleNotification === next.onToggleNotification,
+);
+
+interface MasonryCardProps {
+  follow: FollowData;
+  event: Event;
+  days: number | null;
+  variant: 'tall' | 'medium' | 'short';
+  colors: ThemeColorsType;
+  onPress: (event: Event) => void;
+  onToggleNotification: (follow: FollowData) => void;
+  onUnfollow: (eventId: string) => void;
+}
+
+function MasonryCardComponent({
+  follow,
+  event,
+  variant,
+  colors,
+  onPress,
+  onToggleNotification,
+  onUnfollow,
+}: MasonryCardProps) {
+  const dm = formatDayMonth(event.start_date);
+  const isNotified = follow.notification_preference !== 'none';
+  const imageHeight = variant === 'tall' ? 130 : variant === 'medium' ? 100 : 0;
+  const hasImage = variant !== 'short';
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      style={[
+        styles.masonryCard,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+      onPress={() => onPress(event)}
+    >
+      {hasImage && (
+        <View style={[styles.masonryImageWrap, { height: imageHeight }]}>
+          <Image
+            source={
+              getMediaUrl(event.banner_image || event.category?.default_event_image) ||
+              require('../../../assets/defaults/default-event.png')
+            }
+            placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
+            placeholderContentFit="cover"
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={300}
+          />
+          <TouchableOpacity
+            style={[
+              styles.masonryBell,
+              {
+                backgroundColor: isNotified
+                  ? 'rgba(255,255,255,0.9)'
+                  : 'rgba(255,255,255,0.7)',
+              },
+            ]}
+            onPress={(e) => {
+              e.stopPropagation();
+              onToggleNotification(follow);
+            }}
+          >
+            <Ionicons
+              name={isNotified ? 'notifications' : 'notifications-off-outline'}
+              size={14}
+              color={isNotified ? colors.accent : colors.gray400}
+            />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      <View style={styles.masonryBody}>
+        {!hasImage && (
+          <View style={styles.masonryShortHeader}>
+            <View style={styles.masonryDateRow}>
+              <Text style={[styles.masonryBigDay, { color: colors.accent }]}>{dm.day}</Text>
+              <Text style={[styles.masonryBigMonth, { color: colors.gray300 }]}>{dm.month}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.masonryShortBell, { backgroundColor: colors.gray50 }]}
+              onPress={() => onToggleNotification(follow)}
+            >
+              <Ionicons
+                name={isNotified ? 'notifications' : 'notifications-off-outline'}
+                size={14}
+                color={isNotified ? colors.accent : colors.gray400}
+              />
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {hasImage && (
+          <View style={styles.masonryDateRow}>
+            <Text
+              style={[
+                styles.masonryBigDay,
+                { color: colors.accent, fontSize: variant === 'tall' ? 50 : 42 },
+              ]}
+            >
+              {dm.day}
+            </Text>
+            <Text style={[styles.masonryBigMonth, { color: colors.gray300 }]}>{dm.month}</Text>
+          </View>
+        )}
+
+        <Text
+          style={[styles.masonryTitle, { color: colors.text }]}
+          numberOfLines={2}
+        >
+          {event.title}
+        </Text>
+        <Text style={[styles.masonrySubtitle, { color: colors.gray500 }]} numberOfLines={1}>
+          {event.location_city || formatWeekday(event.start_date)}
+        </Text>
+
+        <View style={styles.masonryFooter}>
+          {event.category?.name ? (
+            <View style={[styles.masonryCatPill, { backgroundColor: colors.gray100 }]}>
+              <Text style={[styles.masonryCatText, { color: colors.gray500 }]}>
+                {event.category.name.slice(0, 12)}
+              </Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          <TouchableOpacity
+            onPress={(e: any) => {
+              e?.stopPropagation?.();
+              onUnfollow(event.id);
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="heart" size={18} color={colors.accent} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+const MasonryCard = memo(
+  MasonryCardComponent,
+  (prev, next) =>
+    prev.event.id === next.event.id &&
+    prev.days === next.days &&
+    prev.follow.id === next.follow.id &&
+    prev.follow.notification_preference === next.follow.notification_preference &&
+    prev.variant === next.variant &&
+    prev.colors === next.colors &&
+    prev.onPress === next.onPress &&
+    prev.onToggleNotification === next.onToggleNotification &&
+    prev.onUnfollow === next.onUnfollow,
+);
+
+interface CarouselCardProps {
+  follow: FollowData;
+  event: Event;
+  days: number | null;
+  accent: boolean;
+  colors: ThemeColorsType;
+  canvasBg: string;
+  onPress: (event: Event) => void;
+}
+
+function CarouselCardComponent({
+  event,
+  days,
+  accent,
+  colors,
+  canvasBg,
+  onPress,
+}: CarouselCardProps) {
+  const dm = formatDayMonth(event.start_date);
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      style={[
+        styles.carouselCard,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+      onPress={() => onPress(event)}
+    >
+      {/* Left: date stub with dashed right border */}
+      <View style={[styles.carouselStub, { backgroundColor: canvasBg }]}>
+        <Text style={[styles.carouselStubMonth, { color: colors.gray400 }]}>{dm.month}</Text>
+        <Text style={[styles.carouselStubDay, { color: colors.text }]}>{dm.day}</Text>
+      </View>
+      <View
+        style={[
+          styles.carouselPerforation,
+          { borderLeftColor: colors.gray200 },
+        ]}
+      />
+
+      {/* Right: content */}
+      <View style={styles.carouselBody}>
+        <View
+          style={[
+            styles.carouselProxPill,
+            {
+              backgroundColor: accent ? `${Colors.accent}1A` : colors.gray100,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.carouselProxText,
+              { color: accent ? Colors.accent : colors.gray500 },
+            ]}
+          >
+            {proximityPill(days)}
+          </Text>
+        </View>
+        <Text style={[styles.carouselTitle, { color: colors.text }]} numberOfLines={2}>
+          {event.title}
+        </Text>
+        {event.location_city && (
+          <Text style={[styles.carouselSub, { color: colors.gray500 }]} numberOfLines={1}>
+            {event.location_city}
+          </Text>
+        )}
+      </View>
+
+      {/* Ribbon top-right */}
+      <View
+        style={[
+          styles.ribbon,
+          { backgroundColor: accent ? colors.accent : colors.gray300 },
+        ]}
+      />
+    </TouchableOpacity>
+  );
+}
+
+const CarouselCard = memo(
+  CarouselCardComponent,
+  (prev, next) =>
+    prev.event.id === next.event.id &&
+    prev.days === next.days &&
+    prev.follow.id === next.follow.id &&
+    prev.accent === next.accent &&
+    prev.colors === next.colors &&
+    prev.canvasBg === next.canvasBg &&
+    prev.onPress === next.onPress,
+);
+
+interface ArchivedCardProps {
+  follow: FollowData;
+  event: Event;
+  colors: ThemeColorsType;
+  onPress: (event: Event) => void;
+  onUnfollow: (eventId: string) => void;
+}
+
+function ArchivedCardComponent({
+  event,
+  colors,
+  onPress,
+  onUnfollow,
+}: ArchivedCardProps) {
+  const dm = formatDayMonth(event.start_date);
+  return (
+    <TouchableOpacity
+      activeOpacity={0.85}
+      style={[
+        styles.archivedCard,
+        { backgroundColor: colors.card, borderColor: colors.border, opacity: 0.75 },
+      ]}
+      onPress={() => onPress(event)}
+    >
+      <View style={[styles.archivedDate, { backgroundColor: colors.gray100 }]}>
+        <Text style={[styles.archivedDay, { color: colors.gray500 }]}>{dm.day}</Text>
+        <Text style={[styles.archivedMonth, { color: colors.gray400 }]}>{dm.month}</Text>
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.archivedTitle, { color: colors.gray500 }]} numberOfLines={2}>
+          {event.title}
+        </Text>
+        {event.location_city && (
+          <Text style={[styles.archivedSub, { color: colors.gray400 }]} numberOfLines={1}>
+            {event.location_city}
+          </Text>
+        )}
+      </View>
+      <TouchableOpacity
+        style={{ padding: 4 }}
+        onPress={(e: any) => {
+          e?.stopPropagation?.();
+          onUnfollow(event.id);
+        }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="trash-outline" size={16} color={colors.gray400} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+}
+
+const ArchivedCard = memo(
+  ArchivedCardComponent,
+  (prev, next) =>
+    prev.event.id === next.event.id &&
+    prev.follow.id === next.follow.id &&
+    prev.colors === next.colors &&
+    prev.onPress === next.onPress &&
+    prev.onUnfollow === next.onUnfollow,
+);
+
+// ============================================================
 // Component
 // ============================================================
 export default function FollowingEventsScreen() {
@@ -263,7 +683,7 @@ export default function FollowingEventsScreen() {
     loadFollowedEvents(true);
   };
 
-  const handleUnfollow = (eventId: string) => {
+  const handleUnfollow = useCallback((eventId: string) => {
     showConfirm('Ne plus suivre', 'Voulez-vous vraiment ne plus suivre cet événement ?', async () => {
       try {
         await eventsAPI.unfollowEvent(eventId);
@@ -276,9 +696,9 @@ export default function FollowingEventsScreen() {
         showError('Erreur', 'Impossible de ne plus suivre cet événement');
       }
     });
-  };
+  }, [user?.id, showConfirm, showError]);
 
-  const toggleNotification = async (follow: FollowData) => {
+  const toggleNotification = useCallback(async (follow: FollowData) => {
     const eventId = follow.event_details?.id || follow.event;
     const newPreference = follow.notification_preference === 'none' ? 'all' : 'none';
 
@@ -295,7 +715,16 @@ export default function FollowingEventsScreen() {
       if (__DEV__) console.error('Error updating preferences:', error);
       showError('Erreur', 'Impossible de mettre à jour les préférences');
     }
-  };
+  }, [showError]);
+
+  // Stable navigation callback for cards (event.banner_image / category fields
+  // don't change between renders for a given event, so memoization is safe).
+  const handleEventPress = useCallback((event: Event) => {
+    navigation.navigate('EventDetails', {
+      eventId: event.id,
+      imageUrl: event.banner_image || event.category?.default_event_image || undefined,
+    });
+  }, [navigation]);
 
   // --- Partitions + tab filtering (fused: single pass over follows) ---
   const visibleSections = useMemo(() => {
@@ -407,360 +836,6 @@ export default function FollowingEventsScreen() {
     </View>
   );
 
-  // --- Hero card (This Week) ---
-  const HeroCard = ({
-    follow,
-    event,
-    days,
-  }: {
-    follow: FollowData;
-    event: Event;
-    days: number | null;
-  }) => {
-    const dm = formatDayMonth(event.start_date);
-    const weekday = formatWeekday(event.start_date);
-    const time = formatTime(event.start_date);
-    const isNotified = follow.notification_preference !== 'none';
-    return (
-      <TouchableOpacity
-        activeOpacity={0.88}
-        style={[styles.heroCard, { backgroundColor: colors.card }, Shadows.lg]}
-        onPress={() =>
-          navigation.navigate('EventDetails', {
-            eventId: event.id,
-            imageUrl: event.banner_image || event.category?.default_event_image || undefined,
-          })
-        }
-      >
-        <Image
-          source={
-            getMediaUrl(event.banner_image || event.category?.default_event_image) ||
-            require('../../../assets/defaults/default-event.png')
-          }
-          placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
-          placeholderContentFit="cover"
-          style={StyleSheet.absoluteFillObject}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          transition={300}
-        />
-        {/* Dark gradient overlay */}
-        <LinearGradient
-          colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.35)', 'rgba(0,0,0,0.9)']}
-          style={StyleSheet.absoluteFillObject}
-        />
-        {/* Giant outline date numeral (top-left, blend-diff approximation) */}
-        <Text style={styles.heroDayNumeral} numberOfLines={1}>
-          {dm.day}
-        </Text>
-
-        {/* Countdown pill top-right */}
-        {days !== null && (
-          <View style={[styles.heroCountdownPill, { backgroundColor: colors.accent }]}>
-            <Ionicons name="hourglass" size={13} color={Colors.white} />
-            <Text style={styles.heroCountdownText}>
-              {days <= 0 ? 'AUJ.' : `J-${days}`}
-            </Text>
-          </View>
-        )}
-
-        {/* Content bottom */}
-        <View style={styles.heroContent}>
-          <View style={{ flex: 1 }}>
-            {weekday && time && (
-              <Text style={styles.heroSubtitle}>
-                {weekday.toUpperCase()} • {time}
-              </Text>
-            )}
-            <Text style={styles.heroTitle} numberOfLines={2}>
-              {event.title}
-            </Text>
-            {event.location_city && (
-              <View style={styles.heroMetaRow}>
-                <Ionicons name="location" size={14} color={colors.accent} />
-                <Text style={styles.heroMetaText} numberOfLines={1}>
-                  {event.location_city}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {/* Pulsing heart button */}
-          <TouchableOpacity
-            style={styles.heroHeartBtn}
-            onPress={() => toggleNotification(follow)}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={isNotified ? 'Notifications activées' : 'Notifications désactivées'}
-          >
-            <PulsingHeart color={Colors.accent} size={22} />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  // --- Masonry card (This Month) ---
-  const MasonryCard = ({
-    follow,
-    event,
-    days,
-    variant,
-  }: {
-    follow: FollowData;
-    event: Event;
-    days: number | null;
-    variant: 'tall' | 'medium' | 'short';
-  }) => {
-    const dm = formatDayMonth(event.start_date);
-    const isNotified = follow.notification_preference !== 'none';
-    const imageHeight = variant === 'tall' ? 130 : variant === 'medium' ? 100 : 0;
-    const hasImage = variant !== 'short';
-
-    return (
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={[
-          styles.masonryCard,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-        onPress={() =>
-          navigation.navigate('EventDetails', {
-            eventId: event.id,
-            imageUrl: event.banner_image || event.category?.default_event_image || undefined,
-          })
-        }
-      >
-        {hasImage && (
-          <View style={[styles.masonryImageWrap, { height: imageHeight }]}>
-            <Image
-              source={
-                getMediaUrl(event.banner_image || event.category?.default_event_image) ||
-                require('../../../assets/defaults/default-event.png')
-              }
-              placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
-              placeholderContentFit="cover"
-              style={StyleSheet.absoluteFillObject}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={300}
-            />
-            <TouchableOpacity
-              style={[
-                styles.masonryBell,
-                {
-                  backgroundColor: isNotified
-                    ? 'rgba(255,255,255,0.9)'
-                    : 'rgba(255,255,255,0.7)',
-                },
-              ]}
-              onPress={(e) => {
-                e.stopPropagation();
-                toggleNotification(follow);
-              }}
-            >
-              <Ionicons
-                name={isNotified ? 'notifications' : 'notifications-off-outline'}
-                size={14}
-                color={isNotified ? colors.accent : colors.gray400}
-              />
-            </TouchableOpacity>
-          </View>
-        )}
-
-        <View style={styles.masonryBody}>
-          {!hasImage && (
-            <View style={styles.masonryShortHeader}>
-              <View style={styles.masonryDateRow}>
-                <Text style={[styles.masonryBigDay, { color: colors.accent }]}>{dm.day}</Text>
-                <Text style={[styles.masonryBigMonth, { color: colors.gray300 }]}>{dm.month}</Text>
-              </View>
-              <TouchableOpacity
-                style={[styles.masonryShortBell, { backgroundColor: colors.gray50 }]}
-                onPress={() => toggleNotification(follow)}
-              >
-                <Ionicons
-                  name={isNotified ? 'notifications' : 'notifications-off-outline'}
-                  size={14}
-                  color={isNotified ? colors.accent : colors.gray400}
-                />
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {hasImage && (
-            <View style={styles.masonryDateRow}>
-              <Text
-                style={[
-                  styles.masonryBigDay,
-                  { color: colors.accent, fontSize: variant === 'tall' ? 50 : 42 },
-                ]}
-              >
-                {dm.day}
-              </Text>
-              <Text style={[styles.masonryBigMonth, { color: colors.gray300 }]}>{dm.month}</Text>
-            </View>
-          )}
-
-          <Text
-            style={[styles.masonryTitle, { color: colors.text }]}
-            numberOfLines={2}
-          >
-            {event.title}
-          </Text>
-          <Text style={[styles.masonrySubtitle, { color: colors.gray500 }]} numberOfLines={1}>
-            {event.location_city || formatWeekday(event.start_date)}
-          </Text>
-
-          <View style={styles.masonryFooter}>
-            {event.category?.name ? (
-              <View style={[styles.masonryCatPill, { backgroundColor: colors.gray100 }]}>
-                <Text style={[styles.masonryCatText, { color: colors.gray500 }]}>
-                  {event.category.name.slice(0, 12)}
-                </Text>
-              </View>
-            ) : (
-              <View />
-            )}
-            <TouchableOpacity
-              onPress={(e: any) => {
-                e?.stopPropagation?.();
-                handleUnfollow(event.id);
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Ionicons name="heart" size={18} color={colors.accent} />
-            </TouchableOpacity>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
-
-  // --- Carousel card (Plus tard) — with ribbon + dashed vertical perforation ---
-  const CarouselCard = ({
-    follow,
-    event,
-    days,
-    accent,
-  }: {
-    follow: FollowData;
-    event: Event;
-    days: number | null;
-    accent: boolean;
-  }) => {
-    const dm = formatDayMonth(event.start_date);
-    return (
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={[
-          styles.carouselCard,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
-        onPress={() =>
-          navigation.navigate('EventDetails', {
-            eventId: event.id,
-            imageUrl: event.banner_image || event.category?.default_event_image || undefined,
-          })
-        }
-      >
-        {/* Left: date stub with dashed right border */}
-        <View style={[styles.carouselStub, { backgroundColor: canvasBg }]}>
-          <Text style={[styles.carouselStubMonth, { color: colors.gray400 }]}>{dm.month}</Text>
-          <Text style={[styles.carouselStubDay, { color: colors.text }]}>{dm.day}</Text>
-        </View>
-        <View
-          style={[
-            styles.carouselPerforation,
-            { borderLeftColor: colors.gray200 },
-          ]}
-        />
-
-        {/* Right: content */}
-        <View style={styles.carouselBody}>
-          <View
-            style={[
-              styles.carouselProxPill,
-              {
-                backgroundColor: accent ? `${Colors.accent}1A` : colors.gray100,
-              },
-            ]}
-          >
-            <Text
-              style={[
-                styles.carouselProxText,
-                { color: accent ? Colors.accent : colors.gray500 },
-              ]}
-            >
-              {proximityPill(days)}
-            </Text>
-          </View>
-          <Text style={[styles.carouselTitle, { color: colors.text }]} numberOfLines={2}>
-            {event.title}
-          </Text>
-          {event.location_city && (
-            <Text style={[styles.carouselSub, { color: colors.gray500 }]} numberOfLines={1}>
-              {event.location_city}
-            </Text>
-          )}
-        </View>
-
-        {/* Ribbon top-right */}
-        <View
-          style={[
-            styles.ribbon,
-            { backgroundColor: accent ? colors.accent : colors.gray300 },
-          ]}
-        />
-      </TouchableOpacity>
-    );
-  };
-
-  // --- Archived card (Passés) ---
-  const ArchivedCard = ({ follow, event }: { follow: FollowData; event: Event }) => {
-    const dm = formatDayMonth(event.start_date);
-    return (
-      <TouchableOpacity
-        activeOpacity={0.85}
-        style={[
-          styles.archivedCard,
-          { backgroundColor: colors.card, borderColor: colors.border, opacity: 0.75 },
-        ]}
-        onPress={() =>
-          navigation.navigate('EventDetails', {
-            eventId: event.id,
-            imageUrl: event.banner_image || event.category?.default_event_image || undefined,
-          })
-        }
-      >
-        <View style={[styles.archivedDate, { backgroundColor: colors.gray100 }]}>
-          <Text style={[styles.archivedDay, { color: colors.gray500 }]}>{dm.day}</Text>
-          <Text style={[styles.archivedMonth, { color: colors.gray400 }]}>{dm.month}</Text>
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.archivedTitle, { color: colors.gray500 }]} numberOfLines={2}>
-            {event.title}
-          </Text>
-          {event.location_city && (
-            <Text style={[styles.archivedSub, { color: colors.gray400 }]} numberOfLines={1}>
-              {event.location_city}
-            </Text>
-          )}
-        </View>
-        <TouchableOpacity
-          style={{ padding: 4 }}
-          onPress={(e: any) => {
-            e?.stopPropagation?.();
-            handleUnfollow(event.id);
-          }}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons name="trash-outline" size={16} color={colors.gray400} />
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
-
   // --- Category chips (Suivis d'intérêt) ---
   const CategoryChips = () => (
     <View style={styles.categoryChipsWrap}>
@@ -784,14 +859,9 @@ export default function FollowingEventsScreen() {
   // ==========================================================
   // Masonry column layout (irregular 2-col)
   // ==========================================================
-  // TODO(perf): Extract MasonryCard/HeroCard/CarouselCard/ArchivedCard as
-  // memoized components (React.memo) declared at module level. Currently they
-  // close over `colors`, `navigation`, `toggleNotification`, `handleUnfollow`,
-  // `formatDayMonth`, etc. — extraction requires threading ~8 props or a
-  // context. Skipped for now (estimated 200+ line refactor). Until then,
-  // wrapping renderMasonry in useCallback would not yield real savings since
-  // MasonryCard itself is re-created every render. Kept as a plain function
-  // and instead memoize the JSX result against the `items` array reference.
+  // MasonryCard is now a module-level memoized component — props are stable
+  // (colors, callbacks via useCallback) so individual cards skip re-render
+  // when the parent re-renders for unrelated reasons.
   const renderMasonry = useCallback(
     (items: { follow: FollowData; event: Event; days: number | null }[]) => {
       if (items.length === 0) return null;
@@ -815,6 +885,10 @@ export default function FollowingEventsScreen() {
                 event={x.event}
                 days={x.days}
                 variant={getVariant(0, idx)}
+                colors={colors}
+                onPress={handleEventPress}
+                onToggleNotification={toggleNotification}
+                onUnfollow={handleUnfollow}
               />
             ))}
           </View>
@@ -826,18 +900,17 @@ export default function FollowingEventsScreen() {
                 event={x.event}
                 days={x.days}
                 variant={getVariant(1, idx)}
+                colors={colors}
+                onPress={handleEventPress}
+                onToggleNotification={toggleNotification}
+                onUnfollow={handleUnfollow}
               />
             ))}
           </View>
         </View>
       );
     },
-    // No external deps needed for the function body — MasonryCard is captured
-    // via closure but is re-created every render so its identity is irrelevant
-    // to memoization. eslint exhaustive-deps would want MasonryCard, but
-    // including it would force recompute every render anyway.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [colors, handleEventPress, toggleNotification, handleUnfollow],
   );
 
   // ==========================================================
@@ -1217,6 +1290,9 @@ export default function FollowingEventsScreen() {
                         follow={visibleSections.thisWeek[0].follow}
                         event={visibleSections.thisWeek[0].event}
                         days={visibleSections.thisWeek[0].days}
+                        colors={colors}
+                        onPress={handleEventPress}
+                        onToggleNotification={toggleNotification}
                       />
                     </StaggeredItem>
                     {/* Remaining this-week events go into compact list */}
@@ -1229,6 +1305,9 @@ export default function FollowingEventsScreen() {
                               event={x.event}
                               days={x.days}
                               accent
+                              colors={colors}
+                              canvasBg={canvasBg}
+                              onPress={handleEventPress}
                             />
                           </StaggeredItem>
                         ))}
@@ -1267,6 +1346,9 @@ export default function FollowingEventsScreen() {
                           event={x.event}
                           days={x.days}
                           accent={idx === 0}
+                          colors={colors}
+                          canvasBg={canvasBg}
+                          onPress={handleEventPress}
                         />
                       ))}
                     </ScrollView>
@@ -1280,7 +1362,13 @@ export default function FollowingEventsScreen() {
                     <View style={{ gap: Spacing.sm }}>
                       {visibleSections.past.map((x, idx) => (
                         <StaggeredItem key={x.follow.id} index={idx} staggerDelay={60}>
-                          <ArchivedCard follow={x.follow} event={x.event} />
+                          <ArchivedCard
+                            follow={x.follow}
+                            event={x.event}
+                            colors={colors}
+                            onPress={handleEventPress}
+                            onUnfollow={handleUnfollow}
+                          />
                         </StaggeredItem>
                       ))}
                     </View>

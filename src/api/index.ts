@@ -39,7 +39,8 @@ export { feedbacksAPI, flagsAPI, validationsAPI } from './feedback';
 export { analyticsAPI } from './analytics';
 
 // Social, Invitations, Referrals, Gamification & Recommendations
-export { socialAPI, invitationsAPI, referralsAPI, gamificationAPI, recommendationsAPI } from './social';
+export { socialAPI, invitationsAPI, referralsAPI, gamificationAPI, recommendationsAPI, advertisementsAPI } from './social';
+export type { AdvertisementPublic, AdvertisementAdmin } from './social';
 
 // Newsletters, Sponsors, Live, CFP, Virtual Rooms & Recordings
 export { newslettersAPI, sponsorsAPI, liveAPI, cfpAPI, virtualRoomsAPI, recordingsAPI } from './content';
