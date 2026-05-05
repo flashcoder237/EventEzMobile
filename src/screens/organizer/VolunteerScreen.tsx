@@ -74,9 +74,10 @@ export default function VolunteerScreen() {
 
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'roles' | 'applications'>('roles');
+  const [activeTab, setActiveTab] = useState<'roles' | 'applications' | 'tasks'>('roles');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Modal de création de rôle (organizer seulement)
@@ -146,12 +147,16 @@ export default function VolunteerScreen() {
   const fetchData = async () => {
     try {
       const params = eventId ? { event: eventId } : undefined;
-      const [rolesRes, appsRes] = await Promise.all([
+      const [rolesRes, appsRes, tasksRes] = await Promise.all([
         volunteersAPI.getRoles(params),
         volunteersAPI.getMyApplications(),
+        // my_tasks ne renvoie que celles assignées au user courant — utile
+        // uniquement si l'utilisateur a au moins une candidature acceptée.
+        volunteersAPI.getMyTasks().catch(() => ({ data: [] })),
       ]);
       setRoles(rolesRes.data.results || rolesRes.data || []);
       setApplications(appsRes.data.results || appsRes.data || []);
+      setTasks(tasksRes.data?.results || tasksRes.data || []);
     } catch (error) {
       if (__DEV__) console.error('Erreur volunteers:', error);
     } finally {
@@ -183,6 +188,32 @@ export default function VolunteerScreen() {
               if (__DEV__) console.error('Erreur apply volunteer:', error);
               const message = error?.response?.data?.detail || 'Impossible de postuler.';
               Alert.alert('Erreur', message);
+            } finally {
+              setActionLoading(null);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCompleteTask = (taskId: string) => {
+    Alert.alert(
+      'Marquer comme terminée',
+      'La tâche sera marquée comme accomplie. Tu pourras toujours contacter l\'organisateur si besoin.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Terminer',
+          onPress: async () => {
+            setActionLoading(taskId);
+            // Optimistic : on flip le status local pour éviter d'attendre.
+            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
+            try {
+              await volunteersAPI.completeTask(taskId);
+            } catch (error: any) {
+              setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: t.status === 'completed' ? 'in_progress' : t.status } : t));
+              Alert.alert('Erreur', error?.response?.data?.detail || 'Impossible de marquer la tâche.');
             } finally {
               setActionLoading(null);
             }
@@ -311,6 +342,86 @@ export default function VolunteerScreen() {
             )}
           </TouchableOpacity>
         )}
+      </View>
+    );
+  };
+
+  const renderTaskCard = ({ item }: { item: any }) => {
+    const isProcessing = actionLoading === item.id;
+    const status = item.status as 'todo' | 'in_progress' | 'completed' | 'cancelled';
+    const isCompleted = status === 'completed';
+    const isCancelled = status === 'cancelled';
+    const priority = item.priority as 'low' | 'medium' | 'high' | 'urgent';
+    const priorityColor = priority === 'urgent' ? '#EF4444'
+      : priority === 'high' ? '#F59E0B'
+      : priority === 'medium' ? '#3B82F6'
+      : colors.textLight;
+    const priorityLabel = priority === 'urgent' ? 'URGENT'
+      : priority === 'high' ? 'HAUTE'
+      : priority === 'medium' ? 'MOYENNE'
+      : 'BASSE';
+
+    return (
+      <View style={[styles.applicationCard, { backgroundColor: colors.card }, isCompleted && { opacity: 0.7 }]}>
+        <View style={styles.applicationHeader}>
+          <View style={styles.applicationInfo}>
+            <Text
+              style={[
+                styles.applicationRole,
+                { color: colors.text },
+                isCompleted && { textDecorationLine: 'line-through' },
+              ]}
+              numberOfLines={2}
+            >
+              {item.title || 'Tâche'}
+            </Text>
+            {item.event_title && (
+              <Text style={[styles.applicationApplicant, { color: colors.textSecondary }]} numberOfLines={1}>
+                {item.event_title}
+              </Text>
+            )}
+          </View>
+          {priority && (
+            <View style={[styles.statusBadge, { backgroundColor: `${priorityColor}15` }]}>
+              <Text style={[styles.statusText, { color: priorityColor }]}>{priorityLabel}</Text>
+            </View>
+          )}
+        </View>
+
+        {item.description ? (
+          <Text style={[styles.motivationText, { color: colors.textSecondary, fontStyle: 'normal' }]} numberOfLines={3}>
+            {item.description}
+          </Text>
+        ) : null}
+
+        <View style={styles.applicationFooter}>
+          <Text style={[styles.applicationDate, { color: colors.textLight }]}>
+            <Ionicons
+              name={isCompleted ? 'checkmark-circle' : isCancelled ? 'close-circle-outline' : 'time-outline'}
+              size={12}
+              color={isCompleted ? colors.success : colors.textLight}
+            />{' '}
+            {isCompleted ? 'Terminée' : isCancelled ? 'Annulée' : status === 'in_progress' ? 'En cours' : 'À faire'}
+            {item.due_date ? ` · ${formatDate(item.due_date)}` : ''}
+          </Text>
+
+          {!isCompleted && !isCancelled && (
+            <TouchableOpacity
+              style={[styles.withdrawButton, { backgroundColor: `${colors.success}15`, borderColor: `${colors.success}30`, borderWidth: 1 }]}
+              onPress={() => handleCompleteTask(item.id)}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <ActivityIndicator size="small" color={colors.success} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark" size={14} color={colors.success} />
+                  <Text style={[styles.withdrawText, { color: colors.success }]}>Terminer</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
     );
   };
@@ -450,10 +561,29 @@ export default function VolunteerScreen() {
             Candidatures ({applications.length})
           </Text>
         </TouchableOpacity>
+        {/* Tab Tâches : visible uniquement si l'utilisateur a des tâches assignées
+            (il faut une candidature acceptée + un task assigné par l'organisateur).
+            On évite de polluer la nav pour les volontaires qui n'ont rien à faire. */}
+        {tasks.length > 0 && (
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'tasks' && [styles.activeTab, { backgroundColor: colors.card }]]}
+            onPress={() => setActiveTab('tasks')}
+          >
+            <Ionicons
+              name="checkbox-outline"
+              size={16}
+              color={activeTab === 'tasks' ? colors.primary : colors.textLight}
+              style={{ marginRight: 4 }}
+            />
+            <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'tasks' && { color: colors.primary }]}>
+              Tâches ({tasks.length})
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Content */}
-      {activeTab === 'roles' ? (
+      {activeTab === 'roles' && (
         <FlatList
           data={roles}
           contentContainerStyle={styles.listContent}
@@ -472,7 +602,8 @@ export default function VolunteerScreen() {
           }
           renderItem={renderRoleCard}
         />
-      ) : (
+      )}
+      {activeTab === 'applications' && (
         <FlatList
           data={applications}
           contentContainerStyle={styles.listContent}
@@ -490,6 +621,26 @@ export default function VolunteerScreen() {
             </View>
           }
           renderItem={renderApplicationCard}
+        />
+      )}
+      {activeTab === 'tasks' && (
+        <FlatList
+          data={tasks}
+          contentContainerStyle={styles.listContent}
+          keyExtractor={(item) => item.id}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="checkbox-outline" size={48} color={colors.textLight} />
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucune tâche assignée</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
+                L'organisateur t'assignera des tâches après validation de ta candidature.
+              </Text>
+            </View>
+          }
+          renderItem={renderTaskCard}
         />
       )}
       </View>
