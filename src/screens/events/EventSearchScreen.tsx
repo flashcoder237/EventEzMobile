@@ -412,6 +412,10 @@ export default function EventSearchScreen() {
         };
         if (state.debouncedQuery.trim()) params.search = state.debouncedQuery.trim();
         if (state.categoryId) params.category = state.categoryId;
+        // Filtre ville passé en route param (depuis Discover ou deep link).
+        // Le backend Event filter accepte location_city pour exact match.
+        const cityParam = route.params?.city;
+        if (cityParam) params.location_city = cityParam;
 
         // Date range
         const range = computeDateRange(state.datePreset);

@@ -1509,7 +1509,7 @@ export type RootStackParamList = {
   VerifyEmailToken: { token: string };
   EventDetails: { eventId: string; imageUrl?: string };
   EventReviews: { eventId: string; eventTitle?: string };
-  EventSearch: { query?: string; category?: number } | undefined;
+  EventSearch: { query?: string; category?: number; city?: string } | undefined;
   TicketPurchase: {
     eventId: string;
     ticketTypeId?: string;

@@ -116,6 +116,14 @@ export const eventsAPI = {
     return api.get('/events/nearby/', { params });
   },
 
+  /**
+   * Liste les villes distinctes ayant des events validés à venir. Renvoie
+   * un tableau d'objets `{ name, count, country? }` ordonné par count.
+   * Utilisé par le filtre ville d'ExploreScreen.
+   */
+  getCities: (params?: { search?: string; country?: string }) =>
+    api.get('/events/cities/', { params }),
+
   getMapEvents: (params?: { city?: string; category?: string }) =>
     api.get('/events/map_events/', { params }),
 
