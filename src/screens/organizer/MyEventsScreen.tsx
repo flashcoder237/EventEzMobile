@@ -157,6 +157,21 @@ export default function MyEventsScreen() {
     );
   };
 
+  const handleRequestFeature = (event: Event) => {
+    showConfirm(
+      'Mise en avant',
+      `Demander la mise en avant de "${event.title}" ? Notre équipe sera notifiée et te répondra sous 48h.`,
+      async () => {
+        try {
+          await eventsAPI.requestFeature(event.id);
+          showSuccess('Demande envoyée', "L'équipe EventEz a été notifiée.");
+        } catch (error: any) {
+          showError('Erreur', error.response?.data?.detail || "Impossible d'envoyer la demande");
+        }
+      },
+    );
+  };
+
   const handleDuplicateEvent = async (event: Event) => {
     if (duplicateLoading) return;
     setDuplicateLoading(event.id);
@@ -280,6 +295,13 @@ export default function MyEventsScreen() {
       actions.push({
         text: 'Bénévoles',
         onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
+      });
+      // Demander mise en avant : envoie une notif aux admins. Backend
+      // limite déjà à un envoi par event (cf. request_feature view) — pas
+      // besoin de gating côté mobile, on relaye juste le 400 si conflit.
+      actions.push({
+        text: 'Demander mise en avant',
+        onPress: () => handleRequestFeature(event),
       });
     }
 
