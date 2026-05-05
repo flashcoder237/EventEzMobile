@@ -343,6 +343,12 @@ export default function ProfileScreen() {
                 onPress={() => navigation.navigate('Webhooks')}
               />
               <MenuItem
+                icon="mail-outline"
+                title="Newsletters"
+                subtitle="Communique avec tes abonnés"
+                onPress={() => navigation.navigate('Newsletters')}
+              />
+              <MenuItem
                 icon={user?.is_verified ? "checkmark-circle" : "shield-outline"}
                 title="Vérification du compte"
                 subtitle={user?.is_verified ? "Compte vérifié" : undefined}

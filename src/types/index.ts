@@ -1589,6 +1589,7 @@ export type RootStackParamList = {
   EventSessionsLink: { eventId: string };
   SponsorManagement: { eventId: string };
   Webhooks: undefined;
+  Newsletters: undefined;
   Help: undefined;
   AnalyticsDashboard: undefined;
   Reports: undefined;
