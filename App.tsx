@@ -64,9 +64,12 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
 import { StatusProvider } from './src/contexts/StatusContext';
+import { AnnouncementsProvider } from './src/contexts/AnnouncementsContext';
 import { FeatureTourProvider } from './src/components/tour';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import MaintenanceGate from './src/components/common/MaintenanceGate';
+import ForceUpdateGate from './src/components/common/ForceUpdateGate';
+import AnnouncementsModal from './src/components/common/AnnouncementsModal';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
 import RootNavigator from './src/navigation/RootNavigator';
 import VerificationGuardModal from './src/components/auth/VerificationGuardModal';
@@ -237,15 +240,30 @@ function AppContent() {
             <NotificationProvider>
               <AlertProvider>
                 <StatusProvider>
-                  <FeatureTourProvider>
-                    <StatusBar style={isDark ? 'light' : 'dark'} />
-                    <LockGate>
-                      <MaintenanceGate>
-                        <RootNavigator />
-                      </MaintenanceGate>
-                    </LockGate>
-                    <VerificationGuardModal />
-                  </FeatureTourProvider>
+                  <AnnouncementsProvider>
+                    <FeatureTourProvider>
+                      <StatusBar style={isDark ? 'light' : 'dark'} />
+                      {/* ORDRE des gates :
+                          1. ForceUpdateGate — bloque l'app si version trop vieille
+                             (passe au-dessus de Maintenance pour qu'on puisse forcer
+                             une mise à jour même en cas d'incident, l'ancien client
+                             ne saura pas parser le payload)
+                          2. LockGate — biométrie
+                          3. MaintenanceGate — incident bloquant global
+                          4. RootNavigator — l'app proprement dite
+                          AnnouncementsModal est rendu en sibling : il s'affiche
+                          au-dessus de la stack quand il y a une annonce non-vue. */}
+                      <ForceUpdateGate>
+                        <LockGate>
+                          <MaintenanceGate>
+                            <RootNavigator />
+                          </MaintenanceGate>
+                        </LockGate>
+                      </ForceUpdateGate>
+                      <VerificationGuardModal />
+                      <AnnouncementsModal />
+                    </FeatureTourProvider>
+                  </AnnouncementsProvider>
                 </StatusProvider>
               </AlertProvider>
             </NotificationProvider>

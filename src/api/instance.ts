@@ -4,9 +4,19 @@
 
 import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { eventBus } from '../lib/eventBus';
 import { captureMessage } from '../services/crashReporting';
 import { API_BASE_URL, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from './config';
+
+// Identifiants client envoyés à chaque requête. Le backend les utilise pour
+// cibler les annonces (`X-App-Version`, `X-App-Platform`) et calculer si un
+// force-update est nécessaire. Lus une fois au boot — ne changent pas du
+// vivant du process.
+const APP_VERSION =
+  Constants.expoConfig?.version || Constants.manifest2?.extra?.expoClient?.version || '';
+const APP_PLATFORM = Platform.OS === 'ios' || Platform.OS === 'android' ? Platform.OS : 'web';
 
 // Création de l'instance Axios
 const api: AxiosInstance = axios.create({
@@ -31,6 +41,18 @@ api.interceptors.request.use(
     const token = await getAccessToken();
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Identité client — utilisé par /api/announcements/active/ et /api/status/
+    // pour le ciblage par version + plateforme. Toujours envoyé, même quand le
+    // user est anonyme : pas de coût, pas de fuite (la version est déjà dans
+    // le User-Agent côté store, donc rien de nouveau côté privacy).
+    if (config.headers) {
+      if (APP_VERSION && !config.headers['X-App-Version']) {
+        config.headers['X-App-Version'] = APP_VERSION;
+      }
+      if (!config.headers['X-App-Platform']) {
+        config.headers['X-App-Platform'] = APP_PLATFORM;
+      }
     }
     // En React Native, le FormData est un polyfill — Axios peut ne pas le reconnaître
     // et tenter de le JSON.stringify (résultat: {"_parts":[...]} au lieu de multipart).

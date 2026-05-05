@@ -1832,12 +1832,50 @@ export interface ServiceStatus extends ServiceDef {
   active_incident_id: string | null;
 }
 
+export interface ClientVersionsBlock {
+  /**
+   * Bloc renvoyé par /api/status/. Le mobile lit `mobile.min_supported` pour
+   * décider d'un force-update gate, et `mobile.latest` pour un soft prompt.
+   */
+  mobile: {
+    min_supported: string;
+    latest: string;
+    force_update_message: string;
+    ios_store_url: string;
+    android_store_url: string;
+  };
+}
+
 export interface StatusSnapshot {
   services: ServiceStatus[];
   active_incidents: Incident[];
   recent_resolved: Incident[];
   has_global_outage: boolean;
   overall_status: ServiceHealthStatus;
+  /** Optionnel — absent sur les anciens backends. */
+  client_versions?: ClientVersionsBlock;
+}
+
+// ============================================
+// Announcements (modal éditorial au boot)
+// ============================================
+// Aligné avec apps/system_status/models.py:Announcement.
+
+export type AnnouncementSeverity = 'info' | 'warning' | 'critical';
+
+export interface Announcement {
+  id: string;
+  title: string;
+  message: string;
+  severity: AnnouncementSeverity;
+  severity_display: string;
+  is_dismissible: boolean;
+  cta_label: string;
+  cta_url: string;
+  valid_from: string | null;
+  valid_until: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ServiceUnavailablePayload {

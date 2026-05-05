@@ -52,3 +52,4 @@ export { waitlistAPI, waitlistSettingsAPI, seatingAPI, floorPlansAPI, volunteers
 
 // System Status / Incidents
 export { statusAPI } from './status';
+export { announcementsAPI } from './announcements';
