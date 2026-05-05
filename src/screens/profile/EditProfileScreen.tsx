@@ -161,6 +161,26 @@ export default function EditProfileScreen() {
         uploadUri = cacheUri;
       }
 
+      // Resize + compress AVANT upload : photo galerie typique = 4000×3000 (~4 Mo)
+      // pour un usage avatar à ≤96px. On normalise à 512px JPEG q=0.8 → ~50-80 Ko,
+      // ce qui rend l'affichage instantané dans la navbar et le ProfileScreen
+      // sans dégradation visible (l'avatar est cropped circulairement).
+      // Lazy import : ImageManipulator n'est utilisé qu'ici, ne charge pas le bundle initial.
+      try {
+        const ImageManipulator = await import('expo-image-manipulator');
+        const out = await ImageManipulator.manipulateAsync(
+          uploadUri,
+          [{ resize: { width: 512, height: 512 } }],
+          { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG },
+        );
+        uploadUri = out.uri;
+      } catch (compressError) {
+        // Fail-safe : si la compression échoue (rare), on upload l'original
+        // plutôt que de planter le flow. L'utilisateur préfère un upload lent
+        // à un upload bloqué.
+        if (__DEV__) console.warn('[EditProfile] compression failed, uploading original:', compressError);
+      }
+
       const formData = new FormData();
       const filename = uploadUri.split('/').pop() || 'profile.jpg';
       const match = /\.(\w+)$/.exec(filename);

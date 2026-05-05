@@ -177,7 +177,7 @@ export default function DiscoverScreen() {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
-  const { unreadNotificationCount, unreadMessageCount } = useUnreadCounts();
+  const { unreadNotificationCount } = useUnreadCounts();
   const { isSlowCellular, isOffline } = useNetworkSpeed();
 
   // === State ===
@@ -426,8 +426,6 @@ export default function DiscoverScreen() {
   const navigateToEvent = (eventId: string, imageUrl?: string) => {
     navigation.navigate('EventDetails', { eventId, imageUrl });
   };
-  const goToMessages = () =>
-    user ? navigation.navigate('Messages') : navigation.navigate('Login' as any);
   const goToNotifications = () =>
     user ? navigation.navigate('Notifications') : navigation.navigate('Login' as any);
 
@@ -1117,33 +1115,8 @@ export default function DiscoverScreen() {
                         <Ionicons name="add" size={20} color={Colors.white} />
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity
-                      style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
-                      onPress={goToMessages}
-                      activeOpacity={0.7}
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        unreadMessageCount > 0
-                          ? `Messages, ${unreadMessageCount} non lu${unreadMessageCount > 1 ? 's' : ''}`
-                          : 'Messages'
-                      }
-                    >
-                      <Ionicons name="chatbubble-outline" size={18} color={colors.gray600} />
-                      {unreadMessageCount > 0 && (
-                        <PulsingBadge active style={styles.headerBadgeWrap}>
-                          <View
-                            style={[
-                              styles.headerBtnBadge,
-                              { backgroundColor: colors.accent, borderColor: colors.gray100 },
-                            ]}
-                          >
-                            <Text style={styles.headerBtnBadgeText}>
-                              {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
-                            </Text>
-                          </View>
-                        </PulsingBadge>
-                      )}
-                    </TouchableOpacity>
+                    {/* Messages : retiré du header — déjà accessible via l'onglet
+                        "Messages" de la bottom nav. Évite la duplication d'entrée. */}
                     <TouchableOpacity
                       style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
                       onPress={goToNotifications}

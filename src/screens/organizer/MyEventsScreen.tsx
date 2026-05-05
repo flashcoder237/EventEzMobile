@@ -292,10 +292,11 @@ export default function MyEventsScreen() {
     setDuplicateLoading(event.id);
     try {
       const res = await eventsAPI.duplicateEvent(event.id);
-      const newEvent: Event | null = res.data || null;
-      // On rajoute le nouveau brouillon en tête de liste pour qu'il soit
-      // immédiatement visible. Si la réponse n'inclut pas l'event complet
-      // (selon le backend), on tombe sur un fetch.
+      // Backend renvoie { message, event } — l'event complet est sous .event.
+      // Sans ce déballage, newEvent valait { message, event } et son id était
+      // undefined → la suppression ultérieure tapait /events/undefined/ → 404.
+      const payload = res.data || {};
+      const newEvent: Event | null = payload.event || (payload.id ? payload : null);
       if (newEvent && newEvent.id) {
         setEvents(prev => [newEvent, ...prev]);
       } else {

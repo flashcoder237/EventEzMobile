@@ -89,6 +89,10 @@ const DOCK_HEIGHT = 64;
 const DOCK_MAX_WIDTH = 380;
 const DOCK_HORIZONTAL_PADDING = 8;
 const ACTIVE_PILL_HEIGHT = 50;
+// Cap la pilule active : flexGrow:1 sans cap fait s'étendre l'actif sur tout
+// l'espace restant du dock (∼240px sur écran large) — visuellement disproportionné.
+// 130px = icon 22 + gap 6 + label "DÉCOUVRIR" (≈68px) + padding 2×12 + marge.
+const ACTIVE_PILL_MAX_WIDTH = 130;
 const INACTIVE_TAB_WIDTH = 36;
 const INACTIVE_TAB_HEIGHT = 44;
 const SLOT_GAP = 2;
@@ -243,6 +247,7 @@ const TabSlot = memo(function TabSlot({
               borderColor: cardColor,
               paddingHorizontal: 12,
               minWidth: ACTIVE_PILL_HEIGHT,
+              maxWidth: ACTIVE_PILL_MAX_WIDTH,
               height: ACTIVE_PILL_HEIGHT,
             }
           : {
@@ -294,7 +299,12 @@ const TabSlot = memo(function TabSlot({
                   borderRadius: isFocused ? 14 : 13,
                 },
               ]}
-              cachePolicy="disk"
+              // memory-disk : bitmap décodé gardé en RAM tant que l'app est
+              // ouverte (vs. "disk" qui re-décodait à chaque mount du tab).
+              // Pour un avatar 28px ça représente <5 Ko mémoire et zéro flicker
+              // au switch d'onglet.
+              cachePolicy="memory-disk"
+              contentFit="cover"
               transition={200}
             />
           ) : (
@@ -518,7 +528,10 @@ const styles = StyleSheet.create({
   dock: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '94%',
+    // Width:auto → la dock se redimensionne à son contenu (4 inactifs 36px +
+    // pilule active capée à ACTIVE_PILL_MAX_WIDTH + paddings/gaps). Combiné
+    // au centrage du dockOuter, ça produit une dock compacte centrée plutôt
+    // qu'un bandeau qui occupe 94% de l'écran avec une pilule étalée.
     maxWidth: DOCK_MAX_WIDTH,
     height: DOCK_HEIGHT,
     borderRadius: DOCK_HEIGHT / 2,
