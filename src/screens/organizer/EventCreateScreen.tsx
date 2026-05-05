@@ -469,6 +469,21 @@ export default function EventCreateScreen() {
                 onOptimizeTitle={handleOptimizeTitle}
                 onGenerateDescription={handleGenerateDescription}
                 stepErrors={form.stepErrors}
+                onApplyTemplate={isEditing ? undefined : (template) => {
+                  // Hydrate les champs du form depuis le template. On évite
+                  // d'écraser ce que l'utilisateur a déjà tapé : on ne touche
+                  // un champ que s'il est encore vide.
+                  if (!form.title && template.name) setTitle(template.name);
+                  if (!form.description && template.description_skeleton) {
+                    setDescription(template.description_skeleton);
+                  }
+                  if (template.event_type) setEventType(template.event_type);
+                  if (template.location_type) setLocationType(template.location_type);
+                  if (template.category != null) setCategoryId(template.category);
+                  if (Array.isArray(template.tags) && template.tags.length > 0) {
+                    template.tags.forEach((t) => handleCustomTagAdd(t));
+                  }
+                }}
               />
             )}
 

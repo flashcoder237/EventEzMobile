@@ -17,6 +17,7 @@ import TagInput from '../common/TagInput';
 import AIQuickCreatePanel from '../events/AIQuickCreatePanel';
 import AIAssistButton from '../events/AIAssistButton';
 import EncouragementTip from './EncouragementTip';
+import TemplatePicker, { EventTemplate } from './TemplatePicker';
 import styles from './eventCreateStyles';
 import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
 
@@ -76,6 +77,11 @@ interface EventStep1InfoProps {
   onGenerateDescription: () => void;
   /** Map champ → message d'erreur, peuplé après un goToNextStep raté. Optionnel. */
   stepErrors?: Record<string, string>;
+  /**
+   * Optionnel : applique un template événement au form. Si absent, le picker
+   * n'est pas affiché. Hydraté par le hook useEventForm.
+   */
+  onApplyTemplate?: (template: EventTemplate) => void;
 }
 
 // ============================================
@@ -122,6 +128,7 @@ export default function EventStep1Info({
   onOptimizeTitle,
   onGenerateDescription,
   stepErrors = {},
+  onApplyTemplate,
 }: EventStep1InfoProps) {
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
@@ -132,6 +139,10 @@ export default function EventStep1Info({
       <Text style={[styles.stepDescription, themed.stepDescription]}>
         Commencez par l'affiche et l'histoire. Les détails pratiques viennent ensuite.
       </Text>
+
+      {/* Templates — raccourci pour bootstrapper le form depuis un modèle. Si
+          le parent ne fournit pas onApplyTemplate, on cache la section. */}
+      {onApplyTemplate ? <TemplatePicker onApply={onApplyTemplate} /> : null}
 
       {/* AI Quick Create */}
       <AIQuickCreatePanel

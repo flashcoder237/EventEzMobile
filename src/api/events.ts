@@ -164,6 +164,23 @@ export const eventsAPI = {
 };
 
 // ============================================
+// EVENT TEMPLATES API
+// ============================================
+//
+// Templates pré-définis pour bootstrap rapide d'un nouvel event (concert,
+// conférence, atelier…). Renvoie name + icon + gradient + duration_hours +
+// description_skeleton + suggested_tickets/form_fields. Le mobile applique
+// les valeurs au form au tap.
+
+export const eventTemplatesAPI = {
+  getAll: (params?: any) =>
+    api.get('/event-templates/', { params }),
+
+  getById: (id: string) =>
+    api.get(`/event-templates/${id}/`),
+};
+
+// ============================================
 // CATEGORIES API
 // ============================================
 

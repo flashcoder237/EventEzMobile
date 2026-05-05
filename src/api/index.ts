@@ -12,7 +12,7 @@ export { getMediaUrl, API_BASE_URL, SERVER_BASE_URL } from './config';
 export { authAPI, usersAPI, verificationAPI } from './auth';
 
 // Events, Categories & Tags
-export { eventsAPI, categoriesAPI, tagsAPI } from './events';
+export { eventsAPI, eventTemplatesAPI, categoriesAPI, tagsAPI } from './events';
 
 // Registrations
 export { registrationsAPI } from './registrations';
