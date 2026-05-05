@@ -1613,6 +1613,9 @@ export type RootStackParamList = {
   SubscriptionManagement: undefined;
   AuditLogs: undefined;
   PlatformSettings: undefined;
+  AnnouncementsAdmin: undefined;
+  AnnouncementForm: { announcementId?: string } | undefined;
+  ClientReleaseAdmin: undefined;
   TreasuryOverview: undefined;
   TreasuryStaff: undefined;
   TreasuryExpenses: undefined;
@@ -1875,6 +1878,32 @@ export interface Announcement {
   valid_from: string | null;
   valid_until: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+export type AnnouncementAudience = 'all' | 'users' | 'organizers' | 'admins';
+export type AnnouncementPlatform =
+  | 'all'
+  | 'mobile'
+  | 'mobile_ios'
+  | 'mobile_android'
+  | 'web';
+
+export interface AnnouncementAdmin extends Announcement {
+  audience: AnnouncementAudience;
+  platform: AnnouncementPlatform;
+  target_min_app_version: string;
+  target_max_app_version: string;
+  is_published: boolean;
+  is_currently_valid: boolean;
+}
+
+export interface ClientReleaseRequirement {
+  mobile_min_supported_version: string;
+  mobile_latest_version: string;
+  mobile_force_update_message: string;
+  ios_store_url: string;
+  android_store_url: string;
   updated_at: string;
 }
 

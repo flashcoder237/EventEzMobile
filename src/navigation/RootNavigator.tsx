@@ -110,6 +110,9 @@ import UserEditScreen from '../screens/admin/UserEditScreen';
 import SubscriptionManagementScreen from '../screens/admin/SubscriptionManagementScreen';
 import AuditLogsScreen from '../screens/admin/AuditLogsScreen';
 import PlatformSettingsScreen from '../screens/admin/PlatformSettingsScreen';
+import AnnouncementsAdminScreen from '../screens/admin/AnnouncementsAdminScreen';
+import AnnouncementFormScreen from '../screens/admin/AnnouncementFormScreen';
+import ClientReleaseAdminScreen from '../screens/admin/ClientReleaseAdminScreen';
 
 // Treasury Screens
 import TreasuryOverviewScreen from '../screens/admin/treasury/TreasuryOverviewScreen';
@@ -338,6 +341,9 @@ export default function RootNavigator() {
       <Stack.Screen name="SubscriptionManagement" component={SubscriptionManagementScreen} />
       <Stack.Screen name="AuditLogs" component={AuditLogsScreen} />
       <Stack.Screen name="PlatformSettings" component={PlatformSettingsScreen} />
+      <Stack.Screen name="AnnouncementsAdmin" component={AnnouncementsAdminScreen} />
+      <Stack.Screen name="AnnouncementForm" component={AnnouncementFormScreen} />
+      <Stack.Screen name="ClientReleaseAdmin" component={ClientReleaseAdminScreen} />
 
       {/* Treasury Screens */}
       <Stack.Screen name="TreasuryOverview" component={TreasuryOverviewScreen} />
