@@ -41,6 +41,9 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'OrganizerProfile'>;
 type RouteProps = RouteProp<RootStackParamList, 'OrganizerProfile'>;
 
+// Hauteur estimée d'une eventRow (tile 72 + padding sm*2 + margin sm + border 2)
+const ORGANIZER_EVENT_ROW_HEIGHT = 98;
+
 export default function OrganizerProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
@@ -211,7 +214,7 @@ export default function OrganizerProfileScreen() {
             {/* Hero row : avatar à gauche + nom display à droite */}
             <View style={styles.heroRow}>
               {profileImage ? (
-                <Image source={profileImage} style={styles.heroAvatar} cachePolicy="disk" transition={200} />
+                <Image source={profileImage} style={styles.heroAvatar} cachePolicy="memory-disk" transition={200} />
               ) : (
                 <View style={[styles.heroAvatar, styles.heroAvatarPlaceholder, { backgroundColor: colors.primary }]}>
                   <Text style={styles.heroAvatarInitial}>
@@ -372,73 +375,82 @@ export default function OrganizerProfileScreen() {
                 <Text style={[styles.eventsLoadingText, { color: colors.gray500 }]}>Chargement…</Text>
               </View>
             ) : events.length > 0 ? (
-              events.map((event) => {
-                const startDate = event.start_date ? new Date(event.start_date) : null;
-                return (
-                  <TouchableOpacity
-                    key={event.id}
-                    style={[styles.eventRow, { backgroundColor: colors.card, borderColor: colors.border }]}
-                    onPress={() => navigateToEvent(event.id)}
-                    activeOpacity={TOUCH_OPACITY}
-                  >
-                    {/* Date tile orange à gauche */}
-                    {startDate ? (
-                      <View style={[styles.eventDateTile, { backgroundColor: `${colors.accent}1A` }]}>
-                        <Text style={[styles.eventDateDay, { color: colors.accent }]}>
-                          {startDate.getDate().toString().padStart(2, '0')}
-                        </Text>
-                        <Text style={[styles.eventDateMonth, { color: colors.accent }]}>
-                          {startDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase().replace('.', '')}
-                        </Text>
-                      </View>
-                    ) : event.banner_image ? (
-                      <Image
-                        source={getMediaUrl(event.banner_image)!}
-                        style={styles.eventDateTile}
-                        cachePolicy="disk"
-                        transition={200}
-                      />
-                    ) : (
-                      <View style={[styles.eventDateTile, { backgroundColor: colors.gray100, alignItems: 'center', justifyContent: 'center' }]}>
-                        <Ionicons name="image-outline" size={20} color={colors.gray400} />
-                      </View>
-                    )}
-
-                    {/* Corps : titre + meta + price */}
-                    <View style={styles.eventBody}>
-                      <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
-                        {event.title}
-                      </Text>
-                      {event.location_name && (
-                        <View style={styles.eventMetaItem}>
-                          <Ionicons name="location-outline" size={11} color={colors.gray500} />
-                          <Text style={[styles.eventMetaText, { color: colors.gray500 }]} numberOfLines={1}>
-                            {event.location_name}
+              <FlatList
+                data={events}
+                keyExtractor={(item) => String(item.id)}
+                scrollEnabled={false}
+                initialNumToRender={6}
+                maxToRenderPerBatch={8}
+                windowSize={5}
+                removeClippedSubviews
+                getItemLayout={(_, i) => ({ length: ORGANIZER_EVENT_ROW_HEIGHT, offset: ORGANIZER_EVENT_ROW_HEIGHT * i, index: i })}
+                renderItem={({ item: event }) => {
+                  const startDate = event.start_date ? new Date(event.start_date) : null;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.eventRow, { backgroundColor: colors.card, borderColor: colors.border }]}
+                      onPress={() => navigateToEvent(event.id)}
+                      activeOpacity={TOUCH_OPACITY}
+                    >
+                      {/* Date tile orange à gauche */}
+                      {startDate ? (
+                        <View style={[styles.eventDateTile, { backgroundColor: `${colors.accent}1A` }]}>
+                          <Text style={[styles.eventDateDay, { color: colors.accent }]}>
+                            {startDate.getDate().toString().padStart(2, '0')}
                           </Text>
+                          <Text style={[styles.eventDateMonth, { color: colors.accent }]}>
+                            {startDate.toLocaleDateString('fr-FR', { month: 'short' }).toUpperCase().replace('.', '')}
+                          </Text>
+                        </View>
+                      ) : event.banner_image ? (
+                        <Image
+                          source={getMediaUrl(event.banner_image)!}
+                          style={styles.eventDateTile}
+                          cachePolicy="memory-disk"
+                          transition={200}
+                        />
+                      ) : (
+                        <View style={[styles.eventDateTile, { backgroundColor: colors.gray100, alignItems: 'center', justifyContent: 'center' }]}>
+                          <Ionicons name="image-outline" size={20} color={colors.gray400} />
                         </View>
                       )}
-                      <View style={styles.eventBottomRow}>
-                        {event.is_free ? (
-                          <View style={[styles.freeBadge, { backgroundColor: colors.successLight }]}>
-                            <Text style={[styles.freeBadgeText, { color: colors.successDark }]}>GRATUIT</Text>
+
+                      {/* Corps : titre + meta + price */}
+                      <View style={styles.eventBody}>
+                        <Text style={[styles.eventTitle, { color: colors.gray900 }]} numberOfLines={2}>
+                          {event.title}
+                        </Text>
+                        {event.location_name && (
+                          <View style={styles.eventMetaItem}>
+                            <Ionicons name="location-outline" size={11} color={colors.gray500} />
+                            <Text style={[styles.eventMetaText, { color: colors.gray500 }]} numberOfLines={1}>
+                              {event.location_name}
+                            </Text>
                           </View>
-                        ) : event.base_price != null ? (
-                          <Text style={[styles.eventPrice, { color: colors.gray900 }]}>
-                            {Number(event.base_price).toLocaleString()} {event.currency || 'FCFA'}
-                          </Text>
-                        ) : null}
-                        <View style={styles.eventStatRow}>
-                          <Ionicons name="people-outline" size={11} color={colors.gray400} />
-                          <Text style={[styles.eventStat, { color: colors.gray500 }]} numberOfLines={1}>
-                            {formatCompactNumber(event.registration_count, { fallbackZero: true })}
-                          </Text>
+                        )}
+                        <View style={styles.eventBottomRow}>
+                          {event.is_free ? (
+                            <View style={[styles.freeBadge, { backgroundColor: colors.successLight }]}>
+                              <Text style={[styles.freeBadgeText, { color: colors.successDark }]}>GRATUIT</Text>
+                            </View>
+                          ) : event.base_price != null ? (
+                            <Text style={[styles.eventPrice, { color: colors.gray900 }]}>
+                              {Number(event.base_price).toLocaleString()} {event.currency || 'FCFA'}
+                            </Text>
+                          ) : null}
+                          <View style={styles.eventStatRow}>
+                            <Ionicons name="people-outline" size={11} color={colors.gray400} />
+                            <Text style={[styles.eventStat, { color: colors.gray500 }]} numberOfLines={1}>
+                              {formatCompactNumber(event.registration_count, { fallbackZero: true })}
+                            </Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                    <Ionicons name="chevron-forward" size={14} color={colors.gray400} />
-                  </TouchableOpacity>
-                );
-              })
+                      <Ionicons name="chevron-forward" size={14} color={colors.gray400} />
+                    </TouchableOpacity>
+                  );
+                }}
+              />
             ) : (
               <View style={[styles.emptyEventsContainer, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                 <Ionicons name="calendar-outline" size={32} color={colors.gray400} />

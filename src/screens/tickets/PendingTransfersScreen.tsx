@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -218,7 +218,7 @@ export default function PendingTransfersScreen() {
 
   // ── Received transfer item ──
 
-  const renderReceivedItem = ({ item }: { item: Transfer }) => {
+  const renderReceivedItem = useCallback(({ item }: { item: Transfer }) => {
     const isProcessing = actionLoading === item.id;
 
     return (
@@ -300,11 +300,11 @@ export default function PendingTransfersScreen() {
         )}
       </View>
     );
-  };
+  }, [actionLoading, colors, getTimeRemaining, formatDate, handleDecline, handleAccept]);
 
   // ── Sent transfer item ──
 
-  const renderSentItem = ({ item }: { item: Transfer }) => {
+  const renderSentItem = useCallback(({ item }: { item: Transfer }) => {
     const isProcessing = actionLoading === item.id;
     const isPending = item.status === 'pending' && !item.is_expired;
     const statusColor = getStatusColor(item.is_expired ? 'expired' : item.status);
@@ -385,7 +385,7 @@ export default function PendingTransfersScreen() {
         )}
       </View>
     );
-  };
+  }, [actionLoading, colors, getStatusColor, getStatusLabel, getTimeRemaining, formatDate, handleShowQR, handleCancelTransfer]);
 
   const renderEmptyReceived = () => (
     <View style={styles.emptyState}>
@@ -412,6 +412,11 @@ export default function PendingTransfersScreen() {
   );
 
   const currentData = activeTab === 'received' ? transfers : sentTransfers;
+
+  const renderItem = useMemo(
+    () => (activeTab === 'received' ? renderReceivedItem : renderSentItem),
+    [activeTab, renderReceivedItem, renderSentItem]
+  );
 
   return (
     <EditorialCanvas edges={['top']}>
@@ -479,7 +484,7 @@ export default function PendingTransfersScreen() {
         <FlatList
           data={currentData}
           keyExtractor={(item) => item.id}
-          renderItem={activeTab === 'received' ? renderReceivedItem : renderSentItem}
+          renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           ListEmptyComponent={activeTab === 'received' ? renderEmptyReceived : renderEmptySent}
           refreshControl={

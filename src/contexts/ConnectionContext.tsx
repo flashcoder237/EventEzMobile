@@ -44,14 +44,17 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
   const failCountRef = useRef(0);
 
   const checkServer = useCallback(async () => {
+    // Fix memory leak : try/finally pour garantir que le timeout d'abort est
+    // toujours cleare, meme si fetch throw (ECONNREFUSED, ENOTFOUND, etc.).
+    // Sans ca, le setTimeout reste arme 5s et appelle controller.abort() sur
+    // un controller deja consume.
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
       await fetch(`${API_BASE_URL}/categories/`, {
         method: 'HEAD',
         signal: controller.signal,
       });
-      clearTimeout(timeout);
       // Server responded — mark as reachable, reset fail counter
       setIsServerReachable(true);
       failCountRef.current = 0;
@@ -63,6 +66,8 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     } catch {
       setIsServerReachable(false);
       setWasOffline(false);
+    } finally {
+      clearTimeout(timeout);
     }
   }, []);
 
@@ -153,6 +158,23 @@ export function ConnectionProvider({ children }: { children: ReactNode }) {
     const sub = AppState.addEventListener('change', handleAppState);
     return () => sub.remove();
   }, [isServerReachable, checkServer]);
+
+  // Fix memory leak : cleanup dedie au unmount du Provider. Les useEffect
+  // dependants ci-dessus clear leurs timers quand leurs deps changent, mais
+  // on ajoute un filet de securite pour clear les refs au demount complet
+  // (ex : retryTimerRef si le Provider se demonte pendant un retry actif).
+  useEffect(() => {
+    return () => {
+      if (recheckTimerRef.current) {
+        clearTimeout(recheckTimerRef.current);
+        recheckTimerRef.current = null;
+      }
+      if (retryTimerRef.current) {
+        clearInterval(retryTimerRef.current);
+        retryTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const value = useMemo(() => ({
     isOnline,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -32,7 +32,7 @@ function formatPrice(marker: MapMarker): string {
   return 'Gratuit';
 }
 
-export default function MapEventCard({
+function MapEventCardComponent({
   marker,
   userLocation,
   onPress,
@@ -55,7 +55,7 @@ export default function MapEventCard({
       {/* Image */}
       <View style={styles.imageContainer}>
         {imageUrl ? (
-          <Image source={imageUrl} style={styles.image} contentFit="cover" cachePolicy="disk" transition={200} />
+          <Image source={imageUrl} style={styles.image} contentFit="cover" cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.imagePlaceholder, { backgroundColor: colors.gray200 }]}>
             <Ionicons name="calendar-outline" size={28} color={colors.gray400} />
@@ -111,6 +111,28 @@ export default function MapEventCard({
     </TouchableOpacity>
   );
 }
+
+// Mémoïsé : rendu en boucle dans FlatList, props stables côté parent
+export default memo(MapEventCardComponent, (prev, next) => {
+  return (
+    prev.marker.id === next.marker.id &&
+    prev.marker.title === next.marker.title &&
+    prev.marker.banner_image === next.marker.banner_image &&
+    prev.marker.category === next.marker.category &&
+    prev.marker.start_date === next.marker.start_date &&
+    prev.marker.location_city === next.marker.location_city &&
+    prev.marker.is_free === next.marker.is_free &&
+    prev.marker.min_price === next.marker.min_price &&
+    prev.marker.price === next.marker.price &&
+    prev.marker.lat === next.marker.lat &&
+    prev.marker.lng === next.marker.lng &&
+    prev.userLocation?.lat === next.userLocation?.lat &&
+    prev.userLocation?.lng === next.userLocation?.lng &&
+    prev.bottomOffset === next.bottomOffset &&
+    prev.onPress === next.onPress &&
+    prev.calculateDistance === next.calculateDistance
+  );
+});
 
 const styles = StyleSheet.create({
   card: {

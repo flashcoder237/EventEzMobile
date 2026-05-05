@@ -107,7 +107,7 @@ export default function BlockedUsersScreen() {
       >
         <View style={styles.avatarWrap}>
           {avatar ? (
-            <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
+            <Image source={avatar} style={styles.avatar} cachePolicy="memory-disk" transition={200} />
           ) : (
             <View
               style={[

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, Suspense, lazy, ComponentType } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
@@ -7,6 +7,20 @@ import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
 import { navigate } from './navigationRef';
+
+// Helper : wrap un composant lazy dans un Suspense pour qu'il soit utilisable
+// directement comme `component={...}` d'un Stack.Screen sans changer la signature.
+// Le fallback est volontairement minimal (LoadingSpinner) — ces écrans rarement
+// visités économisent ~3-5s de TTI au cold start en évitant de parser leur code.
+function withSuspense<P extends object>(LazyComp: ComponentType<P>): ComponentType<P> {
+  const Wrapped = (props: P) => (
+    <Suspense fallback={<LoadingSpinner />}>
+      <LazyComp {...props} />
+    </Suspense>
+  );
+  Wrapped.displayName = `Suspended(${(LazyComp as any).displayName || 'LazyScreen'})`;
+  return Wrapped;
+}
 
 // Navigators
 import MainTabNavigator from './MainTabNavigator';
@@ -61,65 +75,69 @@ import ConversationScreen from '../screens/messages/ConversationScreen';
 // Scan Screen
 import ScanScreen from '../screens/scan/ScanScreen';
 
-// Organizer Screens
+// Organizer Screens — frequently used (kept static)
 import EventCreateScreen from '../screens/organizer/EventCreateScreen';
 import DraftsListScreen from '../screens/organizer/DraftsListScreen';
 import WalletScreen from '../screens/organizer/WalletScreen';
 import MyEventsScreen from '../screens/organizer/MyEventsScreen';
 import QRScannerScreen from '../screens/organizer/QRScannerScreen';
-import EventAnalyticsScreen from '../screens/organizer/EventAnalyticsScreen';
 import EventRegistrationsScreen from '../screens/organizer/EventRegistrationsScreen';
-import DiscountManagementScreen from '../screens/organizer/DiscountManagementScreen';
-import DiscountFormScreen from '../screens/organizer/DiscountFormScreen';
-import EventSessionsLinkScreen from '../screens/organizer/EventSessionsLinkScreen';
-import SponsorManagementScreen from '../screens/organizer/SponsorManagementScreen';
-import WebhooksScreen from '../screens/organizer/WebhooksScreen';
-import NewslettersScreen from '../screens/organizer/NewslettersScreen';
-import DashboardsScreen from '../screens/organizer/DashboardsScreen';
-import DashboardDetailsScreen from '../screens/organizer/DashboardDetailsScreen';
-import SeatingPlansScreen from '../screens/organizer/SeatingPlansScreen';
-import SeatingPlanEditorScreen from '../screens/organizer/SeatingPlanEditorScreen';
 
-// Moderation Screens
-import ModerationScreen from '../screens/moderation/ModerationScreen';
+// Organizer Screens — rare / power-user features (lazy-loaded for TTI gain)
+const EventAnalyticsScreen = withSuspense(lazy(() => import('../screens/organizer/EventAnalyticsScreen')));
+const DiscountManagementScreen = withSuspense(lazy(() => import('../screens/organizer/DiscountManagementScreen')));
+const DiscountFormScreen = withSuspense(lazy(() => import('../screens/organizer/DiscountFormScreen')));
+const EventSessionsLinkScreen = withSuspense(lazy(() => import('../screens/organizer/EventSessionsLinkScreen')));
+const SponsorManagementScreen = withSuspense(lazy(() => import('../screens/organizer/SponsorManagementScreen')));
+const WebhooksScreen = withSuspense(lazy(() => import('../screens/organizer/WebhooksScreen')));
+const NewslettersScreen = withSuspense(lazy(() => import('../screens/organizer/NewslettersScreen')));
+const DashboardsScreen = withSuspense(lazy(() => import('../screens/organizer/DashboardsScreen')));
+const DashboardDetailsScreen = withSuspense(lazy(() => import('../screens/organizer/DashboardDetailsScreen')));
+const SeatingPlansScreen = withSuspense(lazy(() => import('../screens/organizer/SeatingPlansScreen')));
+const SeatingPlanEditorScreen = withSuspense(lazy(() => import('../screens/organizer/SeatingPlanEditorScreen')));
+
+// Moderation Screens (lazy — staff only)
+const ModerationScreen = withSuspense(lazy(() => import('../screens/moderation/ModerationScreen')));
 
 // Payment Management Screens
 import MyPaymentsScreen from '../screens/payment/MyPaymentsScreen';
 import RefundRequestScreen from '../screens/payment/RefundRequestScreen';
 import RefundsListScreen from '../screens/payment/RefundsListScreen';
 
-// New Feature Screens
+// New Feature Screens — frequent (kept static)
 import GamificationScreen from '../screens/profile/GamificationScreen';
 import InvitationsScreen from '../screens/dashboard/InvitationsScreen';
-import LiveEventScreen from '../screens/events/LiveEventScreen';
 import ReferralScreen from '../screens/dashboard/ReferralScreen';
-import VolunteerScreen from '../screens/organizer/VolunteerScreen';
-import SubscriptionScreen from '../screens/dashboard/SubscriptionScreen';
+
+// New Feature Screens — rare (lazy)
+const LiveEventScreen = withSuspense(lazy(() => import('../screens/events/LiveEventScreen')));
+const VolunteerScreen = withSuspense(lazy(() => import('../screens/organizer/VolunteerScreen')));
+const SubscriptionScreen = withSuspense(lazy(() => import('../screens/dashboard/SubscriptionScreen')));
 
 // Help Screen
 import HelpScreen from '../screens/profile/HelpScreen';
 
-// Analytics Screens
-import AnalyticsDashboardScreen from '../screens/organizer/AnalyticsDashboardScreen';
-import ReportsScreen from '../screens/organizer/ReportsScreen';
+// Analytics Screens (lazy — power users)
+const AnalyticsDashboardScreen = withSuspense(lazy(() => import('../screens/organizer/AnalyticsDashboardScreen')));
+const ReportsScreen = withSuspense(lazy(() => import('../screens/organizer/ReportsScreen')));
 
-// Admin Screens
-import AdminDashboardScreen from '../screens/admin/AdminDashboardScreen';
-import UserManagementScreen from '../screens/admin/UserManagementScreen';
-import UserEditScreen from '../screens/admin/UserEditScreen';
-import SubscriptionManagementScreen from '../screens/admin/SubscriptionManagementScreen';
-import AuditLogsScreen from '../screens/admin/AuditLogsScreen';
-import PlatformSettingsScreen from '../screens/admin/PlatformSettingsScreen';
-import AnnouncementsAdminScreen from '../screens/admin/AnnouncementsAdminScreen';
-import AnnouncementFormScreen from '../screens/admin/AnnouncementFormScreen';
-import ClientReleaseAdminScreen from '../screens/admin/ClientReleaseAdminScreen';
+// Admin Screens (lazy — admins only, ~99% of users never load these)
+const AdminDashboardScreen = withSuspense(lazy(() => import('../screens/admin/AdminDashboardScreen')));
+const UserManagementScreen = withSuspense(lazy(() => import('../screens/admin/UserManagementScreen')));
+const UserEditScreen = withSuspense(lazy(() => import('../screens/admin/UserEditScreen')));
+const SubscriptionManagementScreen = withSuspense(lazy(() => import('../screens/admin/SubscriptionManagementScreen')));
+const AuditLogsScreen = withSuspense(lazy(() => import('../screens/admin/AuditLogsScreen')));
+const PlatformSettingsScreen = withSuspense(lazy(() => import('../screens/admin/PlatformSettingsScreen')));
+const AnnouncementsAdminScreen = withSuspense(lazy(() => import('../screens/admin/AnnouncementsAdminScreen')));
+const AnnouncementFormScreen = withSuspense(lazy(() => import('../screens/admin/AnnouncementFormScreen')));
+const ClientReleaseAdminScreen = withSuspense(lazy(() => import('../screens/admin/ClientReleaseAdminScreen')));
 
-// Treasury Screens
-import TreasuryOverviewScreen from '../screens/admin/treasury/TreasuryOverviewScreen';
-import TreasuryStaffScreen from '../screens/admin/treasury/TreasuryStaffScreen';
-import TreasuryExpensesScreen from '../screens/admin/treasury/TreasuryExpensesScreen';
-import TreasuryShareholdersScreen from '../screens/admin/treasury/TreasuryShareholdersScreen';
-import TreasuryReportsScreen from '../screens/admin/treasury/TreasuryReportsScreen';
+// Treasury Screens (lazy — staff/admin only, very niche)
+const TreasuryOverviewScreen = withSuspense(lazy(() => import('../screens/admin/treasury/TreasuryOverviewScreen')));
+const TreasuryStaffScreen = withSuspense(lazy(() => import('../screens/admin/treasury/TreasuryStaffScreen')));
+const TreasuryExpensesScreen = withSuspense(lazy(() => import('../screens/admin/treasury/TreasuryExpensesScreen')));
+const TreasuryShareholdersScreen = withSuspense(lazy(() => import('../screens/admin/treasury/TreasuryShareholdersScreen')));
+const TreasuryReportsScreen = withSuspense(lazy(() => import('../screens/admin/treasury/TreasuryReportsScreen')));
 
 // System Status Screens
 import MaintenanceScreen from '../screens/status/MaintenanceScreen';

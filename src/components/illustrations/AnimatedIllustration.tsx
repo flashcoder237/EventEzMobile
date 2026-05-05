@@ -121,7 +121,7 @@ function AnimatedIllustrationComponent({
         ),
       );
     }
-  }, [reduced]);
+  }, [reduced, delay, duration, entry, idle]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,

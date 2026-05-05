@@ -8,6 +8,9 @@ import { notificationsAPI } from '../api';
 
 const PUSH_TOKEN_KEY = '@eventez_push_token';
 const PUSH_REGISTERED_AT_KEY = '@eventez_push_registered_at';
+// Dernier token effectivement enregistré côté backend. Utilisé pour skip
+// l'API call si on tente de ré-enregistrer le même token (déduplication).
+const LAST_REGISTERED_TOKEN_KEY = '@eventez_last_registered_token';
 // Doit rester aligné avec NotificationContext.LAST_HANDLED_RESPONSE_ID_KEY.
 // Stocké ici aussi pour que le listener "warm tap" puisse marquer une notif
 // comme déjà consommée — sans ça, au prochain cold start
@@ -230,8 +233,22 @@ class PushNotificationService {
 
   /**
    * Register push token with backend
+   *
+   * Déduplication : si le token == lastRegisteredToken stocké, on skip l'API
+   * call. `force=true` permet de forcer un re-register (utilisé par le refresh
+   * périodique `refreshRegistrationIfStale`).
    */
-  async registerTokenWithBackend(token: string): Promise<boolean> {
+  async registerTokenWithBackend(token: string, force = false): Promise<boolean> {
+    if (!force) {
+      try {
+        const lastRegistered = await AsyncStorage.getItem(LAST_REGISTERED_TOKEN_KEY);
+        if (lastRegistered === token) {
+          if (__DEV__) console.log('[Push] Token already registered — skipping API call');
+          return true;
+        }
+      } catch { /* ignore — on retombera sur l'API call */ }
+    }
+
     const deviceInfo = {
       push_token: token,
       device_type: Platform.OS as 'ios' | 'android' | 'web',
@@ -241,7 +258,10 @@ class PushNotificationService {
 
     const ok = await this.registerDeviceWithRetry(deviceInfo);
     if (ok) {
-      try { await AsyncStorage.setItem(PUSH_REGISTERED_AT_KEY, String(Date.now())); } catch { /* ignore */ }
+      try {
+        await AsyncStorage.setItem(PUSH_REGISTERED_AT_KEY, String(Date.now()));
+        await AsyncStorage.setItem(LAST_REGISTERED_TOKEN_KEY, token);
+      } catch { /* ignore */ }
     }
     return ok;
   }
@@ -262,7 +282,8 @@ class PushNotificationService {
       const last = lastStr ? Number(lastStr) : 0;
       if (Number.isFinite(last) && Date.now() - last < PUSH_RE_REGISTER_INTERVAL_MS) return;
       if (__DEV__) console.log('[Push] Token registration stale — refreshing');
-      await this.registerTokenWithBackend(token);
+      // force=true : bypass la dédup, on veut forcer le re-register après staleness.
+      await this.registerTokenWithBackend(token, true);
     } catch (error) {
       if (__DEV__) console.warn('[Push] refreshRegistrationIfStale failed:', error);
     }
@@ -283,9 +304,10 @@ class PushNotificationService {
           // Ignore API errors (401 is expected if called after logout)
           if (__DEV__) console.log('[Push] Backend unregister skipped (user may be logged out)');
         }
-        // Always clear local token + stale-check timestamp
+        // Always clear local token + stale-check timestamp + dedup marker
         await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
         await AsyncStorage.removeItem(PUSH_REGISTERED_AT_KEY);
+        await AsyncStorage.removeItem(LAST_REGISTERED_TOKEN_KEY);
         if (__DEV__) console.log('[Push] Device unregistered locally');
       }
     } catch (error) {

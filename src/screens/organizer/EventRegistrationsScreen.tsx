@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -102,6 +102,18 @@ export default function EventRegistrationsScreen() {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
 
+  // Pagination
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(false);
+  const loadingMoreRef = useRef(false);
+  pageRef.current = page;
+  hasMoreRef.current = hasMore;
+  loadingMoreRef.current = loadingMore;
+
   useEffect(() => {
     fetchRegistrations();
   }, [eventId]);
@@ -110,23 +122,72 @@ export default function EventRegistrationsScreen() {
     try {
       const [eventResponse, registrationsResponse] = await Promise.all([
         eventsAPI.getEvent(eventId),
-        registrationsAPI.getRegistrations({ event: eventId, event_id: eventId }),
+        registrationsAPI.getRegistrations({
+          event: eventId,
+          event_id: eventId,
+          page: 1,
+          page_size: PAGE_SIZE,
+        }),
       ]);
 
       if (eventResponse.data) {
         setEventTitle(eventResponse.data.title || '');
       }
 
-      const data = registrationsResponse.data.results || registrationsResponse.data || [];
-      const filteredData = data.filter((r: Registration) => {
+      const results = registrationsResponse.data?.results || registrationsResponse.data || [];
+      const next = registrationsResponse.data?.next;
+      const filteredData = results.filter((r: Registration) => {
         const regEventId = typeof r.event === 'string' ? r.event : r.event?.id;
         return regEventId === eventId;
       });
       setRegistrations(filteredData);
+      setPage(1);
+      setHasMore(
+        next != null
+          ? Boolean(next)
+          : Array.isArray(results) && results.length === PAGE_SIZE,
+      );
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement inscriptions:', error);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (!hasMoreRef.current || loadingMoreRef.current) return;
+    setLoadingMore(true);
+    const nextPage = pageRef.current + 1;
+    try {
+      const response = await registrationsAPI.getRegistrations({
+        event: eventId,
+        event_id: eventId,
+        page: nextPage,
+        page_size: PAGE_SIZE,
+      });
+      const results = response.data?.results || response.data || [];
+      const next = response.data?.next;
+      const filtered = results.filter((r: Registration) => {
+        const regEventId = typeof r.event === 'string' ? r.event : r.event?.id;
+        return regEventId === eventId;
+      });
+      setRegistrations(prev => {
+        // Dédoublonnage par id
+        const existingIds = new Set(prev.map(r => r.id));
+        const newOnes = filtered.filter((r: Registration) => !existingIds.has(r.id));
+        return [...prev, ...newOnes];
+      });
+      setPage(nextPage);
+      setHasMore(
+        next != null
+          ? Boolean(next)
+          : Array.isArray(results) && results.length === PAGE_SIZE,
+      );
+    } catch (error) {
+      if (__DEV__) console.error('Erreur pagination inscriptions:', error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -597,6 +658,15 @@ export default function EventRegistrationsScreen() {
             contentContainerStyle={[styles.listContent, { paddingBottom: insets.bottom + Spacing.lg }, selectionMode && { paddingBottom: insets.bottom + 120 }]}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={renderEmpty}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: Spacing.lg }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

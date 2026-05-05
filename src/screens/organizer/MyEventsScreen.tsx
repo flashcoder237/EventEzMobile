@@ -1091,6 +1091,7 @@ export default function MyEventsScreen() {
             colors={[colors.primary]}
           />
         }
+        initialNumToRender={8}
         maxToRenderPerBatch={10}
         windowSize={5}
         removeClippedSubviews

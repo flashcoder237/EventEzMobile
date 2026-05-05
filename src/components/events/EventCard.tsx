@@ -79,7 +79,7 @@ interface EventCardProps {
   onLikePress?: () => void;
 }
 
-function EventCard({
+function EventCardComponent({
   id,
   title,
   date,
@@ -994,4 +994,33 @@ const styles = StyleSheet.create({
   },
 });
 
-export default memo(EventCard);
+// Mémoïsé : rendu en boucle dans FlatList, props stables côté parent
+// Comparateur shallow sur tous les primitives + références pour les fonctions.
+// On suppose que onPress/onLikePress sont stables côté parent (useCallback).
+function arePropsEqual(prev: EventCardProps, next: EventCardProps): boolean {
+  return (
+    prev.id === next.id &&
+    prev.title === next.title &&
+    prev.date === next.date &&
+    prev.time === next.time &&
+    prev.location === next.location &&
+    prev.imageUrl === next.imageUrl &&
+    prev.imagePlaceholder === next.imagePlaceholder &&
+    prev.category === next.category &&
+    prev.price === next.price &&
+    prev.priceMax === next.priceMax &&
+    prev.attendees === next.attendees &&
+    prev.isFree === next.isFree &&
+    prev.isLiked === next.isLiked &&
+    prev.isFeatured === next.isFeatured &&
+    prev.locationType === next.locationType &&
+    prev.eventType === next.eventType &&
+    prev.currency === next.currency &&
+    prev.variant === next.variant &&
+    prev.fullWidth === next.fullWidth &&
+    prev.onPress === next.onPress &&
+    prev.onLikePress === next.onLikePress
+  );
+}
+
+export default memo(EventCardComponent, arePropsEqual);

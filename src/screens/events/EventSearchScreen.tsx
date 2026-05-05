@@ -60,6 +60,9 @@ type PriceFilter = 'any' | 'free' | 'paid';
 const PAGE_SIZE = 20;
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+// Hauteur estimée d'une ligne de résultat (EventCard liste)
+const SEARCH_RESULT_HEIGHT = 220;
+
 interface State {
   query: string;
   debouncedQuery: string;
@@ -892,8 +895,13 @@ export default function EventSearchScreen() {
             showsVerticalScrollIndicator={false}
             removeClippedSubviews
             initialNumToRender={8}
-            windowSize={10}
+            windowSize={5}
             maxToRenderPerBatch={10}
+            getItemLayout={(_, i) => {
+              const cols = columns > 1 ? columns : 1;
+              const row = Math.floor(i / cols);
+              return { length: SEARCH_RESULT_HEIGHT, offset: SEARCH_RESULT_HEIGHT * row, index: i };
+            }}
             ListFooterComponent={
               state.loadingMore ? (
                 <View style={styles.footerLoader}>

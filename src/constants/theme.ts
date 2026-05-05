@@ -197,12 +197,16 @@ export const DarkColors = {
   gradientEnd: '#A78BFA',
 };
 
+// NOTE perf : displayMedium et light sont actuellement non-utilisés dans le code.
+// Ils sont aliasés vers les poids voisins déjà chargés au boot pour économiser
+// ~200KB de bundle. Si tu veux les réactiver, ré-importe les vraies polices dans
+// App.tsx et restaure les valeurs ci-dessous.
 export const FontFamily = {
   // Titles - Funnel Display (h1, h2, hero text)
   displayExtraBold: 'FunnelDisplay_800ExtraBold',
   displayBold: 'FunnelDisplay_700Bold',
   displaySemiBold: 'FunnelDisplay_600SemiBold',
-  displayMedium: 'FunnelDisplay_500Medium',
+  displayMedium: 'FunnelDisplay_400Regular', // alias vers displayRegular (cf. note ci-dessus)
   displayRegular: 'FunnelDisplay_400Regular',
 
   // Body - Montserrat (paragraphs, labels, buttons)
@@ -210,7 +214,7 @@ export const FontFamily = {
   semiBold: 'Montserrat_600SemiBold',
   medium: 'Montserrat_500Medium',
   regular: 'Montserrat_400Regular',
-  light: 'Montserrat_300Light',
+  light: 'Montserrat_400Regular', // alias vers regular (cf. note ci-dessus)
 };
 
 // FontSizes : adapte a la largeur d'ecran via moderateScale (facteur 0.3).

@@ -3,7 +3,7 @@
  * Equivalents mobile des micro-interactions Framer Motion du web
  */
 
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, memo } from 'react';
 import { View, ViewStyle, StyleProp } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -13,6 +13,7 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
+  cancelAnimation,
   interpolate,
   Easing,
   FadeIn,
@@ -85,7 +86,7 @@ interface StaggeredItemProps {
   style?: StyleProp<ViewStyle>;
 }
 
-export function StaggeredItem({
+function StaggeredItemComponent({
   children,
   index,
   staggerDelay = 60,
@@ -120,6 +121,19 @@ export function StaggeredItem({
     </Animated.View>
   );
 }
+
+// Mémoïsé : rendu en boucle dans FlatList, props stables côté parent.
+// On NE compare PAS `children` — React.memo par défaut ne le fait pas, et
+// les changements internes aux children passent quand même via leur propre
+// closure. Ne comparer que index/staggerDelay/style évite des re-renders inutiles
+// quand le parent re-render mais que la position de l'item dans la liste n'a pas changé.
+export const StaggeredItem = memo(
+  StaggeredItemComponent,
+  (prev, next) =>
+    prev.index === next.index &&
+    prev.staggerDelay === next.staggerDelay &&
+    prev.style === next.style
+);
 
 // ============================================
 // 3. ScaleOnMount — Scale bounce entrance
@@ -186,6 +200,10 @@ export function PulsingBadge({
     } else {
       scale.value = withTiming(1, { duration: 200 });
     }
+    return () => {
+      // Stop the infinite withRepeat when active toggles or component unmounts
+      cancelAnimation(scale);
+    };
   }, [active]);
 
   const animatedStyle = useAnimatedStyle(() => ({

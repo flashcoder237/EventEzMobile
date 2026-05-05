@@ -372,7 +372,7 @@ export default function SessionDetailsScreen() {
                   activeOpacity={TOUCH_OPACITY}
                 >
                   {speakerPhoto ? (
-                    <Image source={speakerPhoto} style={styles.speakerPhoto} cachePolicy="disk" transition={200} />
+                    <Image source={speakerPhoto} style={styles.speakerPhoto} cachePolicy="memory-disk" transition={200} />
                   ) : (
                     <View style={[styles.speakerPhotoPlaceholder, { backgroundColor: colors.gray200 }]}>
                       <Ionicons name="person" size={20} color={colors.gray400} />
@@ -403,7 +403,7 @@ export default function SessionDetailsScreen() {
               activeOpacity={TOUCH_OPACITY}
             >
               {session.moderator_detail.photo ? (
-                <Image source={session.moderator_detail.photo} style={styles.speakerPhoto} cachePolicy="disk" transition={200} />
+                <Image source={session.moderator_detail.photo} style={styles.speakerPhoto} cachePolicy="memory-disk" transition={200} />
               ) : (
                 <View style={[styles.speakerPhotoPlaceholder, { backgroundColor: colors.gray200 }]}>
                   <Ionicons name="person" size={20} color={colors.gray400} />

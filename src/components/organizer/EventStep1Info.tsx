@@ -161,7 +161,7 @@ export default function EventStep1Info({
         <TouchableOpacity style={[styles.imagePickerButton, themed.imagePickerButton]} onPress={onPickImage}>
           {bannerImage ? (
             <View style={styles.imagePreviewContainer}>
-              <Image source={bannerImage} style={styles.imagePreview} cachePolicy="disk" transition={200} />
+              <Image source={bannerImage} style={styles.imagePreview} cachePolicy="memory-disk" transition={200} />
               <TouchableOpacity
                 style={styles.removeImageButton}
                 onPress={onRemoveImage}
@@ -226,7 +226,7 @@ export default function EventStep1Info({
             contentContainerStyle={{ gap: 8 }}
             renderItem={({ item, index }) => (
               <View style={{ position: 'relative' }}>
-                <Image source={item} style={{ width: 90, height: 70, borderRadius: 8 }} cachePolicy="disk" transition={200} />
+                <Image source={item} style={{ width: 90, height: 70, borderRadius: 8 }} cachePolicy="memory-disk" transition={200} />
                 <TouchableOpacity
                   style={{ position: 'absolute', top: -6, right: -6 }}
                   onPress={() => onRemoveGalleryImage(index)}

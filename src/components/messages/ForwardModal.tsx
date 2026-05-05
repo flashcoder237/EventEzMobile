@@ -45,6 +45,9 @@ interface ForwardModalProps {
   onSelectTarget: (userId: string) => void;
 }
 
+// Hauteur estimée d'une ligne cible (avatar + nom)
+const FORWARD_TARGET_HEIGHT = 72;
+
 function ForwardModal({
   visible,
   targets,
@@ -76,7 +79,7 @@ function ForwardModal({
         onPress={() => onSelectTarget(String(item.id))}
       >
         {avatar ? (
-          <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
+          <Image source={avatar} style={styles.avatar} cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.avatarPlaceholder, { backgroundColor: colors.primary }]}>
             <Text style={styles.avatarInitials}>{initials}</Text>
@@ -170,6 +173,11 @@ function ForwardModal({
               ListEmptyComponent={renderEmpty}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              initialNumToRender={8}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews
+              getItemLayout={(_, i) => ({ length: FORWARD_TARGET_HEIGHT, offset: FORWARD_TARGET_HEIGHT * i, index: i })}
             />
           )}
         </Reanimated.View>

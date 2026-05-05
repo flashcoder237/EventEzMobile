@@ -168,7 +168,9 @@ export default function MapScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
-        const loc = await Location.getCurrentPositionAsync({});
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
         setUserLocation({
           lat: loc.coords.latitude,
           lng: loc.coords.longitude,
@@ -209,7 +211,9 @@ export default function MapScreen() {
 
   const centerOnUser = async () => {
     try {
-      const loc = await Location.getCurrentPositionAsync({});
+      const loc = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
       setUserLocation({
         lat: loc.coords.latitude,
         lng: loc.coords.longitude,

@@ -168,7 +168,7 @@ export default function SpeakerDetailsScreen() {
         {/* Profile Header */}
         <View style={styles.profileHeader}>
           {speaker.photo ? (
-            <Image source={speaker.photo} style={styles.avatar} cachePolicy="disk" transition={200} />
+            <Image source={speaker.photo} style={styles.avatar} cachePolicy="memory-disk" transition={200} />
           ) : (
             <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray100 }]}>
               <Ionicons name="person" size={40} color={colors.gray400} />

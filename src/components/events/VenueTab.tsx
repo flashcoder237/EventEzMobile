@@ -268,7 +268,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                   source={fp.image}
                   style={[styles.floorPlanImage, { backgroundColor: colors.surface }]}
                   contentFit="contain"
-                  cachePolicy="disk"
+                  cachePolicy="memory-disk"
                   transition={200}
                 />
               )}

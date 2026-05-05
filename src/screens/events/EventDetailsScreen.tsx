@@ -40,18 +40,21 @@ import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import AddToCalendarButton from '../../components/events/AddToCalendarButton';
-import SponsorsTab from '../../components/events/SponsorsTab';
-import VenueTab from '../../components/events/VenueTab';
-import VolunteersTab from '../../components/events/VolunteersTab';
-import NewsletterTab from '../../components/events/NewsletterTab';
-import CfpTab from '../../components/events/CfpTab';
-import VirtualTab from '../../components/events/VirtualTab';
-import SocialTab from '../../components/events/SocialTab';
-import LocationTab from '../../components/events/LocationTab';
+// Tabs visibles immédiatement (above-the-fold) : import statique.
 import AboutTab from '../../components/events/AboutTab';
 import TicketsTab from '../../components/events/TicketsTab';
-import AgendaTab from '../../components/events/AgendaTab';
-import ReviewsTab from '../../components/events/ReviewsTab';
+
+// Tabs heavy (rendus seulement quand heavyRevealed=true après scroll) :
+// React.lazy → leur code n'est pas dans le bundle initial, parsé seulement
+// quand l'user scrolle suffisamment. Gros gain sur le mount d'un EventDetails.
+const AgendaTab = React.lazy(() => import('../../components/events/AgendaTab'));
+const LocationTab = React.lazy(() => import('../../components/events/LocationTab'));
+const ReviewsTab = React.lazy(() => import('../../components/events/ReviewsTab'));
+const SponsorsTab = React.lazy(() => import('../../components/events/SponsorsTab'));
+
+// NOTE : VenueTab, VolunteersTab, NewsletterTab, CfpTab, VirtualTab, SocialTab
+// étaient importés mais jamais utilisés dans le rendu — supprimés (dead imports).
+// Si tu as besoin d'eux, les ajouter en lazy comme les heavy tabs ci-dessus.
 import SimilarEventsSection from '../../components/events/SimilarEventsSection';
 import { useEventDetails } from '../../hooks/useEventDetails';
 import { useAuthGuard } from '../../hooks/useAuthGuard';
@@ -938,10 +941,15 @@ export default function EventDetailsScreen() {
           />
 
           {/* === Heavy sections — mounted only after the user scrolls past
-              HEAVY_REVEAL_THRESHOLD. Until then, a thin placeholder reserves
-              minimal vertical space (no skeletons, no API mounts). === */}
+              HEAVY_REVEAL_THRESHOLD. Lazy-loaded via React.Suspense pour ne pas
+              charger leur code dans le bundle initial. Le fallback Suspense est
+              le même placeholder que celui pre-reveal. === */}
           {heavyRevealed ? (
-            <>
+            <React.Suspense fallback={
+              <View style={{ height: 320, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={colors.gray300} />
+              </View>
+            }>
               {/* Section: Agenda */}
               {sessions && sessions.length > 0 && (
                 <AgendaTab
@@ -974,7 +982,7 @@ export default function EventDetailsScreen() {
 
               {/* Section: Sponsors */}
               <SponsorsTab eventId={eventId} />
-            </>
+            </React.Suspense>
           ) : (
             <View style={{ height: 320, justifyContent: 'center', alignItems: 'center' }}>
               <ActivityIndicator size="small" color={colors.gray300} />

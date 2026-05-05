@@ -10,8 +10,8 @@ import { fetchUpload } from './config';
 // ============================================
 
 export const messagesAPI = {
-  getConversations: () =>
-    api.get('/conversations/'),
+  getConversations: (params?: any) =>
+    api.get('/conversations/', { params }),
 
   getConversation: (id: string) =>
     api.get(`/conversations/${id}/`),

@@ -79,6 +79,12 @@ const TYPING_TIMEOUT_MS = 5000;
 // déclenche onclose et relance la chaîne de reconnexion automatique.
 const CONNECTING_TIMEOUT_MS = 15000;
 
+// Heartbeat applicatif (ping/pong JSON). Les frames natives WebSocket 0x9/0xA
+// ne sont pas exposées par l'API JS de RN, on doit donc passer par un
+// message app-level. Backend doit gérer { type: 'ping' } → répondre { type: 'pong' }.
+const HEARTBEAT_INTERVAL_MS = 15000;
+const HEARTBEAT_TIMEOUT_MS = 20000;
+
 export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}) {
   const {
     onNewMessage,
@@ -102,6 +108,11 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const connectingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Heartbeat : interval qui envoie des pings, et timeout qui attend le pong.
+  // Si pas de pong dans HEARTBEAT_TIMEOUT_MS, on force-close pour relancer le
+  // cycle de reconnexion (cas où le serveur est down sans avoir close le socket).
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = useRef(0);
   // Si le serveur envoie un code d'erreur "permanent" (max_connections, etc.),
   // on bloque la reconnexion auto pour éviter un storm.
@@ -114,6 +125,48 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   // Évite que onclose ne reconnecte automatiquement pendant qu'on refresh le
   // token manuellement après un auth.error (sinon on se retrouve avec 2 WS).
   const authRefreshInProgressRef = useRef(false);
+
+  // Stoppe l'interval de ping et le timeout de pong (cleanup).
+  const stopHeartbeat = useCallback(() => {
+    if (heartbeatIntervalRef.current) {
+      clearInterval(heartbeatIntervalRef.current);
+      heartbeatIntervalRef.current = null;
+    }
+    if (heartbeatTimeoutRef.current) {
+      clearTimeout(heartbeatTimeoutRef.current);
+      heartbeatTimeoutRef.current = null;
+    }
+  }, []);
+
+  // Démarre le heartbeat applicatif. Toutes les HEARTBEAT_INTERVAL_MS, on envoie
+  // un { type: 'ping' } et on arme un timeout HEARTBEAT_TIMEOUT_MS — si le pong
+  // n'arrive pas, on force-close le socket (déclenche onclose → reconnect auto).
+  // Backend doit gérer { type: 'ping' } → répondre { type: 'pong' }.
+  const startHeartbeat = useCallback(() => {
+    stopHeartbeat();
+    heartbeatIntervalRef.current = setInterval(() => {
+      const ws = wsRef.current;
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      try {
+        ws.send(JSON.stringify({ type: 'ping' }));
+      } catch {
+        // ignore — le close arrivera de lui-même
+        return;
+      }
+      // Arme le timeout de pong (s'il est déjà armé, on le remplace).
+      if (heartbeatTimeoutRef.current) {
+        clearTimeout(heartbeatTimeoutRef.current);
+      }
+      heartbeatTimeoutRef.current = setTimeout(() => {
+        if (__DEV__) console.warn('[WS] heartbeat timeout — connection silently dead, closing');
+        try {
+          wsRef.current?.close();
+        } catch {
+          // ignore
+        }
+      }, HEARTBEAT_TIMEOUT_MS);
+    }, HEARTBEAT_INTERVAL_MS);
+  }, [stopHeartbeat]);
 
   // Cleanup typing timeout
   const clearTypingTimeout = useCallback((key: string) => {
@@ -133,9 +186,17 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   // Handle incoming WebSocket messages
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
-      const data: WebSocketIncomingMessage | WebSocketErrorMessage = JSON.parse(event.data);
+      const data: WebSocketIncomingMessage | WebSocketErrorMessage | { type: 'pong' } = JSON.parse(event.data);
 
       switch (data.type) {
+        case 'pong':
+          // Reset le timeout de pong : la connexion est vivante.
+          if (heartbeatTimeoutRef.current) {
+            clearTimeout(heartbeatTimeoutRef.current);
+            heartbeatTimeoutRef.current = null;
+          }
+          break;
+
         case 'auth.success':
           setIsAuthenticated(true);
           setConnectionError(null);
@@ -147,6 +208,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
             wsRef.current?.send(JSON.stringify(msg));
           });
           pendingMessagesRef.current = [];
+          // Démarre le heartbeat une fois la session pleinement établie.
+          startHeartbeat();
           break;
 
         case 'auth.error':
@@ -343,10 +406,16 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onUnreadDecrement,
     onServerError,
     clearTypingTimeout,
+    startHeartbeat,
   ]);
 
   // Connect to WebSocket
   const connect = useCallback(async () => {
+    // Fix memory leak : variable locale pour le socket. Si la creation reussit
+    // mais qu'une erreur survient pendant la setup (avant `wsRef.current = ws`),
+    // le socket reste ouvert et leak. On garde une reference locale pour
+    // pouvoir le fermer dans le catch.
+    let ws: WebSocket | null = null;
     try {
       // Récupérer le token d'accès via le helper centralisé
       const accessToken = await getAccessToken();
@@ -371,7 +440,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         return;
       }
 
-      const ws = new WebSocket(wsUrl);
+      ws = new WebSocket(wsUrl);
 
       // Watchdog handshake : si le socket ne dépasse pas l'état CONNECTING
       // dans le délai imparti, on le ferme pour relancer la boucle de
@@ -381,7 +450,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         clearTimeout(connectingTimeoutRef.current);
       }
       connectingTimeoutRef.current = setTimeout(() => {
-        if (ws.readyState === WebSocket.CONNECTING) {
+        if (ws && ws.readyState === WebSocket.CONNECTING) {
           if (__DEV__) console.warn('[WS] handshake timeout, fermeture forcée');
           setConnectionError('Délai de connexion dépassé. Le serveur ne répond pas.');
           try {
@@ -405,7 +474,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         onConnectionChange?.(true);
 
         // Envoyer l'authentification via le premier message
-        ws.send(JSON.stringify({
+        ws?.send(JSON.stringify({
           type: 'auth',
           token: accessToken,
         }));
@@ -417,6 +486,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           clearTimeout(connectingTimeoutRef.current);
           connectingTimeoutRef.current = null;
         }
+        // Stoppe le heartbeat — il sera redémarré au prochain auth.success.
+        stopHeartbeat();
         setIsConnected(false);
         setIsAuthenticated(false);
         onConnectionChange?.(false);
@@ -461,8 +532,17 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     } catch (error) {
       if (__DEV__) console.error('Error connecting WebSocket:', error);
       setConnectionError('Impossible de se connecter');
+      // Fix memory leak : si la creation a reussi mais que la setup a throw
+      // avant l'assignation a wsRef, on ferme le socket orphelin.
+      if (ws) {
+        try {
+          ws.close();
+        } catch {
+          // ignore
+        }
+      }
     }
-  }, [handleMessage, onConnectionChange]);
+  }, [handleMessage, onConnectionChange, stopHeartbeat]);
 
   // Synchronise connectRef avec la dernière version de connect (utilisé par
   // handleMessage.auth.error qui ne peut pas capturer connect directement
@@ -481,6 +561,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
       clearTimeout(connectingTimeoutRef.current);
       connectingTimeoutRef.current = null;
     }
+    stopHeartbeat();
 
     if (wsRef.current) {
       wsRef.current.close();
@@ -490,7 +571,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     clearAllTypingTimeouts();
     setIsConnected(false);
     setIsAuthenticated(false);
-  }, [clearAllTypingTimeouts]);
+  }, [clearAllTypingTimeouts, stopHeartbeat]);
 
   // Manual reconnect
   const reconnect = useCallback(() => {
@@ -588,6 +669,17 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
     return () => {
       disconnect();
+    };
+  }, []);
+
+  // Fix memory leak : cleanup dedie pour les typing timeouts. Si le hook
+  // unmount avant que `disconnect()` soit appele (cas ou disconnect est
+  // skippe ou throw), les timeouts armes dans la Map restent vivants et
+  // tentent un setState sur un composant demonte.
+  useEffect(() => {
+    return () => {
+      typingTimeoutsRef.current.forEach((t) => clearTimeout(t));
+      typingTimeoutsRef.current.clear();
     };
   }, []);
 

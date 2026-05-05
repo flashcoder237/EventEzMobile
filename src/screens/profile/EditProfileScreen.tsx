@@ -335,7 +335,7 @@ export default function EditProfileScreen() {
               <Image
                 source={profileImage}
                 style={[styles.profileImage, { borderColor: colors.card }]}
-                cachePolicy="disk"
+                cachePolicy="memory-disk"
                 transition={200}
               />
             ) : (

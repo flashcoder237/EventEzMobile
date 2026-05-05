@@ -422,7 +422,7 @@ export default function ConversationScreen() {
       headerTitle: () => (
         <View style={styles.headerTitleContainer}>
           {avatar ? (
-            <Image source={avatar} style={styles.headerAvatar} cachePolicy="disk" transition={200} />
+            <Image source={avatar} style={styles.headerAvatar} cachePolicy="memory-disk" transition={200} />
           ) : (
             <View style={[styles.headerAvatarPlaceholder, { backgroundColor: colors.primary }]}>
               <Text style={styles.headerAvatarText}>
@@ -1489,6 +1489,23 @@ export default function ConversationScreen() {
     );
   }, [state.messages, state.otherUserId, state.playingVoiceId, voicePlayback, uploadingIds, user?.id, handleMessageLongPress]);
 
+  const renderSearchResultItem = useCallback(({ item }: { item: Message }) => (
+    <TouchableOpacity
+      style={[styles.searchResultItem, { borderBottomColor: colors.gray100 }]}
+      onPress={closeSearch}
+    >
+      <Text style={[styles.searchResultSender, { color: colors.primary }]} numberOfLines={1}>
+        {item.sender_name}
+      </Text>
+      <Text style={[styles.searchResultContent, { color: colors.text }]} numberOfLines={2}>
+        {item.content}
+      </Text>
+      <Text style={[styles.searchResultTime, { color: colors.gray400 }]}>
+        {new Date(item.created_at).toLocaleDateString('fr-FR')}
+      </Text>
+    </TouchableOpacity>
+  ), [colors.gray100, colors.primary, colors.text, colors.gray400, closeSearch]);
+
   const renderEmpty = () => (
     <View style={styles.emptyContainer}>
       <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
@@ -1546,7 +1563,7 @@ export default function ConversationScreen() {
           <Image
             source={headerAvatar}
             style={styles.headerAvatar}
-            cachePolicy="disk"
+            cachePolicy="memory-disk"
             transition={200}
           />
         ) : (
@@ -1631,22 +1648,7 @@ export default function ConversationScreen() {
           keyExtractor={item => String(item.id)}
           style={[styles.searchResultsList, { backgroundColor: colors.background }]}
           keyboardShouldPersistTaps="handled"
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[styles.searchResultItem, { borderBottomColor: colors.gray100 }]}
-              onPress={closeSearch}
-            >
-              <Text style={[styles.searchResultSender, { color: colors.primary }]} numberOfLines={1}>
-                {item.sender_name}
-              </Text>
-              <Text style={[styles.searchResultContent, { color: colors.text }]} numberOfLines={2}>
-                {item.content}
-              </Text>
-              <Text style={[styles.searchResultTime, { color: colors.gray400 }]}>
-                {new Date(item.created_at).toLocaleDateString('fr-FR')}
-              </Text>
-            </TouchableOpacity>
-          )}
+          renderItem={renderSearchResultItem}
         />
       )}
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,7 +38,7 @@ const ALERT_COLORS: Record<MenuItemAlertType, string> = {
 
 const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
 
-export default function MenuItem({
+function MenuItemComponent({
   icon,
   title,
   subtitle,
@@ -151,6 +151,24 @@ export default function MenuItem({
     </TouchableOpacity>
   );
 }
+
+// Mémoïsé : rendu en boucle dans FlatList, props stables côté parent
+export default memo(MenuItemComponent, (prev, next) => {
+  return (
+    prev.icon === next.icon &&
+    prev.title === next.title &&
+    prev.subtitle === next.subtitle &&
+    prev.stat === next.stat &&
+    prev.showArrow === next.showArrow &&
+    prev.danger === next.danger &&
+    prev.badge === next.badge &&
+    prev.loading === next.loading &&
+    prev.isLast === next.isLast &&
+    prev.alert?.type === next.alert?.type &&
+    prev.alert?.label === next.alert?.label &&
+    prev.onPress === next.onPress
+  );
+});
 
 const styles = StyleSheet.create({
   menuItem: {

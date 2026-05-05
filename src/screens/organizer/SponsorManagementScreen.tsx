@@ -119,7 +119,7 @@ export default function SponsorManagementScreen() {
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
         <View style={styles.cardTop}>
           {logo ? (
-            <Image source={logo} style={styles.logo} contentFit="contain" cachePolicy="disk" />
+            <Image source={logo} style={styles.logo} contentFit="contain" cachePolicy="memory-disk" />
           ) : (
             <View style={[styles.logo, styles.logoPlaceholder, { backgroundColor: colors.gray100 }]}>
               <Ionicons name="business-outline" size={22} color={colors.gray400} />

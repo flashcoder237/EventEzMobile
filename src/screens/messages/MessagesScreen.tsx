@@ -2,7 +2,7 @@
  * MessagesScreen - Soft Editorial Inbox
  */
 
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -51,6 +51,9 @@ import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'all' | 'unread' | 'events' | 'archived';
+
+// Hauteur estimée d'une ligne conversation
+const CONVERSATION_ROW_HEIGHT = 76;
 
 // ============================================
 // CONVERSATION CARD — soft rounded
@@ -124,7 +127,7 @@ const ConversationCard = memo(function ConversationCard({
               source={avatar}
               style={cardStyles.avatarImg}
               contentFit="cover"
-              cachePolicy="disk"
+              cachePolicy="memory-disk"
               transition={200}
             />
           ) : (
@@ -369,7 +372,7 @@ const UserItem = memo(function UserItem({ user, onPress }: UserItemProps) {
     >
       <View style={userStyles.avatarWrap}>
         {avatar ? (
-          <Image source={avatar} style={userStyles.avatarImg} cachePolicy="disk" transition={200} />
+          <Image source={avatar} style={userStyles.avatarImg} cachePolicy="memory-disk" transition={200} />
         ) : (
           <View
             style={[
@@ -453,19 +456,52 @@ export default function MessagesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
 
+  // Pagination
+  const PAGE_SIZE = 30;
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const pageRef = useRef(1);
+  const hasMoreRef = useRef(false);
+  const loadingMoreRef = useRef(false);
+  pageRef.current = page;
+  hasMoreRef.current = hasMore;
+  loadingMoreRef.current = loadingMore;
+
   // Recherche globale dans les messages (en plus du filtre conversations)
   const [messageSearchResults, setMessageSearchResults] = useState<Message[]>([]);
   const [searchingMessages, setSearchingMessages] = useState(false);
   const messageSearchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // ID monotone pour ignorer les réponses out-of-order (équivalent AbortController
+  // sans avoir à modifier l'API : la requête se termine mais on jette le résultat
+  // si une nouvelle requête a été lancée entre-temps).
+  const messageSearchReqIdRef = useRef(0);
 
   // Presence map : userId → status. Alimentée par REST au mount + WS events.
   const [presenceMap, setPresenceMap] = useState<Map<number, string>>(new Map());
+
+  // Index Map id → position dans `conversations`. Reconstruit à chaque
+  // changement de la liste via useMemo. Permet à `onNewMessage` de faire un
+  // lookup O(1) au lieu d'un findIndex O(n) — gain notable sur 100+ conv.
+  // On expose la Map via une ref pour que le handler WebSocket (closure
+  // capturée à la création de l'effet) lise toujours la version courante
+  // sans dépendance à recréer.
+  const conversationIdxMap = useMemo(() => {
+    const map = new Map<string, number>();
+    conversations.forEach((c, i) => {
+      map.set(String(c.id), i);
+    });
+    return map;
+  }, [conversations]);
+  const conversationIdxMapRef = useRef(conversationIdxMap);
+  conversationIdxMapRef.current = conversationIdxMap;
 
   const [showNewModal, setShowNewModal] = useState(false);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const userSearchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const userSearchReqIdRef = useRef(0);
 
   useEffect(() => {
     fetchConversations();
@@ -514,19 +550,35 @@ export default function MessagesScreen() {
           // ignore — haptic non critique
         }
       }
-      // Met à jour la conversation correspondante
+      // Met à jour la conversation correspondante.
+      // Optim : lookup O(1) via la Map indexée (vs findIndex O(n) précédemment).
+      // Cas gérés :
+      //  - conv inexistante (idx undefined) → no-op (sera chargée au prochain refresh)
+      //  - conv déjà en tête (idx === 0) → update in-place sans reorder
+      //  - conv au milieu → bring-to-top en construisant le nouveau tableau en O(n) une seule fois
       setConversations(prev => {
         const convId = String(msg.conversation);
-        const idx = prev.findIndex(c => String(c.id) === convId);
-        if (idx === -1) return prev;
+        const idx = conversationIdxMapRef.current.get(convId);
+        if (idx === undefined || idx < 0 || idx >= prev.length) return prev;
         const updated = { ...prev[idx] };
         updated.last_message = msg;
         updated.last_message_at = msg.created_at;
         if (senderId !== Number(user?.id)) {
           updated.unread_count = (updated.unread_count || 0) + 1;
         }
-        // Remonte la conversation en tête de liste
-        const next = [updated, ...prev.filter((_, i) => i !== idx)];
+        // Si la conv est déjà en tête, on évite de reconstruire le tableau.
+        if (idx === 0) {
+          const next = prev.slice();
+          next[0] = updated;
+          return next;
+        }
+        // Bring-to-top : construire un nouveau tableau en O(n) en sautant idx.
+        const next = new Array<Conversation>(prev.length);
+        next[0] = updated;
+        for (let i = 0, j = 1; i < prev.length; i++) {
+          if (i === idx) continue;
+          next[j++] = prev[i];
+        }
         return next;
       });
     },
@@ -564,15 +616,21 @@ export default function MessagesScreen() {
       return;
     }
     setSearchingMessages(true);
+    const myReqId = ++messageSearchReqIdRef.current;
     messageSearchTimerRef.current = setTimeout(async () => {
       try {
         const res = await messagesAPI.searchMessages(q);
+        // Si une recherche plus récente a été lancée, ignorer ce résultat.
+        if (myReqId !== messageSearchReqIdRef.current) return;
         const results: Message[] = res.data?.results || res.data || [];
         setMessageSearchResults(results);
       } catch {
+        if (myReqId !== messageSearchReqIdRef.current) return;
         setMessageSearchResults([]);
       } finally {
-        setSearchingMessages(false);
+        if (myReqId === messageSearchReqIdRef.current) {
+          setSearchingMessages(false);
+        }
       }
     }, 300);
     return () => {
@@ -592,16 +650,21 @@ export default function MessagesScreen() {
     }
 
     setLoadingUsers(true);
+    const myReqId = ++userSearchReqIdRef.current;
     userSearchTimerRef.current = setTimeout(async () => {
       try {
         const response = await usersAPI.getUsers({ search: userSearch, page_size: 20 });
+        if (myReqId !== userSearchReqIdRef.current) return;
         const users = (response.data.results || response.data || [])
           .filter((u: User) => u.id !== user?.id);
         setAvailableUsers(users);
       } catch (error) {
+        if (myReqId !== userSearchReqIdRef.current) return;
         if (__DEV__) console.error('Erreur recherche utilisateurs:', error);
       } finally {
-        setLoadingUsers(false);
+        if (myReqId === userSearchReqIdRef.current) {
+          setLoadingUsers(false);
+        }
       }
     }, 300);
 
@@ -623,15 +686,52 @@ export default function MessagesScreen() {
           if (!cached.isStale) return;
         }
       }
-      const response = await messagesAPI.getConversations();
-      const data = response.data.results || response.data || [];
-      setConversations(data);
-      CacheService.set(cacheKey, data, 30 * 1000);
+      const response = await messagesAPI.getConversations({ page: 1, page_size: PAGE_SIZE });
+      const results = response.data?.results || response.data || [];
+      const next = response.data?.next;
+      setConversations(results);
+      setPage(1);
+      setHasMore(
+        next != null
+          ? Boolean(next)
+          : Array.isArray(results) && results.length === PAGE_SIZE,
+      );
+      // On ne cache que la première page (pas la totalité paginée)
+      CacheService.set(cacheKey, results, 30 * 1000);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement conversations:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMoreConversations = async () => {
+    if (!hasMoreRef.current || loadingMoreRef.current) return;
+    setLoadingMore(true);
+    const nextPage = pageRef.current + 1;
+    try {
+      const response = await messagesAPI.getConversations({ page: nextPage, page_size: PAGE_SIZE });
+      const results = response.data?.results || response.data || [];
+      const next = response.data?.next;
+      setConversations(prev => {
+        // Dédoublonnage par id (les conversations peuvent shifter de page si
+        // un nouveau message bumpe leur ordre)
+        const existingIds = new Set(prev.map(c => String(c.id)));
+        const newOnes = results.filter((c: Conversation) => !existingIds.has(String(c.id)));
+        return [...prev, ...newOnes];
+      });
+      setPage(nextPage);
+      setHasMore(
+        next != null
+          ? Boolean(next)
+          : Array.isArray(results) && results.length === PAGE_SIZE,
+      );
+    } catch (error) {
+      if (__DEV__) console.error('Erreur pagination conversations:', error);
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -1025,12 +1125,23 @@ export default function MessagesScreen() {
           <View style={[styles.itemSeparator, { backgroundColor: hairline, marginLeft: 78 }]} />
         )}
         keyboardShouldPersistTaps="handled"
+        onEndReached={loadMoreConversations}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={
+          loadingMore ? (
+            <View style={{ paddingVertical: Spacing.lg }}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
+        initialNumToRender={8}
         maxToRenderPerBatch={10}
         windowSize={5}
         removeClippedSubviews
+        getItemLayout={(_, i) => ({ length: CONVERSATION_ROW_HEIGHT, offset: CONVERSATION_ROW_HEIGHT * i, index: i })}
       />
 
       {/* Footer eyebrow */}

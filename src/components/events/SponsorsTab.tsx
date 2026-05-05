@@ -151,7 +151,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
                       source={sponsor.logo}
                       style={{ width: logoSize, height: logoSize * 0.7 }}
                       contentFit="contain"
-                      cachePolicy="disk"
+                      cachePolicy="memory-disk"
                       transition={200}
                     />
                   ) : (

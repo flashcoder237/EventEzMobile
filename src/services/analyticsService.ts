@@ -46,6 +46,13 @@ export async function initAnalytics(): Promise<void> {
     }
 
     // Start periodic flush
+    // Fix memory leak : si initAnalytics est appele deux fois (hot reload,
+    // re-init explicite), on clear le timer precedent pour eviter d'avoir
+    // plusieurs intervals en parallele qui flushent en meme temps.
+    if (flushTimer) {
+      clearInterval(flushTimer);
+      flushTimer = null;
+    }
     flushTimer = setInterval(flushEvents, FLUSH_INTERVAL_MS);
 
     if (__DEV__) console.log(`[Analytics] Initialized (${eventQueue.length} queued events from previous session)`);

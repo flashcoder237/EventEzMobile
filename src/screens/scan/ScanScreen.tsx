@@ -856,7 +856,7 @@ function UserResult({
     <>
       <View style={styles.userResultHeader}>
         {avatarUri ? (
-          <Image source={avatarUri} style={[styles.userAvatar, { borderColor: colors.gray200 }]} cachePolicy="disk" transition={200} />
+          <Image source={avatarUri} style={[styles.userAvatar, { borderColor: colors.gray200 }]} cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.userAvatarPlaceholder, { backgroundColor: colors.gray200, borderColor: colors.white }]}>
             <Text style={[styles.userAvatarText, { color: colors.gray600 }]}>{getUserInitials(userData)}</Text>

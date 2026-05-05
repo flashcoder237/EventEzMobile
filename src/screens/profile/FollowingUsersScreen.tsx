@@ -134,7 +134,7 @@ export default function FollowingUsersScreen() {
           activeOpacity={0.7}
         >
           {avatar ? (
-            <Image source={avatar} style={styles.avatar} cachePolicy="disk" />
+            <Image source={avatar} style={styles.avatar} cachePolicy="memory-disk" />
           ) : (
             <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: colors.gray100 }]}>
               <Text style={[styles.avatarInitial, { color: colors.gray500 }]}>

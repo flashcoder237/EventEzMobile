@@ -256,7 +256,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
             >
               <View style={styles.recordingThumbnailContainer}>
                 {recording.thumbnail ? (
-                  <Image source={recording.thumbnail} style={styles.recordingThumbnail} cachePolicy="disk" transition={200} />
+                  <Image source={recording.thumbnail} style={styles.recordingThumbnail} cachePolicy="memory-disk" transition={200} />
                 ) : (
                   <View style={[styles.recordingThumbnailPlaceholder, { backgroundColor: colors.primaryBg }]}>
                     <Ionicons name="play-circle" size={32} color={colors.primary} />

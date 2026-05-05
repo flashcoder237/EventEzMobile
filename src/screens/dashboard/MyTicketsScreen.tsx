@@ -375,7 +375,7 @@ export default function MyTicketsScreen() {
     dispatch({ type: 'SET_REFRESHING', payload: false });
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
     return {
       day: date.getDate().toString().padStart(2, '0'),
@@ -384,34 +384,37 @@ export default function MyTicketsScreen() {
       time: date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
       full: date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long' }),
     };
-  };
+  }, []);
 
-  const getDaysUntil = (dateString?: string): number | null => {
+  const getDaysUntil = useCallback((dateString?: string): number | null => {
     if (!dateString) return null;
     const now = new Date();
     const date = new Date(dateString);
     const diff = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     return diff;
-  };
+  }, []);
 
-  const getStatusConfig = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-      case 'completed':
-        return { bg: colors.primary, fg: Colors.white, label: 'Confirmé' };
-      case 'pending':
-      case 'pending_approval':
-        return { bg: colors.warning, fg: Colors.white, label: 'En attente' };
-      case 'cancelled':
-        return { bg: colors.error, fg: Colors.white, label: 'Annulé' };
-      case 'rejected':
-        return { bg: colors.error, fg: Colors.white, label: 'Refusé' };
-      case 'checked_in':
-        return { bg: colors.success, fg: Colors.white, label: 'Validé' };
-      default:
-        return { bg: colors.gray400, fg: Colors.white, label: status || 'Inconnu' };
-    }
-  };
+  const getStatusConfig = useCallback(
+    (status: string) => {
+      switch (status) {
+        case 'confirmed':
+        case 'completed':
+          return { bg: colors.primary, fg: Colors.white, label: 'Confirmé' };
+        case 'pending':
+        case 'pending_approval':
+          return { bg: colors.warning, fg: Colors.white, label: 'En attente' };
+        case 'cancelled':
+          return { bg: colors.error, fg: Colors.white, label: 'Annulé' };
+        case 'rejected':
+          return { bg: colors.error, fg: Colors.white, label: 'Refusé' };
+        case 'checked_in':
+          return { bg: colors.success, fg: Colors.white, label: 'Validé' };
+        default:
+          return { bg: colors.gray400, fg: Colors.white, label: status || 'Inconnu' };
+      }
+    },
+    [colors],
+  );
 
   const getRegistrationType = useCallback(
     (reg: Registration): RegistrationType => {
@@ -515,14 +518,35 @@ export default function MyTicketsScreen() {
     return { activeRegistrations: filteredRegistrations, archivedRegistrations: [] };
   }, [filteredRegistrations, activeTab]);
 
+  // typeCounts depends only on registrations + activeTab — counts are filtered
+  // per-tab only, not by searchQuery/typeFilter (those would make counts circular).
   const typeCounts = useMemo(() => {
-    const tabRegistrations = filterRegistrations(activeTab, 'all', 'all', '');
+    const now = new Date();
+    const tabRegistrations = registrations.filter((reg) => {
+      const event = getEventData(reg);
+      const eventDate = event?.start_date ? new Date(event.start_date) : null;
+      const isCancelled = reg.status === 'cancelled' || reg.status === 'rejected';
+      const isPendingApproval =
+        reg.approval_status === 'pending' || reg.status === 'pending_approval';
+      switch (activeTab) {
+        case 'upcoming':
+          if (isCancelled) return false;
+          if (!eventDate) return true;
+          return eventDate >= now || isPendingApproval;
+        case 'past':
+          return !isCancelled && eventDate && eventDate < now && !isPendingApproval;
+        case 'cancelled':
+          return isCancelled;
+        default:
+          return true;
+      }
+    });
     return {
       all: tabRegistrations.length,
       billetterie: tabRegistrations.filter((r) => getRegistrationType(r) === 'billetterie').length,
       inscription: tabRegistrations.filter((r) => getRegistrationType(r) === 'inscription').length,
     };
-  }, [filterRegistrations, activeTab, getRegistrationType]);
+  }, [registrations, activeTab, getEventData, getRegistrationType]);
 
   const statusCounts = useMemo(() => {
     const tabRegistrations = filterRegistrations(activeTab, typeFilter, 'all', searchQuery);
@@ -578,7 +602,7 @@ export default function MyTicketsScreen() {
   // ==========================================================
   // Ticket Stub Card
   // ==========================================================
-  const renderTicketStub = (item: Registration, index: number, variant: 'active' | 'archived') => {
+  const renderTicketStub = useCallback((item: Registration, index: number, variant: 'active' | 'archived') => {
     const event = getEventData(item);
     const dateInfo = event?.start_date ? formatDate(event.start_date) : null;
     const daysUntil = getDaysUntil(event?.start_date);
@@ -935,7 +959,17 @@ export default function MyTicketsScreen() {
         </View>
       </StaggeredItem>
     );
-  };
+  }, [
+    colors,
+    isDark,
+    navigation,
+    canvasBg,
+    getEventData,
+    getTicketInfo,
+    getStatusConfig,
+    formatDate,
+    getDaysUntil,
+  ]);
 
   // ==========================================================
   // Sectioned list (group by month when > 10 tickets)
@@ -985,7 +1019,7 @@ export default function MyTicketsScreen() {
     return out;
   }, [filteredRegistrations, getEventData]);
 
-  const renderItem = ({ item }: { item: ListItem }) => {
+  const renderItem = useCallback(({ item }: { item: ListItem }) => {
     if (item.kind === 'header') {
       return (
         <View style={styles.monthSectionHeader}>
@@ -1000,7 +1034,7 @@ export default function MyTicketsScreen() {
       item.ticketIndex,
       activeTab === 'past' || activeTab === 'cancelled' ? 'archived' : 'active',
     );
-  };
+  }, [activeTab, colors.gray200, colors.gray500, renderTicketStub]);
 
   const keyExtractor = useCallback((item: ListItem) => item.key, []);
 
@@ -1036,6 +1070,16 @@ export default function MyTicketsScreen() {
     </View>
   );
 
+  // Tabs config (chips) — memoized to avoid recreating on every render
+  const tabs = useMemo<{ key: TabType; label: string; count: number }[]>(
+    () => [
+      { key: 'upcoming', label: 'À venir', count: stats.upcoming },
+      { key: 'past', label: 'Passés', count: stats.past },
+      { key: 'cancelled', label: 'Annulés', count: stats.cancelled },
+    ],
+    [stats],
+  );
+
   if (loading) {
     return (
       <EditorialCanvas edges={['top']}>
@@ -1044,13 +1088,6 @@ export default function MyTicketsScreen() {
       </EditorialCanvas>
     );
   }
-
-  // Tabs config (chips)
-  const tabs: { key: TabType; label: string; count: number }[] = [
-    { key: 'upcoming', label: 'À venir', count: stats.upcoming },
-    { key: 'past', label: 'Passés', count: stats.past },
-    { key: 'cancelled', label: 'Annulés', count: stats.cancelled },
-  ];
 
   return (
     <EditorialCanvas edges={['top']}>

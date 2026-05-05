@@ -177,7 +177,13 @@ export function useCheckinQueue() {
       wasOfflineRef.current = false;
       // Petit délai pour laisser le réseau se stabiliser
       const t = setTimeout(() => {
-        flush().catch(() => { /* ignore — la queue persiste */ });
+        flush().catch((err) => {
+          // Fix memory leak / observabilite : on garde le catch pour ne pas
+          // crash, mais on log en DEV pour ne pas masquer les bugs silencieux.
+          // La queue persiste -> la prochaine tentative aura lieu au prochain
+          // changement de connectivite.
+          if (__DEV__) console.warn('[CheckinQueue] auto-flush failed:', err);
+        });
       }, 1500);
       return () => clearTimeout(t);
     }

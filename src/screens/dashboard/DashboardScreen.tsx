@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   View,
   Text,
@@ -42,22 +42,34 @@ interface QuickActionProps {
   badge?: number;
 }
 
-const QuickAction = ({ icon, title, onPress, badge }: QuickActionProps) => {
+// Mémoïsé : props stables (icon, title, onPress useCallback côté parent),
+// re-render uniquement si une prop change vraiment ou si le thème switch.
+const QuickAction = memo(({ icon, title, onPress, badge }: QuickActionProps) => {
   const { colors } = useTheme();
+  // Styles dérivés du thème dans un useMemo : référence stable tant que le thème
+  // ne change pas. Évite de créer un objet à chaque render.
+  const themedStyles = useMemo(() => ({
+    container: { backgroundColor: colors.gray50 },
+    icon: { backgroundColor: colors.card },
+    badge: { backgroundColor: colors.error },
+    title: { color: colors.text },
+  }), [colors.gray50, colors.card, colors.error, colors.text]);
+
   return (
-    <TouchableOpacity style={[styles.quickAction, { backgroundColor: colors.gray50 }]} onPress={onPress} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel={title}>
-      <View style={[styles.quickActionIcon, { backgroundColor: colors.card }]}>
+    <TouchableOpacity style={[styles.quickAction, themedStyles.container]} onPress={onPress} activeOpacity={0.6} accessibilityRole="button" accessibilityLabel={title}>
+      <View style={[styles.quickActionIcon, themedStyles.icon]}>
         <Ionicons name={icon} size={22} color={colors.gray700} />
         {badge !== undefined && badge > 0 && (
-          <View style={[styles.quickActionBadge, { backgroundColor: colors.error }]}>
+          <View style={[styles.quickActionBadge, themedStyles.badge]}>
             <Text style={styles.quickActionBadgeText}>{badge > 9 ? '9+' : badge}</Text>
           </View>
         )}
       </View>
-      <Text style={[styles.quickActionTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.quickActionTitle, themedStyles.title]}>{title}</Text>
     </TouchableOpacity>
   );
-};
+});
+QuickAction.displayName = 'QuickAction';
 
 export default function DashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -73,6 +85,17 @@ export default function DashboardScreen() {
   });
 
   const isOrganizer = user?.role === 'organizer';
+
+  // Callbacks de navigation stables — préservent la mémoïsation de QuickAction.
+  const goToMyTickets = useCallback(() => navigation.navigate('Main', { screen: 'MyTickets' } as any), [navigation]);
+  const goToSaved = useCallback(() => navigation.navigate('Main', { screen: 'Saved' } as any), [navigation]);
+  const goToDiscover = useCallback(() => navigation.navigate('Main', { screen: 'Discover' } as any), [navigation]);
+  const goToNotifications = useCallback(() => navigation.navigate('Notifications'), [navigation]);
+  const goToMessages = useCallback(() => navigation.navigate('Messages'), [navigation]);
+  const goToInvitations = useCallback(() => navigation.navigate('Invitations'), [navigation]);
+  const goToReferrals = useCallback(() => navigation.navigate('Referrals'), [navigation]);
+  const goToGamification = useCallback(() => navigation.navigate('Gamification'), [navigation]);
+  const goToAnalytics = useCallback(() => navigation.navigate('AnalyticsDashboard'), [navigation]);
 
   useEffect(() => {
     const task = InteractionManager.runAfterInteractions(() => {
@@ -242,7 +265,7 @@ export default function DashboardScreen() {
 
           <TouchableOpacity
             style={[styles.statCard, { backgroundColor: colors.gray50 }]}
-            onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
+            onPress={goToDiscover}
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Explorer les evenements"
@@ -257,62 +280,29 @@ export default function DashboardScreen() {
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Accès rapide</Text>
           <View style={styles.quickActionsGrid}>
             <StaggeredItem index={0} style={styles.quickActionWrapper}>
-              <QuickAction
-                icon="ticket-outline"
-                title="Mes billets"
-                onPress={() => navigation.navigate('Main', { screen: 'MyTickets' } as any)}
-              />
+              <QuickAction icon="ticket-outline" title="Mes billets" onPress={goToMyTickets} />
             </StaggeredItem>
             <StaggeredItem index={1} style={styles.quickActionWrapper}>
-              <QuickAction
-                icon="heart-outline"
-                title="Favoris"
-                onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
-              />
+              <QuickAction icon="heart-outline" title="Favoris" onPress={goToSaved} />
             </StaggeredItem>
             <StaggeredItem index={2} style={styles.quickActionWrapper}>
-              <QuickAction
-                icon="notifications-outline"
-                title="Notifications"
-                badge={stats.notifications}
-                onPress={() => navigation.navigate('Notifications')}
-              />
+              <QuickAction icon="notifications-outline" title="Notifications" badge={stats.notifications} onPress={goToNotifications} />
             </StaggeredItem>
             <StaggeredItem index={3} style={styles.quickActionWrapper}>
-              <QuickAction
-                icon="chatbubbles-outline"
-                title="Messages"
-                onPress={() => navigation.navigate('Messages')}
-              />
+              <QuickAction icon="chatbubbles-outline" title="Messages" onPress={goToMessages} />
             </StaggeredItem>
             <StaggeredItem index={4} style={styles.quickActionWrapper}>
-              <QuickAction
-                icon="mail-outline"
-                title="Invitations"
-                onPress={() => navigation.navigate('Invitations')}
-              />
+              <QuickAction icon="mail-outline" title="Invitations" onPress={goToInvitations} />
             </StaggeredItem>
             <StaggeredItem index={5} style={styles.quickActionWrapper}>
-              <QuickAction
-                icon="gift-outline"
-                title="Parrainage"
-                onPress={() => navigation.navigate('Referrals')}
-              />
+              <QuickAction icon="gift-outline" title="Parrainage" onPress={goToReferrals} />
             </StaggeredItem>
             <StaggeredItem index={6} style={styles.quickActionWrapper}>
-              <QuickAction
-                icon="trophy-outline"
-                title="Badges"
-                onPress={() => navigation.navigate('Gamification')}
-              />
+              <QuickAction icon="trophy-outline" title="Badges" onPress={goToGamification} />
             </StaggeredItem>
             {isOrganizer && (
               <StaggeredItem index={7} style={styles.quickActionWrapper}>
-                <QuickAction
-                  icon="analytics-outline"
-                  title="Analytics"
-                  onPress={() => navigation.navigate('AnalyticsDashboard')}
-                />
+                <QuickAction icon="analytics-outline" title="Analytics" onPress={goToAnalytics} />
               </StaggeredItem>
             )}
           </View>

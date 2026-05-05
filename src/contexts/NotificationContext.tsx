@@ -70,6 +70,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   const [showPermissionModal, setShowPermissionModal] = useState(false);
   const appState = useRef(AppState.currentState);
   const navigation = useNavigation();
+  // Fix memory leak : timer pour la navigation differee apres tap notification.
+  // Stocke dans un ref pour pouvoir clearTimeout au unmount ET avant chaque
+  // nouveau timeout (sinon plusieurs timers peuvent s'accumuler si l'init
+  // est rappelee).
+  const notifNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handle notification tap navigation
   const handleNotificationNavigation = useCallback((data: PushNotificationData) => {
@@ -192,7 +197,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
           await AsyncStorage.setItem(LAST_HANDLED_RESPONSE_ID_KEY, responseId);
           const data = lastResponse.notification.request.content.data as PushNotificationData;
           // Delay navigation to ensure navigation is ready
-          setTimeout(() => handleNotificationNavigation(data), 1000);
+          // Fix memory leak : on stocke le timer dans un ref et on clear le
+          // precedent avant d'en armer un nouveau, pour eviter qu'un timer
+          // orphelin ne s'execute apres unmount (warning React + navigation
+          // sur un container demonte).
+          if (notifNavTimerRef.current) {
+            clearTimeout(notifNavTimerRef.current);
+          }
+          notifNavTimerRef.current = setTimeout(() => {
+            notifNavTimerRef.current = null;
+            handleNotificationNavigation(data);
+          }, 1000);
         } else if (__DEV__ && responseId === consumedId) {
           console.log('[Notification] Skipping already-consumed last response:', responseId);
         }
@@ -359,11 +374,18 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 
   // Initialize push notifications when authenticated
   useEffect(() => {
+    // Fix memory leak : flag `active` pour ignorer les setState apres unmount
+    // ou changement de `isAuthenticated`. L'IIFE async peut resoudre apres
+    // que l'effet ait ete cleanup (logout rapide), ce qui declenche des
+    // warnings "setState on unmounted component".
+    let active = true;
     if (isAuthenticated) {
       // Try to initialize silently if permission already granted, otherwise show modal
       (async () => {
         const Notif = await import('expo-notifications');
+        if (!active) return;
         const { status } = await Notif.getPermissionsAsync();
+        if (!active) return;
         if (status === 'granted') {
           initializePushNotifications();
         } else {
@@ -385,6 +407,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       pushNotificationService.unregisterDevice();
       pushNotificationService.cleanup();
     }
+    return () => {
+      active = false;
+    };
   }, [isAuthenticated]);
 
   // Handle app state changes (refresh when app comes to foreground)
@@ -410,21 +435,39 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isAuthenticated) return;
 
+    // Fix memory leak : flag `cancelled` pour court-circuiter le callback
+    // si l'effet a ete cleanup entre l'arm de l'interval et le tick.
+    let cancelled = false;
     const interval = setInterval(() => {
+      if (cancelled) return;
       fetchUnreadCounts();
     }, 30000); // Refresh every 30 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, [isAuthenticated, fetchUnreadCounts]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Fix memory leak : clear le timer de navigation differee si on unmount
+      // avant qu'il ne se declenche (cold start -> logout rapide).
+      if (notifNavTimerRef.current) {
+        clearTimeout(notifNavTimerRef.current);
+        notifNavTimerRef.current = null;
+      }
       pushNotificationService.cleanup();
     };
   }, []);
 
-  const totalPendingCount = unreadNotificationCount + unreadMessageCount + pendingInvitationCount + pendingTransferCount;
+  // useMemo : stabilise la référence pour éviter de re-déclencher le useMemo `value`
+  // quand un autre state du provider (loading, pushToken, etc.) change.
+  const totalPendingCount = useMemo(
+    () => unreadNotificationCount + unreadMessageCount + pendingInvitationCount + pendingTransferCount,
+    [unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount],
+  );
 
   const value = useMemo(() => ({
     notifications,

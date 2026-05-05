@@ -67,6 +67,9 @@ const MODE_OPTIONS: Array<{
   },
 ];
 
+// Hauteur estimée d'une ligne participant
+const GROUP_PARTICIPANT_HEIGHT = 56;
+
 export default function GroupAdminPanel({
   visible,
   conversationId,
@@ -317,6 +320,11 @@ export default function GroupAdminPanel({
                   keyExtractor={(p) => String(p.id)}
                   renderItem={renderParticipant}
                   scrollEnabled={false}
+                  initialNumToRender={8}
+                  maxToRenderPerBatch={10}
+                  windowSize={5}
+                  removeClippedSubviews
+                  getItemLayout={(_, i) => ({ length: GROUP_PARTICIPANT_HEIGHT, offset: GROUP_PARTICIPANT_HEIGHT * i, index: i })}
                 />
               )}
             </View>

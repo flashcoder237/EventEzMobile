@@ -226,7 +226,7 @@ function MessageBubble({
             source={attachment.file}
             style={[styles.imageAttachment, { backgroundColor: colors.gray100 }]}
             contentFit="cover"
-            cachePolicy="disk"
+            cachePolicy="memory-disk"
             transition={200}
           />
           {isUploading && (
@@ -367,7 +367,7 @@ function MessageBubble({
         isGrouped ? (
           <View style={styles.avatarSpacer} />
         ) : avatar ? (
-          <Image source={avatar} style={styles.avatar} cachePolicy="disk" transition={200} />
+          <Image source={avatar} style={styles.avatar} cachePolicy="memory-disk" transition={200} />
         ) : (
           <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200 }]}>
             <Text style={[styles.avatarInitials, { color: colors.gray600 }]}>{initials}</Text>

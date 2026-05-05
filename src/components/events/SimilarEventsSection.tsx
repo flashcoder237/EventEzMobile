@@ -6,7 +6,7 @@
 // Strategy : silently no-op si l'endpoint retourne 0 events ou échoue — le but
 // est d'enrichir la page si possible, jamais de bloquer le contenu principal.
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, memo } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
@@ -34,7 +34,14 @@ interface Props {
 const CARD_WIDTH = 220;
 const CARD_HEIGHT = 130;
 
-function SimilarEventCard({ event, onPress }: { event: Event; onPress: () => void }) {
+// Mémoïsé : rendu en boucle dans FlatList, props stables côté parent
+const SimilarEventCard = memo(function SimilarEventCard({
+  event,
+  onPress,
+}: {
+  event: Event;
+  onPress: () => void;
+}) {
   const { colors } = useTheme();
   const banner = getMediaUrl(event.banner_image || event.display_image);
 
@@ -65,7 +72,7 @@ function SimilarEventCard({ event, onPress }: { event: Event; onPress: () => voi
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 export default function SimilarEventsSection({ eventId, limit = 5 }: Props) {
   const navigation = useNavigation<NavigationProp>();

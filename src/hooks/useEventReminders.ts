@@ -12,16 +12,22 @@ import { Platform } from 'react-native';
 const REMINDERS_KEY = 'eventez_scheduled_reminders';
 const NOTIFICATION_SETTINGS_KEY = 'eventez_notification_settings';
 
-// Configuration par défaut des notifications
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Lazy-init du notification handler — évite l'exécution au top-level à chaque
+// import du module. Idempotent grâce au flag `handlerInitialized`.
+let handlerInitialized = false;
+function ensureNotificationHandler() {
+  if (handlerInitialized) return;
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+  handlerInitialized = true;
+}
 
 interface ScheduledReminder {
   eventId: string;
@@ -59,6 +65,9 @@ export function useEventReminders() {
 
   const initializeNotifications = async () => {
     try {
+      // S'assurer que le notification handler est configuré (lazy init).
+      ensureNotificationHandler();
+
       // Charger les paramètres
       const savedSettings = await AsyncStorage.getItem(NOTIFICATION_SETTINGS_KEY);
       if (savedSettings) {
@@ -94,7 +103,8 @@ export function useEventReminders() {
       if (Platform.OS === 'android') {
         await Notifications.setNotificationChannelAsync('event-reminders', {
           name: 'Rappels d\'événements',
-          importance: Notifications.AndroidImportance.HIGH,
+          // DEFAULT (pas HIGH) : rappels = notif normale, pas heads-up agressif.
+          importance: Notifications.AndroidImportance.DEFAULT,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: '#6366F1',
         });

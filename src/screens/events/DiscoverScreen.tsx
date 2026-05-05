@@ -62,6 +62,9 @@ const CANVAS_LIGHT = '#F6F6F9';
 
 // === Date helpers ===
 const MONTHS_FR = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUI', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
+
+// Longueur estimée d'une nearbyCard (largeur 220 + gap horizontal)
+const NEARBY_ITEM_LENGTH = 280;
 function splitDate(iso: string) {
   const d = new Date(iso);
   return { day: String(d.getDate()).padStart(2, '0'), month: MONTHS_FR[d.getMonth()] };
@@ -1379,7 +1382,9 @@ export default function DiscoverScreen() {
                       renderItem={renderNearbyCard}
                       removeClippedSubviews
                       initialNumToRender={3}
+                      maxToRenderPerBatch={6}
                       windowSize={5}
+                      getItemLayout={(_, i) => ({ length: NEARBY_ITEM_LENGTH, offset: NEARBY_ITEM_LENGTH * i, index: i })}
                     />
                   </View>
                 </SectionEntrance>

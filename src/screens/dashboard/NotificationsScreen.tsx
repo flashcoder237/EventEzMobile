@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useMemo } from 'react';
+import React, { useReducer, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   SectionList,
   Modal,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -45,6 +46,9 @@ interface NotificationsState {
   filter: FilterType;
   selectedNotification: Notification | null;
   showDetailModal: boolean;
+  page: number;
+  hasMore: boolean;
+  loadingMore: boolean;
 }
 
 type NotificationsAction =
@@ -57,7 +61,11 @@ type NotificationsAction =
   | { type: 'DELETE_NOTIFICATION'; payload: string }
   | { type: 'OPEN_DETAIL'; payload: Notification }
   | { type: 'CLOSE_DETAIL' }
-  | { type: 'FETCH_COMPLETE'; payload: { notifications: Notification[] } };
+  | { type: 'FETCH_COMPLETE'; payload: { notifications: Notification[]; hasMore: boolean; page: number } }
+  | { type: 'APPEND_PAGE'; payload: { notifications: Notification[]; hasMore: boolean; page: number } }
+  | { type: 'SET_LOADING_MORE'; payload: boolean };
+
+const PAGE_SIZE = 20;
 
 const initialState: NotificationsState = {
   notifications: [],
@@ -66,6 +74,9 @@ const initialState: NotificationsState = {
   filter: 'all',
   selectedNotification: null,
   showDetailModal: false,
+  page: 1,
+  hasMore: false,
+  loadingMore: false,
 };
 
 function notificationsReducer(state: NotificationsState, action: NotificationsAction): NotificationsState {
@@ -100,7 +111,29 @@ function notificationsReducer(state: NotificationsState, action: NotificationsAc
     case 'CLOSE_DETAIL':
       return { ...state, showDetailModal: false };
     case 'FETCH_COMPLETE':
-      return { ...state, notifications: action.payload.notifications, loading: false, refreshing: false };
+      return {
+        ...state,
+        notifications: action.payload.notifications,
+        loading: false,
+        refreshing: false,
+        page: action.payload.page,
+        hasMore: action.payload.hasMore,
+        loadingMore: false,
+      };
+    case 'APPEND_PAGE': {
+      // Dédoublonnage par id pour éviter les duplicates si le serveur en renvoie
+      const existingIds = new Set(state.notifications.map(n => n.id));
+      const newOnes = action.payload.notifications.filter(n => !existingIds.has(n.id));
+      return {
+        ...state,
+        notifications: [...state.notifications, ...newOnes],
+        page: action.payload.page,
+        hasMore: action.payload.hasMore,
+        loadingMore: false,
+      };
+    }
+    case 'SET_LOADING_MORE':
+      return { ...state, loadingMore: action.payload };
     default:
       return state;
   }
@@ -140,7 +173,16 @@ export default function NotificationsScreen() {
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [state, dispatch] = useReducer(notificationsReducer, initialState);
-  const { notifications, loading, refreshing, filter, selectedNotification, showDetailModal } = state;
+  const { notifications, loading, refreshing, filter, selectedNotification, showDetailModal, page, hasMore, loadingMore } = state;
+
+  // Refs miroirs pour éviter les stale closures dans loadMore (appelé par
+  // SectionList.onEndReached qui capture la première référence).
+  const pageRef = useRef(page);
+  const hasMoreRef = useRef(hasMore);
+  const loadingMoreRef = useRef(loadingMore);
+  pageRef.current = page;
+  hasMoreRef.current = hasMore;
+  loadingMoreRef.current = loadingMore;
 
   useEffect(() => {
     fetchNotifications();
@@ -164,14 +206,39 @@ export default function NotificationsScreen() {
           if (!cached.isStale) return;
         }
       }
-      const response = await notificationsAPI.getNotifications({ page_size: 100 });
-      const data = response.data.results || response.data || [];
-      dispatch({ type: 'FETCH_COMPLETE', payload: { notifications: data } });
-      CacheService.set(cacheKey, data, 60 * 1000);
+      const response = await notificationsAPI.getNotifications({ page: 1, page_size: PAGE_SIZE });
+      const results = response.data?.results || response.data || [];
+      const next = response.data?.next;
+      const hasMoreFlag = next != null
+        ? Boolean(next)
+        : Array.isArray(results) && results.length === PAGE_SIZE;
+      dispatch({ type: 'FETCH_COMPLETE', payload: { notifications: results, hasMore: hasMoreFlag, page: 1 } });
+      // On ne cache que la première page (préserve la sémantique cache existante)
+      CacheService.set(cacheKey, results, 60 * 1000);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement notifications:', error);
       dispatch({ type: 'SET_LOADING', payload: false });
       dispatch({ type: 'SET_REFRESHING', payload: false });
+      dispatch({ type: 'SET_LOADING_MORE', payload: false });
+    }
+  };
+
+  const loadMore = async () => {
+    if (!user?.id) return;
+    if (!hasMoreRef.current || loadingMoreRef.current) return;
+    dispatch({ type: 'SET_LOADING_MORE', payload: true });
+    const nextPage = pageRef.current + 1;
+    try {
+      const response = await notificationsAPI.getNotifications({ page: nextPage, page_size: PAGE_SIZE });
+      const results = response.data?.results || response.data || [];
+      const next = response.data?.next;
+      const hasMoreFlag = next != null
+        ? Boolean(next)
+        : Array.isArray(results) && results.length === PAGE_SIZE;
+      dispatch({ type: 'APPEND_PAGE', payload: { notifications: results, hasMore: hasMoreFlag, page: nextPage } });
+    } catch (error) {
+      if (__DEV__) console.error('Erreur pagination notifications:', error);
+      dispatch({ type: 'SET_LOADING_MORE', payload: false });
     }
   };
 
@@ -591,6 +658,15 @@ export default function NotificationsScreen() {
             ]}
             showsVerticalScrollIndicator={false}
             stickySectionHeadersEnabled={false}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.5}
+            ListFooterComponent={
+              loadingMore ? (
+                <View style={{ paddingVertical: Spacing.lg }}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ) : null
+            }
             refreshControl={
               <RefreshControl
                 refreshing={refreshing}

@@ -9,7 +9,7 @@ export { useBiometricConfirm } from './useBiometricConfirm';
 export type { BiometricConfirmOptions } from './useBiometricConfirm';
 export { useBiometricPrefs, getBiometricPref } from './useBiometricPrefs';
 export type { BiometricCategory, BiometricPrefsMap } from './useBiometricPrefs';
-export { useLoadingState, useAsyncOperation } from './useLoadingState';
+// useLoadingState/useAsyncOperation supprimés (dead code, jamais importés ailleurs).
 export { useMessagingWebSocket } from './useMessagingWebSocket';
 export { useMessageState } from './useMessageState';
 export type { MessageState, AttachedFile } from './useMessageState';

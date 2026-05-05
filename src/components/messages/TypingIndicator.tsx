@@ -1,10 +1,23 @@
 /**
  * Composant d'indicateur de frappe anime
  * Affiche les dots animes quand quelqu'un ecrit
+ *
+ * Migré sur react-native-reanimated (worklet UI thread) — plus performant
+ * que `Animated.Value` classique. Cleanup explicite via `cancelAnimation`.
  */
 
-import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated } from 'react-native';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withDelay,
+  withRepeat,
+  withSequence,
+  cancelAnimation,
+  interpolate,
+} from 'react-native-reanimated';
 import { Colors, FontFamily, FontSizes, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -14,50 +27,52 @@ interface TypingIndicatorProps {
 }
 
 export default function TypingIndicator({ typingUsers, compact = false }: TypingIndicatorProps) {
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
 
-  // Animations pour les 3 dots
-  const dot1Anim = useRef(new Animated.Value(0)).current;
-  const dot2Anim = useRef(new Animated.Value(0)).current;
-  const dot3Anim = useRef(new Animated.Value(0)).current;
+  // 3 dots — shared values sur l'UI thread
+  const dot1 = useSharedValue(0);
+  const dot2 = useSharedValue(0);
+  const dot3 = useSharedValue(0);
 
   useEffect(() => {
     if (typingUsers.length === 0) return;
 
-    // Animation sequentielle des dots
-    const createDotAnimation = (anim: Animated.Value, delay: number) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.delay(delay),
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 300,
-            useNativeDriver: true,
-          }),
-        ])
+    const cycle = () =>
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: 300 }),
+          withTiming(0, { duration: 300 }),
+        ),
+        -1,
+        false,
       );
-    };
 
-    const animation = Animated.parallel([
-      createDotAnimation(dot1Anim, 0),
-      createDotAnimation(dot2Anim, 150),
-      createDotAnimation(dot3Anim, 300),
-    ]);
-
-    animation.start();
+    dot1.value = cycle();
+    dot2.value = withDelay(150, cycle());
+    dot3.value = withDelay(300, cycle());
 
     return () => {
-      animation.stop();
-      dot1Anim.setValue(0);
-      dot2Anim.setValue(0);
-      dot3Anim.setValue(0);
+      cancelAnimation(dot1);
+      cancelAnimation(dot2);
+      cancelAnimation(dot3);
+      dot1.value = 0;
+      dot2.value = 0;
+      dot3.value = 0;
     };
   }, [typingUsers.length]);
+
+  const dot1Style = useAnimatedStyle(() => ({
+    opacity: interpolate(dot1.value, [0, 1], [0.3, 1]),
+    transform: [{ translateY: interpolate(dot1.value, [0, 1], [0, -4]) }],
+  }));
+  const dot2Style = useAnimatedStyle(() => ({
+    opacity: interpolate(dot2.value, [0, 1], [0.3, 1]),
+    transform: [{ translateY: interpolate(dot2.value, [0, 1], [0, -4]) }],
+  }));
+  const dot3Style = useAnimatedStyle(() => ({
+    opacity: interpolate(dot3.value, [0, 1], [0.3, 1]),
+    transform: [{ translateY: interpolate(dot3.value, [0, 1], [0, -4]) }],
+  }));
 
   if (typingUsers.length === 0) return null;
 
@@ -72,28 +87,13 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
     return `${typingUsers[0]} et ${typingUsers.length - 1} autres ecrivent`;
   };
 
-  const dotStyle = (anim: Animated.Value) => ({
-    opacity: anim.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.3, 1],
-    }),
-    transform: [
-      {
-        translateY: anim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [0, -4],
-        }),
-      },
-    ],
-  });
-
   if (compact) {
     return (
       <View style={styles.compactContainer}>
         <View style={styles.dotsContainer}>
-          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot1Anim)]} />
-          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot2Anim)]} />
-          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot3Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dot1Style]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dot2Style]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dot3Style]} />
         </View>
       </View>
     );
@@ -103,9 +103,9 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
     <View style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.gray100 }]}>
       <View style={[styles.bubble, { backgroundColor: colors.gray100 }]}>
         <View style={styles.dotsContainer}>
-          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot1Anim)]} />
-          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot2Anim)]} />
-          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dotStyle(dot3Anim)]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dot1Style]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dot2Style]} />
+          <Animated.View style={[styles.dot, { backgroundColor: colors.gray500 }, dot3Style]} />
         </View>
       </View>
       <Text style={[styles.text, { color: colors.gray500 }]}>{getTypingText()}</Text>

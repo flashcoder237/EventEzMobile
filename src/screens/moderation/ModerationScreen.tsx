@@ -68,6 +68,9 @@ type FilterType = 'all' | 'billetterie' | 'inscription';
 const BILLET_COLOR = '#4F46E5';
 const INSCRIPTION_COLOR = '#A855F7';
 
+// Hauteur estimée d'une moderation card (image 160 + contenu + actions + margin)
+const MODERATION_CARD_HEIGHT = 340;
+
 export default function ModerationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
@@ -420,7 +423,7 @@ export default function ModerationScreen() {
       <View>
         <View style={styles.cardImage}>
           {item.banner_image ? (
-            <Image source={getMediaUrl(item.banner_image)!} style={styles.image} cachePolicy="disk" transition={200} />
+            <Image source={getMediaUrl(item.banner_image)!} style={styles.image} cachePolicy="memory-disk" transition={200} />
           ) : (
             <View style={[styles.imagePlaceholder, { backgroundColor: `${typeColor}12` }]}>
               <Ionicons
@@ -794,9 +797,17 @@ export default function ModerationScreen() {
         {/* Events list */}
         <View style={{ marginTop: Spacing.sm }}>
           {filteredEvents.length > 0 ? (
-            filteredEvents.map((event) => (
-              <View key={event.id}>{renderEvent({ item: event })}</View>
-            ))
+            <FlatList
+              data={filteredEvents}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={renderEvent}
+              scrollEnabled={false}
+              initialNumToRender={4}
+              maxToRenderPerBatch={6}
+              windowSize={5}
+              removeClippedSubviews
+              getItemLayout={(_, i) => ({ length: MODERATION_CARD_HEIGHT, offset: MODERATION_CARD_HEIGHT * i, index: i })}
+            />
           ) : (
             renderEmpty()
           )}

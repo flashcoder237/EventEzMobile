@@ -43,7 +43,7 @@ import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
 import {
   useFonts,
-  Montserrat_300Light,
+  // Montserrat_300Light retiré : zero usage (FontFamily.light pointe vers regular)
   Montserrat_400Regular,
   Montserrat_500Medium,
   Montserrat_600SemiBold,
@@ -51,7 +51,7 @@ import {
 } from '@expo-google-fonts/montserrat';
 import {
   FunnelDisplay_400Regular,
-  FunnelDisplay_500Medium,
+  // FunnelDisplay_500Medium retiré : zero usage (FontFamily.displayMedium pointe vers displayRegular)
   FunnelDisplay_600SemiBold,
   FunnelDisplay_700Bold,
   FunnelDisplay_800ExtraBold,
@@ -276,13 +276,11 @@ function AppContent() {
 
 function App() {
   const [fontsLoaded] = useFonts({
-    Montserrat_300Light,
     Montserrat_400Regular,
     Montserrat_500Medium,
     Montserrat_600SemiBold,
     Montserrat_700Bold,
     FunnelDisplay_400Regular,
-    FunnelDisplay_500Medium,
     FunnelDisplay_600SemiBold,
     FunnelDisplay_700Bold,
     FunnelDisplay_800ExtraBold,

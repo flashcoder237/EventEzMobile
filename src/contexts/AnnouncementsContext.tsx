@@ -77,6 +77,10 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
   const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
   const [loading, setLoading] = useState(true);
   const appState = useRef<AppStateStatus>(AppState.currentState);
+  // Fix memory leak : ref `active` (au sens "encore monte") consultee par
+  // refresh() avant chaque setState. Permet a la Promise.all de s'achever
+  // sans declencher de setState sur un Provider demonte.
+  const activeRef = useRef(true);
 
   const refresh = useCallback(async () => {
     try {
@@ -84,6 +88,9 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
         loadDismissed(),
         announcementsAPI.getActive(),
       ]);
+      // Fix memory leak : abandonner les setState si on a unmount pendant
+      // l'attente de la Promise.all.
+      if (!activeRef.current) return;
       const data = (res.data?.results ?? res.data ?? []) as Announcement[];
       setDismissed(dismissedSet);
       setActive(Array.isArray(data) ? data : []);
@@ -92,12 +99,18 @@ export function AnnouncementsProvider({ children }: { children: ReactNode }) {
       // Une annonce ratée n'est pas une raison de bloquer l'UX.
       if (__DEV__) console.warn('[Announcements] fetch failed:', error);
     } finally {
-      setLoading(false);
+      if (activeRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
+    // Fix memory leak : reset du flag activeRef au mount + cleanup au unmount.
+    // Couvre les cas ou le Provider est demonte pendant un fetch en vol.
+    activeRef.current = true;
     refresh();
+    return () => {
+      activeRef.current = false;
+    };
   }, [refresh]);
 
   // Refresh au retour foreground (l'utilisateur peut avoir laissé l'app
