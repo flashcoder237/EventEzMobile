@@ -1592,6 +1592,8 @@ export type RootStackParamList = {
   Newsletters: undefined;
   Dashboards: undefined;
   DashboardDetails: { dashboardId: string };
+  SeatingPlans: { eventId: string };
+  SeatingPlanEditor: { planId: string };
   Help: undefined;
   AnalyticsDashboard: undefined;
   Reports: undefined;
@@ -1890,6 +1892,44 @@ export interface Dashboard {
   is_public: boolean;
   shared_with?: number[];
   widgets_count?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================
+// Seating plans (organizer-side)
+// ============================================
+// Aligné avec apps/events/seating_models.py.
+
+export interface SeatingZone {
+  id: string;
+  seating_plan: string;
+  name: string;
+  color: string;
+  price_modifier: number | string;
+  capacity: number;
+  order: number;
+  reserved_count?: number;
+}
+
+export interface SeatingPlan {
+  id: string;
+  event: string;
+  name: string;
+  description?: string;
+  /**
+   * Backend libre — convention mobile :
+   *   { zones: { <zone_id>: { rows, cols, label_prefix } } }
+   * Plus tard on pourra y stocker des coordonnées (x, y) si on ajoute un canvas.
+   */
+  layout_data?: {
+    zones?: Record<string, { rows?: number; cols?: number; label_prefix?: string }>;
+    [k: string]: any;
+  };
+  total_seats: number;
+  is_active: boolean;
+  zones?: SeatingZone[];
+  reserved_seats?: number;
   created_at: string;
   updated_at: string;
 }

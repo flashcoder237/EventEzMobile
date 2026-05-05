@@ -65,15 +65,56 @@ export const waitlistSettingsAPI = {
 // ============================================
 
 export const seatingAPI = {
+  // ---- Plans ----
   getPlans: (params?: { event?: string }) =>
     api.get('/seating-plans/', { params }),
 
   getPlan: (id: string) =>
     api.get(`/seating-plans/${id}/`),
 
+  /**
+   * Crée un plan de placement attaché à un event. layout_data est libre côté
+   * backend ; le mobile stocke la grille de chaque zone sous la forme
+   * { zones: { <zone_id>: { rows, cols, label_prefix } } }.
+   */
+  createPlan: (data: {
+    event: string;
+    name: string;
+    description?: string;
+    layout_data?: Record<string, any>;
+    total_seats?: number;
+    is_active?: boolean;
+  }) => api.post('/seating-plans/', data),
+
+  updatePlan: (id: string, data: any) =>
+    api.patch(`/seating-plans/${id}/`, data),
+
+  deletePlan: (id: string) =>
+    api.delete(`/seating-plans/${id}/`),
+
   getAvailableSeats: (id: string) =>
     api.get(`/seating-plans/${id}/available_seats/`),
 
+  // ---- Zones ----
+  getZones: (params?: { seating_plan?: string }) =>
+    api.get('/seating-zones/', { params }),
+
+  createZone: (data: {
+    seating_plan: string;
+    name: string;
+    color?: string;
+    price_modifier?: number;
+    capacity?: number;
+    order?: number;
+  }) => api.post('/seating-zones/', data),
+
+  updateZone: (id: string, data: any) =>
+    api.patch(`/seating-zones/${id}/`, data),
+
+  deleteZone: (id: string) =>
+    api.delete(`/seating-zones/${id}/`),
+
+  // ---- Reservations (côté spectateur) ----
   createReservation: (data: { seating_plan: string; zone: string; seat_label: string }) =>
     api.post('/seat-reservations/', data),
 

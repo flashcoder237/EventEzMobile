@@ -403,6 +403,10 @@ export default function MyEventsScreen() {
         text: 'Bénévoles',
         onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
       });
+      actions.push({
+        text: 'Plans de placement',
+        onPress: () => navigation.navigate('SeatingPlans', { eventId: event.id }),
+      });
       // Demander mise en avant : envoie une notif aux admins. Backend
       // limite déjà à un envoi par event (cf. request_feature view) — pas
       // besoin de gating côté mobile, on relaye juste le 400 si conflit.

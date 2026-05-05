@@ -77,6 +77,8 @@ import WebhooksScreen from '../screens/organizer/WebhooksScreen';
 import NewslettersScreen from '../screens/organizer/NewslettersScreen';
 import DashboardsScreen from '../screens/organizer/DashboardsScreen';
 import DashboardDetailsScreen from '../screens/organizer/DashboardDetailsScreen';
+import SeatingPlansScreen from '../screens/organizer/SeatingPlansScreen';
+import SeatingPlanEditorScreen from '../screens/organizer/SeatingPlanEditorScreen';
 
 // Moderation Screens
 import ModerationScreen from '../screens/moderation/ModerationScreen';
@@ -303,6 +305,8 @@ export default function RootNavigator() {
       <Stack.Screen name="Newsletters" component={NewslettersScreen} />
       <Stack.Screen name="Dashboards" component={DashboardsScreen} />
       <Stack.Screen name="DashboardDetails" component={DashboardDetailsScreen} />
+      <Stack.Screen name="SeatingPlans" component={SeatingPlansScreen} />
+      <Stack.Screen name="SeatingPlanEditor" component={SeatingPlanEditorScreen} />
 
       {/* Moderation Screens */}
       <Stack.Screen name="Moderation" component={ModerationScreen} />
