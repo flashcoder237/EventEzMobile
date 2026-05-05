@@ -13,6 +13,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Alert as AlertIllustration, AnimatedIllustration } from '../illustrations';
 import {
@@ -101,6 +102,7 @@ function ErrorFallbackUI({
   onGoHome: () => void;
 }) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <View style={[styles.container, { backgroundColor: colors.card }]}>
@@ -115,20 +117,20 @@ function ErrorFallbackUI({
           </AnimatedIllustration>
 
           {/* Title */}
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>Pépin</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('errorBoundary.eyebrow')}</Text>
           <Text style={[styles.title, { color: colors.gray900 }]}>
-            Oups ! Quelque chose s'est mal passe
+            {t('errorBoundary.title')}
           </Text>
 
           {/* Subtitle */}
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-            Nous sommes desoles, une erreur inattendue s'est produite.
+            {t('errorBoundary.subtitle')}
           </Text>
 
           {/* Error details (dev only) */}
           {__DEV__ && error && (
             <View style={[styles.errorDetailsContainer, { backgroundColor: colors.errorLight, borderColor: colors.error + '30' }]}>
-              <Text style={[styles.errorDetailsLabel, { color: colors.error }]}>Details de l'erreur :</Text>
+              <Text style={[styles.errorDetailsLabel, { color: colors.error }]}>{t('errorBoundary.errorDetails')}</Text>
               <Text style={[styles.errorDetailsText, { color: colors.errorDark }]} numberOfLines={4}>
                 {error.message}
               </Text>
@@ -138,7 +140,7 @@ function ErrorFallbackUI({
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
             <GradientButton
-              title="Reessayer"
+              title={t('errorBoundary.retry')}
               onPress={onRetry}
               variant="primary"
               size="lg"
@@ -149,7 +151,7 @@ function ErrorFallbackUI({
             <View style={styles.buttonSpacer} />
 
             <GradientButton
-              title="Retour a l'accueil"
+              title={t('errorBoundary.goHome')}
               onPress={onGoHome}
               variant="outline"
               size="lg"

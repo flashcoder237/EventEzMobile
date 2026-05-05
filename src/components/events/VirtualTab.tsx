@@ -197,7 +197,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
                   <View style={styles.roomInfo}>
                     <Text style={[styles.roomName, { color: colors.gray900 }]}>{room.name}</Text>
                     <Text style={[styles.roomStatus, { color: colors.gray500 }]}>
-                      {active ? 'En cours' : 'Termine'}
+                      {active ? 'En cours' : 'Terminé'}
                     </Text>
                   </View>
                   {room.participants_count !== undefined && (

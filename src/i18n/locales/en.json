@@ -221,6 +221,15 @@
     "connectionLost": "Connection lost. Please refresh."
   },
 
+  "errorBoundary": {
+    "eyebrow": "Glitch",
+    "title": "Oops! Something went wrong",
+    "subtitle": "We're sorry, an unexpected error occurred.",
+    "errorDetails": "Error details:",
+    "retry": "Retry",
+    "goHome": "Back to home"
+  },
+
   "empty": {
     "events": "No events",
     "eventsMessage": "There are no events to display yet",

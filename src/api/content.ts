@@ -59,6 +59,14 @@ export const sponsorsAPI = {
 
   trackClick: (id: string) =>
     api.post(`/event-sponsors/${id}/track-click/`),
+
+  /**
+   * Confirme un sponsor (admin / organizer du contrat). Bascule
+   * is_confirmed=true côté backend pour le faire apparaître publiquement
+   * dans SponsorsTab. Les sponsors non confirmés sont filtrés du listing public.
+   */
+  confirm: (id: string) =>
+    api.post(`/event-sponsors/${id}/confirm/`),
 };
 
 // ============================================

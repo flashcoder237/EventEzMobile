@@ -139,6 +139,20 @@ export default function AnalyticsDashboardScreen() {
 
   const revenueTrend = summary?.trends?.revenue_trend ?? 0;
   const registrationTrend = summary?.trends?.registration_trend ?? 0;
+  const hasTrendData = (summary?.trends?.revenue_trend ?? null) !== null
+    || (summary?.trends?.registration_trend ?? null) !== null;
+
+  // Libellé de la période de comparaison — backend compare la période courante
+  // à la même durée glissée juste avant. Exemple : timeRange='30d' → "vs 30
+  // jours précédents". Sert au subtitle des KPI cards et au bandeau hero.
+  const compareLabel = (() => {
+    switch (timeRange) {
+      case '7d': return 'vs 7 jours précédents';
+      case '30d': return 'vs 30 jours précédents';
+      case '90d': return 'vs 90 jours précédents';
+      case '1y': return 'vs année précédente';
+    }
+  })();
 
   // KPI cards via le composant partagé `<KPICard variant="editorial" />`.
 
@@ -291,6 +305,9 @@ export default function AnalyticsDashboardScreen() {
                 <Text style={styles.heroBottomValue}>{totalEvents}</Text>
               </View>
             </View>
+            {hasTrendData && (
+              <Text style={styles.heroCompareLabel}>{compareLabel}</Text>
+            )}
           </View>
         </StaggeredItem>
 
@@ -305,6 +322,7 @@ export default function AnalyticsDashboardScreen() {
               icon="cash-outline"
               color="#10B981"
               trend={revenueTrend}
+              subtitle={compareLabel}
             />
             <KPICard variant="editorial"
               eyebrow="INSCRITS"
@@ -313,6 +331,7 @@ export default function AnalyticsDashboardScreen() {
               icon="people-outline"
               color="#4F46E5"
               trend={registrationTrend}
+              subtitle={compareLabel}
             />
           </View>
         </StaggeredItem>
@@ -654,6 +673,14 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: -0.7,
     lineHeight: 24,
+  },
+  heroCompareLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    letterSpacing: 0.4,
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: Spacing.md,
+    textAlign: 'center',
   },
 
   // === KPI GRID ===

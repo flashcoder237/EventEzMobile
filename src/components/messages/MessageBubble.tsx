@@ -344,7 +344,7 @@ function MessageBubble({
           <View style={[styles.bubble, styles.deletedBubble, { backgroundColor: colors.gray100 }]}>
             <View style={styles.deletedContent}>
               <Ionicons name="trash-outline" size={14} color={colors.gray400} />
-              <Text style={[styles.deletedText, { color: colors.gray400 }]}>Ce message a ete supprime</Text>
+              <Text style={[styles.deletedText, { color: colors.gray400 }]}>Ce message a été supprimé</Text>
             </View>
           </View>
           <View style={[styles.timeRow, isMine && styles.timeRowMine]}>

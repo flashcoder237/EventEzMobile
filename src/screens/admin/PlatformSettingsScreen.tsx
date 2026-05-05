@@ -214,7 +214,7 @@ function PlatformSettingsContent() {
       title: 'SÉCURITÉ',
       rows: [
         { key: 'jwt', icon: 'key-outline', title: 'Tokens JWT', subtitle: 'Durée de vie des tokens', value: '15min / 7j', color: '#F59E0B' },
-        { key: 'mod', icon: 'shield-checkmark-outline', title: 'Modération', subtitle: 'Validation requise pour publier', value: 'Active', color: '#F59E0B' },
+        { key: 'mod', icon: 'shield-checkmark-outline', title: 'Modération', subtitle: 'Validation requise pour publier', value: 'Activée', color: '#F59E0B' },
         { key: 'audit', icon: 'document-text-outline', title: 'Audit', subtitle: 'Journalisation des actions', value: 'Actif', color: '#F59E0B' },
       ],
     },

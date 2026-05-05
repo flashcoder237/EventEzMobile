@@ -221,6 +221,15 @@
     "connectionLost": "Connexion perdue. Veuillez rafraîchir."
   },
 
+  "errorBoundary": {
+    "eyebrow": "Pépin",
+    "title": "Oups ! Quelque chose s'est mal passé",
+    "subtitle": "Nous sommes désolés, une erreur inattendue s'est produite.",
+    "errorDetails": "Détails de l'erreur :",
+    "retry": "Réessayer",
+    "goHome": "Retour à l'accueil"
+  },
+
   "empty": {
     "events": "Aucun événement",
     "eventsMessage": "Il n'y a pas encore d'événements à afficher",

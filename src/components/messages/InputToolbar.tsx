@@ -246,7 +246,7 @@ function InputToolbar({
             style={[styles.input, { color: colors.gray900 }]}
             value={value}
             onChangeText={onChangeText}
-            placeholder={editingMessage ? 'Modifier le message...' : 'Ecrivez votre message...'}
+            placeholder={editingMessage ? 'Modifier le message...' : 'Écrivez votre message...'}
             placeholderTextColor={colors.gray400}
             multiline
             maxLength={1000}

@@ -815,7 +815,7 @@ export default function MessagesScreen() {
     { key: 'all', label: 'Tous' },
     { key: 'unread', label: 'Non lus' },
     { key: 'events', label: 'Événements' },
-    { key: 'archived', label: 'Archives' },
+    { key: 'archived', label: 'Archivés' },
   ];
 
   return (

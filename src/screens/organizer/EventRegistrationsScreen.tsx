@@ -469,8 +469,8 @@ export default function EventRegistrationsScreen() {
         {searchQuery
           ? 'Essayez avec d\'autres termes de recherche.'
           : filter === 'pending'
-          ? 'Toutes les inscriptions ont ete traitees.'
-          : 'Les inscriptions a cet evenement apparaitront ici.'}
+          ? 'Toutes les inscriptions ont été traitées.'
+          : 'Les inscriptions à cet événement apparaîtront ici.'}
       </Text>
     </View>
   );
