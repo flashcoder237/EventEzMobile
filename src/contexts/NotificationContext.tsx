@@ -43,6 +43,13 @@ interface NotificationContextType {
   refreshCounts: () => Promise<void>;
   initializePushNotifications: () => Promise<void>;
   requestPushPermission: () => Promise<boolean>;
+  /**
+   * Affiche le modal de permission push si l'utilisateur n'a jamais été
+   * sollicité ET que la permission n'est pas déjà accordée. À appeler depuis
+   * un contexte où l'utilisateur comprend le bénéfice (après follow event,
+   * après inscription, après envoi 1er message, etc.). No-op sinon.
+   */
+  maybePromptForPushPermission: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -361,6 +368,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  /**
+   * Wrapper public à appeler depuis un écran contextuel (après follow event,
+   * inscription réussie, 1er message envoyé). Délègue à
+   * `checkPushPermissionPrompt` qui a déjà la logique de dédup
+   * (PUSH_PERMISSION_PROMPTED_KEY) → rejouable sans risque.
+   */
+  const maybePromptForPushPermission = useCallback(async () => {
+    if (!isAuthenticated) return;
+    await checkPushPermissionPrompt();
+  }, [isAuthenticated, checkPushPermissionPrompt]);
+
   const handleAcceptPushPermission = useCallback(async () => {
     setShowPermissionModal(false);
     await AsyncStorage.setItem(PUSH_PERMISSION_PROMPTED_KEY, 'true');
@@ -380,7 +398,12 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     // warnings "setState on unmounted component".
     let active = true;
     if (isAuthenticated) {
-      // Try to initialize silently if permission already granted, otherwise show modal
+      // Init silencieux UNIQUEMENT si la permission est déjà accordée
+      // (l'utilisateur a déjà accepté au préalable). Sinon on n'affiche
+      // PLUS la modal au cold start — elle s'ouvre désormais via
+      // `maybePromptForPushPermission()` depuis un écran contextuel
+      // (après inscription event, follow, etc.) pour que l'utilisateur
+      // comprenne le bénéfice avant d'accepter.
       (async () => {
         const Notif = await import('expo-notifications');
         if (!active) return;
@@ -388,8 +411,6 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (!active) return;
         if (status === 'granted') {
           initializePushNotifications();
-        } else {
-          checkPushPermissionPrompt();
         }
       })();
       fetchUnreadCounts();
@@ -486,6 +507,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     refreshCounts,
     initializePushNotifications,
     requestPushPermission,
+    maybePromptForPushPermission,
   }), [
     notifications,
     unreadNotificationCount,
@@ -500,6 +522,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     fetchUnreadCounts,
     markNotificationAsRead,
     markAllNotificationsAsRead,
+    maybePromptForPushPermission,
     refreshCounts,
     initializePushNotifications,
     requestPushPermission,

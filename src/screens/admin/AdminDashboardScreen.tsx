@@ -93,6 +93,7 @@ function AdminDashboardContent() {
     { icon: 'receipt-outline', title: 'Abonnements', screen: 'SubscriptionManagement', color: '#A855F7' },
     { icon: 'shield-outline', title: 'Audit', screen: 'AuditLogs', color: '#10B981' },
     { icon: 'megaphone-outline', title: 'Annonces', screen: 'AnnouncementsAdmin', color: '#3B82F6' },
+    { icon: 'pricetag-outline', title: 'Publicités', screen: 'AdminAds', color: '#EC4899' },
     { icon: 'cloud-download-outline', title: 'Versions client', screen: 'ClientReleaseAdmin', color: '#7C3AED' },
     { icon: 'settings-outline', title: 'Paramètres', screen: 'PlatformSettings', color: '#F59E0B' },
     { icon: 'cash-outline', title: 'Trésorerie', screen: 'TreasuryOverview', color: '#EF4444' },

@@ -17,8 +17,9 @@ import VerificationBanner from '../../components/auth/VerificationBanner';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useUnreadCounts } from '../../contexts/NotificationContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
-import { eventsAPI, notificationsAPI, ticketPurchasesAPI, walletAPI } from '../../api';
+import { eventsAPI, ticketPurchasesAPI, walletAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { RootStackParamList, Event } from '../../types';
 import EventCard from '../../components/events/EventCard';
@@ -74,6 +75,11 @@ QuickAction.displayName = 'QuickAction';
 export default function DashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
+  // Source unique pour le count de notifs non lues : le NotificationContext
+  // refetch déjà ces données toutes les 30s + au foreground. Avant, on
+  // refetchait également ici → 2 requêtes concurrentes en < 2s sur les
+  // pages avec polling.
+  const { unreadNotificationCount } = useUnreadCounts();
   const { colors } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
   const [refreshing, setRefreshing] = useState(false);
@@ -125,9 +131,10 @@ export default function DashboardScreen() {
         return 0;
       };
 
+      // Notifications : on lit depuis NotificationContext (déjà polled 30s).
+      // Plus de fetch local → plus de requête concurrente.
       const promises: Promise<any>[] = [
         ticketPurchasesAPI.getMyPurchases().catch(() => ({ data: [] })),
-        notificationsAPI.getNotifications({ is_read: false, page_size: 1 }).catch(() => ({ data: { count: 0 } })),
       ];
 
       if (isOrganizer) {
@@ -141,9 +148,12 @@ export default function DashboardScreen() {
 
       const newStats = {
         tickets: extractCount(results[0]),
-        notifications: extractCount(results[1]),
-        events: isOrganizer ? extractCount(results[2]) : 0,
-        balance: isOrganizer ? (results[3]?.data?.available_balance || 0) : 0,
+        // notifications: lu depuis le context, pas du fetch ici. On garde
+        // la valeur courante du context — le useEffect plus bas synchronisera
+        // si elle change après le set.
+        notifications: 0,
+        events: isOrganizer ? extractCount(results[1]) : 0,
+        balance: isOrganizer ? (results[2]?.data?.available_balance || 0) : 0,
       };
       setStats(newStats);
       CacheService.set(cacheKey, newStats, 2 * 60 * 1000); // fraîcheur : 2 minutes
@@ -206,10 +216,10 @@ export default function DashboardScreen() {
             accessibilityLabel="Notifications"
           >
             <Ionicons name="notifications-outline" size={24} color={colors.gray700} />
-            {stats.notifications > 0 && (
+            {unreadNotificationCount > 0 && (
               <View style={[styles.notificationBadge, { backgroundColor: colors.error }]}>
                 <Text style={styles.notificationBadgeText}>
-                  {stats.notifications > 9 ? '9+' : stats.notifications}
+                  {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
                 </Text>
               </View>
             )}
@@ -286,7 +296,7 @@ export default function DashboardScreen() {
               <QuickAction icon="heart-outline" title="Favoris" onPress={goToSaved} />
             </StaggeredItem>
             <StaggeredItem index={2} style={styles.quickActionWrapper}>
-              <QuickAction icon="notifications-outline" title="Notifications" badge={stats.notifications} onPress={goToNotifications} />
+              <QuickAction icon="notifications-outline" title="Notifications" badge={unreadNotificationCount} onPress={goToNotifications} />
             </StaggeredItem>
             <StaggeredItem index={3} style={styles.quickActionWrapper}>
               <QuickAction icon="chatbubbles-outline" title="Messages" onPress={goToMessages} />

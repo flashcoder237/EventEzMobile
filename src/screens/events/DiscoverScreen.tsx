@@ -27,8 +27,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 
-import { eventsAPI, categoriesAPI, recommendationsAPI, getMediaUrl } from '../../api';
+import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, getMediaUrl } from '../../api';
+import type { AdvertisementPublic } from '../../api';
 import { Event, Category, RootStackParamList, MainTabParamList } from '../../types';
+import AdvertisementCard from '../../components/common/AdvertisementCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
@@ -192,6 +194,24 @@ export default function DiscoverScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [recommendations, setRecommendations] = useState<Event[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // === Ads (géo-ciblées admin/modérateur) ===
+  const [ads, setAds] = useState<AdvertisementPublic[]>([]);
+
+  // === "Pour vous" : section paginée infinite-scroll en bas du feed ===
+  // Distincte de `recommendations` (top, limit=10) — celle-ci pagine sans
+  // limite, prend le relai quand l'user scrolle pour explorer.
+  const [forYouEvents, setForYouEvents] = useState<Event[]>([]);
+  const [forYouPage, setForYouPage] = useState(1);
+  const [forYouHasMore, setForYouHasMore] = useState(true);
+  const [forYouLoading, setForYouLoading] = useState(false);
+  // Refs pour éviter les double-fetch en course de scroll fast
+  const forYouLoadingRef = React.useRef(false);
+  const forYouHasMoreRef = React.useRef(true);
+  const forYouPageRef = React.useRef(1);
+  forYouLoadingRef.current = forYouLoading;
+  forYouHasMoreRef.current = forYouHasMore;
+  forYouPageRef.current = forYouPage;
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   // 'idle' = pas demandé, 'requesting' = en cours, 'granted'/'denied' = état final
   const [locationPermStatus, setLocationPermStatus] = useState<
@@ -351,6 +371,80 @@ export default function DiscoverScreen() {
     }
   }, [location]);
 
+  // === Ads (géo-ciblées) — fetch dès qu'on a la geo (loose : ne bloque pas
+  // sans geo, le backend renverra les pubs sans contrainte). ===
+  const fetchAds = useCallback(async () => {
+    try {
+      const params: { country?: string; city?: string; lat?: number; lng?: number } = {};
+      if (location) {
+        params.lat = location.lat;
+        params.lng = location.lng;
+      }
+      // Le backend matche aussi via city/country quand fourni, mais on n'a
+      // pas ces données côté mobile sans reverse-geocoding — on s'appuie sur
+      // les coords pour le radius matching.
+      const response = await advertisementsAPI.getNearby(params);
+      setAds(response.data?.results || []);
+    } catch (error) {
+      if (__DEV__) console.error('Erreur publicités:', error);
+    }
+  }, [location]);
+
+  // === Pagination "Pour vous" — recommandations infinies en bas du feed ===
+  // bypassReset=true au refresh pour relancer page 1 et clear la liste.
+  const PAGE_SIZE = 8;
+  const loadMoreForYou = useCallback(
+    async (reset: boolean = false) => {
+      if (!user) return; // recos seulement pour user authentifié
+      if (forYouLoadingRef.current) return;
+      if (!reset && !forYouHasMoreRef.current) return;
+
+      const nextPage = reset ? 1 : forYouPageRef.current + 1;
+      setForYouLoading(true);
+      try {
+        const response = await recommendationsAPI.getRecommendations({
+          page: nextPage,
+          page_size: PAGE_SIZE,
+        });
+        const data = getApiResults<Event>(response).filter((e) => isEventInFuture(e.start_date));
+        setForYouEvents((prev) => {
+          if (reset) return data;
+          // Dedup par id pour éviter doublons en cas de reco mouvante
+          const existing = new Set(prev.map((e) => e.id));
+          return [...prev, ...data.filter((e) => !existing.has(e.id))];
+        });
+        setForYouPage(nextPage);
+        // Le backend reco peut ne pas exposer `next` — on tente plusieurs forms
+        const next = (response.data as any)?.next;
+        const hasNext = next != null
+          ? Boolean(next)
+          : Array.isArray(data) && data.length === PAGE_SIZE;
+        setForYouHasMore(hasNext);
+      } catch (error) {
+        if (__DEV__) console.error('Erreur loadmore for-you:', error);
+        setForYouHasMore(false);
+      } finally {
+        setForYouLoading(false);
+      }
+    },
+    [user],
+  );
+
+  // Détection scroll-to-end pour infinite scroll. On utilise onMomentumScrollEnd
+  // (déclenché quand le scroll ralentit/s'arrête) plutôt que onScroll continu :
+  // évite les double-fetch quand le user scrolle vite, et économise le worklet.
+  const handleScrollEnd = useCallback(
+    (e: any) => {
+      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+      const distanceFromBottom = contentSize.height - (contentOffset.y + layoutMeasurement.height);
+      // Trigger 600px avant le bas pour préfetcher la prochaine page
+      if (distanceFromBottom < 600) {
+        loadMoreForYou();
+      }
+    },
+    [loadMoreForYou],
+  );
+
   const requestLocation = useCallback(async () => {
     setLocationPermStatus('requesting');
     try {
@@ -398,6 +492,10 @@ export default function DiscoverScreen() {
       fetchRecommendations();
       // Vérifier la perm sans la demander — la card explicative gère le prompt
       checkLocationPermSilent();
+      // Premier batch "Pour vous" (page 1) + ads sans contrainte géo. Si la
+      // location arrive plus tard, l'effect dédié `[location]` re-fetchera.
+      fetchAds();
+      loadMoreForYou(true);
     });
     return () => task.cancel();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -410,8 +508,12 @@ export default function DiscoverScreen() {
   }, [route.params?.category, navigation]);
 
   useEffect(() => {
-    if (location) fetchNearbyEvents();
-  }, [location, fetchNearbyEvents]);
+    if (location) {
+      fetchNearbyEvents();
+      // Re-fetch ads avec coords précises (radius matching)
+      fetchAds();
+    }
+  }, [location, fetchNearbyEvents, fetchAds]);
 
   // === Handlers ===
   const onRefresh = async () => {
@@ -420,6 +522,8 @@ export default function DiscoverScreen() {
       fetchDiscoveryData(true),
       fetchRecommendations(true),
       location ? fetchNearbyEvents() : Promise.resolve(),
+      fetchAds(),
+      loadMoreForYou(true),
     ]);
     setRefreshing(false);
   };
@@ -1059,6 +1163,7 @@ export default function DiscoverScreen() {
             <Animated.ScrollView
               showsVerticalScrollIndicator={false}
               onScroll={onScroll}
+              onMomentumScrollEnd={handleScrollEnd}
               scrollEventThrottle={16}
               refreshControl={
                 <RefreshControl
@@ -1219,6 +1324,13 @@ export default function DiscoverScreen() {
                   </ScrollView>
                 )}
               </View>
+
+              {/* === ADS — haut du feed === */}
+              {ads.filter((a) => a.placement === 'feed_top').map((ad) => (
+                <View key={ad.id} style={{ paddingHorizontal: Spacing.lg }}>
+                  <AdvertisementCard ad={ad} />
+                </View>
+              ))}
 
               {/* Le banner réseau (offline / slow) est rendu en overlay flottant
                   au niveau du root (NetworkStatusPill) pour éviter de pousser
@@ -1521,6 +1633,89 @@ export default function DiscoverScreen() {
                     </Text>
                   </View>
                 )}
+
+              {/* === ADS — bas du feed === */}
+              {ads.filter((a) => a.placement === 'feed_bottom').map((ad) => (
+                <View key={ad.id} style={{ paddingHorizontal: Spacing.lg }}>
+                  <AdvertisementCard ad={ad} />
+                </View>
+              ))}
+
+              {/* === POUR VOUS — recommandations infinies === */}
+              {forYouEvents.length > 0 && (
+                <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl }}>
+                  <Text style={[styles.forYouEyebrow, { color: colors.accent }]}>
+                    POUR VOUS · BASÉ SUR VOS GOÛTS
+                  </Text>
+                  <Text style={[styles.forYouTitle, { color: colors.text }]}>
+                    Tu pourrais aussi aimer
+                  </Text>
+                  {forYouEvents.map((ev, idx) => {
+                    const { day, month } = splitDate(ev.start_date);
+                    const img = eventImage(ev);
+                    const placeholder = eventPlaceholder(ev);
+                    // Inject une ad inline tous les 4 events si dispo
+                    const inlineAd = idx > 0 && idx % 4 === 0
+                      ? ads.find((a) => a.placement === 'feed_inline'
+                          && !forYouEvents.slice(0, idx).some(() => false))
+                      : null;
+                    return (
+                      <React.Fragment key={ev.id}>
+                        {inlineAd && idx === 4 && (
+                          // Une seule ad inline injectée pour ne pas spammer
+                          <AdvertisementCard ad={inlineAd} />
+                        )}
+                        <TouchableOpacity
+                          onPress={() => navigateToEvent(ev.id, img)}
+                          activeOpacity={0.85}
+                          style={[styles.forYouCard, { backgroundColor: colors.card }]}
+                        >
+                          <View style={[styles.forYouDateTile, { backgroundColor: `${colors.accent}1A` }]}>
+                            <Text style={[styles.forYouDateDay, { color: colors.accent }]}>{day}</Text>
+                            <Text style={[styles.forYouDateMonth, { color: colors.accent }]}>{month}</Text>
+                          </View>
+                          {img ? (
+                            <Image
+                              source={{ uri: img }}
+                              placeholder={placeholder}
+                              style={styles.forYouImage}
+                              contentFit="cover"
+                              transition={300}
+                              cachePolicy="memory-disk"
+                            />
+                          ) : (
+                            <View style={[styles.forYouImage, { backgroundColor: colors.gray100 }]} />
+                          )}
+                          <View style={styles.forYouBody}>
+                            <Text style={[styles.forYouName, { color: colors.text }]} numberOfLines={2}>
+                              {ev.title}
+                            </Text>
+                            <Text style={[styles.forYouMeta, { color: colors.gray500 }]} numberOfLines={1}>
+                              {ev.location_city || ev.location_name || (ev.location_type === 'online' ? 'En ligne' : '')}
+                              {ev.start_date ? ` · ${eventTime(ev)}` : ''}
+                            </Text>
+                          </View>
+                          <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
+                        </TouchableOpacity>
+                      </React.Fragment>
+                    );
+                  })}
+                  {forYouLoading && (
+                    <View style={styles.forYouLoadingRow}>
+                      <Text style={[styles.forYouLoadingText, { color: colors.gray500 }]}>
+                        Chargement...
+                      </Text>
+                    </View>
+                  )}
+                  {!forYouHasMore && forYouEvents.length > 0 && (
+                    <View style={styles.forYouEndRow}>
+                      <Text style={[styles.forYouEndText, { color: colors.gray400 }]}>
+                        Tu as tout vu pour aujourd'hui · Reviens demain
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
               <View style={{ height: 140 }} />
             </Animated.ScrollView>
@@ -2297,5 +2492,84 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: -0.3,
     lineHeight: 17,
+  },
+
+  // === FOR YOU SECTION (infinite scroll) ===
+  forYouEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  forYouTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.7,
+    marginBottom: Spacing.md,
+  },
+  forYouCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.xl,
+    marginBottom: Spacing.sm,
+  },
+  forYouDateTile: {
+    width: 44,
+    height: 50,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  forYouDateDay: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 16,
+    letterSpacing: -0.4,
+    lineHeight: 18,
+  },
+  forYouDateMonth: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  forYouImage: {
+    width: 56,
+    height: 56,
+    borderRadius: BorderRadius.lg,
+  },
+  forYouBody: {
+    flex: 1,
+    gap: 2,
+  },
+  forYouName: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 14,
+    letterSpacing: -0.2,
+    lineHeight: 18,
+  },
+  forYouMeta: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+  },
+  forYouLoadingRow: {
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+  },
+  forYouLoadingText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    letterSpacing: 0.3,
+  },
+  forYouEndRow: {
+    paddingVertical: Spacing.lg,
+    alignItems: 'center',
+  },
+  forYouEndText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    letterSpacing: 0.2,
   },
 });

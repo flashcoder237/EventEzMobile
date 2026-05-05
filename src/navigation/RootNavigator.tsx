@@ -131,6 +131,8 @@ const PlatformSettingsScreen = withSuspense(lazy(() => import('../screens/admin/
 const AnnouncementsAdminScreen = withSuspense(lazy(() => import('../screens/admin/AnnouncementsAdminScreen')));
 const AnnouncementFormScreen = withSuspense(lazy(() => import('../screens/admin/AnnouncementFormScreen')));
 const ClientReleaseAdminScreen = withSuspense(lazy(() => import('../screens/admin/ClientReleaseAdminScreen')));
+const AdminAdsScreen = withSuspense(lazy(() => import('../screens/admin/AdminAdsScreen')));
+const AdminAdFormScreen = withSuspense(lazy(() => import('../screens/admin/AdminAdFormScreen')));
 
 // Treasury Screens (lazy — staff/admin only, very niche)
 const TreasuryOverviewScreen = withSuspense(lazy(() => import('../screens/admin/treasury/TreasuryOverviewScreen')));
@@ -362,6 +364,8 @@ export default function RootNavigator() {
       <Stack.Screen name="AnnouncementsAdmin" component={AnnouncementsAdminScreen} />
       <Stack.Screen name="AnnouncementForm" component={AnnouncementFormScreen} />
       <Stack.Screen name="ClientReleaseAdmin" component={ClientReleaseAdminScreen} />
+      <Stack.Screen name="AdminAds" component={AdminAdsScreen} />
+      <Stack.Screen name="AdminAdForm" component={AdminAdFormScreen} options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
 
       {/* Treasury Screens */}
       <Stack.Screen name="TreasuryOverview" component={TreasuryOverviewScreen} />

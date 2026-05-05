@@ -1616,6 +1616,8 @@ export type RootStackParamList = {
   AnnouncementsAdmin: undefined;
   AnnouncementForm: { announcementId?: string } | undefined;
   ClientReleaseAdmin: undefined;
+  AdminAds: undefined;
+  AdminAdForm: { adId?: string } | undefined;
   TreasuryOverview: undefined;
   TreasuryStaff: undefined;
   TreasuryExpenses: undefined;

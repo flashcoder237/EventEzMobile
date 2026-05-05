@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useNotifications } from '../../contexts/NotificationContext';
 import { useVerificationGuard } from '../../hooks/useVerificationGuard';
 import { RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -55,6 +56,7 @@ function FollowEventButtonImpl({
 }: FollowEventButtonProps) {
   const { user } = useAuth();
   const { requireVerification } = useVerificationGuard();
+  const { maybePromptForPushPermission } = useNotifications();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { showAlert, showError, showWarning } = useAlert();
   const { colors, isDark } = useTheme();
@@ -138,6 +140,10 @@ function FollowEventButtonImpl({
           setIsFollowing(true);
           if (showFollowerCount) setFollowersCount(prev => prev + 1);
           onFollowChange?.(true);
+          // Moment idéal pour demander la permission push : l'utilisateur
+          // vient de signaler explicitement qu'il veut être tenu au courant.
+          // No-op si déjà demandé / déjà accordé / déjà refusé (dédup interne).
+          maybePromptForPushPermission();
         }
       } catch (error) {
         if (__DEV__) console.error('Error toggling follow:', error);

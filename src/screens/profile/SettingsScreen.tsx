@@ -323,6 +323,12 @@ export default function SettingsScreen() {
   const [eventReminders, setEventReminders] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
 
+  // Préférences granulaires par catégorie (s'appliquent en plus des canaux globaux)
+  const [notifyEventUpdates, setNotifyEventUpdates] = useState(true);
+  const [notifyPayment, setNotifyPayment] = useState(true);
+  const [notifyMessagesPref, setNotifyMessagesPref] = useState(true);
+  const [notifyMarketing, setNotifyMarketing] = useState(false);
+
   // Confidentialité (P19)
   const [showInAttendees, setShowInAttendees] = useState(true);
   const [showReadReceipts, setShowReadReceipts] = useState(true);
@@ -424,6 +430,10 @@ export default function SettingsScreen() {
         setSmsNotifications(settings.sms_notifications ?? false);
         setEventReminders(settings.event_reminders ?? true);
         setMarketingEmails(settings.marketing_emails ?? false);
+        setNotifyEventUpdates(settings.notify_event_updates ?? true);
+        setNotifyPayment(settings.notify_payment ?? true);
+        setNotifyMessagesPref(settings.notify_messages ?? true);
+        setNotifyMarketing(settings.notify_marketing ?? false);
         setLanguage(settings.language ?? 'fr');
         setTimezone(settings.timezone ?? 'Africa/Douala');
         setTwoFactorAuth(settings.two_factor_auth ?? false);
@@ -685,25 +695,51 @@ export default function SettingsScreen() {
             disabled
             right={<SoftToggle value={smsNotifications} onToggle={() => {}} disabled />}
           />
+          {/* === Catégories : s'appliquent en plus des canaux globaux ci-dessus.
+              Si email_notifications=false, aucun email même si notify_event_updates=true.
+              Les notifs transactionnelles critiques (vérif compte, sécurité) passent toujours. */}
           <OptionCard
-            icon="time-outline"
-            eyebrow="RAPPELS"
-            title="Avant tes événements"
+            icon="calendar-outline"
+            eyebrow="ÉVÉNEMENTS"
+            title="Mises à jour"
+            subtitle="Rappels, annulations, changements de date/lieu"
             right={
               <SoftToggle
-                value={eventReminders}
-                onToggle={(v) => handleToggle('event_reminders', v, setEventReminders)}
+                value={notifyEventUpdates}
+                onToggle={(v) => handleToggle('notify_event_updates', v, setNotifyEventUpdates)}
+              />
+            }
+          />
+          <OptionCard
+            icon="card-outline"
+            eyebrow="PAIEMENTS"
+            title="Confirmations & remboursements"
+            right={
+              <SoftToggle
+                value={notifyPayment}
+                onToggle={(v) => handleToggle('notify_payment', v, setNotifyPayment)}
+              />
+            }
+          />
+          <OptionCard
+            icon="chatbubbles-outline"
+            eyebrow="MESSAGES"
+            title="Nouvelles conversations"
+            right={
+              <SoftToggle
+                value={notifyMessagesPref}
+                onToggle={(v) => handleToggle('notify_messages', v, setNotifyMessagesPref)}
               />
             }
           />
           <OptionCard
             icon="sparkles-outline"
-            eyebrow="MARKETING"
-            title="Nouveautés et offres"
+            eyebrow="SUGGESTIONS"
+            title="Recommandations & promotions"
             right={
               <SoftToggle
-                value={marketingEmails}
-                onToggle={(v) => handleToggle('marketing_emails', v, setMarketingEmails)}
+                value={notifyMarketing}
+                onToggle={(v) => handleToggle('notify_marketing', v, setNotifyMarketing)}
               />
             }
           />
