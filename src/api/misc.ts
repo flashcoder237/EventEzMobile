@@ -107,6 +107,22 @@ export const volunteersAPI = {
   getRoles: (params?: { event?: string }) =>
     api.get('/volunteer-roles/', { params }),
 
+  // CRUD organizer-side : créer / éditer / supprimer un rôle bénévole.
+  // Le backend vérifie déjà que request.user == event.organizer.
+  createRole: (data: {
+    event: string;
+    title: string;
+    description?: string;
+    requirements?: string;
+    quantity_needed?: number;
+  }) => api.post('/volunteer-roles/', data),
+
+  updateRole: (id: string, data: any) =>
+    api.patch(`/volunteer-roles/${id}/`, data),
+
+  deleteRole: (id: string) =>
+    api.delete(`/volunteer-roles/${id}/`),
+
   apply: (data: { role: string; motivation?: string; availability?: string; experience?: string }) =>
     api.post('/volunteer-applications/', data),
 
@@ -115,6 +131,13 @@ export const volunteersAPI = {
 
   withdrawApplication: (id: string) =>
     api.post(`/volunteer-applications/${id}/withdraw/`),
+
+  // Approbation des candidatures (organizer-side).
+  acceptApplication: (id: string) =>
+    api.post(`/volunteer-applications/${id}/accept/`),
+
+  rejectApplication: (id: string, reason?: string) =>
+    api.post(`/volunteer-applications/${id}/reject/`, { reason: reason || '' }),
 
   getMyTasks: () =>
     api.get('/volunteer-tasks/my_tasks/'),

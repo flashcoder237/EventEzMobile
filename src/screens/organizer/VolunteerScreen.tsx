@@ -8,7 +8,11 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  Modal,
+  TextInput,
+  ScrollView,
 } from 'react-native';
+import { useAuth } from '../../contexts/AuthContext';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -60,7 +64,13 @@ export default function VolunteerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<VolunteerRouteProp>();
   const { colors } = useTheme();
+  const { user } = useAuth();
   const eventId = route.params?.eventId;
+  // Mode organizer : on est arrivé depuis MyEvents → eventId présent + user
+  // est organisateur. Affiche un bouton "Créer un rôle". Le backend rejette
+  // toute création par un user qui n'est pas organizer de l'event, donc le
+  // gating UI ici sert uniquement à éviter de présenter une option morte.
+  const isOrganizerView = !!eventId && (user?.role === 'organizer' || user?.role === 'admin');
 
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [applications, setApplications] = useState<VolunteerApplication[]>([]);
@@ -68,6 +78,66 @@ export default function VolunteerScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'roles' | 'applications'>('roles');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Modal de création de rôle (organizer seulement)
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createTitle, setCreateTitle] = useState('');
+  const [createDescription, setCreateDescription] = useState('');
+  const [createRequirements, setCreateRequirements] = useState('');
+  const [createCapacity, setCreateCapacity] = useState('5');
+  const [createLoading, setCreateLoading] = useState(false);
+
+  const resetCreateForm = () => {
+    setCreateTitle('');
+    setCreateDescription('');
+    setCreateRequirements('');
+    setCreateCapacity('5');
+  };
+
+  const closeCreate = () => {
+    if (createLoading) return;
+    setCreateOpen(false);
+    resetCreateForm();
+  };
+
+  const submitCreateRole = async () => {
+    if (!eventId) return;
+    const title = createTitle.trim();
+    const cap = parseInt(createCapacity, 10);
+    if (!title) {
+      Alert.alert('Titre requis', 'Donne un titre au rôle (ex : "Accueil entrée principale").');
+      return;
+    }
+    if (!Number.isFinite(cap) || cap < 1) {
+      Alert.alert('Capacité invalide', 'Indique combien de bénévoles tu cherches.');
+      return;
+    }
+    setCreateLoading(true);
+    try {
+      const res = await volunteersAPI.createRole({
+        event: eventId,
+        title,
+        description: createDescription.trim() || undefined,
+        requirements: createRequirements.trim() || undefined,
+        quantity_needed: cap,
+      });
+      const created = res.data;
+      // Insertion optimistic en tête de liste pour feedback immédiat.
+      if (created?.id) {
+        setRoles(prev => [created, ...prev]);
+      } else {
+        await fetchData();
+      }
+      Alert.alert('Rôle créé', 'Les bénévoles peuvent désormais postuler.');
+      setCreateOpen(false);
+      resetCreateForm();
+    } catch (error: any) {
+      const detail = error?.response?.data?.detail || 'Impossible de créer le rôle.';
+      Alert.alert('Erreur', detail);
+    } finally {
+      setCreateLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -336,7 +406,18 @@ export default function VolunteerScreen() {
           <Text style={[styles.headerEyebrow, { color: colors.accent }]}>L'équipe derrière</Text>
           <Text style={[styles.headerTitle, { color: colors.text }]}>Bénévoles</Text>
         </View>
-        <View style={{ width: 40 }} />
+        {isOrganizerView ? (
+          <TouchableOpacity
+            onPress={() => setCreateOpen(true)}
+            style={[styles.backButton, { backgroundColor: `${colors.primary}15` }]}
+            accessibilityRole="button"
+            accessibilityLabel="Créer un rôle bénévole"
+          >
+            <Ionicons name="add" size={22} color={colors.primary} />
+          </TouchableOpacity>
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
       </View>
 
       {/* Tabs */}
@@ -412,6 +493,96 @@ export default function VolunteerScreen() {
         />
       )}
       </View>
+
+      {/* === CREATE ROLE MODAL (organizer only) === */}
+      <Modal
+        visible={createOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCreate}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVEAU RÔLE</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Recrute des bénévoles</Text>
+
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Titre *</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.gray50, color: colors.text }]}
+                value={createTitle}
+                onChangeText={setCreateTitle}
+                placeholder="Ex : Accueil entrée principale"
+                placeholderTextColor={colors.textLight}
+                editable={!createLoading}
+                maxLength={120}
+              />
+
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Capacité *</Text>
+              <TextInput
+                style={[styles.modalInput, { backgroundColor: colors.gray50, color: colors.text }]}
+                value={createCapacity}
+                onChangeText={setCreateCapacity}
+                placeholder="5"
+                placeholderTextColor={colors.textLight}
+                keyboardType="number-pad"
+                editable={!createLoading}
+              />
+
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Description</Text>
+              <TextInput
+                style={[styles.modalInput, styles.modalTextArea, { backgroundColor: colors.gray50, color: colors.text }]}
+                value={createDescription}
+                onChangeText={setCreateDescription}
+                placeholder="Tâches, horaires, point de rdv…"
+                placeholderTextColor={colors.textLight}
+                multiline
+                numberOfLines={3}
+                textAlignVertical="top"
+                editable={!createLoading}
+                maxLength={500}
+              />
+
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Pré-requis</Text>
+              <TextInput
+                style={[styles.modalInput, styles.modalTextArea, { backgroundColor: colors.gray50, color: colors.text }]}
+                value={createRequirements}
+                onChangeText={setCreateRequirements}
+                placeholder="Ex : majeur, anglais courant…"
+                placeholderTextColor={colors.textLight}
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
+                editable={!createLoading}
+                maxLength={300}
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.gray100 }]}
+                  onPress={closeCreate}
+                  disabled={createLoading}
+                  activeOpacity={0.85}
+                >
+                  <Text style={[styles.modalBtnText, { color: colors.text }]}>Annuler</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalBtn, { backgroundColor: colors.primary }, createLoading && { opacity: 0.6 }]}
+                  onPress={submitCreateRole}
+                  disabled={createLoading}
+                  activeOpacity={0.85}
+                >
+                  {createLoading ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>Créer</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </EditorialCanvas>
   );
 }
@@ -468,4 +639,65 @@ const styles = StyleSheet.create({
   emptyState: { alignItems: 'center', paddingVertical: Spacing.xl * 2 },
   emptyText: { fontSize: FontSizes.md, color: Colors.textLight, fontWeight: '600', marginTop: Spacing.md },
   emptySubtext: { fontSize: FontSizes.sm, color: Colors.textLight, marginTop: Spacing.xs, textAlign: 'center', paddingHorizontal: Spacing.xl },
+  // Create-role modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: Spacing.lg,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 420,
+    maxHeight: '85%',
+    borderRadius: BorderRadius['2xl'],
+    padding: Spacing.lg,
+  },
+  modalEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontFamily: FontFamily.displayExtraBold,
+    fontSize: 22,
+    letterSpacing: -0.5,
+    marginBottom: Spacing.md,
+  },
+  modalLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    marginTop: Spacing.sm,
+    marginBottom: 6,
+  },
+  modalInput: {
+    borderWidth: 0,
+    borderRadius: BorderRadius.xl,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    fontSize: 14,
+    fontFamily: FontFamily.regular,
+  },
+  modalTextArea: {
+    minHeight: 70,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalBtnText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    letterSpacing: 0.2,
+  },
 });
