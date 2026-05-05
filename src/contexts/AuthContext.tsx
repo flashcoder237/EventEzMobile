@@ -267,6 +267,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (cacheError) {
       if (__DEV__) console.warn('Cache clearAll on logout failed:', cacheError);
     }
+    // Purge l'état de navigation persisté : sans ça, le prochain user (ou le
+    // même user sur un autre compte) verrait au prochain cold start l'écran
+    // organizer / paiement / autre sur lequel l'ancien user était.
+    try {
+      const { clearNavigationState } = await import('../lib/navigationPersistence');
+      await clearNavigationState();
+    } catch (navError) {
+      if (__DEV__) console.warn('clearNavigationState on logout failed:', navError);
+    }
     setState({
       user: null,
       isAuthenticated: false,

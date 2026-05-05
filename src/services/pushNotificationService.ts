@@ -8,6 +8,11 @@ import { notificationsAPI } from '../api';
 
 const PUSH_TOKEN_KEY = '@eventez_push_token';
 const PUSH_REGISTERED_AT_KEY = '@eventez_push_registered_at';
+// Doit rester aligné avec NotificationContext.LAST_HANDLED_RESPONSE_ID_KEY.
+// Stocké ici aussi pour que le listener "warm tap" puisse marquer une notif
+// comme déjà consommée — sans ça, au prochain cold start
+// `getLastNotificationResponseAsync()` la renvoie et on re-navigue.
+const LAST_HANDLED_RESPONSE_ID_KEY = '@eventez_last_handled_notif_response_id';
 const MAX_REGISTER_RETRIES = 3;
 // Au-delà de cette durée, on force un re-register côté backend pour rafraîchir
 // l'enregistrement (le serveur peut dropper un token inactif). 7 jours est un
@@ -304,6 +309,13 @@ class PushNotificationService {
     this.responseListener = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         if (__DEV__) console.log('[Push] Notification tapped:', response);
+        // Marque cette réponse comme consommée pour éviter qu'au prochain cold
+        // start `getLastNotificationResponseAsync()` la re-renvoie et qu'on
+        // re-navigue (cf. NotificationContext.initializePushNotifications).
+        const responseId = response.notification.request.identifier;
+        if (responseId) {
+          AsyncStorage.setItem(LAST_HANDLED_RESPONSE_ID_KEY, responseId).catch(() => {});
+        }
         const data = response.notification.request.content.data as PushNotificationData;
         this.handleNotificationTap(data);
       }

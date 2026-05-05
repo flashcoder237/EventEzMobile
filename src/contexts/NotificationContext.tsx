@@ -8,6 +8,12 @@ import pushNotificationService, { PushNotificationData } from '../services/pushN
 import PushPermissionModal from '../components/common/PushPermissionModal';
 
 const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
+// ID de la dernière notification déjà consommée par `getLastNotificationResponse`.
+// Sans ce garde-fou, expo-notifications renvoie indéfiniment la dernière notif
+// tapée — y compris à chaque ouverture normale de l'app — et nous re-route
+// vers Notifications à chaque cold start. Voir le commentaire détaillé
+// au-dessus de la lecture (initializePushNotifications).
+const LAST_HANDLED_RESPONSE_ID_KEY = '@eventez_last_handled_notif_response_id';
 
 interface Notification {
   id: string;
@@ -169,12 +175,27 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (__DEV__) console.log('[Notification] Push notifications initialized with token:', token);
       }
 
-      // Check if app was opened from a notification
+      // Check if app was opened from a notification.
+      //
+      // ⚠️ Subtilité expo-notifications : `getLastNotificationResponseAsync()`
+      // renvoie LA dernière réponse — et continue à la renvoyer à chaque appel,
+      // y compris aux cold starts suivants où l'utilisateur n'a fait que
+      // tapper l'icône de l'app. Sans dédoublonnage, on re-navigue vers
+      // Notifications à CHAQUE ouverture de l'app après la première notif tapée.
+      //
+      // On stocke donc l'identifier déjà consommé et on saute si c'est le même.
       const lastResponse = await pushNotificationService.getLastNotificationResponse();
       if (lastResponse) {
-        const data = lastResponse.notification.request.content.data as PushNotificationData;
-        // Delay navigation to ensure navigation is ready
-        setTimeout(() => handleNotificationNavigation(data), 1000);
+        const responseId = lastResponse.notification.request.identifier;
+        const consumedId = await AsyncStorage.getItem(LAST_HANDLED_RESPONSE_ID_KEY);
+        if (responseId && responseId !== consumedId) {
+          await AsyncStorage.setItem(LAST_HANDLED_RESPONSE_ID_KEY, responseId);
+          const data = lastResponse.notification.request.content.data as PushNotificationData;
+          // Delay navigation to ensure navigation is ready
+          setTimeout(() => handleNotificationNavigation(data), 1000);
+        } else if (__DEV__ && responseId === consumedId) {
+          console.log('[Notification] Skipping already-consumed last response:', responseId);
+        }
       }
     } catch (error) {
       if (__DEV__) console.error('[Notification] Error initializing push notifications:', error);

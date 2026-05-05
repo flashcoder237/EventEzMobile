@@ -35,8 +35,9 @@ patchDefaultFont(RNText);
 patchDefaultFont(RNTextInput);
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
-import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions, NavigationState } from '@react-navigation/native';
 import { navigationRef } from './src/navigation/navigationRef';
+import { loadNavigationState, saveNavigationState } from './src/lib/navigationPersistence';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Linking from 'expo-linking';
 import * as SplashScreen from 'expo-splash-screen';
@@ -141,6 +142,26 @@ function AppContent() {
   const { isDark } = useTheme();
   const routeNameRef = useRef<string | undefined>(undefined);
 
+  // Restauration de l'état de navigation après un cold start. Si l'OS a tué
+  // l'app pendant que l'utilisateur était sur un écran profond (ex: Payment),
+  // on le ramène exactement où il était. Voir `navigationPersistence.ts` pour
+  // les garde-fous (TTL 30 min + blacklist auth/scan/terminaux paiement).
+  const [isNavReady, setIsNavReady] = useState(false);
+  const [initialNavState, setInitialNavState] = useState<NavigationState | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const state = await loadNavigationState();
+        if (!cancelled) setInitialNavState(state);
+      } finally {
+        if (!cancelled) setIsNavReady(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Initialize analytics on mount
   useEffect(() => {
     initAnalytics();
@@ -184,19 +205,30 @@ function AppContent() {
     routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
   }, []);
 
-  const onNavigationStateChange = useCallback(() => {
+  const onNavigationStateChange = useCallback((state: NavigationState | undefined) => {
     const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
     if (currentRouteName && currentRouteName !== routeNameRef.current) {
       trackScreenView(currentRouteName);
       routeNameRef.current = currentRouteName;
     }
+    // Persiste l'état pour qu'un cold start après kill OS ramène l'utilisateur
+    // exactement où il était. Best-effort, non-bloquant.
+    void saveNavigationState(state);
   }, []);
+
+  // Bloque le rendu de la stack tant qu'on n'a pas tenté de charger l'état
+  // persisté — sinon NavigationContainer monte avec son état par défaut puis
+  // saute à l'état restauré, ce qui crée un flash visible.
+  if (!isNavReady) {
+    return null;
+  }
 
   return (
     <ConnectionProvider>
       <NavigationContainer
         ref={navigationRef}
         linking={linking}
+        initialState={initialNavState}
         onReady={onNavigationReady}
         onStateChange={onNavigationStateChange}
       >
