@@ -44,6 +44,7 @@ export default function EventAnalyticsScreen() {
   const eventCurrencyCode = (event?.currency || 'XAF').toUpperCase();
   const platformCurrency = eventCurrencyCode === 'XAF' || eventCurrencyCode === 'XOF' ? 'FCFA' : eventCurrencyCode;
   const [analytics, setAnalytics] = useState<any>(null);
+  const [prediction, setPrediction] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -53,13 +54,18 @@ export default function EventAnalyticsScreen() {
 
   const fetchData = async () => {
     try {
-      const [eventRes, analyticsRes] = await Promise.all([
+      const [eventRes, analyticsRes, predictionRes] = await Promise.all([
         eventsAPI.getEvent(eventId),
         analyticsAPI.getEventAnalytics({ event_id: eventId }).catch(() => ({ data: null })),
+        // predict_attendance peut être indisponible si l'event n'a pas assez
+        // d'historique : on capture l'erreur silencieusement, la section
+        // n'apparaîtra simplement pas.
+        analyticsAPI.predictAttendance({ event_id: eventId }).catch(() => ({ data: null })),
       ]);
 
       setEvent(eventRes.data);
       setAnalytics(analyticsRes.data);
+      setPrediction(predictionRes.data);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement analytics:', error);
     } finally {
@@ -144,6 +150,53 @@ export default function EventAnalyticsScreen() {
           <KPICard title="Conversion" value={`${conversionRate}%`} icon="trending-up-outline" color="#F59E0B" style={{ width: STAT_CARD_WIDTH }} />
           <KPICard title="Revenus" value={formatCurrency(revenue)} icon="wallet-outline" color="#6366F1" style={{ width: STAT_CARD_WIDTH }} />
         </View>
+
+        {/* Prédiction d'affluence — render only if backend a envoyé un nombre.
+            Champ exact : `predicted_attendance` (ou `predicted_count`,
+            `prediction` selon le service). On lit prudemment plusieurs alias. */}
+        {(() => {
+          const predicted = prediction?.predicted_attendance
+            ?? prediction?.predicted_count
+            ?? prediction?.prediction
+            ?? null;
+          const confidence = prediction?.confidence ?? prediction?.confidence_level ?? null;
+          if (predicted == null) return null;
+          return (
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Prédiction</Text>
+              <View
+                style={[
+                  styles.performanceCard,
+                  { backgroundColor: colors.card, borderColor: hairline },
+                  Shadows.sm,
+                ]}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{
+                    width: 36, height: 36, borderRadius: 18,
+                    backgroundColor: `${colors.primary}15`,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Ionicons name="analytics-outline" size={18} color={colors.primary} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.performanceLabel, { color: colors.gray500 }]}>
+                      Affluence estimée jour J
+                    </Text>
+                    <Text style={[styles.performanceValue, { color: colors.text, fontSize: 22, marginTop: 2 }]}>
+                      ≈ {formatNumber(Number(predicted))} personnes
+                    </Text>
+                    {confidence != null && (
+                      <Text style={[styles.performanceLabel, { color: colors.gray500, marginTop: 4 }]}>
+                        Confiance : {Math.round(Number(confidence) * 100)}%
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Performance Section */}
         <View style={styles.section}>
