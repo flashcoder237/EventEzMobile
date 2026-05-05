@@ -361,6 +361,10 @@ export default function MyEventsScreen() {
         text: 'Demander mise en avant',
         onPress: () => handleRequestFeature(event),
       });
+      actions.push({
+        text: 'Gérer les sponsors',
+        onPress: () => navigation.navigate('SponsorManagement', { eventId: event.id }),
+      });
     }
 
     if (event.status === 'validated' || event.status === 'draft') {
