@@ -17,6 +17,7 @@ import {
   buildExportUrl,
   sanitizeFilename,
   mapExportError,
+  classifyExportError,
 } from '../exportHelpers';
 
 describe('buildExportUrl', () => {
@@ -142,6 +143,55 @@ describe('mapExportError', () => {
 
   it('fournit un message par défaut pour les erreurs vides', () => {
     expect(mapExportError('')).toBe('Erreur lors de l\'export.');
+  });
+});
+
+describe('classifyExportError', () => {
+  it('classifie 401 / unauthorized en session_expired', () => {
+    expect(classifyExportError('Got 401')).toBe('session_expired');
+    expect(classifyExportError('Unauthorized')).toBe('session_expired');
+  });
+
+  it('classifie 403 / forbidden en forbidden', () => {
+    expect(classifyExportError('HTTP 403')).toBe('forbidden');
+    expect(classifyExportError('forbidden')).toBe('forbidden');
+  });
+
+  it('classifie 404 en not_available', () => {
+    expect(classifyExportError('404 not found')).toBe('not_available');
+  });
+
+  it('classifie network/timeout en network', () => {
+    expect(classifyExportError('Network error')).toBe('network');
+    expect(classifyExportError('Request timeout')).toBe('network');
+  });
+
+  it('classifie le reste en unknown', () => {
+    expect(classifyExportError('Whatever')).toBe('unknown');
+    expect(classifyExportError('')).toBe('unknown');
+  });
+
+  it('priorise 401 sur les mots-clés génériques', () => {
+    expect(classifyExportError('Network 401 unauthorized')).toBe('session_expired');
+  });
+});
+
+describe('mapExportError with translator', () => {
+  const fakeTranslate = (key: string) => `[${key}]`;
+
+  it('utilise le translator si fourni', () => {
+    expect(mapExportError('Got 401', fakeTranslate)).toBe('[exportErrors.sessionExpired]');
+    expect(mapExportError('forbidden', fakeTranslate)).toBe('[exportErrors.forbidden]');
+    expect(mapExportError('404', fakeTranslate)).toBe('[exportErrors.notAvailable]');
+    expect(mapExportError('Network error', fakeTranslate)).toBe('[exportErrors.network]');
+  });
+
+  it('renvoie le message brut pour unknown même avec translator (debug)', () => {
+    expect(mapExportError('Le fichier exporté est vide', fakeTranslate)).toBe('Le fichier exporté est vide');
+  });
+
+  it('retombe sur exportErrors.generic si unknown ET message vide', () => {
+    expect(mapExportError('', fakeTranslate)).toBe('[exportErrors.generic]');
   });
 });
 

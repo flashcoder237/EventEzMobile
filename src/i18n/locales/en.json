@@ -238,6 +238,13 @@
     "generic": "Export failed."
   },
 
+  "export": {
+    "shareDialog": "Export as {{format}}",
+    "successTitle": "Export successful",
+    "downloadedToCache": "File saved to cache: {{filename}}",
+    "downloadedWeb": "Downloaded: {{filename}}"
+  },
+
   "empty": {
     "events": "No events",
     "eventsMessage": "There are no events to display yet",

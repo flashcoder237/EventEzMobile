@@ -100,15 +100,16 @@ export function useExport() {
         if (sharingAvailable) {
           await Sharing.shareAsync(downloaded.uri, {
             mimeType: FORMAT_MIME[format],
-            dialogTitle: `Exporter en ${FORMAT_LABEL[format]}`,
+            dialogTitle: t('export.shareDialog', { format: FORMAT_LABEL[format] }),
             UTI: FORMAT_UTI[format],
           });
         } else {
+          const filename = `${safeName}${ext}`;
           Alert.alert(
-            'Export réussi',
+            t('export.successTitle'),
             Platform.OS === 'web'
-              ? `Téléchargé : ${safeName}${ext}`
-              : `Fichier enregistré dans le cache : ${safeName}${ext}`,
+              ? t('export.downloadedWeb', { filename })
+              : t('export.downloadedToCache', { filename }),
           );
         }
       } catch (err: any) {

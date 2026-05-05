@@ -389,8 +389,8 @@ export default function SubscriptionScreen() {
             try {
               await subscriptionsAPI.cancel();
               Alert.alert(
-                'Abonnement annule',
-                'Votre abonnement sera desactive a la fin de la periode en cours.'
+                'Abonnement annulé',
+                'Votre abonnement sera désactivé à la fin de la période en cours.'
               );
               await loadData();
             } catch (err: any) {
@@ -915,8 +915,8 @@ export default function SubscriptionScreen() {
                 <Text style={[styles.processingTitle, { color: ink }]}>Traitement en cours...</Text>
                 <Text style={[styles.processingDescription, { color: colors.gray500 }]}>
                   {payment.method === 'credit_card'
-                    ? 'Redirection vers la page de paiement securisee...'
-                    : 'Veuillez valider le paiement sur votre telephone.'}
+                    ? 'Redirection vers la page de paiement sécurisée...'
+                    : 'Veuillez valider le paiement sur votre téléphone.'}
                 </Text>
                 {payment.method && payment.method !== 'credit_card' && (
                   <View style={[styles.processingHint, { backgroundColor: violet + '10' }]}>

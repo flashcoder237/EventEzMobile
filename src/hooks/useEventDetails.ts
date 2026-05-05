@@ -303,7 +303,7 @@ export function useEventDetails(eventId: string): UseEventDetailsReturn {
       navigation.navigate('Conversation', { conversationId: response.data.id });
     } catch (error) {
       if (__DEV__) console.error('Erreur creation conversation:', error);
-      showError('Erreur', 'Impossible de creer la conversation');
+      showError('Erreur', 'Impossible de créer la conversation');
     }
   };
 
