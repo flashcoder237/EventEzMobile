@@ -231,6 +231,20 @@ const TabSlot = memo(function TabSlot({
   const inactiveColor = isDark ? '#94A3B8' : '#64748B';
   const showAvatar = routeName === 'Profile' && user;
 
+  // Décomposition wrapper externe / pilule interne :
+  // - tabSlotBox (Pressable extérieur) : overflow:visible → laisse le badge
+  //   dépasser. Reçoit le tap, l'animation flexGrow et le ref pour le tour.
+  // - tabSlotPill (View intérieur) : overflow:hidden → clip le gradient et
+  //   le shimmer dans la forme arrondie de la pilule.
+  // - Badge : sibling de tabSlotPill, absolute positioned, hors clip.
+  // Avant ce refactor, le badge était enfant du tabSlot avec overflow:hidden
+  // et son `top:-4 right:-7` était tronqué (problème visible sur Messages
+  // et Profile).
+  const showMessagesBadge = routeName === 'MessagesTab' && unreadMessageCount > 0;
+  const showProfileBadge = routeName === 'Profile' && totalPendingCount > 0;
+  const badgeCount = showMessagesBadge ? unreadMessageCount : totalPendingCount;
+  const showAnyBadge = showMessagesBadge || showProfileBadge;
+
   return (
     <AnimatedPressable
       ref={slotRef}
@@ -240,54 +254,66 @@ const TabSlot = memo(function TabSlot({
       accessibilityLabel={config.label}
       android_ripple={{ color: 'rgba(0,0,0,0.06)', borderless: true }}
       style={[
-        styles.tabSlot,
+        styles.tabSlotBox,
         isFocused
           ? {
-              flexDirection: 'row',
-              borderColor: cardColor,
-              paddingHorizontal: 12,
               minWidth: ACTIVE_PILL_HEIGHT,
               maxWidth: ACTIVE_PILL_MAX_WIDTH,
               height: ACTIVE_PILL_HEIGHT,
             }
           : {
-              flexDirection: 'row',
-              backgroundColor: 'transparent',
-              borderColor: 'transparent',
               width: INACTIVE_TAB_WIDTH,
               height: INACTIVE_TAB_HEIGHT,
             },
         wrapperStyle,
       ]}
     >
-      {/* Gradient de fond UNIQUEMENT pour l'actif — couleur courante vers
-          couleur de la tab suivante (wrap-around sur Profile→Discover). */}
-      {isFocused && (
-        <>
-          <LinearGradient
-            colors={[pillColor, nextTabColor]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-          {/* Shimmer : stripe diagonale blanche translucide qui balaye la pilule
-              toutes les ~15s. Effet "lumière qui passe" subtil. */}
-          <Animated.View style={[styles.shimmerStripe, shimmerStyle]} pointerEvents="none">
+      <View
+        style={[
+          styles.tabSlotPill,
+          isFocused
+            ? {
+                flexDirection: 'row',
+                borderColor: cardColor,
+                paddingHorizontal: 12,
+                height: ACTIVE_PILL_HEIGHT,
+              }
+            : {
+                flexDirection: 'row',
+                backgroundColor: 'transparent',
+                borderColor: 'transparent',
+                width: INACTIVE_TAB_WIDTH,
+                height: INACTIVE_TAB_HEIGHT,
+              },
+        ]}
+      >
+        {/* Gradient de fond UNIQUEMENT pour l'actif — couleur courante vers
+            couleur de la tab suivante (wrap-around sur Profile→Discover). */}
+        {isFocused && (
+          <>
             <LinearGradient
-              colors={['transparent', 'rgba(255,255,255,0.55)', 'transparent']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              locations={[0.2, 0.5, 0.8]}
+              colors={[pillColor, nextTabColor]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
               style={StyleSheet.absoluteFillObject}
             />
-          </Animated.View>
-        </>
-      )}
+            {/* Shimmer : stripe diagonale blanche translucide qui balaye la pilule
+                toutes les ~15s. Effet "lumière qui passe" subtil. */}
+            <Animated.View style={[styles.shimmerStripe, shimmerStyle]} pointerEvents="none">
+              <LinearGradient
+                colors={['transparent', 'rgba(255,255,255,0.55)', 'transparent']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                locations={[0.2, 0.5, 0.8]}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </Animated.View>
+          </>
+        )}
 
-      {/* Icône / avatar */}
-      {showAvatar ? (
-        <View>
-          {user!.profile_picture || user!.image ? (
+        {/* Icône / avatar — sans le badge (déplacé hors du clip) */}
+        {showAvatar ? (
+          user!.profile_picture || user!.image ? (
             <Image
               source={user!.profile_picture || user!.image}
               style={[
@@ -299,10 +325,6 @@ const TabSlot = memo(function TabSlot({
                   borderRadius: isFocused ? 14 : 13,
                 },
               ]}
-              // memory-disk : bitmap décodé gardé en RAM tant que l'app est
-              // ouverte (vs. "disk" qui re-décodait à chaque mount du tab).
-              // Pour un avatar 28px ça représente <5 Ko mémoire et zéro flicker
-              // au switch d'onglet.
               cachePolicy="memory-disk"
               contentFit="cover"
               transition={200}
@@ -329,57 +351,44 @@ const TabSlot = memo(function TabSlot({
                 {(user!.first_name?.[0] || user!.email?.[0] || 'U').toUpperCase()}
               </Text>
             </View>
-          )}
-          {totalPendingCount > 0 && (
-            <View
-              style={[
-                styles.profileBadge,
-                {
-                  backgroundColor: '#FF6B6B',
-                  borderColor: isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF'),
-                },
-              ]}
-            >
-              <Text style={styles.profileBadgeText}>
-                {totalPendingCount > 99 ? '99+' : totalPendingCount}
-              </Text>
-            </View>
-          )}
-        </View>
-      ) : (
-        <View>
+          )
+        ) : (
           <Ionicons
             name={config.icon}
             size={isFocused ? 22 : 24}
             color={isFocused ? activeColor : inactiveColor}
           />
-          {routeName === 'MessagesTab' && unreadMessageCount > 0 && (
-            <View
-              style={[
-                styles.profileBadge,
-                {
-                  backgroundColor: '#FF6B6B',
-                  borderColor: isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF'),
-                },
-              ]}
-            >
-              <Text style={styles.profileBadgeText}>
-                {unreadMessageCount > 99 ? '99+' : unreadMessageCount}
-              </Text>
-            </View>
-          )}
-        </View>
-      )}
+        )}
 
-      {/* Label uppercase visible UNIQUEMENT sur le tab actif, inline à droite
-          de l'icône dans la pilule. Inactifs = icon-only. */}
-      {isFocused && (
-        <Text
-          numberOfLines={1}
-          style={[styles.tabLabelActive, { color: activeColor }]}
+        {/* Label uppercase visible UNIQUEMENT sur le tab actif, inline à droite
+            de l'icône dans la pilule. Inactifs = icon-only. */}
+        {isFocused && (
+          <Text
+            numberOfLines={1}
+            style={[styles.tabLabelActive, { color: activeColor }]}
+          >
+            {config.label.toUpperCase()}
+          </Text>
+        )}
+      </View>
+
+      {/* Badge — rendu HORS du tabSlotPill pour échapper à son overflow:hidden.
+          pointerEvents:none → le tap traverse jusqu'au Pressable extérieur. */}
+      {showAnyBadge && (
+        <View
+          style={[
+            styles.profileBadge,
+            {
+              backgroundColor: '#FF6B6B',
+              borderColor: isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF'),
+            },
+          ]}
+          pointerEvents="none"
         >
-          {config.label.toUpperCase()}
-        </Text>
+          <Text style={styles.profileBadgeText}>
+            {badgeCount > 99 ? '99+' : badgeCount}
+          </Text>
+        </View>
       )}
     </AnimatedPressable>
   );
@@ -535,23 +544,40 @@ const styles = StyleSheet.create({
     maxWidth: DOCK_MAX_WIDTH,
     height: DOCK_HEIGHT,
     borderRadius: DOCK_HEIGHT / 2,
-    overflow: 'hidden',
+    // overflow:visible → laisse les badges des tabs dépasser de la dock.
+    // Le clip du BlurView et du dockBg est garanti par leurs propres
+    // borderRadius internes (cf. styles.dockBg).
+    overflow: 'visible',
     paddingHorizontal: DOCK_HORIZONTAL_PADDING,
     gap: SLOT_GAP,
     ...Shadows.dramatic,
   },
   dockBg: {
     ...StyleSheet.absoluteFillObject,
+    // borderRadius pour que le bg respecte la forme arrondie de la dock
+    // même si la dock elle-même est en overflow:visible (pour les badges).
+    borderRadius: DOCK_HEIGHT / 2,
   },
-  // Inactifs = largeur fixe INACTIVE_TAB_WIDTH (36px). Actif = flexGrow,
-  // s'élargit pour accommoder son label inline. Les inactifs gardent toujours
-  // leur largeur, donc le layout est prévisible.
-  tabSlot: {
+  // Wrapper externe : reçoit le tap et l'animation flexGrow. Pas de clip
+  // → laisse le badge dépasser. Pas de border ni borderRadius — c'est la
+  // pilule interne qui dessine la forme.
+  tabSlotBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'visible',
+    position: 'relative',
+  },
+  // Pilule interne : clip strict pour le gradient et le shimmer dans la
+  // forme arrondie. Inactifs = largeur fixe INACTIVE_TAB_WIDTH (36px).
+  // Actif = stretch sur tabSlotBox.
+  tabSlotPill: {
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: ACTIVE_PILL_HEIGHT / 2,
     borderWidth: 2,
     overflow: 'hidden',
+    width: '100%',
+    height: '100%',
   },
   // Label uppercase de l'actif — inline à droite de l'icône dans la pilule.
   // 9.5px font + letter-spacing 1.1 → "DÉCOUVRIR" (9 chars) ≈ 68px width.
