@@ -393,7 +393,12 @@ export default function ConversationScreen() {
           ? `${otherParticipant.first_name} ${otherParticipant.last_name}`
           : otherParticipant?.email?.split('@')[0] || 'Conversation');
 
-      const avatar = otherParticipant?.profile_picture || otherParticipant?.image || null;
+      // getMediaUrl() résout les paths relatifs (`/media/...`) en URLs
+      // absolues. Le backend renvoie maintenant des URLs absolues quand le
+      // request est dispo, mais on garde le wrap par sécurité (cas WS qui
+      // n'a pas de request, ancien backend, etc.).
+      const rawAvatar = otherParticipant?.profile_picture || otherParticipant?.image || null;
+      const avatar = getMediaUrl(rawAvatar);
 
       actions.setConversationTitle(title);
       actions.setOtherUser(avatar, otherParticipant?.id || null);

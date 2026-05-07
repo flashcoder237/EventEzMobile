@@ -1771,7 +1771,9 @@ export type WebSocketIncomingMessage =
   | { type: 'reaction.add'; message_id: string | number; user_id: number; emoji: string; reaction_id?: string | number }
   | { type: 'reaction.remove'; message_id: string | number; user_id: number; emoji: string; reaction_id?: string | number }
   | { type: 'presence.changed'; user_id: number; status: string; last_seen: string }
-  | { type: 'unread.decrement'; message_ids: (string | number)[]; conversation_ids: (string | number)[] };
+  | { type: 'unread.decrement'; message_ids: (string | number)[]; conversation_ids: (string | number)[] }
+  | { type: 'conversation.added'; conversation_id: string | number }
+  | { type: 'conversation.removed'; conversation_id: string | number };
 
 export type WebSocketOutgoingMessage =
   | { type: 'authenticate'; token: string }

@@ -22,7 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { messagesAPI, usersAPI } from '../../api';
+import { messagesAPI, usersAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -86,8 +86,12 @@ const ConversationCard = memo(function ConversationCard({
     || getDisplayName(otherUser || null);
   // Pour les conversations groupe / event : avatar dérivé du banner event.
   // Pour les directes : photo de profil du participant. Fallback : initiales.
-  const groupAvatar = (conversation as any).avatar;
-  const directAvatar = otherUser?.profile_picture || (otherUser as any)?.image;
+  // getMediaUrl() résout les paths relatifs renvoyés par certains endpoints
+  // qui n'ont pas accès au request (signaux, WS) — sans ça, expo-image
+  // ne sait pas quoi faire de "/media/..." et le tap-out tombe sur le
+  // placeholder initiales.
+  const groupAvatar = getMediaUrl((conversation as any).avatar);
+  const directAvatar = getMediaUrl(otherUser?.profile_picture || (otherUser as any)?.image);
   const avatar = groupAvatar || directAvatar;
   const initials = getUserInitials(displayName);
   const hasUnread = conversation.unread_count > 0;
@@ -358,7 +362,7 @@ interface UserItemProps {
 const UserItem = memo(function UserItem({ user, onPress }: UserItemProps) {
   const { colors, isDark } = useTheme();
   const name = getDisplayName(user);
-  const avatar = user.profile_picture || (user as any)?.image;
+  const avatar = getMediaUrl(user.profile_picture || (user as any)?.image);
   const initials = getUserInitials(name);
 
   return (
@@ -553,13 +557,19 @@ export default function MessagesScreen() {
       // Met à jour la conversation correspondante.
       // Optim : lookup O(1) via la Map indexée (vs findIndex O(n) précédemment).
       // Cas gérés :
-      //  - conv inexistante (idx undefined) → no-op (sera chargée au prochain refresh)
+      //  - conv inexistante (idx undefined) → refetch (DM reçue d'un nouvel
+      //    interlocuteur dont la conversation n'a pas encore été créée
+      //    localement, ou conversation créée pendant qu'on était hors-ligne)
       //  - conv déjà en tête (idx === 0) → update in-place sans reorder
       //  - conv au milieu → bring-to-top en construisant le nouveau tableau en O(n) une seule fois
       setConversations(prev => {
         const convId = String(msg.conversation);
         const idx = conversationIdxMapRef.current.get(convId);
-        if (idx === undefined || idx < 0 || idx >= prev.length) return prev;
+        if (idx === undefined || idx < 0 || idx >= prev.length) {
+          // Conv inconnue → refetch async (hors setState callback)
+          setTimeout(() => fetchConversations(true), 0);
+          return prev;
+        }
         const updated = { ...prev[idx] };
         updated.last_message = msg;
         updated.last_message_at = msg.created_at;
@@ -600,6 +610,16 @@ export default function MessagesScreen() {
         prev.map(c => (ids.has(String(c.id)) ? { ...c, unread_count: 0 } : c)),
       );
       // Invalide le cache pour cohérence après reload
+      CacheService.invalidate(`convos:${user?.id}`);
+    },
+    // Conv créée par quelqu'un d'autre (DM initiée vers nous, ajout dans un
+    // groupe…) → refetch pour qu'elle apparaisse en tête immédiatement.
+    onConversationAdded: () => {
+      fetchConversations(true);
+    },
+    onConversationRemoved: ({ conversationId }) => {
+      const id = String(conversationId);
+      setConversations(prev => prev.filter(c => String(c.id) !== id));
       CacheService.invalidate(`convos:${user?.id}`);
     },
   });

@@ -67,6 +67,17 @@ interface UseMessagingWebSocketOptions {
    * `conversation.unread_count` localement sans refresh REST.
    */
   onUnreadDecrement?: (data: { messageIds: (string | number)[]; conversationIds: (string | number)[] }) => void;
+  /**
+   * Diffusé quand l'utilisateur est ajouté à une nouvelle conversation
+   * (DM initiée par un autre user, ajout dans un groupe, etc.). Le client
+   * UI s'en sert pour rafraîchir la liste sans devoir poll en arrière-plan.
+   */
+  onConversationAdded?: (data: { conversationId: string | number }) => void;
+  /**
+   * Diffusé quand l'utilisateur est retiré d'une conversation. Permet de
+   * la masquer immédiatement de la liste.
+   */
+  onConversationRemoved?: (data: { conversationId: string | number }) => void;
   onServerError?: (code: string, message: string) => void;
 }
 
@@ -97,6 +108,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onMessageUpdated,
     onPresenceChanged,
     onUnreadDecrement,
+    onConversationAdded,
+    onConversationRemoved,
     onServerError,
   } = options;
 
@@ -370,6 +383,21 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           }
           break;
 
+        // Émis par le backend (consumers.conversation_join) quand l'user vient
+        // d'être ajouté à une conversation. Le client refetch sa liste pour
+        // l'afficher immédiatement, plutôt que d'attendre un refresh manuel.
+        case 'conversation.added':
+          if (onConversationAdded && data.conversation_id !== undefined) {
+            onConversationAdded({ conversationId: data.conversation_id });
+          }
+          break;
+
+        case 'conversation.removed':
+          if (onConversationRemoved && data.conversation_id !== undefined) {
+            onConversationRemoved({ conversationId: data.conversation_id });
+          }
+          break;
+
         case 'error': {
           if (__DEV__) console.error('WebSocket error from server:', data);
           const errData = data as WebSocketErrorMessage;
@@ -404,6 +432,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onMessageUpdated,
     onPresenceChanged,
     onUnreadDecrement,
+    onConversationAdded,
+    onConversationRemoved,
     onServerError,
     clearTypingTimeout,
     startHeartbeat,
