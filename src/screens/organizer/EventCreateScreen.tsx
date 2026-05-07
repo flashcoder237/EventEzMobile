@@ -55,6 +55,7 @@ export default function EventCreateScreen() {
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
   const watermarkColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(17,17,16,0.04)';
   const barDim = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(17,17,16,0.08)';
+  const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
 
   const {
     form,
@@ -338,97 +339,109 @@ export default function EventCreateScreen() {
             )}
           </View>
 
-          {/* Aperçu — disponible dès qu'un titre est saisi (sinon on n'a vraiment
-              rien à montrer dans la preview). Empêche aussi un tap accidentel
-              sur un form vide qui afficherait "Titre de votre événement" placeholder. */}
-          <TouchableOpacity
-            onPress={() => {
-              if (!formRef.current.title.trim()) {
-                showAlert(
-                  'Titre requis',
-                  'Saisis au moins le titre de l\'événement avant de prévisualiser.',
-                  undefined,
-                  'info',
-                );
-                return;
-              }
-              const previewEvent = formToPreviewEvent(formRef.current);
-              navigation.navigate('EventDetails', {
-                eventId: 'preview',
-                previewEvent,
-              });
-            }}
-            style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-            accessibilityRole="button"
-            accessibilityLabel="Prévisualiser l'événement"
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="eye-outline" size={20} color={colors.gray600} />
-          </TouchableOpacity>
-
-          {/* Réinitialiser — vide le formulaire ET le brouillon (mode création
-              uniquement, en édition on n'efface jamais l'event source). */}
-          {!isEditing && (
+          {/* Actions header — 3 icon discs alignés (preview · reset · save-as)
+              Style éditorial : disc 36px hairline border, cohérent avec
+              l'iconDisc utilisé dans AdminDashboard et autres écrans. */}
+          <View style={styles.headerActions}>
             <TouchableOpacity
               onPress={() => {
-                showAlert(
-                  'Réinitialiser le formulaire ?',
-                  'Toutes les données saisies seront perdues, y compris le brouillon en cours. Cette action est irréversible.',
-                  [
-                    { text: 'Annuler', style: 'cancel' },
-                    {
-                      text: 'Tout effacer',
-                      style: 'destructive',
-                      onPress: async () => {
-                        await clearDraft();
-                        resetForm();
-                      },
-                    },
-                  ],
-                  'warning',
-                );
+                if (!formRef.current.title.trim()) {
+                  showAlert(
+                    'Titre requis',
+                    'Saisis au moins le titre de l\'événement avant de prévisualiser.',
+                    undefined,
+                    'info',
+                  );
+                  return;
+                }
+                const previewEvent = formToPreviewEvent(formRef.current);
+                navigation.navigate('EventDetails', {
+                  eventId: 'preview',
+                  previewEvent,
+                });
               }}
-              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+              style={[
+                styles.headerIconDisc,
+                { backgroundColor: colors.card, borderColor: hairline },
+              ]}
               accessibilityRole="button"
-              accessibilityLabel="Réinitialiser le formulaire"
+              accessibilityLabel="Prévisualiser l'événement"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="refresh-outline" size={20} color={colors.gray600} />
+              <Ionicons name="eye-outline" size={17} color={colors.gray700} />
             </TouchableOpacity>
-          )}
-          {!isEditing ? (
-            <TouchableOpacity
-              onPress={() => {
-                showAlert(
-                  'Sauvegarder sous...',
-                  'Donne un nom à ce brouillon pour le retrouver dans "Mes brouillons" plus tard.',
-                  [
-                    { text: 'Annuler', style: 'cancel' },
-                    {
-                      text: 'Sauvegarder',
-                      onPress: async () => {
-                        const name = formRef.current.title?.trim() || 'Brouillon sans titre';
-                        const meta = await saveAsNamed(formRef.current, name);
-                        showAlert(
-                          'Brouillon sauvegardé',
-                          `"${meta.name}" est dans Mes brouillons. Tu peux le reprendre depuis MyEvents.`,
-                          undefined,
-                          'success',
-                        );
+
+            {!isEditing && (
+              <TouchableOpacity
+                onPress={() => {
+                  showAlert(
+                    'Réinitialiser le formulaire ?',
+                    'Toutes les données saisies seront perdues, y compris le brouillon en cours. Cette action est irréversible.',
+                    [
+                      { text: 'Annuler', style: 'cancel' },
+                      {
+                        text: 'Tout effacer',
+                        style: 'destructive',
+                        onPress: async () => {
+                          await clearDraft();
+                          resetForm();
+                        },
                       },
-                    },
-                  ],
-                  'info',
-                );
-              }}
-              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
-              accessibilityRole="button"
-              accessibilityLabel="Sauvegarder ce brouillon sous un nom"
-            >
-              <Ionicons name="bookmark-outline" size={20} color={colors.gray600} />
-            </TouchableOpacity>
-          ) : null}
-          {form.aiEnabled ? <AIUsageBadge usage={form.aiUsage} /> : <View style={{ width: 40 }} />}
+                    ],
+                    'warning',
+                  );
+                }}
+                style={[
+                  styles.headerIconDisc,
+                  { backgroundColor: colors.card, borderColor: hairline },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Réinitialiser le formulaire"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="refresh-outline" size={17} color={colors.gray700} />
+              </TouchableOpacity>
+            )}
+
+            {!isEditing && (
+              <TouchableOpacity
+                onPress={() => {
+                  showAlert(
+                    'Sauvegarder sous...',
+                    'Donne un nom à ce brouillon pour le retrouver dans "Mes brouillons" plus tard.',
+                    [
+                      { text: 'Annuler', style: 'cancel' },
+                      {
+                        text: 'Sauvegarder',
+                        onPress: async () => {
+                          const name = formRef.current.title?.trim() || 'Brouillon sans titre';
+                          const meta = await saveAsNamed(formRef.current, name);
+                          showAlert(
+                            'Brouillon sauvegardé',
+                            `"${meta.name}" est dans Mes brouillons. Tu peux le reprendre depuis MyEvents.`,
+                            undefined,
+                            'success',
+                          );
+                        },
+                      },
+                    ],
+                    'info',
+                  );
+                }}
+                style={[
+                  styles.headerIconDisc,
+                  { backgroundColor: colors.card, borderColor: hairline },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Sauvegarder ce brouillon sous un nom"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="bookmark-outline" size={17} color={colors.gray700} />
+              </TouchableOpacity>
+            )}
+
+            {form.aiEnabled && <AIUsageBadge usage={form.aiUsage} />}
+          </View>
         </View>
 
         {/* Progress — editorial 4-bar indicator (replaces numbered nodes) */}
@@ -749,6 +762,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -Spacing.xs,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  headerIconDisc: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerCenter: {
     alignItems: 'center',

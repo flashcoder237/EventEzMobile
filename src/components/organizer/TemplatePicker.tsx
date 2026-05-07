@@ -2,18 +2,21 @@
 // TemplatePicker — bootstrap rapide d'un event depuis un template prédéfini
 // ============================================
 //
-// Affiche une liste horizontale de templates (Concert / Conférence / Atelier
-// etc.) renvoyés par /event-templates/. Au tap, on hydrate le form via le
-// callback `onApply` en passant les champs pertinents (event_type, location_type,
-// duration, description skeleton, suggested tickets/form fields, tags). Le user
-// peut toujours tout modifier ensuite — c'est juste un raccourci de saisie.
+// Affiche un bouton-trigger éditorial qui ouvre un modal de sélection avec
+// recherche live. Au choix, on hydrate le form via le callback `onApply` en
+// passant les champs pertinents (event_type, location_type, duration,
+// description skeleton, suggested tickets/form fields, tags). Le user peut
+// toujours tout modifier ensuite — c'est juste un raccourci de saisie.
+//
+// Avant : ScrollView horizontal de cards (s'étalait hors-écran et obligeait
+// au scroll horizontal). Maintenant : un seul bouton, et la sélection se
+// fait dans un modal plein-écran avec recherche.
 
 import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
@@ -27,6 +30,7 @@ import {
   BorderRadius,
   Spacing,
 } from '../../constants/theme';
+import SearchableSelectModal from '../common/SearchableSelectModal';
 
 // Sous-ensemble des champs du backend EventTemplate qui nous intéressent au mobile.
 export interface EventTemplate {
@@ -66,11 +70,31 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
   Globe: 'globe-outline',
 };
 
+const resolveIcon = (icon?: string): keyof typeof Ionicons.glyphMap =>
+  (icon && ICON_MAP[icon]) || 'sparkles-outline';
+
+const formatTemplateMeta = (t: EventTemplate): string => {
+  const parts: string[] = [];
+  parts.push(t.event_type === 'inscription' ? 'Inscription' : 'Billetterie');
+  if (t.duration_hours != null) {
+    parts.push(`~${Number(t.duration_hours).toFixed(1).replace('.0', '')}h`);
+  }
+  if (t.location_type === 'online') parts.push('En ligne');
+  else if (t.location_type === 'hybrid') parts.push('Hybride');
+  else if (t.location_type === 'in_person') parts.push('Présentiel');
+  return parts.join(' · ');
+};
+
 export default function TemplatePicker({ onApply }: Props) {
   const { colors, isDark } = useTheme();
-  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.07)';
+  const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
   const [templates, setTemplates] = useState<EventTemplate[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  // On garde une trace du dernier template appliqué pour l'afficher dans le
+  // trigger. Ce n'est qu'indicatif — si l'user modifie ensuite des champs,
+  // l'étiquette du trigger reste mais ça n'a pas d'incidence sur le form.
+  const [appliedId, setAppliedId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,6 +123,13 @@ export default function TemplatePicker({ onApply }: Props) {
   // Section silencieuse si aucun template — mieux que d'afficher un vide.
   if (!templates || templates.length === 0) return null;
 
+  const applied = appliedId ? templates.find(t => t.id === appliedId) : null;
+
+  const handleSelect = (t: EventTemplate) => {
+    setAppliedId(t.id);
+    onApply(t);
+  };
+
   return (
     <View style={styles.section}>
       <Text style={[styles.eyebrow, { color: colors.accent }]}>RACCOURCIS</Text>
@@ -106,86 +137,74 @@ export default function TemplatePicker({ onApply }: Props) {
       <Text style={[styles.subtitle, { color: colors.gray500 }]}>
         Pré-remplit type, durée, billets suggérés. Tu peux tout modifier ensuite.
       </Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.list}
+
+      {/* Trigger button — affiche le template appliqué OU un placeholder.
+          On garde toujours un état actif pour permettre à l'user de changer. */}
+      <TouchableOpacity
+        onPress={() => setModalOpen(true)}
+        style={[
+          styles.trigger,
+          { backgroundColor: colors.card, borderColor: hairline },
+        ]}
+        activeOpacity={0.85}
+        accessibilityRole="button"
+        accessibilityLabel={
+          applied
+            ? `Modèle appliqué : ${applied.name}. Toucher pour en choisir un autre.`
+            : 'Choisir un modèle'
+        }
       >
-        {templates.map(t => {
-          const iconName = (t.icon && ICON_MAP[t.icon]) || 'sparkles-outline';
-          const typeLabel = t.event_type === 'inscription' ? 'Inscription' : 'Billetterie';
-          const locationLabel = t.location_type === 'online'
-            ? 'En ligne'
-            : t.location_type === 'hybrid'
-              ? 'Hybride'
-              : 'Présentiel';
-          const durationLabel = t.duration_hours != null
-            ? `${Number(t.duration_hours).toFixed(1).replace('.0', '')}h`
-            : null;
-          return (
-            <TouchableOpacity
-              key={t.id}
-              style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }]}
-              onPress={() => onApply(t)}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={`Utiliser le modèle ${t.name}`}
-            >
-              {/* En-tête : icône large + pill type en haut à droite */}
-              <View style={styles.cardTop}>
-                <View style={[styles.iconWell, { backgroundColor: `${colors.primary}14` }]}>
-                  <Ionicons name={iconName} size={22} color={colors.primary} />
-                </View>
-                <View style={[styles.typePill, { backgroundColor: `${colors.accent}14`, borderColor: `${colors.accent}30` }]}>
-                  <Text style={[styles.typePillText, { color: colors.accent }]}>{typeLabel}</Text>
-                </View>
-              </View>
-
-              {/* Titre éditorial */}
-              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
-                {t.name}
+        {applied ? (
+          <>
+            <View style={[styles.iconWell, { backgroundColor: `${colors.primary}14` }]}>
+              <Ionicons name={resolveIcon(applied.icon)} size={20} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.triggerLabel, { color: colors.text }]} numberOfLines={1}>
+                {applied.name}
               </Text>
+              <Text style={[styles.triggerMeta, { color: colors.gray500 }]} numberOfLines={1}>
+                {formatTemplateMeta(applied)}
+              </Text>
+            </View>
+            <View style={[styles.appliedPill, { backgroundColor: `${colors.success}14` }]}>
+              <Ionicons name="checkmark-circle" size={12} color={colors.success} />
+              <Text style={[styles.appliedPillText, { color: colors.success }]}>Appliqué</Text>
+            </View>
+          </>
+        ) : (
+          <>
+            <View style={[styles.iconWell, { backgroundColor: `${colors.accent}14` }]}>
+              <Ionicons name="sparkles-outline" size={20} color={colors.accent} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.triggerLabel, { color: colors.text }]} numberOfLines={1}>
+                Parcourir les modèles
+              </Text>
+              <Text style={[styles.triggerMeta, { color: colors.gray500 }]} numberOfLines={1}>
+                {templates.length} modèle{templates.length > 1 ? 's' : ''} disponible{templates.length > 1 ? 's' : ''}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
+          </>
+        )}
+      </TouchableOpacity>
 
-              {/* Meta row : durée · format */}
-              <View style={styles.metaRow}>
-                {durationLabel && (
-                  <View style={styles.metaItem}>
-                    <Ionicons name="time-outline" size={12} color={colors.gray500} />
-                    <Text style={[styles.metaText, { color: colors.gray600 }]}>{durationLabel}</Text>
-                  </View>
-                )}
-                <View style={styles.metaItem}>
-                  <Ionicons
-                    name={t.location_type === 'online' ? 'videocam-outline' : t.location_type === 'hybrid' ? 'globe-outline' : 'location-outline'}
-                    size={12}
-                    color={colors.gray500}
-                  />
-                  <Text style={[styles.metaText, { color: colors.gray600 }]}>{locationLabel}</Text>
-                </View>
-              </View>
-
-              {/* Tags suggérés (max 2) — donne un aperçu du contenu pré-rempli */}
-              {t.tags && t.tags.length > 0 && (
-                <View style={styles.tagsRow}>
-                  {t.tags.slice(0, 2).map((tag, i) => (
-                    <View key={i} style={[styles.tagChip, { backgroundColor: colors.gray100 }]}>
-                      <Text style={[styles.tagText, { color: colors.gray700 }]} numberOfLines={1}>
-                        {tag}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {/* CTA discret en pied de carte */}
-              <View style={[styles.applyHint, { borderTopColor: hairline }]}>
-                <Text style={[styles.applyText, { color: colors.primary }]}>Utiliser ce modèle</Text>
-                <Ionicons name="arrow-forward" size={13} color={colors.primary} />
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
+      <SearchableSelectModal<EventTemplate>
+        visible={modalOpen}
+        onClose={() => setModalOpen(false)}
+        eyebrow="RACCOURCIS"
+        title="Démarrer depuis un modèle"
+        searchPlaceholder="Rechercher un modèle..."
+        items={templates}
+        getKey={t => t.id}
+        getLabel={t => t.name}
+        getDescription={t => formatTemplateMeta(t)}
+        getIcon={t => resolveIcon(t.icon)}
+        selectedKey={appliedId}
+        onSelect={handleSelect}
+        emptyText="Aucun modèle ne correspond à cette recherche."
+      />
     </View>
   );
 }
@@ -217,91 +236,44 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
     lineHeight: 17,
   },
-  list: {
-    gap: Spacing.sm,
-    paddingRight: Spacing.lg,
-  },
-  card: {
-    width: 200,
-    borderRadius: BorderRadius['2xl'],
-    borderWidth: 1,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  cardTop: {
+  trigger: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
   },
   iconWell: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  typePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: BorderRadius.full,
-    borderWidth: 1,
-  },
-  typePillText: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-  },
-  cardTitle: {
-    fontFamily: FontFamily.displayBold,
-    fontSize: 15,
-    letterSpacing: -0.3,
-    lineHeight: 19,
-    minHeight: 38, // 2 lignes pour aligner les hauteurs entre cards
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  metaText: {
+  triggerLabel: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 11,
-    letterSpacing: -0.1,
+    fontSize: FontSizes.base,
+    letterSpacing: -0.2,
   },
-  tagsRow: {
-    flexDirection: 'row',
-    gap: 4,
-    flexWrap: 'wrap',
+  triggerMeta: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.xs,
+    marginTop: 1,
   },
-  tagChip: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: BorderRadius.sm,
-  },
-  tagText: {
-    fontFamily: FontFamily.medium,
-    fontSize: 10,
-    letterSpacing: -0.1,
-  },
-  applyHint: {
+  appliedPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: Spacing.sm,
-    marginTop: 2,
-    borderTopWidth: 1,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: BorderRadius.full,
   },
-  applyText: {
+  appliedPillText: {
     fontFamily: FontFamily.bold,
-    fontSize: 11,
-    letterSpacing: 0.3,
+    fontSize: 10,
+    letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
 });

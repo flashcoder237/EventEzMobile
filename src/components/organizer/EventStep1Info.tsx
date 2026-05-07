@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,20 +6,47 @@ import {
   TouchableOpacity,
   ScrollView,
   FlatList,
+  StyleSheet,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
-import { Colors, Spacing, FontFamily } from '../../constants/theme';
+import { Colors, Spacing, FontFamily, BorderRadius, FontSizes } from '../../constants/theme';
 import { Category, Tag, AIUsage, AIGeneratedEvent } from '../../types';
 import TagInput from '../common/TagInput';
+import SearchableSelectModal from '../common/SearchableSelectModal';
 import AIQuickCreatePanel from '../events/AIQuickCreatePanel';
 import AIAssistButton from '../events/AIAssistButton';
 import EncouragementTip from './EncouragementTip';
 import TemplatePicker, { EventTemplate } from './TemplatePicker';
 import styles from './eventCreateStyles';
 import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
+
+// Mapping nom Lucide / mot-clé → Ionicon. On essaie un large jeu de
+// catégories + un fallback générique.
+const CATEGORY_ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
+  Calendar: 'calendar-outline',
+  Music: 'musical-notes-outline',
+  Mic: 'mic-outline',
+  Users: 'people-outline',
+  Briefcase: 'briefcase-outline',
+  GraduationCap: 'school-outline',
+  Trophy: 'trophy-outline',
+  Heart: 'heart-outline',
+  Camera: 'camera-outline',
+  Film: 'film-outline',
+  Coffee: 'cafe-outline',
+  Star: 'star-outline',
+  Globe: 'globe-outline',
+  Book: 'book-outline',
+  Palette: 'color-palette-outline',
+  Cpu: 'hardware-chip-outline',
+  Sparkles: 'sparkles-outline',
+};
+
+const resolveCategoryIcon = (icon?: string): keyof typeof Ionicons.glyphMap =>
+  (icon && CATEGORY_ICON_MAP[icon]) || 'pricetag-outline';
 
 // ============================================
 // Props
@@ -132,6 +159,9 @@ export default function EventStep1Info({
 }: EventStep1InfoProps) {
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
+  const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const selectedCategory = categories.find(c => c.id === categoryId) || null;
 
   return (
     <View style={styles.stepContent}>
@@ -360,25 +390,94 @@ export default function EventStep1Info({
         </View>
       </View>
 
-      {/* Category */}
+      {/* Category — bouton-trigger qui ouvre un modal de recherche.
+          Avant : ScrollView horizontal de chips (mauvais quand 20+ catégories).
+          Maintenant : un seul bouton qui montre la catégorie sélectionnée
+          (icône + nom) ou un placeholder, et ouvre la liste filtrée au tap. */}
       <View style={styles.inputGroup}>
         <Text style={[styles.label, themed.label]}>Catégorie *</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <View style={styles.categoriesContainer}>
-            {categories.map((cat) => (
-              <TouchableOpacity
-                key={cat.id}
-                style={[styles.categoryChip, themed.categoryChip, categoryId === cat.id && [styles.categoryChipActive, themed.categoryChipActive]]}
-                onPress={() => onCategoryChange(cat.id)}
+        <TouchableOpacity
+          onPress={() => setCategoryModalOpen(true)}
+          style={[
+            categorySelectStyles.trigger,
+            { backgroundColor: colors.card, borderColor: hairline },
+          ]}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={
+            selectedCategory
+              ? `Catégorie : ${selectedCategory.name}. Toucher pour changer.`
+              : 'Choisir une catégorie'
+          }
+        >
+          {selectedCategory ? (
+            <>
+              <View
+                style={[
+                  categorySelectStyles.iconWell,
+                  { backgroundColor: `${colors.primary}14` },
+                ]}
               >
-                <Text style={[styles.categoryChipText, themed.categoryChipText, categoryId === cat.id && [styles.categoryChipTextActive, themed.categoryChipTextActive]]}>
-                  {cat.name}
+                <Ionicons
+                  name={resolveCategoryIcon(selectedCategory.icon)}
+                  size={18}
+                  color={colors.primary}
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={[categorySelectStyles.triggerLabel, { color: colors.text }]}
+                  numberOfLines={1}
+                >
+                  {selectedCategory.name}
                 </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </ScrollView>
+                {!!selectedCategory.description && (
+                  <Text
+                    style={[categorySelectStyles.triggerDesc, { color: colors.gray500 }]}
+                    numberOfLines={1}
+                  >
+                    {selectedCategory.description}
+                  </Text>
+                )}
+              </View>
+            </>
+          ) : (
+            <>
+              <View
+                style={[
+                  categorySelectStyles.iconWell,
+                  { backgroundColor: colors.gray100 },
+                ]}
+              >
+                <Ionicons name="pricetag-outline" size={18} color={colors.gray500} />
+              </View>
+              <Text
+                style={[categorySelectStyles.triggerPlaceholder, { color: colors.gray500 }]}
+              >
+                Choisir une catégorie
+              </Text>
+            </>
+          )}
+          <Ionicons name="chevron-down" size={18} color={colors.gray400} />
+        </TouchableOpacity>
       </View>
+
+      <SearchableSelectModal<Category>
+        visible={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        eyebrow="ÉVÉNEMENT"
+        title="Catégorie"
+        searchPlaceholder="Rechercher une catégorie..."
+        items={categories}
+        getKey={c => String(c.id)}
+        getLabel={c => c.name}
+        getDescription={c => c.description}
+        getIcon={c => resolveCategoryIcon(c.icon)}
+        selectedKey={categoryId != null ? String(categoryId) : null}
+        onSelect={c => onCategoryChange(c.id)}
+        onClear={() => onCategoryChange(null)}
+        emptyText="Aucune catégorie ne correspond à cette recherche."
+      />
 
       {/* Tags */}
       <View style={styles.inputGroup}>
@@ -461,3 +560,41 @@ export default function EventStep1Info({
     </View>
   );
 }
+
+// Styles spécifiques au trigger Catégorie (le contenu du modal vit dans
+// SearchableSelectModal). Pas dans eventCreateStyles parce que c'est très
+// localisé et ne sera réutilisé par aucun autre step.
+const categorySelectStyles = StyleSheet.create({
+  trigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1,
+  },
+  iconWell: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  triggerLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: FontSizes.base,
+    letterSpacing: -0.2,
+  },
+  triggerDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: FontSizes.xs,
+    marginTop: 1,
+  },
+  triggerPlaceholder: {
+    flex: 1,
+    fontFamily: FontFamily.medium,
+    fontSize: FontSizes.base,
+    letterSpacing: -0.1,
+  },
+});
