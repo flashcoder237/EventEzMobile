@@ -138,9 +138,11 @@ export const recommendationsAPI = {
   recordInteraction: (data: { event?: string; category?: number; interaction_type: string }) =>
     api.post('/recommendations/record_interaction/', data),
 
-  /** Events similaires à un event donné — utilisé en bas de EventDetails. */
+  /** Events similaires à un event donné — utilisé en bas de EventDetails.
+   *  Le backend utilise `@action(detail=True)` qui génère l'URL DRF standard
+   *  `/recommendations/{pk}/similar/` (pk AVANT le nom de l'action). */
   getSimilar: (eventId: string, params?: { limit?: number }) =>
-    api.get(`/recommendations/similar/${eventId}/`, { params }),
+    api.get(`/recommendations/${eventId}/similar/`, { params }),
 };
 
 // ============================================
