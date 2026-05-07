@@ -13,7 +13,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
-import { sessionsAPI, sessionResourcesAPI } from '../../api';
+import { sessionsAPI, sessionResourcesAPI, registrationsAPI } from '../../api';
 import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -63,6 +63,9 @@ export default function SessionDetailsScreen() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRegistering, setIsRegistering] = useState(false);
+  // Inscription de l'user à l'event parent — requise pour s'inscrire aux sessions.
+  // null = pas chargé, false = pas inscrit, true = inscrit (statut confirmed/pending).
+  const [hasEventRegistration, setHasEventRegistration] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetchSession();
@@ -72,7 +75,27 @@ export default function SessionDetailsScreen() {
     setIsLoading(true);
     try {
       const response = await sessionsAPI.getSession(sessionId);
-      setSession(response.data);
+      const sessionData = response.data;
+      setSession(sessionData);
+
+      // Vérifier en parallèle si l'user est inscrit à l'event parent.
+      // Le backend bloque l'inscription session si pas de registration valide ;
+      // on précharge le statut ici pour griser le bouton avant le clic.
+      if (user && sessionData?.event) {
+        try {
+          const regRes = await registrationsAPI.getMyRegistrations();
+          const regs = regRes.data?.results || regRes.data || [];
+          const eventId = String(sessionData.event);
+          const isRegistered = (Array.isArray(regs) ? regs : []).some((r: any) =>
+            String(r.event) === eventId &&
+            ['confirmed', 'pending'].includes(r.status)
+          );
+          setHasEventRegistration(isRegistered);
+        } catch {
+          // En cas d'échec on ne bloque pas — le backend fera le check final.
+          setHasEventRegistration(null);
+        }
+      }
     } catch (err: any) {
       if (__DEV__) console.error('[SessionDetails] Error fetching session:', err);
       showError('Erreur', 'Impossible de charger les details de la session.');
@@ -534,7 +557,28 @@ export default function SessionDetailsScreen() {
           );
         }
 
-        // Cas normal : s'inscrire
+        // Cas : pas inscrit à l'event parent → bouton désactivé + CTA pour s'inscrire à l'event.
+        // Le backend rejette de toute façon, mais on évite à l'user de cliquer pour se prendre un 403.
+        if (hasEventRegistration === false && session.event) {
+          const eventType = (session as any).event_type || (session as any).event_detail?.event_type;
+          const ctaLabel = eventType === 'billetterie'
+            ? 'Achète un billet pour cet événement'
+            : 'Inscris-toi à l\'événement';
+          return (
+            <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
+              <TouchableOpacity
+                style={[styles.registerButton, { backgroundColor: colors.primary }]}
+                onPress={() => navigation.navigate('EventDetails', { eventId: String(session.event) })}
+                activeOpacity={TOUCH_OPACITY}
+              >
+                <Ionicons name="ticket-outline" size={20} color={Colors.white} />
+                <Text style={styles.registerButtonText}>{ctaLabel}</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }
+
+        // Cas normal : s'inscrire (l'user est bien inscrit à l'event)
         return (
           <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
             <TouchableOpacity
