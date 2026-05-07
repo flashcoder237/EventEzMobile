@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode, useRef } from 'react';
-import { AppState, AppStateStatus, Platform } from 'react-native';
+import { AppState, AppStateStatus, Platform, Linking } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationsAPI, messagesAPI, invitationsAPI, ticketTransfersAPI } from '../api';
@@ -10,6 +10,46 @@ import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
 import { navigationRef } from '../navigation/navigationRef';
 
 const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
+
+// Whitelist des screens connus dans RootStackParamList (cf. src/types/index.ts).
+// Si le backend pousse `data.screen` avec un nom inconnu (typo, screen retiré
+// d'une version ancienne du client), on évite la nav.dispatch qui throw
+// silencieusement et on retombe sur Notifications.
+const KNOWN_NOTIF_NAV_SCREENS = new Set<string>([
+  'Main', 'Onboarding',
+  'Login', 'Register', 'RegisterOrganizer', 'ForgotPassword', 'ResetPassword',
+  'VerifyEmail', 'VerifyEmailToken',
+  'EventDetails', 'EventReviews', 'EventSearch',
+  'TicketPurchase', 'Payment', 'PaymentSuccess', 'PaymentFailed',
+  'QRCode', 'RegistrationDetails', 'PendingTransfers', 'OfflineTickets',
+  'Profile', 'EditProfile', 'Settings', 'BlockedUsers',
+  'Notifications', 'UserDashboard',
+  'Messages', 'Conversation', 'NewConversation',
+  'Map',
+  'EventCreate', 'EventEdit', 'MyEvents', 'EventAnalytics', 'EventRegistrations',
+  'SessionDetails', 'SpeakerDetails', 'OrganizerProfile',
+  'Wallet', 'PayoutRequest', 'Subscription',
+  'QRScanner', 'Scan',
+  'Terms', 'Privacy', 'Moderation', 'MyPayments',
+  'RefundRequest', 'RefundsList', 'Drafts',
+  'BecomeOrganizer', 'Verification', 'FollowingUsers',
+  'Invitations', 'Referrals', 'Gamification',
+  'LiveEvent', 'Volunteers',
+  'DiscountManagement', 'DiscountForm',
+  'EventSessionsLink', 'SponsorManagement',
+  'Webhooks', 'Newsletters',
+  'Dashboards', 'DashboardDetails',
+  'SeatingPlans', 'SeatingPlanEditor',
+  'Help', 'AnalyticsDashboard', 'Reports',
+  'AdminDashboard', 'UserManagement', 'UserEdit',
+  'SubscriptionManagement', 'AuditLogs', 'PlatformSettings',
+  'AnnouncementsAdmin', 'AnnouncementForm', 'ClientReleaseAdmin',
+  'AdminAds', 'AdminAdForm',
+  'TreasuryOverview', 'TreasuryStaff', 'TreasuryExpenses',
+  'TreasuryShareholders', 'TreasuryReports',
+  'SystemStatus', 'Maintenance', 'IncidentDetails',
+  'Browser',
+]);
 // ID de la dernière notification déjà consommée par `getLastNotificationResponse`.
 // Sans ce garde-fou, expo-notifications renvoie indéfiniment la dernière notif
 // tapée — y compris à chaque ouverture normale de l'app — et nous re-route
@@ -60,6 +100,11 @@ interface NotificationContextType {
   loading: boolean;
   pushToken: string | null;
   pushEnabled: boolean;
+  /**
+   * True quand le WS notifications est OPEN. Permet à l'UI d'afficher une
+   * banner "Notifications retardées" si false ET app en foreground.
+   */
+  isLiveConnected: boolean;
   fetchNotifications: () => Promise<void>;
   fetchUnreadCounts: () => Promise<void>;
   markNotificationAsRead: (id: string) => Promise<void>;
@@ -74,6 +119,12 @@ interface NotificationContextType {
    * après inscription, après envoi 1er message, etc.). No-op sinon.
    */
   maybePromptForPushPermission: () => Promise<void>;
+  /**
+   * Ouvre les réglages système de l'app (deep link). Utile quand l'user a
+   * denied la permission : on ne peut plus la re-demander programmatiquement,
+   * on doit l'envoyer dans Settings → ses Notifications → Toggle.
+   */
+  openNotificationSettings: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -126,6 +177,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     try {
       // Priority 1: explicit screen + params from backend
       if (data.screen && data.params) {
+        // Validation : si le backend envoie un screen inconnu (typo, ancienne
+        // version du client), on log et on retombe sur Notifications. Évite
+        // un dispatch qui throw silencieusement.
+        if (!KNOWN_NOTIF_NAV_SCREENS.has(data.screen)) {
+          if (__DEV__) console.warn('[Notification] Unknown screen, fallback to Notifications:', data.screen);
+          navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
+          return;
+        }
         navigation.dispatch(
           CommonActions.navigate({
             name: data.screen,
@@ -177,6 +236,10 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
             );
             break;
           default:
+            // Type inconnu côté client (probablement une nouvelle entité que
+            // ce build ne connaît pas encore). On log explicitement et on
+            // retombe sur Notifications pour ne pas perdre le tap.
+            if (__DEV__) console.warn('[Notification] Unknown related_object_type, fallback to Notifications:', data.related_object_type);
             navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
         }
       }
@@ -276,6 +339,17 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     }
     return hasPermission;
   }, [initializePushNotifications]);
+
+  // Recovery quand permission denied : on ouvre les réglages système.
+  // L'API native ne permet plus de re-prompter une fois denied — il faut
+  // que l'user toggle manuellement dans Settings.
+  const openNotificationSettings = useCallback(async () => {
+    try {
+      await Linking.openSettings();
+    } catch (error) {
+      if (__DEV__) console.warn('[Notification] openSettings failed:', error);
+    }
+  }, []);
 
   const fetchUnreadCounts = useCallback(async () => {
     if (!isAuthenticated) return;
@@ -512,9 +586,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     };
   }, [isAuthenticated]);
 
-  // WebSocket temps-réel — coexiste avec le polling 30s (filet de sécurité).
+  // WebSocket temps-réel — coexiste avec le polling REST (filet de sécurité).
   // Le WS pousse les nouvelles notifs et synchronise le badge multi-device.
-  useNotificationWebSocket({
+  // `wsConnected` est utilisé pour throttler le polling (cf. setInterval plus bas)
+  // et pourra être exposé via context pour une banner "live"/"retardé".
+  const { wsConnected } = useNotificationWebSocket({
     enabled: isAuthenticated,
     onNotificationNew: (notif) => {
       // Préfixer en début de liste, inc. compteur seulement si non lue.
@@ -534,8 +610,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       setUnreadNotificationCount(unreadCount);
     },
     onUnreadCountChanged: (count) => {
+      // Multi-device mirror : un autre device a marqué tout/lu → on aligne
+      // notre state local + badge OS sur la valeur autoritative du backend.
       setUnreadNotificationCount(count);
-      // Aligner aussi le badge OS
       pushNotificationService.setBadgeCount(count).catch(() => {});
     },
   });
@@ -560,8 +637,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, fetchUnreadCounts]);
 
   // Periodic refresh of unread counts
+  // Le polling est un filet de sécurité : si le WS est connecté, il pousse
+  // déjà les updates en temps réel → on espace le polling à 5min. Sans WS
+  // (réseau dégradé, backend down), on tombe à 60s pour rester réactif.
   useEffect(() => {
     if (!isAuthenticated) return;
+
+    const intervalMs = wsConnected ? 5 * 60 * 1000 : 60 * 1000;
 
     // Fix memory leak : flag `cancelled` pour court-circuiter le callback
     // si l'effet a ete cleanup entre l'arm de l'interval et le tick.
@@ -569,13 +651,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(() => {
       if (cancelled) return;
       fetchUnreadCounts();
-    }, 30000); // Refresh every 30 seconds
+    }, intervalMs);
 
     return () => {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [isAuthenticated, fetchUnreadCounts]);
+  }, [isAuthenticated, wsConnected, fetchUnreadCounts]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -607,6 +689,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     loading,
     pushToken,
     pushEnabled,
+    isLiveConnected: wsConnected,
     fetchNotifications,
     fetchUnreadCounts,
     markNotificationAsRead,
@@ -615,6 +698,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     initializePushNotifications,
     requestPushPermission,
     maybePromptForPushPermission,
+    openNotificationSettings,
   }), [
     notifications,
     unreadNotificationCount,
@@ -625,6 +709,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     loading,
     pushToken,
     pushEnabled,
+    wsConnected,
     fetchNotifications,
     fetchUnreadCounts,
     markNotificationAsRead,
@@ -633,6 +718,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     refreshCounts,
     initializePushNotifications,
     requestPushPermission,
+    openNotificationSettings,
   ]);
 
   const countsValue = useMemo<UnreadCountsContextType>(() => ({

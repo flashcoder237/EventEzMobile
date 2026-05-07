@@ -10,6 +10,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { getAccessToken, ensureFreshAccessToken } from '../api';
 import { Message, WebSocketIncomingMessage } from '../types';
+import { eventBus } from '../lib/eventBus';
 
 // Dériver l'URL WebSocket à partir de EXPO_PUBLIC_API_URL
 // pour que le WS pointe toujours vers le même serveur que l'API REST
@@ -138,6 +139,9 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
   // Évite que onclose ne reconnecte automatiquement pendant qu'on refresh le
   // token manuellement après un auth.error (sinon on se retrouve avec 2 WS).
   const authRefreshInProgressRef = useRef(false);
+  // Compte les JSON.parse failures consécutifs : à 3, on force un reconnect.
+  // Évite de rester collé sur une connexion qui pousse du payload corrompu.
+  const parseErrorsRef = useRef(0);
 
   // Stoppe l'interval de ping et le timeout de pong (cleanup).
   const stopHeartbeat = useCallback(() => {
@@ -198,9 +202,20 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
 
   // Handle incoming WebSocket messages
   const handleMessage = useCallback((event: MessageEvent) => {
+    let data: WebSocketIncomingMessage | WebSocketErrorMessage | { type: 'pong' };
     try {
-      const data: WebSocketIncomingMessage | WebSocketErrorMessage | { type: 'pong' } = JSON.parse(event.data);
-
+      data = JSON.parse(event.data);
+      // Reset après chaque parse réussi.
+      parseErrorsRef.current = 0;
+    } catch {
+      parseErrorsRef.current += 1;
+      if (parseErrorsRef.current >= 3) {
+        if (__DEV__) console.warn('[WS] 3 parse errors, forcing reconnect');
+        try { wsRef.current?.close(); } catch { /* ignore */ }
+      }
+      return;
+    }
+    try {
       switch (data.type) {
         case 'pong':
           // Reset le timeout de pong : la connexion est vivante.
@@ -414,6 +429,28 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
         }
 
+        case 'service_unavailable': {
+          // Le ChatConsumer ferme le WS avec close code 4503 quand un incident
+          // bloquant 'messaging' est actif. Le payload contient l'objet
+          // incident — on le forward au StatusContext via eventBus pour
+          // déclencher l'IncidentBanner (filtré sur les écrans messagerie).
+          //
+          // Sans ce relais, l'utilisateur voyait juste le spinner reconnect en
+          // boucle sans explication.
+          const incident = data.incident;
+          if (incident) {
+            eventBus.emit('service-unavailable', { incident });
+            // Stoppe la reconnexion auto — on ne va pas spam le backend
+            // tant que l'incident n'est pas résolu. Le StatusContext refetch
+            // /api/status/ et reconnectera quand le service repasse healthy.
+            fatalErrorRef.current = true;
+            setConnectionError(
+              incident.title || "Messagerie temporairement indisponible",
+            );
+          }
+          break;
+        }
+
         default:
           if (__DEV__) {
             console.log('Unknown WebSocket message type:', (data as { type: string }).type);
@@ -497,6 +534,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           clearTimeout(connectingTimeoutRef.current);
           connectingTimeoutRef.current = null;
         }
+        // Reset compteur de parse errors à chaque nouvelle connexion.
+        parseErrorsRef.current = 0;
         setIsConnected(true);
         // Ne PAS reset reconnectAttemptsRef ici — le backend accepte toujours
         // le WS avant d'authentifier, donc onopen ne signifie pas "session OK".

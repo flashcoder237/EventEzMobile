@@ -12,9 +12,10 @@
  * filet de sécurité si le WS tombe).
  */
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { Platform, AppState } from 'react-native';
 import { getAccessToken, ensureFreshAccessToken } from '../api';
+import { eventBus } from '../lib/eventBus';
 import type { Notification as NotifModel } from '../types';
 
 function getWebSocketBaseUrl(): string {
@@ -46,16 +47,26 @@ interface UseNotificationWebSocketOptions {
   onUnreadCountChanged?: (count: number) => void;
 }
 
+export interface UseNotificationWebSocketReturn {
+  /** True quand la socket est OPEN (utilisé pour réduire le polling REST). */
+  wsConnected: boolean;
+}
+
 export function useNotificationWebSocket({
   enabled,
   onNotificationNew,
   onNotificationRead,
   onUnreadCountChanged,
-}: UseNotificationWebSocketOptions) {
+}: UseNotificationWebSocketOptions): UseNotificationWebSocketReturn {
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isConnectingRef = useRef(false);
+  // Compte les JSON.parse failures consécutifs : à 3, on force un reconnect
+  // (le backoff existant prend le relais). Évite de rester collé sur une
+  // connexion qui pousse du payload corrompu en boucle.
+  const parseErrorsRef = useRef(0);
+  const [wsConnected, setWsConnected] = useState(false);
   // Stocker les callbacks dans des refs pour éviter de relancer la connexion
   // à chaque render parent (les callbacks sont souvent inline).
   const onNewRef = useRef(onNotificationNew);
@@ -95,12 +106,26 @@ export function useNotificationWebSocket({
     ws.onopen = () => {
       isConnectingRef.current = false;
       reconnectAttemptsRef.current = 0;
+      parseErrorsRef.current = 0;
+      setWsConnected(true);
       if (__DEV__) console.log('[NotifWS] connected');
     };
 
     ws.onmessage = (event) => {
+      let data: any;
       try {
-        const data = JSON.parse(event.data);
+        data = JSON.parse(event.data);
+        // Reset le compteur après chaque parse réussi.
+        parseErrorsRef.current = 0;
+      } catch {
+        parseErrorsRef.current += 1;
+        if (parseErrorsRef.current >= 3) {
+          if (__DEV__) console.warn('[NotifWS] 3 parse errors, forcing reconnect');
+          try { ws.close(); } catch { /* ignore */ }
+        }
+        return;
+      }
+      try {
         switch (data.type) {
           case 'notification.new':
             if (data.notification) onNewRef.current?.(data.notification);
@@ -116,6 +141,15 @@ export function useNotificationWebSocket({
           case 'pong':
             // keep-alive ack
             break;
+          case 'service_unavailable':
+            // Le consumer ferme avec close 4503 quand un incident bloquant
+            // touche `notifications.push`. Forward au StatusContext via
+            // eventBus — l'IncidentBanner s'affichera sur les écrans
+            // notifications.
+            if (data.incident) {
+              eventBus.emit('service-unavailable', { incident: data.incident });
+            }
+            break;
         }
       } catch {
         // payload mal formé, on ignore
@@ -129,6 +163,7 @@ export function useNotificationWebSocket({
     ws.onclose = (e) => {
       isConnectingRef.current = false;
       wsRef.current = null;
+      setWsConnected(false);
       if (__DEV__) console.log('[NotifWS] closed', e?.code);
 
       // Code 4401 = auth refusée → tenter refresh + reconnect
@@ -166,6 +201,7 @@ export function useNotificationWebSocket({
       wsRef.current = null;
     }
     reconnectAttemptsRef.current = 0;
+    setWsConnected(false);
   }, []);
 
   // (Re)connect quand enabled passe à true ; cleanup à false ou unmount.
@@ -210,4 +246,6 @@ export function useNotificationWebSocket({
     }, 25000);
     return () => clearInterval(interval);
   }, [enabled]);
+
+  return { wsConnected };
 }

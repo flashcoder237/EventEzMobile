@@ -30,6 +30,12 @@ const MAX_REGISTER_RETRIES = 3;
 // compromis sain : suffisamment long pour ne pas spammer, court pour rester
 // au-dessus de l'éviction Expo Push (qui peut révoquer un token dormant).
 const PUSH_RE_REGISTER_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000;
+// Tap notif reçu avant que la nav (ou le callback) soit prêt → on stocke la
+// data ici pour la rejouer dès que `setNavigationCallback` est appelé.
+const PENDING_TAP_DATA_KEY = '@eventez_pending_tap_data';
+// Flag posé après MAX_REGISTER_RETRIES échecs de registerTokenWithBackend.
+// Au prochain initialize(), on retente et on clear si OK.
+const PUSH_REGISTER_FAILED_KEY = '@eventez_push_register_failed';
 
 // Get project ID from app config
 const getProjectId = (): string => {
@@ -116,10 +122,20 @@ export interface PushNotificationData {
   related_object_id?: string;
 }
 
+// Fenêtre pendant laquelle un toast in-app est suppressé après un tap notif :
+// si l'user tap une notif, le responseListener déclenche la nav ; le
+// notificationListener (foreground) peut tirer presque simultanément et
+// afficher un toast alors qu'on est déjà en train de naviguer.
+const TAP_TOAST_SUPPRESS_WINDOW_MS = 500;
+
 class PushNotificationService {
   private notificationListener: Notifications.Subscription | null = null;
   private responseListener: Notifications.Subscription | null = null;
   private navigationCallback: ((data: PushNotificationData) => void) | null = null;
+  // Timestamp du dernier tap notif consommé. Utilisé pour skip le toast
+  // in-app si un tap vient juste de déclencher une navigation (cf.
+  // TAP_TOAST_SUPPRESS_WINDOW_MS).
+  private _lastTapTimestamp = 0;
 
   /**
    * Initialize push notifications
@@ -162,7 +178,27 @@ class PushNotificationService {
     try {
       const token = await this.getPushToken();
       if (token) {
-        await this.registerTokenWithBackend(token);
+        // Si on a un flag d'échec persistant, force le re-register pour
+        // tenter de recovery — bypass la dédup du LAST_REGISTERED_TOKEN_KEY.
+        let force = false;
+        try {
+          const failed = await AsyncStorage.getItem(PUSH_REGISTER_FAILED_KEY);
+          if (failed === 'true') {
+            if (__DEV__) console.log('[Push] Previous register failed — forcing retry');
+            force = true;
+          }
+        } catch { /* ignore */ }
+
+        const ok = await this.registerTokenWithBackend(token, force);
+        try {
+          if (ok) {
+            await AsyncStorage.removeItem(PUSH_REGISTER_FAILED_KEY);
+          } else {
+            await AsyncStorage.setItem(PUSH_REGISTER_FAILED_KEY, 'true');
+            if (__DEV__) console.warn('[Push] Register failed after all retries — flag set for next boot');
+          }
+        } catch { /* ignore */ }
+
         // Setup notification listeners
         this.setupListeners();
         return token;
@@ -252,7 +288,13 @@ class PushNotificationService {
   }
 
   /**
-   * Request notification permissions
+   * Request notification permissions.
+   *
+   * Sur iOS, on tente d'abord `provisional` (silent permission qui n'affiche
+   * pas le prompt système). Si accordé, l'app peut envoyer des notifs en
+   * "Quiet" mode (livrées dans la liste mais pas en banner) — le user peut
+   * les promote à full permission via les Settings ou la notif elle-même.
+   * Si provisional indisponible, fallback sur le full prompt classique.
    */
   async requestPermissions(): Promise<boolean> {
     try {
@@ -260,8 +302,35 @@ class PushNotificationService {
       let finalStatus = existingStatus;
 
       if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+        if (Platform.OS === 'ios') {
+          // Provisional first (iOS 12+) : pas de modal système, livraison en
+          // Quiet mode. Permet d'envoyer des notifs sans rebuter le user.
+          try {
+            const provisional = await Notifications.requestPermissionsAsync({
+              ios: {
+                allowAlert: false,
+                allowBadge: true,
+                allowSound: false,
+                allowProvisional: true,
+              },
+            });
+            const provGranted =
+              provisional.granted ||
+              provisional.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL ||
+              provisional.ios?.status === Notifications.IosAuthorizationStatus.AUTHORIZED;
+            if (provGranted) {
+              finalStatus = provisional.status;
+            }
+          } catch (provErr) {
+            if (__DEV__) console.warn('[Push] Provisional request failed, falling back:', provErr);
+          }
+        }
+
+        // Fallback : full permission classique
+        if (finalStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
       }
 
       if (finalStatus !== 'granted') {
@@ -626,6 +695,13 @@ class PushNotificationService {
         // le cas spécifique "user sur la conversation active"). On émet ici un
         // toast in-app pour la visibilité — sauf si l'user voit déjà la conv
         // (mêmes critères que le handler).
+        //
+        // Suppress si un tap vient de déclencher une navigation : sinon le
+        // toast apparaît brièvement alors qu'on est déjà en train de naviguer.
+        if (Date.now() - this._lastTapTimestamp < TAP_TOAST_SUPPRESS_WINDOW_MS) {
+          if (__DEV__) console.log('[Push] In-app toast suppressed (recent tap)');
+          return;
+        }
         try {
           const route = navigationRef.current?.getCurrentRoute();
           const isMessage = data?.notification_type === 'new_message' ||
@@ -673,14 +749,20 @@ class PushNotificationService {
 
     // Listener for notification interactions (user tapped notification)
     this.responseListener = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
+      async (response) => {
         if (__DEV__) console.log('[Push] Notification tapped:', response);
-        // Marque cette réponse comme consommée pour éviter qu'au prochain cold
-        // start `getLastNotificationResponseAsync()` la re-renvoie et qu'on
-        // re-navigue (cf. NotificationContext.initializePushNotifications).
+        // Marque cette réponse comme consommée AVANT de naviguer : si l'app
+        // crash entre persist et nav, on ne veut pas re-naviguer au reboot
+        // depuis getLastNotificationResponseAsync(). Awaited pour éviter le
+        // fire-and-forget — sans ça, un cold start juste après pourrait lire
+        // l'ancienne valeur.
         const responseId = response.notification.request.identifier;
         if (responseId) {
-          AsyncStorage.setItem(LAST_HANDLED_RESPONSE_ID_KEY, responseId).catch(() => {});
+          try {
+            await AsyncStorage.setItem(LAST_HANDLED_RESPONSE_ID_KEY, responseId);
+          } catch {
+            // ignore — au pire on re-navigue une fois au prochain cold start
+          }
         }
         const data = response.notification.request.content.data as PushNotificationData;
         this.handleNotificationTap(data);
@@ -689,21 +771,57 @@ class PushNotificationService {
   }
 
   /**
-   * Handle notification tap - navigate to relevant screen
+   * Handle notification tap - navigate to relevant screen.
+   *
+   * Si callback ou nav pas prêts (race au cold start), on persiste la data
+   * dans AsyncStorage. `setNavigationCallback` la rejouera dès qu'il est
+   * appelé.
    */
   private handleNotificationTap(data: PushNotificationData): void {
     if (__DEV__) console.log('[Push] Handling notification tap with data:', data);
 
-    if (this.navigationCallback) {
-      this.navigationCallback(data);
+    // Marque le tap pour suppress un éventuel toast in-app en cours d'émission.
+    this._lastTapTimestamp = Date.now();
+
+    if (!this.navigationCallback || typeof this.navigationCallback !== 'function') {
+      if (__DEV__) console.warn('[Push] navigationCallback not set, deferring tap');
+      AsyncStorage.setItem(PENDING_TAP_DATA_KEY, JSON.stringify(data)).catch(() => {});
+      return;
     }
+    if (!navigationRef.current?.isReady?.()) {
+      if (__DEV__) console.warn('[Push] navigation not ready, deferring tap');
+      AsyncStorage.setItem(PENDING_TAP_DATA_KEY, JSON.stringify(data)).catch(() => {});
+      return;
+    }
+    this.navigationCallback(data);
   }
 
   /**
-   * Set navigation callback for handling notification taps
+   * Set navigation callback for handling notification taps.
+   * Si une tap data était persistée (handleNotificationTap appelé avant que
+   * le callback soit prêt), on la rejoue — sinon on perd la nav.
    */
   setNavigationCallback(callback: (data: PushNotificationData) => void): void {
     this.navigationCallback = callback;
+    // Replay une tap data en attente, best-effort.
+    AsyncStorage.getItem(PENDING_TAP_DATA_KEY)
+      .then(async (raw) => {
+        if (!raw) return;
+        try {
+          const data = JSON.parse(raw) as PushNotificationData;
+          // Clear avant invocation pour éviter les doubles replays.
+          await AsyncStorage.removeItem(PENDING_TAP_DATA_KEY);
+          if (navigationRef.current?.isReady?.()) {
+            callback(data);
+          } else {
+            // Nav pas encore prête → re-persiste pour le prochain cycle.
+            await AsyncStorage.setItem(PENDING_TAP_DATA_KEY, raw);
+          }
+        } catch {
+          await AsyncStorage.removeItem(PENDING_TAP_DATA_KEY).catch(() => {});
+        }
+      })
+      .catch(() => {});
   }
 
   /**

@@ -64,15 +64,36 @@ class NotificationService: UNNotificationServiceExtension {
     override func serviceExtensionTimeWillExpire() {
         // iOS donne ~30s à la NSE pour finir. Au-delà, on doit livrer ce
         // qu'on a — sinon la notif est complètement perdue.
+        // os_log pour tracker les timeouts en prod (visible dans Console.app).
+        os_log("[NSE] serviceExtensionTimeWillExpire — delivering best attempt without image",
+               log: OSLog(subsystem: "com.overbrand.eventez", category: "NSE"),
+               type: .info)
         if let contentHandler = contentHandler, let content = bestAttemptContent {
             contentHandler(content)
         }
     }
 
     /// Télécharge l'image en tmp dir et appelle completion avec l'URL locale.
+    /// Timeout strict 10s (request + resource) — au-delà, fallback sans image
+    /// pour laisser de la marge avant le serviceExtensionTimeWillExpire (~30s).
+    /// Le tempURL retourné par downloadTask est cleanup automatiquement par
+    /// iOS si on ne le déplace pas — pour le fichier de destination, on
+    /// utilise NSTemporaryDirectory() qui est purgé automatiquement par le
+    /// système après livraison de la notif (lifecycle NSE).
     private func downloadImage(from url: URL, completion: @escaping (URL?) -> Void) {
-        let task = URLSession.shared.downloadTask(with: url) { tempURL, response, error in
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 10
+        config.timeoutIntervalForResource = 10
+        let session = URLSession(configuration: config)
+
+        let task = session.downloadTask(with: url) { tempURL, response, error in
             guard let tempURL = tempURL, error == nil else {
+                if let error = error {
+                    os_log("[NSE] download failed: %{public}@",
+                           log: OSLog(subsystem: "com.overbrand.eventez", category: "NSE"),
+                           type: .error,
+                           error.localizedDescription)
+                }
                 completion(nil)
                 return
             }
@@ -84,7 +105,15 @@ class NotificationService: UNNotificationServiceExtension {
             do {
                 try FileManager.default.moveItem(at: tempURL, to: dest)
                 completion(dest)
+                // Cleanup différé : iOS déplace l'attachment vers son propre
+                // sandbox. On planifie un removeItem 30s plus tard pour purger
+                // notre copie tmp (best-effort, le système nettoie aussi).
+                DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 30) {
+                    try? FileManager.default.removeItem(at: dest)
+                }
             } catch {
+                // Si le move échoue, tente quand même de nettoyer le tempURL.
+                try? FileManager.default.removeItem(at: tempURL)
                 completion(nil)
             }
         }

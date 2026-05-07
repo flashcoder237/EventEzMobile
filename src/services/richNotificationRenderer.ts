@@ -27,6 +27,24 @@ import { Platform } from 'react-native';
 
 const DEFAULT_COLOR = '#4F46E5';
 
+/**
+ * Fetch HEAD pour valider l'URL image avant de l'attacher à la notif.
+ * Si l'image renvoie 404, timeout, ou network down, on retourne null →
+ * le caller fallback sur large_icon_url ou ne pose pas d'image, sans
+ * crasher la notif entière.
+ */
+async function fetchImageWithTimeout(url: string, timeoutMs = 3000): Promise<string | null> {
+  try {
+    const result = await Promise.race([
+      fetch(url, { method: 'HEAD' }).then((r) => (r.ok ? url : null)),
+      new Promise<null>((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs)),
+    ]);
+    return result;
+  } catch {
+    return null;
+  }
+}
+
 interface RichNotificationData {
   style?: 'big_picture' | 'big_text' | 'messaging' | 'avatar' | 'default';
   color?: string;
@@ -115,21 +133,36 @@ export async function displayRichNotification(
       },
     };
 
-    // Ajout du large icon si fourni (avatar / logo organizer)
+    // Ajout du large icon si fourni (avatar / logo organizer).
+    // On valide que l'URL répond (HEAD 2xx) avec timeout 3s avant attache —
+    // sinon Notifee crash silencieusement la notif entière sur image 404/timeout.
+    let validatedLargeIcon: string | null = null;
     if (data.large_icon_url) {
-      baseConfig.android.largeIcon = data.large_icon_url;
+      validatedLargeIcon = await fetchImageWithTimeout(data.large_icon_url);
+      if (validatedLargeIcon) {
+        baseConfig.android.largeIcon = validatedLargeIcon;
+      }
     }
 
     // Style adaptatif selon `data.style`
     switch (data.style) {
       case 'big_picture':
         if (data.big_picture_url) {
-          baseConfig.android.style = {
-            type: AndroidStyle.BIGPICTURE,
-            picture: data.big_picture_url,
-            // Quand expanded, l'image cache le large_icon — c'est OK,
-            // pattern Eventbrite/Instagram.
-          };
+          // Valide aussi big_picture_url avant attache. Si KO, on fallback
+          // sur large_icon (déjà validé) ou on saute le style → notif basique.
+          const validatedPicture = await fetchImageWithTimeout(data.big_picture_url);
+          if (validatedPicture) {
+            baseConfig.android.style = {
+              type: AndroidStyle.BIGPICTURE,
+              picture: validatedPicture,
+              // Quand expanded, l'image cache le large_icon — c'est OK,
+              // pattern Eventbrite/Instagram.
+            };
+          } else if (validatedLargeIcon) {
+            // Fallback : pas de big picture mais on garde le largeIcon
+            // (déjà attaché ci-dessus) — la notif reste affichable.
+            if (__DEV__) console.warn('[RichNotif] big_picture_url unreachable, falling back to largeIcon');
+          }
         }
         break;
 
@@ -141,13 +174,14 @@ export async function displayRichNotification(
         break;
 
       case 'messaging': {
-        // Pattern WhatsApp : avatar conversation + bulles
+        // Pattern WhatsApp : avatar conversation + bulles.
+        // L'icône person n'est attachée que si l'URL est joignable (validatedLargeIcon).
         const senderName = data.sender_name || title;
         baseConfig.android.style = {
           type: AndroidStyle.MESSAGING,
           person: {
             name: senderName,
-            icon: data.large_icon_url,
+            icon: validatedLargeIcon || undefined,
           },
           messages: [
             {
@@ -205,12 +239,41 @@ export async function displayRichNotification(
     // Group summary : agrège les notifs du même type sous une seule en haut.
     // Pattern LinkedIn "3 nouvelles notifications" quand on a plusieurs notifs
     // de même type non encore consommées.
-    if (data.notification_type) {
-      baseConfig.android.groupId = data.notification_type;
+    // Pour les messages, on group par conversation_id pour que chaque conv ait
+    // son propre summary — sinon Android agrégerait toutes conversations ensemble.
+    let groupId = data.notification_type;
+    if (data.notification_type === 'new_message' && data.conversation_id) {
+      groupId = `msg-${data.conversation_id}`;
+    }
+    if (groupId) {
+      baseConfig.android.groupId = groupId;
       baseConfig.android.groupAlertBehavior = AndroidGroupAlertBehavior.CHILDREN;
     }
 
     const id = await notifee.displayNotification(baseConfig);
+
+    // Display/update une notif "summary" pour les conversations : Android
+    // l'utilise pour agréger plusieurs messages du même group. Sans summary,
+    // chaque message apparaît séparément (pas de "3 messages from X").
+    if (data.notification_type === 'new_message' && data.conversation_id && groupId) {
+      try {
+        await notifee.displayNotification({
+          id: `summary-${groupId}`,
+          title: data.sender_name || 'Messages',
+          body: 'Nouveaux messages',
+          android: {
+            channelId,
+            smallIcon: 'ic_notification',
+            color,
+            groupId,
+            groupSummary: true,
+          },
+        });
+      } catch (sumErr) {
+        if (__DEV__) console.warn('[RichNotif] summary display failed:', sumErr);
+      }
+    }
+
     return id;
   } catch (error) {
     if (__DEV__) console.warn('[RichNotif] Render failed:', error);
