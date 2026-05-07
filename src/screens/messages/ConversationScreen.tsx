@@ -21,6 +21,7 @@ import {
   TouchableOpacity,
   Clipboard,
   TextInput,
+  Platform,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -1722,7 +1723,14 @@ export default function ConversationScreen() {
 
       <KeyboardAvoidingView
         style={styles.keyboardView}
-        behavior="padding"
+        // Android : windowSoftInputMode=adjustResize (cf. AndroidManifest.xml)
+        // → l'OS resize déjà la fenêtre quand le clavier s'ouvre. Si on
+        // ajoute behavior="padding" en plus, le KAV ajoute la hauteur du
+        // clavier en padding bottom → double offset, le bas de l'input
+        // passe SOUS le clavier (= "ça coupe un peu").
+        // Solution : laisser adjustResize faire le boulot sur Android,
+        // et utiliser padding uniquement sur iOS qui n'a pas d'équivalent.
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={{ flex: 1 }}>
           <FlatList
