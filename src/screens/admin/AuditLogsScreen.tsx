@@ -57,7 +57,7 @@ const severityConfig: Record<string, { label: string; color: string; variant: 'd
 
 export default function AuditLogsScreen() {
   return (
-    <RoleGuard allow={['admin']} watermark="LOG" title="Audit & journaux">
+    <RoleGuard allow={['admin', 'moderator']} watermark="LOG" title="Audit & journaux">
       <AuditLogsContent />
     </RoleGuard>
   );

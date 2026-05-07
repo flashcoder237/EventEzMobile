@@ -92,19 +92,29 @@ export default function AnalyticsDashboardScreen() {
       setRevenueData(revenueRes.data);
       setRegistrationData(registrationRes.data);
 
-      if (failures >= 2) {
+      // Alerte UNIQUEMENT en panne totale (3/3 endpoints échoués). En partiel
+      // (1-2 fails), on rend les sections disponibles sans bloquer l'écran
+      // d'un alert intrusif — la valeur 0/—  parle d'elle-même + le banner
+      // hasFetchError donne le contexte si besoin.
+      if (failures >= 3) {
         setHasFetchError(true);
         showError(
           'Données indisponibles',
-          "Plusieurs données analytics n'ont pas pu être chargées. Vérifie ta connexion et réessaye."
+          "Aucune donnée analytics n'a pu être chargée. Vérifie ta connexion et réessaye."
         );
       } else {
-        setHasFetchError(false);
+        setHasFetchError(failures > 0);
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur analytics:', error);
       setHasFetchError(true);
-      showError('Erreur', "Impossible de charger les analytics.");
+      // Erreur globale (ex: Promise.all rejeté avant catch individuel) — on
+      // garde l'alert mais avec un message plus utile : la cause probable
+      // est le réseau ou une perte d'auth.
+      showError(
+        'Erreur réseau',
+        "Impossible de joindre le serveur. Tire vers le bas pour réessayer."
+      );
     } finally {
       setLoading(false);
     }
