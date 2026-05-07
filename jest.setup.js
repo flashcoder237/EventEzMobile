@@ -10,11 +10,61 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-// Reanimated : preset built-in (anime tout en mode synchrone pour les tests)
+// Reanimated : mock minimal (l'official mock TS de v4 n'est pas transpilé par Jest).
+// Les composants réels en runtime utilisent useAnimatedStyle/withTiming etc.
+// — on stub juste ce dont les écrans ont besoin pour rendre.
 jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
-  return Reanimated;
+  const RN = require('react-native');
+  const React = require('react');
+  const View = (props) => React.createElement(RN.View, props, props.children);
+  const Text = (props) => React.createElement(RN.Text, props, props.children);
+  const noopHook = () => ({});
+  const value = (initial) => ({ value: initial });
+  const Animated = {
+    View,
+    Text,
+    ScrollView: (props) => React.createElement(RN.ScrollView, props, props.children),
+    Image: (props) => React.createElement(RN.Image, props),
+    createAnimatedComponent: (C) => C,
+    call: () => {},
+  };
+  return {
+    __esModule: true,
+    default: Animated,
+    ...Animated,
+    useSharedValue: value,
+    useAnimatedStyle: () => ({}),
+    useAnimatedScrollHandler: () => () => {},
+    useDerivedValue: value,
+    useAnimatedRef: () => ({ current: null }),
+    useAnimatedReaction: () => {},
+    withTiming: (v) => v,
+    withSpring: (v) => v,
+    withDelay: (_d, v) => v,
+    withRepeat: (v) => v,
+    withSequence: (v) => v,
+    withDecay: (v) => v,
+    cancelAnimation: () => {},
+    runOnJS: (fn) => fn,
+    runOnUI: (fn) => fn,
+    interpolate: () => 0,
+    interpolateColor: () => '#000',
+    Extrapolate: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
+    Extrapolation: { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' },
+    Easing: {
+      bezier: () => () => 0,
+      linear: () => 0,
+      ease: () => 0,
+      out: () => () => 0,
+      in: () => () => 0,
+      inOut: () => () => 0,
+    },
+    FadeIn: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    FadeOut: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    SlideInDown: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    SlideOutDown: { duration: () => ({ delay: () => ({}) }), delay: () => ({}) },
+    Layout: { springify: () => ({}) },
+  };
 });
 
 // expo-secure-store : in-memory mock
@@ -112,7 +162,40 @@ jest.mock('react-native-keyboard-controller', () => {
   return {
     KeyboardProvider: ({ children }) => children,
     KeyboardAvoidingView: 'KeyboardAvoidingView',
-    KeyboardAwareScrollView: 'KeyboardAwareScrollView',
+    KeyboardAwareScrollView: ({ children }) => children,
+  };
+});
+
+// @expo/vector-icons : stub Icon -> Text. Sans ce mock, expo-vector-icons
+// charge expo-font (ESM) qui crash le parser Jest.
+jest.mock('@expo/vector-icons', () => {
+  const RN = require('react-native');
+  const React = require('react');
+  const Stub = (props) => React.createElement(RN.Text, props, props.name || '');
+  return new Proxy(
+    { Ionicons: Stub },
+    { get: (target, prop) => (prop === '__esModule' ? false : target[prop] || Stub) },
+  );
+});
+
+// expo-font : mock total — chargé indirectement par @expo/vector-icons et autres
+jest.mock('expo-font', () => ({
+  __esModule: true,
+  isLoaded: jest.fn(() => true),
+  loadAsync: jest.fn(() => Promise.resolve()),
+  useFonts: jest.fn(() => [true, null]),
+  Font: {},
+}));
+
+// react-native-safe-area-context : stub SafeAreaView -> View
+jest.mock('react-native-safe-area-context', () => {
+  const RN = require('react-native');
+  const React = require('react');
+  return {
+    SafeAreaProvider: ({ children }) => children,
+    SafeAreaView: ({ children, ...rest }) => React.createElement(RN.View, rest, children),
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+    useSafeAreaFrame: () => ({ x: 0, y: 0, width: 375, height: 812 }),
   };
 });
 
