@@ -419,19 +419,23 @@ const TabSlot = memo(function TabSlot({
 
       {/* Badge — rendu HORS du tabSlotPill pour échapper à son overflow:hidden.
           pointerEvents:none → le tap traverse jusqu'au Pressable extérieur.
-          Position dynamique : ancrage sur l'icône, pas sur la box du slot.
-            - Inactif (icône centrée dans box ~36px) : right:-7 → top-right de la box
-              tombe naturellement sur l'icône.
-            - Actif (icône à gauche dans la pilule étirée) : left calculé pour que
-              le badge soit au coin top-right de l'icône, pas au bout de la pilule.
-              Avatar (28px) → left:34 ; icon (22px) → left:28. */}
+          Position : centré sur le coin TOP-RIGHT de l'icône/avatar (style iOS
+          notification dot — half on, half off the corner).
+            - Inactive (box 36x44, icon 24 centré → coin (30,10)) :
+                badge centré sur (30,10) → top:2, right:-2 (16px wide badge)
+            - Active + icon (pill paddingH:12, icon 22 → coin (34,14)) :
+                badge centré sur (34,14) → top:6, left:26
+            - Active + avatar (avatar 28 → coin (40,11)) :
+                badge centré sur (40,11) → top:3, left:32 */}
       {showAnyBadge && (
         <View
           style={[
             styles.profileBadge,
             isFocused
-              ? { top: -4, left: showAvatar ? 34 : 28 }
-              : { top: -4, right: -7 },
+              ? showAvatar
+                ? { top: 3, left: 32 }
+                : { top: 6, left: 26 }
+              : { top: 2, right: -2 },
             {
               backgroundColor: '#FF6B6B',
               borderColor: isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF'),
