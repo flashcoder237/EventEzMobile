@@ -96,11 +96,16 @@ const FADE_HEIGHT = 80;
 //   - sur iPhone SE (320px) : dock de ~290px, marges 15px de chaque côté → trop serré
 //   - sur tablette (768px+) : dock de 380px perdue au milieu d'une mer de vide
 //
-// computeDockLayout() prend la largeur d'écran courante et renvoie 4 valeurs :
+// computeDockLayout() prend la largeur d'écran courante et renvoie 3 valeurs :
 //   - dockWidth         : largeur effective de la pilule globale
 //   - activePillMaxWidth : cap horizontal du slot actif (label inclus)
 //   - inactiveTabWidth  : largeur des slots non-actifs (icon-only)
-//   - slotGap           : espace inter-slots
+//
+// L'espacement inter-slots n'est PAS configuré ici — la dock utilise
+// `justifyContent: 'space-around'` qui distribue automatiquement la place
+// restante entre les slots, peu importe la largeur de la pilule active
+// courante. Pas d'espace vide à droite quand l'actif est court ("Profil")
+// vs. long ("Découvrir").
 //
 // Breakpoints :
 //   - compact (<360px)  : dock 92% écran, slots resserrés (32px), label cappé 110px
@@ -115,7 +120,6 @@ function computeDockLayout(screenWidth: number) {
       dockWidth: Math.min(screenWidth * 0.6, 480),
       activePillMaxWidth: 180,
       inactiveTabWidth: 40,
-      slotGap: 4,
     };
   }
   if (isCompact) {
@@ -123,7 +127,6 @@ function computeDockLayout(screenWidth: number) {
       dockWidth: screenWidth * 0.92,
       activePillMaxWidth: 110,
       inactiveTabWidth: 32,
-      slotGap: 2,
     };
   }
   // Phone standard
@@ -131,7 +134,6 @@ function computeDockLayout(screenWidth: number) {
     dockWidth: Math.min(screenWidth * 0.92, 380),
     activePillMaxWidth: 150,
     inactiveTabWidth: 36,
-    slotGap: 2,
   };
 }
 
@@ -480,7 +482,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
       <BlurView
         intensity={Platform.OS === 'ios' ? 70 : 0}
         tint={isDark ? 'dark' : 'light'}
-        style={[styles.dock, { width: layout.dockWidth, gap: layout.slotGap }]}
+        style={[styles.dock, { width: layout.dockWidth }]}
       >
         {/* Fallback Android (BlurView ne fonctionne pas) + boost translucide iOS */}
         <View
@@ -586,10 +588,16 @@ const styles = StyleSheet.create({
   dock: {
     flexDirection: 'row',
     alignItems: 'center',
-    // Width est maintenant injectée inline depuis FloatingTabBar via
-    // `computeDockLayout(screenWidth).dockWidth`. Compact <360px : 92% écran ;
-    // standard : min(92%, 380) ; tablette ≥600px : min(60%, 480). Idem pour
-    // `gap` qui s'adapte aux slots resserrés/relâchés selon le breakpoint.
+    // Width injectée inline depuis FloatingTabBar via
+    // `computeDockLayout(screenWidth).dockWidth` (compact <360px : 92% écran ;
+    // standard : min(92%, 380) ; tablette ≥600px : min(60%, 480)).
+    //
+    // justifyContent: 'space-around' → distribue automatiquement l'espace
+    // restant entre les slots. Évite le bug "espace vide à droite" qui
+    // apparaissait quand l'actif était court (ex: "Profil" → contenu plus
+    // étroit que la dock → reste poussé à gauche par défaut). Pas de `gap`
+    // fixe — l'espacement s'adapte à la largeur de la pilule active courante.
+    justifyContent: 'space-around',
     height: DOCK_HEIGHT,
     borderRadius: DOCK_HEIGHT / 2,
     // overflow:visible → laisse les badges des tabs dépasser de la dock.
