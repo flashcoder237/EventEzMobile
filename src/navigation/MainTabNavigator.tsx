@@ -118,21 +118,21 @@ function computeDockLayout(screenWidth: number) {
   if (isTablet) {
     return {
       dockWidth: Math.min(screenWidth * 0.6, 480),
-      activePillMaxWidth: 180,
+      activePillMaxWidth: 195, // Label 11px → "DÉCOUVRIR" ≈ 80px + icon 22 + paddings
       inactiveTabWidth: 40,
     };
   }
   if (isCompact) {
     return {
       dockWidth: screenWidth * 0.92,
-      activePillMaxWidth: 110,
+      activePillMaxWidth: 130, // Bumpé pour accommoder le label 11px sans truncate
       inactiveTabWidth: 32,
     };
   }
   // Phone standard
   return {
     dockWidth: Math.min(screenWidth * 0.92, 380),
-    activePillMaxWidth: 150,
+    activePillMaxWidth: 165,
     inactiveTabWidth: 36,
   };
 }
@@ -635,11 +635,14 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   // Label uppercase de l'actif — inline à droite de l'icône dans la pilule.
-  // 9.5px font + letter-spacing 1.1 → "DÉCOUVRIR" (9 chars) ≈ 68px width.
+  // 11px font + letter-spacing 1.0 → "DÉCOUVRIR" (9 chars) ≈ 80px width.
+  // Bumpé de 9.5px à 11px pour plus de présence visuelle (le label uppercase
+  // était trop discret comparé à l'icône). Letter-spacing légèrement réduit
+  // pour compenser et garder un mot serré.
   tabLabelActive: {
-    fontSize: 9.5,
+    fontSize: 11,
     fontFamily: FontFamily.bold,
-    letterSpacing: 1.1,
+    letterSpacing: 1.0,
     marginLeft: 6,
   },
   // Stripe diagonale du shimmer — width 50px (largeur de la lumière), légèrement
