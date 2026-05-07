@@ -9,6 +9,7 @@ import {
   Dimensions,
   TouchableOpacity,
   InteractionManager,
+  Share,
 } from 'react-native';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -1667,7 +1668,7 @@ export default function DiscoverScreen() {
                 </View>
               ))}
 
-              {/* === POUR VOUS — recommandations infinies === */}
+              {/* === POUR VOUS — feed social-style infini === */}
               {forYouEvents.length > 0 && (
                 <View style={{ paddingHorizontal: Spacing.lg, marginTop: Spacing.xl }}>
                   <Text style={[styles.forYouEyebrow, { color: colors.accent }]}>
@@ -1680,49 +1681,196 @@ export default function DiscoverScreen() {
                     const { day, month } = splitDate(ev.start_date);
                     const img = eventImage(ev);
                     const placeholder = eventPlaceholder(ev);
-                    // Inject une ad inline tous les 4 events si dispo
-                    const inlineAd = idx > 0 && idx % 4 === 0
-                      ? ads.find((a) => a.placement === 'feed_inline'
-                          && !forYouEvents.slice(0, idx).some(() => false))
+                    const orgName = (ev.organizer_name as string)
+                      || (ev.organizer && typeof ev.organizer === 'object'
+                        ? `${(ev.organizer as any).first_name || ''} ${(ev.organizer as any).last_name || ''}`.trim() || (ev.organizer as any).email
+                        : 'Organisateur');
+                    const orgInitial = (orgName?.[0] || 'O').toUpperCase();
+                    const orgAvatar = (ev.organizer && typeof ev.organizer === 'object')
+                      ? getMediaUrl((ev.organizer as any).profile_picture || (ev.organizer as any).image)
                       : null;
+                    const locationLabel = ev.location_type === 'online'
+                      ? 'En ligne'
+                      : (ev.location_city || ev.location_name || '');
+                    // Label prix formaté : "Gratuit" / "5 000 FCFA" / "dès 5 000 FCFA"
+                    const priceRange = getEventPriceRange(ev);
+                    const priceLabel = priceRange === undefined
+                      ? ''
+                      : priceRange.max === 0
+                        ? 'Gratuit'
+                        : priceRange.min === priceRange.max
+                          ? `${priceRange.min.toLocaleString()} ${platformCurrency}`
+                          : `dès ${priceRange.min.toLocaleString()} ${platformCurrency}`;
+                    const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+                    // Une ad inline injectée à idx=4 pour ne pas spammer
+                    const inlineAd = idx === 4
+                      ? ads.find((a) => a.placement === 'feed_inline')
+                      : null;
+
                     return (
                       <React.Fragment key={ev.id}>
-                        {inlineAd && idx === 4 && (
-                          // Une seule ad inline injectée pour ne pas spammer
-                          <AdvertisementCard ad={inlineAd} />
-                        )}
-                        <TouchableOpacity
-                          onPress={() => navigateToEvent(ev.id, img)}
-                          activeOpacity={0.85}
-                          style={[styles.forYouCard, { backgroundColor: colors.card }]}
+                        {inlineAd && <AdvertisementCard ad={inlineAd} />}
+                        <View
+                          style={[
+                            styles.feedCard,
+                            { backgroundColor: colors.card, borderColor: hairline },
+                            Shadows.sm,
+                          ]}
                         >
-                          <View style={[styles.forYouDateTile, { backgroundColor: `${colors.accent}1A` }]}>
-                            <Text style={[styles.forYouDateDay, { color: colors.accent }]}>{day}</Text>
-                            <Text style={[styles.forYouDateMonth, { color: colors.accent }]}>{month}</Text>
+                          {/* Header : organisateur + meta — tappable comme tout LinkedIn/FB post */}
+                          <TouchableOpacity
+                            onPress={() => navigateToEvent(ev.id, img)}
+                            activeOpacity={0.95}
+                          >
+                            <View style={styles.feedCardHeader}>
+                              {orgAvatar ? (
+                                <Image
+                                  source={{ uri: orgAvatar }}
+                                  style={styles.feedCardAvatar}
+                                  contentFit="cover"
+                                  cachePolicy="memory-disk"
+                                />
+                              ) : (
+                                <View
+                                  style={[
+                                    styles.feedCardAvatar,
+                                    { backgroundColor: `${colors.primary}15` },
+                                  ]}
+                                >
+                                  <Text style={[styles.feedCardAvatarInitial, { color: colors.primary }]}>
+                                    {orgInitial}
+                                  </Text>
+                                </View>
+                              )}
+                              <View style={{ flex: 1 }}>
+                                <Text
+                                  style={[styles.feedCardOrgName, { color: colors.text }]}
+                                  numberOfLines={1}
+                                >
+                                  {orgName}
+                                </Text>
+                                <Text
+                                  style={[styles.feedCardOrgMeta, { color: colors.gray500 }]}
+                                  numberOfLines={1}
+                                >
+                                  Organisateur · Suggestion pour vous
+                                </Text>
+                              </View>
+                            </View>
+
+                            {/* Hero image full-width 16:9 */}
+                            {img ? (
+                              <Image
+                                source={{ uri: img }}
+                                placeholder={placeholder}
+                                style={styles.feedCardImage}
+                                contentFit="cover"
+                                transition={300}
+                                cachePolicy="memory-disk"
+                              />
+                            ) : (
+                              <View
+                                style={[
+                                  styles.feedCardImage,
+                                  { backgroundColor: colors.gray100 },
+                                ]}
+                              />
+                            )}
+
+                            {/* Body */}
+                            <View style={styles.feedCardBody}>
+                              <Text
+                                style={[styles.feedCardTitle, { color: colors.text }]}
+                                numberOfLines={2}
+                              >
+                                {ev.title}
+                              </Text>
+                              {!!ev.short_description && (
+                                <Text
+                                  style={[styles.feedCardDesc, { color: colors.gray600 }]}
+                                  numberOfLines={3}
+                                >
+                                  {ev.short_description}
+                                </Text>
+                              )}
+
+                              {/* Meta row : date · lieu · prix */}
+                              <View style={styles.feedCardMetaRow}>
+                                <View style={styles.feedCardMetaItem}>
+                                  <Ionicons
+                                    name="calendar-outline"
+                                    size={13}
+                                    color={colors.accent}
+                                  />
+                                  <Text
+                                    style={[styles.feedCardMetaText, { color: colors.gray700 }]}
+                                  >
+                                    {day} {month} · {eventTime(ev)}
+                                  </Text>
+                                </View>
+                                {!!locationLabel && (
+                                  <View style={styles.feedCardMetaItem}>
+                                    <Ionicons
+                                      name={ev.location_type === 'online' ? 'videocam-outline' : 'location-outline'}
+                                      size={13}
+                                      color={colors.primary}
+                                    />
+                                    <Text
+                                      style={[styles.feedCardMetaText, { color: colors.gray700 }]}
+                                      numberOfLines={1}
+                                    >
+                                      {locationLabel}
+                                    </Text>
+                                  </View>
+                                )}
+                                {!!priceLabel && (
+                                  <View style={styles.feedCardMetaItem}>
+                                    <Ionicons
+                                      name="ticket-outline"
+                                      size={13}
+                                      color={colors.gray600}
+                                    />
+                                    <Text
+                                      style={[styles.feedCardMetaText, { color: colors.gray700 }]}
+                                    >
+                                      {priceLabel}
+                                    </Text>
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+
+                          {/* Footer : actions FB/LinkedIn-style */}
+                          <View style={[styles.feedCardFooter, { borderTopColor: hairline }]}>
+                            <TouchableOpacity
+                              style={styles.feedCardAction}
+                              onPress={() => {
+                                Share.share({
+                                  message: `${ev.title}\n${ev.short_description || ''}`,
+                                  title: ev.title,
+                                }).catch(() => { /* user cancelled */ });
+                              }}
+                              activeOpacity={0.7}
+                              accessibilityLabel="Partager"
+                            >
+                              <Ionicons name="share-outline" size={18} color={colors.gray600} />
+                              <Text style={[styles.feedCardActionText, { color: colors.gray700 }]}>
+                                Partager
+                              </Text>
+                            </TouchableOpacity>
+                            <View style={[styles.feedCardActionDivider, { backgroundColor: hairline }]} />
+                            <TouchableOpacity
+                              style={[styles.feedCardActionPrimary, { backgroundColor: colors.primary }]}
+                              onPress={() => navigateToEvent(ev.id, img)}
+                              activeOpacity={0.85}
+                              accessibilityLabel="Voir l'événement"
+                            >
+                              <Text style={styles.feedCardActionPrimaryText}>Voir l'événement</Text>
+                              <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
+                            </TouchableOpacity>
                           </View>
-                          {img ? (
-                            <Image
-                              source={{ uri: img }}
-                              placeholder={placeholder}
-                              style={styles.forYouImage}
-                              contentFit="cover"
-                              transition={300}
-                              cachePolicy="memory-disk"
-                            />
-                          ) : (
-                            <View style={[styles.forYouImage, { backgroundColor: colors.gray100 }]} />
-                          )}
-                          <View style={styles.forYouBody}>
-                            <Text style={[styles.forYouName, { color: colors.text }]} numberOfLines={2}>
-                              {ev.title}
-                            </Text>
-                            <Text style={[styles.forYouMeta, { color: colors.gray500 }]} numberOfLines={1}>
-                              {ev.location_city || ev.location_name || (ev.location_type === 'online' ? 'En ligne' : '')}
-                              {ev.start_date ? ` · ${eventTime(ev)}` : ''}
-                            </Text>
-                          </View>
-                          <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
-                        </TouchableOpacity>
+                        </View>
                       </React.Fragment>
                     );
                   })}
@@ -2534,51 +2682,118 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
     marginBottom: Spacing.md,
   },
-  forYouCard: {
+  // === FEED-STYLE POST CARD (Facebook/LinkedIn inspired) ===
+  // Plein-largeur, avatar+meta header, hero image 16:9, titre+description,
+  // meta row icônes, footer actions Partager / Voir l'événement.
+  feedCard: {
+    borderRadius: BorderRadius['2xl'],
+    borderWidth: 1,
+    overflow: 'hidden',
+    marginBottom: Spacing.md,
+  },
+  feedCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: BorderRadius.xl,
-    marginBottom: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
   },
-  forYouDateTile: {
-    width: 44,
-    height: 50,
-    borderRadius: BorderRadius.md,
+  feedCardAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  forYouDateDay: {
-    fontFamily: FontFamily.displayExtraBold,
+  feedCardAvatarInitial: {
+    fontFamily: FontFamily.displayBold,
     fontSize: 16,
-    letterSpacing: -0.4,
-    lineHeight: 18,
+    letterSpacing: -0.3,
   },
-  forYouDateMonth: {
-    fontFamily: FontFamily.bold,
-    fontSize: 9,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
-  forYouImage: {
-    width: 56,
-    height: 56,
-    borderRadius: BorderRadius.lg,
-  },
-  forYouBody: {
-    flex: 1,
-    gap: 2,
-  },
-  forYouName: {
+  feedCardOrgName: {
     fontFamily: FontFamily.displayBold,
     fontSize: 14,
     letterSpacing: -0.2,
+  },
+  feedCardOrgMeta: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    marginTop: 1,
+  },
+  feedCardImage: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+  },
+  feedCardBody: {
+    padding: Spacing.md,
+    gap: 6,
+  },
+  feedCardTitle: {
+    fontFamily: FontFamily.displayBold,
+    fontSize: 17,
+    letterSpacing: -0.4,
+    lineHeight: 22,
+  },
+  feedCardDesc: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
     lineHeight: 18,
   },
-  forYouMeta: {
-    fontFamily: FontFamily.regular,
+  feedCardMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.sm,
+    marginTop: 6,
+  },
+  feedCardMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  feedCardMetaText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 12,
+    letterSpacing: -0.1,
+  },
+  feedCardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    borderTopWidth: 1,
+    gap: Spacing.sm,
+  },
+  feedCardAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  feedCardActionText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    letterSpacing: 0.2,
+  },
+  feedCardActionDivider: {
+    width: 1,
+    height: 18,
+  },
+  feedCardActionPrimary: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: BorderRadius.full,
+  },
+  feedCardActionPrimaryText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    letterSpacing: 0.3,
+    color: '#FFFFFF',
   },
   forYouLoadingRow: {
     paddingVertical: Spacing.lg,
