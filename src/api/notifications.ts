@@ -66,6 +66,10 @@ export const notificationsAPI = {
   // Push Notifications - Device Registration
   registerDevice: (data: {
     push_token: string;
+    /** Native FCM/APNs token — distinct du push_token Expo. Permet au
+     *  backend d'envoyer via Firebase Admin SDK direct pour BigPicture
+     *  en background. */
+    fcm_token?: string;
     device_type: 'ios' | 'android' | 'web';
     device_name?: string;
     app_version?: string;

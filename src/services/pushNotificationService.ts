@@ -321,10 +321,35 @@ class PushNotificationService {
   }
 
   /**
+   * Get native FCM/APNs device token. Distinct du token Expo (qui est un
+   * wrapper ExponentPushToken[xxx]). Le backend l'utilise pour envoyer via
+   * Firebase Admin SDK direct → permet BigPictureStyle/MessagingStyle EN
+   * BACKGROUND (impossible avec Expo Push).
+   *
+   * Sur Android : token FCM brut.
+   * Sur iOS     : device token APNs (hex).
+   * Si Firebase n'est pas configuré (Expo Go ou config manquante) → null,
+   * et le backend fallback sur Expo Push pour ce device.
+   */
+  async getNativeDeviceToken(): Promise<string | null> {
+    try {
+      const tokenData = await Notifications.getDevicePushTokenAsync();
+      const token = tokenData?.data;
+      if (typeof token !== 'string' || !token) return null;
+      if (__DEV__) console.log('[Push] Native device token (FCM/APNs):', token.substring(0, 30) + '...');
+      return token;
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] Native device token unavailable (Expo Go ou Firebase non configuré):', error);
+      return null;
+    }
+  }
+
+  /**
    * Register device with retry logic and exponential backoff
    */
   private async registerDeviceWithRetry(deviceInfo: {
     push_token: string;
+    fcm_token?: string;
     device_type: 'ios' | 'android' | 'web';
     device_name: string;
     app_version: string;
@@ -365,8 +390,15 @@ class PushNotificationService {
       } catch { /* ignore — on retombera sur l'API call */ }
     }
 
+    // Récupère aussi le token natif FCM (Android) / APNs (iOS) si disponible.
+    // Permet au backend d'envoyer via Firebase Admin SDK direct pour les
+    // notifs riches en background. Optionnel — backend retombe sur Expo si
+    // fcm_token absent.
+    const fcmToken = await this.getNativeDeviceToken();
+
     const deviceInfo = {
       push_token: token,
+      ...(fcmToken ? { fcm_token: fcmToken } : {}),
       device_type: Platform.OS as 'ios' | 'android' | 'web',
       device_name: Device.deviceName || `${Platform.OS} device`,
       app_version: '1.0.0',

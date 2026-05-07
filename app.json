@@ -118,6 +118,7 @@
         }
       ],
       "./plugins/withNetworkSecurity",
+      "./plugins/withNotificationServiceExtension",
       "expo-web-browser",
       "expo-audio",
       "expo-asset",
