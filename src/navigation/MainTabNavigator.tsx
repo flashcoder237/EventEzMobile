@@ -418,11 +418,20 @@ const TabSlot = memo(function TabSlot({
       </View>
 
       {/* Badge — rendu HORS du tabSlotPill pour échapper à son overflow:hidden.
-          pointerEvents:none → le tap traverse jusqu'au Pressable extérieur. */}
+          pointerEvents:none → le tap traverse jusqu'au Pressable extérieur.
+          Position dynamique : ancrage sur l'icône, pas sur la box du slot.
+            - Inactif (icône centrée dans box ~36px) : right:-7 → top-right de la box
+              tombe naturellement sur l'icône.
+            - Actif (icône à gauche dans la pilule étirée) : left calculé pour que
+              le badge soit au coin top-right de l'icône, pas au bout de la pilule.
+              Avatar (28px) → left:34 ; icon (22px) → left:28. */}
       {showAnyBadge && (
         <View
           style={[
             styles.profileBadge,
+            isFocused
+              ? { top: -4, left: showAvatar ? 34 : 28 }
+              : { top: -4, right: -7 },
             {
               backgroundColor: '#FF6B6B',
               borderColor: isFocused ? pillColor : (isDark ? '#0F172A' : '#FFFFFF'),
@@ -668,8 +677,8 @@ const styles = StyleSheet.create({
   },
   profileBadge: {
     position: 'absolute',
-    top: -4,
-    right: -7,
+    // top/left/right sont overridés inline selon isFocused dans le rendu :
+    // ancrage dynamique sur l'icône, pas sur la box du slot.
     minWidth: 16,
     height: 16,
     borderRadius: 8,
