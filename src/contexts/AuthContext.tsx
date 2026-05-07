@@ -43,6 +43,14 @@ interface AuthContextType extends AuthState {
   logout: () => Promise<void>;
   updateUser: (data: Partial<User>) => Promise<void>;
   setUser: (user: User) => Promise<void>;  // Pour l'authentification sociale
+  /**
+   * Sync local de l'état user — PAS d'appel API. À utiliser après un PATCH
+   * fait directement par l'écran (ex: EditProfileScreen) quand on a déjà la
+   * réponse complète et qu'on veut juste rafraîchir le contexte.
+   * `updateUser(response.data)` re-PATCH le serveur avec l'objet complet (qui
+   * contient profile_picture en string URL → 400 backend).
+   */
+  syncUser: (user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -304,6 +312,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Sync sans API call — utilisé après un PATCH déjà fait par l'écran.
+  const syncUser = useCallback((user: User) => {
+    setState((prev) => ({ ...prev, user }));
+  }, []);
+
   // Pour l'authentification sociale - met à jour l'utilisateur après connexion
   const setUserFn = useCallback(async (user: User) => {
     const accessToken = await getAccessToken();
@@ -335,7 +348,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUser,
     updateUser,
     setUser: setUserFn,
-  }), [state, isInitializing, login, register, guestRegister, upgradeGuest, logout, refreshUser, updateUser, setUserFn]);
+    syncUser,
+  }), [state, isInitializing, login, register, guestRegister, upgradeGuest, logout, refreshUser, updateUser, setUserFn, syncUser]);
 
   return (
     <AuthContext.Provider value={value}>

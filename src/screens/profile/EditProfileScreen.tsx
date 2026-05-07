@@ -78,7 +78,7 @@ const Section = ({ title, icon, children, defaultExpanded = false }: SectionProp
 
 export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const { user, updateUser, setUser } = useAuth();
+  const { user, syncUser } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
   const biometric = useBiometricConfirm();
@@ -194,7 +194,9 @@ export default function EditProfileScreen() {
 
       const response = await usersAPI.updateProfileImage(formData);
       if (response.data) {
-        await setUser(response.data);
+        // syncUser : pas d'API re-call (le PATCH multipart vient juste de
+        // succéder), on sync juste l'état local du contexte.
+        syncUser(response.data);
       }
       showSuccess('Succès', 'Photo de profil mise à jour');
     } catch (error: any) {
@@ -223,7 +225,12 @@ export default function EditProfileScreen() {
       if (companyName !== (user?.company_name || '')) updateData.company_name = companyName;
 
       const response = await usersAPI.updateCurrentUser(updateData);
-      updateUser(response.data);
+      // ⚠️ NE PAS appeler updateUser(response.data) ici : updateUser fait un
+      // PATCH /users/me/ avec le payload reçu, qui contient profile_picture
+      // sous forme de string URL — le serializer rejette ça avec
+      // "La donnée soumise n'est pas un fichier" (400). On utilise syncUser
+      // pour sync l'état du contexte sans re-PATCH.
+      syncUser(response.data);
 
       showSuccess('Succès', 'Votre profil a été mis à jour');
     } catch (error: any) {
