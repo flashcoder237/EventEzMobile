@@ -405,17 +405,15 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
     color: Colors.gray900,
-    maxHeight: 120,
-    // lineHeight explicite : sans ça, Android utilise une métrique de police
-    // plus haute que la fontSize → la dernière ligne empiète sur le padding
-    // bottom et apparaît coupée (en plus de textAlignVertical=top sur l'input).
+    // IMPORTANT : maxHeight DOIT valoir `padding × 2 + lineHeight × N` pour
+    // un nombre entier N de lignes, sinon la dernière ligne est tronquée
+    // au milieu et l'utilisateur voit son texte « coupé ».
+    // 12 + 22×5 + 12 = 134 → 5 lignes complètes visibles avant scroll interne.
     lineHeight: 22,
-    // Padding asymétrique : top plus petit pour que la première ligne ne
-    // saute pas vers le bas, bottom légèrement plus grand pour éviter que
-    // les descendantes (g, j, p, q…) frôlent le bord du wrapper.
-    paddingTop: 8,
-    paddingBottom: 10,
-    minHeight: 40,
+    paddingTop: 12,
+    paddingBottom: 12,
+    minHeight: 46,   // 12 + 22 + 12 = une ligne propre, aligne avec les boutons 40
+    maxHeight: 134,  // 12 + 22×5 + 12 = 5 lignes propres, ensuite scroll interne
   },
   sendButton: {
     width: 40,
