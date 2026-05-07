@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, memo, useCallback } from 'react';
-import { View, StyleSheet, Platform, Pressable, Text } from 'react-native';
+import { View, StyleSheet, Platform, Pressable, Text, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { createBottomTabNavigator, BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -86,17 +86,54 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 //   4 inactifs × 36 = 144 → reste 133px pour l'actif
 //   actif : icon 22 + gap 6 + label uppercase 9 chars × 7.5px ≈ 68 + padding 24 = 120px ✅
 const DOCK_HEIGHT = 64;
-const DOCK_MAX_WIDTH = 380;
-const DOCK_HORIZONTAL_PADDING = 8;
 const ACTIVE_PILL_HEIGHT = 50;
-// Cap la pilule active : flexGrow:1 sans cap fait s'étendre l'actif sur tout
-// l'espace restant du dock (∼240px sur écran large) — visuellement disproportionné.
-// 130px = icon 22 + gap 6 + label "DÉCOUVRIR" (≈68px) + padding 2×12 + marge.
-const ACTIVE_PILL_MAX_WIDTH = 130;
-const INACTIVE_TAB_WIDTH = 36;
 const INACTIVE_TAB_HEIGHT = 44;
-const SLOT_GAP = 2;
+const DOCK_HORIZONTAL_PADDING = 8;
 const FADE_HEIGHT = 80;
+
+// === Layout responsif ===
+// La dock était figée à `maxWidth: 380px` + width:auto, ce qui produisait :
+//   - sur iPhone SE (320px) : dock de ~290px, marges 15px de chaque côté → trop serré
+//   - sur tablette (768px+) : dock de 380px perdue au milieu d'une mer de vide
+//
+// computeDockLayout() prend la largeur d'écran courante et renvoie 4 valeurs :
+//   - dockWidth         : largeur effective de la pilule globale
+//   - activePillMaxWidth : cap horizontal du slot actif (label inclus)
+//   - inactiveTabWidth  : largeur des slots non-actifs (icon-only)
+//   - slotGap           : espace inter-slots
+//
+// Breakpoints :
+//   - compact (<360px)  : dock 92% écran, slots resserrés (32px), label cappé 110px
+//   - standard          : dock min(92%, 380px), valeurs par défaut
+//   - tablette (≥600px) : dock min(60%, 480px), label étendu (180px) → respiration
+function computeDockLayout(screenWidth: number) {
+  const isTablet = Math.min(screenWidth, 800) >= 600; // borne haute évite faux positifs landscape
+  const isCompact = screenWidth < 360;
+
+  if (isTablet) {
+    return {
+      dockWidth: Math.min(screenWidth * 0.6, 480),
+      activePillMaxWidth: 180,
+      inactiveTabWidth: 40,
+      slotGap: 4,
+    };
+  }
+  if (isCompact) {
+    return {
+      dockWidth: screenWidth * 0.92,
+      activePillMaxWidth: 110,
+      inactiveTabWidth: 32,
+      slotGap: 2,
+    };
+  }
+  // Phone standard
+  return {
+    dockWidth: Math.min(screenWidth * 0.92, 380),
+    activePillMaxWidth: 150,
+    inactiveTabWidth: 36,
+    slotGap: 2,
+  };
+}
 
 type TabName = 'Discover' | 'Saved' | 'MessagesTab' | 'MyTickets' | 'Profile';
 
@@ -150,6 +187,10 @@ interface TabSlotProps {
   cardColor: string;
   /** ID enregistre dans le FeatureTourContext pour le spotlight */
   tourId?: string;
+  /** Largeur du slot inactif (responsive). */
+  inactiveTabWidth: number;
+  /** Cap de largeur du slot actif (responsive, accommode le label). */
+  activePillMaxWidth: number;
 }
 
 const TabSlot = memo(function TabSlot({
@@ -164,6 +205,8 @@ const TabSlot = memo(function TabSlot({
   isDark,
   cardColor,
   tourId,
+  inactiveTabWidth,
+  activePillMaxWidth,
 }: TabSlotProps) {
   const config = tabConfig[routeName];
   const widthValue = useSharedValue(isFocused ? 1 : 0);
@@ -258,11 +301,11 @@ const TabSlot = memo(function TabSlot({
         isFocused
           ? {
               minWidth: ACTIVE_PILL_HEIGHT,
-              maxWidth: ACTIVE_PILL_MAX_WIDTH,
+              maxWidth: activePillMaxWidth,
               height: ACTIVE_PILL_HEIGHT,
             }
           : {
-              width: INACTIVE_TAB_WIDTH,
+              width: inactiveTabWidth,
               height: INACTIVE_TAB_HEIGHT,
             },
         wrapperStyle,
@@ -282,7 +325,7 @@ const TabSlot = memo(function TabSlot({
                 flexDirection: 'row',
                 backgroundColor: 'transparent',
                 borderColor: 'transparent',
-                width: INACTIVE_TAB_WIDTH,
+                width: inactiveTabWidth,
                 height: INACTIVE_TAB_HEIGHT,
               },
         ]}
@@ -399,6 +442,10 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { totalPendingCount, unreadMessageCount } = useUnreadCounts();
+  // useWindowDimensions est réactif aux rotations / split-screen / iPad
+  // multitasking, contrairement à Dimensions.get() qui ne se met pas à jour.
+  const { width: screenWidth } = useWindowDimensions();
+  const layout = computeDockLayout(screenWidth);
 
   const bottomPadding = Math.max(insets.bottom, 12);
   const palette = isDark ? TAB_PILL_COLORS_DARK : TAB_PILL_COLORS_LIGHT;
@@ -433,7 +480,7 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
       <BlurView
         intensity={Platform.OS === 'ios' ? 70 : 0}
         tint={isDark ? 'dark' : 'light'}
-        style={styles.dock}
+        style={[styles.dock, { width: layout.dockWidth, gap: layout.slotGap }]}
       >
         {/* Fallback Android (BlurView ne fonctionne pas) + boost translucide iOS */}
         <View
@@ -479,6 +526,8 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
               isDark={isDark}
               cardColor={isDark ? '#0F172A' : '#FFFFFF'}
               tourId={`tab-${routeName.toLowerCase()}`}
+              inactiveTabWidth={layout.inactiveTabWidth}
+              activePillMaxWidth={layout.activePillMaxWidth}
             />
           );
         })}
@@ -537,11 +586,10 @@ const styles = StyleSheet.create({
   dock: {
     flexDirection: 'row',
     alignItems: 'center',
-    // Width:auto → la dock se redimensionne à son contenu (4 inactifs 36px +
-    // pilule active capée à ACTIVE_PILL_MAX_WIDTH + paddings/gaps). Combiné
-    // au centrage du dockOuter, ça produit une dock compacte centrée plutôt
-    // qu'un bandeau qui occupe 94% de l'écran avec une pilule étalée.
-    maxWidth: DOCK_MAX_WIDTH,
+    // Width est maintenant injectée inline depuis FloatingTabBar via
+    // `computeDockLayout(screenWidth).dockWidth`. Compact <360px : 92% écran ;
+    // standard : min(92%, 380) ; tablette ≥600px : min(60%, 480). Idem pour
+    // `gap` qui s'adapte aux slots resserrés/relâchés selon le breakpoint.
     height: DOCK_HEIGHT,
     borderRadius: DOCK_HEIGHT / 2,
     // overflow:visible → laisse les badges des tabs dépasser de la dock.
@@ -549,7 +597,6 @@ const styles = StyleSheet.create({
     // borderRadius internes (cf. styles.dockBg).
     overflow: 'visible',
     paddingHorizontal: DOCK_HORIZONTAL_PADDING,
-    gap: SLOT_GAP,
     ...Shadows.dramatic,
   },
   dockBg: {
