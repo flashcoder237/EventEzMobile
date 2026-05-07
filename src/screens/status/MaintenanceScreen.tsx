@@ -194,6 +194,22 @@ export default function MaintenanceScreen() {
               <Text style={styles.primaryBtnText}>Rafraîchir</Text>
             </TouchableOpacity>
 
+            {/* Voir le détail de CET incident (avec timeline des updates) —
+                CTA principal après "Rafraîchir" car c'est ce que l'utilisateur
+                veut le plus souvent : suivre l'évolution. */}
+            {incident?.id && (
+              <TouchableOpacity
+                style={[styles.secondaryBtn, { borderColor: colors.gray200, backgroundColor: colors.card }]}
+                onPress={() => navigation.navigate('IncidentDetails', { incidentId: incident.id })}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="trending-up-outline" size={18} color={colors.gray700} />
+                <Text style={[styles.secondaryBtnText, { color: colors.gray700 }]}>
+                  Voir l'évolution
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
               style={[styles.secondaryBtn, { borderColor: colors.gray200, backgroundColor: colors.card }]}
               onPress={() => navigation.navigate('SystemStatus')}
@@ -201,7 +217,7 @@ export default function MaintenanceScreen() {
             >
               <Ionicons name="pulse-outline" size={18} color={colors.gray700} />
               <Text style={[styles.secondaryBtnText, { color: colors.gray700 }]}>
-                Voir la page de statut
+                Page de statut globale
               </Text>
             </TouchableOpacity>
           </View>

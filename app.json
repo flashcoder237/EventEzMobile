@@ -119,6 +119,7 @@
       ],
       "./plugins/withNetworkSecurity",
       "./plugins/withNotificationServiceExtension",
+      "./plugins/withNotifeeMavenRepo",
       "expo-web-browser",
       "expo-audio",
       "expo-asset",

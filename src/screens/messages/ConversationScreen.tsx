@@ -1723,6 +1723,13 @@ export default function ConversationScreen() {
       <KeyboardAvoidingView
         style={styles.keyboardView}
         behavior="padding"
+        // Le KAV ne sait PAS qu'on rend un custom header AU-DESSUS de lui
+        // (renderCustomHeader, styles.customHeader = back-button 40 + paddingY
+        // 8+8 = 56px) ni qu'il y a une status bar (insets.top, 24~44px).
+        // Sans cet offset, le KAV calcule la distance keyboard↔écran à partir
+        // de son origine au lieu de l'origine de la SafeAreaView, ce qui lui
+        // fait sous-estimer la place à laisser → bas de l'input sous le clavier.
+        keyboardVerticalOffset={insets.top}
       >
         <View style={{ flex: 1 }}>
           <FlatList
