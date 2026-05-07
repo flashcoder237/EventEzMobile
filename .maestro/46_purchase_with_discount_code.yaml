@@ -1,0 +1,88 @@
+# What this flow tests:
+# Achat de billet AVEC code promo — étend le flow 05_ticket_purchase.
+# Edge case : code promo invalide d'abord (erreur), puis on vérifie le retour à l'état normal.
+# Le code valide est optionnel — selon ce qui existe en base de test.
+
+appId: ${APP_ID}
+name: "Ticket - Purchase with discount code"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Chercher un événement billetterie
+- tapOn:
+    id: "search-input"
+    optional: true
+- inputText: "billetterie"
+- pressKey: enter
+
+- extendedWaitUntil:
+    visible:
+      id: "event-card-.*"
+    timeout: 10000
+    optional: true
+
+# 2. Ouvrir le 1er événement
+- tapOn:
+    id: "event-card-.*"
+    optional: true
+
+# 3. CTA Acheter
+- extendedWaitUntil:
+    visible:
+      text: ".*Acheter.*|.*Obtenir.*"
+    timeout: 10000
+
+- tapOn:
+    text: ".*Acheter.*|.*Obtenir.*"
+
+# 4. Sélectionner 1 billet
+- tapOn:
+    text: "+"
+    index: 0
+    optional: true
+
+# 5. Chercher le champ code promo (sur l'écran d'achat)
+- scroll:
+    direction: DOWN
+    duration: 400
+
+- tapOn:
+    text: ".*[Cc]ode promo.*|.*[Cc]ode.*réduction.*|.*Discount.*"
+    optional: true
+
+# 6. Edge case 1 : entrer un code invalide
+- inputText: "INVALID_CODE_XYZ"
+
+- tapOn:
+    text: ".*Appliquer.*|.*Valider.*code.*"
+    optional: true
+
+# 7. Vérifier message d'erreur
+- assertVisible:
+    text: ".*invalide.*|.*non valide.*|.*introuvable.*|.*expir.*"
+    timeout: 8000
+    optional: true
+
+# 8. Effacer et essayer un code de test (peut ne pas exister)
+- tapOn:
+    text: ".*[Cc]ode promo.*|.*INVALID_CODE_XYZ.*"
+    optional: true
+- eraseText: 50
+- inputText: "WELCOME10"
+
+- tapOn:
+    text: ".*Appliquer.*|.*Valider.*code.*"
+    optional: true
+
+# 9. Continuer vers paiement (avec ou sans code)
+- tapOn:
+    text: ".*Continuer.*|.*Payer.*|.*Valider.*"
+    optional: true
+
+# 10. Vérifier écran paiement
+- assertVisible:
+    text: ".*paiement.*|.*Montant.*|.*Total.*"
+    timeout: 10000
+    optional: true

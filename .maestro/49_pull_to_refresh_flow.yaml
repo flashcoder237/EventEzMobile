@@ -1,0 +1,82 @@
+# What this flow tests:
+# Pull-to-refresh sur les écrans utilisant CacheService (Discover, Notifications, MyTickets).
+# Vérifie que le swipe-down déclenche le refresh (bypassCache=true côté code).
+# Edge case : le contenu doit rester accessible pendant le refresh (pas d'écran blanc).
+
+appId: ${APP_ID}
+name: "App - Pull to refresh (Discover + Notifications + Tickets)"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Pull-to-refresh sur Discover
+- assertVisible: "Découvrir"
+
+- swipe:
+    direction: DOWN
+    start: 50% 25%
+    end: 50% 80%
+    duration: 600
+
+# Le contenu doit rester visible (cache servi pendant refresh)
+- assertVisible:
+    text: ".*Découvrir.*|.*Rechercher.*|.*Catégories.*"
+    timeout: 8000
+
+# 2. Pull-to-refresh sur Mes Billets
+- tapOn: "Billets"
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Mes billets.*|.*Billets.*"
+    timeout: 8000
+
+- swipe:
+    direction: DOWN
+    start: 50% 25%
+    end: 50% 80%
+    duration: 600
+
+# Le contenu (filtres, liste ou empty state) reste visible
+- assertVisible:
+    text: ".*À venir.*|.*Passés.*|.*Aucun.*billet.*"
+    timeout: 8000
+
+# 3. Pull-to-refresh sur Notifications (depuis Profil)
+- tapOn: "Profil"
+
+- tapOn:
+    text: ".*Notification.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Notification.*"
+    timeout: 8000
+
+- swipe:
+    direction: DOWN
+    start: 50% 25%
+    end: 50% 80%
+    duration: 600
+
+# Vérifier que la liste/empty state reste visible
+- assertVisible:
+    text: ".*notification.*|.*aucune.*|.*vide.*"
+    timeout: 8000
+    optional: true
+
+# 4. Pull-to-refresh sur Saved (Favoris)
+- tapOn: "Favoris"
+
+- swipe:
+    direction: DOWN
+    start: 50% 25%
+    end: 50% 80%
+    duration: 600
+
+- assertVisible:
+    text: ".*Favoris.*|.*sauvegard.*|.*Aucun.*"
+    timeout: 8000
+    optional: true

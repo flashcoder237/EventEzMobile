@@ -1,0 +1,80 @@
+# What this flow tests:
+# Switch de langue FR ↔ EN depuis Settings (i18next).
+# Edge case : après bascule en EN, certains labels devraient changer ("Profile" au lieu de "Profil").
+# On rebascule en FR à la fin pour ne pas casser les autres flows.
+
+appId: ${APP_ID}
+name: "Settings - Language switch (FR ↔ EN)"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Aller dans Profil → Paramètres
+- tapOn: "Profil"
+
+- tapOn:
+    text: "Paramètres"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Paramètres.*"
+    timeout: 8000
+
+# 2. Trouver le sélecteur de langue
+- scroll:
+    direction: DOWN
+    duration: 500
+
+- tapOn:
+    text: ".*Langue.*|.*Français.*|.*Language.*"
+    optional: true
+
+# 3. Choisir English
+- tapOn:
+    text: "English"
+    optional: true
+
+# 4. Vérifier que l'UI a basculé en EN
+- extendedWaitUntil:
+    visible:
+      text: ".*Settings.*|.*Language.*|.*Account.*"
+    timeout: 8000
+    optional: true
+
+# 5. Retour à l'accueil — vérifier que les tabs ont changé
+- back
+- back
+
+- assertVisible:
+    text: ".*Discover.*|.*Découvrir.*"
+    timeout: 8000
+
+# 6. Restaurer FR pour ne pas polluer les autres flows
+- tapOn:
+    text: ".*Profile.*|.*Profil.*"
+
+- tapOn:
+    text: ".*Settings.*|.*Paramètres.*"
+    optional: true
+
+- scroll:
+    direction: DOWN
+    duration: 500
+
+- tapOn:
+    text: ".*Language.*|.*English.*|.*Langue.*"
+    optional: true
+
+- tapOn:
+    text: "Français"
+    optional: true
+
+# 7. Vérifier retour FR
+- back
+- back
+
+- assertVisible:
+    text: "Découvrir"
+    timeout: 8000

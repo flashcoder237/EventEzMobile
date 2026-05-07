@@ -16,6 +16,10 @@ module.exports = {
     '/ios/',
     '/.maestro/',
     '/.expo/',
+    // Tests d'intégration MSW : tournent via jest.integration.config.js
+    // (Node env, transformIgnorePatterns différents). Exécuter avec :
+    //   npx jest --config jest.integration.config.js
+    '/__tests__/integration/',
   ],
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|expo-modules-core|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/.*|sentry-expo|native-base|react-native-svg|@testing-library/react-native|@notifee/.*)/)',

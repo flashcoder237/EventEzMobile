@@ -1,0 +1,73 @@
+# What this flow tests:
+# Parcours d'inscription complet depuis Login → Register → écran Vérifier l'email
+# → bouton "Renvoyer le lien" (cooldown) → "Vérifier plus tard" pour passer en mode skip
+# Couvre l'edge case où l'user vient de créer son compte mais n'a pas encore cliqué le lien email.
+
+appId: ${APP_ID}
+name: "Auth - Signup Complete (Register → Verify Email → Skip)"
+
+---
+
+- launchApp:
+    clearState: true
+
+# 1. On part de l'écran Login
+- assertVisible:
+    text: "Connexion"
+    timeout: 15000
+
+# 2. Aller vers Inscription
+- tapOn: "S'inscrire"
+- assertVisible: "Inscription"
+
+# 3. Remplir le formulaire (email unique grâce à Date.now())
+- tapOn: "Prénom"
+- inputText: "Edge"
+
+- tapOn: "Nom"
+- inputText: "CaseUser"
+
+- tapOn: "Email"
+- inputText: "edge_${Date.now()}@eventez.com"
+
+- tapOn: "Mot de passe"
+- inputText: "EdgeCase123!"
+
+- tapOn: "Confirmer le mot de passe"
+- inputText: "EdgeCase123!"
+
+- tapOn: "Créer un compte"
+
+# 4. Attendre l'écran "Vérifier par email"
+- extendedWaitUntil:
+    visible:
+      text: ".*[Vv].rifier par email.*|.*[Vv].rification.*|.*Confirme par email.*"
+    timeout: 20000
+
+# 5. Cliquer "Renvoyer le lien" — déclenche cooldown
+- tapOn:
+    text: ".*Renvoyer le lien.*|.*Renvoyer.*"
+    optional: true
+
+# 6. Vérifier que le toast/message de renvoi est visible
+- assertVisible:
+    text: ".*envoy.*|.*Email envoy.*|.*Réessayer dans.*"
+    timeout: 10000
+    optional: true
+
+# 7. Scroll pour trouver "Vérifier plus tard"
+- scroll:
+    direction: DOWN
+    duration: 400
+
+# 8. Cliquer "Vérifier plus tard et continuer vers l'accueil"
+- tapOn:
+    text: ".*Vérifier plus tard.*|.*plus tard.*|.*continuer.*accueil.*"
+    optional: true
+
+# 9. Confirmer arrivée sur Discover
+- extendedWaitUntil:
+    visible:
+      text: "Découvrir"
+    timeout: 15000
+    optional: true

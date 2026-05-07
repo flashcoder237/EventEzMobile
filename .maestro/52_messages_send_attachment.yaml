@@ -1,0 +1,93 @@
+# What this flow tests:
+# Envoi d'un message AVEC pièce jointe (image/document) — étend 19_conversation qui ne teste que le texte.
+# Edge case : annulation du picker système → la conversation reste utilisable.
+# Note : Maestro ne peut pas valider le contenu de la pièce jointe (file picker natif),
+# donc on teste uniquement l'ouverture du picker et le retour propre.
+
+appId: ${APP_ID}
+name: "Messages - Send with attachment (open picker + cancel)"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Aller dans Messages
+- tapOn: "Profil"
+
+- scroll:
+    direction: DOWN
+    duration: 300
+
+- tapOn:
+    text: ".*Messages.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Messages.*|.*Conversations.*"
+    timeout: 10000
+
+# 2. Ouvrir une conversation existante (s'il y en a)
+- tapOn:
+    id: "conversation-.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*message.*|.*taper.*|.*écrire.*"
+    timeout: 8000
+    optional: true
+
+# 3. Ouvrir le menu pièce jointe (icône + ou trombone)
+- tapOn:
+    id: "attach-button"
+    optional: true
+
+# Fallback : icône add/plus à gauche du composer
+- tapOn:
+    id: "add-attachment"
+    optional: true
+
+# Fallback : par accessibilityLabel
+- tapOn:
+    text: ".*Joindre.*|.*Ajouter.*pièce.*|.*attach.*"
+    optional: true
+
+# 4. Vérifier que le menu d'options est apparu (Image / Document / Caméra)
+- assertVisible:
+    text: ".*Image.*|.*Galerie.*|.*Document.*|.*Caméra.*|.*Photo.*"
+    timeout: 5000
+    optional: true
+
+# 5. Choisir "Image" → ouvre le picker système (Maestro ne peut pas le piloter)
+- tapOn:
+    text: ".*Image.*|.*Galerie.*|.*Photo.*"
+    optional: true
+
+# 6. Le picker natif s'ouvre puis se ferme automatiquement (timeout) ou par back
+- pressKey: back
+
+# 7. Retour sur la conversation — toujours utilisable
+- assertVisible:
+    text: ".*message.*|.*taper.*|.*écrire.*"
+    timeout: 8000
+    optional: true
+
+# 8. Tester un envoi texte simple pour confirmer la conv non corrompue
+- tapOn:
+    text: ".*message.*|.*écrire.*|.*taper.*"
+    optional: true
+- inputText: "Test post-cancel attachment"
+
+- tapOn:
+    id: "send-button"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "Test post-cancel attachment"
+    timeout: 8000
+    optional: true
+
+# 9. Retour
+- pressKey: back

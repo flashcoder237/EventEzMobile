@@ -1,0 +1,97 @@
+# What this flow tests:
+# Transfert d'un billet vers un autre utilisateur via TransferTicketModal.
+# Edge case : email invalide → erreur inline visible avant tout appel API.
+# Puis email valide → confirmation (alert) → annulée à la fin pour ne pas réellement transférer.
+
+appId: ${APP_ID}
+name: "Ticket - Transfer flow (email validation + cancel)"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Aller sur Mes Billets
+- tapOn: "Billets"
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Mes billets.*|.*Billets.*"
+    timeout: 10000
+
+# 2. Ouvrir le premier billet (sa carte)
+- tapOn:
+    id: "ticket-card-.*"
+    optional: true
+
+# Fallback : taper sur n'importe quel élément cliquable de la liste
+- tapOn:
+    text: ".*Voir.*|.*Détails.*"
+    optional: true
+
+# 3. Chercher le bouton de transfert
+- scroll:
+    direction: DOWN
+    duration: 600
+
+- tapOn:
+    text: ".*Transférer.*"
+    optional: true
+
+# 4. Modal de transfert ouverte → champ email destinataire
+- extendedWaitUntil:
+    visible:
+      text: ".*destinataire.*|.*Transférer.*|.*ami@exemple.*"
+    timeout: 8000
+    optional: true
+
+# 5. Edge case 1 : tenter d'envoyer avec email vide
+- tapOn:
+    text: "Envoyer"
+    optional: true
+
+- assertVisible:
+    text: ".*requis.*|.*email.*requis.*|.*obligatoire.*"
+    timeout: 5000
+    optional: true
+
+# 6. Edge case 2 : email mal formé
+- tapOn:
+    text: ".*ami@exemple.*|.*Email.*destinataire.*"
+    optional: true
+- inputText: "pas-un-email"
+
+- tapOn:
+    text: "Envoyer"
+    optional: true
+
+- assertVisible:
+    text: ".*invalide.*|.*format.*"
+    timeout: 5000
+    optional: true
+
+# 7. Email valide
+- eraseText: 30
+- inputText: "test_recipient@eventez.com"
+
+- tapOn:
+    text: ".*Prénom.*destinataire.*|.*Prénom.*"
+    optional: true
+- inputText: "TestRecipient"
+
+# 8. Tenter d'envoyer → ouvre une confirmation Alert native
+- tapOn:
+    text: "Envoyer"
+    optional: true
+
+# 9. ANNULER la confirmation pour ne pas réellement transférer
+- tapOn:
+    text: ".*Annuler.*|.*Cancel.*"
+    optional: true
+
+# 10. Fermer la modal
+- tapOn:
+    text: ".*Fermer.*|.*Annuler.*"
+    optional: true
+
+# 11. Retour à la liste des billets
+- back

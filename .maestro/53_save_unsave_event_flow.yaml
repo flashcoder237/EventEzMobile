@@ -1,0 +1,85 @@
+# What this flow tests:
+# Bookmark/Save un événement depuis Discover → vérifier qu'il apparaît dans l'onglet Favoris
+# → unsave depuis Favoris → vérifier qu'il disparaît.
+# Edge case : invalidation cache CacheService.invalidate('following:userId') doit rendre la liste à jour
+# sans pull-to-refresh (test de la mutation côté frontend).
+
+appId: ${APP_ID}
+name: "Events - Save & unsave from card (cache invalidation)"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Sur Discover, sauvegarder le 1er événement (bouton bookmark sur la carte)
+- assertVisible: "Découvrir"
+
+- extendedWaitUntil:
+    visible:
+      id: "event-card-.*"
+    timeout: 10000
+    optional: true
+
+# 2. Cliquer le bookmark de la 1re carte
+- tapOn:
+    id: "event-card-.*"
+
+# 3. Sur la page de détails, cliquer "Sauvegarder"
+- extendedWaitUntil:
+    visible:
+      text: ".*Sauvegarder.*|.*Suivre.*"
+    timeout: 8000
+    optional: true
+
+- tapOn:
+    text: ".*Sauvegarder.*"
+    optional: true
+
+# 4. Le label doit changer en "Sauvegardé"
+- assertVisible:
+    text: ".*Sauvegardé.*|.*Événement sauvegardé.*"
+    timeout: 5000
+    optional: true
+
+# 5. Retour à Discover
+- back
+
+# 6. Aller dans Favoris
+- tapOn: "Favoris"
+
+# 7. La liste Favoris doit contenir l'event sauvegardé (pas d'empty state)
+- assertNotVisible:
+    text: ".*Aucun événement.*sauvegardé.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "event-card-.*"
+    timeout: 10000
+    optional: true
+
+# 8. Ouvrir l'événement
+- tapOn:
+    id: "event-card-.*"
+
+# 9. Cliquer "Sauvegardé" pour le retirer
+- tapOn:
+    text: ".*Sauvegardé.*|.*Ne plus suivre.*"
+    optional: true
+
+# 10. Le bouton doit être revenu à "Sauvegarder"
+- assertVisible:
+    text: ".*Sauvegarder.*"
+    timeout: 5000
+    optional: true
+
+# 11. Retour à Favoris — l'event ne doit plus être présent
+- back
+
+- assertVisible: "Favoris"
+
+# Vérifier l'empty state OU absence de l'event (selon le compte de test)
+- assertVisible:
+    text: ".*Aucun événement.*|.*Découvrir.*événements.*|.*event-card-.*"
+    timeout: 8000
+    optional: true

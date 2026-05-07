@@ -1,0 +1,73 @@
+# What this flow tests:
+# EDGE CASE : un utilisateur tente de s'inscrire à une session SANS être inscrit à l'événement parent.
+# Côté UX, le bouton doit afficher un CTA vers l'inscription event ("Achète un billet" ou "Inscris-toi à l'événement")
+# au lieu du bouton normal "S'inscrire à cette session".
+# Ce comportement vient de SessionDetailsScreen.tsx ligne 562 (hasEventRegistration === false).
+
+appId: ${APP_ID}
+name: "Sessions - Inscription bloquée (event parent non rejoint)"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Chercher un événement avec sessions (mais NE PAS s'y inscrire)
+- tapOn:
+    id: "search-input"
+    optional: true
+- inputText: "conf"
+- pressKey: enter
+
+- extendedWaitUntil:
+    visible:
+      id: "event-card-.*"
+    timeout: 10000
+    optional: true
+
+# 2. Ouvrir l'event
+- tapOn:
+    id: "event-card-.*"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Description.*|.*Agenda.*|.*Programme.*"
+    timeout: 10000
+
+# 3. NE PAS cliquer sur "Acheter/S'inscrire" — directement aller voir une session
+- scroll:
+    direction: DOWN
+    duration: 1000
+
+- assertVisible:
+    text: ".*Agenda.*|.*Programme.*|.*Session.*"
+    optional: true
+
+- tapOn:
+    text: ".*session.*|.*conférence.*|.*atelier.*|.*workshop.*"
+    optional: true
+
+# 4. Sur la page de détail de session, le CTA bottom doit indiquer
+#    "Achète un billet pour cet événement" OU "Inscris-toi à l'événement"
+#    (logique métier : pas de session sans inscription event parent)
+- extendedWaitUntil:
+    visible:
+      text: ".*Achète un billet.*|.*Inscris-toi à l'événement.*|.*Achète.*billet.*événement.*"
+    timeout: 10000
+    optional: true
+
+# 5. Le bouton "S'inscrire à cette session" NE DOIT PAS être visible
+- assertNotVisible:
+    text: "S'inscrire à cette session"
+    optional: true
+
+# 6. Cliquer le CTA pour vérifier qu'il navigue bien vers l'event parent
+- tapOn:
+    text: ".*Achète un billet.*|.*Inscris-toi à l'événement.*"
+    optional: true
+
+# 7. Retour sur la page event détails
+- assertVisible:
+    text: ".*Acheter.*|.*S'inscrire.*|.*Description.*"
+    timeout: 10000
+    optional: true

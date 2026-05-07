@@ -7,15 +7,19 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
+    "test": "jest",
+    "test:integration": "jest --config jest.integration.config.js",
     "test:e2e": "maestro test .maestro/",
     "test:e2e:auth": "maestro test .maestro/01_auth_login.yaml && maestro test .maestro/02_auth_register.yaml && maestro test .maestro/12_forgot_password.yaml && maestro test .maestro/11_auth_logout.yaml",
     "test:e2e:events": "maestro test .maestro/03_discover_events.yaml && maestro test .maestro/04_event_details.yaml && maestro test .maestro/13_map_view.yaml && maestro test .maestro/37_session_speaker.yaml && maestro test .maestro/38_organizer_profile.yaml",
     "test:e2e:purchase": "maestro test .maestro/05_ticket_purchase.yaml && maestro test .maestro/14_payment_results.yaml && maestro test .maestro/15_qr_code_ticket.yaml",
     "test:e2e:profile": "maestro test .maestro/06_profile_settings.yaml && maestro test .maestro/18_edit_profile.yaml && maestro test .maestro/27_dark_mode.yaml && maestro test .maestro/28_settings_legal.yaml && maestro test .maestro/33_subscription.yaml && maestro test .maestro/34_become_organizer.yaml && maestro test .maestro/40_gamification.yaml",
     "test:e2e:dashboard": "maestro test .maestro/07_saved_events.yaml && maestro test .maestro/08_my_tickets.yaml && maestro test .maestro/16_notifications.yaml && maestro test .maestro/17_dashboard.yaml && maestro test .maestro/20_my_payments.yaml && maestro test .maestro/39_invitations_referral.yaml && maestro test .maestro/41_offline_tickets.yaml",
-    "test:e2e:messages": "maestro test .maestro/10_messages.yaml && maestro test .maestro/19_conversation.yaml",
+    "test:e2e:messages": "maestro test .maestro/10_messages.yaml && maestro test .maestro/19_conversation.yaml && maestro test .maestro/52_messages_send_attachment.yaml",
     "test:e2e:organizer": "maestro test .maestro/09_event_create.yaml && maestro test .maestro/21_organizer_analytics.yaml && maestro test .maestro/22_organizer_registrations.yaml && maestro test .maestro/23_organizer_wallet.yaml && maestro test .maestro/24_organizer_qr_scanner.yaml && maestro test .maestro/25_organizer_discounts.yaml && maestro test .maestro/26_organizer_event_edit.yaml && maestro test .maestro/35_organizer_reports.yaml && maestro test .maestro/36_organizer_volunteers.yaml",
-    "test:e2e:admin": "maestro test .maestro/29_admin_dashboard.yaml && maestro test .maestro/30_admin_users.yaml && maestro test .maestro/31_admin_treasury.yaml && maestro test .maestro/32_moderation.yaml && maestro test .maestro/42_admin_audit_settings.yaml && maestro test .maestro/43_admin_subscriptions.yaml"
+    "test:e2e:admin": "maestro test .maestro/29_admin_dashboard.yaml && maestro test .maestro/30_admin_users.yaml && maestro test .maestro/31_admin_treasury.yaml && maestro test .maestro/32_moderation.yaml && maestro test .maestro/42_admin_audit_settings.yaml && maestro test .maestro/43_admin_subscriptions.yaml && maestro test .maestro/50_admin_logout_flow.yaml",
+    "test:e2e:flow_complete": "maestro test .maestro/44_signup_complete_flow.yaml && maestro test .maestro/45_inscription_form_flow.yaml && maestro test .maestro/46_purchase_with_discount_code.yaml && maestro test .maestro/47_ticket_transfer_flow.yaml",
+    "test:e2e:edge": "maestro test .maestro/48_session_registration_blocked.yaml && maestro test .maestro/49_pull_to_refresh_flow.yaml && maestro test .maestro/51_language_switch_flow.yaml && maestro test .maestro/53_save_unsave_event_flow.yaml"
   },
   "reanimated": {
     "staticFeatureFlags": {
@@ -100,6 +104,7 @@
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-expo": "~54.0.0",
+    "msw": "^2.14.4",
     "react-test-renderer": "19.1.0",
     "typescript": "~5.9.2"
   },

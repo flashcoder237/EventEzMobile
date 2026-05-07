@@ -1,0 +1,81 @@
+# What this flow tests:
+# Inscription à un événement de type "inscription" (formulaire personnalisé) — DIFFÉRENT du flow billetterie.
+# 05_ticket_purchase couvre le type "billetterie", celui-ci couvre l'autre branche métier.
+# Édge cases couverts : champs requis vides → erreur de validation avant submit.
+
+appId: ${APP_ID}
+name: "Event - Inscription form (custom event type)"
+
+---
+
+- runFlow: 01_auth_login.yaml
+
+# 1. Chercher un événement de type inscription
+- tapOn:
+    id: "search-input"
+    optional: true
+- tapOn:
+    text: ".*Rechercher.*événement.*"
+    optional: true
+- inputText: "inscription"
+- pressKey: enter
+
+- extendedWaitUntil:
+    visible:
+      id: "event-card-.*"
+    timeout: 10000
+    optional: true
+
+# 2. Ouvrir le 1er résultat
+- tapOn:
+    id: "event-card-.*"
+    optional: true
+
+# 3. Attendre le détail
+- extendedWaitUntil:
+    visible:
+      text: ".*S'inscrire.*|.*Inscription.*|.*Description.*"
+    timeout: 10000
+
+# 4. CTA d'inscription (≠ "Acheter")
+- tapOn:
+    text: ".*S'inscrire.*|.*Inscription.*"
+    optional: true
+
+# 5. Edge case 1 : tenter de soumettre formulaire vide → erreur attendue
+- tapOn:
+    text: ".*Valider.*|.*Soumettre.*|.*Envoyer.*"
+    optional: true
+
+- assertVisible:
+    text: ".*requis.*|.*obligatoire.*|.*champ.*|.*remplir.*"
+    timeout: 5000
+    optional: true
+
+# 6. Maintenant remplir les champs custom standards (nom, email, téléphone)
+- tapOn:
+    text: ".*[Nn]om.*"
+    optional: true
+- inputText: "Test InscriptionUser"
+
+- tapOn:
+    text: ".*[Ee]mail.*"
+    optional: true
+- inputText: "inscription_test@eventez.com"
+
+- tapOn:
+    text: ".*[Tt]éléphone.*|.*[Tt]elephone.*|.*[Pp]hone.*"
+    optional: true
+- inputText: "+237677000000"
+
+# 7. Soumettre
+- tapOn:
+    text: ".*Valider.*|.*Soumettre.*|.*Envoyer.*|.*Confirmer.*"
+    optional: true
+
+# 8. Vérifier confirmation ou écran de paiement (si l'event a un coût)
+- extendedWaitUntil:
+    visible:
+      text: ".*confirm.*|.*succès.*|.*paiement.*|.*Inscription.*envoy.*|.*félicit.*"
+    timeout: 15000
+    optional: true

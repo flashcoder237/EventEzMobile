@@ -1,0 +1,99 @@
+# What this flow tests:
+# Logout depuis le rôle ADMIN (différent de 11_auth_logout qui teste un user normal).
+# Edge case : vérifier que la session admin est bien purgée (pas de cache leak).
+# Après logout, retour sur Login + tentative de re-login en tant que user normal pour confirmer purge.
+
+appId: ${APP_ID}
+name: "Admin - Logout & user role swap"
+
+---
+
+- launchApp:
+    clearState: true
+
+# 1. Login en tant qu'admin
+- assertVisible: "Connexion"
+- tapOn: "Email"
+- inputText: ${TEST_ADMIN_EMAIL}
+- tapOn: "Mot de passe"
+- inputText: ${TEST_ADMIN_PASSWORD}
+- tapOn: "Se connecter"
+
+- assertVisible:
+    text: "Découvrir"
+    timeout: 15000
+
+# 2. Aller dans l'espace admin (depuis Profil)
+- tapOn: "Profil"
+
+- scroll:
+    direction: DOWN
+    duration: 400
+
+- tapOn:
+    text: ".*Admin.*|.*Administration.*|.*Dashboard admin.*"
+    optional: true
+
+# 3. Vérifier qu'on est bien dans l'espace admin
+- assertVisible:
+    text: ".*Admin.*|.*Modération.*|.*Trésorerie.*|.*Utilisateurs.*"
+    timeout: 8000
+    optional: true
+
+# 4. Retour au profil pour logout
+- back
+
+- tapOn: "Profil"
+
+# 5. Aller dans Paramètres
+- tapOn:
+    text: "Paramètres"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: ".*Paramètres.*"
+    timeout: 8000
+
+# 6. Scroll vers le bas pour trouver Déconnexion
+- scroll:
+    direction: DOWN
+    duration: 600
+- scroll:
+    direction: DOWN
+    duration: 600
+
+- tapOn:
+    text: ".*Déconnexion.*|.*Se déconnecter.*"
+
+# 7. Confirmer dans l'alert
+- tapOn:
+    text: ".*Confirmer.*|.*Oui.*|.*Déconnexion.*"
+    optional: true
+
+# 8. Retour à Login
+- assertVisible:
+    text: "Connexion"
+    timeout: 15000
+
+# 9. Edge case : se reconnecter en USER normal — l'UI ne doit PAS retenir l'admin
+- tapOn: "Email"
+- inputText: ${TEST_EMAIL}
+- tapOn: "Mot de passe"
+- inputText: ${TEST_PASSWORD}
+- tapOn: "Se connecter"
+
+- assertVisible:
+    text: "Découvrir"
+    timeout: 15000
+
+# 10. Le menu admin NE doit PAS être visible pour un user normal
+- tapOn: "Profil"
+- scroll:
+    direction: DOWN
+    duration: 400
+
+- assertNotVisible:
+    text: "Trésorerie"
+- assertNotVisible:
+    text: "Modération"
