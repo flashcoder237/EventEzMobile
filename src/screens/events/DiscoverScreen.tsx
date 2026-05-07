@@ -390,35 +390,61 @@ export default function DiscoverScreen() {
     }
   }, [location]);
 
-  // === Pagination "Pour vous" — recommandations infinies en bas du feed ===
-  // bypassReset=true au refresh pour relancer page 1 et clear la liste.
+  // === Pagination "Pour vous" — events infinis en bas du feed ===
+  // Pour les users authentifiés : recommandations personnalisées via
+  // `/recommendations/?limit=&offset=`, format `{ recommendations: [{event,score}], has_more }`.
+  // Pour les guests : fallback `eventsAPI.getEvents` ordonné par date pour
+  // qu'ils aient quand même du contenu à scroller (nudge inscription au tap).
   const PAGE_SIZE = 8;
   const loadMoreForYou = useCallback(
     async (reset: boolean = false) => {
-      if (!user) return; // recos seulement pour user authentifié
       if (forYouLoadingRef.current) return;
       if (!reset && !forYouHasMoreRef.current) return;
 
       const nextPage = reset ? 1 : forYouPageRef.current + 1;
+      const offset = (nextPage - 1) * PAGE_SIZE;
       setForYouLoading(true);
       try {
-        const response = await recommendationsAPI.getRecommendations({
-          page: nextPage,
-          page_size: PAGE_SIZE,
-        });
-        const data = getApiResults<Event>(response).filter((e) => isEventInFuture(e.start_date));
+        let data: Event[];
+        let hasMoreFlag: boolean | undefined;
+
+        if (user) {
+          // Authentifié : recos personnalisées
+          const response = await recommendationsAPI.getRecommendations({
+            limit: PAGE_SIZE,
+            offset,
+          } as any);
+          // Forme principale : { recommendations: [{event, score}] }
+          // Fallback : { results: [...] } ou array direct (compat futur)
+          const raw = (response.data as any)?.recommendations
+            || (response.data as any)?.results
+            || (Array.isArray(response.data) ? response.data : []);
+          const events: Event[] = Array.isArray(raw)
+            ? raw.map((r: any) => (r?.event ?? r) as Event).filter(Boolean)
+            : [];
+          data = events.filter((e) => isEventInFuture(e.start_date));
+          hasMoreFlag = (response.data as any)?.has_more;
+        } else {
+          // Guest : events à venir paginés (DRF page-based)
+          const response = await eventsAPI.getEvents({
+            page: nextPage,
+            page_size: PAGE_SIZE,
+            ordering: 'start_date',
+            status: 'validated',
+          });
+          data = getApiResults<Event>(response).filter((e) => isEventInFuture(e.start_date));
+          hasMoreFlag = (response.data as any)?.next != null;
+        }
+
         setForYouEvents((prev) => {
           if (reset) return data;
-          // Dedup par id pour éviter doublons en cas de reco mouvante
           const existing = new Set(prev.map((e) => e.id));
           return [...prev, ...data.filter((e) => !existing.has(e.id))];
         });
         setForYouPage(nextPage);
-        // Le backend reco peut ne pas exposer `next` — on tente plusieurs forms
-        const next = (response.data as any)?.next;
-        const hasNext = next != null
-          ? Boolean(next)
-          : Array.isArray(data) && data.length === PAGE_SIZE;
+        const hasNext = typeof hasMoreFlag === 'boolean'
+          ? hasMoreFlag
+          : data.length === PAGE_SIZE;
         setForYouHasMore(hasNext);
       } catch (error) {
         if (__DEV__) console.error('Erreur loadmore for-you:', error);

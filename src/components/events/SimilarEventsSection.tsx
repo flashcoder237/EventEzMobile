@@ -84,7 +84,12 @@ export default function SimilarEventsSection({ eventId, limit = 5 }: Props) {
     (async () => {
       try {
         const res = await recommendationsAPI.getSimilar(eventId, { limit });
-        const data: Event[] = res.data?.results || res.data || [];
+        // Backend renvoie { count, similar_events: [...] }. Tolère aussi
+        // `results` (forme paginée DRF standard) au cas où le shape change.
+        const data: Event[] =
+          (res.data as any)?.similar_events ||
+          (res.data as any)?.results ||
+          (Array.isArray(res.data) ? res.data : []);
         if (!cancelled) setItems(Array.isArray(data) ? data : []);
       } catch {
         if (!cancelled) setItems([]); // silencieux — section facultative
