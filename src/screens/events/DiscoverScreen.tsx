@@ -1714,7 +1714,6 @@ export default function DiscoverScreen() {
                           style={[
                             styles.feedCard,
                             { backgroundColor: colors.card, borderColor: hairline },
-                            Shadows.sm,
                           ]}
                         >
                           {/* Header : organisateur + meta — tappable comme tout LinkedIn/FB post */}
@@ -1726,7 +1725,7 @@ export default function DiscoverScreen() {
                               {orgAvatar ? (
                                 <Image
                                   source={{ uri: orgAvatar }}
-                                  style={styles.feedCardAvatar}
+                                  style={[styles.feedCardAvatar, { borderColor: hairline }]}
                                   contentFit="cover"
                                   cachePolicy="memory-disk"
                                 />
@@ -1734,7 +1733,7 @@ export default function DiscoverScreen() {
                                 <View
                                   style={[
                                     styles.feedCardAvatar,
-                                    { backgroundColor: `${colors.primary}15` },
+                                    { backgroundColor: `${colors.primary}12`, borderColor: hairline },
                                   ]}
                                 >
                                   <Text style={[styles.feedCardAvatarInitial, { color: colors.primary }]}>
@@ -1744,16 +1743,16 @@ export default function DiscoverScreen() {
                               )}
                               <View style={{ flex: 1 }}>
                                 <Text
+                                  style={[styles.feedCardOrgEyebrow, { color: colors.accent }]}
+                                  numberOfLines={1}
+                                >
+                                  POUR VOUS · ORGANISATEUR
+                                </Text>
+                                <Text
                                   style={[styles.feedCardOrgName, { color: colors.text }]}
                                   numberOfLines={1}
                                 >
                                   {orgName}
-                                </Text>
-                                <Text
-                                  style={[styles.feedCardOrgMeta, { color: colors.gray500 }]}
-                                  numberOfLines={1}
-                                >
-                                  Organisateur · Suggestion pour vous
                                 </Text>
                               </View>
                             </View>
@@ -1794,57 +1793,49 @@ export default function DiscoverScreen() {
                                 </Text>
                               )}
 
-                              {/* Meta row : date · lieu · prix */}
+                              {/* Meta row : date · lieu · prix — séparateurs visuels épurés */}
                               <View style={styles.feedCardMetaRow}>
-                                <View style={styles.feedCardMetaItem}>
-                                  <Ionicons
-                                    name="calendar-outline"
-                                    size={13}
-                                    color={colors.accent}
-                                  />
-                                  <Text
-                                    style={[styles.feedCardMetaText, { color: colors.gray700 }]}
-                                  >
-                                    {day} {month} · {eventTime(ev)}
-                                  </Text>
-                                </View>
+                                <Ionicons
+                                  name="calendar-outline"
+                                  size={13}
+                                  color={colors.accent}
+                                />
+                                <Text
+                                  style={[styles.feedCardMetaText, { color: colors.gray700 }]}
+                                  numberOfLines={1}
+                                >
+                                  {day} {month} · {eventTime(ev)}
+                                </Text>
                                 {!!locationLabel && (
-                                  <View style={styles.feedCardMetaItem}>
-                                    <Ionicons
-                                      name={ev.location_type === 'online' ? 'videocam-outline' : 'location-outline'}
-                                      size={13}
-                                      color={colors.primary}
-                                    />
+                                  <>
+                                    <View style={[styles.feedCardMetaDot, { backgroundColor: colors.gray300 }]} />
                                     <Text
-                                      style={[styles.feedCardMetaText, { color: colors.gray700 }]}
+                                      style={[styles.feedCardMetaText, { color: colors.gray700, flexShrink: 1 }]}
                                       numberOfLines={1}
                                     >
                                       {locationLabel}
                                     </Text>
-                                  </View>
+                                  </>
                                 )}
                                 {!!priceLabel && (
-                                  <View style={styles.feedCardMetaItem}>
-                                    <Ionicons
-                                      name="ticket-outline"
-                                      size={13}
-                                      color={colors.gray600}
-                                    />
+                                  <>
+                                    <View style={[styles.feedCardMetaDot, { backgroundColor: colors.gray300 }]} />
                                     <Text
-                                      style={[styles.feedCardMetaText, { color: colors.gray700 }]}
+                                      style={[styles.feedCardMetaText, { color: colors.primary }]}
+                                      numberOfLines={1}
                                     >
                                       {priceLabel}
                                     </Text>
-                                  </View>
+                                  </>
                                 )}
                               </View>
                             </View>
                           </TouchableOpacity>
 
-                          {/* Footer : actions FB/LinkedIn-style */}
+                          {/* Footer : Partager (ghost) à gauche · CTA primaire à droite */}
                           <View style={[styles.feedCardFooter, { borderTopColor: hairline }]}>
                             <TouchableOpacity
-                              style={styles.feedCardAction}
+                              style={styles.feedCardActionGhost}
                               onPress={() => {
                                 Share.share({
                                   message: `${ev.title}\n${ev.short_description || ''}`,
@@ -1853,13 +1844,13 @@ export default function DiscoverScreen() {
                               }}
                               activeOpacity={0.7}
                               accessibilityLabel="Partager"
+                              hitSlop={8}
                             >
-                              <Ionicons name="share-outline" size={18} color={colors.gray600} />
+                              <Ionicons name="share-outline" size={16} color={colors.gray600} />
                               <Text style={[styles.feedCardActionText, { color: colors.gray700 }]}>
                                 Partager
                               </Text>
                             </TouchableOpacity>
-                            <View style={[styles.feedCardActionDivider, { backgroundColor: hairline }]} />
                             <TouchableOpacity
                               style={[styles.feedCardActionPrimary, { backgroundColor: colors.primary }]}
                               onPress={() => navigateToEvent(ev.id, img)}
@@ -2682,116 +2673,119 @@ const styles = StyleSheet.create({
     letterSpacing: -0.7,
     marginBottom: Spacing.md,
   },
-  // === FEED-STYLE POST CARD (Facebook/LinkedIn inspired) ===
-  // Plein-largeur, avatar+meta header, hero image 16:9, titre+description,
-  // meta row icônes, footer actions Partager / Voir l'événement.
+  // === FEED-STYLE POST CARD (Facebook/LinkedIn inspired, sans ombre) ===
+  // Plein-largeur, header eyebrow + nom organisateur, hero 16:9 plein-bord,
+  // titre éditorial, meta row inline avec dots, footer action ghost + CTA.
   feedCard: {
     borderRadius: BorderRadius['2xl'],
     borderWidth: 1,
     overflow: 'hidden',
-    marginBottom: Spacing.md,
+    marginBottom: Spacing.lg,
   },
   feedCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
   },
   feedCardAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   feedCardAvatarInitial: {
     fontFamily: FontFamily.displayBold,
-    fontSize: 16,
+    fontSize: 17,
     letterSpacing: -0.3,
+  },
+  feedCardOrgEyebrow: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9.5,
+    letterSpacing: 1.4,
+    marginBottom: 3,
   },
   feedCardOrgName: {
     fontFamily: FontFamily.displayBold,
-    fontSize: 14,
-    letterSpacing: -0.2,
-  },
-  feedCardOrgMeta: {
-    fontFamily: FontFamily.regular,
-    fontSize: 11,
-    marginTop: 1,
+    fontSize: 15,
+    letterSpacing: -0.3,
   },
   feedCardImage: {
     width: '100%',
     aspectRatio: 16 / 9,
   },
   feedCardBody: {
-    padding: Spacing.md,
-    gap: 6,
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.lg,
+    gap: 8,
   },
   feedCardTitle: {
     fontFamily: FontFamily.displayBold,
-    fontSize: 17,
-    letterSpacing: -0.4,
-    lineHeight: 22,
+    fontSize: 19,
+    letterSpacing: -0.5,
+    lineHeight: 24,
   },
   feedCardDesc: {
     fontFamily: FontFamily.regular,
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 13.5,
+    lineHeight: 20,
   },
   feedCardMetaRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginTop: 6,
-  },
-  feedCardMetaItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
   },
   feedCardMetaText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 12,
     letterSpacing: -0.1,
   },
+  feedCardMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    marginHorizontal: 2,
+  },
   feedCardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     borderTopWidth: 1,
-    gap: Spacing.sm,
+    gap: Spacing.md,
   },
-  feedCardAction: {
+  feedCardActionGhost: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
   },
   feedCardActionText: {
     fontFamily: FontFamily.semiBold,
-    fontSize: 12,
+    fontSize: 12.5,
     letterSpacing: 0.2,
   },
-  feedCardActionDivider: {
-    width: 1,
-    height: 18,
-  },
   feedCardActionPrimary: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 10,
+    paddingHorizontal: 18,
     borderRadius: BorderRadius.full,
   },
   feedCardActionPrimaryText: {
     fontFamily: FontFamily.bold,
-    fontSize: 12,
+    fontSize: 12.5,
     letterSpacing: 0.3,
     color: '#FFFFFF',
   },
