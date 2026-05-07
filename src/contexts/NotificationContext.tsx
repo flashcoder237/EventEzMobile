@@ -7,6 +7,7 @@ import { useAuth } from './AuthContext';
 import pushNotificationService, { PushNotificationData } from '../services/pushNotificationService';
 import PushPermissionModal from '../components/common/PushPermissionModal';
 import { useNotificationWebSocket } from '../hooks/useNotificationWebSocket';
+import { navigationRef } from '../navigation/navigationRef';
 
 const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
 // ID de la dernière notification déjà consommée par `getLastNotificationResponse`.
@@ -15,6 +16,28 @@ const PUSH_PERMISSION_PROMPTED_KEY = '@eventez_push_permission_prompted';
 // vers Notifications à chaque cold start. Voir le commentaire détaillé
 // au-dessus de la lecture (initializePushNotifications).
 const LAST_HANDLED_RESPONSE_ID_KEY = '@eventez_last_handled_notif_response_id';
+// Fix race condition cold start : si on tap une notif alors que l'app est
+// fermée et qu'on n'est pas (encore) authentifié, on stocke la data de nav
+// ici. Au prochain login successful, on lit la clé, navigue, et la clear.
+const PENDING_NOTIF_NAV_KEY = '@eventez_pending_notif_nav';
+
+/**
+ * Attend que le NavigationContainer soit prêt (mounted + isReady()).
+ * Au cold start via tap notif, on lit `getLastNotificationResponseAsync()`
+ * tout de suite mais le container peut ne pas encore être ready → la
+ * navigation rate silencieusement. Ce poll évite le `setTimeout(1000)`
+ * arbitraire qui était fragile selon la perf de l'appareil.
+ */
+async function waitForNavigationReady(timeoutMs = 5000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (navigationRef.isReady?.() && navigationRef.current) {
+      return true;
+    }
+    await new Promise(r => setTimeout(r, 100));
+  }
+  return false;
+}
 
 interface Notification {
   id: string;
@@ -83,6 +106,13 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   // nouveau timeout (sinon plusieurs timers peuvent s'accumuler si l'init
   // est rappelee).
   const notifNavTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref miroir d'`isAuthenticated` pour pouvoir lire la valeur la plus
+  // fraîche depuis du code asynchrone (waitForNavigationReady) sans avoir
+  // besoin de re-créer le callback à chaque changement.
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  useEffect(() => {
+    isAuthenticatedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
 
   // Handle notification tap navigation
   const handleNotificationNavigation = useCallback((data: PushNotificationData) => {
@@ -152,7 +182,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       }
       // Priority 4: notification_id → mark read and go to notifications
       else if (data.notification_id) {
-        markNotificationAsRead(data.notification_id);
+        // Catch : markNotificationAsRead throw maintenant en cas d'echec API,
+        // on swallow ici car ce n'est pas critique pour la navigation.
+        markNotificationAsRead(data.notification_id).catch(() => {});
         navigation.dispatch(CommonActions.navigate({ name: 'Notifications' }));
       }
       // Fallback: go to notifications screen
@@ -204,18 +236,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         if (responseId && responseId !== consumedId) {
           await AsyncStorage.setItem(LAST_HANDLED_RESPONSE_ID_KEY, responseId);
           const data = lastResponse.notification.request.content.data as PushNotificationData;
-          // Delay navigation to ensure navigation is ready
-          // Fix memory leak : on stocke le timer dans un ref et on clear le
-          // precedent avant d'en armer un nouveau, pour eviter qu'un timer
-          // orphelin ne s'execute apres unmount (warning React + navigation
-          // sur un container demonte).
-          if (notifNavTimerRef.current) {
-            clearTimeout(notifNavTimerRef.current);
+          // Fix race condition cold start : on attend que le navigationRef
+          // soit prêt (poll) au lieu d'utiliser un setTimeout fixe. Si l'auth
+          // n'est pas (encore) prête après que la nav le soit, on stocke la
+          // data dans AsyncStorage pour rejouer la nav après login successful.
+          const ready = await waitForNavigationReady();
+          if (!ready) {
+            if (__DEV__) console.warn('[Notification] Navigation not ready after timeout — persisting pending nav');
+            try {
+              await AsyncStorage.setItem(PENDING_NOTIF_NAV_KEY, JSON.stringify(data));
+            } catch { /* ignore */ }
+            return;
           }
-          notifNavTimerRef.current = setTimeout(() => {
-            notifNavTimerRef.current = null;
-            handleNotificationNavigation(data);
-          }, 1000);
+          if (!isAuthenticatedRef.current) {
+            // L'utilisateur n'est pas authentifié au moment du tap (cold start
+            // sur app verrouillée). On persiste la nav pour la rejouer dès
+            // que `isAuthenticated` repasse à true.
+            if (__DEV__) console.log('[Notification] Not authenticated yet — persisting pending nav');
+            try {
+              await AsyncStorage.setItem(PENDING_NOTIF_NAV_KEY, JSON.stringify(data));
+            } catch { /* ignore */ }
+            return;
+          }
+          handleNotificationNavigation(data);
         } else if (__DEV__ && responseId === consumedId) {
           console.log('[Notification] Skipping already-consumed last response:', responseId);
         }
@@ -308,6 +351,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, pushEnabled]);
 
   const markNotificationAsRead = useCallback(async (id: string) => {
+    // Fix badge desync : on appelle l'API D'ABORD, puis on décrémente le state
+    // local seulement après confirmation. Sinon, si l'API échoue, le badge
+    // diverge de la réalité backend (badge=0 mais backend=1 unread).
     try {
       await notificationsAPI.markAsRead(id);
       setNotifications(prev =>
@@ -321,11 +367,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await pushNotificationService.setBadgeCount(newCount);
       }
     } catch (error) {
-      if (__DEV__) console.error('Error marking notification as read:', error);
+      if (__DEV__) console.error('[Notification] markAsRead failed:', error);
+      // Re-throw pour que le caller puisse afficher un toast d'erreur si besoin.
+      throw error;
     }
   }, [unreadNotificationCount, pushEnabled]);
 
   const markAllNotificationsAsRead = useCallback(async () => {
+    // Fix badge desync : API d'abord, badge=0 après confirmation.
     try {
       await notificationsAPI.markAllAsRead();
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
@@ -336,7 +385,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         await pushNotificationService.setBadgeCount(0);
       }
     } catch (error) {
-      if (__DEV__) console.error('Error marking all notifications as read:', error);
+      if (__DEV__) console.error('[Notification] markAllAsRead failed:', error);
+      throw error;
     }
   }, [pushEnabled]);
 
@@ -390,6 +440,34 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     setShowPermissionModal(false);
     await AsyncStorage.setItem(PUSH_PERMISSION_PROMPTED_KEY, 'true');
   }, []);
+
+  // Fix race condition cold start : si l'utilisateur a tap une notif au cold
+  // start mais n'était pas authentifié, on a stocké la data dans
+  // PENDING_NOTIF_NAV_KEY. Quand `isAuthenticated` passe à true, on lit la
+  // clé, attend que la nav soit prête, navigue, et clear.
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(PENDING_NOTIF_NAV_KEY);
+        if (!raw || cancelled) return;
+        const data = JSON.parse(raw) as PushNotificationData;
+        const ready = await waitForNavigationReady();
+        if (cancelled) return;
+        if (ready) {
+          handleNotificationNavigation(data);
+        }
+        // Clear même si la nav rate, pour ne pas re-trigger en boucle.
+        await AsyncStorage.removeItem(PENDING_NOTIF_NAV_KEY);
+      } catch (error) {
+        if (__DEV__) console.warn('[Notification] Pending nav replay failed:', error);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, handleNotificationNavigation]);
 
   // Initialize push notifications when authenticated
   useEffect(() => {

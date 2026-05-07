@@ -48,11 +48,26 @@ interface RichNotificationData {
 }
 
 /**
- * Mappe le notification_type au channel Android (4 channels existants
- * créés dans pushNotificationService.ts).
+ * Mappe le notification_type au channel Android (5 channels créés dans
+ * pushNotificationService.ts : default, event_reminders, payments,
+ * messages, urgent_actions).
+ *
+ * Les notifs critiques (payment_failed, event_cancelled, refund_processed,
+ * verification_reminder) vont sur `urgent_actions` qui a un vibrationPattern
+ * triple-beep + lightColor rouge — différencié visuellement et auditivement
+ * des notifs informatives normales.
  */
+const URGENT_TYPES = new Set([
+  'payment_failed',
+  'event_cancelled',
+  'refund_processed',
+  'verification_reminder',
+]);
+
 const channelForType = (type?: string): string => {
   if (!type) return 'default';
+  // Urgent en premier — prend le pas sur les matchs génériques (payment, refund)
+  if (URGENT_TYPES.has(type)) return 'urgent_actions';
   if (type.includes('message')) return 'messages';
   if (type.includes('payment') || type.includes('refund')) return 'payments';
   if (type.includes('event_reminder') || type.includes('session_reminder')) return 'event_reminders';
@@ -284,6 +299,16 @@ export async function ensureNotifeeChannels(): Promise<void> {
         importance: AndroidImportance.HIGH,
         vibration: true,
         sound: 'default',
+      },
+      {
+        // Doit rester aligné avec pushNotificationService.setupAndroidChannel.
+        id: 'urgent_actions',
+        name: 'Actions urgentes',
+        importance: AndroidImportance.HIGH,
+        vibration: true,
+        sound: 'default',
+        lights: true,
+        lightColor: AndroidColor.RED,
       },
     ]);
   } catch (error) {

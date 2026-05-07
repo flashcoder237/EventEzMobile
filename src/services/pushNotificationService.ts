@@ -13,6 +13,12 @@ const PUSH_REGISTERED_AT_KEY = '@eventez_push_registered_at';
 // Dernier token effectivement enregistré côté backend. Utilisé pour skip
 // l'API call si on tente de ré-enregistrer le même token (déduplication).
 const LAST_REGISTERED_TOKEN_KEY = '@eventez_last_registered_token';
+// File d'attente des tokens dont l'unregister backend a échoué (réseau down
+// au logout). Au prochain boot, on retente — sinon le device continue de
+// recevoir les notifs de l'ex-user.
+const PENDING_UNREGISTER_TOKENS_KEY = '@eventez_pending_unregister_tokens';
+// Cap pour éviter l'accumulation infinie si le backend reste offline.
+const MAX_PENDING_UNREGISTER_TOKENS = 10;
 // Doit rester aligné avec NotificationContext.LAST_HANDLED_RESPONSE_ID_KEY.
 // Stocké ici aussi pour que le listener "warm tap" puisse marquer une notif
 // comme déjà consommée — sans ça, au prochain cold start
@@ -125,6 +131,11 @@ class PushNotificationService {
       if (__DEV__) console.log('[Push] Must use physical device for push notifications');
       return null;
     }
+
+    // Tente de retirer côté backend les tokens dont le unregister précédent
+    // avait échoué (réseau down au logout). No-op s'il n'y en a aucun.
+    // Fire-and-forget : on ne bloque pas l'init pour ça.
+    this.flushPendingUnregisters().catch(() => {});
 
     // Request permissions
     const hasPermission = await this.requestPermissions();
@@ -316,6 +327,19 @@ class PushNotificationService {
       sound: 'default',
       enableVibrate: true,
     });
+
+    // Channel pour les actions urgentes (paiement échoué, événement annulé,
+    // remboursement, vérification urgente). Triple-beep distinctif + lightColor
+    // rouge pour différencier visuellement des notifs informatives.
+    await Notifications.setNotificationChannelAsync('urgent_actions', {
+      name: 'Actions urgentes',
+      description: 'Échecs de paiement, annulations, vérifications urgentes',
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 100, 50, 100, 50, 100],
+      lightColor: '#EF4444',
+      sound: 'default',
+      enableVibrate: true,
+    });
   }
 
   /**
@@ -472,27 +496,102 @@ class PushNotificationService {
 
   /**
    * Unregister device (on logout)
-   * Note: This may fail if called after logout (401), which is fine
+   * Note: This may fail if called after logout (401), which is fine.
+   *
+   * Si l'API call échoue pour une autre raison (réseau down, 5xx), on
+   * enqueue le token dans `PENDING_UNREGISTER_TOKENS_KEY` pour retenter au
+   * prochain boot via `flushPendingUnregisters()`. Sinon le backend continue
+   * de pousser des notifs vers ce device pour l'ex-user.
    */
   async unregisterDevice(): Promise<void> {
     try {
       const token = await AsyncStorage.getItem(PUSH_TOKEN_KEY);
       if (token) {
-        // Try to unregister from backend (may fail if already logged out)
+        let succeeded = false;
         try {
           await notificationsAPI.unregisterDevice(token);
-        } catch (apiError) {
-          // Ignore API errors (401 is expected if called after logout)
-          if (__DEV__) console.log('[Push] Backend unregister skipped (user may be logged out)');
+          succeeded = true;
+        } catch (apiError: any) {
+          // 401 = user already logged out côté backend → token déjà invalide,
+          // pas besoin de retry. Pour les autres erreurs (réseau, 5xx) on enqueue.
+          const status = apiError?.response?.status;
+          if (status === 401) {
+            if (__DEV__) console.log('[Push] Backend unregister skipped (401, user logged out)');
+            succeeded = true; // semantically OK : token invalide backend-side
+          } else {
+            if (__DEV__) console.warn('[Push] Backend unregister failed — enqueuing for retry:', apiError);
+            await this.enqueuePendingUnregister(token);
+          }
         }
-        // Always clear local token + stale-check timestamp + dedup marker
+        // Always clear local token + stale-check timestamp + dedup marker.
+        // Le retry utilisera la queue PENDING_UNREGISTER_TOKENS_KEY.
         await AsyncStorage.removeItem(PUSH_TOKEN_KEY);
         await AsyncStorage.removeItem(PUSH_REGISTERED_AT_KEY);
         await AsyncStorage.removeItem(LAST_REGISTERED_TOKEN_KEY);
-        if (__DEV__) console.log('[Push] Device unregistered locally');
+        if (__DEV__) console.log(`[Push] Device unregistered locally (backend ok=${succeeded})`);
       }
     } catch (error) {
       if (__DEV__) console.error('[Push] Error unregistering device:', error);
+      // On NE re-throw pas : on ne veut pas bloquer le logout pour un
+      // problème de unregister.
+    }
+  }
+
+  /**
+   * Ajoute un token à la queue de retry. Capée à MAX_PENDING_UNREGISTER_TOKENS
+   * pour ne pas accumuler à l'infini si le backend reste offline.
+   */
+  private async enqueuePendingUnregister(token: string): Promise<void> {
+    try {
+      const raw = await AsyncStorage.getItem(PENDING_UNREGISTER_TOKENS_KEY);
+      const list: string[] = raw ? JSON.parse(raw) : [];
+      // Dédup : si le même token est déjà en queue, no-op.
+      if (list.includes(token)) return;
+      list.push(token);
+      // Cap : on garde les N plus récents (FIFO eviction).
+      const trimmed = list.slice(-MAX_PENDING_UNREGISTER_TOKENS);
+      await AsyncStorage.setItem(PENDING_UNREGISTER_TOKENS_KEY, JSON.stringify(trimmed));
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] enqueuePendingUnregister failed:', error);
+    }
+  }
+
+  /**
+   * Tente de unregister tous les tokens en queue. Les succès sont retirés
+   * de la liste, les échecs y restent pour le prochain boot. Appelé depuis
+   * `initialize()` au démarrage.
+   */
+  async flushPendingUnregisters(): Promise<void> {
+    try {
+      const raw = await AsyncStorage.getItem(PENDING_UNREGISTER_TOKENS_KEY);
+      if (!raw) return;
+      const list: string[] = JSON.parse(raw);
+      if (!Array.isArray(list) || list.length === 0) return;
+
+      const remaining: string[] = [];
+      for (const token of list) {
+        try {
+          await notificationsAPI.unregisterDevice(token);
+          if (__DEV__) console.log('[Push] Pending unregister flushed for token:', token.substring(0, 20));
+        } catch (apiError: any) {
+          const status = apiError?.response?.status;
+          if (status === 401 || status === 404) {
+            // Backend a déjà invalidé le token → succès logique, on retire.
+            if (__DEV__) console.log('[Push] Pending token already invalid backend-side, dropping');
+          } else {
+            // Réseau down ou 5xx → on garde pour le prochain boot.
+            remaining.push(token);
+          }
+        }
+      }
+
+      if (remaining.length === 0) {
+        await AsyncStorage.removeItem(PENDING_UNREGISTER_TOKENS_KEY);
+      } else {
+        await AsyncStorage.setItem(PENDING_UNREGISTER_TOKENS_KEY, JSON.stringify(remaining));
+      }
+    } catch (error) {
+      if (__DEV__) console.warn('[Push] flushPendingUnregisters failed:', error);
     }
   }
 
