@@ -249,6 +249,11 @@ function InputToolbar({
             placeholder={editingMessage ? 'Modifier le message...' : 'Écrivez votre message...'}
             placeholderTextColor={colors.gray400}
             multiline
+            // Android : sans `textAlignVertical=top`, RN centre verticalement
+            // le texte multiline et coupe la dernière ligne quand le contenu
+            // grandit. Forcer top-align rend le rendu prévisible et fait
+            // disparaître le clipping de la dernière ligne.
+            textAlignVertical="top"
             maxLength={1000}
             accessibilityLabel="Ecrire un message"
           />
@@ -400,8 +405,17 @@ const styles = StyleSheet.create({
     fontSize: FontSizes.base,
     fontFamily: FontFamily.regular,
     color: Colors.gray900,
-    maxHeight: 100,
-    paddingVertical: Spacing.sm,
+    maxHeight: 120,
+    // lineHeight explicite : sans ça, Android utilise une métrique de police
+    // plus haute que la fontSize → la dernière ligne empiète sur le padding
+    // bottom et apparaît coupée (en plus de textAlignVertical=top sur l'input).
+    lineHeight: 22,
+    // Padding asymétrique : top plus petit pour que la première ligne ne
+    // saute pas vers le bas, bottom légèrement plus grand pour éviter que
+    // les descendantes (g, j, p, q…) frôlent le bord du wrapper.
+    paddingTop: 8,
+    paddingBottom: 10,
+    minHeight: 40,
   },
   sendButton: {
     width: 40,
