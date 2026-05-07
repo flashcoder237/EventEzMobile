@@ -127,7 +127,7 @@ const mockGoToStep = jest.fn();
 const mockHandleSubmit = jest.fn();
 const mockResetForm = jest.fn();
 const mockHydrateForm = jest.fn();
-let currentForm: any = baseForm();
+let mockCurrentForm: any = baseForm();
 
 const noop = () => {};
 
@@ -140,7 +140,7 @@ jest.mock('../../../hooks/useEventForm', () => ({
     { id: 4, title: 'Sessions', shortTitle: 'Agenda & Sessions', nextLabel: null },
   ],
   useEventForm: () => ({
-    form: currentForm,
+    form: mockCurrentForm,
     goToNextStep: mockGoToNextStep,
     goToPrevStep: mockGoToPrevStep,
     goToStep: mockGoToStep,
@@ -260,7 +260,7 @@ import EventCreateScreen from '../EventCreateScreen';
 beforeEach(() => {
   jest.clearAllMocks();
   mockRoute.params = {};
-  currentForm = baseForm();
+  mockCurrentForm = baseForm();
 });
 
 describe('EventCreateScreen — create mode', () => {
@@ -279,7 +279,7 @@ describe('EventCreateScreen — create mode', () => {
   });
 
   it('calls goToPrevStep when "Retour" is pressed on step > 1', () => {
-    currentForm = { ...baseForm(), currentStep: 2 };
+    mockCurrentForm = { ...baseForm(), currentStep: 2 };
     const { getByLabelText, getByTestId } = render(<EventCreateScreen />);
     expect(getByTestId('step2')).toBeTruthy();
 
@@ -288,7 +288,7 @@ describe('EventCreateScreen — create mode', () => {
   });
 
   it('shows the submit CTA on step 4 with "Publier l\'événement" label', () => {
-    currentForm = { ...baseForm(), currentStep: 4 };
+    mockCurrentForm = { ...baseForm(), currentStep: 4 };
     const { getByLabelText, getByText, getByTestId } = render(<EventCreateScreen />);
     expect(getByTestId('step4')).toBeTruthy();
     expect(getByLabelText("Créer l'événement")).toBeTruthy();
@@ -296,7 +296,7 @@ describe('EventCreateScreen — create mode', () => {
   });
 
   it('calls handleSubmit and shows the success alert when submit succeeds', async () => {
-    currentForm = { ...baseForm(), currentStep: 4 };
+    mockCurrentForm = { ...baseForm(), currentStep: 4 };
     mockHandleSubmit.mockResolvedValueOnce('event-99');
 
     const { getByLabelText } = render(<EventCreateScreen />);
@@ -315,7 +315,7 @@ describe('EventCreateScreen — create mode', () => {
   });
 
   it('does NOT show the success alert when handleSubmit returns null', async () => {
-    currentForm = { ...baseForm(), currentStep: 4 };
+    mockCurrentForm = { ...baseForm(), currentStep: 4 };
     mockHandleSubmit.mockResolvedValueOnce(null);
 
     const { getByLabelText } = render(<EventCreateScreen />);
@@ -342,7 +342,7 @@ describe('EventCreateScreen — edit mode', () => {
   });
 
   it('shows the "Modifier" eyebrow + "Mettre à jour" CTA on step 4', () => {
-    currentForm = { ...baseForm(), currentStep: 4 };
+    mockCurrentForm = { ...baseForm(), currentStep: 4 };
     const { getByText, getByLabelText } = render(<EventCreateScreen />);
 
     expect(getByText(/Modifier · Étape 04 \/ 04/)).toBeTruthy();
@@ -350,3 +350,4 @@ describe('EventCreateScreen — edit mode', () => {
     expect(getByText('Mettre à jour')).toBeTruthy();
   });
 });
+

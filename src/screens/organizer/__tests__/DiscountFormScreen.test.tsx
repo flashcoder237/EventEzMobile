@@ -88,18 +88,24 @@ jest.mock('../../../components/ui/DateTimePickerField', () => {
   const RN = require('react-native');
   const React = require('react');
   // Composant mock qui expose un bouton "Choisir <label>" qui appelle onChange
-  // avec une date connue, pour simplifier les tests.
+  // avec des dates connues, distinctes pour début/fin.
   return {
     __esModule: true,
-    default: (props: any) =>
-      React.createElement(
+    default: (props: any) => {
+      const isStart = String(props.label || '').toLowerCase().includes('début') ||
+        String(props.label || '').toLowerCase().includes('debut');
+      const date = isStart
+        ? new Date('2026-06-01T10:00:00Z')
+        : new Date('2026-06-30T18:00:00Z');
+      return React.createElement(
         RN.TouchableOpacity,
         {
           accessibilityLabel: `Picker ${props.label}`,
-          onPress: () => props.onChange?.(new Date('2026-06-01T10:00:00Z')),
+          onPress: () => props.onChange?.(date),
         },
         React.createElement(RN.Text, null, props.label),
-      ),
+      );
+    },
   };
 });
 

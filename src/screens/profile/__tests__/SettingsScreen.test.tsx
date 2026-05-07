@@ -289,13 +289,13 @@ describe('SettingsScreen', () => {
   });
 
   it('shows error when deleting without password', async () => {
-    const { findByText, getByText } = render(<SettingsScreen />);
+    const { findByText, getByText, findAllByText } = render(<SettingsScreen />);
     const deleteRow = await findByText('Supprimer mon compte');
     fireEvent.press(deleteRow);
 
-    // Bouton "Supprimer" du modal (le second avec ce label)
-    const deleteBtns = await findByText('Supprimer');
-    fireEvent.press(deleteBtns);
+    // Bouton "Supprimer" du modal (le dernier avec ce label — il y a aussi le titre)
+    const deleteBtns = await findAllByText('Supprimer');
+    fireEvent.press(deleteBtns[deleteBtns.length - 1]);
 
     await waitFor(() => {
       expect(mockShowError).toHaveBeenCalledWith(
@@ -309,7 +309,7 @@ describe('SettingsScreen', () => {
   it('calls deleteAccount + logout on valid delete with biometric OK', async () => {
     mockDeleteAccount.mockResolvedValueOnce({ data: { ok: true } });
 
-    const { findByText, getByPlaceholderText, getByText } = render(<SettingsScreen />);
+    const { findByText, getByPlaceholderText, getAllByText } = render(<SettingsScreen />);
     const deleteRow = await findByText('Supprimer mon compte');
     fireEvent.press(deleteRow);
 
@@ -319,7 +319,8 @@ describe('SettingsScreen', () => {
       'No reason',
     );
 
-    fireEvent.press(getByText('Supprimer'));
+    const deleteBtns = getAllByText('Supprimer');
+    fireEvent.press(deleteBtns[deleteBtns.length - 1]);
 
     await waitFor(() => {
       expect(mockBiometricConfirm).toHaveBeenCalled();
@@ -337,12 +338,13 @@ describe('SettingsScreen', () => {
 
   it('does NOT delete account if biometric confirm rejected', async () => {
     mockBiometricConfirm.mockResolvedValueOnce(false);
-    const { findByText, getByPlaceholderText, getByText } = render(<SettingsScreen />);
+    const { findByText, getByPlaceholderText, getAllByText } = render(<SettingsScreen />);
     const deleteRow = await findByText('Supprimer mon compte');
     fireEvent.press(deleteRow);
 
     fireEvent.changeText(getByPlaceholderText('Ton mot de passe'), 'mypassword');
-    fireEvent.press(getByText('Supprimer'));
+    const deleteBtns = getAllByText('Supprimer');
+    fireEvent.press(deleteBtns[deleteBtns.length - 1]);
 
     await waitFor(() => {
       expect(mockBiometricConfirm).toHaveBeenCalled();

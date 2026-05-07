@@ -20,10 +20,10 @@ import React from 'react';
 import { render, fireEvent, waitFor } from '@testing-library/react-native';
 
 const mockGoBack = jest.fn();
-let routeParams: any = {};
+let mockRouteParams: any = {};
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ goBack: mockGoBack, navigate: jest.fn() }),
-  useRoute: () => ({ params: routeParams }),
+  useRoute: () => ({ params: mockRouteParams }),
 }));
 
 const mockShowError = jest.fn();
@@ -103,7 +103,7 @@ import AdminAdFormScreen from '../AdminAdFormScreen';
 
 beforeEach(() => {
   jest.clearAllMocks();
-  routeParams = {};
+  mockRouteParams = {};
   mockBiometricConfirm.mockResolvedValue(true);
 });
 
@@ -164,7 +164,7 @@ describe('AdminAdFormScreen — creation', () => {
 
 describe('AdminAdFormScreen — edition', () => {
   it('loads ad + pre-fills + update without re-pick image', async () => {
-    routeParams = { adId: 'ad-42' };
+    mockRouteParams = { adId: 'ad-42' };
     mockAdGet.mockResolvedValueOnce({
       data: {
         id: 'ad-42',
@@ -200,3 +200,4 @@ describe('AdminAdFormScreen — edition', () => {
     expect(mockShowSuccess).toHaveBeenCalledWith('Succès', 'Publicité mise à jour');
   });
 });
+

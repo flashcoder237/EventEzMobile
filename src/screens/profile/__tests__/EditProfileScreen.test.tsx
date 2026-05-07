@@ -215,7 +215,10 @@ describe('EditProfileScreen', () => {
     // On simule le call direct via l'absence de fields → on saisit juste 1 champ pour
     // déclencher le bouton n'est pas faisable (la condition exige les 3).
     // À la place, on remplit avec un nouveau password trop court.
-    const { getByPlaceholderText, getAllByPlaceholderText, queryByText } = render(<EditProfileScreen />);
+    const { getByPlaceholderText, getAllByPlaceholderText, queryByText, getByText } = render(<EditProfileScreen />);
+
+    // La section Sécurité est repliée par défaut, on l'ouvre.
+    fireEvent.press(getByText('Sécurité'));
 
     // Les 3 champs password ont le même placeholder — on les sélectionne par index
     const pwInputs = getAllByPlaceholderText('••••••••');
@@ -232,6 +235,7 @@ describe('EditProfileScreen', () => {
 
   it('rejects password change when new ≠ confirm', async () => {
     const { getAllByPlaceholderText, getByText } = render(<EditProfileScreen />);
+    fireEvent.press(getByText('Sécurité'));
     const pwInputs = getAllByPlaceholderText('••••••••');
 
     fireEvent.changeText(pwInputs[0], 'currentpass');
@@ -251,6 +255,7 @@ describe('EditProfileScreen', () => {
 
   it('rejects password change when new is shorter than 8 chars', async () => {
     const { getAllByPlaceholderText, getByText } = render(<EditProfileScreen />);
+    fireEvent.press(getByText('Sécurité'));
     const pwInputs = getAllByPlaceholderText('••••••••');
 
     fireEvent.changeText(pwInputs[0], 'currentpass');
@@ -271,6 +276,7 @@ describe('EditProfileScreen', () => {
   it('calls usersAPI.changePassword on valid password submit', async () => {
     mockChangePassword.mockResolvedValueOnce({ data: {} });
     const { getAllByPlaceholderText, getByText } = render(<EditProfileScreen />);
+    fireEvent.press(getByText('Sécurité'));
     const pwInputs = getAllByPlaceholderText('••••••••');
 
     fireEvent.changeText(pwInputs[0], 'oldpassword1');
@@ -294,6 +300,7 @@ describe('EditProfileScreen', () => {
   it('does NOT change password if biometric confirm rejected', async () => {
     mockBiometricConfirm.mockResolvedValueOnce(false);
     const { getAllByPlaceholderText, getByText } = render(<EditProfileScreen />);
+    fireEvent.press(getByText('Sécurité'));
     const pwInputs = getAllByPlaceholderText('••••••••');
 
     fireEvent.changeText(pwInputs[0], 'oldpassword1');

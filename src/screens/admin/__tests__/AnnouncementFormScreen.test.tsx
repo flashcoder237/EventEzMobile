@@ -16,10 +16,10 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 
 // Navigation
 const mockGoBack = jest.fn();
-let routeParams: any = {};
+let mockRouteParams: any = {};
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ goBack: mockGoBack, navigate: jest.fn() }),
-  useRoute: () => ({ params: routeParams }),
+  useRoute: () => ({ params: mockRouteParams }),
 }));
 
 // Alerts
@@ -77,7 +77,7 @@ import AnnouncementFormScreen from '../AnnouncementFormScreen';
 
 beforeEach(() => {
   jest.clearAllMocks();
-  routeParams = {};
+  mockRouteParams = {};
 });
 
 describe('AnnouncementFormScreen — creation', () => {
@@ -160,7 +160,7 @@ describe('AnnouncementFormScreen — creation', () => {
 
 describe('AnnouncementFormScreen — edition', () => {
   it('fetches the announcement and pre-fills the form, then update calls announcementsAPI.update', async () => {
-    routeParams = { announcementId: 'ann-42' };
+    mockRouteParams = { announcementId: 'ann-42' };
     mockGet.mockResolvedValueOnce({
       data: {
         title: 'Old title',
@@ -195,3 +195,4 @@ describe('AnnouncementFormScreen — edition', () => {
     expect(mockShowSuccess).toHaveBeenCalled();
   });
 });
+

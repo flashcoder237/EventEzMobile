@@ -60,9 +60,9 @@ jest.mock('../../../contexts/ThemeContext', () => ({
   useTheme: () => ({ colors: themeColors, isDark: false }),
 }));
 
-let currentUser: any = { id: 1, organizer_type: 'individual' };
+let mockCurrentUser: any = { id: 1, organizer_type: 'individual' };
 jest.mock('../../../contexts/AuthContext', () => ({
-  useAuth: () => ({ user: currentUser }),
+  useAuth: () => ({ user: mockCurrentUser }),
 }));
 
 const mockGetMyRequest = jest.fn();
@@ -116,7 +116,7 @@ import VerificationScreen from '../VerificationScreen';
 beforeEach(() => {
   jest.clearAllMocks();
   lastShowAlertButtons = undefined;
-  currentUser = { id: 1, organizer_type: 'individual' };
+  mockCurrentUser = { id: 1, organizer_type: 'individual' };
 });
 
 const flushPromises = () =>
@@ -165,7 +165,7 @@ describe('VerificationScreen', () => {
   });
 
   it('renders 3 docs for organization user', async () => {
-    currentUser = { id: 1, organizer_type: 'organization' };
+    mockCurrentUser = { id: 1, organizer_type: 'organization' };
     mockGetMyRequest.mockRejectedValueOnce(new Error('404'));
 
     const { findByText, getByText } = render(<VerificationScreen />);

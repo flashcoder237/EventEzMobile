@@ -80,6 +80,7 @@ export function createTestMock() {
     setTokens: jest.fn(() => Promise.resolve()),
     clearTokens: jest.fn(() => Promise.resolve()),
     getAccessToken: jest.fn(() => Promise.resolve('mock-access-token')),
+    getRefreshToken: jest.fn(() => Promise.resolve('mock-refresh-token')),
     deduplicatedGet: jest.fn((url: string, config?: any) => api.get(url, config)),
   };
 }

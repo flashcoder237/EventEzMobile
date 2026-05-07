@@ -323,8 +323,9 @@ beforeEach(() => {
 
 describe('PaymentScreen', () => {
   it('renders the header + step label after registration loads', async () => {
-    const { findByText } = render(<PaymentScreen />);
-    expect(await findByText('Paiement')).toBeTruthy();
+    const { findAllByText, findByText } = render(<PaymentScreen />);
+    const paiements = await findAllByText('Paiement');
+    expect(paiements.length).toBeGreaterThan(0);
     expect(await findByText(/ÉTAPE 3 \/ 3/i)).toBeTruthy();
   });
 
@@ -350,16 +351,10 @@ describe('PaymentScreen', () => {
     mockCreatePayment.mockResolvedValueOnce({ data: { id: 'pay-1' } });
     mockProcessMobileMoney.mockResolvedValueOnce({ data: { ok: true } });
 
-    const { findByText, queryAllByText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText } = render(<PaymentScreen />);
     fireEvent.press(await findByText('MTN Mobile Money'));
 
-    // Le bouton "Payer" peut s'appeler "Payer" ou "Payer X XAF" — on cible le
-    // texte "Payer" partiel.
-    await waitFor(async () => {
-      const candidates = queryAllByText(/Payer/i);
-      expect(candidates.length).toBeGreaterThan(0);
-    });
-    const payBtn = (await findByText(/Payer/i, { exact: false }));
+    const payBtn = await findByLabelText('Confirmer le paiement');
     fireEvent.press(payBtn);
 
     await waitFor(() => {
@@ -390,10 +385,10 @@ describe('PaymentScreen', () => {
       data: { authorization_url: 'https://checkout.example.com/abc' },
     });
 
-    const { findByText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText } = render(<PaymentScreen />);
     fireEvent.press(await findByText('Carte bancaire'));
 
-    const payBtn = await findByText(/Payer/i, { exact: false });
+    const payBtn = await findByLabelText('Confirmer le paiement');
     fireEvent.press(payBtn);
 
     await waitFor(() => {
@@ -413,10 +408,10 @@ describe('PaymentScreen', () => {
   it('does NOT submit when biometric confirm is rejected', async () => {
     mockBiometricConfirm.mockResolvedValueOnce(false);
 
-    const { findByText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText } = render(<PaymentScreen />);
     fireEvent.press(await findByText('MTN Mobile Money'));
 
-    const payBtn = await findByText(/Payer/i, { exact: false });
+    const payBtn = await findByLabelText('Confirmer le paiement');
     fireEvent.press(payBtn);
 
     await waitFor(() => {
@@ -430,10 +425,10 @@ describe('PaymentScreen', () => {
       response: { data: { detail: 'Provider down' } },
     });
 
-    const { findByText } = render(<PaymentScreen />);
+    const { findByText, findByLabelText } = render(<PaymentScreen />);
     fireEvent.press(await findByText('MTN Mobile Money'));
 
-    const payBtn = await findByText(/Payer/i, { exact: false });
+    const payBtn = await findByLabelText('Confirmer le paiement');
     fireEvent.press(payBtn);
 
     await waitFor(() => {

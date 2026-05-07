@@ -3,6 +3,18 @@ jest.mock('../instance', () => {
   return createTestMock();
 });
 
+jest.mock('../config', () => ({
+  __esModule: true,
+  ...jest.requireActual('../config'),
+  fetchUpload: jest.fn((method: string, url: string, _formData: FormData) => {
+    const fullUrl = `http://test.local/api${url}`;
+    return (global.fetch as jest.Mock)(fullUrl, { method }).then(async (res: Response) => {
+      const data = await res.json().catch(() => ({}));
+      return { data, status: res.status, ok: res.ok };
+    });
+  }),
+}));
+
 import { messagesAPI } from '../messages';
 import { getMockedApi, resetMockApi } from '../../__tests__/__helpers__/apiMock';
 

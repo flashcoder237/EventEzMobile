@@ -114,7 +114,7 @@ describe('BecomeOrganizerScreen', () => {
     // step 3
     goNext(getByText);
     // organization-specific fields visibles
-    await findByText('Nom de votre entreprise');
+    await findByText("Nom de l'entreprise");
     expect(getByPlaceholderText('Nom de votre entreprise')).toBeTruthy();
     expect(getByPlaceholderText("Numero d'enregistrement")).toBeTruthy();
   });
@@ -170,7 +170,7 @@ describe('BecomeOrganizerScreen', () => {
     mockBecomeOrganizer.mockResolvedValueOnce({ data: { ok: true } });
     mockGetCurrentUser.mockResolvedValueOnce({ data: { id: 1, role: 'organizer' } });
 
-    const { getByText, findByText } = render(<BecomeOrganizerScreen />);
+    const { getByText, findByText, getByLabelText } = render(<BecomeOrganizerScreen />);
 
     goNext(getByText); // step 2
     await findByText('Particulier');
@@ -181,7 +181,7 @@ describe('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 4
     await findByText('Pret a commencer !');
 
-    fireEvent.press(getByText('Confirmer'));
+    fireEvent.press(getByLabelText('Confirmer'));
 
     await waitFor(() => {
       expect(mockBecomeOrganizer).toHaveBeenCalledWith(
@@ -207,7 +207,7 @@ describe('BecomeOrganizerScreen', () => {
     mockBecomeOrganizer.mockResolvedValueOnce({ data: { ok: true } });
     mockGetCurrentUser.mockResolvedValueOnce({ data: { id: 1, role: 'organizer' } });
 
-    const { getByText, findByText, getByPlaceholderText } = render(
+    const { getByText, findByText, getByPlaceholderText, getByLabelText } = render(
       <BecomeOrganizerScreen />,
     );
 
@@ -224,7 +224,7 @@ describe('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 4
     await findByText('Pret a commencer !');
 
-    fireEvent.press(getByText('Confirmer'));
+    fireEvent.press(getByLabelText('Confirmer'));
 
     await waitFor(() => {
       expect(mockBecomeOrganizer).toHaveBeenCalledWith(
@@ -243,7 +243,7 @@ describe('BecomeOrganizerScreen', () => {
       response: { data: { detail: 'Profil déjà organisateur' } },
     });
 
-    const { getByText, findByText } = render(<BecomeOrganizerScreen />);
+    const { getByText, findByText, getByLabelText } = render(<BecomeOrganizerScreen />);
 
     goNext(getByText); // step 2
     await findByText('Particulier');
@@ -252,7 +252,7 @@ describe('BecomeOrganizerScreen', () => {
     goNext(getByText); // step 4
     await findByText('Pret a commencer !');
 
-    fireEvent.press(getByText('Confirmer'));
+    fireEvent.press(getByLabelText('Confirmer'));
 
     await waitFor(() => {
       expect(mockShowError).toHaveBeenCalledWith('Erreur', 'Profil déjà organisateur');

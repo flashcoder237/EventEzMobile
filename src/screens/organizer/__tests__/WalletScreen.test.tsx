@@ -197,10 +197,11 @@ beforeEach(() => {
 
 describe('WalletScreen', () => {
   it('renders the wallet balance + Effectuer un retrait CTA', async () => {
-    const { findByText } = render(<WalletScreen />);
+    const { findByText, findAllByText } = render(<WalletScreen />);
     expect(await findByText('Effectuer un retrait')).toBeTruthy();
-    // Le solde "50 000" doit apparaître dans la card centrale
-    expect(await findByText('50 000')).toBeTruthy();
+    // Le solde "50 000" peut apparaître dans plusieurs cards (balance pill + main amount)
+    const balances = await findAllByText(/50.000/);
+    expect(balances.length).toBeGreaterThan(0);
   });
 
   it('loads available payout methods on mount', async () => {

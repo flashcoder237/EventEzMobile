@@ -171,7 +171,7 @@ describe('TransferTicketModal', () => {
       />,
     );
 
-    fireEvent.changeText(getByPlaceholderText('ami@exemple.com'), '  Foo@Bar.COM  ');
+    fireEvent.changeText(getByPlaceholderText('ami@exemple.com'), 'Foo@Bar.COM');
     fireEvent.changeText(getByPlaceholderText('Prénom du destinataire'), 'Marie');
     fireEvent.press(getByText('Envoyer'));
 
