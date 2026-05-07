@@ -5,6 +5,8 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { notificationsAPI } from '../api';
+import { navigationRef } from '../navigation/navigationRef';
+import { emitInAppToast } from '../contexts/InAppToastContext';
 
 const PUSH_TOKEN_KEY = '@eventez_push_token';
 const PUSH_REGISTERED_AT_KEY = '@eventez_push_registered_at';
@@ -30,21 +32,22 @@ const getProjectId = (): string => {
 
 // Configure how notifications are handled when app is in foreground.
 // Quand une notif arrive et que l'app est ouverte :
-//   - On NE laisse PAS le système afficher la notif basique Expo
-//     (shouldShowBanner: false / shouldShowAlert: false)
-//   - On rend nous-mêmes via Notifee avec un layout riche (BigPictureStyle,
-//     MessagingStyle selon le type) → cf. addNotificationReceivedListener
-//     plus bas dans pushNotificationService.initialize()
-// Si Notifee ne peut pas rendre (iOS, ou erreur), Expo reprend la main :
-// shouldShowList=true garde au moins l'entrée dans le centre de notifs.
+//   - Si la notif a un style riche (data.style !== 'default') sur Android,
+//     on masque la version Expo native — Notifee prend le relais avec un
+//     layout riche (BigPictureStyle / MessagingStyle) via le listener
+//     addNotificationReceivedListener (cf. setupListeners()).
+//   - Si l'utilisateur est DÉJÀ sur la conversation correspondante pour une
+//     notif "new_message", on supprime tout (pas de banner, pas de son) :
+//     le user voit déjà le message en temps réel via WebSocket.
+//   - Sinon : banner + son + badge (heads-up sur Android avec channel HIGH).
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const isAndroid = Platform.OS === 'android';
-    const data = notification.request.content.data as any;
-    const hasRichStyle = isAndroid && data?.style && data.style !== 'default';
+    const data = (notification.request.content.data ?? {}) as any;
 
+    // Cas 1 : notif rich-styled sur Android → Notifee va la rendre, masquer Expo
+    const hasRichStyle = isAndroid && data?.style && data.style !== 'default';
     if (hasRichStyle) {
-      // On va render via Notifee → masquer la version Expo native
       return {
         shouldShowAlert: false,
         shouldPlaySound: false,
@@ -54,7 +57,31 @@ Notifications.setNotificationHandler({
       };
     }
 
-    // Fallback standard
+    // Cas 2 : message dans la conversation actuellement ouverte → silence total.
+    // Le user voit déjà le message via le WebSocket de ConversationScreen.
+    const isMessage =
+      data?.notification_type === 'new_message' || data?.style === 'messaging';
+    if (isMessage) {
+      try {
+        const route = navigationRef.current?.getCurrentRoute();
+        const onSameConv =
+          route?.name === 'Conversation' &&
+          String((route.params as any)?.conversationId) === String(data.conversation_id);
+        if (onSameConv) {
+          return {
+            shouldShowAlert: false,
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            shouldShowBanner: false,
+            shouldShowList: false,
+          };
+        }
+      } catch {
+        // Si navigationRef n'est pas prêt, on tombe sur le cas général.
+      }
+    }
+
+    // Cas général : banner + son + badge (heads-up grâce au channel HIGH)
     return {
       shouldShowAlert: true,
       shouldPlaySound: true,
@@ -277,11 +304,17 @@ class PushNotificationService {
     });
 
     // Channel for messages
+    // HIGH importance = heads-up notification (apparaît en haut de l'écran
+    // avec son+vibration) au lieu d'apparaître silencieusement dans le
+    // notification center. Cohérent avec event_reminders et payments.
     await Notifications.setNotificationChannelAsync('messages', {
       name: 'Messages',
       description: 'Nouveaux messages et conversations',
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#7c3aed',
       sound: 'default',
+      enableVibrate: true,
     });
   }
 
@@ -472,21 +505,69 @@ class PushNotificationService {
       async (notification) => {
         if (__DEV__) console.log('[Push] Notification received in foreground:', notification);
 
+        const data = notification.request.content.data as any;
+        const title = notification.request.content.title || '';
+        const body = notification.request.content.body || '';
+
         // Si la notif a un style riche (data.style), on la rend nous-mêmes via
         // Notifee avec BigPictureStyle/MessagingStyle/etc. Le setNotificationHandler
         // a déjà désactivé l'affichage Expo natif pour ces cas.
-        const data = notification.request.content.data as any;
         if (Platform.OS === 'android' && data?.style && data.style !== 'default') {
           try {
             const { displayRichNotification } = await import('./richNotificationRenderer');
-            await displayRichNotification(
-              notification.request.content.title || '',
-              notification.request.content.body || '',
-              data,
-            );
+            await displayRichNotification(title, body, data);
           } catch (error) {
             if (__DEV__) console.warn('[Push] Rich render failed, fallback to native:', error);
           }
+        }
+
+        // ============= TOAST IN-APP =============
+        // Quand l'app est en foreground, l'OS n'affiche pas de banner par défaut
+        // (cf. setNotificationHandler qui retourne shouldShowBanner: false pour
+        // le cas spécifique "user sur la conversation active"). On émet ici un
+        // toast in-app pour la visibilité — sauf si l'user voit déjà la conv
+        // (mêmes critères que le handler).
+        try {
+          const route = navigationRef.current?.getCurrentRoute();
+          const isMessage = data?.notification_type === 'new_message' ||
+                            data?.style === 'messaging';
+          const onSameConv = isMessage &&
+            route?.name === 'Conversation' &&
+            String((route.params as any)?.conversationId) === String(data?.conversation_id);
+
+          if (!onSameConv && (title || body)) {
+            // Determine icon + dedup key + onPress depending on notif type.
+            let icon: 'message' | 'notification' | 'success' | 'warning' | 'info' = 'notification';
+            let dedupKey: string | undefined;
+            const onPress = () => {
+              this.handleNotificationTap(data as PushNotificationData);
+            };
+
+            if (isMessage) {
+              icon = 'message';
+              // Dedup par conversation : 5 messages en 2s = 1 seul toast.
+              if (data?.conversation_id) {
+                dedupKey = `msg:${data.conversation_id}`;
+              }
+            } else if (data?.notification_type === 'payment_success' ||
+                       data?.notification_type === 'payment_completed') {
+              icon = 'success';
+            } else if (data?.notification_type === 'payment_failed' ||
+                       data?.notification_type === 'error') {
+              icon = 'warning';
+            }
+
+            emitInAppToast({
+              title,
+              body,
+              icon,
+              avatarUrl: data?.sender_avatar || data?.image || null,
+              onPress,
+              dedupKey,
+            });
+          }
+        } catch (error) {
+          if (__DEV__) console.warn('[Push] In-app toast emission failed:', error);
         }
       }
     );

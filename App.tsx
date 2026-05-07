@@ -64,10 +64,13 @@ import { AuthProvider } from './src/contexts/AuthContext';
 import { NotificationProvider } from './src/contexts/NotificationContext';
 import { AlertProvider } from './src/contexts/AlertContext';
 import { StatusProvider } from './src/contexts/StatusContext';
+import { CurrentRouteProvider } from './src/contexts/CurrentRouteContext';
 import { AnnouncementsProvider } from './src/contexts/AnnouncementsContext';
+import { InAppToastProvider } from './src/contexts/InAppToastContext';
 import { FeatureTourProvider } from './src/components/tour';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 import MaintenanceGate from './src/components/common/MaintenanceGate';
+import IncidentBanner from './src/components/common/IncidentBanner';
 import ForceUpdateGate from './src/components/common/ForceUpdateGate';
 import AnnouncementsModal from './src/components/common/AnnouncementsModal';
 import AnimatedSplash from './src/components/common/AnimatedSplash';
@@ -144,6 +147,10 @@ const linking: LinkingOptions<RootStackParamList> = {
 function AppContent() {
   const { isDark } = useTheme();
   const routeNameRef = useRef<string | undefined>(undefined);
+  // State exposé via CurrentRouteContext — utilisé par IncidentBanner pour
+  // savoir quels services sont pertinents pour l'écran courant. Mis à jour
+  // dans onNavigationStateChange ci-dessous.
+  const [currentRouteName, setCurrentRouteName] = useState<string | undefined>(undefined);
 
   // Restauration de l'état de navigation après un cold start. Si l'OS a tué
   // l'app pendant que l'utilisateur était sur un écran profond (ex: Payment),
@@ -205,14 +212,19 @@ function AppContent() {
   }, [isDark]);
 
   const onNavigationReady = useCallback(() => {
-    routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
+    const initialRoute = navigationRef.current?.getCurrentRoute()?.name;
+    routeNameRef.current = initialRoute;
+    setCurrentRouteName(initialRoute);
   }, []);
 
   const onNavigationStateChange = useCallback((state: NavigationState | undefined) => {
-    const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
-    if (currentRouteName && currentRouteName !== routeNameRef.current) {
-      trackScreenView(currentRouteName);
-      routeNameRef.current = currentRouteName;
+    const newRouteName = navigationRef.current?.getCurrentRoute()?.name;
+    if (newRouteName && newRouteName !== routeNameRef.current) {
+      trackScreenView(newRouteName);
+      routeNameRef.current = newRouteName;
+      // Sync au CurrentRouteContext — IncidentBanner s'en sert pour le
+      // filtrage par scope service.
+      setCurrentRouteName(newRouteName);
     }
     // Persiste l'état pour qu'un cold start après kill OS ramène l'utilisateur
     // exactement où il était. Best-effort, non-bloquant.
@@ -227,6 +239,7 @@ function AppContent() {
   }
 
   return (
+    <CurrentRouteProvider routeName={currentRouteName}>
     <ConnectionProvider>
       <NavigationContainer
         ref={navigationRef}
@@ -241,7 +254,8 @@ function AppContent() {
               <AlertProvider>
                 <StatusProvider>
                   <AnnouncementsProvider>
-                    <FeatureTourProvider>
+                    <InAppToastProvider>
+                      <FeatureTourProvider>
                       <StatusBar style={isDark ? 'light' : 'dark'} />
                       {/* ORDRE des gates :
                           1. ForceUpdateGate — bloque l'app si version trop vieille
@@ -262,7 +276,14 @@ function AppContent() {
                       </ForceUpdateGate>
                       <VerificationGuardModal />
                       <AnnouncementsModal />
-                    </FeatureTourProvider>
+                      {/* Banner global d'incident — overlay top quand un 503
+                          est intercepté par axios. Permet à l'utilisateur de
+                          voir l'incident + cliquer "Voir l'évolution".
+                          Rendu APRÈS RootNavigator pour avoir accès à la
+                          navigation et passer au-dessus visuellement. */}
+                      <IncidentBanner />
+                      </FeatureTourProvider>
+                    </InAppToastProvider>
                   </AnnouncementsProvider>
                 </StatusProvider>
               </AlertProvider>
@@ -271,6 +292,7 @@ function AppContent() {
         </ErrorBoundary>
       </NavigationContainer>
     </ConnectionProvider>
+    </CurrentRouteProvider>
   );
 }
 
