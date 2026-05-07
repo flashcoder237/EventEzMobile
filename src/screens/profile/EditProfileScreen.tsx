@@ -95,7 +95,9 @@ export default function EditProfileScreen() {
     user?.profile_picture || user?.image || null
   );
 
-  const [address, setAddress] = useState(user?.address || '');
+  // Champ s'appelle `billing_address` côté backend (modèle User), pas `address`.
+  // Le state local garde le nom court pour la lisibilité du JSX.
+  const [address, setAddress] = useState(user?.billing_address || '');
   const [city, setCity] = useState(user?.city || '');
   const [country, setCountry] = useState(user?.country || 'Cameroun');
   const [bio, setBio] = useState(user?.bio || '');
@@ -114,7 +116,7 @@ export default function EditProfileScreen() {
     lastName !== (user?.last_name || '') ||
     phone !== (user?.phone_number || '') ||
     dateOfBirth !== (user?.date_of_birth || '') ||
-    address !== (user?.address || '') ||
+    address !== (user?.billing_address || '') ||
     city !== (user?.city || '') ||
     country !== (user?.country || 'Cameroun') ||
     bio !== (user?.bio || '') ||
@@ -218,7 +220,7 @@ export default function EditProfileScreen() {
       if (lastName !== (user?.last_name || '')) updateData.last_name = lastName;
       if (phone !== (user?.phone_number || '')) updateData.phone_number = phone;
       if (dateOfBirth !== (user?.date_of_birth || '')) updateData.date_of_birth = dateOfBirth;
-      if (address !== (user?.address || '')) updateData.address = address;
+      if (address !== (user?.billing_address || '')) updateData.billing_address = address;
       if (city !== (user?.city || '')) updateData.city = city;
       if (country !== (user?.country || 'Cameroun')) updateData.country = country;
       if (bio !== (user?.bio || '')) updateData.bio = bio;

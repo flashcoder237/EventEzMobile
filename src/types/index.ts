@@ -75,11 +75,14 @@ export interface User {
   image?: string; // Alias client pour profile_picture
   logo_url?: string; // Alias client pour profile_picture
   organizer_name?: string; // Calcule cote client
-  date_of_birth?: string; // Client-only
-  bio?: string; // Client-only
-  address?: string; // Client-only
-  city?: string; // Client-only
-  country?: string; // Client-only
+  // Champs profil universels — désormais persistés côté backend (User model).
+  date_of_birth?: string;
+  bio?: string;
+  city?: string;
+  country?: string;
+  // `address` n'existe pas côté backend — utiliser `billing_address` ci-dessus.
+  // Conservé en alias optionnel pour compat ascendante d'éventuels callers.
+  address?: string;
   tax_id?: string; // Client-only
   created_at?: string; // Client-only (pas dans UserSerializer)
   updated_at?: string; // Client-only (pas dans UserSerializer)
@@ -1773,7 +1776,8 @@ export type WebSocketIncomingMessage =
   | { type: 'presence.changed'; user_id: number; status: string; last_seen: string }
   | { type: 'unread.decrement'; message_ids: (string | number)[]; conversation_ids: (string | number)[] }
   | { type: 'conversation.added'; conversation_id: string | number }
-  | { type: 'conversation.removed'; conversation_id: string | number };
+  | { type: 'conversation.removed'; conversation_id: string | number }
+  | { type: 'service_unavailable'; incident: any };
 
 export type WebSocketOutgoingMessage =
   | { type: 'authenticate'; token: string }
