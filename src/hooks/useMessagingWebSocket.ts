@@ -576,11 +576,17 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           return;
         }
 
-        // Reconnexion automatique avec backoff exponentiel
+        // Reconnexion automatique avec backoff exponentiel + jitter.
+        // Sans jitter, après une coupure réseau côté ISP, tous les clients
+        // tapent le serveur en synchronie aux mêmes timestamps (1s, 2s, 4s…).
+        // Le jitter ±25% étale les retries → courbe lissée côté backend
+        // (« thundering herd » mitigée). Pratique courante AWS/Google.
         if (reconnectAttemptsRef.current < MAX_RECONNECT_ATTEMPTS) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          const baseDelay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+          const jitter = baseDelay * 0.25 * (Math.random() * 2 - 1); // ±25%
+          const delay = Math.max(500, Math.round(baseDelay + jitter));
           reconnectAttemptsRef.current++;
-          if (__DEV__) console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})`);
+          if (__DEV__) console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}, base=${baseDelay})`);
 
           reconnectTimeoutRef.current = setTimeout(() => {
             connect();
