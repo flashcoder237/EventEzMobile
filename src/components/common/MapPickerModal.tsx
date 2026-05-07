@@ -14,6 +14,7 @@ import {
 import MapView, { Marker, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -69,6 +70,7 @@ export default function MapPickerModal({
   initialLng,
 }: MapPickerModalProps) {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
@@ -293,8 +295,13 @@ export default function MapPickerModal({
         behavior="padding"
         style={[styles.container, { backgroundColor: colors.card }]}
       >
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: colors.primary }]}>
+        {/* Header — paddingTop dynamique via safe-area inset (notch/Dynamic Island) */}
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.primary, paddingTop: insets.top + Spacing.md },
+          ]}
+        >
           <TouchableOpacity onPress={onClose} activeOpacity={TOUCH_OPACITY} style={styles.closeButton}>
             <Ionicons name="close" size={24} color={Colors.white} />
           </TouchableOpacity>
@@ -417,8 +424,16 @@ export default function MapPickerModal({
           </View>
         )}
 
-        {/* Help Text */}
-        <View style={[styles.helpContainer, { backgroundColor: colors.infoLight }]}>
+        {/* Help Text — paddingBottom dynamique pour respecter le home indicator iOS */}
+        <View
+          style={[
+            styles.helpContainer,
+            {
+              backgroundColor: colors.infoLight,
+              paddingBottom: Spacing.md + insets.bottom,
+            },
+          ]}
+        >
           <Ionicons name="information-circle-outline" size={16} color={colors.info} />
           <Text style={[styles.helpText, { color: colors.info }]}>
             Appuyez sur la carte pour placer un marqueur, ou utilisez la recherche
@@ -440,8 +455,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
-    paddingTop: Platform.OS === 'ios' ? 50 : Spacing.md,
+    paddingBottom: Spacing.md,
+    // paddingTop est défini inline via insets.top + Spacing.md
   },
   closeButton: {
     width: 40,

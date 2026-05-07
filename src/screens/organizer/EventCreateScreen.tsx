@@ -365,6 +365,37 @@ export default function EventCreateScreen() {
           >
             <Ionicons name="eye-outline" size={20} color={colors.gray600} />
           </TouchableOpacity>
+
+          {/* Réinitialiser — vide le formulaire ET le brouillon (mode création
+              uniquement, en édition on n'efface jamais l'event source). */}
+          {!isEditing && (
+            <TouchableOpacity
+              onPress={() => {
+                showAlert(
+                  'Réinitialiser le formulaire ?',
+                  'Toutes les données saisies seront perdues, y compris le brouillon en cours. Cette action est irréversible.',
+                  [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                      text: 'Tout effacer',
+                      style: 'destructive',
+                      onPress: async () => {
+                        await clearDraft();
+                        resetForm();
+                      },
+                    },
+                  ],
+                  'warning',
+                );
+              }}
+              style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityRole="button"
+              accessibilityLabel="Réinitialiser le formulaire"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="refresh-outline" size={20} color={colors.gray600} />
+            </TouchableOpacity>
+          )}
           {!isEditing ? (
             <TouchableOpacity
               onPress={() => {

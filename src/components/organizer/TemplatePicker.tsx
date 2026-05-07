@@ -26,7 +26,6 @@ import {
   FontSizes,
   BorderRadius,
   Spacing,
-  Shadows,
 } from '../../constants/theme';
 
 // Sous-ensemble des champs du backend EventTemplate qui nous intéressent au mobile.
@@ -68,7 +67,8 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function TemplatePicker({ onApply }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.07)';
   const [templates, setTemplates] = useState<EventTemplate[] | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -113,26 +113,75 @@ export default function TemplatePicker({ onApply }: Props) {
       >
         {templates.map(t => {
           const iconName = (t.icon && ICON_MAP[t.icon]) || 'sparkles-outline';
+          const typeLabel = t.event_type === 'inscription' ? 'Inscription' : 'Billetterie';
+          const locationLabel = t.location_type === 'online'
+            ? 'En ligne'
+            : t.location_type === 'hybrid'
+              ? 'Hybride'
+              : 'Présentiel';
+          const durationLabel = t.duration_hours != null
+            ? `${Number(t.duration_hours).toFixed(1).replace('.0', '')}h`
+            : null;
           return (
             <TouchableOpacity
               key={t.id}
-              style={[styles.card, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }, Shadows.sm]}
+              style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }]}
               onPress={() => onApply(t)}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel={`Utiliser le modèle ${t.name}`}
             >
-              <View style={[styles.iconWell, { backgroundColor: `${colors.primary}15` }]}>
-                <Ionicons name={iconName} size={20} color={colors.primary} />
+              {/* En-tête : icône large + pill type en haut à droite */}
+              <View style={styles.cardTop}>
+                <View style={[styles.iconWell, { backgroundColor: `${colors.primary}14` }]}>
+                  <Ionicons name={iconName} size={22} color={colors.primary} />
+                </View>
+                <View style={[styles.typePill, { backgroundColor: `${colors.accent}14`, borderColor: `${colors.accent}30` }]}>
+                  <Text style={[styles.typePillText, { color: colors.accent }]}>{typeLabel}</Text>
+                </View>
               </View>
+
+              {/* Titre éditorial */}
               <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
                 {t.name}
               </Text>
-              {t.duration_hours != null && (
-                <Text style={[styles.cardMeta, { color: colors.gray500 }]} numberOfLines={1}>
-                  ~{Number(t.duration_hours).toFixed(1).replace('.0', '')}h · {t.event_type === 'inscription' ? 'Inscription' : 'Billetterie'}
-                </Text>
+
+              {/* Meta row : durée · format */}
+              <View style={styles.metaRow}>
+                {durationLabel && (
+                  <View style={styles.metaItem}>
+                    <Ionicons name="time-outline" size={12} color={colors.gray500} />
+                    <Text style={[styles.metaText, { color: colors.gray600 }]}>{durationLabel}</Text>
+                  </View>
+                )}
+                <View style={styles.metaItem}>
+                  <Ionicons
+                    name={t.location_type === 'online' ? 'videocam-outline' : t.location_type === 'hybrid' ? 'globe-outline' : 'location-outline'}
+                    size={12}
+                    color={colors.gray500}
+                  />
+                  <Text style={[styles.metaText, { color: colors.gray600 }]}>{locationLabel}</Text>
+                </View>
+              </View>
+
+              {/* Tags suggérés (max 2) — donne un aperçu du contenu pré-rempli */}
+              {t.tags && t.tags.length > 0 && (
+                <View style={styles.tagsRow}>
+                  {t.tags.slice(0, 2).map((tag, i) => (
+                    <View key={i} style={[styles.tagChip, { backgroundColor: colors.gray100 }]}>
+                      <Text style={[styles.tagText, { color: colors.gray700 }]} numberOfLines={1}>
+                        {tag}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               )}
+
+              {/* CTA discret en pied de carte */}
+              <View style={[styles.applyHint, { borderTopColor: hairline }]}>
+                <Text style={[styles.applyText, { color: colors.primary }]}>Utiliser ce modèle</Text>
+                <Ionicons name="arrow-forward" size={13} color={colors.primary} />
+              </View>
             </TouchableOpacity>
           );
         })}
@@ -173,29 +222,86 @@ const styles = StyleSheet.create({
     paddingRight: Spacing.lg,
   },
   card: {
-    width: 160,
-    borderRadius: BorderRadius.xl,
+    width: 200,
+    borderRadius: BorderRadius['2xl'],
     borderWidth: 1,
     padding: Spacing.md,
-    gap: 6,
+    gap: Spacing.sm,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   iconWell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+  },
+  typePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: BorderRadius.full,
+    borderWidth: 1,
+  },
+  typePillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 9,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
   },
   cardTitle: {
     fontFamily: FontFamily.displayBold,
-    fontSize: FontSizes.sm,
-    letterSpacing: -0.2,
-    lineHeight: 18,
+    fontSize: 15,
+    letterSpacing: -0.3,
+    lineHeight: 19,
+    minHeight: 38, // 2 lignes pour aligner les hauteurs entre cards
   },
-  cardMeta: {
-    fontFamily: FontFamily.medium,
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  metaText: {
+    fontFamily: FontFamily.semiBold,
     fontSize: 11,
+    letterSpacing: -0.1,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  tagChip: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: BorderRadius.sm,
+  },
+  tagText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    letterSpacing: -0.1,
+  },
+  applyHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.sm,
     marginTop: 2,
+    borderTopWidth: 1,
+  },
+  applyText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
 });
