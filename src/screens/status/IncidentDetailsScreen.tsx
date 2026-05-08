@@ -11,6 +11,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { statusAPI } from '../../api';
@@ -46,10 +47,10 @@ const SEVERITY_GRADIENTS: Record<IncidentSeverity, readonly [string, string, str
 
 const RESOLVED_GRADIENT = ['#059669', '#047857', '#064E3B'] as const;
 
-function formatDateTime(iso: string | null): string {
+function formatDateTime(iso: string | null, locale: string): string {
   if (!iso) return '—';
   try {
-    return new Intl.DateTimeFormat('fr-FR', {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(iso));
@@ -62,6 +63,8 @@ export default function IncidentDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const { incidentId } = route.params;
   const [incident, setIncident] = useState<Incident | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,13 +103,13 @@ export default function IncidentDetailsScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Incident</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Détails</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('incidentDetails.headerEyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('incidentDetails.headerTitle')}</Text>
         </View>
         <View style={{ width: 44 }} />
       </View>
@@ -121,9 +124,9 @@ export default function IncidentDetailsScreen() {
             <AnimatedIllustration entry="fadeIn" idle="breathe">
               <AlertIllustration color={colors.gray300} size={140} />
             </AnimatedIllustration>
-            <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Incident introuvable</Text>
+            <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>{t('incidentDetails.notFoundTitle')}</Text>
             <Text style={[styles.emptySub, { color: colors.gray400 }]}>
-              Cet incident n'existe plus ou n'est pas accessible publiquement.
+              {t('incidentDetails.notFoundSubtitle')}
             </Text>
           </View>
         ) : (
@@ -143,7 +146,7 @@ export default function IncidentDetailsScreen() {
                     color="#FFFFFF"
                   />
                   <Text style={styles.heroBadgeText}>
-                    {isResolved ? 'Résolu' : incident.status_display}
+                    {isResolved ? t('incidentDetails.resolvedLabel') : incident.status_display}
                   </Text>
                 </View>
                 <Text style={styles.heroTitle}>{incident.title}</Text>
@@ -175,7 +178,7 @@ export default function IncidentDetailsScreen() {
                 {incident.is_blocking && (
                   <View style={[styles.pill, { backgroundColor: '#FEE2E2' }]}>
                     <Ionicons name="lock-closed" size={10} color="#DC2626" />
-                    <Text style={[styles.pillText, { color: '#DC2626' }]}>Bloquant</Text>
+                    <Text style={[styles.pillText, { color: '#DC2626' }]}>{t('incidentDetails.blocking')}</Text>
                   </View>
                 )}
                 <View style={[styles.pill, { backgroundColor: colors.primaryBg }]}>
@@ -191,7 +194,7 @@ export default function IncidentDetailsScreen() {
               <StaggeredItem index={2}>
                 <View style={styles.section}>
                   <Text style={[styles.sectionEyebrow, { color: colors.gray400 }]}>
-                    Services touchés
+                    {t('incidentDetails.affectedServices')}
                   </Text>
                   <View style={styles.servicesRow}>
                     {incident.affected_services_labels!.map((svc) => (
@@ -217,15 +220,15 @@ export default function IncidentDetailsScreen() {
               <View style={[styles.metaCard, { backgroundColor: colors.card }, Shadows.card]}>
                 <MetaRow
                   icon="time-outline"
-                  label="Démarré"
-                  value={formatDateTime(incident.started_at)}
+                  label={t('incidentDetails.metaStarted')}
+                  value={formatDateTime(incident.started_at, locale)}
                   colors={colors}
                 />
                 {incident.resolved_at && (
                   <MetaRow
                     icon="checkmark-done-outline"
-                    label="Résolu"
-                    value={formatDateTime(incident.resolved_at)}
+                    label={t('incidentDetails.metaResolved')}
+                    value={formatDateTime(incident.resolved_at, locale)}
                     colors={colors}
                     accent="#10B981"
                   />
@@ -233,16 +236,16 @@ export default function IncidentDetailsScreen() {
                 {incident.scheduled_start && (
                   <MetaRow
                     icon="calendar-outline"
-                    label="Début planifié"
-                    value={formatDateTime(incident.scheduled_start)}
+                    label={t('incidentDetails.metaScheduledStart')}
+                    value={formatDateTime(incident.scheduled_start, locale)}
                     colors={colors}
                   />
                 )}
                 {incident.scheduled_end && (
                   <MetaRow
                     icon="calendar-outline"
-                    label="Fin planifiée"
-                    value={formatDateTime(incident.scheduled_end)}
+                    label={t('incidentDetails.metaScheduledEnd')}
+                    value={formatDateTime(incident.scheduled_end, locale)}
                     colors={colors}
                   />
                 )}
@@ -252,14 +255,14 @@ export default function IncidentDetailsScreen() {
             {/* Timeline */}
             <View style={styles.timelineSection}>
               <StaggeredItem index={4}>
-                <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Historique</Text>
+                <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('incidentDetails.history')}</Text>
               </StaggeredItem>
               {(incident.updates?.length ?? 0) === 0 ? (
                 <StaggeredItem index={5}>
                   <View style={[styles.emptyTimelineCard, { backgroundColor: colors.card }, Shadows.card]}>
                     <Ionicons name="chatbubbles-outline" size={32} color={colors.gray300} />
                     <Text style={[styles.emptyTimelineText, { color: colors.gray400 }]}>
-                      Aucune mise à jour publiée pour le moment.
+                      {t('incidentDetails.noUpdates')}
                     </Text>
                   </View>
                 </StaggeredItem>
@@ -299,7 +302,7 @@ export default function IncidentDetailsScreen() {
                                 {upd.status_display}
                               </Text>
                               <Text style={[styles.timelineTime, { color: colors.gray400 }]}>
-                                {formatDateTime(upd.created_at)}
+                                {formatDateTime(upd.created_at, locale)}
                               </Text>
                             </View>
                             <Text style={[styles.timelineMsg, { color: colors.gray700 }]}>

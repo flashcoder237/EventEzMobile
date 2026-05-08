@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
@@ -34,14 +35,16 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type TabType = 'staff' | 'payments';
 
 export default function TreasuryStaffScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="STF" title="Personnel & Paie">
+    <RoleGuard allow={['admin']} watermark={t('admin.treasury.staff.watermark')} title={t('admin.treasury.staff.guardTitle')}>
       <TreasuryStaffContent />
     </RoleGuard>
   );
 }
 
 function TreasuryStaffContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -84,10 +87,10 @@ function TreasuryStaffContent() {
     setGeneratingPayroll(true);
     try {
       await treasuryAPI.generatePayroll({ month: now.getMonth() + 1, year: now.getFullYear() });
-      showSuccess('Succès', 'Paie générée avec succès');
+      showSuccess(t('common.success'), t('admin.treasury.staff.payrollSuccess'));
       fetchData();
     } catch (error) {
-      showError('Erreur', 'Impossible de générer la paie');
+      showError(t('common.error'), t('admin.treasury.staff.payrollError'));
     } finally {
       setGeneratingPayroll(false);
     }
@@ -107,14 +110,14 @@ function TreasuryStaffContent() {
           </Text>
           <Text style={[styles.cardSubtitle, { color: colors.gray500 }]} numberOfLines={1}>{item.role}</Text>
         </View>
-        <Badge label={item.is_active ? 'Actif' : 'Inactif'} variant={item.is_active ? 'success' : 'secondary'} size="sm" />
+        <Badge label={item.is_active ? t('admin.treasury.staff.active') : t('admin.treasury.staff.inactive')} variant={item.is_active ? 'success' : 'secondary'} size="sm" />
       </View>
       <View style={[styles.cardFooter, { borderTopColor: hairline }]}>
         <Text style={[styles.salary, { color: colors.primary }]}>
-          {item.monthly_salary.toLocaleString()} {platformCurrency}/mois
+          {item.monthly_salary.toLocaleString()} {platformCurrency}{t('admin.treasury.staff.perMonth')}
         </Text>
         <Text style={[styles.hiredDate, { color: colors.gray500 }]}>
-          Depuis {new Date(item.hired_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+          {t('admin.treasury.staff.since', { date: new Date(item.hired_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) })}
         </Text>
       </View>
     </View>
@@ -135,7 +138,7 @@ function TreasuryStaffContent() {
           </Text>
         </View>
         <Badge
-          label={item.status === 'paid' ? 'Paye' : item.status === 'pending' ? 'En attente' : 'Echoue'}
+          label={item.status === 'paid' ? t('admin.treasury.staff.statusPaid') : item.status === 'pending' ? t('admin.treasury.staff.statusPending') : t('admin.treasury.staff.statusFailed')}
           variant={item.status === 'paid' ? 'success' : item.status === 'pending' ? 'warning' : 'destructive'}
           size="sm"
         />
@@ -147,8 +150,8 @@ function TreasuryStaffContent() {
   );
 
   const tabs: { key: TabType; label: string; count: number }[] = [
-    { key: 'staff', label: 'Personnel', count: staff.length },
-    { key: 'payments', label: 'Paiements', count: payments.length },
+    { key: 'staff', label: t('admin.treasury.staff.tabStaff'), count: staff.length },
+    { key: 'payments', label: t('admin.treasury.staff.tabPayments'), count: payments.length },
   ];
 
   return (
@@ -159,13 +162,13 @@ function TreasuryStaffContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>L'ÉQUIPE</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Personnel & Paie</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.treasury.staff.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.treasury.staff.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
@@ -173,7 +176,7 @@ function TreasuryStaffContent() {
           disabled={generatingPayroll}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Générer la paie"
+          accessibilityLabel={t('admin.treasury.staff.generatePayroll')}
         >
           {generatingPayroll ? (
             <ActivityIndicator size="small" color={colors.primary} />
@@ -219,7 +222,7 @@ function TreasuryStaffContent() {
           <View style={styles.empty}>
             <Ionicons name="people-outline" size={48} color={colors.gray300} />
             <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-              {activeTab === 'staff' ? 'Aucun personnel' : 'Aucun paiement'}
+              {activeTab === 'staff' ? t('admin.treasury.staff.emptyStaff') : t('admin.treasury.staff.emptyPayments')}
             </Text>
           </View>
         }

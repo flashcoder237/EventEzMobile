@@ -485,9 +485,9 @@ export default function DiscountFormScreen() {
             ) : (
               <>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.submitEyebrow}>{isEditing ? 'MISE À JOUR' : 'CRÉATION'}</Text>
+                  <Text style={styles.submitEyebrow}>{isEditing ? t('organizer.discountForm.submitEyebrowEdit') : t('organizer.discountForm.submitEyebrowCreate')}</Text>
                   <Text style={styles.submitLabel}>
-                    {isEditing ? 'Mettre à jour' : 'Créer le code promo'}
+                    {isEditing ? t('organizer.discountForm.submitEdit') : t('organizer.discountForm.submitCreate')}
                   </Text>
                 </View>
                 <View style={styles.submitArrow}>

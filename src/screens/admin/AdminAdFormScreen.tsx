@@ -35,6 +35,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
@@ -55,14 +56,16 @@ type RouteProps = RouteProp<RootStackParamList, 'AdminAdForm'>;
 type Placement = 'feed_top' | 'feed_inline' | 'feed_bottom';
 
 export default function AdminAdFormScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin', 'moderator']} watermark="ADS" title="Publicité">
+    <RoleGuard allow={['admin', 'moderator']} watermark={t('admin.ads.form.watermark')} title={t('admin.ads.form.guardTitle')}>
       <AdminAdFormContent />
     </RoleGuard>
   );
 }
 
 function AdminAdFormContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const adId = route.params?.adId;
@@ -77,7 +80,7 @@ function AdminAdFormContent() {
   const [submitting, setSubmitting] = useState(false);
   const [title, setTitle] = useState('');
   const [subtitle, setSubtitle] = useState('');
-  const [ctaLabel, setCtaLabel] = useState('En savoir plus');
+  const [ctaLabel, setCtaLabel] = useState(t('admin.ads.form.fieldCtaLabelDefault'));
   const [linkUrl, setLinkUrl] = useState('');
   const [targetEventId, setTargetEventId] = useState('');
   const [country, setCountry] = useState('');
@@ -99,7 +102,7 @@ function AdminAdFormContent() {
       const ad = res.data as AdvertisementAdmin;
       setTitle(ad.title);
       setSubtitle(ad.subtitle || '');
-      setCtaLabel(ad.cta_label || 'En savoir plus');
+      setCtaLabel(ad.cta_label || t('admin.ads.form.fieldCtaLabelDefault'));
       setLinkUrl(ad.link_url || '');
       setTargetEventId(ad.target_event || '');
       setCountry(ad.country || '');
@@ -113,12 +116,12 @@ function AdminAdFormContent() {
       setExistingImageUrl(ad.image_url || null);
     } catch (error) {
       if (__DEV__) console.error('Erreur fetch ad:', error);
-      showError('Erreur', 'Impossible de charger la publicité');
+      showError(t('common.error'), t('admin.ads.form.loadError'));
       navigation.goBack();
     } finally {
       setLoading(false);
     }
-  }, [adId, navigation, showError]);
+  }, [adId, navigation, showError, t]);
 
   useEffect(() => {
     fetchAd();
@@ -128,7 +131,7 @@ function AdminAdFormContent() {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) {
-        showError('Permission refusée', 'Active l\'accès à la galerie pour choisir une image.');
+        showError(t('admin.ads.form.permissionTitle'), t('admin.ads.form.permissionMessage'));
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -147,20 +150,20 @@ function AdminAdFormContent() {
 
   const handleSubmit = async () => {
     if (!title.trim()) {
-      showError('Titre requis', 'Le titre est obligatoire.');
+      showError(t('admin.ads.form.validationTitle'), t('admin.ads.form.validationTitleMessage'));
       return;
     }
     if (!isEdit && !pickedImageUri) {
-      showError('Image requise', 'Choisis une image bannière pour la pub.');
+      showError(t('admin.ads.form.validationImage'), t('admin.ads.form.validationImageMessage'));
       return;
     }
     if (latitude && longitude && !radiusKm) {
-      showError('Rayon requis', 'Si tu définis lat/lng, indique aussi un rayon en km.');
+      showError(t('admin.ads.form.validationRadius'), t('admin.ads.form.validationRadiusMessage'));
       return;
     }
 
     const okBio = await biometric.confirm({
-      promptMessage: isEdit ? 'Confirmer la modification' : 'Confirmer la création de la publicité',
+      promptMessage: isEdit ? t('admin.ads.form.bioConfirmEdit') : t('admin.ads.form.bioConfirmCreate'),
       category: 'admin',
     });
     if (!okBio) return;
@@ -174,7 +177,7 @@ function AdminAdFormContent() {
       const fields: Record<string, any> = {
         title: title.trim(),
         subtitle: subtitle.trim(),
-        cta_label: ctaLabel.trim() || 'En savoir plus',
+        cta_label: ctaLabel.trim() || t('admin.ads.form.fieldCtaLabelDefault'),
         link_url: linkUrl.trim(),
         target_event: targetEventId.trim() || null,
         country: country.trim().toUpperCase(),
@@ -205,18 +208,18 @@ function AdminAdFormContent() {
 
       if (isEdit) {
         await advertisementsAPI.update(adId!, payload);
-        showSuccess('Succès', 'Publicité mise à jour');
+        showSuccess(t('common.success'), t('admin.ads.form.updateSuccess'));
       } else {
         await advertisementsAPI.create(payload);
-        showSuccess('Succès', 'Publicité créée');
+        showSuccess(t('common.success'), t('admin.ads.form.createSuccess'));
       }
       navigation.goBack();
     } catch (error: any) {
       if (__DEV__) console.error('Erreur submit:', error);
       const detail = error?.response?.data?.detail
         || JSON.stringify(error?.response?.data || {})
-        || 'Soumission impossible';
-      showError('Erreur', detail);
+        || t('admin.ads.form.submitError');
+      showError(t('common.error'), detail);
     } finally {
       setSubmitting(false);
     }
@@ -235,9 +238,9 @@ function AdminAdFormContent() {
   const inputStyle = [styles.input, { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text }];
 
   const placementOptions: Array<{ value: Placement; label: string }> = [
-    { value: 'feed_top', label: 'Haut du feed' },
-    { value: 'feed_inline', label: 'Entre sections' },
-    { value: 'feed_bottom', label: 'Bas du feed' },
+    { value: 'feed_top', label: t('admin.ads.form.placementTop') },
+    { value: 'feed_inline', label: t('admin.ads.form.placementInline') },
+    { value: 'feed_bottom', label: t('admin.ads.form.placementBottom') },
   ];
 
   return (
@@ -246,13 +249,13 @@ function AdminAdFormContent() {
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
           onPress={() => navigation.goBack()}
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{isEdit ? 'ÉDITION' : 'NOUVELLE'}</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEdit ? 'Modifier la pub' : 'Créer une pub'}</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{isEdit ? t('admin.ads.form.eyebrowEdit') : t('admin.ads.form.eyebrowNew')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{isEdit ? t('admin.ads.form.titleEdit') : t('admin.ads.form.titleNew')}</Text>
         </View>
       </View>
 
@@ -262,7 +265,7 @@ function AdminAdFormContent() {
         showsVerticalScrollIndicator={false}
       >
         {/* === Image picker === */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Image bannière</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('admin.ads.form.imageBanner')}</Text>
         <TouchableOpacity onPress={handlePickImage} activeOpacity={0.85} style={[styles.imagePicker, { borderColor: hairline }]}>
           {pickedImageUri || existingImageUrl ? (
             <Image
@@ -275,62 +278,62 @@ function AdminAdFormContent() {
             <View style={[styles.imagePickerEmpty, { backgroundColor: colors.gray50 }]}>
               <Ionicons name="image-outline" size={32} color={colors.gray400} />
               <Text style={[styles.imagePickerHint, { color: colors.gray500 }]}>
-                Touche pour choisir (16:9 conseillé)
+                {t('admin.ads.form.imageHint')}
               </Text>
             </View>
           )}
         </TouchableOpacity>
 
         {/* === Contenu === */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Contenu</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('admin.ads.form.sectionContent')}</Text>
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Titre *</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldTitle')}</Text>
         <TextInput
           style={inputStyle}
           value={title}
           onChangeText={setTitle}
-          placeholder="Ex : Festival de jazz à Yaoundé"
+          placeholder={t('admin.ads.form.fieldTitlePlaceholder')}
           placeholderTextColor={colors.gray400}
           maxLength={120}
         />
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Sous-titre</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldSubtitle')}</Text>
         <TextInput
           style={inputStyle}
           value={subtitle}
           onChangeText={setSubtitle}
-          placeholder="Ex : Du 12 au 14 juin · 10+ artistes"
+          placeholder={t('admin.ads.form.fieldSubtitlePlaceholder')}
           placeholderTextColor={colors.gray400}
           maxLength={200}
         />
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Label du bouton</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldCtaLabel')}</Text>
         <TextInput
           style={inputStyle}
           value={ctaLabel}
           onChangeText={setCtaLabel}
-          placeholder="En savoir plus"
+          placeholder={t('admin.ads.form.fieldCtaLabelDefault')}
           placeholderTextColor={colors.gray400}
           maxLength={40}
         />
 
         {/* === Action === */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Action au tap</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('admin.ads.form.sectionAction')}</Text>
         <Text style={[styles.helpText, { color: colors.gray500 }]}>
-          Si target_event est défini, prioritaire sur link_url. Laisse les deux vides pour pub informative.
+          {t('admin.ads.form.actionHelp')}
         </Text>
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>ID de l'événement (UUID)</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldEventId')}</Text>
         <TextInput
           style={inputStyle}
           value={targetEventId}
           onChangeText={setTargetEventId}
-          placeholder="optionnel"
+          placeholder={t('admin.ads.form.fieldEventIdPlaceholder')}
           placeholderTextColor={colors.gray400}
           autoCapitalize="none"
         />
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>URL externe</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldLinkUrl')}</Text>
         <TextInput
           style={inputStyle}
           value={linkUrl}
@@ -342,34 +345,34 @@ function AdminAdFormContent() {
         />
 
         {/* === Géo === */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Ciblage géographique</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('admin.ads.form.sectionGeo')}</Text>
         <Text style={[styles.helpText, { color: colors.gray500 }]}>
-          Tous champs vides = mondial. Country/city pour cibler un pays/ville. Lat+lng+rayon pour un cercle.
+          {t('admin.ads.form.geoHelp')}
         </Text>
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Pays (code ISO 2 lettres)</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldCountry')}</Text>
         <TextInput
           style={inputStyle}
           value={country}
-          onChangeText={(t) => setCountry(t.toUpperCase().slice(0, 2))}
-          placeholder="CM, FR, ..."
+          onChangeText={(text) => setCountry(text.toUpperCase().slice(0, 2))}
+          placeholder={t('admin.ads.form.fieldCountryPlaceholder')}
           placeholderTextColor={colors.gray400}
           autoCapitalize="characters"
           maxLength={2}
         />
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Ville</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldCity')}</Text>
         <TextInput
           style={inputStyle}
           value={city}
           onChangeText={setCity}
-          placeholder="Douala, Yaoundé, ..."
+          placeholder={t('admin.ads.form.fieldCityPlaceholder')}
           placeholderTextColor={colors.gray400}
         />
 
         <View style={styles.row}>
           <View style={styles.col}>
-            <Text style={[styles.label, { color: colors.gray700 }]}>Latitude</Text>
+            <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldLatitude')}</Text>
             <TextInput
               style={inputStyle}
               value={latitude}
@@ -380,7 +383,7 @@ function AdminAdFormContent() {
             />
           </View>
           <View style={styles.col}>
-            <Text style={[styles.label, { color: colors.gray700 }]}>Longitude</Text>
+            <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldLongitude')}</Text>
             <TextInput
               style={inputStyle}
               value={longitude}
@@ -392,20 +395,20 @@ function AdminAdFormContent() {
           </View>
         </View>
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Rayon (km)</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldRadius')}</Text>
         <TextInput
           style={inputStyle}
           value={radiusKm}
           onChangeText={setRadiusKm}
-          placeholder="5, 10, 50..."
+          placeholder={t('admin.ads.form.fieldRadiusPlaceholder')}
           placeholderTextColor={colors.gray400}
           keyboardType="numeric"
         />
 
         {/* === Programmation === */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Programmation</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('admin.ads.form.sectionScheduling')}</Text>
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Emplacement dans le feed</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldPlacement')}</Text>
         <View style={styles.placementRow}>
           {placementOptions.map((opt) => {
             const active = placement === opt.value;
@@ -430,7 +433,7 @@ function AdminAdFormContent() {
           })}
         </View>
 
-        <Text style={[styles.label, { color: colors.gray700 }]}>Priorité (plus élevé = affiché en premier)</Text>
+        <Text style={[styles.label, { color: colors.gray700 }]}>{t('admin.ads.form.fieldPriority')}</Text>
         <TextInput
           style={inputStyle}
           value={priority}
@@ -453,9 +456,9 @@ function AdminAdFormContent() {
             {isActive && <Ionicons name="checkmark" size={12} color="#FFFFFF" />}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.activeToggleTitle, { color: colors.text }]}>Active</Text>
+            <Text style={[styles.activeToggleTitle, { color: colors.text }]}>{t('admin.ads.form.active')}</Text>
             <Text style={[styles.activeToggleHint, { color: colors.gray500 }]}>
-              {isActive ? 'Affichée dans le feed selon la programmation' : 'Désactivée — pas affichée même dans la fenêtre temporelle'}
+              {isActive ? t('admin.ads.form.activeOn') : t('admin.ads.form.activeOff')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -474,7 +477,7 @@ function AdminAdFormContent() {
           {submitting ? (
             <ActivityIndicator size="small" color="#FFFFFF" />
           ) : (
-            <Text style={styles.submitBtnText}>{isEdit ? 'Enregistrer' : 'Créer la pub'}</Text>
+            <Text style={styles.submitBtnText}>{isEdit ? t('admin.ads.form.save') : t('admin.ads.form.create')}</Text>
           )}
         </TouchableOpacity>
       </View>

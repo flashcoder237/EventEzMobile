@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { subscriptionsAPI } from '../../api';
@@ -42,14 +43,16 @@ interface SubscriptionPlan {
 }
 
 export default function SubscriptionManagementScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="SUB" title="Abonnements">
+    <RoleGuard allow={['admin']} watermark={t('admin.subscriptions.watermark')} title={t('admin.subscriptions.guardTitle')}>
       <SubscriptionManagementContent />
     </RoleGuard>
   );
 }
 
 function SubscriptionManagementContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -93,15 +96,15 @@ function SubscriptionManagementContent() {
           <Ionicons name="diamond-outline" size={20} color={colors.primary} />
         </View>
         <View style={styles.planInfo}>
-          <Text style={[styles.planEyebrow, { color: colors.gray500 }]}>FORMULE</Text>
+          <Text style={[styles.planEyebrow, { color: colors.gray500 }]}>{t('admin.subscriptions.planEyebrow')}</Text>
           <Text style={[styles.planName, { color: colors.text }]}>{item.name}</Text>
           <Text style={[styles.planPrice, { color: colors.primary }]}>
             {item.price_monthly.toLocaleString()} {platformCurrency}
-            <Text style={[styles.planPriceUnit, { color: colors.gray500 }]}> /mois</Text>
+            <Text style={[styles.planPriceUnit, { color: colors.gray500 }]}> {t('admin.subscriptions.perMonth')}</Text>
           </Text>
         </View>
         <Badge
-          label={item.is_active !== false ? 'Actif' : 'Inactif'}
+          label={item.is_active !== false ? t('admin.subscriptions.active') : t('admin.subscriptions.inactive')}
           variant={item.is_active !== false ? 'success' : 'secondary'}
           size="sm"
         />
@@ -112,7 +115,7 @@ function SubscriptionManagementContent() {
           <View style={styles.detailRow}>
             <Ionicons name="calendar-outline" size={14} color={colors.gray500} />
             <Text style={[styles.detailText, { color: colors.gray600 }]}>
-              {item.max_events === 0 ? 'Événements illimités' : `${item.max_events} événements max`}
+              {item.max_events === 0 ? t('admin.subscriptions.eventsUnlimited') : t('admin.subscriptions.eventsMax', { count: item.max_events })}
             </Text>
           </View>
         )}
@@ -120,7 +123,7 @@ function SubscriptionManagementContent() {
           <View style={styles.detailRow}>
             <Ionicons name="cash-outline" size={14} color={colors.gray500} />
             <Text style={[styles.detailText, { color: colors.gray600 }]}>
-              Commission: {item.commission_rate}%
+              {t('admin.subscriptions.commission', { rate: item.commission_rate })}
             </Text>
           </View>
         )}
@@ -128,7 +131,7 @@ function SubscriptionManagementContent() {
           <View style={styles.detailRow}>
             <Ionicons name="people-outline" size={14} color={colors.gray500} />
             <Text style={[styles.detailText, { color: colors.gray600 }]}>
-              {item.max_registrations_per_event === 0 ? 'Inscriptions illimitées' : `${item.max_registrations_per_event} inscriptions/event`}
+              {item.max_registrations_per_event === 0 ? t('admin.subscriptions.registrationsUnlimited') : t('admin.subscriptions.registrationsMax', { count: item.max_registrations_per_event })}
             </Text>
           </View>
         )}
@@ -157,13 +160,13 @@ function SubscriptionManagementContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LES OFFRES PRO</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Abonnements</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.subscriptions.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.subscriptions.title')}</Text>
         </View>
       </View>
 
@@ -177,7 +180,7 @@ function SubscriptionManagementContent() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="diamond-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucun plan d'abonnement</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.subscriptions.empty')}</Text>
           </View>
         }
       />

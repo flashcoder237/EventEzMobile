@@ -16,6 +16,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -46,32 +47,42 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 type FilterStatus = 'all' | 'draft' | 'submitted' | 'validated' | 'rejected' | 'completed' | 'cancelled';
 
-const statusConfig: Record<string, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  draft: { color: '#6B7280', label: 'Brouillon', icon: 'document-outline' },
-  submitted: { color: '#F59E0B', label: 'En attente', icon: 'time-outline' },
-  changes_requested: { color: '#D97706', label: 'À corriger', icon: 'create-outline' },
-  validated: { color: '#10B981', label: 'Validé', icon: 'checkmark-circle-outline' },
-  published: { color: '#10B981', label: 'Publié', icon: 'checkmark-circle-outline' },
-  rejected: { color: '#EF4444', label: 'Rejeté', icon: 'close-circle-outline' },
-  completed: { color: '#3B82F6', label: 'Terminé', icon: 'flag-outline' },
-  cancelled: { color: '#6B7280', label: 'Annulé', icon: 'ban-outline' },
+const statusColorIcon: Record<string, { color: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  draft: { color: '#6B7280', icon: 'document-outline' },
+  submitted: { color: '#F59E0B', icon: 'time-outline' },
+  changes_requested: { color: '#D97706', icon: 'create-outline' },
+  validated: { color: '#10B981', icon: 'checkmark-circle-outline' },
+  published: { color: '#10B981', icon: 'checkmark-circle-outline' },
+  rejected: { color: '#EF4444', icon: 'close-circle-outline' },
+  completed: { color: '#3B82F6', icon: 'flag-outline' },
+  cancelled: { color: '#6B7280', icon: 'ban-outline' },
 };
-
-const filterOptions: { value: FilterStatus; label: string }[] = [
-  { value: 'all', label: 'Tous' },
-  { value: 'validated', label: 'Validés' },
-  { value: 'draft', label: 'Brouillons' },
-  { value: 'submitted', label: 'En attente' },
-  { value: 'rejected', label: 'Rejetés' },
-  { value: 'completed', label: 'Terminés' },
-];
 
 export default function MyEventsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const statusConfig: Record<string, { color: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = useMemo(() => ({
+    draft: { ...statusColorIcon.draft, label: t('organizer.myEvents.statusDraft') },
+    submitted: { ...statusColorIcon.submitted, label: t('organizer.myEvents.statusSubmitted') },
+    changes_requested: { ...statusColorIcon.changes_requested, label: t('organizer.myEvents.statusChangesRequested') },
+    validated: { ...statusColorIcon.validated, label: t('organizer.myEvents.statusValidated') },
+    published: { ...statusColorIcon.published, label: t('organizer.myEvents.statusPublished') },
+    rejected: { ...statusColorIcon.rejected, label: t('organizer.myEvents.statusRejected') },
+    completed: { ...statusColorIcon.completed, label: t('organizer.myEvents.statusCompleted') },
+    cancelled: { ...statusColorIcon.cancelled, label: t('organizer.myEvents.statusCancelled') },
+  }), [t]);
+  const filterOptions: { value: FilterStatus; label: string }[] = useMemo(() => [
+    { value: 'all', label: t('organizer.myEvents.filterAll') },
+    { value: 'validated', label: t('organizer.myEvents.filterValidated') },
+    { value: 'draft', label: t('organizer.myEvents.filterDraft') },
+    { value: 'submitted', label: t('organizer.myEvents.filterSubmitted') },
+    { value: 'rejected', label: t('organizer.myEvents.filterRejected') },
+    { value: 'completed', label: t('organizer.myEvents.filterCompleted') },
+  ], [t]);
   const { columns, padding: containerPadding, cardGap } = useTabletLayout();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? colors.gray100 : colors.gray50;
@@ -113,11 +124,11 @@ export default function MyEventsScreen() {
     const interval = parseInt(recurrenceInterval, 10);
     const count = parseInt(recurrenceCount, 10);
     if (!Number.isFinite(interval) || interval < 1) {
-      showError('Intervalle invalide', 'L\'intervalle doit être au moins 1.');
+      showError(t('organizer.myEvents.intervalInvalidTitle'), t('organizer.myEvents.intervalInvalidMessage'));
       return;
     }
     if (!Number.isFinite(count) || count < 1 || count > 52) {
-      showError('Nombre invalide', 'Entre 1 et 52 occurrences.');
+      showError(t('organizer.myEvents.countInvalidTitle'), t('organizer.myEvents.countInvalidMessage'));
       return;
     }
     setRecurrenceLoading(true);
@@ -131,12 +142,12 @@ export default function MyEventsScreen() {
       await fetchEvents(true);
       if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
       showSuccess(
-        'Récurrence créée',
-        `${count} occurrence${count > 1 ? 's' : ''} programmée${count > 1 ? 's' : ''}.`,
+        t('organizer.myEvents.recurrenceCreatedTitle'),
+        t('organizer.myEvents.recurrenceCreatedMessage', { count }),
       );
       setRecurrenceTarget(null);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de créer la récurrence.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.myEvents.recurrenceError'));
     } finally {
       setRecurrenceLoading(false);
     }
@@ -198,17 +209,17 @@ export default function MyEventsScreen() {
 
   const handleDeleteEvent = (eventId: string) => {
     showConfirm(
-      'Supprimer l\'événement',
-      'Êtes-vous sûr de vouloir supprimer cet événement ? Cette action est irréversible.',
+      t('organizer.myEvents.deleteTitle'),
+      t('organizer.myEvents.deleteMessage'),
       async () => {
         try {
           await eventsAPI.deleteEvent(eventId);
           setEvents(prev => prev.filter(e => e.id !== eventId));
           if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
-          showSuccess('Succès', 'Événement supprimé');
+          showSuccess(t('common.success'), t('organizer.myEvents.deleteSuccess'));
         } catch (error) {
           if (__DEV__) console.error('Erreur suppression:', error);
-          showError('Erreur', 'Impossible de supprimer l\'événement');
+          showError(t('common.error'), t('organizer.myEvents.deleteError'));
         }
       }
     );
@@ -224,7 +235,7 @@ export default function MyEventsScreen() {
 
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (perm.status !== 'granted') {
-        showError('Permission requise', "Autorise l'accès à la galerie pour ajouter des photos.");
+        showError(t('organizer.myEvents.permissionTitle'), t('organizer.myEvents.permissionMessage'));
         return;
       }
 
@@ -263,25 +274,25 @@ export default function MyEventsScreen() {
       await eventsAPI.uploadImages(event.id, formData);
       if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
       showSuccess(
-        'Photos ajoutées',
-        `${compressed.length} photo${compressed.length > 1 ? 's' : ''} envoyée${compressed.length > 1 ? 's' : ''}.`,
+        t('organizer.myEvents.photosAddedTitle'),
+        t('organizer.myEvents.photosAddedMessage', { count: compressed.length }),
       );
     } catch (error: any) {
       if (__DEV__) console.error('Erreur upload photos:', error);
-      showError('Erreur', error.response?.data?.detail || "Impossible d'ajouter les photos");
+      showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.photosError'));
     }
   };
 
   const handleRequestFeature = (event: Event) => {
     showConfirm(
-      'Mise en avant',
-      `Demander la mise en avant de "${event.title}" ? Notre équipe sera notifiée et te répondra sous 48h.`,
+      t('organizer.myEvents.featureTitle'),
+      t('organizer.myEvents.featureMessage', { title: event.title }),
       async () => {
         try {
           await eventsAPI.requestFeature(event.id);
-          showSuccess('Demande envoyée', "L'équipe EventEz a été notifiée.");
+          showSuccess(t('organizer.myEvents.featureSentTitle'), t('organizer.myEvents.featureSentMessage'));
         } catch (error: any) {
-          showError('Erreur', error.response?.data?.detail || "Impossible d'envoyer la demande");
+          showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.featureError'));
         }
       },
     );
@@ -303,10 +314,10 @@ export default function MyEventsScreen() {
         await fetchEvents(true);
       }
       if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
-      showSuccess('Événement dupliqué', 'Un nouveau brouillon a été créé.');
+      showSuccess(t('organizer.myEvents.duplicatedTitle'), t('organizer.myEvents.duplicatedMessage'));
     } catch (error: any) {
       if (__DEV__) console.error('Erreur duplication:', error);
-      showError('Erreur', error.response?.data?.detail || "Impossible de dupliquer l'événement");
+      showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.duplicateError'));
     } finally {
       setDuplicateLoading(null);
     }
@@ -327,7 +338,7 @@ export default function MyEventsScreen() {
     if (!cancelEventTarget) return;
     const reason = cancelReason.trim();
     if (!reason) {
-      showError('Raison requise', 'Indique une raison qui sera communiquée aux inscrits.');
+      showError(t('organizer.myEvents.reasonRequiredTitle'), t('organizer.myEvents.reasonRequiredMessage'));
       return;
     }
     setCancelLoading(true);
@@ -337,12 +348,12 @@ export default function MyEventsScreen() {
         e.id === cancelEventTarget.id ? { ...e, status: 'cancelled' } : e,
       ));
       if (user?.id) CacheService.invalidate(`my-events:${user.id}`);
-      showSuccess('Événement annulé', 'Les inscrits seront notifiés.');
+      showSuccess(t('organizer.myEvents.cancelledTitle'), t('organizer.myEvents.cancelledMessage'));
       setCancelEventTarget(null);
       setCancelReason('');
     } catch (error: any) {
       if (__DEV__) console.error('Erreur annulation:', error);
-      showError('Erreur', error.response?.data?.detail || "Impossible d'annuler l'événement");
+      showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.cancelError'));
     } finally {
       setCancelLoading(false);
     }
@@ -350,18 +361,18 @@ export default function MyEventsScreen() {
 
   const handleSubmitForValidation = (eventId: string) => {
     showConfirm(
-      'Soumettre pour validation',
-      'Voulez-vous soumettre cet événement pour validation ?',
+      t('organizer.myEvents.submitTitle'),
+      t('organizer.myEvents.submitMessage'),
       async () => {
         try {
           await eventsAPI.submitForValidation(eventId);
           setEvents(prev => prev.map(e =>
             e.id === eventId ? { ...e, status: 'submitted' } : e
           ));
-          showSuccess('Succès', 'Événement soumis pour validation');
+          showSuccess(t('common.success'), t('organizer.myEvents.submitSuccess'));
         } catch (error: any) {
           if (__DEV__) console.error('Erreur soumission:', error);
-          showError('Erreur', error.response?.data?.detail || 'Impossible de soumettre l\'événement');
+          showError(t('common.error'), error.response?.data?.detail || t('organizer.myEvents.submitError'));
         }
       }
     );
@@ -380,11 +391,11 @@ export default function MyEventsScreen() {
 
   const getLocationDisplay = (event: Event) => {
     if (event.location_type === 'online') {
-      return { icon: 'videocam-outline' as const, text: 'En ligne', color: '#3B82F6' };
+      return { icon: 'videocam-outline' as const, text: t('organizer.myEvents.online'), color: '#3B82F6' };
     } else if (event.location_type === 'hybrid') {
-      return { icon: 'globe-outline' as const, text: `${event.location_city || 'Hybride'} + En ligne`, color: '#6366F1' };
+      return { icon: 'globe-outline' as const, text: `${event.location_city || t('organizer.myEvents.hybrid')} + ${t('organizer.myEvents.online')}`, color: '#6366F1' };
     }
-    return { icon: 'location-outline' as const, text: event.location_city || 'Non spécifié', color: colors.gray500 };
+    return { icon: 'location-outline' as const, text: event.location_city || t('organizer.myEvents.notSpecified'), color: colors.gray500 };
   };
 
   /**
@@ -409,7 +420,7 @@ export default function MyEventsScreen() {
     // ─── Suivi : visible sur tous les events ───
     const trackingActions: EventAction[] = [
       {
-        label: "Voir l'événement",
+        label: t('organizer.myEvents.actions.view'),
         icon: 'eye-outline',
         onPress: () => navigation.navigate('EventDetails', { eventId: event.id }),
       },
@@ -417,40 +428,40 @@ export default function MyEventsScreen() {
     if (event.status === 'validated') {
       trackingActions.push(
         {
-          label: 'Scanner QR (Check-in)',
+          label: t('organizer.myEvents.actions.scanQR'),
           icon: 'qr-code-outline',
           onPress: () => navigation.navigate('QRScanner', { eventId: event.id }),
         },
         {
-          label: 'Statistiques',
+          label: t('organizer.myEvents.actions.stats'),
           icon: 'stats-chart-outline',
           onPress: () => navigation.navigate('EventAnalytics', { eventId: event.id }),
         },
         {
-          label: 'Inscriptions',
+          label: t('organizer.myEvents.actions.registrations'),
           icon: 'people-outline',
           onPress: () => navigation.navigate('EventRegistrations', { eventId: event.id }),
         },
       );
     }
-    sections.push({ title: 'Suivi', actions: trackingActions });
+    sections.push({ title: t('organizer.myEvents.sectionTracking'), actions: trackingActions });
 
     // ─── Configuration : promo + médias ───
     const configActions: EventAction[] = [];
     if (event.status === 'validated' || event.status === 'draft') {
       configActions.push(
         {
-          label: 'Codes promo',
+          label: t('organizer.myEvents.actions.discountCodes'),
           icon: 'pricetag-outline',
           onPress: () => navigation.navigate('DiscountManagement', { eventId: event.id }),
         },
         {
-          label: 'Lier billets aux sessions',
+          label: t('organizer.myEvents.actions.linkSessions'),
           icon: 'link-outline',
           onPress: () => navigation.navigate('EventSessionsLink', { eventId: event.id }),
         },
         {
-          label: 'Ajouter des photos',
+          label: t('organizer.myEvents.actions.addPhotos'),
           icon: 'images-outline',
           onPress: () => handleAddPhotos(event),
         },
@@ -459,41 +470,41 @@ export default function MyEventsScreen() {
     if (event.status === 'validated') {
       configActions.push(
         {
-          label: 'Bénévoles',
+          label: t('organizer.myEvents.actions.volunteers'),
           icon: 'hand-left-outline',
           onPress: () => navigation.navigate('Volunteers', { eventId: event.id }),
         },
         {
-          label: 'Sponsors',
+          label: t('organizer.myEvents.actions.sponsors'),
           icon: 'briefcase-outline',
           onPress: () => navigation.navigate('SponsorManagement', { eventId: event.id }),
         },
         {
-          label: 'Plans de placement',
+          label: t('organizer.myEvents.actions.seatingPlans'),
           icon: 'grid-outline',
           onPress: () => navigation.navigate('SeatingPlans', { eventId: event.id }),
         },
       );
     }
     if (configActions.length > 0) {
-      sections.push({ title: 'Configuration', actions: configActions });
+      sections.push({ title: t('organizer.myEvents.sectionConfig'), actions: configActions });
     }
 
     // ─── Promotion : visibilité + récurrence ───
     if (event.status === 'validated') {
       const promoActions: EventAction[] = [
         {
-          label: 'Demander mise en avant',
+          label: t('organizer.myEvents.actions.requestFeature'),
           icon: 'star-outline',
-          description: 'Notifier les admins',
+          description: t('organizer.myEvents.actions.requestFeatureDesc'),
           onPress: () => handleRequestFeature(event),
         },
       ];
       if (!(event as any).is_recurring) {
         promoActions.push({
-          label: 'Programmer des occurrences',
+          label: t('organizer.myEvents.actions.scheduleRecurrence'),
           icon: 'repeat-outline',
-          description: 'Récurrence hebdo / mensuelle',
+          description: t('organizer.myEvents.actions.scheduleRecurrenceDesc'),
           onPress: () => {
             setRecurrenceFrequency('weekly');
             setRecurrenceInterval('1');
@@ -502,52 +513,52 @@ export default function MyEventsScreen() {
           },
         });
       }
-      sections.push({ title: 'Promotion', actions: promoActions });
+      sections.push({ title: t('organizer.myEvents.sectionPromotion'), actions: promoActions });
     }
 
     // ─── Actions sur l'event ───
     const eventActions: EventAction[] = [];
     if (event.status === 'draft' || event.status === 'rejected') {
       eventActions.push({
-        label: 'Modifier',
+        label: t('common.edit'),
         icon: 'create-outline',
         onPress: () => navigation.navigate('EventEdit', { eventId: event.id }),
       });
     }
     if (event.status === 'draft') {
       eventActions.push({
-        label: 'Soumettre pour validation',
+        label: t('organizer.myEvents.actions.submitForValidation'),
         icon: 'send-outline',
         onPress: () => handleSubmitForValidation(event.id),
       });
     }
     if (event.status !== 'cancelled') {
       eventActions.push({
-        label: 'Dupliquer',
+        label: t('organizer.myEvents.actions.duplicate'),
         icon: 'copy-outline',
         onPress: () => handleDuplicateEvent(event),
       });
     }
     if (event.status === 'validated' || event.status === 'submitted') {
       eventActions.push({
-        label: "Annuler l'événement",
+        label: t('organizer.myEvents.actions.cancelEvent'),
         icon: 'close-circle-outline',
         style: 'destructive',
-        description: 'Notifie les inscrits',
+        description: t('organizer.myEvents.actions.cancelEventDesc'),
         onPress: () => openCancelModal(event),
       });
     }
     eventActions.push({
-      label: 'Supprimer',
+      label: t('common.delete'),
       icon: 'trash-outline',
       style: 'destructive',
-      description: 'Action irréversible',
+      description: t('organizer.myEvents.actions.deleteDesc'),
       onPress: () => handleDeleteEvent(event.id),
     });
-    sections.push({ title: 'Actions', actions: eventActions });
+    sections.push({ title: t('organizer.myEvents.sectionActions'), actions: eventActions });
 
     return sections;
-  }, [actionsSheetEvent, navigation]);
+  }, [actionsSheetEvent, navigation, t]);
 
   const renderEvent = ({ item, index }: { item: Event; index: number }) => {
     const config = statusConfig[item.status] || statusConfig.draft;
@@ -556,13 +567,13 @@ export default function MyEventsScreen() {
     const day = String(startDate.getDate()).padStart(2, '0');
     const month = startDate.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '').toUpperCase();
     const time = startDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-    const statusEyebrow = item.status === 'validated' ? 'EN LIGNE' :
-                          item.status === 'submitted' ? 'EN ATTENTE' :
-                          item.status === 'changes_requested' ? 'À CORRIGER' :
-                          item.status === 'draft' ? 'BROUILLON' :
-                          item.status === 'rejected' ? 'REJETÉ' :
-                          item.status === 'completed' ? 'TERMINÉ' :
-                          item.status === 'cancelled' ? 'ANNULÉ' : 'PUBLIÉ';
+    const statusEyebrow = item.status === 'validated' ? t('organizer.myEvents.eyebrowOnline') :
+                          item.status === 'submitted' ? t('organizer.myEvents.eyebrowPending') :
+                          item.status === 'changes_requested' ? t('organizer.myEvents.eyebrowChanges') :
+                          item.status === 'draft' ? t('organizer.myEvents.eyebrowDraft') :
+                          item.status === 'rejected' ? t('organizer.myEvents.eyebrowRejected') :
+                          item.status === 'completed' ? t('organizer.myEvents.eyebrowCompleted') :
+                          item.status === 'cancelled' ? t('organizer.myEvents.eyebrowCancelled') : t('organizer.myEvents.eyebrowPublished');
 
     return (
       <StaggeredItem index={index}>
@@ -576,7 +587,7 @@ export default function MyEventsScreen() {
           onLongPress={() => showEventActions(item)}
           activeOpacity={0.92}
           accessibilityRole="button"
-          accessibilityLabel={`Evenement ${item.title}`}
+          accessibilityLabel={t('organizer.myEvents.eventA11y', { title: item.title })}
         >
           {/* === BANNER WITH OVERLAY === */}
           <View style={styles.imageWrap}>
@@ -643,22 +654,22 @@ export default function MyEventsScreen() {
               <Text style={[styles.statBlockValueE, { color: colors.text }]} numberOfLines={1}>
                 {formatCompactNumber(item.registration_count || item.registrations_count, { fallbackZero: true })}
               </Text>
-              <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>INSCRITS</Text>
+              <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>{t('organizer.myEvents.statsRegistered')}</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: hairline }]} />
             <View style={styles.statBlockE}>
               <Text style={[styles.statBlockValueE, { color: colors.text }]} numberOfLines={1}>
                 {formatCompactNumber(item.view_count, { fallbackZero: true })}
               </Text>
-              <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>VUES</Text>
+              <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>{t('organizer.myEvents.statsViews')}</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: hairline }]} />
             <View style={styles.statBlockE}>
               <Text style={[styles.statBlockValueE, { color: colors.primary }]}>
-                {item.is_free ? 'FREE' : `${item.base_price?.toLocaleString() || 0}`}
+                {item.is_free ? t('organizer.myEvents.freeShort') : `${item.base_price?.toLocaleString() || 0}`}
               </Text>
               <Text style={[styles.statBlockLabelE, { color: colors.gray500 }]}>
-                {item.is_free ? 'GRATUIT' : (item.currency || 'XAF')}
+                {item.is_free ? t('organizer.myEvents.freeLabel') : (item.currency || 'XAF')}
               </Text>
             </View>
           </View>
@@ -688,7 +699,7 @@ export default function MyEventsScreen() {
                     marginBottom: 2,
                   }}
                 >
-                  NOTE DU MODÉRATEUR
+                  {t('organizer.myEvents.moderatorNoteTitle')}
                 </Text>
                 <Text
                   style={{
@@ -728,7 +739,7 @@ export default function MyEventsScreen() {
                     marginBottom: 2,
                   }}
                 >
-                  RAISON DU REJET
+                  {t('organizer.myEvents.rejectionReasonTitle')}
                 </Text>
                 <Text
                   style={{
@@ -753,7 +764,7 @@ export default function MyEventsScreen() {
                   onPress={() => navigation.navigate('QRScanner', { eventId: item.id })}
                   activeOpacity={0.85}
                   accessibilityRole="button"
-                  accessibilityLabel="Scanner QR code"
+                  accessibilityLabel={t('organizer.myEvents.scanQRA11y')}
                 >
                   <LinearGradient
                     colors={[colors.primary, colors.primaryDark]}
@@ -762,14 +773,14 @@ export default function MyEventsScreen() {
                     style={StyleSheet.absoluteFill}
                   />
                   <Ionicons name="qr-code" size={14} color={Colors.white} />
-                  <Text style={styles.primaryActionPillText}>Scanner</Text>
+                  <Text style={styles.primaryActionPillText}>{t('organizer.myEvents.scan')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.actionChipE, { backgroundColor: colors.gray100 }]}
                   onPress={() => navigation.navigate('EventRegistrations', { eventId: item.id })}
                   activeOpacity={0.85}
                   accessibilityRole="button"
-                  accessibilityLabel="Voir les inscrits"
+                  accessibilityLabel={t('organizer.myEvents.viewRegistrationsA11y')}
                 >
                   <Ionicons name="people-outline" size={14} color={colors.gray700} />
                 </TouchableOpacity>
@@ -778,7 +789,7 @@ export default function MyEventsScreen() {
                   onPress={() => navigation.navigate('EventAnalytics', { eventId: item.id })}
                   activeOpacity={0.85}
                   accessibilityRole="button"
-                  accessibilityLabel="Voir les statistiques"
+                  accessibilityLabel={t('organizer.myEvents.viewStatsA11y')}
                 >
                   <Ionicons name="stats-chart-outline" size={14} color={colors.gray700} />
                 </TouchableOpacity>
@@ -791,7 +802,7 @@ export default function MyEventsScreen() {
                 onPress={() => handleSubmitForValidation(item.id)}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Publier l'evenement"
+                accessibilityLabel={t('organizer.myEvents.publishA11y')}
               >
                 <LinearGradient
                   colors={[colors.primary, colors.primaryDark]}
@@ -800,7 +811,7 @@ export default function MyEventsScreen() {
                   style={StyleSheet.absoluteFill}
                 />
                 <Ionicons name="send" size={14} color={Colors.white} />
-                <Text style={styles.primaryActionPillText}>Publier</Text>
+                <Text style={styles.primaryActionPillText}>{t('organizer.myEvents.publish')}</Text>
               </TouchableOpacity>
             )}
 
@@ -810,7 +821,7 @@ export default function MyEventsScreen() {
                 onPress={() => navigation.navigate('EventEdit', { eventId: item.id })}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Modifier l'evenement"
+                accessibilityLabel={t('organizer.myEvents.editA11y')}
               >
                 <Ionicons name="create-outline" size={14} color={colors.gray700} />
               </TouchableOpacity>
@@ -823,7 +834,7 @@ export default function MyEventsScreen() {
               onPress={() => showEventActions(item)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Plus d'actions"
+              accessibilityLabel={t('organizer.myEvents.moreActionsA11y')}
             >
               <Ionicons name="ellipsis-horizontal" size={14} color={colors.gray700} />
             </TouchableOpacity>
@@ -867,7 +878,7 @@ export default function MyEventsScreen() {
           activeOpacity={0.75}
           accessibilityRole="tab"
           accessibilityState={{ selected: active }}
-          accessibilityLabel={`Filtre ${item.label}`}
+          accessibilityLabel={t('organizer.myEvents.filterA11y', { label: item.label })}
         >
           {item.value !== 'all' && (
             <View
@@ -907,22 +918,22 @@ export default function MyEventsScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.gray600} />
         </TouchableOpacity>
         <View style={styles.headerTextCol}>
           <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
-            CATALOGUE • ORGANISATEUR
+            {t('organizer.myEvents.eyebrow')}
           </Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Events</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.myEvents.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: colors.gray100, marginRight: 8 }]}
           onPress={() => navigation.navigate('Drafts' as any)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Mes brouillons"
+          accessibilityLabel={t('organizer.myEvents.draftsA11y')}
         >
           <Ionicons name="document-text-outline" size={18} color={colors.gray600} />
         </TouchableOpacity>
@@ -931,7 +942,7 @@ export default function MyEventsScreen() {
           onPress={() => navigation.navigate('EventCreate')}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Creer un evenement"
+          accessibilityLabel={t('organizer.myEvents.createA11y')}
         >
           <LinearGradient
             colors={[colors.primary, colors.primaryDark]}
@@ -951,15 +962,15 @@ export default function MyEventsScreen() {
         <EventsIllustration color={colors.primary} size={160} />
       </AnimatedIllustration>
       <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>
-        {searchQuery || filter !== 'all' ? 'AUCUN RÉSULTAT' : 'CATALOGUE VIDE'}
+        {searchQuery || filter !== 'all' ? t('organizer.myEvents.emptyEyebrowResults') : t('organizer.myEvents.emptyEyebrowCatalog')}
       </Text>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        {searchQuery || filter !== 'all' ? 'Aucun événement trouvé' : 'Démarre ton aventure'}
+        {searchQuery || filter !== 'all' ? t('organizer.myEvents.emptyTitleResults') : t('organizer.myEvents.emptyTitleStart')}
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filter !== 'all'
-          ? 'Essayez de modifier vos critères de recherche'
-          : 'Créez votre premier événement pour commencer.\nC\'est rapide et 100% gratuit.'}
+          ? t('organizer.myEvents.emptyTextResults')
+          : t('organizer.myEvents.emptyTextStart')}
       </Text>
       {!searchQuery && filter === 'all' && (
         <TouchableOpacity
@@ -967,7 +978,7 @@ export default function MyEventsScreen() {
           onPress={() => navigation.navigate('EventCreate')}
           activeOpacity={0.9}
           accessibilityRole="button"
-          accessibilityLabel="Creer un evenement"
+          accessibilityLabel={t('organizer.myEvents.createA11y')}
         >
           <LinearGradient
             colors={[colors.primary, colors.primaryDark]}
@@ -976,8 +987,8 @@ export default function MyEventsScreen() {
             style={StyleSheet.absoluteFill}
           />
           <View style={{ flex: 1 }}>
-            <Text style={styles.createPillEyebrow}>NOUVEAU EVENT</Text>
-            <Text style={styles.createPillLabel}>Créer mon premier event</Text>
+            <Text style={styles.createPillEyebrow}>{t('organizer.myEvents.createPillEyebrow')}</Text>
+            <Text style={styles.createPillLabel}>{t('organizer.myEvents.createPillLabel')}</Text>
           </View>
           <View style={styles.createPillArrow}>
             <Ionicons name="arrow-forward" size={16} color={Colors.white} />
@@ -1012,25 +1023,25 @@ export default function MyEventsScreen() {
       >
         <View style={[styles.statItem, { borderRightColor: hairline }]}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>TOTAL</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.myEvents.statTotal')}</Text>
         </View>
         <View style={[styles.statItem, { borderRightColor: hairline }]}>
           <View style={styles.statValueRow}>
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.validated}</Text>
             {stats.validated > 0 && <View style={[styles.statDot, { backgroundColor: '#10B981' }]} />}
           </View>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>VALIDÉS</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.myEvents.statValidated')}</Text>
         </View>
         <View style={[styles.statItem, { borderRightColor: hairline }]}>
           <View style={styles.statValueRow}>
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.submitted}</Text>
             {stats.submitted > 0 && <View style={[styles.statDot, { backgroundColor: '#F59E0B' }]} />}
           </View>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>EN ATTENTE</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.myEvents.statPending')}</Text>
         </View>
         <View style={styles.statItemLast}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats.draft}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>BROUILLONS</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.myEvents.statDrafts')}</Text>
         </View>
       </View>
 
@@ -1040,14 +1051,14 @@ export default function MyEventsScreen() {
           <Ionicons name="search" size={16} color={colors.gray400} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Rechercher un événement..."
+            placeholder={t('organizer.myEvents.searchPlaceholder')}
             placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            accessibilityLabel="Rechercher mes evenements"
+            accessibilityLabel={t('organizer.myEvents.searchA11y')}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel="Effacer la recherche">
+            <TouchableOpacity onPress={() => setSearchQuery('')} accessibilityLabel={t('organizer.myEvents.clearSearchA11y')}>
               <Ionicons name="close-circle" size={16} color={colors.gray400} />
             </TouchableOpacity>
           )}
@@ -1106,13 +1117,12 @@ export default function MyEventsScreen() {
       >
         <View style={styles.cancelModalBackdrop}>
           <View style={[styles.cancelModalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cancelModalEyebrow, { color: '#EF4444' }]}>ACTION IRRÉVERSIBLE</Text>
+            <Text style={[styles.cancelModalEyebrow, { color: '#EF4444' }]}>{t('organizer.myEvents.cancelEyebrow')}</Text>
             <Text style={[styles.cancelModalTitle, { color: colors.text }]}>
-              Annuler "{cancelEventTarget?.title}" ?
+              {t('organizer.myEvents.cancelModalTitle', { title: cancelEventTarget?.title || '' })}
             </Text>
             <Text style={[styles.cancelModalBody, { color: colors.gray500 }]}>
-              Tous les inscrits seront notifiés. La raison ci-dessous apparaîtra
-              dans l'email + la notification push.
+              {t('organizer.myEvents.cancelModalBody')}
             </Text>
             <TextInput
               style={[
@@ -1125,7 +1135,7 @@ export default function MyEventsScreen() {
               ]}
               value={cancelReason}
               onChangeText={setCancelReason}
-              placeholder="Ex : conditions sanitaires, indisponibilité du lieu…"
+              placeholder={t('organizer.myEvents.cancelReasonPlaceholder')}
               placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={4}
@@ -1140,7 +1150,7 @@ export default function MyEventsScreen() {
                 disabled={cancelLoading}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>Garder</Text>
+                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>{t('organizer.myEvents.keepBtn')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.cancelModalBtn, { backgroundColor: '#EF4444' }, cancelLoading && { opacity: 0.6 }]}
@@ -1151,7 +1161,7 @@ export default function MyEventsScreen() {
                 {cancelLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>Annuler l'événement</Text>
+                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>{t('organizer.myEvents.cancelEventBtn')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1168,19 +1178,19 @@ export default function MyEventsScreen() {
       >
         <View style={styles.cancelModalBackdrop}>
           <View style={[styles.cancelModalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.cancelModalEyebrow, { color: colors.accent }]}>RÉCURRENCE</Text>
+            <Text style={[styles.cancelModalEyebrow, { color: colors.accent }]}>{t('organizer.myEvents.recurrenceEyebrow')}</Text>
             <Text style={[styles.cancelModalTitle, { color: colors.text }]}>
-              Programmer "{recurrenceTarget?.title}"
+              {t('organizer.myEvents.recurrenceModalTitle', { title: recurrenceTarget?.title || '' })}
             </Text>
             <Text style={[styles.cancelModalBody, { color: colors.gray500 }]}>
-              Crée plusieurs occurrences à partir de cet événement. Chaque occurrence est un nouvel event indépendant que tu peux ajuster.
+              {t('organizer.myEvents.recurrenceModalBody')}
             </Text>
 
             {/* Fréquence */}
             <View style={{ flexDirection: 'row', gap: 6, marginBottom: Spacing.md }}>
               {(['daily', 'weekly', 'monthly'] as const).map(f => {
                 const active = f === recurrenceFrequency;
-                const label = f === 'daily' ? 'Quotidien' : f === 'weekly' ? 'Hebdo' : 'Mensuel';
+                const label = f === 'daily' ? t('organizer.myEvents.freqDaily') : f === 'weekly' ? t('organizer.myEvents.freqWeekly') : t('organizer.myEvents.freqMonthly');
                 return (
                   <TouchableOpacity
                     key={f}
@@ -1212,7 +1222,7 @@ export default function MyEventsScreen() {
             <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: FontFamily.bold, fontSize: 11, color: colors.gray500, marginBottom: 6, letterSpacing: 0.8 }}>
-                  TOUS LES
+                  {t('organizer.myEvents.recurrenceEvery')}
                 </Text>
                 <TextInput
                   style={[styles.cancelModalInput, { backgroundColor: inputBg, borderColor: hairline, color: colors.text, minHeight: 0, paddingVertical: 12 }]}
@@ -1224,7 +1234,7 @@ export default function MyEventsScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontFamily: FontFamily.bold, fontSize: 11, color: colors.gray500, marginBottom: 6, letterSpacing: 0.8 }}>
-                  OCCURRENCES
+                  {t('organizer.myEvents.recurrenceOccurrences')}
                 </Text>
                 <TextInput
                   style={[styles.cancelModalInput, { backgroundColor: inputBg, borderColor: hairline, color: colors.text, minHeight: 0, paddingVertical: 12 }]}
@@ -1243,7 +1253,7 @@ export default function MyEventsScreen() {
                 disabled={recurrenceLoading}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.cancelModalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.cancelModalBtn, { backgroundColor: colors.primary }, recurrenceLoading && { opacity: 0.6 }]}
@@ -1254,7 +1264,7 @@ export default function MyEventsScreen() {
                 {recurrenceLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>Programmer</Text>
+                  <Text style={[styles.cancelModalBtnText, { color: '#fff' }]}>{t('organizer.myEvents.scheduleBtn')}</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1267,7 +1277,7 @@ export default function MyEventsScreen() {
         visible={!!actionsSheetEvent}
         onClose={() => setActionsSheetEvent(null)}
         title={actionsSheetEvent?.title || ''}
-        subtitle="Actions"
+        subtitle={t('organizer.myEvents.sectionActions')}
         sections={eventActionSections}
       />
     </EditorialCanvas>

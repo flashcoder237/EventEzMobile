@@ -24,6 +24,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import RoleGuard from '../../components/auth/RoleGuard';
@@ -39,14 +40,16 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function ClientReleaseAdminScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="VER" title="Versions client">
+    <RoleGuard allow={['admin']} watermark={t('admin.clientRelease.watermark')} title={t('admin.clientRelease.guardTitle')}>
       <ClientReleaseAdminContent />
     </RoleGuard>
   );
 }
 
 function ClientReleaseAdminContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showError, showSuccess } = useAlert();
@@ -76,7 +79,7 @@ function ClientReleaseAdminContent() {
         setAndroidUrl(d.android_store_url || '');
       } catch (error: any) {
         const detail = error?.response?.data?.detail;
-        showError('Erreur', detail || 'Impossible de charger la configuration.');
+        showError(t('common.error'), detail || t('admin.clientRelease.loadError'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -84,7 +87,7 @@ function ClientReleaseAdminContent() {
     return () => {
       cancelled = true;
     };
-  }, [showError]);
+  }, [showError, t]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -96,16 +99,16 @@ function ClientReleaseAdminContent() {
         ios_store_url: iosUrl.trim(),
         android_store_url: androidUrl.trim(),
       });
-      showSuccess('Configuration enregistrée');
+      showSuccess(t('admin.clientRelease.saveSuccess'));
       navigation.goBack();
     } catch (error: any) {
       const data = error?.response?.data;
       const firstError =
         (data && typeof data === 'object' && Object.values(data)[0]) ||
         data?.detail ||
-        'Échec de la sauvegarde.';
+        t('admin.clientRelease.saveError');
       const msg = Array.isArray(firstError) ? String(firstError[0]) : String(firstError);
-      showError('Erreur', msg);
+      showError(t('common.error'), msg);
     } finally {
       setSaving(false);
     }
@@ -132,8 +135,8 @@ function ClientReleaseAdminContent() {
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>FORCE UPDATE</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Versions client</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.clientRelease.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.clientRelease.title')}</Text>
         </View>
       </View>
 
@@ -149,11 +152,11 @@ function ClientReleaseAdminContent() {
           <View style={[styles.alertBox, { backgroundColor: '#F59E0B22', borderColor: '#F59E0B' }]}>
             <Ionicons name="warning" size={18} color="#F59E0B" />
             <Text style={[styles.alertText, { color: colors.text }]}>
-              Toute version inférieure à <Text style={{ fontFamily: FontFamily.bold }}>min. supportée</Text> sera bloquée par un modal qui force la mise à jour.
+              {t('admin.clientRelease.alertPart1')}<Text style={{ fontFamily: FontFamily.bold }}>{t('admin.clientRelease.alertHighlight')}</Text>{t('admin.clientRelease.alertPart2')}
             </Text>
           </View>
 
-          <Field label="Version minimum supportée" colors={colors} hint="Format semver (1.2.0). Vide = aucun gate.">
+          <Field label={t('admin.clientRelease.fieldMin')} colors={colors} hint={t('admin.clientRelease.fieldMinHint')}>
             <TextInput
               style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
               value={minVersion}
@@ -165,7 +168,7 @@ function ClientReleaseAdminContent() {
             />
           </Field>
 
-          <Field label="Dernière version disponible" colors={colors} hint="Indicatif — futures bannières 'mise à jour disponible'.">
+          <Field label={t('admin.clientRelease.fieldLatest')} colors={colors} hint={t('admin.clientRelease.fieldLatestHint')}>
             <TextInput
               style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
               value={latestVersion}
@@ -178,22 +181,22 @@ function ClientReleaseAdminContent() {
           </Field>
 
           <Field
-            label="Message du modal force-update"
+            label={t('admin.clientRelease.fieldMessage')}
             colors={colors}
-            hint="Affiché aux utilisateurs bloqués. Vide = texte par défaut."
+            hint={t('admin.clientRelease.fieldMessageHint')}
           >
             <TextInput
               style={[styles.input, styles.inputMulti, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
               value={forceMessage}
               onChangeText={setForceMessage}
-              placeholder="Cette version contient des correctifs de sécurité critiques..."
+              placeholder={t('admin.clientRelease.fieldMessagePlaceholder')}
               placeholderTextColor={colors.gray400}
               multiline
               textAlignVertical="top"
             />
           </Field>
 
-          <Field label="URL App Store (iOS)" colors={colors}>
+          <Field label={t('admin.clientRelease.fieldIos')} colors={colors}>
             <TextInput
               style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
               value={iosUrl}
@@ -206,7 +209,7 @@ function ClientReleaseAdminContent() {
             />
           </Field>
 
-          <Field label="URL Play Store (Android)" colors={colors}>
+          <Field label={t('admin.clientRelease.fieldAndroid')} colors={colors}>
             <TextInput
               style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
               value={androidUrl}
@@ -228,7 +231,7 @@ function ClientReleaseAdminContent() {
             {saving ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveBtnText}>Enregistrer</Text>
+              <Text style={styles.saveBtnText}>{t('admin.clientRelease.save')}</Text>
             )}
           </TouchableOpacity>
         </ScrollView>

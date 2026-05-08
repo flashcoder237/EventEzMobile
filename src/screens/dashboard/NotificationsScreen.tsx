@@ -498,8 +498,8 @@ export default function NotificationsScreen() {
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {filter === 'unread'
-          ? 'Toutes vos notifications ont été lues.'
-          : "Vous n'avez pas encore de notifications.\nElles apparaîtront ici."}
+          ? t('notifications.emptyAllReadText')
+          : t('notifications.emptyNoNotifText')}
       </Text>
     </View>
   );

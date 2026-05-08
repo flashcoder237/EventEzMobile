@@ -23,6 +23,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import RoleGuard from '../../components/auth/RoleGuard';
@@ -48,14 +49,16 @@ const SEVERITY_COLOR: Record<AnnouncementSeverity, string> = {
 };
 
 export default function AnnouncementsAdminScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="ANN" title="Annonces">
+    <RoleGuard allow={['admin']} watermark={t('admin.announcements.list.watermark')} title={t('admin.announcements.list.guardTitle')}>
       <AnnouncementsAdminContent />
     </RoleGuard>
   );
 }
 
 function AnnouncementsAdminContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showError, showConfirm, showSuccess } = useAlert();
@@ -73,7 +76,7 @@ function AnnouncementsAdminContent() {
       setItems(Array.isArray(data) ? data : []);
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      showError('Erreur', detail || 'Impossible de charger les annonces.');
+      showError(t('common.error'), detail || t('admin.announcements.list.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,16 +97,16 @@ function AnnouncementsAdminContent() {
 
   const handleDelete = (a: AnnouncementAdmin) => {
     showConfirm(
-      'Supprimer cette annonce ?',
-      `"${a.title}" sera retirée définitivement.`,
+      t('admin.announcements.list.deleteTitle'),
+      t('admin.announcements.list.deleteConfirm', { title: a.title }),
       async () => {
         try {
           await announcementsAPI.delete(a.id);
           setItems((prev) => prev.filter((x) => x.id !== a.id));
-          showSuccess('Supprimée');
+          showSuccess(t('admin.announcements.list.deleted'));
         } catch (error: any) {
           const detail = error?.response?.data?.detail;
-          showError('Erreur', detail || 'Suppression impossible.');
+          showError(t('common.error'), detail || t('admin.announcements.list.deleteError'));
         }
       },
     );
@@ -117,17 +120,17 @@ function AnnouncementsAdminContent() {
       setItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, ...updated } : x)));
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      showError('Erreur', detail || 'Impossible de mettre à jour le statut.');
+      showError(t('common.error'), detail || t('admin.announcements.list.statusUpdateError'));
     }
   };
 
   const renderItem = ({ item }: { item: AnnouncementAdmin }) => {
     const accent = SEVERITY_COLOR[item.severity] ?? SEVERITY_COLOR.info;
     const statusLabel = !item.is_published
-      ? 'Brouillon'
+      ? t('admin.announcements.list.statusDraft')
       : item.is_currently_valid
-        ? 'En cours'
-        : 'Hors fenêtre';
+        ? t('admin.announcements.list.statusValid')
+        : t('admin.announcements.list.statusOutOfWindow');
     const statusColor = !item.is_published
       ? colors.gray400
       : item.is_currently_valid
@@ -186,14 +189,14 @@ function AnnouncementsAdminContent() {
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>BROADCAST</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Annonces</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.announcements.list.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.announcements.list.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: colors.primary, borderColor: 'transparent' }, Shadows.sm]}
           onPress={() => navigation.navigate('AnnouncementForm', undefined)}
           activeOpacity={0.85}
-          accessibilityLabel="Nouvelle annonce"
+          accessibilityLabel={t('admin.announcements.list.newAnnouncement')}
         >
           <Ionicons name="add" size={20} color="#FFFFFF" />
         </TouchableOpacity>
@@ -215,9 +218,9 @@ function AnnouncementsAdminContent() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="megaphone-outline" size={48} color={colors.gray400} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucune annonce</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('admin.announcements.list.emptyTitle')}</Text>
               <Text style={[styles.emptyMessage, { color: colors.gray500 }]}>
-                Créez votre première annonce avec le bouton +.
+                {t('admin.announcements.list.emptyMessage')}
               </Text>
             </View>
           }

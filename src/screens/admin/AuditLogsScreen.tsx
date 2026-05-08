@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { auditAPI } from '../../api';
 import { AuditLog, AuditSeverity, RootStackParamList } from '../../types';
@@ -48,23 +49,24 @@ function buildDateRangeParams(range: DateFilter): Record<string, string> {
   };
 }
 
-const severityConfig: Record<string, { label: string; color: string; variant: 'default' | 'info' | 'warning' | 'destructive' }> = {
-  info: { label: 'Info', color: '#3B82F6', variant: 'info' },
-  warning: { label: 'Warning', color: '#F59E0B', variant: 'warning' },
-  error: { label: 'Erreur', color: '#EF4444', variant: 'destructive' },
-  critical: { label: 'Critique', color: '#DC2626', variant: 'destructive' },
-};
-
 export default function AuditLogsScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin', 'moderator']} watermark="LOG" title="Audit & journaux">
+    <RoleGuard allow={['admin', 'moderator']} watermark={t('admin.audit.watermark')} title={t('admin.audit.guardTitle')}>
       <AuditLogsContent />
     </RoleGuard>
   );
 }
 
 function AuditLogsContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
+  const severityConfig: Record<string, { label: string; color: string; variant: 'default' | 'info' | 'warning' | 'destructive' }> = {
+    info: { label: t('admin.audit.severity.info'), color: '#3B82F6', variant: 'info' },
+    warning: { label: t('admin.audit.severity.warning'), color: '#F59E0B', variant: 'warning' },
+    error: { label: t('admin.audit.severity.error'), color: '#EF4444', variant: 'destructive' },
+    critical: { label: t('admin.audit.severity.critical'), color: '#DC2626', variant: 'destructive' },
+  };
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -138,14 +140,14 @@ function AuditLogsContent() {
         </View>
         {item.target_display && (
           <Text style={[styles.logTarget, { color: colors.gray500 }]} numberOfLines={1}>
-            Cible: {item.target_display}
+            {t('admin.audit.target')}: {item.target_display}
           </Text>
         )}
         <View style={[styles.logFooter, { borderTopColor: hairline }]}>
           <View style={styles.logMeta}>
             <Ionicons name="person-outline" size={12} color={colors.gray400} />
             <Text style={[styles.logMetaText, { color: colors.gray500 }]}>
-              {item.user_display?.email || item.user_display?.name || `User #${item.user}`}
+              {item.user_display?.email || item.user_display?.name || t('admin.audit.user', { id: item.user })}
             </Text>
           </View>
           <Text style={[styles.logTime, { color: colors.gray400 }]}>
@@ -157,18 +159,18 @@ function AuditLogsContent() {
   };
 
   const filters: { key: SeverityFilter; label: string }[] = [
-    { key: 'all', label: 'Tous' },
-    { key: 'info', label: 'Info' },
-    { key: 'warning', label: 'Warning' },
-    { key: 'error', label: 'Erreur' },
-    { key: 'critical', label: 'Critique' },
+    { key: 'all', label: t('admin.audit.filters.all') },
+    { key: 'info', label: t('admin.audit.filters.info') },
+    { key: 'warning', label: t('admin.audit.filters.warning') },
+    { key: 'error', label: t('admin.audit.filters.error') },
+    { key: 'critical', label: t('admin.audit.filters.critical') },
   ];
 
   const dateFilters: { key: DateFilter; label: string }[] = [
-    { key: 'all', label: 'Tout' },
-    { key: '7d', label: '7 jours' },
-    { key: '30d', label: '30 jours' },
-    { key: '90d', label: '90 jours' },
+    { key: 'all', label: t('admin.audit.dateFilters.all') },
+    { key: '7d', label: t('admin.audit.dateFilters.7d') },
+    { key: '30d', label: t('admin.audit.dateFilters.30d') },
+    { key: '90d', label: t('admin.audit.dateFilters.90d') },
   ];
 
   return (
@@ -179,13 +181,13 @@ function AuditLogsContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TRAÇABILITÉ</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Logs d'audit</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.audit.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.audit.title')}</Text>
         </View>
         <ExportButton
           endpoint="/audit/logs/export/"
@@ -206,7 +208,7 @@ function AuditLogsContent() {
         >
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.total_logs || logs.length}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Total</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('admin.audit.stats.total')}</Text>
           </View>
           {Object.entries(stats.by_severity || {}).slice(0, 3).map(([sev, count]) => (
             <React.Fragment key={sev}>
@@ -237,7 +239,7 @@ function AuditLogsContent() {
                 onPress={() => setDateFilter(f.key)}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel={`Période : ${f.label}`}
+                accessibilityLabel={t('admin.audit.dateFilters.label', { label: f.label })}
               >
                 <Text style={[styles.filterText, { color: active ? '#FFFFFF' : colors.gray600 }]}>
                   {f.label}
@@ -284,7 +286,7 @@ function AuditLogsContent() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="shield-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucun log d'audit</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.audit.empty')}</Text>
           </View>
         }
       />

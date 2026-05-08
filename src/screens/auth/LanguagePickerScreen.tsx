@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { changeLanguage, LANGUAGE_STORAGE_KEY } from '../../i18n';
+import { usersAPI } from '../../api';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, Spacing } from '../../constants/theme';
@@ -67,6 +68,14 @@ export default function LanguagePickerScreen({ onComplete }: Props) {
       await changeLanguage(lang);
     } catch (error) {
       if (__DEV__) console.error('[LanguagePicker] persist failed', error);
+    }
+    // Best-effort backend sync : au tout premier launch l'user n'est probablement
+    // pas encore authentifié → 401 attendu, on swallow silently. Sinon ça
+    // synchronise la préférence pour les emails/factures/notifications.
+    try {
+      await usersAPI.updateLanguage(lang);
+    } catch {
+      /* user pas authentifié au premier launch — c'est attendu */
     }
     onComplete(lang);
   };

@@ -29,6 +29,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import RoleGuard from '../../components/auth/RoleGuard';
@@ -49,36 +50,17 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'AnnouncementForm'>;
 type ScreenRoute = RouteProp<RootStackParamList, 'AnnouncementForm'>;
 
-const SEVERITY_OPTIONS: { value: AnnouncementSeverity; label: string; color: string }[] = [
-  { value: 'info', label: 'Info', color: '#3B82F6' },
-  { value: 'warning', label: 'Avertissement', color: '#F59E0B' },
-  { value: 'critical', label: 'Critique', color: '#EF4444' },
-];
-
-const AUDIENCE_OPTIONS: { value: AnnouncementAudience; label: string }[] = [
-  { value: 'all', label: 'Tous' },
-  { value: 'users', label: 'Utilisateurs' },
-  { value: 'organizers', label: 'Organisateurs' },
-  { value: 'admins', label: 'Admins' },
-];
-
-const PLATFORM_OPTIONS: { value: AnnouncementPlatform; label: string }[] = [
-  { value: 'all', label: 'Tout' },
-  { value: 'mobile', label: 'Mobile' },
-  { value: 'mobile_ios', label: 'iOS' },
-  { value: 'mobile_android', label: 'Android' },
-  { value: 'web', label: 'Web' },
-];
-
 export default function AnnouncementFormScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="ANN" title="Annonce">
+    <RoleGuard allow={['admin']} watermark={t('admin.announcements.form.watermark')} title={t('admin.announcements.form.guardTitle')}>
       <AnnouncementFormContent />
     </RoleGuard>
   );
 }
 
 function AnnouncementFormContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<ScreenRoute>();
   const announcementId = route.params?.announcementId;
@@ -86,6 +68,24 @@ function AnnouncementFormContent() {
 
   const { colors, isDark } = useTheme();
   const { showError, showSuccess } = useAlert();
+  const SEVERITY_OPTIONS: { value: AnnouncementSeverity; label: string; color: string }[] = [
+    { value: 'info', label: t('admin.announcements.form.severityInfo'), color: '#3B82F6' },
+    { value: 'warning', label: t('admin.announcements.form.severityWarning'), color: '#F59E0B' },
+    { value: 'critical', label: t('admin.announcements.form.severityCritical'), color: '#EF4444' },
+  ];
+  const AUDIENCE_OPTIONS: { value: AnnouncementAudience; label: string }[] = [
+    { value: 'all', label: t('admin.announcements.form.audienceAll') },
+    { value: 'users', label: t('admin.announcements.form.audienceUsers') },
+    { value: 'organizers', label: t('admin.announcements.form.audienceOrganizers') },
+    { value: 'admins', label: t('admin.announcements.form.audienceAdmins') },
+  ];
+  const PLATFORM_OPTIONS: { value: AnnouncementPlatform; label: string }[] = [
+    { value: 'all', label: t('admin.announcements.form.platformAll') },
+    { value: 'mobile', label: t('admin.announcements.form.platformMobile') },
+    { value: 'mobile_ios', label: t('admin.announcements.form.platformIos') },
+    { value: 'mobile_android', label: t('admin.announcements.form.platformAndroid') },
+    { value: 'web', label: t('admin.announcements.form.platformWeb') },
+  ];
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? colors.gray100 : colors.gray50;
 
@@ -130,7 +130,7 @@ function AnnouncementFormContent() {
         setIsPublished(a.is_published ?? false);
       } catch (error: any) {
         const detail = error?.response?.data?.detail;
-        showError('Erreur', detail || "Impossible de charger l'annonce.");
+        showError(t('common.error'), detail || t('admin.announcements.form.loadError'));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -142,7 +142,7 @@ function AnnouncementFormContent() {
 
   const handleSave = useCallback(async () => {
     if (!title.trim() || !message.trim()) {
-      showError('Champs requis', 'Titre et message sont obligatoires.');
+      showError(t('admin.announcements.form.validationTitle'), t('admin.announcements.form.validationMessage'));
       return;
     }
     setSaving(true);
@@ -167,7 +167,7 @@ function AnnouncementFormContent() {
       } else {
         await announcementsAPI.create(payload);
       }
-      showSuccess(isEdit ? 'Mise à jour' : 'Annonce créée');
+      showSuccess(isEdit ? t('admin.announcements.form.updateSuccess') : t('admin.announcements.form.createSuccess'));
       navigation.goBack();
     } catch (error: any) {
       const data = error?.response?.data;
@@ -175,9 +175,9 @@ function AnnouncementFormContent() {
       const firstError =
         (data && typeof data === 'object' && Object.values(data)[0]) ||
         data?.detail ||
-        'Échec de la sauvegarde.';
+        t('admin.announcements.form.saveError');
       const msg = Array.isArray(firstError) ? String(firstError[0]) : String(firstError);
-      showError('Erreur', msg);
+      showError(t('common.error'), msg);
     } finally {
       setSaving(false);
     }
@@ -200,6 +200,7 @@ function AnnouncementFormContent() {
     showError,
     showSuccess,
     navigation,
+    t,
   ]);
 
   if (loading) {
@@ -223,9 +224,9 @@ function AnnouncementFormContent() {
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>BROADCAST</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.announcements.form.eyebrow')}</Text>
           <Text style={[styles.headerTitle, { color: colors.text }]}>
-            {isEdit ? 'Modifier l\'annonce' : 'Nouvelle annonce'}
+            {isEdit ? t('admin.announcements.form.titleEdit') : t('admin.announcements.form.titleNew')}
           </Text>
         </View>
       </View>
@@ -240,29 +241,29 @@ function AnnouncementFormContent() {
           showsVerticalScrollIndicator={false}
         >
           {/* Contenu */}
-          <Section title="CONTENU" colors={colors}>
-            <Field label="Titre *" colors={colors}>
+          <Section title={t('admin.announcements.form.sectionContent')} colors={colors}>
+            <Field label={t('admin.announcements.form.fieldTitle')} colors={colors}>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={title}
                 onChangeText={setTitle}
-                placeholder="Ex: Maintenance programmée samedi"
+                placeholder={t('admin.announcements.form.fieldTitlePlaceholder')}
                 placeholderTextColor={colors.gray400}
                 maxLength={200}
               />
             </Field>
-            <Field label="Message *" colors={colors}>
+            <Field label={t('admin.announcements.form.fieldMessage')} colors={colors}>
               <TextInput
                 style={[styles.input, styles.inputMulti, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={message}
                 onChangeText={setMessage}
-                placeholder="Texte affiché aux utilisateurs"
+                placeholder={t('admin.announcements.form.fieldMessagePlaceholder')}
                 placeholderTextColor={colors.gray400}
                 multiline
                 textAlignVertical="top"
               />
             </Field>
-            <Field label="Sévérité" colors={colors}>
+            <Field label={t('admin.announcements.form.fieldSeverity')} colors={colors}>
               <View style={styles.pillRow}>
                 {SEVERITY_OPTIONS.map((opt) => (
                   <TouchableOpacity
@@ -288,8 +289,8 @@ function AnnouncementFormContent() {
               </View>
             </Field>
             <ToggleField
-              label="Peut être fermée par l'utilisateur"
-              hint="Désactiver = annonce sticky (CGU forcée par exemple)."
+              label={t('admin.announcements.form.fieldDismissible')}
+              hint={t('admin.announcements.form.fieldDismissibleHint')}
               value={isDismissible}
               onChange={setIsDismissible}
               colors={colors}
@@ -297,18 +298,18 @@ function AnnouncementFormContent() {
           </Section>
 
           {/* CTA */}
-          <Section title="ACTION (OPTIONNELLE)" colors={colors}>
-            <Field label="Libellé du bouton" colors={colors}>
+          <Section title={t('admin.announcements.form.sectionAction')} colors={colors}>
+            <Field label={t('admin.announcements.form.fieldCtaLabel')} colors={colors}>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={ctaLabel}
                 onChangeText={setCtaLabel}
-                placeholder='"En savoir plus", "Voir le détail"…'
+                placeholder={t('admin.announcements.form.fieldCtaLabelPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 maxLength={64}
               />
             </Field>
-            <Field label="URL ouverte au tap" colors={colors}>
+            <Field label={t('admin.announcements.form.fieldCtaUrl')} colors={colors}>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={ctaUrl}
@@ -323,8 +324,8 @@ function AnnouncementFormContent() {
           </Section>
 
           {/* Ciblage */}
-          <Section title="CIBLAGE" colors={colors}>
-            <Field label="Audience" colors={colors}>
+          <Section title={t('admin.announcements.form.sectionTargeting')} colors={colors}>
+            <Field label={t('admin.announcements.form.fieldAudience')} colors={colors}>
               <View style={styles.pillRow}>
                 {AUDIENCE_OPTIONS.map((opt) => (
                   <TouchableOpacity
@@ -349,7 +350,7 @@ function AnnouncementFormContent() {
                 ))}
               </View>
             </Field>
-            <Field label="Plateforme" colors={colors}>
+            <Field label={t('admin.announcements.form.fieldPlatform')} colors={colors}>
               <View style={styles.pillRow}>
                 {PLATFORM_OPTIONS.map((opt) => (
                   <TouchableOpacity
@@ -374,7 +375,7 @@ function AnnouncementFormContent() {
                 ))}
               </View>
             </Field>
-            <Field label="Version min. de l'app" colors={colors} hint="Format semver (ex: 1.2.0). Vide = pas de borne.">
+            <Field label={t('admin.announcements.form.fieldMinVersion')} colors={colors} hint={t('admin.announcements.form.fieldMinVersionHint')}>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={minVersion}
@@ -384,7 +385,7 @@ function AnnouncementFormContent() {
                 autoCapitalize="none"
               />
             </Field>
-            <Field label="Version max. de l'app" colors={colors} hint='Pour cibler les "anciennes" versions uniquement.'>
+            <Field label={t('admin.announcements.form.fieldMaxVersion')} colors={colors} hint={t('admin.announcements.form.fieldMaxVersionHint')}>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={maxVersion}
@@ -397,15 +398,15 @@ function AnnouncementFormContent() {
           </Section>
 
           {/* Publication */}
-          <Section title="PUBLICATION" colors={colors}>
+          <Section title={t('admin.announcements.form.sectionPublication')} colors={colors}>
             <ToggleField
-              label="Publier"
-              hint="Si désactivée, l'annonce reste un brouillon (invisible côté client)."
+              label={t('admin.announcements.form.fieldPublish')}
+              hint={t('admin.announcements.form.fieldPublishHint')}
               value={isPublished}
               onChange={setIsPublished}
               colors={colors}
             />
-            <Field label="Visible à partir du" colors={colors} hint="Format ISO. Vide = immédiat.">
+            <Field label={t('admin.announcements.form.fieldValidFrom')} colors={colors} hint={t('admin.announcements.form.fieldValidFromHint')}>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={validFrom}
@@ -416,7 +417,7 @@ function AnnouncementFormContent() {
                 autoCorrect={false}
               />
             </Field>
-            <Field label="Visible jusqu'au" colors={colors} hint="Vide = jusqu'à dépublication manuelle.">
+            <Field label={t('admin.announcements.form.fieldValidUntil')} colors={colors} hint={t('admin.announcements.form.fieldValidUntilHint')}>
               <TextInput
                 style={[styles.input, { backgroundColor: inputBg, color: colors.text, borderColor: hairline }]}
                 value={validUntil}
@@ -438,7 +439,7 @@ function AnnouncementFormContent() {
             {saving ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.saveBtnText}>{isEdit ? 'Enregistrer' : "Créer l'annonce"}</Text>
+              <Text style={styles.saveBtnText}>{isEdit ? t('admin.announcements.form.save') : t('admin.announcements.form.create')}</Text>
             )}
           </TouchableOpacity>
         </ScrollView>

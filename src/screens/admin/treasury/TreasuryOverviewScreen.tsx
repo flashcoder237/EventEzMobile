@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
@@ -29,14 +30,16 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function TreasuryOverviewScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="TRY" title="Trésorerie">
+    <RoleGuard allow={['admin']} watermark={t('admin.treasury.overview.watermark')} title={t('admin.treasury.overview.guardTitle')}>
       <TreasuryOverviewContent />
     </RoleGuard>
   );
 }
 
 function TreasuryOverviewContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -70,10 +73,10 @@ function TreasuryOverviewContent() {
   const transactions = overview?.recent_transactions || [];
 
   const menuItems: { icon: keyof typeof Ionicons.glyphMap; title: string; screen: string; color: string }[] = [
-    { icon: 'people-outline', title: 'Personnel & Paie', screen: 'TreasuryStaff', color: '#4F46E5' },
-    { icon: 'receipt-outline', title: 'Dépenses', screen: 'TreasuryExpenses', color: '#F59E0B' },
-    { icon: 'pie-chart-outline', title: 'Actionnaires', screen: 'TreasuryShareholders', color: '#A855F7' },
-    { icon: 'document-text-outline', title: 'Rapports financiers', screen: 'TreasuryReports', color: '#10B981' },
+    { icon: 'people-outline', title: t('admin.treasury.overview.menuStaff'), screen: 'TreasuryStaff', color: '#4F46E5' },
+    { icon: 'receipt-outline', title: t('admin.treasury.overview.menuExpenses'), screen: 'TreasuryExpenses', color: '#F59E0B' },
+    { icon: 'pie-chart-outline', title: t('admin.treasury.overview.menuShareholders'), screen: 'TreasuryShareholders', color: '#A855F7' },
+    { icon: 'document-text-outline', title: t('admin.treasury.overview.menuReports'), screen: 'TreasuryReports', color: '#10B981' },
   ];
 
   const formatAmount = (amount: number) => `${amount.toLocaleString()} ${platformCurrency}`;
@@ -94,13 +97,13 @@ function TreasuryOverviewContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LA CAISSE GLOBALE</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Trésorerie</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.treasury.overview.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.treasury.overview.title')}</Text>
         </View>
       </View>
 
@@ -117,7 +120,7 @@ function TreasuryOverviewContent() {
             Shadows.sm,
           ]}
         >
-          <Text style={[styles.balanceEyebrow, { color: colors.gray500 }]}>SOLDE NET</Text>
+          <Text style={[styles.balanceEyebrow, { color: colors.gray500 }]}>{t('admin.treasury.overview.balanceEyebrow')}</Text>
           <Text style={[styles.balanceValue, { color: colors.text }]}>
             {formatAmount(wallet?.net_balance || 0)}
           </Text>
@@ -140,16 +143,16 @@ function TreasuryOverviewContent() {
 
         {/* KPI Cards */}
         <View style={styles.kpiRow}>
-          <KPICard title="Commissions" value={formatAmount(wallet?.total_commissions || 0)} icon="trending-up" color="#4F46E5" />
-          <KPICard title="Paie" value={formatAmount(wallet?.total_payroll || 0)} icon="people-outline" color="#A855F7" />
+          <KPICard title={t('admin.treasury.overview.kpiCommissions')} value={formatAmount(wallet?.total_commissions || 0)} icon="trending-up" color="#4F46E5" />
+          <KPICard title={t('admin.treasury.overview.kpiPayroll')} value={formatAmount(wallet?.total_payroll || 0)} icon="people-outline" color="#A855F7" />
         </View>
         <View style={styles.kpiRow}>
-          <KPICard title="Dépenses" value={formatAmount(wallet?.total_expenses || 0)} icon="card-outline" color="#F59E0B" />
-          <KPICard title="Dividendes" value={formatAmount(wallet?.total_dividends || 0)} icon="pie-chart-outline" color="#10B981" />
+          <KPICard title={t('admin.treasury.overview.kpiExpenses')} value={formatAmount(wallet?.total_expenses || 0)} icon="card-outline" color="#F59E0B" />
+          <KPICard title={t('admin.treasury.overview.kpiDividends')} value={formatAmount(wallet?.total_dividends || 0)} icon="pie-chart-outline" color="#10B981" />
         </View>
 
         {/* Menu */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>GESTION</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.treasury.overview.sectionManagement')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {menuItems.map((item, idx) => (
             <TouchableOpacity
@@ -168,7 +171,7 @@ function TreasuryOverviewContent() {
         </View>
 
         {/* Recent Transactions */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>TRANSACTIONS RÉCENTES</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.treasury.overview.sectionRecent')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {transactions.length > 0 ? transactions.slice(0, 5).map((tx: PlatformTransaction, idx: number) => (
             <View
@@ -190,7 +193,7 @@ function TreasuryOverviewContent() {
               </Text>
             </View>
           )) : (
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucune transaction</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.treasury.overview.noTransactions')}</Text>
           )}
         </View>
 

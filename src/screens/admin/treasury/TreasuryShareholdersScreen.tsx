@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useAlert } from '../../../contexts/AlertContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
@@ -38,14 +39,16 @@ type TabType = 'shareholders' | 'dividends';
 const SHAREHOLDER_COLOR = '#A855F7';
 
 export default function TreasuryShareholdersScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="SHA" title="Actionnaires">
+    <RoleGuard allow={['admin']} watermark={t('admin.treasury.shareholders.watermark')} title={t('admin.treasury.shareholders.guardTitle')}>
       <TreasuryShareholdersContent />
     </RoleGuard>
   );
 }
 
 function TreasuryShareholdersContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError } = useAlert();
@@ -76,11 +79,11 @@ function TreasuryShareholdersContent() {
   const runPreview = async () => {
     const pct = parseFloat(previewPercentage.replace(',', '.'));
     if (!Number.isFinite(pct) || pct <= 0 || pct > 100) {
-      showError('Pourcentage invalide', 'Le pourcentage à distribuer doit être entre 0 et 100.');
+      showError(t('admin.treasury.shareholders.modal.validationPercentage'), t('admin.treasury.shareholders.modal.validationPercentageMessage'));
       return;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(previewStart) || !/^\d{4}-\d{2}-\d{2}$/.test(previewEnd)) {
-      showError('Format de date', 'Format attendu : YYYY-MM-DD.');
+      showError(t('admin.treasury.shareholders.modal.validationDate'), t('admin.treasury.shareholders.modal.validationDateMessage'));
       return;
     }
     setPreviewLoading(true);
@@ -93,7 +96,7 @@ function TreasuryShareholdersContent() {
       });
       setPreviewData(res.data);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Aperçu impossible.');
+      showError(t('common.error'), error?.response?.data?.detail || t('admin.treasury.shareholders.modal.previewError'));
     } finally {
       setPreviewLoading(false);
     }
@@ -112,14 +115,14 @@ function TreasuryShareholdersContent() {
         period_end: previewEnd,
         distribution_percentage: pct,
       });
-      showSuccess('Distribution créée', "Elle apparaît dans l'onglet Dividendes en attente d'approbation.");
+      showSuccess(t('admin.treasury.shareholders.modal.createSuccess'), t('admin.treasury.shareholders.modal.createSuccessDetail'));
       setPreviewOpen(false);
       setPreviewData(null);
       // Refresh la liste des dividendes
       fetchData();
       setActiveTab('dividends');
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de créer la distribution.');
+      showError(t('common.error'), error?.response?.data?.detail || t('admin.treasury.shareholders.modal.createError'));
     } finally {
       setCreatingDist(false);
     }
@@ -167,7 +170,7 @@ function TreasuryShareholdersContent() {
         <View style={styles.info}>
           <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>{item.name}</Text>
           <Text style={[styles.cardSubtitle, { color: colors.gray500 }]} numberOfLines={1}>
-            Depuis {new Date(item.joined_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' })}
+            {t('admin.treasury.shareholders.since', { date: new Date(item.joined_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }) })}
           </Text>
         </View>
         <Text style={[styles.percentage, { color: SHAREHOLDER_COLOR }]}>{item.ownership_percentage}%</Text>
@@ -193,7 +196,7 @@ function TreasuryShareholdersContent() {
           </Text>
         </View>
         <Badge
-          label={item.status === 'distributed' ? 'Distribué' : item.status === 'approved' ? 'Approuvé' : 'Brouillon'}
+          label={item.status === 'distributed' ? t('admin.treasury.shareholders.statusDistributed') : item.status === 'approved' ? t('admin.treasury.shareholders.statusApproved') : t('admin.treasury.shareholders.statusDraft')}
           variant={item.status === 'distributed' ? 'success' : item.status === 'approved' ? 'info' : 'secondary'}
           size="sm"
         />
@@ -202,8 +205,8 @@ function TreasuryShareholdersContent() {
   );
 
   const tabs: { key: TabType; label: string; count: number }[] = [
-    { key: 'shareholders', label: 'Actionnaires', count: shareholders.length },
-    { key: 'dividends', label: 'Dividendes', count: dividends.length },
+    { key: 'shareholders', label: t('admin.treasury.shareholders.tabShareholders'), count: shareholders.length },
+    { key: 'dividends', label: t('admin.treasury.shareholders.tabDividends'), count: dividends.length },
   ];
 
   return (
@@ -214,13 +217,13 @@ function TreasuryShareholdersContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LE CAPITAL</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Actionnaires</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.treasury.shareholders.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.treasury.shareholders.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${SHAREHOLDER_COLOR}15`, borderColor: `${SHAREHOLDER_COLOR}30` }, Shadows.sm]}
@@ -230,7 +233,7 @@ function TreasuryShareholdersContent() {
           }}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Distribuer les dividendes"
+          accessibilityLabel={t('admin.treasury.shareholders.distributeDividends')}
         >
           <Ionicons name="cash-outline" size={18} color={SHAREHOLDER_COLOR} />
         </TouchableOpacity>
@@ -239,7 +242,7 @@ function TreasuryShareholdersContent() {
       <View style={{ paddingHorizontal: Spacing.lg, paddingTop: Spacing.md }}>
         <View style={[styles.ownershipCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.ownershipEyebrow, { color: colors.gray500 }]}>PARTS ATTRIBUÉES</Text>
+            <Text style={[styles.ownershipEyebrow, { color: colors.gray500 }]}>{t('admin.treasury.shareholders.ownershipEyebrow')}</Text>
             <Text style={[styles.ownershipValue, { color: ownershipComplete ? '#10B981' : '#F59E0B' }]}>
               {totalOwnership}%
             </Text>
@@ -251,7 +254,7 @@ function TreasuryShareholdersContent() {
               color={ownershipComplete ? '#10B981' : '#F59E0B'}
             />
             <Text style={[styles.ownershipBadgeText, { color: ownershipComplete ? '#10B981' : '#F59E0B' }]}>
-              {ownershipComplete ? 'Complet' : `Reste ${100 - totalOwnership}%`}
+              {ownershipComplete ? t('admin.treasury.shareholders.complete') : t('admin.treasury.shareholders.remaining', { percent: 100 - totalOwnership })}
             </Text>
           </View>
         </View>
@@ -293,7 +296,7 @@ function TreasuryShareholdersContent() {
           <View style={styles.empty}>
             <Ionicons name="pie-chart-outline" size={48} color={colors.gray300} />
             <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-              {activeTab === 'shareholders' ? 'Aucun actionnaire' : 'Aucun dividende'}
+              {activeTab === 'shareholders' ? t('admin.treasury.shareholders.emptyShareholders') : t('admin.treasury.shareholders.emptyDividends')}
             </Text>
           </View>
         }
@@ -304,13 +307,13 @@ function TreasuryShareholdersContent() {
         <View style={styles.divModalBackdrop}>
           <View style={[styles.divModalCard, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.divModalEyebrow, { color: SHAREHOLDER_COLOR }]}>RÉPARTITION</Text>
-              <Text style={[styles.divModalTitle, { color: colors.text }]}>Distribuer les dividendes</Text>
+              <Text style={[styles.divModalEyebrow, { color: SHAREHOLDER_COLOR }]}>{t('admin.treasury.shareholders.modal.eyebrow')}</Text>
+              <Text style={[styles.divModalTitle, { color: colors.text }]}>{t('admin.treasury.shareholders.modal.title')}</Text>
 
               {/* Période */}
               <View style={styles.divDateRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.divLabel, { color: colors.gray500 }]}>Période début</Text>
+                  <Text style={[styles.divLabel, { color: colors.gray500 }]}>{t('admin.treasury.shareholders.modal.periodStart')}</Text>
                   <TextInput
                     style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                     value={previewStart}
@@ -322,7 +325,7 @@ function TreasuryShareholdersContent() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.divLabel, { color: colors.gray500 }]}>Période fin</Text>
+                  <Text style={[styles.divLabel, { color: colors.gray500 }]}>{t('admin.treasury.shareholders.modal.periodEnd')}</Text>
                   <TextInput
                     style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                     value={previewEnd}
@@ -336,7 +339,7 @@ function TreasuryShareholdersContent() {
               </View>
 
               <Text style={[styles.divLabel, { color: colors.gray500, marginTop: Spacing.md }]}>
-                % du résultat à distribuer
+                {t('admin.treasury.shareholders.modal.percentage')}
               </Text>
               <TextInput
                 style={[styles.divInput, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
@@ -360,7 +363,7 @@ function TreasuryShareholdersContent() {
                   <>
                     <Ionicons name="calculator-outline" size={16} color={SHAREHOLDER_COLOR} />
                     <Text style={[styles.divPreviewText, { color: SHAREHOLDER_COLOR }]}>
-                      Calculer l'aperçu
+                      {t('admin.treasury.shareholders.modal.preview')}
                     </Text>
                   </>
                 )}
@@ -368,12 +371,12 @@ function TreasuryShareholdersContent() {
 
               {previewData && (
                 <View style={[styles.divResultCard, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline }]}>
-                  <Text style={[styles.divResultEyebrow, { color: colors.gray500 }]}>RÉSULTAT NET PÉRIODE</Text>
+                  <Text style={[styles.divResultEyebrow, { color: colors.gray500 }]}>{t('admin.treasury.shareholders.modal.resultProfit')}</Text>
                   <Text style={[styles.divResultValue, { color: colors.text }]}>
                     {Number(previewData.net_profit ?? previewData.profit ?? 0).toLocaleString()} {platformCurrency}
                   </Text>
                   <Text style={[styles.divResultEyebrow, { color: colors.gray500, marginTop: Spacing.sm }]}>
-                    À DISTRIBUER ({previewPercentage}%)
+                    {t('admin.treasury.shareholders.modal.resultDistribute', { percent: previewPercentage })}
                   </Text>
                   <Text style={[styles.divResultValue, { color: SHAREHOLDER_COLOR }]}>
                     {Number(previewData.total_distribution ?? previewData.amount_to_distribute ?? 0).toLocaleString()} {platformCurrency}
@@ -381,11 +384,11 @@ function TreasuryShareholdersContent() {
 
                   {Array.isArray(previewData.allocations) && previewData.allocations.length > 0 && (
                     <View style={{ marginTop: Spacing.md }}>
-                      <Text style={[styles.divResultEyebrow, { color: colors.gray500, marginBottom: 8 }]}>RÉPARTITION</Text>
+                      <Text style={[styles.divResultEyebrow, { color: colors.gray500, marginBottom: 8 }]}>{t('admin.treasury.shareholders.modal.resultBreakdown')}</Text>
                       {previewData.allocations.map((a: any, idx: number) => (
                         <View key={idx} style={[styles.divAllocRow, idx > 0 && { borderTopColor: hairline, borderTopWidth: 1 }]}>
                           <Text style={[styles.divAllocName, { color: colors.text }]} numberOfLines={1}>
-                            {a.shareholder_name || a.name || 'Actionnaire'}
+                            {a.shareholder_name || a.name || t('admin.treasury.shareholders.shareholderDefault')}
                           </Text>
                           <Text style={[styles.divAllocPct, { color: colors.gray500 }]}>
                             {Number(a.ownership_percentage ?? a.percentage ?? 0).toFixed(1)}%
@@ -407,7 +410,7 @@ function TreasuryShareholdersContent() {
                   disabled={previewLoading || creatingDist}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.divModalBtnText, { color: colors.gray700 }]}>Fermer</Text>
+                  <Text style={[styles.divModalBtnText, { color: colors.gray700 }]}>{t('admin.treasury.shareholders.modal.close')}</Text>
                 </TouchableOpacity>
                 {previewData && (
                   <TouchableOpacity
@@ -419,7 +422,7 @@ function TreasuryShareholdersContent() {
                     {creatingDist ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
-                      <Text style={[styles.divModalBtnText, { color: '#fff' }]}>Créer la distribution</Text>
+                      <Text style={[styles.divModalBtnText, { color: '#fff' }]}>{t('admin.treasury.shareholders.modal.create')}</Text>
                     )}
                   </TouchableOpacity>
                 )}

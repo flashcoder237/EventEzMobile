@@ -499,7 +499,7 @@ export default function EventDetailsScreen() {
 
           {/* Eyebrow above title — soft editorial */}
           <Text style={[styles.titleEyebrow, { color: colors.primary }]}>
-            {event.category?.name ? `ÉVÉNEMENT · ${event.category.name.toUpperCase()}` : 'ÉVÉNEMENT'}
+            {event.category?.name ? t('eventDetails.eyebrowWithCategory', { category: event.category.name.toUpperCase() }) : t('eventDetails.eyebrow')}
           </Text>
 
           {/* Date pill — soft editorial */}

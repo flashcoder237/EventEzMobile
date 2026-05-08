@@ -29,6 +29,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -55,17 +56,17 @@ interface Webhook {
 }
 
 // Aligné avec WebhookEndpoint.EVENT_TYPE_CHOICES côté backend.
-const EVENT_TYPES: { key: string; label: string }[] = [
-  { key: 'registration.created', label: 'Nouvelle inscription' },
-  { key: 'registration.cancelled', label: 'Inscription annulée' },
-  { key: 'payment.completed', label: 'Paiement complété' },
-  { key: 'payment.failed', label: 'Paiement échoué' },
-  { key: 'event.updated', label: 'Événement modifié' },
-  { key: 'event.cancelled', label: 'Événement annulé' },
-  { key: 'ticket.purchased', label: 'Billet acheté' },
-  { key: 'ticket.transferred', label: 'Billet transféré' },
-  { key: 'checkin.completed', label: 'Check-in effectué' },
-];
+const EVENT_TYPE_KEYS = [
+  'registration.created',
+  'registration.cancelled',
+  'payment.completed',
+  'payment.failed',
+  'event.updated',
+  'event.cancelled',
+  'ticket.purchased',
+  'ticket.transferred',
+  'checkin.completed',
+] as const;
 
 function generateSecret(): string {
   // Suffisant pour un secret HMAC : 32 chars base32-like.
@@ -79,9 +80,11 @@ function generateSecret(): string {
 
 export default function WebhooksScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+  const EVENT_TYPES = EVENT_TYPE_KEYS.map(key => ({ key, label: t(`organizer.webhooks.eventTypes.${key.replace('.', '_')}`) }));
 
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,12 +104,12 @@ export default function WebhooksScreen() {
       const data: Webhook[] = res.data?.results || res.data || [];
       setWebhooks(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de charger les webhooks.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, [showError, t]);
 
   useEffect(() => {
     fetchWebhooks();
@@ -138,11 +141,11 @@ export default function WebhooksScreen() {
   const submitCreate = async () => {
     const url = newUrl.trim();
     if (!/^https?:\/\//i.test(url)) {
-      showError('URL invalide', "L'URL doit commencer par http:// ou https://");
+      showError(t('organizer.webhooks.invalidUrlTitle'), t('organizer.webhooks.invalidUrlMessage'));
       return;
     }
     if (newSelectedTypes.length === 0) {
-      showError('Aucun événement', 'Sélectionne au moins un type d\'événement à pousser.');
+      showError(t('organizer.webhooks.noEventTitle'), t('organizer.webhooks.noEventMessage'));
       return;
     }
     setCreating(true);
@@ -159,11 +162,11 @@ export default function WebhooksScreen() {
       } else {
         await fetchWebhooks();
       }
-      showSuccess('Webhook créé', 'Le secret a été enregistré côté backend (non récupérable ensuite).');
+      showSuccess(t('organizer.webhooks.createdTitle'), t('organizer.webhooks.createdMessage'));
       setCreateOpen(false);
     } catch (error: any) {
       const detail = error?.response?.data?.detail || error?.response?.data?.url?.[0];
-      showError('Erreur', detail || 'Impossible de créer le webhook.');
+      showError(t('common.error'), detail || t('organizer.webhooks.createError'));
     } finally {
       setCreating(false);
     }
@@ -177,7 +180,7 @@ export default function WebhooksScreen() {
       await webhooksAPI.toggleActive(hook.id);
     } catch (error: any) {
       setWebhooks(prev => prev.map(h => h.id === hook.id ? { ...h, is_active: hook.is_active } : h));
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de changer l\'état.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.toggleError'));
     } finally {
       setActionId(null);
     }
@@ -188,9 +191,9 @@ export default function WebhooksScreen() {
     setActionId(hook.id);
     try {
       await webhooksAPI.test(hook.id);
-      showSuccess('Test envoyé', 'Vérifie ton endpoint pour confirmer la réception.');
+      showSuccess(t('organizer.webhooks.testSentTitle'), t('organizer.webhooks.testSentMessage'));
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Test du webhook échoué.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.testError'));
     } finally {
       setActionId(null);
     }
@@ -198,15 +201,15 @@ export default function WebhooksScreen() {
 
   const handleDelete = (hook: Webhook) => {
     showConfirm(
-      'Supprimer le webhook ?',
-      `${hook.url}\n\nCette action est irréversible.`,
+      t('organizer.webhooks.deleteTitle'),
+      t('organizer.webhooks.deleteMessage', { url: hook.url }),
       async () => {
         try {
           await webhooksAPI.delete(hook.id);
           setWebhooks(prev => prev.filter(h => h.id !== hook.id));
-          showSuccess('Webhook supprimé', '');
+          showSuccess(t('organizer.webhooks.deletedTitle'), '');
         } catch (error: any) {
-          showError('Erreur', error?.response?.data?.detail || 'Suppression impossible.');
+          showError(t('common.error'), error?.response?.data?.detail || t('organizer.webhooks.deleteError'));
         }
       },
     );
@@ -223,7 +226,7 @@ export default function WebhooksScreen() {
             {item.url}
           </Text>
           <Text style={[styles.subline, { color: colors.gray500 }]} numberOfLines={1}>
-            {item.event_types.length} type{item.event_types.length > 1 ? 's' : ''} · {item.deliveries_count ?? 0} livraison{(item.deliveries_count ?? 0) > 1 ? 's' : ''}
+            {t('organizer.webhooks.typesCount', { count: item.event_types.length })} · {t('organizer.webhooks.deliveriesCount', { count: item.deliveries_count ?? 0 })}
           </Text>
         </View>
         <Switch
@@ -243,7 +246,7 @@ export default function WebhooksScreen() {
           activeOpacity={0.7}
         >
           <Ionicons name="paper-plane-outline" size={14} color={colors.primary} />
-          <Text style={[styles.actionText, { color: colors.primary }]}>Tester</Text>
+          <Text style={[styles.actionText, { color: colors.primary }]}>{t('organizer.webhooks.test')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionBtn, { backgroundColor: '#EF444410', borderColor: '#EF444430' }]}
@@ -252,7 +255,7 @@ export default function WebhooksScreen() {
           activeOpacity={0.7}
         >
           <Ionicons name="trash-outline" size={14} color="#EF4444" />
-          <Text style={[styles.actionText, { color: '#EF4444' }]}>Supprimer</Text>
+          <Text style={[styles.actionText, { color: '#EF4444' }]}>{t('common.delete')}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -266,20 +269,20 @@ export default function WebhooksScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>INTÉGRATIONS</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Webhooks</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.webhooks.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.webhooks.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
           onPress={openCreate}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Nouveau webhook"
+          accessibilityLabel={t('organizer.webhooks.newA11y')}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
@@ -299,9 +302,9 @@ export default function WebhooksScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="git-network-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun webhook</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.webhooks.emptyTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Pousse tes events EventEz vers Zapier, Make, ou ton propre back-office en temps réel.
+                {t('organizer.webhooks.emptyText')}
               </Text>
             </View>
           }
@@ -313,22 +316,22 @@ export default function WebhooksScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVEAU WEBHOOK</Text>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Endpoint HTTP</Text>
+              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.webhooks.modalEyebrow')}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('organizer.webhooks.modalTitle')}</Text>
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>URL de destination</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.webhooks.urlField')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                 value={newUrl}
                 onChangeText={setNewUrl}
-                placeholder="https://hooks.zapier.com/..."
+                placeholder={t('organizer.webhooks.urlPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 autoCapitalize="none"
                 autoCorrect={false}
                 editable={!creating}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Secret (HMAC)</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.webhooks.secretField')}</Text>
               <View style={styles.secretRow}>
                 <TextInput
                   style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text, flex: 1 }]}
@@ -348,16 +351,16 @@ export default function WebhooksScreen() {
                 </TouchableOpacity>
               </View>
               <Text style={[styles.helpText, { color: colors.gray500 }]}>
-                Ce secret signe les payloads (header X-EventEz-Signature). Il ne sera plus visible après création.
+                {t('organizer.webhooks.secretHelp')}
               </Text>
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Événements à pousser</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.webhooks.eventsField')}</Text>
               <View style={styles.typesGrid}>
-                {EVENT_TYPES.map(t => {
-                  const active = newSelectedTypes.includes(t.key);
+                {EVENT_TYPES.map(et => {
+                  const active = newSelectedTypes.includes(et.key);
                   return (
                     <TouchableOpacity
-                      key={t.key}
+                      key={et.key}
                       style={[
                         styles.typeChip,
                         {
@@ -365,11 +368,11 @@ export default function WebhooksScreen() {
                           borderColor: active ? colors.primary : hairline,
                         },
                       ]}
-                      onPress={() => !creating && toggleType(t.key)}
+                      onPress={() => !creating && toggleType(et.key)}
                       activeOpacity={0.85}
                     >
                       <Text style={[styles.typeChipText, { color: active ? '#fff' : colors.gray700 }]}>
-                        {t.label}
+                        {et.label}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -383,7 +386,7 @@ export default function WebhooksScreen() {
                   disabled={creating}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: colors.primary }, creating && { opacity: 0.6 }]}
@@ -394,7 +397,7 @@ export default function WebhooksScreen() {
                   {creating ? (
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
-                    <Text style={[styles.modalBtnText, { color: Colors.white }]}>Créer</Text>
+                    <Text style={[styles.modalBtnText, { color: Colors.white }]}>{t('common.create')}</Text>
                   )}
                 </TouchableOpacity>
               </View>

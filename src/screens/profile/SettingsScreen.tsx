@@ -552,7 +552,14 @@ export default function SettingsScreen() {
     } catch (error) {
       if (__DEV__) console.error('[Settings] failed to persist language', error);
     }
-    // Sync server-side preference (best-effort, non-bloquant)
+    // Sync server-side preference (best-effort, non-bloquant) — endpoint dédié
+    // léger qui pilote la langue des emails / factures / notifications backend.
+    try {
+      await usersAPI.updateLanguage(lang);
+    } catch (error) {
+      if (__DEV__) console.warn('[Settings] backend language sync failed (offline?)', error);
+    }
+    // Garde aussi le sync via le settings endpoint pour la rétrocompat
     handleUpdateSetting('language', lang);
     showSuccess(t('settings.languageActivated'));
   };

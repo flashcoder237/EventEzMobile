@@ -13,6 +13,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -49,6 +50,7 @@ export default function EventCreateScreen() {
   const draftId = (route.params as { draftId?: string } | undefined)?.draftId;
   const isEditing = !!eventId;
 
+  const { t } = useTranslation();
   const alertActions = useAlert();
   const { showAlert, showConfirm } = alertActions;
   const { colors, isDark } = useTheme();
@@ -145,16 +147,16 @@ export default function EventCreateScreen() {
 
     if (hasDraft) {
       showAlert(
-        'Brouillon trouvé',
-        `Tu as un brouillon "${draftTitle}" en cours. Tu veux le reprendre ?`,
+        t('organizer.eventCreate.draftFoundTitle'),
+        t('organizer.eventCreate.draftFoundMessage', { title: draftTitle }),
         [
           {
-            text: 'Supprimer',
+            text: t('common.delete'),
             style: 'destructive',
             onPress: () => clearDraft(),
           },
           {
-            text: 'Reprendre',
+            text: t('organizer.eventCreate.resume'),
             onPress: async () => {
               const data = await loadDraft();
               if (data) hydrateForm(data);
@@ -164,7 +166,7 @@ export default function EventCreateScreen() {
         'info'
       );
     }
-  }, [isEditing, draftLoading, hasDraft, draftTitle, showAlert, clearDraft, loadDraft, hydrateForm]);
+  }, [isEditing, draftLoading, hasDraft, draftTitle, showAlert, clearDraft, loadDraft, hydrateForm, t]);
 
   useEffect(() => {
     if (isEditing) return;
@@ -220,15 +222,15 @@ export default function EventCreateScreen() {
 
     if (isEditing) {
       showAlert(
-        'Succès',
-        "L'événement a été mis à jour avec succès.",
+        t('common.success'),
+        t('organizer.eventCreate.updateSuccess'),
         [
           {
-            text: 'Voir mes événements',
+            text: t('organizer.eventCreate.viewMyEvents'),
             onPress: () => navigation.navigate('MyEvents'),
           },
           {
-            text: 'Continuer',
+            text: t('common.continue'),
             style: 'cancel',
           },
         ],
@@ -237,15 +239,15 @@ export default function EventCreateScreen() {
     } else {
       await clearDraft();
       showAlert(
-        'Succès',
-        "Ton événement a été soumis pour validation. Tu seras notifié·e dès qu'il sera approuvé. Délai habituel : moins de 24h.",
+        t('common.success'),
+        t('organizer.eventCreate.submitSuccess'),
         [
           {
-            text: 'Voir mes événements',
+            text: t('organizer.eventCreate.viewMyEvents'),
             onPress: () => navigation.navigate('MyEvents'),
           },
           {
-            text: 'Créer un autre',
+            text: t('organizer.eventCreate.createAnother'),
             onPress: async () => {
               await clearDraft();
               resetForm();

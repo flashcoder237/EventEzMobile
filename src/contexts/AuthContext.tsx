@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
+import i18n from 'i18next';
 import { authAPI, usersAPI, setTokens, clearTokens, getAccessToken, getRefreshToken } from '../api';
 import CacheService from '../services/CacheService';
 import { eventBus } from '../lib/eventBus';
+import { changeLanguage } from '../i18n';
 import { User, AuthState } from '../types';
 import { EventEzAnalytics, setAnalyticsUser, clearAnalyticsUser } from '../services/analyticsService';
 import { setUser as setCrashUser, clearUser as clearCrashUser } from '../services/crashReporting';
@@ -54,6 +56,23 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * Si la préférence backend (`user.language`) diffère de la langue active i18n,
+ * applique-la côté client. Garantit qu'un user qui se reconnecte sur un
+ * nouvel appareil retrouve sa préférence (même si AsyncStorage local a une
+ * autre valeur ou est vide).
+ */
+async function applyUserLanguagePreference(user: User | null | undefined): Promise<void> {
+  const lang = user?.language as 'fr' | 'en' | undefined;
+  if (!lang || (lang !== 'fr' && lang !== 'en')) return;
+  if (i18n.language === lang) return;
+  try {
+    await changeLanguage(lang);
+  } catch (error) {
+    if (__DEV__) console.warn('[Auth] failed to apply user language', error);
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   // isInitializing: true only during the first auth check at app start
@@ -132,6 +151,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       setAnalyticsUser(user.id, { role: user.role || 'user' });
       setCrashUser({ id: user.id, email: user.email, role: user.role });
+      // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
+      applyUserLanguagePreference(user);
     } catch (error) {
       if (__DEV__) console.error('Erreur de vérification auth:', error);
       try {
@@ -169,6 +190,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       EventEzAnalytics.login('email');
       setAnalyticsUser(user.id, { role: user.role || 'user' });
       setCrashUser({ id: user.id, email: user.email, role: user.role });
+      // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
+      applyUserLanguagePreference(user);
       return user;
     } catch (error) {
       setState((prev) => ({ ...prev, isLoading: false }));
@@ -334,6 +357,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     EventEzAnalytics.login('social');
     setAnalyticsUser(user.id, { role: user.role || 'user' });
+    // Sync i18n avec la préférence backend (si différente de l'AsyncStorage local)
+    applyUserLanguagePreference(user);
   }, []);
 
   const value = useMemo(() => ({

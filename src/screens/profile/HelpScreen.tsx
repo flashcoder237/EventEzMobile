@@ -49,64 +49,43 @@ interface FAQCategory {
   items: FAQItem[];
 }
 
-// FAQ static data structure (titles translated via t() in component)
+// FAQ static structure (questions/answers translated via t() in component).
+// Each item uses i18n keys under helpCenter.faq.<categoryId>.
 const FAQ_STATIC = [
   {
     id: 'account',
     eyebrow: 'CAT 01',
     icon: 'person-outline' as const,
     color: '#4F46E5',
-    items: [
-      { question: 'Comment créer un compte ?', answer: 'Téléchargez l\'application EventEz, appuyez sur "S\'inscrire" et remplissez le formulaire avec votre email et mot de passe. Vous recevrez un email de confirmation.' },
-      { question: 'Comment modifier mon profil ?', answer: 'Allez dans Profil > Modifier le profil. Vous pouvez changer votre photo, nom, email et autres informations personnelles.' },
-      { question: 'Comment changer mon mot de passe ?', answer: 'Allez dans Profil > Paramètres > Sécurité > Changer le mot de passe. Entrez votre ancien mot de passe puis le nouveau.' },
-      { question: 'Comment devenir organisateur ?', answer: 'Depuis votre profil, appuyez sur "Devenir Organisateur". Remplissez les informations requises (type d\'organisation, coordonnées). Votre demande sera traitée rapidement.' },
-    ],
+    itemKeys: ['createAccount', 'editProfile', 'changePassword', 'becomeOrganizer'],
   },
   {
     id: 'events',
     eyebrow: 'CAT 02',
     icon: 'calendar-outline' as const,
     color: '#A855F7',
-    items: [
-      { question: 'Comment trouver des événements ?', answer: 'Utilisez l\'onglet "Découvrir" pour parcourir les événements. Vous pouvez filtrer par catégorie, date, lieu ou utiliser la recherche.' },
-      { question: 'Comment s\'inscrire à un événement ?', answer: 'Ouvrez la page de l\'événement et appuyez sur le bouton d\'inscription ou d\'achat de billets. Suivez les étapes pour compléter votre inscription.' },
-      { question: 'Comment suivre un événement ?', answer: 'Appuyez sur l\'icône bookmark sur la page de l\'événement. Vous retrouverez vos events suivis dans l\'onglet "Sauvegardes".' },
-      { question: 'Comment ajouter un événement à mon calendrier ?', answer: 'Sur la page de l\'événement, appuyez sur l\'icône calendrier dans la section "Partager". Choisissez Google Calendar ou téléchargez le fichier iCal.' },
-    ],
+    itemKeys: ['findEvents', 'registerEvent', 'followEvent', 'addToCalendar'],
   },
   {
     id: 'payments',
     eyebrow: 'CAT 03',
     icon: 'card-outline' as const,
     color: '#10B981',
-    items: [
-      { question: 'Quels modes de paiement sont acceptés ?', answer: 'Nous acceptons MTN Mobile Money, Orange Money, les cartes bancaires (Visa, Mastercard), PayPal et les virements bancaires.' },
-      { question: 'Comment demander un remboursement ?', answer: 'Allez dans Profil > Mes paiements, sélectionnez le paiement concerné et appuyez sur "Demander un remboursement". Les conditions de remboursement dépendent de l\'organisateur.' },
-      { question: 'Mon paiement a échoué, que faire ?', answer: 'Vérifiez votre solde et réessayez. Si le problème persiste, contactez le support avec votre numéro de transaction. Les paiements en attente expirent après 30 minutes.' },
-    ],
+    itemKeys: ['paymentMethods', 'requestRefund', 'paymentFailed'],
   },
   {
     id: 'tickets',
     eyebrow: 'CAT 04',
     icon: 'ticket-outline' as const,
     color: '#F59E0B',
-    items: [
-      { question: 'Où trouver mes billets ?', answer: 'Vos billets sont dans l\'onglet "Mes Billets". Chaque billet contient un QR code unique pour l\'entrée à l\'événement.' },
-      { question: 'Comment fonctionne le QR code ?', answer: 'Présentez votre QR code à l\'entrée de l\'événement. L\'organisateur le scannera pour valider votre inscription. Vous pouvez aussi l\'enregistrer hors ligne.' },
-      { question: 'Puis-je transférer mon billet ?', answer: 'Le transfert de billets dépend des conditions de l\'organisateur. Si autorisé, allez dans les détails du billet et utilisez l\'option "Transférer".' },
-    ],
+    itemKeys: ['findTickets', 'qrCodeWorks', 'transferTicket'],
   },
   {
     id: 'technical',
     eyebrow: 'CAT 05',
     icon: 'construct-outline' as const,
     color: '#6366F1',
-    items: [
-      { question: 'L\'application ne fonctionne pas correctement', answer: 'Essayez de fermer et rouvrir l\'application. Vérifiez que vous avez la dernière version. Si le problème persiste, désinstallez et réinstallez l\'application.' },
-      { question: 'Je ne reçois pas les notifications', answer: 'Vérifiez que les notifications sont activées dans les paramètres de votre téléphone pour EventEz. Allez aussi dans Profil > Paramètres > Notifications pour configurer vos préférences.' },
-      { question: 'Comment supprimer mon compte ?', answer: 'Allez dans Profil > Paramètres > Compte > Supprimer mon compte. Cette action est irréversible. Toutes vos données seront supprimées conformément à notre politique de confidentialité.' },
-    ],
+    itemKeys: ['appNotWorking', 'noNotifications', 'deleteAccount'],
   },
 ];
 
@@ -166,8 +145,15 @@ export default function HelpScreen() {
   const FAQ_DATA: FAQCategory[] = useMemo(
     () =>
       FAQ_STATIC.map((cat) => ({
-        ...cat,
+        id: cat.id,
+        eyebrow: cat.eyebrow,
+        icon: cat.icon,
+        color: cat.color,
         title: t(`helpCenter.categories.${cat.id}`),
+        items: cat.itemKeys.map((k) => ({
+          question: t(`helpCenter.faq.${cat.id}.${k}.question`),
+          answer: t(`helpCenter.faq.${cat.id}.${k}.answer`),
+        })),
       })),
     [t],
   );

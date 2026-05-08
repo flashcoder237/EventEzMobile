@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { useAlert } from '../../../contexts/AlertContext';
@@ -42,19 +43,10 @@ const statusVariant = (s: string): 'warning' | 'success' | 'destructive' | 'info
   }
 };
 
-const statusLabel = (s: string): string => {
-  switch (s) {
-    case 'pending': return 'En attente';
-    case 'approved': return 'Approuvé';
-    case 'rejected': return 'Rejeté';
-    case 'paid': return 'Payé';
-    default: return s;
-  }
-};
-
 export default function TreasuryExpensesScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="EXP" title="Dépenses">
+    <RoleGuard allow={['admin']} watermark={t('admin.treasury.expenses.watermark')} title={t('admin.treasury.expenses.guardTitle')}>
       <TreasuryExpensesContent />
     </RoleGuard>
   );
@@ -74,11 +66,21 @@ const EXPENSE_CATEGORIES = [
 ] as const;
 
 function TreasuryExpensesContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
   const { showSuccess, showError } = useAlert();
+  const statusLabel = (s: string): string => {
+    switch (s) {
+      case 'pending': return t('admin.treasury.expenses.statusPending');
+      case 'approved': return t('admin.treasury.expenses.statusApproved');
+      case 'rejected': return t('admin.treasury.expenses.statusRejected');
+      case 'paid': return t('admin.treasury.expenses.statusPaid');
+      default: return s;
+    }
+  };
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -110,11 +112,11 @@ function TreasuryExpensesContent() {
     const trimmedTitle = createTitle.trim();
     const numericAmount = parseFloat(createAmount.replace(',', '.'));
     if (!trimmedTitle) {
-      showError('Titre requis', 'Donne un titre court à cette dépense.');
+      showError(t('admin.treasury.expenses.validationTitleRequired'), t('admin.treasury.expenses.validationTitleMessage'));
       return;
     }
     if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-      showError('Montant invalide', 'Le montant doit être un nombre supérieur à 0.');
+      showError(t('admin.treasury.expenses.validationAmountInvalid'), t('admin.treasury.expenses.validationAmountMessage'));
       return;
     }
     setCreateLoading(true);
@@ -132,12 +134,12 @@ function TreasuryExpensesContent() {
       } else {
         await fetchExpenses();
       }
-      showSuccess('Dépense créée', "Statut initial : en attente d'approbation.");
+      showSuccess(t('admin.treasury.expenses.createSuccess'), t('admin.treasury.expenses.createSuccessDetail'));
       setCreateOpen(false);
       resetCreateForm();
     } catch (error: any) {
       const detail = error?.response?.data?.detail || error?.response?.data?.amount?.[0];
-      showError('Erreur', detail || 'Impossible de créer la dépense.');
+      showError(t('common.error'), detail || t('admin.treasury.expenses.createError'));
     } finally {
       setCreateLoading(false);
     }
@@ -169,19 +171,19 @@ function TreasuryExpensesContent() {
     try {
       await treasuryAPI.approveExpense(id);
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: 'approved' as const } : e));
-      showSuccess('Succès', 'Dépense approuvée');
+      showSuccess(t('common.success'), t('admin.treasury.expenses.approveSuccess'));
     } catch (error) {
-      showError('Erreur', 'Impossible d\'approuver');
+      showError(t('common.error'), t('admin.treasury.expenses.approveError'));
     }
   };
 
   const handleReject = async (id: string) => {
     try {
-      await treasuryAPI.rejectExpense(id, 'Rejeté par l\'administrateur');
+      await treasuryAPI.rejectExpense(id, t('admin.treasury.expenses.rejectReason'));
       setExpenses(prev => prev.map(e => e.id === id ? { ...e, status: 'rejected' as const } : e));
-      showSuccess('Succès', 'Dépense rejetée');
+      showSuccess(t('common.success'), t('admin.treasury.expenses.rejectSuccess'));
     } catch (error) {
-      showError('Erreur', 'Impossible de rejeter');
+      showError(t('common.error'), t('admin.treasury.expenses.rejectError'));
     }
   };
 
@@ -214,7 +216,7 @@ function TreasuryExpensesContent() {
             activeOpacity={0.7}
           >
             <Ionicons name="checkmark" size={14} color="#10B981" />
-            <Text style={[styles.actionText, { color: '#10B981' }]}>Approuver</Text>
+            <Text style={[styles.actionText, { color: '#10B981' }]}>{t('admin.treasury.expenses.approve')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, { backgroundColor: '#EF444415', borderColor: '#EF444430' }]}
@@ -222,7 +224,7 @@ function TreasuryExpensesContent() {
             activeOpacity={0.7}
           >
             <Ionicons name="close" size={14} color="#EF4444" />
-            <Text style={[styles.actionText, { color: '#EF4444' }]}>Rejeter</Text>
+            <Text style={[styles.actionText, { color: '#EF4444' }]}>{t('admin.treasury.expenses.reject')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -237,20 +239,20 @@ function TreasuryExpensesContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LES SORTIES</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Dépenses</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.treasury.expenses.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.treasury.expenses.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
           onPress={() => setCreateOpen(true)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Nouvelle dépense"
+          accessibilityLabel={t('admin.treasury.expenses.createNew')}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
@@ -260,17 +262,17 @@ function TreasuryExpensesContent() {
         <View style={[styles.summary, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: '#F59E0B' }]}>{totalPending.toLocaleString()}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>EN ATTENTE</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>{t('admin.treasury.expenses.summaryPending')}</Text>
           </View>
           <View style={[styles.summaryDivider, { backgroundColor: hairline }]} />
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: '#10B981' }]}>{totalApproved.toLocaleString()}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>APPROUVÉ</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>{t('admin.treasury.expenses.summaryApproved')}</Text>
           </View>
           <View style={[styles.summaryDivider, { backgroundColor: hairline }]} />
           <View style={styles.summaryItem}>
             <Text style={[styles.summaryValue, { color: colors.text }]}>{expenses.length}</Text>
-            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>TOTAL</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>{t('admin.treasury.expenses.summaryTotal')}</Text>
           </View>
         </View>
       </View>
@@ -285,7 +287,7 @@ function TreasuryExpensesContent() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="receipt-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucune dépense</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.treasury.expenses.empty')}</Text>
           </View>
         }
       />
@@ -300,21 +302,21 @@ function TreasuryExpensesContent() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVELLE DÉPENSE</Text>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Enregistrer une sortie</Text>
+              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('admin.treasury.expenses.modal.eyebrow')}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('admin.treasury.expenses.modal.title')}</Text>
 
-              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Titre</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.fieldTitle')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text }]}
                 value={createTitle}
                 onChangeText={setCreateTitle}
-                placeholder="Ex : Hébergement serveur AWS Mai"
+                placeholder={t('admin.treasury.expenses.modal.fieldTitlePlaceholder')}
                 placeholderTextColor={colors.gray400}
                 editable={!createLoading}
                 maxLength={120}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Montant ({platformCurrency})</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.fieldAmount', { currency: platformCurrency })}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.gray50, borderColor: hairline, color: colors.text }]}
                 value={createAmount}
@@ -325,7 +327,7 @@ function TreasuryExpensesContent() {
                 editable={!createLoading}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Catégorie</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.fieldCategory')}</Text>
               <View style={styles.categoryGrid}>
                 {EXPENSE_CATEGORIES.map(cat => {
                   const active = cat === createCategory;
@@ -350,7 +352,7 @@ function TreasuryExpensesContent() {
                 })}
               </View>
 
-              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>Description (optionnel)</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.fieldDescription')}</Text>
               <TextInput
                 style={[
                   styles.input,
@@ -359,7 +361,7 @@ function TreasuryExpensesContent() {
                 ]}
                 value={createDescription}
                 onChangeText={setCreateDescription}
-                placeholder="Justificatif, fournisseur, contrat…"
+                placeholder={t('admin.treasury.expenses.modal.fieldDescriptionPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 multiline
                 numberOfLines={3}
@@ -385,7 +387,7 @@ function TreasuryExpensesContent() {
                   {createIsRecurring && <Ionicons name="checkmark" size={12} color="#fff" />}
                 </View>
                 <Text style={[styles.checkboxLabel, { color: colors.text }]}>
-                  Dépense récurrente (mensuelle)
+                  {t('admin.treasury.expenses.modal.recurring')}
                 </Text>
               </TouchableOpacity>
 
@@ -396,7 +398,7 @@ function TreasuryExpensesContent() {
                   disabled={createLoading}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>{t('admin.treasury.expenses.modal.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: colors.primary }, createLoading && { opacity: 0.6 }]}
@@ -407,7 +409,7 @@ function TreasuryExpensesContent() {
                   {createLoading ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>Créer</Text>
+                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>{t('admin.treasury.expenses.modal.create')}</Text>
                   )}
                 </TouchableOpacity>
               </View>

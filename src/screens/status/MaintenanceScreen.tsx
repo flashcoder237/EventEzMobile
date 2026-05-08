@@ -178,7 +178,7 @@ export default function MaintenanceScreen() {
             <View style={styles.metaRow}>
               <Ionicons name="calendar-outline" size={13} color={colors.gray400} />
               <Text style={[styles.metaText, { color: colors.gray400 }]}>
-                Démarré le {formatDateTime(incident.started_at)}
+                {t('maintenance.startedAt', { date: formatDateTime(incident.started_at, locale) })}
               </Text>
             </View>
           </StaggeredItem>
@@ -194,7 +194,7 @@ export default function MaintenanceScreen() {
               disabled={isLoading}
             >
               <Ionicons name="refresh" size={18} color="#FFFFFF" />
-              <Text style={styles.primaryBtnText}>Rafraîchir</Text>
+              <Text style={styles.primaryBtnText}>{t('maintenance.refresh')}</Text>
             </TouchableOpacity>
 
             {/* Voir le détail de CET incident (avec timeline des updates) —
@@ -208,7 +208,7 @@ export default function MaintenanceScreen() {
               >
                 <Ionicons name="trending-up-outline" size={18} color={colors.gray700} />
                 <Text style={[styles.secondaryBtnText, { color: colors.gray700 }]}>
-                  Voir l'évolution
+                  {t('maintenance.viewEvolution')}
                 </Text>
               </TouchableOpacity>
             )}
@@ -220,7 +220,7 @@ export default function MaintenanceScreen() {
             >
               <Ionicons name="pulse-outline" size={18} color={colors.gray700} />
               <Text style={[styles.secondaryBtnText, { color: colors.gray700 }]}>
-                Page de statut globale
+                {t('maintenance.globalStatus')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -235,7 +235,7 @@ export default function MaintenanceScreen() {
           </View>
 
           <Text style={[styles.footer, { color: colors.gray400 }]}>
-            Notre équipe travaille déjà sur le problème. Les mises à jour apparaissent ici en direct.
+            {t('maintenance.footer')}
           </Text>
         </StaggeredItem>
       </ScrollView>

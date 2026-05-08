@@ -155,7 +155,7 @@ function AdminDashboardContent() {
         </View>
 
         {/* Recent Activity */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>ACTIVITÉ RÉCENTE</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.dashboard.recentActivity')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {recentLogs.length > 0 ? recentLogs.map((log, idx) => (
             <View
@@ -177,7 +177,7 @@ function AdminDashboardContent() {
               </View>
             </View>
           )) : (
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucune activité récente</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.dashboard.noActivity')}</Text>
           )}
           {recentLogs.length > 0 && (
             <TouchableOpacity
@@ -185,7 +185,7 @@ function AdminDashboardContent() {
               onPress={() => navigation.navigate('AuditLogs')}
               activeOpacity={0.7}
             >
-              <Text style={[styles.viewAllText, { color: colors.primary }]}>Voir tout l'audit</Text>
+              <Text style={[styles.viewAllText, { color: colors.primary }]}>{t('admin.dashboard.viewAllAudit')}</Text>
               <Ionicons name="arrow-forward" size={14} color={colors.primary} />
             </TouchableOpacity>
           )}

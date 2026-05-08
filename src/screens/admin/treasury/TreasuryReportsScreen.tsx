@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../../hooks/useCommissionConfig';
 import { treasuryAPI } from '../../../api';
@@ -29,14 +30,16 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function TreasuryReportsScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="RPT" title="Rapports financiers">
+    <RoleGuard allow={['admin']} watermark={t('admin.treasury.reports.watermark')} title={t('admin.treasury.reports.guardTitle')}>
       <TreasuryReportsContent />
     </RoleGuard>
   );
 }
 
 function TreasuryReportsContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -81,20 +84,20 @@ function TreasuryReportsContent() {
   const profitColor = profitable ? '#10B981' : '#EF4444';
 
   const revenueRows = [
-    { label: 'Commissions', value: profitLoss?.commissions || summary?.commissions || 0 },
-    { label: 'Abonnements', value: profitLoss?.subscriptions || summary?.subscriptions || 0 },
+    { label: t('admin.treasury.reports.rowCommissions'), value: profitLoss?.commissions || summary?.commissions || 0 },
+    { label: t('admin.treasury.reports.rowSubscriptions'), value: profitLoss?.subscriptions || summary?.subscriptions || 0 },
   ];
 
   const expenseRows = [
-    { label: 'Masse salariale', value: profitLoss?.payroll || summary?.payroll || 0 },
-    { label: 'Dépenses opérationnelles', value: profitLoss?.operational_expenses || summary?.operational || 0 },
-    { label: 'Dividendes versés', value: profitLoss?.dividends || summary?.dividends || 0 },
+    { label: t('admin.treasury.reports.rowPayroll'), value: profitLoss?.payroll || summary?.payroll || 0 },
+    { label: t('admin.treasury.reports.rowOperational'), value: profitLoss?.operational_expenses || summary?.operational || 0 },
+    { label: t('admin.treasury.reports.rowDividends'), value: profitLoss?.dividends || summary?.dividends || 0 },
   ];
 
   const ratios = [
-    { label: 'Marge nette', value: `${margin}%`, color: profitable ? '#10B981' : '#EF4444' },
-    { label: 'Ratio dépenses/revenus', value: revenue > 0 ? `${Math.round((expenses / revenue) * 100)}%` : '0%', color: colors.text },
-    { label: 'Paie / Revenus', value: revenue > 0 ? `${Math.round(((profitLoss?.payroll || 0) / revenue) * 100)}%` : '0%', color: colors.text },
+    { label: t('admin.treasury.reports.ratioMargin'), value: `${margin}%`, color: profitable ? '#10B981' : '#EF4444' },
+    { label: t('admin.treasury.reports.ratioExpenses'), value: revenue > 0 ? `${Math.round((expenses / revenue) * 100)}%` : '0%', color: colors.text },
+    { label: t('admin.treasury.reports.ratioPayroll'), value: revenue > 0 ? `${Math.round(((profitLoss?.payroll || 0) / revenue) * 100)}%` : '0%', color: colors.text },
   ];
 
   return (
@@ -105,13 +108,13 @@ function TreasuryReportsContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LE BILAN</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Rapports financiers</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.treasury.reports.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.treasury.reports.title')}</Text>
         </View>
       </View>
 

@@ -30,6 +30,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -52,6 +53,7 @@ export default function DashboardDetailsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { dashboardId } = route.params;
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -76,12 +78,12 @@ export default function DashboardDetailsScreen() {
       const ws: DashboardWidget[] = widgetsRes.data?.results || widgetsRes.data || [];
       setWidgets(Array.isArray(ws) ? ws : []);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de charger le dashboard.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboardDetails.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [dashboardId, showError]);
+  }, [dashboardId, showError, t]);
 
   useEffect(() => {
     fetchData();
@@ -100,7 +102,7 @@ export default function DashboardDetailsScreen() {
     });
     setWidgetFormOpen(false);
     setEditingWidget(null);
-    showSuccess('Widget enregistré', '');
+    showSuccess(t('organizer.dashboardDetails.widgetSaved'), '');
   };
 
   const handleEditWidget = (widget: DashboardWidget) => {
@@ -110,15 +112,15 @@ export default function DashboardDetailsScreen() {
 
   const handleDeleteWidget = (widget: DashboardWidget) => {
     showConfirm(
-      'Supprimer ce widget ?',
-      `« ${widget.title} » ne sera plus affiché. Action irréversible.`,
+      t('organizer.dashboardDetails.deleteWidgetTitle'),
+      t('organizer.dashboardDetails.deleteWidgetMessage', { title: widget.title }),
       async () => {
         try {
           await analyticsAPI.deleteWidget(widget.id);
           setWidgets(prev => prev.filter(w => w.id !== widget.id));
-          showSuccess('Supprimé', '');
+          showSuccess(t('organizer.dashboardDetails.deletedTitle'), '');
         } catch (error: any) {
-          showError('Erreur', error?.response?.data?.detail || 'Suppression impossible.');
+          showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboardDetails.deleteError'));
         }
       },
     );
@@ -139,13 +141,13 @@ export default function DashboardDetailsScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
           <Text style={[styles.headerEyebrow, { color: colors.accent }]} numberOfLines={1}>
-            DASHBOARD
+            {t('organizer.dashboardDetails.eyebrow')}
           </Text>
           <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
             {dashboard?.title || '…'}
@@ -159,7 +161,7 @@ export default function DashboardDetailsScreen() {
           }}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Ajouter un widget"
+          accessibilityLabel={t('organizer.dashboardDetails.addWidgetA11y')}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
@@ -181,9 +183,9 @@ export default function DashboardDetailsScreen() {
           {widgets.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="apps-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Dashboard vide</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.dashboardDetails.emptyTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Ajoute des widgets pour visualiser tes indicateurs.
+                {t('organizer.dashboardDetails.emptyText')}
               </Text>
               <TouchableOpacity
                 style={[styles.emptyCta, { backgroundColor: colors.primary }]}
@@ -191,7 +193,7 @@ export default function DashboardDetailsScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="add" size={16} color="#fff" />
-                <Text style={styles.emptyCtaText}>Ajouter un widget</Text>
+                <Text style={styles.emptyCtaText}>{t('organizer.dashboardDetails.addWidget')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -210,7 +212,7 @@ export default function DashboardDetailsScreen() {
                       activeOpacity={0.7}
                     >
                       <Ionicons name="create-outline" size={13} color={colors.primary} />
-                      <Text style={[styles.widgetActionText, { color: colors.primary }]}>Modifier</Text>
+                      <Text style={[styles.widgetActionText, { color: colors.primary }]}>{t('common.edit')}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.widgetActionBtn, { backgroundColor: '#EF444410', borderColor: '#EF444430' }]}
@@ -218,7 +220,7 @@ export default function DashboardDetailsScreen() {
                       activeOpacity={0.7}
                     >
                       <Ionicons name="trash-outline" size={13} color="#EF4444" />
-                      <Text style={[styles.widgetActionText, { color: '#EF4444' }]}>Supprimer</Text>
+                      <Text style={[styles.widgetActionText, { color: '#EF4444' }]}>{t('common.delete')}</Text>
                     </TouchableOpacity>
                   </View>
                 </View>

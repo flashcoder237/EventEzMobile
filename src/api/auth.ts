@@ -145,6 +145,16 @@ export const usersAPI = {
   updateUserSettings: (settings: any) =>
     api.put('/users/me/settings/', settings),
 
+  /**
+   * Met à jour uniquement la préférence de langue de l'utilisateur.
+   * Endpoint léger : PATCH /users/me/language/ → { language: 'fr' | 'en' }.
+   * Utilisé par LanguagePickerScreen + SettingsScreen pour synchroniser la
+   * langue locale (i18next) avec la préférence backend qui pilote les
+   * emails/notifications/factures.
+   */
+  updateLanguage: (lang: 'fr' | 'en') =>
+    api.patch('/users/me/language/', { language: lang }),
+
   deleteAccount: (data: { password: string; reason?: string }) =>
     api.post('/users/me/delete_account/', data),
 

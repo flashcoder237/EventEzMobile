@@ -23,6 +23,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
@@ -41,14 +42,16 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AdminAdsScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin', 'moderator']} watermark="ADS" title="Publicités">
+    <RoleGuard allow={['admin', 'moderator']} watermark={t('admin.ads.list.watermark')} title={t('admin.ads.list.guardTitle')}>
       <AdminAdsContent />
     </RoleGuard>
   );
 }
 
 function AdminAdsContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
@@ -91,20 +94,20 @@ function AdminAdsContent() {
 
   const handleDelete = (ad: AdvertisementAdmin) => {
     showConfirm(
-      'Supprimer la publicité',
-      `"${ad.title}" sera supprimée définitivement. Action irréversible.`,
+      t('admin.ads.list.deleteTitle'),
+      t('admin.ads.list.deleteConfirm', { title: ad.title }),
       async () => {
         const okBio = await biometric.confirm({
-          promptMessage: 'Confirmer la suppression de la publicité',
+          promptMessage: t('admin.ads.list.deleteBio'),
           category: 'admin',
         });
         if (!okBio) return;
         try {
           await advertisementsAPI.delete(ad.id);
           setAds((prev) => prev.filter((a) => a.id !== ad.id));
-          showSuccess('Succès', 'Publicité supprimée');
+          showSuccess(t('common.success'), t('admin.ads.list.deleted'));
         } catch (error: any) {
-          showError('Erreur', error?.response?.data?.detail || 'Suppression impossible');
+          showError(t('common.error'), error?.response?.data?.detail || t('admin.ads.list.deleteError'));
         }
       },
     );
@@ -112,12 +115,12 @@ function AdminAdsContent() {
 
   const renderAd = ({ item }: { item: AdvertisementAdmin }) => {
     const stateLabel = item.is_currently_active
-      ? 'En ligne'
+      ? t('admin.ads.list.stateOnline')
       : !item.is_active
-        ? 'Désactivée'
+        ? t('admin.ads.list.stateDeactivated')
         : item.ends_at && new Date(item.ends_at) < new Date()
-          ? 'Expirée'
-          : 'Programmée';
+          ? t('admin.ads.list.stateExpired')
+          : t('admin.ads.list.stateScheduled');
     const stateVariant: 'success' | 'secondary' | 'warning' | 'info' = item.is_currently_active
       ? 'success'
       : !item.is_active
@@ -130,7 +133,7 @@ function AdminAdsContent() {
       item.city,
       item.country,
       item.radius_km ? `${item.radius_km}km` : null,
-    ].filter(Boolean).join(' · ') || 'Mondial';
+    ].filter(Boolean).join(' · ') || t('admin.ads.list.geoWorld');
 
     return (
       <TouchableOpacity
@@ -177,13 +180,13 @@ function AdminAdsContent() {
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
           onPress={() => navigation.goBack()}
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>BANNIÈRES · DISCOVER</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Publicités</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.ads.list.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.ads.list.title')}</Text>
         </View>
         <View style={[styles.countPill, { backgroundColor: `${colors.primary}15` }]}>
           <Text style={[styles.countText, { color: colors.primary }]}>{ads.length}</Text>
@@ -200,9 +203,9 @@ function AdminAdsContent() {
           loading ? null : (
             <View style={styles.empty}>
               <Ionicons name="megaphone-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucune publicité</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('admin.ads.list.emptyTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Crée ta première bannière sponsorisée avec le bouton +
+                {t('admin.ads.list.emptyText')}
               </Text>
             </View>
           )
@@ -213,7 +216,7 @@ function AdminAdsContent() {
       <TouchableOpacity
         style={[styles.fab, { backgroundColor: colors.primary }, Shadows.lg]}
         onPress={() => navigation.navigate('AdminAdForm', {})}
-        accessibilityLabel="Créer une publicité"
+        accessibilityLabel={t('admin.ads.list.createFab')}
       >
         <Ionicons name="add" size={26} color="#FFFFFF" />
       </TouchableOpacity>

@@ -1057,7 +1057,7 @@ export default function MyTicketsScreen() {
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {activeTab === 'upcoming'
           ? t('tickets.emptyHint')
-          : 'Les billets correspondants apparaîtront ici.'}
+          : t('tickets.emptyHintOther')}
       </Text>
       {activeTab === 'upcoming' && (
         <TouchableOpacity

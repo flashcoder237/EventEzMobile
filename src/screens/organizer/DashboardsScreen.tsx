@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -41,6 +42,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function DashboardsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -61,12 +63,12 @@ export default function DashboardsScreen() {
       const data: Dashboard[] = res.data?.results || res.data || [];
       setItems(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de charger les dashboards.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboards.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, [showError, t]);
 
   useEffect(() => {
     fetchData();
@@ -88,7 +90,7 @@ export default function DashboardsScreen() {
   const submitCreate = async () => {
     const title = createTitle.trim();
     if (!title) {
-      showError('Titre requis', 'Donne un nom à ton dashboard.');
+      showError(t('organizer.dashboards.titleRequiredTitle'), t('organizer.dashboards.titleRequiredMessage'));
       return;
     }
     setCreating(true);
@@ -108,9 +110,9 @@ export default function DashboardsScreen() {
       setCreateOpen(false);
       setCreateTitle('');
       setCreateDescription('');
-      showSuccess('Dashboard créé', 'Ajoute des widgets pour commencer.');
+      showSuccess(t('organizer.dashboards.createdTitle'), t('organizer.dashboards.createdMessage'));
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Création impossible.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboards.createError'));
     } finally {
       setCreating(false);
     }
@@ -118,15 +120,15 @@ export default function DashboardsScreen() {
 
   const handleDelete = (dash: Dashboard) => {
     showConfirm(
-      'Supprimer ce dashboard ?',
-      `« ${dash.title} » sera supprimé définitivement. Les widgets ne sont PAS supprimés (ils sont indépendants).`,
+      t('organizer.dashboards.deleteTitle'),
+      t('organizer.dashboards.deleteMessage', { title: dash.title }),
       async () => {
         try {
           await analyticsAPI.deleteDashboard(dash.id);
           setItems(prev => prev.filter(d => d.id !== dash.id));
-          showSuccess('Supprimé', '');
+          showSuccess(t('organizer.dashboards.deletedTitle'), '');
         } catch (error: any) {
-          showError('Erreur', error?.response?.data?.detail || 'Suppression impossible.');
+          showError(t('common.error'), error?.response?.data?.detail || t('organizer.dashboards.deleteError'));
         }
       },
     );
@@ -139,7 +141,7 @@ export default function DashboardsScreen() {
       onLongPress={() => handleDelete(item)}
       activeOpacity={0.85}
       accessibilityRole="button"
-      accessibilityLabel={`Ouvrir ${item.title}`}
+      accessibilityLabel={t('organizer.dashboards.openA11y', { title: item.title })}
     >
       <View style={[styles.iconWell, { backgroundColor: `${colors.primary}15` }]}>
         <Ionicons name="grid-outline" size={20} color={colors.primary} />
@@ -157,13 +159,13 @@ export default function DashboardsScreen() {
           <View style={[styles.metaPill, { backgroundColor: isDark ? colors.gray100 : colors.gray50 }]}>
             <Ionicons name="apps-outline" size={11} color={colors.gray600} />
             <Text style={[styles.metaText, { color: colors.gray600 }]}>
-              {item.widgets_count ?? 0} widget{(item.widgets_count ?? 0) > 1 ? 's' : ''}
+              {t('organizer.dashboards.widgetCount', { count: item.widgets_count ?? 0 })}
             </Text>
           </View>
           {item.is_public && (
             <View style={[styles.metaPill, { backgroundColor: '#10B98115' }]}>
               <Ionicons name="globe-outline" size={11} color="#059669" />
-              <Text style={[styles.metaText, { color: '#059669' }]}>Public</Text>
+              <Text style={[styles.metaText, { color: '#059669' }]}>{t('organizer.dashboards.public')}</Text>
             </View>
           )}
         </View>
@@ -180,20 +182,20 @@ export default function DashboardsScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>VUE PERSONNALISÉE</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Mes dashboards</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.dashboards.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.dashboards.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
           onPress={() => setCreateOpen(true)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Nouveau dashboard"
+          accessibilityLabel={t('organizer.dashboards.newA11y')}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
@@ -213,9 +215,9 @@ export default function DashboardsScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="grid-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun dashboard</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.dashboards.emptyTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Crée un dashboard pour regrouper tes indicateurs préférés au même endroit.
+                {t('organizer.dashboards.emptyText')}
               </Text>
             </View>
           }
@@ -226,26 +228,26 @@ export default function DashboardsScreen() {
       <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => !creating && setCreateOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVEAU</Text>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Dashboard</Text>
+            <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.dashboards.modalEyebrow')}</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('organizer.dashboards.modalTitle')}</Text>
 
-            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Titre *</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.dashboards.titleField')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
               value={createTitle}
               onChangeText={setCreateTitle}
-              placeholder="Vue ventes / Audience / Pilotage"
+              placeholder={t('organizer.dashboards.titlePlaceholder')}
               placeholderTextColor={colors.gray400}
               editable={!creating}
               maxLength={120}
             />
 
-            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Description</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.dashboards.descriptionField')}</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
               value={createDescription}
               onChangeText={setCreateDescription}
-              placeholder="Pour qui, dans quel contexte…"
+              placeholder={t('organizer.dashboards.descriptionPlaceholder')}
               placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={3}
@@ -261,7 +263,7 @@ export default function DashboardsScreen() {
                 disabled={creating}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: colors.primary }, creating && { opacity: 0.6 }]}
@@ -272,7 +274,7 @@ export default function DashboardsScreen() {
                 {creating ? (
                   <ActivityIndicator size="small" color={Colors.white} />
                 ) : (
-                  <Text style={[styles.modalBtnText, { color: Colors.white }]}>Créer & ajouter widgets</Text>
+                  <Text style={[styles.modalBtnText, { color: Colors.white }]}>{t('organizer.dashboards.createAndAdd')}</Text>
                 )}
               </TouchableOpacity>
             </View>

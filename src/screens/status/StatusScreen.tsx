@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useStatus } from '../../contexts/StatusContext';
@@ -35,39 +36,38 @@ import type {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const STATUS_META: Record<
-  ServiceHealthStatus,
-  { label: string; color: string; icon: keyof typeof Ionicons.glyphMap; text: string }
-> = {
+type StatusMeta = { labelKey: string; color: string; icon: keyof typeof Ionicons.glyphMap; textKey: string };
+
+const STATUS_META: Record<ServiceHealthStatus, StatusMeta> = {
   operational: {
-    label: 'Opérationnel',
+    labelKey: 'systemStatus.metaOperationalLabel',
     color: '#10B981',
     icon: 'checkmark-circle',
-    text: 'Tous les services fonctionnent normalement.',
+    textKey: 'systemStatus.metaOperationalText',
   },
   maintenance: {
-    label: 'Maintenance',
+    labelKey: 'systemStatus.metaMaintenanceLabel',
     color: '#6366F1',
     icon: 'construct',
-    text: 'Maintenance planifiée en cours.',
+    textKey: 'systemStatus.metaMaintenanceText',
   },
   degraded: {
-    label: 'Performance dégradée',
+    labelKey: 'systemStatus.metaDegradedLabel',
     color: '#F59E0B',
     icon: 'alert-circle',
-    text: "Certains services sont plus lents que d'habitude.",
+    textKey: 'systemStatus.metaDegradedText',
   },
   partial: {
-    label: 'Panne partielle',
+    labelKey: 'systemStatus.metaPartialLabel',
     color: '#F97316',
     icon: 'warning',
-    text: 'Un service rencontre des difficultés.',
+    textKey: 'systemStatus.metaPartialText',
   },
   major: {
-    label: 'Panne majeure',
+    labelKey: 'systemStatus.metaMajorLabel',
     color: '#EF4444',
     icon: 'close-circle',
-    text: 'Un incident majeur est en cours.',
+    textKey: 'systemStatus.metaMajorText',
   },
 };
 
@@ -79,26 +79,26 @@ const HERO_GRADIENTS: Record<ServiceHealthStatus, readonly [string, string, stri
   major: ['#DC2626', '#B91C1C', '#7F1D1D'] as const,
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  core: 'Plateforme & authentification',
-  events: 'Événements',
-  payments: 'Paiements',
-  messaging: 'Messagerie',
-  notifications: 'Notifications',
-  ai: 'Intelligence artificielle',
-  analytics: 'Analytics',
-  admin: 'Administration',
-  transactional: 'Inscriptions',
-  realtime: 'Temps réel',
-  async: 'Notifications & tâches',
-  geo: 'Géolocalisation',
-  backoffice: 'Backoffice',
+const CATEGORY_KEYS: Record<string, string> = {
+  core: 'systemStatus.categoryCore',
+  events: 'systemStatus.categoryEvents',
+  payments: 'systemStatus.categoryPayments',
+  messaging: 'systemStatus.categoryMessaging',
+  notifications: 'systemStatus.categoryNotifications',
+  ai: 'systemStatus.categoryAi',
+  analytics: 'systemStatus.categoryAnalytics',
+  admin: 'systemStatus.categoryAdmin',
+  transactional: 'systemStatus.categoryTransactional',
+  realtime: 'systemStatus.categoryRealtime',
+  async: 'systemStatus.categoryAsync',
+  geo: 'systemStatus.categoryGeo',
+  backoffice: 'systemStatus.categoryBackoffice',
 };
 
-function formatDateTime(iso: string | null): string {
+function formatDateTime(iso: string | null, locale: string): string {
   if (!iso) return '—';
   try {
-    return new Intl.DateTimeFormat('fr-FR', {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(iso));
@@ -110,6 +110,8 @@ function formatDateTime(iso: string | null): string {
 export default function StatusScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'en' ? 'en-US' : 'fr-FR';
   const { snapshot, isLoading, refresh, lastFetchedAt } = useStatus();
 
   const grouped = useMemo(() => {
@@ -141,13 +143,13 @@ export default function StatusScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>État du système</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Status</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('systemStatus.headerEyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('systemStatus.headerTitle')}</Text>
         </View>
         <TouchableOpacity
           style={[
@@ -158,7 +160,7 @@ export default function StatusScreen() {
           activeOpacity={0.7}
           disabled={isLoading}
           accessibilityRole="button"
-          accessibilityLabel="Rafraîchir"
+          accessibilityLabel={t('common.refresh')}
           accessibilityState={{ busy: isLoading }}
         >
           {isLoading ? (
@@ -182,13 +184,13 @@ export default function StatusScreen() {
             end={{ x: 1, y: 1 }}
             style={styles.hero}
           >
-            <Text style={styles.heroEyebrow}>Statut de la plateforme</Text>
-            <Text style={styles.heroTitle}>EventEz · Status</Text>
+            <Text style={styles.heroEyebrow}>{t('systemStatus.heroEyebrow')}</Text>
+            <Text style={styles.heroTitle}>{t('systemStatus.heroTitle')}</Text>
             <View style={styles.heroStatusPill}>
               <Ionicons name={overallMeta.icon} size={16} color="#FFFFFF" />
               <View style={{ flex: 1 }}>
-                <Text style={styles.heroStatusLabel}>{overallMeta.label}</Text>
-                <Text style={styles.heroStatusSub}>{overallMeta.text}</Text>
+                <Text style={styles.heroStatusLabel}>{t(overallMeta.labelKey)}</Text>
+                <Text style={styles.heroStatusSub}>{t(overallMeta.textKey)}</Text>
               </View>
             </View>
           </LinearGradient>
@@ -200,17 +202,17 @@ export default function StatusScreen() {
             <View style={styles.kpiRow}>
               <View style={[styles.kpiCard, { backgroundColor: colors.card }, Shadows.card]}>
                 <Text style={[styles.kpiValue, { color: colors.gray900 }]}>{servicesCount}</Text>
-                <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>Services</Text>
+                <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>{t('systemStatus.kpiServices')}</Text>
               </View>
               <View style={[styles.kpiCard, { backgroundColor: colors.card }, Shadows.card]}>
                 <Text style={[styles.kpiValue, { color: activeCount > 0 ? '#EF4444' : colors.gray900 }]}>
                   {activeCount}
                 </Text>
-                <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>Actifs</Text>
+                <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>{t('systemStatus.kpiActive')}</Text>
               </View>
               <View style={[styles.kpiCard, { backgroundColor: colors.card }, Shadows.card]}>
                 <Text style={[styles.kpiValue, { color: '#10B981' }]}>{resolvedCount}</Text>
-                <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>Résolus</Text>
+                <Text style={[styles.kpiLabel, { color: colors.gray500 }]}>{t('systemStatus.kpiResolved')}</Text>
               </View>
             </View>
           </StaggeredItem>
@@ -221,7 +223,7 @@ export default function StatusScreen() {
           <View style={styles.section}>
             <StaggeredItem index={2}>
               <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
-                Incidents en cours
+                {t('systemStatus.activeIncidents')}
               </Text>
             </StaggeredItem>
             {snapshot.active_incidents.map((incident, idx) => (
@@ -230,6 +232,8 @@ export default function StatusScreen() {
                   incident={incident}
                   onPress={() => navigation.navigate('IncidentDetails', { incidentId: incident.id })}
                   colors={colors}
+                  t={t}
+                  locale={locale}
                 />
               </StaggeredItem>
             ))}
@@ -239,14 +243,14 @@ export default function StatusScreen() {
         {/* Services grouped by category */}
         <View style={styles.section}>
           <StaggeredItem index={10}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Services</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('systemStatus.services')}</Text>
           </StaggeredItem>
           {grouped.map((group, idx) => (
             <StaggeredItem key={group.category} index={11 + idx}>
               <View style={[styles.categoryCard, { backgroundColor: colors.card }, Shadows.card]}>
                 <View style={[styles.categoryHeader, { backgroundColor: colors.gray50 }]}>
                   <Text style={[styles.categoryLabel, { color: colors.gray500 }]}>
-                    {CATEGORY_LABELS[group.category] || group.category}
+                    {CATEGORY_KEYS[group.category] ? t(CATEGORY_KEYS[group.category]) : group.category}
                   </Text>
                 </View>
                 {group.services.map((svc, i) => {
@@ -269,7 +273,7 @@ export default function StatusScreen() {
                       </View>
                       <View style={styles.serviceStatusWrap}>
                         <View style={[styles.statusDot, { backgroundColor: meta.color }]} />
-                        <Text style={[styles.serviceStatus, { color: meta.color }]}>{meta.label}</Text>
+                        <Text style={[styles.serviceStatus, { color: meta.color }]}>{t(meta.labelKey)}</Text>
                       </View>
                     </View>
                   );
@@ -286,9 +290,9 @@ export default function StatusScreen() {
               <AnimatedIllustration entry="scaleIn" idle="sway">
                 <WellDone color="#10B981" size={120} />
               </AnimatedIllustration>
-              <Text style={[styles.goodTitle, { color: colors.gray900 }]}>Tout roule</Text>
+              <Text style={[styles.goodTitle, { color: colors.gray900 }]}>{t('systemStatus.allGoodTitle')}</Text>
               <Text style={[styles.goodSub, { color: colors.gray500 }]}>
-                Aucun incident en cours. Si vous rencontrez un problème, n'hésitez pas à contacter le support.
+                {t('systemStatus.allGoodSubtitle')}
               </Text>
             </View>
           </StaggeredItem>
@@ -298,7 +302,7 @@ export default function StatusScreen() {
         {snapshot && snapshot.recent_resolved.length > 0 && (
           <View style={styles.section}>
             <StaggeredItem index={21}>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Historique récent</Text>
+              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('systemStatus.recentHistory')}</Text>
             </StaggeredItem>
             {snapshot.recent_resolved.map((incident, idx) => (
               <StaggeredItem key={incident.id} index={22 + idx}>
@@ -306,6 +310,8 @@ export default function StatusScreen() {
                   incident={incident}
                   onPress={() => navigation.navigate('IncidentDetails', { incidentId: incident.id })}
                   colors={colors}
+                  t={t}
+                  locale={locale}
                   muted
                 />
               </StaggeredItem>
@@ -315,7 +321,7 @@ export default function StatusScreen() {
 
         {lastFetchedAt && (
           <Text style={[styles.footer, { color: colors.gray400 }]}>
-            Dernier rafraîchissement · {new Date(lastFetchedAt).toLocaleTimeString('fr-FR')}
+            {t('systemStatus.lastRefresh', { time: new Date(lastFetchedAt).toLocaleTimeString(locale) })}
           </Text>
         )}
       </ScrollView>
@@ -329,11 +335,15 @@ function IncidentCard({
   onPress,
   colors,
   muted = false,
+  t,
+  locale,
 }: {
   incident: Incident;
   onPress: () => void;
   colors: any;
   muted?: boolean;
+  t: (key: string, options?: any) => string;
+  locale: string;
 }) {
   const severityColor =
     incident.severity === 'critical'
@@ -368,7 +378,7 @@ function IncidentCard({
           </View>
           {incident.is_blocking && (
             <View style={[styles.badge, { backgroundColor: '#FEE2E2' }]}>
-              <Text style={[styles.badgeText, { color: '#DC2626' }]}>Bloquant</Text>
+              <Text style={[styles.badgeText, { color: '#DC2626' }]}>{t('systemStatus.blocking')}</Text>
             </View>
           )}
         </View>
@@ -382,8 +392,8 @@ function IncidentCard({
           <Ionicons name="time-outline" size={12} color={colors.gray400} />
           <Text style={[styles.incidentMeta, { color: colors.gray400 }]}>
             {incident.resolved_at
-              ? `Résolu ${formatDateTime(incident.resolved_at)}`
-              : `Démarré ${formatDateTime(incident.started_at)}`}
+              ? t('systemStatus.resolvedAt', { date: formatDateTime(incident.resolved_at, locale) })
+              : t('systemStatus.startedAt', { date: formatDateTime(incident.started_at, locale) })}
           </Text>
           <View style={{ flex: 1 }} />
           <Ionicons name="chevron-forward" size={14} color={colors.gray400} />
