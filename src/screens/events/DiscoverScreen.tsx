@@ -773,7 +773,7 @@ export default function DiscoverScreen() {
               <Text
                 style={[
                   styles.nearbyPricePillText,
-                  { color: isFree ? Colors.white : colors.text },
+                  { color: isFree ? Colors.white : Colors.gray900 },
                 ]}
                 numberOfLines={1}
               >
@@ -787,7 +787,7 @@ export default function DiscoverScreen() {
           </View>
           <View style={styles.nearbyBody}>
             {item.category?.name && (
-              <View style={[styles.nearbyEyebrowPill, { backgroundColor: colors.gray100 }]}>
+              <View style={[styles.nearbyEyebrowPill, { backgroundColor: isDark ? colors.gray200 : colors.gray100 }]}>
                 <Text style={[styles.nearbyEyebrowText, { color: colors.gray500 }]} numberOfLines={1}>
                   {item.category.name}
                 </Text>
@@ -849,7 +849,7 @@ export default function DiscoverScreen() {
 
                 <View style={styles.incomingBody}>
                   {ev.category?.name && (
-                    <View style={[styles.incomingEyebrowPill, { backgroundColor: colors.gray100 }]}>
+                    <View style={[styles.incomingEyebrowPill, { backgroundColor: isDark ? colors.gray200 : colors.gray100 }]}>
                       <Text
                         style={[styles.incomingEyebrowText, { color: colors.gray500 }]}
                         numberOfLines={1}

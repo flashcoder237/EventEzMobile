@@ -264,14 +264,20 @@ export default function EventCreateScreen() {
   const currentStepConfig = STEPS[form.currentStep - 1];
 
   const eyebrowText = isEditing
-    ? `Modifier · Étape ${stepNumeral} / ${totalNumeral}`
-    : `Étape ${stepNumeral} / ${totalNumeral}`;
-  const titleFallback = isEditing ? "Modifier l'événement" : 'Créer un événement';
+    ? t('organizer.eventCreate.editStepLabel', { step: stepNumeral, total: totalNumeral })
+    : t('organizer.eventCreate.stepLabel', { step: stepNumeral, total: totalNumeral });
+  const titleFallback = isEditing
+    ? t('organizer.eventCreate.titleFallbackEdit')
+    : t('organizer.eventCreate.titleFallbackCreate');
   const submitLabel = form.loading
-    ? (isEditing ? 'Mise à jour...' : 'Création...')
-    : (isEditing ? 'Mettre à jour' : "Publier l'événement");
-  const submitEyebrow = isEditing ? 'Sauvegarder' : 'Finaliser';
-  const submitA11yLabel = isEditing ? "Mettre à jour l'événement" : "Créer l'événement";
+    ? (isEditing ? t('organizer.eventCreate.submitUpdating') : t('organizer.eventCreate.submitCreating'))
+    : (isEditing ? t('organizer.eventCreate.submitUpdate') : t('organizer.eventCreate.submitCreate'));
+  const submitEyebrow = isEditing
+    ? t('organizer.eventCreate.submitEyebrowEdit')
+    : t('organizer.eventCreate.submitEyebrowCreate');
+  const submitA11yLabel = isEditing
+    ? t('organizer.eventCreate.submitA11yEdit')
+    : t('organizer.eventCreate.submitA11yCreate');
 
   // Loading initial uniquement en mode edition (le fetch peut prendre quelques centaines de ms)
   if (isEditing && form.loading && !form.title) {
@@ -288,9 +294,9 @@ export default function EventCreateScreen() {
               <Ionicons name="arrow-back" size={22} color={colors.gray900} />
             </TouchableOpacity>
             <View style={styles.headerCenter}>
-              <Text style={[styles.headerBarEyebrow, { color: colors.gray500 }]}>Modifier</Text>
+              <Text style={[styles.headerBarEyebrow, { color: colors.gray500 }]}>{t('organizer.eventCreate.edit')}</Text>
               <Text style={[styles.headerBarTitle, { color: colors.gray900 }]} numberOfLines={1}>
-                Chargement…
+                {t('organizer.eventCreate.loading')}
               </Text>
             </View>
             <View style={{ width: 40 }} />
@@ -298,7 +304,7 @@ export default function EventCreateScreen() {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.loadingText, { color: colors.gray500 }]}>
-              Chargement de l'événement...
+              {t('organizer.eventCreate.loadingEvent')}
             </Text>
           </View>
         </View>
@@ -316,7 +322,7 @@ export default function EventCreateScreen() {
             style={styles.backButton}
             onPress={handleBack}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('organizer.eventCreate.back')}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
             <Ionicons name="arrow-back" size={22} color={colors.gray900} />
@@ -336,7 +342,7 @@ export default function EventCreateScreen() {
                 style={styles.savedBadge}
               >
                 <Ionicons name="cloud-done-outline" size={10} color={colors.success} />
-                <Text style={[styles.savedBadgeText, { color: colors.success }]}>Sauvegardé</Text>
+                <Text style={[styles.savedBadgeText, { color: colors.success }]}>{t('organizer.eventCreate.saved')}</Text>
               </Animated.View>
             )}
           </View>
@@ -349,8 +355,8 @@ export default function EventCreateScreen() {
               onPress={() => {
                 if (!formRef.current.title.trim()) {
                   showAlert(
-                    'Titre requis',
-                    'Saisis au moins le titre de l\'événement avant de prévisualiser.',
+                    t('organizer.eventCreate.titleRequiredTitle'),
+                    t('organizer.eventCreate.titleRequiredMessage'),
                     undefined,
                     'info',
                   );
@@ -367,7 +373,7 @@ export default function EventCreateScreen() {
                 { backgroundColor: colors.card, borderColor: hairline },
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Prévisualiser l'événement"
+              accessibilityLabel={t('organizer.eventCreate.previewA11y')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="eye-outline" size={17} color={colors.gray700} />
@@ -377,12 +383,12 @@ export default function EventCreateScreen() {
               <TouchableOpacity
                 onPress={() => {
                   showAlert(
-                    'Réinitialiser le formulaire ?',
-                    'Toutes les données saisies seront perdues, y compris le brouillon en cours. Cette action est irréversible.',
+                    t('organizer.eventCreate.resetTitle'),
+                    t('organizer.eventCreate.resetMessage'),
                     [
-                      { text: 'Annuler', style: 'cancel' },
+                      { text: t('common.cancel'), style: 'cancel' },
                       {
-                        text: 'Tout effacer',
+                        text: t('organizer.eventCreate.resetConfirm'),
                         style: 'destructive',
                         onPress: async () => {
                           await clearDraft();
@@ -398,7 +404,7 @@ export default function EventCreateScreen() {
                   { backgroundColor: colors.card, borderColor: hairline },
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel="Réinitialiser le formulaire"
+                accessibilityLabel={t('organizer.eventCreate.resetA11y')}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="refresh-outline" size={17} color={colors.gray700} />
@@ -409,18 +415,18 @@ export default function EventCreateScreen() {
               <TouchableOpacity
                 onPress={() => {
                   showAlert(
-                    'Sauvegarder sous...',
-                    'Donne un nom à ce brouillon pour le retrouver dans "Mes brouillons" plus tard.',
+                    t('organizer.eventCreate.saveAsTitle'),
+                    t('organizer.eventCreate.saveAsMessage'),
                     [
-                      { text: 'Annuler', style: 'cancel' },
+                      { text: t('common.cancel'), style: 'cancel' },
                       {
-                        text: 'Sauvegarder',
+                        text: t('organizer.eventCreate.saveAction'),
                         onPress: async () => {
-                          const name = formRef.current.title?.trim() || 'Brouillon sans titre';
+                          const name = formRef.current.title?.trim() || t('organizer.eventCreate.draftDefaultName');
                           const meta = await saveAsNamed(formRef.current, name);
                           showAlert(
-                            'Brouillon sauvegardé',
-                            `"${meta.name}" est dans Mes brouillons. Tu peux le reprendre depuis MyEvents.`,
+                            t('organizer.eventCreate.draftSavedTitle'),
+                            t('organizer.eventCreate.draftSavedMessage', { name: meta.name }),
                             undefined,
                             'success',
                           );
@@ -435,7 +441,7 @@ export default function EventCreateScreen() {
                   { backgroundColor: colors.card, borderColor: hairline },
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel="Sauvegarder ce brouillon sous un nom"
+                accessibilityLabel={t('organizer.eventCreate.saveAsA11y')}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
                 <Ionicons name="bookmark-outline" size={17} color={colors.gray700} />
@@ -457,7 +463,7 @@ export default function EventCreateScreen() {
                 style={styles.progressBarTrack}
                 onPress={() => goToStep(step.id)}
                 accessibilityRole="button"
-                accessibilityLabel={`Étape ${step.id} sur ${STEPS.length} : ${step.shortTitle}`}
+                accessibilityLabel={t('organizer.eventCreate.stepA11y', { id: step.id, total: STEPS.length, name: step.shortTitle })}
                 accessibilityState={{ selected: isActive }}
                 hitSlop={{ top: 10, bottom: 10, left: 2, right: 2 }}
               >
@@ -526,8 +532,8 @@ export default function EventCreateScreen() {
                 onPickImage={pickImage}
                 onRemoveImage={() =>
                   showConfirm(
-                    'Supprimer la bannière ?',
-                    "Cette image sera retirée. Tu peux toujours en uploader une nouvelle ensuite.",
+                    t('organizer.eventCreate.removeBannerTitle'),
+                    t('organizer.eventCreate.removeBannerMessage'),
                     () => setBannerImage(null),
                   )
                 }
@@ -655,11 +661,11 @@ export default function EventCreateScreen() {
               style={styles.prevButtonGhost}
               onPress={goToPrevStep}
               accessibilityRole="button"
-              accessibilityLabel="Étape précédente"
+              accessibilityLabel={t('organizer.eventCreate.prevStepA11y')}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             >
               <Ionicons name="chevron-back" size={16} color={colors.gray500} />
-              <Text style={[styles.prevButtonGhostText, { color: colors.gray600 }]}>Retour</Text>
+              <Text style={[styles.prevButtonGhostText, { color: colors.gray600 }]}>{t('organizer.eventCreate.back')}</Text>
             </TouchableOpacity>
           ) : (
             <View style={{ width: 80 }} />
@@ -673,11 +679,11 @@ export default function EventCreateScreen() {
               ]}
               onPress={goToNextStep}
               accessibilityRole="button"
-              accessibilityLabel="Étape suivante"
+              accessibilityLabel={t('organizer.eventCreate.nextStepA11y')}
               activeOpacity={0.88}
             >
               <View style={styles.nextButtonContent}>
-                <Text style={styles.nextButtonEyebrow}>Suivant</Text>
+                <Text style={styles.nextButtonEyebrow}>{t('organizer.eventCreate.next')}</Text>
                 <Text style={styles.nextButtonLabel} numberOfLines={1}>
                   {currentStepConfig?.nextLabel}
                 </Text>

@@ -679,7 +679,7 @@ export default function MyTicketsScreen() {
                     <View
                       style={[
                         styles.typePill,
-                        { backgroundColor: isArchived ? colors.gray100 : `${typeColor}15` },
+                        { backgroundColor: isArchived ? (isDark ? colors.gray200 : colors.gray100) : `${typeColor}15` },
                       ]}
                     >
                       <Ionicons
@@ -733,7 +733,7 @@ export default function MyTicketsScreen() {
                       styles.dateTile,
                       {
                         backgroundColor: isArchived
-                          ? colors.gray100
+                          ? (isDark ? colors.gray200 : colors.gray100)
                           : isInscription
                           ? colors.primaryBg
                           : `${accentColor}1A`,
@@ -763,7 +763,7 @@ export default function MyTicketsScreen() {
               {/* Footer meta */}
               <View style={styles.ticketMainFooter}>
                 {dateInfo && !isPendingStack && (
-                  <View style={[styles.dateChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
+                  <View style={[styles.dateChip, { backgroundColor: isDark ? colors.gray200 : colors.gray50, borderColor: colors.border }]}>
                     <Ionicons
                       name="calendar-outline"
                       size={12}
@@ -840,7 +840,7 @@ export default function MyTicketsScreen() {
                 <View
                   style={[
                     styles.qrLocked,
-                    { backgroundColor: colors.gray100, borderColor: colors.border },
+                    { backgroundColor: isDark ? colors.gray200 : colors.gray100, borderColor: colors.border },
                   ]}
                 >
                   <Ionicons name="checkmark-circle" size={26} color={colors.gray400} />
@@ -849,7 +849,7 @@ export default function MyTicketsScreen() {
                 <View
                   style={[
                     styles.qrLocked,
-                    { backgroundColor: colors.gray50, borderColor: colors.border },
+                    { backgroundColor: isDark ? colors.gray200 : colors.gray50, borderColor: colors.border },
                   ]}
                 >
                   <Ionicons name="lock-closed" size={20} color={colors.gray400} />
@@ -859,7 +859,7 @@ export default function MyTicketsScreen() {
                 <View
                   style={[
                     styles.passBox,
-                    { backgroundColor: Colors.white, borderColor: typeColor },
+                    { backgroundColor: isDark ? colors.gray200 : Colors.white, borderColor: typeColor },
                   ]}
                 >
                   <Ionicons name="document-text" size={20} color={typeColor} />
@@ -872,7 +872,7 @@ export default function MyTicketsScreen() {
                   style={[
                     styles.qrBox,
                     {
-                      backgroundColor: Colors.white,
+                      backgroundColor: isDark ? colors.gray200 : Colors.white,
                       borderColor: typeColor,
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -902,7 +902,7 @@ export default function MyTicketsScreen() {
                   style={[
                     styles.qtyBadge,
                     {
-                      backgroundColor: isDark ? colors.gray100 : Colors.white,
+                      backgroundColor: isDark ? colors.gray200 : Colors.white,
                       borderColor: `${typeColor}40`,
                     },
                   ]}
@@ -916,7 +916,7 @@ export default function MyTicketsScreen() {
                   style={[
                     styles.qtyBadge,
                     {
-                      backgroundColor: isDark ? colors.gray100 : Colors.white,
+                      backgroundColor: isDark ? colors.gray200 : Colors.white,
                       borderColor: `${typeColor}40`,
                     },
                   ]}
@@ -936,7 +936,7 @@ export default function MyTicketsScreen() {
                 />
               )}
               {isArchived && (
-                <View style={[styles.archivedPill, { backgroundColor: colors.gray100 }]}>
+                <View style={[styles.archivedPill, { backgroundColor: isDark ? colors.gray200 : colors.gray100 }]}>
                   <Text style={[styles.archivedPillText, { color: colors.gray500 }]}>{t('tickets.archivedLabel')}</Text>
                 </View>
               )}

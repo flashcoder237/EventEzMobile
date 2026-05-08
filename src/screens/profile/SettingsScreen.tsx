@@ -644,12 +644,12 @@ export default function SettingsScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: Spacing.md }}>
-            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>RÉGLAGES</Text>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('settings.headerEyebrow')}</Text>
             <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings.preferencesTitle')}</Text>
           </View>
         </View>
         <Text style={[styles.headerLead, { color: colors.gray500 }]}>
-          Règle ton app, ta confidentialité et tes notifications. Rien de compliqué, tout au bon endroit.
+          {t('settings.headerLead')}
         </Text>
       </View>
 
@@ -776,7 +776,7 @@ export default function SettingsScreen() {
         {/* Section: Préférences */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>PRÉFÉRENCES</Text>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.preferencesSectionEyebrow')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
           <OptionCard
@@ -823,7 +823,7 @@ export default function SettingsScreen() {
         {/* Section: Sécurité */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>SÉCURITÉ</Text>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.securitySectionEyebrow')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
 
@@ -1086,7 +1086,7 @@ export default function SettingsScreen() {
             title={t('settings.rowAppVersion')}
             right={
               <View style={[styles.versionPill, { backgroundColor: colors.gray100 }]}>
-                <Text style={[styles.versionPillText, { color: colors.gray600 }]}>BUILD 2026</Text>
+                <Text style={[styles.versionPillText, { color: colors.gray600 }]}>{t('settings.buildBadge')}</Text>
               </View>
             }
           />

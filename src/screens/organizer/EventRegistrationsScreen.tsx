@@ -49,24 +49,6 @@ type RoutePropType = RouteProp<RootStackParamList, 'EventRegistrations'>;
 
 type FilterType = 'all' | 'pending' | 'approved' | 'rejected';
 
-const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  pending: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
-  pending_approval: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
-  confirmed: { label: 'Confirmé', color: '#10B981', bgColor: '#D1FAE5' },
-  approved: { label: 'Approuvé', color: '#10B981', bgColor: '#D1FAE5' },
-  rejected: { label: 'Refusé', color: '#EF4444', bgColor: '#FEE2E2' },
-  cancelled: { label: 'Annulé', color: '#6B7280', bgColor: '#F3F4F6' },
-  completed: { label: 'Complété', color: '#3B82F6', bgColor: '#DBEAFE' },
-  checked_in: { label: 'Enregistré', color: '#6366F1', bgColor: '#E0E7FF' },
-};
-
-const approvalStatusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-  not_required: { label: 'Auto', color: '#6B7280', bgColor: '#F3F4F6' },
-  pending: { label: 'En attente', color: '#F59E0B', bgColor: '#FEF3C7' },
-  approved: { label: 'Approuvé', color: '#10B981', bgColor: '#D1FAE5' },
-  rejected: { label: 'Refusé', color: '#EF4444', bgColor: '#FEE2E2' },
-};
-
 const getApprovalBadgeVariant = (status: string): 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' => {
   switch (status) {
     case 'approved': return 'success';
@@ -115,6 +97,13 @@ export default function EventRegistrationsScreen() {
   pageRef.current = page;
   hasMoreRef.current = hasMore;
   loadingMoreRef.current = loadingMore;
+
+  const approvalStatusConfig = useMemo<Record<string, { label: string; color: string; bgColor: string }>>(() => ({
+    not_required: { label: t('organizer.eventRegistrations.approvalNotRequired'), color: '#6B7280', bgColor: '#F3F4F6' },
+    pending: { label: t('organizer.eventRegistrations.statusPending'), color: '#F59E0B', bgColor: '#FEF3C7' },
+    approved: { label: t('organizer.eventRegistrations.statusApproved'), color: '#10B981', bgColor: '#D1FAE5' },
+    rejected: { label: t('organizer.eventRegistrations.statusRejected'), color: '#EF4444', bgColor: '#FEE2E2' },
+  }), [t]);
 
   useEffect(() => {
     fetchRegistrations();
@@ -276,10 +265,10 @@ export default function EventRegistrationsScreen() {
           : r
         )
       );
-      showSuccess('Succès', `${ids.length} inscription(s) approuvée(s)`);
+      showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkApproveSuccess', { count: ids.length }));
       cancelSelection();
     } catch (error) {
-      showError('Erreur', 'Impossible d\'approuver les inscriptions');
+      showError(t('common.error'), t('organizer.eventRegistrations.bulkApproveError'));
     } finally {
       setBulkLoading(false);
     }
@@ -289,8 +278,8 @@ export default function EventRegistrationsScreen() {
     const ids = Array.from(selectedIds);
     if (Alert.prompt) {
       Alert.prompt(
-        'Raison du refus',
-        'Veuillez indiquer la raison du refus',
+        t('organizer.eventRegistrations.bulkRejectPromptTitle'),
+        t('organizer.eventRegistrations.bulkRejectPromptMessage'),
         async (reason: string) => {
           if (!reason?.trim()) return;
           setBulkLoading(true);
@@ -302,10 +291,10 @@ export default function EventRegistrationsScreen() {
                 : r
               )
             );
-            showSuccess('Succès', `${ids.length} inscription(s) refusée(s)`);
+            showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkRejectSuccess', { count: ids.length }));
             cancelSelection();
           } catch (error) {
-            showError('Erreur', 'Impossible de refuser les inscriptions');
+            showError(t('common.error'), t('organizer.eventRegistrations.bulkRejectError'));
           } finally {
             setBulkLoading(false);
           }
@@ -314,7 +303,7 @@ export default function EventRegistrationsScreen() {
     } else {
       // Fallback for Android (no Alert.prompt)
       setBulkLoading(true);
-      registrationsAPI.bulkReject(ids, 'Refusé par l\'organisateur')
+      registrationsAPI.bulkReject(ids, t('organizer.eventRegistrations.bulkRejectFallbackReason'))
         .then(() => {
           setRegistrations(prev =>
             prev.map(r => ids.includes(r.id)
@@ -322,10 +311,10 @@ export default function EventRegistrationsScreen() {
               : r
             )
           );
-          showSuccess('Succès', `${ids.length} inscription(s) refusée(s)`);
+          showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkRejectSuccess', { count: ids.length }));
           cancelSelection();
         })
-        .catch(() => showError('Erreur', 'Impossible de refuser les inscriptions'))
+        .catch(() => showError(t('common.error'), t('organizer.eventRegistrations.bulkRejectError')))
         .finally(() => setBulkLoading(false));
     }
   };
@@ -341,10 +330,10 @@ export default function EventRegistrationsScreen() {
           : r
         )
       );
-      showSuccess('Succès', `${ids.length} participant(s) enregistré(s)`);
+      showSuccess(t('common.success'), t('organizer.eventRegistrations.bulkCheckInSuccess', { count: ids.length }));
       cancelSelection();
     } catch (error) {
-      showError('Erreur', 'Impossible d\'enregistrer les participants');
+      showError(t('common.error'), t('organizer.eventRegistrations.bulkCheckInError'));
     } finally {
       setBulkLoading(false);
     }
@@ -361,10 +350,10 @@ export default function EventRegistrationsScreen() {
         )
       );
       setShowDetailModal(false);
-      showSuccess('Succès', 'Inscription approuvée avec succès');
+      showSuccess(t('common.success'), t('organizer.eventRegistrations.approveSuccess'));
     } catch (error) {
       if (__DEV__) console.error('Erreur approbation:', error);
-      showError('Erreur', 'Impossible d\'approuver l\'inscription');
+      showError(t('common.error'), t('organizer.eventRegistrations.approveError'));
     } finally {
       setProcessing(false);
     }
@@ -372,7 +361,7 @@ export default function EventRegistrationsScreen() {
 
   const handleReject = async () => {
     if (!rejectReason.trim()) {
-      showError('Erreur', 'Veuillez indiquer une raison de refus');
+      showError(t('common.error'), t('organizer.eventRegistrations.rejectReasonRequired'));
       return;
     }
 
@@ -390,10 +379,10 @@ export default function EventRegistrationsScreen() {
       setShowRejectModal(false);
       setShowDetailModal(false);
       setRejectReason('');
-      showSuccess('Succès', 'Inscription refusée');
+      showSuccess(t('common.success'), t('organizer.eventRegistrations.rejectSuccess'));
     } catch (error) {
       if (__DEV__) console.error('Erreur refus:', error);
-      showError('Erreur', 'Impossible de refuser l\'inscription');
+      showError(t('common.error'), t('organizer.eventRegistrations.rejectError'));
     } finally {
       setProcessing(false);
     }
@@ -424,7 +413,7 @@ export default function EventRegistrationsScreen() {
       if (user.email) return user.email.split('@')[0];
     }
     if (registration.user_name) return registration.user_name;
-    return 'Participant';
+    return t('organizer.eventRegistrations.participantDefault');
   };
 
   const getEmail = (registration: Registration): string => {
@@ -505,14 +494,14 @@ export default function EventRegistrationsScreen() {
               onPress={() => handleApprove(item)}
             >
               <Ionicons name="checkmark" size={18} color={Colors.white} />
-              <Text style={styles.approveButtonText}>Approuver</Text>
+              <Text style={styles.approveButtonText}>{t('organizer.eventRegistrations.approve')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.rejectButton}
               onPress={() => openRejectModal(item)}
             >
               <Ionicons name="close" size={18} color={Colors.error} />
-              <Text style={styles.rejectButtonText}>Refuser</Text>
+              <Text style={styles.rejectButtonText}>{t('organizer.eventRegistrations.reject')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -526,14 +515,18 @@ export default function EventRegistrationsScreen() {
         <Ionicons name="people-outline" size={48} color={colors.gray400} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>
-        {searchQuery ? 'Aucun resultat' : filter === 'pending' ? 'Aucune inscription en attente' : 'Aucune inscription'}
+        {searchQuery
+          ? t('organizer.eventRegistrations.emptyNoResults')
+          : filter === 'pending'
+          ? t('organizer.eventRegistrations.emptyPending')
+          : t('organizer.eventRegistrations.empty')}
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery
-          ? 'Essayez avec d\'autres termes de recherche.'
+          ? t('organizer.eventRegistrations.emptySearch')
           : filter === 'pending'
-          ? 'Toutes les inscriptions ont été traitées.'
-          : 'Les inscriptions à cet événement apparaîtront ici.'}
+          ? t('organizer.eventRegistrations.emptyAllProcessed')
+          : t('organizer.eventRegistrations.emptyDefault')}
       </Text>
     </View>
   );
@@ -545,7 +538,7 @@ export default function EventRegistrationsScreen() {
         <View style={{ flex: 1, zIndex: 1 }}>
           <EditorialHeader
             eyebrow={t('eyebrow.entryQueue')}
-            title="Inscriptions"
+            title={t('organizer.eventRegistrations.title')}
             subtitle={eventTitle || undefined}
             back
             onBack={() => navigation.goBack()}
@@ -565,7 +558,7 @@ export default function EventRegistrationsScreen() {
         {/* Header éditorial : eyebrow + display title + actions discrètes */}
         <EditorialHeader
           eyebrow={t('eyebrow.entryQueue')}
-          title="Inscriptions"
+          title={t('organizer.eventRegistrations.title')}
           subtitle={eventTitle || undefined}
           back
           onBack={() => navigation.goBack()}
@@ -574,13 +567,15 @@ export default function EventRegistrationsScreen() {
               <TouchableOpacity
                 style={[styles.headerIconBtn, { backgroundColor: colors.gray100 }]}
                 onPress={() => setShowEmailModal(true)}
-                accessibilityLabel="Envoyer un email"
+                accessibilityLabel={t('organizer.eventRegistrations.sendEmailA11y')}
               >
                 <Ionicons name="mail-outline" size={18} color={colors.gray700} />
               </TouchableOpacity>
               <ExportButton
                 endpoint="/registrations/export/"
-                filename={`inscriptions_${(eventTitle || 'evenement').slice(0, 40)}`}
+                filename={t('organizer.eventRegistrations.exportFilename', {
+                  name: (eventTitle || t('organizer.eventRegistrations.exportFilenameFallback')).slice(0, 40),
+                })}
                 params={{ event_id: eventId }}
                 compact
               />
@@ -592,24 +587,24 @@ export default function EventRegistrationsScreen() {
         <View style={styles.statsCard}>
           <View style={styles.statBlock}>
             <Text style={[editorial.statNumber, { color: colors.gray900 }]}>{stats.total}</Text>
-            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>TOTAL</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.statTotal')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
           <View style={styles.statBlock}>
             <Text style={[editorial.statNumber, { color: stats.pending > 0 ? '#F59E0B' : colors.gray900 }]}>
               {stats.pending}
             </Text>
-            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>EN ATTENTE</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.statPending')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
           <View style={styles.statBlock}>
             <Text style={[editorial.statNumber, { color: '#10B981' }]}>{stats.approved}</Text>
-            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>APPROUVÉS</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.statApproved')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
           <View style={styles.statBlock}>
             <Text style={[editorial.statNumber, { color: colors.gray900 }]}>{stats.rejected}</Text>
-            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>REFUSÉS</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.statRejected')}</Text>
           </View>
         </View>
 
@@ -622,7 +617,13 @@ export default function EventRegistrationsScreen() {
         <View style={styles.filtersContainer}>
           {(['all', 'pending', 'approved', 'rejected'] as FilterType[]).map((f) => {
             const isActive = filter === f;
-            const label = f === 'all' ? 'Tous' : f === 'pending' ? 'En attente' : f === 'approved' ? 'Approuvés' : 'Refusés';
+            const label = f === 'all'
+              ? t('organizer.eventRegistrations.filterAll')
+              : f === 'pending'
+              ? t('organizer.eventRegistrations.filterPending')
+              : f === 'approved'
+              ? t('organizer.eventRegistrations.filterApproved')
+              : t('organizer.eventRegistrations.filterRejected');
             return (
               <TouchableOpacity
                 key={f}
@@ -714,7 +715,7 @@ export default function EventRegistrationsScreen() {
                 {selectedRegistration && (
                   <>
                     <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
-                      <Text style={[styles.modalTitle, { color: colors.gray900 }]}>Details de l'inscription</Text>
+                      <Text style={[styles.modalTitle, { color: colors.gray900 }]}>{t('organizer.eventRegistrations.detailTitle')}</Text>
                       <TouchableOpacity onPress={() => setShowDetailModal(false)}>
                         <Ionicons name="close" size={24} color={colors.gray600} />
                       </TouchableOpacity>
@@ -722,23 +723,23 @@ export default function EventRegistrationsScreen() {
 
                     <View style={styles.modalBody}>
                       <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
-                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Participant</Text>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.detailParticipant')}</Text>
                         <Text style={[styles.detailValue, { color: colors.gray900 }]}>{getDisplayName(selectedRegistration)}</Text>
                       </View>
                       <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
-                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Email</Text>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.detailEmail')}</Text>
                         <Text style={[styles.detailValue, { color: colors.gray900 }]}>{getEmail(selectedRegistration)}</Text>
                       </View>
                       <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
-                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Reference</Text>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.detailReference')}</Text>
                         <Text style={[styles.detailValue, { color: colors.gray900 }]}>{selectedRegistration.reference_code}</Text>
                       </View>
                       <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
-                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Date d'inscription</Text>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.detailRegistrationDate')}</Text>
                         <Text style={[styles.detailValue, { color: colors.gray900 }]}>{formatDate(selectedRegistration.created_at)}</Text>
                       </View>
                       <View style={[styles.detailRow, { borderBottomColor: colors.gray50 }]}>
-                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>Statut</Text>
+                        <Text style={[styles.detailLabel, { color: colors.gray500 }]}>{t('organizer.eventRegistrations.detailStatus')}</Text>
                         <Badge
                           label={(approvalStatusConfig[selectedRegistration.approval_status || 'not_required']).label}
                           variant={getApprovalBadgeVariant(selectedRegistration.approval_status || 'not_required')}
@@ -748,7 +749,7 @@ export default function EventRegistrationsScreen() {
 
                       {selectedRegistration.form_data && Object.keys(selectedRegistration.form_data).length > 0 && (
                         <View style={[styles.formDataSection, { backgroundColor: colors.gray50 }]}>
-                          <Text style={[styles.formDataTitle, { color: colors.gray700 }]}>Donnees du formulaire</Text>
+                          <Text style={[styles.formDataTitle, { color: colors.gray700 }]}>{t('organizer.eventRegistrations.formData')}</Text>
                           {Object.entries(selectedRegistration.form_data).map(([key, value]) => (
                             <View key={key} style={styles.formDataRow}>
                               <Text style={[styles.formDataKey, { color: colors.gray500 }]}>{key}</Text>
@@ -765,7 +766,7 @@ export default function EventRegistrationsScreen() {
                           style={styles.modalRejectButton}
                           onPress={() => openRejectModal(selectedRegistration)}
                         >
-                          <Text style={styles.modalRejectButtonText}>Refuser</Text>
+                          <Text style={styles.modalRejectButtonText}>{t('organizer.eventRegistrations.reject')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                           style={styles.modalApproveButton}
@@ -775,7 +776,7 @@ export default function EventRegistrationsScreen() {
                           {processing ? (
                             <ActivityIndicator size="small" color={Colors.white} />
                           ) : (
-                            <Text style={styles.modalApproveButtonText}>Approuver</Text>
+                            <Text style={styles.modalApproveButtonText}>{t('organizer.eventRegistrations.approve')}</Text>
                           )}
                         </TouchableOpacity>
                       </View>
@@ -801,9 +802,9 @@ export default function EventRegistrationsScreen() {
               <View style={[styles.rejectModalContent, { backgroundColor: colors.card }]}>
                 <View style={styles.rejectModalHeader}>
                   <Ionicons name="close-circle" size={48} color={Colors.error} />
-                  <Text style={[styles.rejectModalTitle, { color: colors.gray900 }]}>Refuser l'inscription</Text>
+                  <Text style={[styles.rejectModalTitle, { color: colors.gray900 }]}>{t('organizer.eventRegistrations.rejectModalTitle')}</Text>
                   <Text style={[styles.rejectModalSubtitle, { color: colors.gray500 }]}>
-                    Veuillez indiquer la raison du refus
+                    {t('organizer.eventRegistrations.rejectModalSubtitle')}
                   </Text>
                 </View>
 
@@ -811,7 +812,7 @@ export default function EventRegistrationsScreen() {
                   style={[styles.rejectInput, { backgroundColor: colors.gray50, color: colors.gray900, borderColor: colors.gray200 }]}
                   value={rejectReason}
                   onChangeText={setRejectReason}
-                  placeholder="Raison du refus..."
+                  placeholder={t('organizer.eventRegistrations.rejectInputPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   multiline
                   numberOfLines={4}
@@ -826,7 +827,7 @@ export default function EventRegistrationsScreen() {
                       setRejectReason('');
                     }}
                   >
-                    <Text style={[styles.rejectCancelButtonText, { color: colors.gray700 }]}>Annuler</Text>
+                    <Text style={[styles.rejectCancelButtonText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.rejectConfirmButton}
@@ -836,7 +837,7 @@ export default function EventRegistrationsScreen() {
                     {processing ? (
                       <ActivityIndicator size="small" color={Colors.white} />
                     ) : (
-                      <Text style={styles.rejectConfirmButtonText}>Confirmer le refus</Text>
+                      <Text style={styles.rejectConfirmButtonText}>{t('organizer.eventRegistrations.rejectConfirm')}</Text>
                     )}
                   </TouchableOpacity>
                 </View>

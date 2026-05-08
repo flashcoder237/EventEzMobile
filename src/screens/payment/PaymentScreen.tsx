@@ -147,6 +147,7 @@ function PollingProgressBar({
   attempt: number;
   maxAttempts: number;
 }) {
+  const { t } = useTranslation();
   const POLL_DURATION_SECONDS = 180; // 36 attempts × 5s (default config)
   const [elapsed, setElapsed] = React.useState(0);
   React.useEffect(() => {
@@ -156,8 +157,6 @@ function PollingProgressBar({
     }, 1000);
     return () => clearInterval(interval);
   }, []);
-  // Privilégie le compteur réel d'attempts (plus fidèle à l'état du polling),
-  // tombe sur le timer si le hook n'a pas encore enregistré d'attempt.
   const attemptProgress = maxAttempts > 0 ? attempt / maxAttempts : 0;
   const timeProgress = elapsed / POLL_DURATION_SECONDS;
   const progress = Math.min(1, Math.max(attemptProgress, timeProgress));
@@ -172,8 +171,8 @@ function PollingProgressBar({
         />
       </View>
       <Text style={[styles.pollingProgressLabel, { color: '#888' }]}>
-        Vérification du paiement · {elapsed}s
-        {attempt > 0 ? ` · tentative ${attempt}/${maxAttempts}` : ''}
+        {t('payment.paymentPollingLabel', { seconds: elapsed })}
+        {attempt > 0 ? t('payment.paymentPollingAttempt', { current: attempt, total: maxAttempts }) : ''}
       </Text>
     </>
   );
@@ -327,49 +326,49 @@ export default function PaymentScreen() {
     onTimeout: (lastStatus) => {
       setProcessing(false);
       showAlert(
-        'Delai depasse',
-        'Le paiement prend plus de temps que prévu. Si tu as déjà confirmé la transaction sur ton téléphone, tape "J\'ai déjà payé".',
+        t('payment.paymentTimeoutSimpleTitle'),
+        t('payment.paymentTimeoutMessage'),
         [
           {
-            text: 'J\'ai deja paye',
+            text: t('payment.paymentAlreadyPaid'),
             onPress: () => {
               setProcessing(true);
               handleAlreadyPaid();
             },
           },
           {
-            text: 'Reessayer',
+            text: t('payment.paymentRetry'),
             onPress: () => {
               setProcessing(true);
               if (paymentId) startVerification(paymentId);
             },
           },
-          { text: 'Annuler', onPress: cancelPayment },
+          { text: t('common.cancel'), onPress: cancelPayment },
         ]
       );
     },
     onMaxErrors: (_lastError) => {
       setProcessing(false);
       showAlert(
-        'Verification interrompue',
-        'Impossible de vérifier le statut du paiement (problème de connexion). Ton paiement a peut-être réussi.\n\nSi tu as déjà payé, tape "J\'ai déjà payé" pour vérifier.',
+        t('payment.paymentVerifyInterruptedSimpleTitle'),
+        t('payment.paymentVerifyMaxErrorsMessage'),
         [
           {
-            text: 'J\'ai deja paye',
+            text: t('payment.paymentAlreadyPaid'),
             onPress: () => {
               setProcessing(true);
               handleAlreadyPaid();
             },
           },
           {
-            text: 'Reessayer',
+            text: t('payment.paymentRetry'),
             onPress: () => {
               setProcessing(true);
               if (paymentId) startVerification(paymentId);
             },
           },
           {
-            text: 'Voir mes billets',
+            text: t('payment.paymentViewTickets'),
             onPress: () => navigation.navigate('Main', { screen: 'MyTickets' } as any),
           },
         ]
@@ -472,8 +471,8 @@ export default function PaymentScreen() {
         if (__DEV__) console.error('[Payment] Error fetching payment methods:', error);
         // Afficher une erreur au lieu d'un fallback silencieux Cameroun
         showError(
-          'Méthodes de paiement',
-          'Impossible de charger les méthodes de paiement pour ton pays. Les options ci-dessous sont génériques — vérifie qu\'elles correspondent avant de payer.'
+          t('payment.paymentMethodsLoadError'),
+          t('payment.paymentMethodsLoadErrorMessage')
         );
         setDynamicMethods(FALLBACK_METHODS);
         setMethodsFetchFailed(true);
@@ -592,7 +591,7 @@ export default function PaymentScreen() {
         if (!numberWithoutPrefix.match(/^(6[78]\d|7[78]\d|65[0-4])\d{6}$/)) {
           showError(
             t('payment.paymentInvalidMTN'),
-            'Les numéros MTN commencent par 67, 68, 77, 78 ou 650-654.\nExemple: 670 123 456'
+            t('payment.paymentMTNValidationHint')
           );
           return { valid: false };
         }
@@ -601,7 +600,7 @@ export default function PaymentScreen() {
         if (!numberWithoutPrefix.match(/^(65[5-9]|69\d|5[59]\d)\d{6}$/)) {
           showError(
             t('payment.paymentInvalidOrange'),
-            'Les numéros Orange commencent par 655-659, 69, 55 ou 59.\nExemple: 655 123 456'
+            t('payment.paymentOrangeValidationHint')
           );
           return { valid: false };
         }
@@ -725,24 +724,24 @@ export default function PaymentScreen() {
           if (result.type === 'dismiss' || result.type === 'cancel') {
             setProcessing(false);
             showAlert(
-              'Paiement interrompu',
-              'Tu as fermé la page de paiement. Si tu as déjà effectué le paiement, tu peux vérifier son statut.',
+              t('payment.paymentInterruptedTitle'),
+              t('payment.paymentInterruptedMessage'),
               [
                 {
-                  text: 'Vérifier le statut',
+                  text: t('payment.paymentCheckStatus'),
                   onPress: () => {
                     if (newPaymentId || paymentId) startVerification(newPaymentId || paymentId!);
                   },
                 },
-                { text: 'Réessayer', onPress: () => handlePayment() },
-                { text: 'Retour', style: 'cancel' },
+                { text: t('payment.paymentRetry'), onPress: () => handlePayment() },
+                { text: t('payment.paymentBack'), style: 'cancel' },
               ]
             );
             return;
           }
         } else {
           if (__DEV__) console.warn('[Payment] No authorization URL received');
-          throw new Error('URL de paiement non reçue. Veuillez réessayer.');
+          throw new Error(t('payment.paymentURLNotReceived'));
         }
       }
 
@@ -785,9 +784,9 @@ export default function PaymentScreen() {
       void clearIdempotencyKey(registrationId);
 
       showAlert(
-        'Paiement annulé',
-        'Ton paiement a été annulé.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        t('payment.paymentCancelledTitle'),
+        t('payment.paymentCancelledMessage'),
+        [{ text: t('common.ok'), onPress: () => navigation.goBack() }]
       );
     } catch (error: any) {
       if (__DEV__) console.error('[Payment] Cancel error:', error);
@@ -838,7 +837,7 @@ export default function PaymentScreen() {
     if (['failed', 'cancelled', 'rejected', 'declined', 'expired', 'timeout'].includes(result.status || '')) {
       setVerifyingManually(false);
       setProcessing(false);
-      navigation.replace('PaymentFailed', { paymentId: paymentId, error: result.error || 'Le paiement a échoué' });
+      navigation.replace('PaymentFailed', { paymentId: paymentId, error: result.error || t('payment.paymentPaymentFailedDefault') });
       return;
     }
 
@@ -846,11 +845,11 @@ export default function PaymentScreen() {
       // Network/verification error - could not confirm
       setVerifyingManually(false);
       showAlert(
-        'Vérification en cours',
-        'Le statut de ton paiement n\'a pas pu être confirmé immédiatement. Si tu as reçu un SMS de confirmation, ta réservation sera validée automatiquement.\n\nConsulte tes billets dans quelques minutes.',
+        t('payment.paymentVerifyingTitle'),
+        t('payment.paymentVerifyingInProgressMessage'),
         [
-          { text: 'Réessayer', onPress: () => handleAlreadyPaid() },
-          { text: 'Voir mes billets', onPress: () => {
+          { text: t('payment.paymentRetry'), onPress: () => handleAlreadyPaid() },
+          { text: t('payment.paymentViewTickets'), onPress: () => {
             setProcessing(false);
             navigation.navigate('Main', { screen: 'MyTickets' } as any);
           }},
@@ -862,14 +861,14 @@ export default function PaymentScreen() {
     // Still pending after all attempts
     setVerifyingManually(false);
     showAlert(
-      'Paiement en attente',
-      'Ton paiement est encore en cours de traitement. Si tu as validé la transaction sur ton téléphone, elle sera confirmée automatiquement.\n\nVérifie tes billets dans quelques minutes.',
+      t('payment.paymentPendingTitle'),
+      t('payment.paymentPendingMessage'),
       [
-        { text: 'Continuer à attendre', onPress: () => {
+        { text: t('payment.paymentContinueWaiting'), onPress: () => {
           setVerifyingManually(false);
           startVerification(paymentId);
         }},
-        { text: 'Voir mes billets', onPress: () => {
+        { text: t('payment.paymentViewTickets'), onPress: () => {
           setProcessing(false);
           navigation.navigate('Main', { screen: 'MyTickets' } as any);
         }},
@@ -924,7 +923,7 @@ export default function PaymentScreen() {
           {!processing && (
             <View style={[styles.secureBadge, { backgroundColor: '#10B98115' }]}>
               <Ionicons name="lock-closed" size={11} color="#10B981" />
-              <Text style={styles.secureBadgeText}>SÉCURISÉ</Text>
+              <Text style={styles.secureBadgeText}>{t('payment.paymentSecureBadge')}</Text>
             </View>
           )}
         </View>
@@ -941,7 +940,7 @@ export default function PaymentScreen() {
               <Text style={[styles.stepLabel, { color: colors.gray400 }]}>{t('payment.paymentStepSelection')}</Text>
               <Text style={[styles.stepLabel, { color: colors.gray400 }]}>{t('payment.paymentStepRecap')}</Text>
               <Text style={[styles.stepLabel, { color: colors.primary, fontFamily: FontFamily.bold }]}>
-                Paiement
+                {t('payment.paymentStepPayment')}
               </Text>
             </View>
           </>
@@ -957,7 +956,7 @@ export default function PaymentScreen() {
               letterSpacing: 0.2,
             }}
           >
-            Paiement chiffré via NotchPay & Stripe
+            {t('payment.paymentEncryptionNote')}
           </Text>
         )}
       </View>
@@ -987,7 +986,7 @@ export default function PaymentScreen() {
             {selectedMethod ? (dynamicMethods.find(m => m.id === selectedMethod)?.name || t('payment.paymentMethodFallback')) : t('payment.paymentByCard')}
           </Text>
 
-          <Text style={[styles.processingSubtitle, { color: colors.primary }]}>Traitement en cours...</Text>
+          <Text style={[styles.processingSubtitle, { color: colors.primary }]}>{t('payment.paymentProcessingTitle')}</Text>
 
           {/* Amount reminder */}
           <Text style={[styles.processingAmount, { color: colors.gray600 }]}>
@@ -1007,14 +1006,14 @@ export default function PaymentScreen() {
           {/* Instructions détaillées pour Mobile Money */}
           {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
             <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
-              <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Comment valider :</Text>
+              <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>{t('payment.paymentHowToValidate')}</Text>
 
               <View style={styles.instructionStep}>
                 <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                   <Text style={styles.stepNumberText}>1</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Tu vas recevoir une notification sur ton téléphone
+                  {t('payment.paymentStepNotification')}
                 </Text>
               </View>
 
@@ -1032,14 +1031,14 @@ export default function PaymentScreen() {
                   <Text style={styles.stepNumberText}>3</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Confirmez la transaction
+                  {t('payment.paymentStepConfirm')}
                 </Text>
               </View>
 
               <View style={[styles.waitingNote, { borderTopColor: colors.gray200 }]}>
                 <Ionicons name="time-outline" size={16} color={colors.gray500} />
                 <Text style={[styles.waitingNoteText, { color: colors.gray500 }]}>
-                  Cette page se met à jour automatiquement
+                  {t('payment.paymentAutoRefreshNote')}
                 </Text>
               </View>
             </View>
@@ -1048,14 +1047,14 @@ export default function PaymentScreen() {
           {/* Instructions pour carte bancaire ou PayPal (redirections) */}
           {selectedMethod && REDIRECT_METHODS.has(selectedMethod) && (
             <View style={[styles.instructionsContainer, { backgroundColor: colors.gray50 }]}>
-              <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>Paiement sécurisé :</Text>
+              <Text style={[styles.instructionsTitle, { color: colors.gray800 }]}>{t('payment.paymentSecureTitle')}</Text>
 
               <View style={styles.instructionStep}>
                 <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
                   <Text style={styles.stepNumberText}>1</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Une page de paiement sécurisée va s'ouvrir
+                  {t('payment.paymentRedirectStep1')}
                 </Text>
               </View>
 
@@ -1065,7 +1064,7 @@ export default function PaymentScreen() {
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
                   {selectedMethod === 'paypal'
-                    ? 'Connecte-toi à ton compte PayPal'
+                    ? t('payment.paymentRedirectStep2PayPal')
                     : t('payment.paymentEnterCardInfo')}
                 </Text>
               </View>
@@ -1075,14 +1074,14 @@ export default function PaymentScreen() {
                   <Text style={styles.stepNumberText}>3</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Validez le paiement et revenez sur l'application
+                  {t('payment.paymentRedirectStep3')}
                 </Text>
               </View>
 
               <View style={[styles.securityNote, { borderTopColor: colors.gray200 }]}>
                 <Ionicons name="shield-checkmark" size={16} color={colors.success} />
                 <Text style={[styles.securityNoteText, { color: colors.success }]}>
-                  Paiement sécurisé
+                  {t('payment.paymentSecureNote')}
                 </Text>
               </View>
             </View>
@@ -1091,7 +1090,7 @@ export default function PaymentScreen() {
           {/* Bouton J'ai déjà payé — primary, cohérent avec LoginScreen/AuthGuard */}
           <View style={{ marginBottom: Spacing.sm }}>
             <EditorialButton
-              label={verifyingManually ? 'Vérification en cours…' : "J'ai déjà payé"}
+              label={verifyingManually ? t('payment.paymentVerifyingShort') : t('payment.paymentAlreadyPaid')}
               eyebrow={verifyingManually ? t('payment.paymentVerifyEyebrowWaiting') : t('payment.paymentVerifyEyebrowConfirm')}
               icon="checkmark-circle"
               onPress={handleAlreadyPaid}
@@ -1152,8 +1151,8 @@ export default function PaymentScreen() {
                   }}
                 >
                   {isOffline
-                    ? 'Pas de connexion internet — le paiement ne peut pas démarrer.'
-                    : 'Connexion lente détectée — le paiement peut prendre plus de temps que prévu.'}
+                    ? t('payment.paymentBannerOffline')
+                    : t('payment.paymentBannerSlow')}
                 </Text>
               </View>
             )}
@@ -1202,7 +1201,7 @@ export default function PaymentScreen() {
                 <View style={[styles.receiptDashedE, { borderTopColor: 'rgba(0,0,0,0.08)' }]} />
 
                 <View style={styles.receiptSubRow}>
-                  <Text style={[styles.receiptSubLabel, { color: colors.gray500 }]}>Sous-total</Text>
+                  <Text style={[styles.receiptSubLabel, { color: colors.gray500 }]}>{t('payment.paymentReceiptSubtotal')}</Text>
                   <Text style={[styles.receiptSubValue, { color: colors.gray500 }]}>
                     {subtotal.toLocaleString()} {eventCurrencyLabel}
                   </Text>
@@ -1211,7 +1210,7 @@ export default function PaymentScreen() {
                 {serviceFee > 0 && (
                   <View style={styles.receiptSubRow}>
                     <Text style={[styles.receiptSubLabel, { color: colors.gray500 }]} numberOfLines={1}>
-                      Frais service ({serviceFeeLabel})
+                      {t('payment.paymentServiceFee', { label: serviceFeeLabel })}
                     </Text>
                     <Text style={[styles.receiptSubValue, { color: colors.gray500 }]}>
                       {serviceFee.toLocaleString()} {eventCurrencyLabel}
@@ -1222,7 +1221,7 @@ export default function PaymentScreen() {
                 <View style={[styles.receiptDashedThickE, { borderTopColor: 'rgba(0,0,0,0.18)' }]} />
 
                 <View style={styles.receiptTotalRowE}>
-                  <Text style={[styles.receiptTotalLabelE, { color: colors.text }]}>TOTAL À PAYER</Text>
+                  <Text style={[styles.receiptTotalLabelE, { color: colors.text }]}>{t('payment.paymentTotalToPay')}</Text>
                   <View style={{ alignItems: 'flex-end' }}>
                     <View style={styles.receiptTotalValueRowE}>
                       <Text style={[styles.receiptTotalValueE, { color: colors.text }]}>
@@ -1275,7 +1274,7 @@ export default function PaymentScreen() {
                       lineHeight: 16,
                     }}
                   >
-                    Méthodes par défaut affichées (Cameroun). Vérifie avant de payer ou réessaie.
+                    {t('payment.paymentMethodsFallbackBanner')}
                   </Text>
                 </View>
               )}
@@ -1446,10 +1445,10 @@ export default function PaymentScreen() {
                 {(!countryConfig || countryConfig.country_code === 'CM') && (
                   <Text style={[styles.phoneHint, { color: colors.gray500 }]}>
                     {selectedMethod === 'mtn_money'
-                      ? 'Numéros MTN valides: 67, 68, 77, 78, 650-654'
+                      ? t('payment.paymentMTNNumbersHint')
                       : selectedMethod === 'orange_money'
-                      ? 'Numéros Orange valides: 655-659, 69, 55, 59'
-                      : `Entre ton numéro ${dynamicMethods.find(m => m.id === selectedMethod)?.name || ''}`}
+                      ? t('payment.paymentOrangeNumbersHint')
+                      : t('payment.paymentEnterNumber', { method: dynamicMethods.find(m => m.id === selectedMethod)?.name || '' })}
                   </Text>
                 )}
               </View>
@@ -1469,7 +1468,7 @@ export default function PaymentScreen() {
             ]}
           >
             <View style={styles.bottomTotalColE} accessibilityRole="text" accessibilityLabel={`Total a payer: ${finalTotal.toLocaleString()} ${eventCurrencyLabel}`}>
-              <Text style={[styles.bottomTotalEyebrowE, { color: colors.gray500 }]}>TOTAL À PAYER</Text>
+              <Text style={[styles.bottomTotalEyebrowE, { color: colors.gray500 }]}>{t('payment.paymentTotalToPay')}</Text>
               <View style={styles.bottomTotalRowE}>
                 <Text style={[styles.bottomTotalValueE, { color: colors.text }]}>
                   {finalTotal.toLocaleString()}

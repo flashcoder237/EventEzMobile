@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useTranslation } from 'react-i18next';
 import { eventsAPI, getMediaUrl } from '../../api';
 import { RootStackParamList } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -72,6 +73,7 @@ const INSCRIPTION_COLOR = '#A855F7';
 const MODERATION_CARD_HEIGHT = 340;
 
 export default function ModerationScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { user } = useAuth();
   const { showSuccess, showError } = useAlert();
@@ -113,7 +115,7 @@ export default function ModerationScreen() {
       setEvents(data);
     } catch (error: any) {
       if (__DEV__) console.error('Error fetching pending events:', error);
-      showError('Erreur', 'Impossible de charger les événements en attente');
+      showError(t('common.error'), t('moderation.loadError'));
     } finally {
       setLoading(false);
     }
@@ -127,7 +129,7 @@ export default function ModerationScreen() {
 
   const handleValidate = async (eventId: string) => {
     const okBio = await biometric.confirm({
-      promptMessage: 'Confirmer la validation de l\'événement',
+      promptMessage: t('moderation.validateConfirmPrompt'),
       category: 'admin',
     });
     if (!okBio) return;
@@ -135,10 +137,10 @@ export default function ModerationScreen() {
     setActionLoading(eventId);
     try {
       await eventsAPI.validateEvent(eventId);
-      showSuccess('Succès', 'Événement validé avec succès');
+      showSuccess(t('common.success'), t('moderation.validateSuccess'));
       setEvents(prev => prev.filter(e => e.id !== eventId));
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || 'Impossible de valider l\'événement');
+      showError(t('common.error'), error.response?.data?.detail || t('moderation.validateError'));
     } finally {
       setActionLoading(null);
     }
@@ -146,12 +148,12 @@ export default function ModerationScreen() {
 
   const handleReject = async () => {
     if (!selectedEvent || !rejectionReason.trim()) {
-      showError('Erreur', 'Veuillez indiquer une raison de rejet');
+      showError(t('common.error'), t('moderation.rejectReasonRequired'));
       return;
     }
 
     const okBio = await biometric.confirm({
-      promptMessage: 'Confirmer le rejet de l\'événement',
+      promptMessage: t('moderation.rejectConfirmPrompt'),
       category: 'admin',
     });
     if (!okBio) return;
@@ -159,13 +161,13 @@ export default function ModerationScreen() {
     setActionLoading(selectedEvent.id);
     try {
       await eventsAPI.rejectEvent(selectedEvent.id, rejectionReason);
-      showSuccess('Succès', 'Événement rejeté');
+      showSuccess(t('common.success'), t('moderation.rejectSuccess'));
       setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
       setShowRejectModal(false);
       setSelectedEvent(null);
       setRejectionReason('');
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || 'Impossible de rejeter l\'événement');
+      showError(t('common.error'), error.response?.data?.detail || t('moderation.rejectError'));
     } finally {
       setActionLoading(null);
     }
@@ -201,7 +203,7 @@ export default function ModerationScreen() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     const okBio = await biometric.confirm({
-      promptMessage: `Confirmer la validation de ${ids.length} événement${ids.length > 1 ? 's' : ''}`,
+      promptMessage: t('moderation.bulkValidateConfirmPrompt', { count: ids.length }),
       category: 'admin',
     });
     if (!okBio) return;
@@ -220,18 +222,20 @@ export default function ModerationScreen() {
     setEvents((prev) => prev.filter((e) => !selectedIds.has(e.id)));
     clearSelection();
     setActionLoading(null);
-    showSuccess('Bulk', `${validated} validé${validated > 1 ? 's' : ''}${failed > 0 ? ` · ${failed} échoué${failed > 1 ? 's' : ''}` : ''}`);
+    const validatedMsg = t('moderation.bulkResultValidated', { count: validated });
+    const failedMsg = failed > 0 ? t('moderation.bulkResultFailed', { count: failed }) : '';
+    showSuccess(t('moderation.bulkLabel'), `${validatedMsg}${failedMsg}`);
   };
 
   const handleBulkReject = async () => {
     if (!bulkReason.trim()) {
-      showError('Erreur', 'Indique une raison pour le rejet en masse');
+      showError(t('common.error'), t('moderation.bulkRejectReasonRequired'));
       return;
     }
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     const okBio = await biometric.confirm({
-      promptMessage: `Confirmer le rejet de ${ids.length} événement${ids.length > 1 ? 's' : ''}`,
+      promptMessage: t('moderation.bulkRejectConfirmPrompt', { count: ids.length }),
       category: 'admin',
     });
     if (!okBio) return;
@@ -252,24 +256,26 @@ export default function ModerationScreen() {
     setBulkReason('');
     clearSelection();
     setActionLoading(null);
-    showSuccess('Bulk', `${rejected} rejeté${rejected > 1 ? 's' : ''}${failed > 0 ? ` · ${failed} échoué${failed > 1 ? 's' : ''}` : ''}`);
+    const rejectedMsg = t('moderation.bulkResultRejected', { count: rejected });
+    const failedMsg = failed > 0 ? t('moderation.bulkResultFailed', { count: failed }) : '';
+    showSuccess(t('moderation.bulkLabel'), `${rejectedMsg}${failedMsg}`);
   };
 
   const handleRequestChanges = async () => {
     if (!selectedEvent || !changesNote.trim()) {
-      showError('Erreur', 'Indique une note pour l\'organisateur');
+      showError(t('common.error'), t('moderation.changesNoteRequired'));
       return;
     }
     setActionLoading(selectedEvent.id);
     try {
       await eventsAPI.requestChanges(selectedEvent.id, changesNote);
-      showSuccess('Envoyé', 'Demande de modifications envoyée');
+      showSuccess(t('moderation.changesSentTitle'), t('moderation.changesSentMessage'));
       setEvents(prev => prev.filter(e => e.id !== selectedEvent.id));
       setShowChangesModal(false);
       setSelectedEvent(null);
       setChangesNote('');
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || 'Impossible d\'envoyer la demande');
+      showError(t('common.error'), error.response?.data?.detail || t('moderation.changesError'));
     } finally {
       setActionLoading(null);
     }
@@ -334,15 +340,16 @@ export default function ModerationScreen() {
   };
 
   const getTimeSince = (dateString?: string) => {
-    if (!dateString) return 'date inconnue';
+    const unknown = t('time.unknownDate', { defaultValue: 'date inconnue' });
+    if (!dateString) return unknown;
     const date = new Date(dateString);
-    if (!isValidDate(date)) return 'date inconnue';
+    if (!isValidDate(date)) return unknown;
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return "aujourd'hui";
-    if (diffDays === 1) return "hier";
-    if (diffDays < 7) return `il y a ${diffDays} j`;
+    if (diffDays === 0) return t('common.today');
+    if (diffDays === 1) return t('common.yesterday');
+    if (diffDays < 7) return `${t('time.ago', { defaultValue: 'il y a' })} ${diffDays} ${t('common.day')}`;
     return formatDate(dateString);
   };
 
@@ -353,7 +360,7 @@ export default function ModerationScreen() {
     if (event.organizer?.first_name || event.organizer?.last_name) {
       return `${event.organizer.first_name || ''} ${event.organizer.last_name || ''}`.trim();
     }
-    return event.organizer?.email || 'Organisateur inconnu';
+    return event.organizer?.email || t('organizerProfile.unknownOrganizer', { defaultValue: 'Organisateur inconnu' });
   };
 
   if (!isModerator) {
@@ -364,17 +371,17 @@ export default function ModerationScreen() {
           <AnimatedIllustration entry="scaleIn" idle="float">
             <AccessDenied color={colors.primary} size={160} />
           </AnimatedIllustration>
-          <Text style={[styles.accessDeniedEyebrow, { color: colors.accent }]}>ACCÈS RESTREINT</Text>
-          <Text style={[styles.accessDeniedTitle, { color: colors.text }]}>Zone modération</Text>
+          <Text style={[styles.accessDeniedEyebrow, { color: colors.accent }]}>{t('moderation.accessDeniedEyebrow')}</Text>
+          <Text style={[styles.accessDeniedTitle, { color: colors.text }]}>{t('moderation.accessDeniedTitle')}</Text>
           <Text style={[styles.accessDeniedText, { color: colors.gray500 }]}>
-            Cette section est réservée aux modérateurs et administrateurs.
+            {t('moderation.accessDeniedText')}
           </Text>
           <TouchableOpacity
             style={[styles.backCta, { backgroundColor: colors.text }]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}
           >
-            <Text style={[styles.backCtaText, { color: colors.background }]}>Retour</Text>
+            <Text style={[styles.backCtaText, { color: colors.background }]}>{t('moderation.back')}</Text>
           </TouchableOpacity>
         </View>
       </EditorialCanvas>
@@ -456,7 +463,7 @@ export default function ModerationScreen() {
               color={typeColor}
             />
             <Text style={[styles.typeBadgeText, { color: typeColor }]}>
-              {isBilletterie ? 'BILLETTERIE' : 'INSCRIPTION'}
+              {isBilletterie ? t('moderation.typeBilletterie') : t('moderation.typeInscription')}
             </Text>
           </View>
         </View>
@@ -497,7 +504,7 @@ export default function ModerationScreen() {
                 { color: isOverdue(item.created_at) ? '#DC2626' : colors.gray500 },
               ]}
             >
-              {isOverdue(item.created_at) ? 'En retard · ' : 'Soumis · '}
+              {isOverdue(item.created_at) ? t('moderation.overdueLabel') : t('moderation.submittedLabel')}
               {getTimeSince(item.created_at)}
             </Text>
             {isOverdue(item.created_at) && (
@@ -511,7 +518,7 @@ export default function ModerationScreen() {
                 }}
               >
                 <Text style={{ color: '#fff', fontFamily: FontFamily.bold, fontSize: 9, letterSpacing: 0.5 }}>
-                  URGENT
+                  {t('moderation.urgentBadge')}
                 </Text>
               </View>
             )}
@@ -524,7 +531,7 @@ export default function ModerationScreen() {
             style={[styles.actionDisc, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.navigate('EventDetails', { eventId: item.id })}
             activeOpacity={0.7}
-            accessibilityLabel="Voir l'evenement"
+            accessibilityLabel={t('moderation.viewEventA11y')}
           >
             <Ionicons name="eye-outline" size={16} color={colors.gray600} />
           </TouchableOpacity>
@@ -541,7 +548,7 @@ export default function ModerationScreen() {
             ) : (
               <>
                 <Ionicons name="create-outline" size={13} color="#D97706" />
-                <Text style={[styles.actionPillText, { color: '#D97706' }]}>Modifs</Text>
+                <Text style={[styles.actionPillText, { color: '#D97706' }]}>{t('moderation.actionChanges')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -558,7 +565,7 @@ export default function ModerationScreen() {
             ) : (
               <>
                 <Ionicons name="close-circle-outline" size={13} color="#EF4444" />
-                <Text style={[styles.actionPillText, { color: '#EF4444' }]}>Rejeter</Text>
+                <Text style={[styles.actionPillText, { color: '#EF4444' }]}>{t('moderation.actionReject')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -575,7 +582,7 @@ export default function ModerationScreen() {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
-                <Text style={[styles.actionPillPrimaryText, { color: '#FFFFFF' }]}>Valider</Text>
+                <Text style={[styles.actionPillPrimaryText, { color: '#FFFFFF' }]}>{t('moderation.actionValidate')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -590,11 +597,11 @@ export default function ModerationScreen() {
       <AnimatedIllustration entry="bounce" idle="breathe">
         <WellDone color="#10B981" size={160} />
       </AnimatedIllustration>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun événement en attente</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('moderation.emptyTitle')}</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || filterType !== 'all'
-          ? 'Aucun événement ne correspond à vos critères.'
-          : 'Tous les événements ont été traités. Excellent travail !'}
+          ? t('moderation.emptyTextFiltered')
+          : t('moderation.emptyTextDefault')}
       </Text>
     </View>
   );
@@ -609,9 +616,9 @@ export default function ModerationScreen() {
   }
 
   const filters: { key: FilterType; label: string; count: number }[] = [
-    { key: 'all', label: 'Tous', count: stats.total },
-    { key: 'billetterie', label: 'Billetterie', count: stats.billetterie },
-    { key: 'inscription', label: 'Inscription', count: stats.inscription },
+    { key: 'all', label: t('moderation.filterAll'), count: stats.total },
+    { key: 'billetterie', label: t('moderation.filterBilletterie'), count: stats.billetterie },
+    { key: 'inscription', label: t('moderation.filterInscription'), count: stats.inscription },
   ];
 
   return (
@@ -623,13 +630,13 @@ export default function ModerationScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('moderation.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>GARDE LE CAP</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Modération</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('moderation.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('moderation.title')}</Text>
         </View>
         <View style={[styles.countPill, { backgroundColor: `${colors.primary}15` }]}>
           <Text style={[styles.countText, { color: colors.primary }]}>{stats.total}</Text>
@@ -654,7 +661,7 @@ export default function ModerationScreen() {
             <Ionicons name="close" size={20} color={colors.text} />
           </TouchableOpacity>
           <Text style={{ flex: 1, fontFamily: FontFamily.bold, fontSize: 14, color: colors.text }}>
-            {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            {t('moderation.selectedCount', { count: selectedIds.size })}
           </Text>
           <TouchableOpacity
             style={{
@@ -671,7 +678,7 @@ export default function ModerationScreen() {
             activeOpacity={0.85}
           >
             <Ionicons name="close-circle-outline" size={14} color="#fff" />
-            <Text style={{ fontFamily: FontFamily.bold, fontSize: 12, color: '#fff' }}>Rejeter</Text>
+            <Text style={{ fontFamily: FontFamily.bold, fontSize: 12, color: '#fff' }}>{t('moderation.actionReject')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={{
@@ -692,7 +699,7 @@ export default function ModerationScreen() {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={14} color="#fff" />
-                <Text style={{ fontFamily: FontFamily.bold, fontSize: 12, color: '#fff' }}>Valider</Text>
+                <Text style={{ fontFamily: FontFamily.bold, fontSize: 12, color: '#fff' }}>{t('moderation.actionValidate')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -722,9 +729,9 @@ export default function ModerationScreen() {
             <Ionicons name="alert-circle" size={18} color="#DC2626" />
             <Text style={{ flex: 1, fontFamily: FontFamily.medium, fontSize: 12, color: '#991B1B', lineHeight: 16 }}>
               <Text style={{ fontFamily: FontFamily.bold }}>
-                {overdueCount} événement{overdueCount > 1 ? 's' : ''} en retard
+                {t('moderation.overdueBannerCount', { count: overdueCount })}
               </Text>
-              {' · '}plus de 24h en attente. Priorise-les pour respecter le SLA.
+              {t('moderation.overdueBannerText')}
             </Text>
           </View>
         )}
@@ -733,21 +740,21 @@ export default function ModerationScreen() {
         <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: hairline }]}>
           <View style={[styles.statItem, { borderRightColor: hairline }]}>
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>EN ATTENTE</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('moderation.statPending')}</Text>
           </View>
           <View style={[styles.statItem, { borderRightColor: hairline }]}>
             <View style={styles.statRow}>
               <Ionicons name="ticket" size={13} color={BILLET_COLOR} />
               <Text style={[styles.statValue, { color: colors.text }]}>{stats.billetterie}</Text>
             </View>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>BILLETTERIE</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('moderation.statBilletterie')}</Text>
           </View>
           <View style={[styles.statItem, styles.statItemLast]}>
             <View style={styles.statRow}>
               <Ionicons name="document-text" size={13} color={INSCRIPTION_COLOR} />
               <Text style={[styles.statValue, { color: colors.text }]}>{stats.inscription}</Text>
             </View>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>INSCRIPTION</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('moderation.statInscription')}</Text>
           </View>
         </View>
 
@@ -756,7 +763,7 @@ export default function ModerationScreen() {
           <Ionicons name="search" size={16} color={colors.gray500} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Rechercher par titre, organisateur..."
+            placeholder={t('moderation.searchPlaceholder')}
             placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -831,8 +838,8 @@ export default function ModerationScreen() {
                   <Ionicons name="close-circle" size={20} color="#EF4444" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>REJET</Text>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Motif requis</Text>
+                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>{t('moderation.rejectModalEyebrow')}</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('moderation.rejectModalTitle')}</Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.modalClose, { backgroundColor: colors.background, borderColor: hairline }]}
@@ -855,7 +862,7 @@ export default function ModerationScreen() {
               )}
 
               <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
-                Indique la raison du rejet. L'organisateur recevra cette information.
+                {t('moderation.rejectModalDescription')}
               </Text>
 
               {/* Templates de raisons fréquentes — tap pour pré-remplir le textarea */}
@@ -866,14 +873,14 @@ export default function ModerationScreen() {
                 contentContainerStyle={{ gap: 6, paddingRight: 8 }}
               >
                 {[
-                  'Image inappropriée ou floue',
-                  'Description trop courte ou incomplète',
-                  'Date ou lieu incohérents',
-                  'Tarification suspecte',
-                  'Doublon d\'événement existant',
-                  'Contenu interdit (politique / haine)',
-                  'Informations de contact manquantes',
-                  'Suspicion de spam',
+                  t('moderation.rejectTemplateImage'),
+                  t('moderation.rejectTemplateDescription'),
+                  t('moderation.rejectTemplateDateLocation'),
+                  t('moderation.rejectTemplatePricing'),
+                  t('moderation.rejectTemplateDuplicate'),
+                  t('moderation.rejectTemplateForbidden'),
+                  t('moderation.rejectTemplateContact'),
+                  t('moderation.rejectTemplateSpam'),
                 ].map((tpl) => {
                   const isActive = rejectionReason.trim() === tpl;
                   return (
@@ -906,7 +913,7 @@ export default function ModerationScreen() {
 
               <TextInput
                 style={[styles.modalTextInput, { backgroundColor: colors.background, borderColor: hairline, color: colors.text }]}
-                placeholder="Raison personnalisée ou édite un template ci-dessus..."
+                placeholder={t('moderation.rejectInputPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={rejectionReason}
                 onChangeText={setRejectionReason}
@@ -926,7 +933,7 @@ export default function ModerationScreen() {
                   disabled={actionLoading !== null}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>Annuler</Text>
+                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -943,7 +950,7 @@ export default function ModerationScreen() {
                   ) : (
                     <>
                       <Ionicons name="close-circle" size={14} color="#FFFFFF" />
-                      <Text style={styles.modalRejectText}>Confirmer</Text>
+                      <Text style={styles.modalRejectText}>{t('common.confirm')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -968,8 +975,8 @@ export default function ModerationScreen() {
                   <Ionicons name="create" size={20} color="#D97706" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>MODIFICATIONS</Text>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Note à l'organisateur</Text>
+                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>{t('moderation.changesModalEyebrow')}</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('moderation.changesModalTitle')}</Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.modalClose, { backgroundColor: colors.background, borderColor: hairline }]}
@@ -992,7 +999,7 @@ export default function ModerationScreen() {
               )}
 
               <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
-                L'organisateur recevra ta note et pourra corriger puis re-soumettre. Moins drastique qu'un rejet.
+                {t('moderation.changesModalDescription')}
               </Text>
 
               <ScrollView
@@ -1002,12 +1009,12 @@ export default function ModerationScreen() {
                 contentContainerStyle={{ gap: 6, paddingRight: 8 }}
               >
                 {[
-                  'Image bannière de meilleure qualité (>1200px)',
-                  'Description plus détaillée svp',
-                  'Préciser le lieu exact',
-                  'Ajouter au moins un type de billet',
-                  'Date limite d\'inscription manquante',
-                  'Coordonnées de contact à ajouter',
+                  t('moderation.changesTemplateBanner'),
+                  t('moderation.changesTemplateDescription'),
+                  t('moderation.changesTemplateLocation'),
+                  t('moderation.changesTemplateTickets'),
+                  t('moderation.changesTemplateDeadline'),
+                  t('moderation.changesTemplateContact'),
                 ].map((tpl) => {
                   const isActive = changesNote.trim() === tpl;
                   return (
@@ -1040,7 +1047,7 @@ export default function ModerationScreen() {
 
               <TextInput
                 style={[styles.modalTextInput, { backgroundColor: colors.background, borderColor: hairline, color: colors.text }]}
-                placeholder="Décris ce qu'il faut corriger..."
+                placeholder={t('moderation.changesInputPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={changesNote}
                 onChangeText={setChangesNote}
@@ -1060,7 +1067,7 @@ export default function ModerationScreen() {
                   disabled={actionLoading !== null}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>Annuler</Text>
+                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -1077,7 +1084,7 @@ export default function ModerationScreen() {
                   ) : (
                     <>
                       <Ionicons name="send" size={14} color="#FFFFFF" />
-                      <Text style={styles.modalRejectText}>Envoyer</Text>
+                      <Text style={styles.modalRejectText}>{t('common.send')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -1102,9 +1109,9 @@ export default function ModerationScreen() {
                   <Ionicons name="layers" size={20} color="#EF4444" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>BULK · REJETER</Text>
+                  <Text style={[styles.modalEyebrow, { color: colors.gray500 }]}>{t('moderation.bulkRejectModalEyebrow')}</Text>
                   <Text style={[styles.modalTitle, { color: colors.text }]}>
-                    {selectedIds.size} événement{selectedIds.size > 1 ? 's' : ''}
+                    {t('moderation.bulkRejectModalTitle', { count: selectedIds.size })}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -1116,12 +1123,12 @@ export default function ModerationScreen() {
               </View>
 
               <Text style={[styles.modalDescription, { color: colors.gray600 }]}>
-                Cette raison sera envoyée à tous les organisateurs concernés.
+                {t('moderation.bulkRejectModalDescription')}
               </Text>
 
               <TextInput
                 style={[styles.modalTextInput, { backgroundColor: colors.background, borderColor: hairline, color: colors.text }]}
-                placeholder="Raison commune du rejet..."
+                placeholder={t('moderation.bulkRejectInputPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={bulkReason}
                 onChangeText={setBulkReason}
@@ -1140,7 +1147,7 @@ export default function ModerationScreen() {
                   disabled={actionLoading === 'bulk'}
                   activeOpacity={0.7}
                 >
-                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>Annuler</Text>
+                  <Text style={[styles.modalCancelText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[
@@ -1157,7 +1164,7 @@ export default function ModerationScreen() {
                   ) : (
                     <>
                       <Ionicons name="close-circle" size={14} color="#FFFFFF" />
-                      <Text style={styles.modalRejectText}>Rejeter en masse</Text>
+                      <Text style={styles.modalRejectText}>{t('moderation.bulkRejectAction')}</Text>
                     </>
                   )}
                 </TouchableOpacity>

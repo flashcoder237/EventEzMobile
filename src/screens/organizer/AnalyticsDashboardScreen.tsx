@@ -101,8 +101,8 @@ export default function AnalyticsDashboardScreen() {
       if (failures >= 3) {
         setHasFetchError(true);
         showError(
-          'Données indisponibles',
-          "Aucune donnée analytics n'a pu être chargée. Vérifie ta connexion et réessaye."
+          t('organizer.analyticsDashboard.dataUnavailableTitle'),
+          t('organizer.analyticsDashboard.dataUnavailableMessage')
         );
       } else {
         setHasFetchError(failures > 0);
@@ -114,8 +114,8 @@ export default function AnalyticsDashboardScreen() {
       // garde l'alert mais avec un message plus utile : la cause probable
       // est le réseau ou une perte d'auth.
       showError(
-        'Erreur réseau',
-        "Impossible de joindre le serveur. Tire vers le bas pour réessayer."
+        t('organizer.analyticsDashboard.networkErrorTitle'),
+        t('organizer.analyticsDashboard.networkErrorMessage')
       );
     } finally {
       setLoading(false);
@@ -129,10 +129,10 @@ export default function AnalyticsDashboardScreen() {
   };
 
   const timeRanges: { key: TimeRange; label: string; eyebrow: string }[] = [
-    { key: '7d', label: '7 jours', eyebrow: '7J' },
-    { key: '30d', label: '30 jours', eyebrow: '30J' },
-    { key: '90d', label: '90 jours', eyebrow: '90J' },
-    { key: '1y', label: '1 an', eyebrow: '1A' },
+    { key: '7d', label: t('organizer.analyticsDashboard.range7d'), eyebrow: t('organizer.analyticsDashboard.range7dEyebrow') },
+    { key: '30d', label: t('organizer.analyticsDashboard.range30d'), eyebrow: t('organizer.analyticsDashboard.range30dEyebrow') },
+    { key: '90d', label: t('organizer.analyticsDashboard.range90d'), eyebrow: t('organizer.analyticsDashboard.range90dEyebrow') },
+    { key: '1y', label: t('organizer.analyticsDashboard.range1y'), eyebrow: t('organizer.analyticsDashboard.range1yEyebrow') },
   ];
 
   // Backend retourne une structure imbriquée (event_summary, revenue_summary, registration_summary, trends).
@@ -159,10 +159,10 @@ export default function AnalyticsDashboardScreen() {
   // jours précédents". Sert au subtitle des KPI cards et au bandeau hero.
   const compareLabel = (() => {
     switch (timeRange) {
-      case '7d': return 'vs 7 jours précédents';
-      case '30d': return 'vs 30 jours précédents';
-      case '90d': return 'vs 90 jours précédents';
-      case '1y': return 'vs année précédente';
+      case '7d': return t('organizer.analyticsDashboard.compare7d');
+      case '30d': return t('organizer.analyticsDashboard.compare30d');
+      case '90d': return t('organizer.analyticsDashboard.compare90d');
+      case '1y': return t('organizer.analyticsDashboard.compare1y');
     }
   })();
 
@@ -200,8 +200,8 @@ export default function AnalyticsDashboardScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>STATS • PERFORMANCE</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Analytics</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('organizer.analyticsDashboard.eyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.analyticsDashboard.title')}</Text>
           </View>
           <ExportButton
             endpoint="/analytics/export/"
@@ -221,7 +221,7 @@ export default function AnalyticsDashboardScreen() {
               style={StyleSheet.absoluteFill}
             />
             <Ionicons name="document-text" size={14} color={Colors.white} />
-            <Text style={styles.headerCtaText}>Rapports</Text>
+            <Text style={styles.headerCtaText}>{t('organizer.analyticsDashboard.reportsCta')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -280,7 +280,7 @@ export default function AnalyticsDashboardScreen() {
             <Text style={styles.heroWatermark}>{platformCurrency}</Text>
 
             <View style={styles.heroTopRow}>
-              <Text style={styles.heroEyebrow}>REVENUS TOTAUX</Text>
+              <Text style={styles.heroEyebrow}>{t('organizer.analyticsDashboard.heroEyebrow')}</Text>
               <View style={styles.heroPeriodPill}>
                 <Text style={styles.heroPeriodText}>
                   {timeRanges.find((r) => r.key === timeRange)?.eyebrow}
@@ -299,7 +299,7 @@ export default function AnalyticsDashboardScreen() {
 
             <View style={styles.heroBottomRow}>
               <View style={styles.heroBottomCell}>
-                <Text style={styles.heroBottomEyebrow}>INSCRIPTIONS</Text>
+                <Text style={styles.heroBottomEyebrow}>{t('organizer.analyticsDashboard.heroBottomRegistrations')}</Text>
                 <View style={styles.heroBottomValueRow}>
                   <Text style={styles.heroBottomValue}>{totalRegistrations}</Text>
                   {registrationTrend !== 0 && (
@@ -313,7 +313,7 @@ export default function AnalyticsDashboardScreen() {
               </View>
               <View style={styles.heroBottomDivider} />
               <View style={styles.heroBottomCell}>
-                <Text style={styles.heroBottomEyebrow}>ÉVÉNEMENTS</Text>
+                <Text style={styles.heroBottomEyebrow}>{t('organizer.analyticsDashboard.heroBottomEvents')}</Text>
                 <Text style={styles.heroBottomValue}>{totalEvents}</Text>
               </View>
             </View>
@@ -328,7 +328,7 @@ export default function AnalyticsDashboardScreen() {
           <View style={styles.kpiGrid}>
             <KPICard variant="editorial"
               eyebrow={t('eyebrow.revenue')}
-              label="Sur la période"
+              label={t('organizer.analyticsDashboard.kpiRevenueLabel')}
               value={totalRevenue.toLocaleString()}
               suffix={platformCurrency}
               icon="cash-outline"
@@ -338,7 +338,7 @@ export default function AnalyticsDashboardScreen() {
             />
             <KPICard variant="editorial"
               eyebrow={t('eyebrow.registered')}
-              label="Total période"
+              label={t('organizer.analyticsDashboard.kpiRegistrationsLabel')}
               value={totalRegistrations}
               icon="people-outline"
               color="#4F46E5"
@@ -352,14 +352,14 @@ export default function AnalyticsDashboardScreen() {
           <View style={styles.kpiGrid}>
             <KPICard variant="editorial"
               eyebrow={t('eyebrow.eventsShort')}
-              label="Actifs et passés"
+              label={t('organizer.analyticsDashboard.kpiEventsLabel')}
               value={totalEvents}
               icon="calendar-outline"
               color="#A855F7"
             />
             <KPICard variant="editorial"
               eyebrow={t('eyebrow.attendance')}
-              label="Taux moyen"
+              label={t('organizer.analyticsDashboard.kpiAttendanceLabel')}
               value={`${Math.round(avgAttendance)}%`}
               icon="checkmark-circle-outline"
               color="#F59E0B"
@@ -373,16 +373,22 @@ export default function AnalyticsDashboardScreen() {
             <View style={styles.chartHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.chartEyebrow, { color: colors.accent }]}>
-                  CHART • INSCRIPTIONS
+                  {t('organizer.analyticsDashboard.chartRegistrationsEyebrow')}
                 </Text>
-                <Text style={[styles.chartTitle, { color: colors.text }]}>Évolution inscriptions</Text>
+                <Text style={[styles.chartTitle, { color: colors.text }]}>{t('organizer.analyticsDashboard.chartRegistrationsTitle')}</Text>
                 <Text style={[styles.chartSubtitle, { color: colors.gray500 }]}>
-                  {timeRange === '7d' ? '7 derniers jours' : timeRange === '30d' ? '30 derniers jours' : timeRange === '90d' ? '90 derniers jours' : '12 derniers mois'}
+                  {timeRange === '7d'
+                    ? t('organizer.analyticsDashboard.chartSubtitle7d')
+                    : timeRange === '30d'
+                    ? t('organizer.analyticsDashboard.chartSubtitle30d')
+                    : timeRange === '90d'
+                    ? t('organizer.analyticsDashboard.chartSubtitle90d')
+                    : t('organizer.analyticsDashboard.chartSubtitle1y')}
                 </Text>
               </View>
               <View style={[styles.chartLegend, { backgroundColor: '#4F46E515' }]}>
                 <View style={[styles.legendDot, { backgroundColor: '#4F46E5' }]} />
-                <Text style={styles.legendText}>Inscriptions</Text>
+                <Text style={styles.legendText}>{t('organizer.analyticsDashboard.legendRegistrations')}</Text>
               </View>
             </View>
             <View style={[styles.chartArea, { borderTopColor: hairline }]}>
@@ -397,9 +403,9 @@ export default function AnalyticsDashboardScreen() {
               ) : (
                 <View style={styles.noDataContainer}>
                   <Ionicons name="bar-chart-outline" size={36} color={colors.gray300} />
-                  <Text style={[styles.noDataEyebrow, { color: colors.accent }]}>AUCUNE DONNÉE</Text>
+                  <Text style={[styles.noDataEyebrow, { color: colors.accent }]}>{t('organizer.analyticsDashboard.noDataEyebrow')}</Text>
                   <Text style={[styles.noDataText, { color: colors.gray500 }]}>
-                    Pas encore d'inscriptions sur cette période
+                    {t('organizer.analyticsDashboard.noDataRegistrations')}
                   </Text>
                 </View>
               )}
@@ -413,16 +419,16 @@ export default function AnalyticsDashboardScreen() {
             <View style={styles.chartHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.chartEyebrow, { color: colors.accent }]}>
-                  CHART • REVENUS
+                  {t('organizer.analyticsDashboard.chartRevenueEyebrow')}
                 </Text>
-                <Text style={[styles.chartTitle, { color: colors.text }]}>Évolution revenus</Text>
+                <Text style={[styles.chartTitle, { color: colors.text }]}>{t('organizer.analyticsDashboard.chartRevenueTitle')}</Text>
                 <Text style={[styles.chartSubtitle, { color: colors.gray500 }]}>
-                  En {platformCurrency}
+                  {t('organizer.analyticsDashboard.chartSubtitleRevenue', { currency: platformCurrency })}
                 </Text>
               </View>
               <View style={[styles.chartLegend, { backgroundColor: '#10B98115' }]}>
                 <View style={[styles.legendDot, { backgroundColor: '#10B981' }]} />
-                <Text style={[styles.legendText, { color: '#059669' }]}>Revenus</Text>
+                <Text style={[styles.legendText, { color: '#059669' }]}>{t('organizer.analyticsDashboard.legendRevenue')}</Text>
               </View>
             </View>
             <View style={[styles.chartArea, { borderTopColor: hairline }]}>
@@ -437,9 +443,9 @@ export default function AnalyticsDashboardScreen() {
               ) : (
                 <View style={styles.noDataContainer}>
                   <Ionicons name="trending-up" size={36} color={colors.gray300} />
-                  <Text style={[styles.noDataEyebrow, { color: colors.accent }]}>AUCUNE DONNÉE</Text>
+                  <Text style={[styles.noDataEyebrow, { color: colors.accent }]}>{t('organizer.analyticsDashboard.noDataEyebrow')}</Text>
                   <Text style={[styles.noDataText, { color: colors.gray500 }]}>
-                    Pas encore de revenus sur cette période
+                    {t('organizer.analyticsDashboard.noDataRevenue')}
                   </Text>
                 </View>
               )}
@@ -450,8 +456,8 @@ export default function AnalyticsDashboardScreen() {
         {/* === QUICK LINKS === */}
         <StaggeredItem index={5}>
           <View style={styles.quickLinksHeader}>
-            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>RACCOURCIS • LINKS</Text>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions rapides</Text>
+            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('organizer.analyticsDashboard.quickLinksEyebrow')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('organizer.analyticsDashboard.quickLinksTitle')}</Text>
           </View>
           <View style={[styles.quickLinksCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
             <TouchableOpacity
@@ -463,9 +469,9 @@ export default function AnalyticsDashboardScreen() {
                 <Ionicons name="document-text-outline" size={16} color="#4F46E5" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.quickLinkTitle, { color: colors.text }]}>Voir les rapports</Text>
+                <Text style={[styles.quickLinkTitle, { color: colors.text }]}>{t('organizer.analyticsDashboard.linkReportsTitle')}</Text>
                 <Text style={[styles.quickLinkSub, { color: colors.gray500 }]}>
-                  Export CSV, PDF, dashboards
+                  {t('organizer.analyticsDashboard.linkReportsSub')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
@@ -479,9 +485,9 @@ export default function AnalyticsDashboardScreen() {
                 <Ionicons name="calendar-outline" size={16} color="#A855F7" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.quickLinkTitle, { color: colors.text }]}>Mes événements</Text>
+                <Text style={[styles.quickLinkTitle, { color: colors.text }]}>{t('organizer.analyticsDashboard.linkMyEventsTitle')}</Text>
                 <Text style={[styles.quickLinkSub, { color: colors.gray500 }]}>
-                  Stats par événement
+                  {t('organizer.analyticsDashboard.linkMyEventsSub')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.gray400} />

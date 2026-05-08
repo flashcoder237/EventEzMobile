@@ -132,7 +132,7 @@ function TreasuryReportsContent() {
           ]}
         >
           <Text style={[styles.profitEyebrow, { color: colors.gray500 }]}>
-            {profitable ? 'BÉNÉFICE NET' : 'PERTE NETTE'}
+            {profitable ? t('admin.treasury.reports.netProfit') : t('admin.treasury.reports.netLoss')}
           </Text>
           <Text style={[styles.profitValue, { color: profitColor }]}>
             {formatAmount(Math.abs(netProfit))}
@@ -144,22 +144,22 @@ function TreasuryReportsContent() {
               color={profitColor}
             />
             <Text style={[styles.profitBadgeText, { color: profitColor }]}>
-              Marge {margin}%
+              {t('admin.treasury.reports.marginBadge', { percent: margin })}
             </Text>
           </View>
         </View>
 
         {/* KPIs */}
         <View style={styles.kpiRow}>
-          <KPICard title="Revenus" value={formatAmount(revenue)} icon="trending-up" color="#10B981" />
-          <KPICard title="Dépenses" value={formatAmount(expenses)} icon="trending-down" color="#EF4444" />
+          <KPICard title={t('admin.treasury.reports.kpiRevenue')} value={formatAmount(revenue)} icon="trending-up" color="#10B981" />
+          <KPICard title={t('admin.treasury.reports.kpiExpenses')} value={formatAmount(expenses)} icon="trending-down" color="#EF4444" />
         </View>
 
         {/* P&L Breakdown */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>COMPTE DE RÉSULTAT</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.treasury.reports.sectionPL')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           <View style={{ padding: Spacing.md }}>
-            <Text style={[styles.plSectionTitle, { color: '#10B981' }]}>Revenus</Text>
+            <Text style={[styles.plSectionTitle, { color: '#10B981' }]}>{t('admin.treasury.reports.plRevenue')}</Text>
             {revenueRows.map((item) => (
               <View key={item.label} style={styles.plRow}>
                 <Text style={[styles.plLabel, { color: colors.gray600 }]}>{item.label}</Text>
@@ -171,7 +171,7 @@ function TreasuryReportsContent() {
           <View style={[styles.plDivider, { backgroundColor: hairline }]} />
 
           <View style={{ padding: Spacing.md }}>
-            <Text style={[styles.plSectionTitle, { color: '#EF4444' }]}>Dépenses</Text>
+            <Text style={[styles.plSectionTitle, { color: '#EF4444' }]}>{t('admin.treasury.reports.plExpenses')}</Text>
             {expenseRows.map((item) => (
               <View key={item.label} style={styles.plRow}>
                 <Text style={[styles.plLabel, { color: colors.gray600 }]}>{item.label}</Text>
@@ -183,13 +183,13 @@ function TreasuryReportsContent() {
           <View style={[styles.plDivider, { backgroundColor: hairline }]} />
 
           <View style={[styles.plTotalRow, { padding: Spacing.md }]}>
-            <Text style={[styles.plTotalLabel, { color: colors.text }]}>Résultat net</Text>
+            <Text style={[styles.plTotalLabel, { color: colors.text }]}>{t('admin.treasury.reports.plNetResult')}</Text>
             <Text style={[styles.plTotalValue, { color: profitColor }]}>{formatAmount(netProfit)}</Text>
           </View>
         </View>
 
         {/* Monthly Ratios */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>RATIOS CLÉS</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.treasury.reports.sectionRatios')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {ratios.map((item, idx) => (
             <View
