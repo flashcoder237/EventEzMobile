@@ -9,6 +9,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { eventsAPI } from '../../api';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -60,6 +61,7 @@ function FollowEventButtonImpl({
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { showAlert, showError, showWarning } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [isFollowing, setIsFollowing] = useState(initialFollowing);
   const [isLoading, setIsLoading] = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
@@ -147,7 +149,7 @@ function FollowEventButtonImpl({
         }
       } catch (error) {
         if (__DEV__) console.error('Error toggling follow:', error);
-        showError('Erreur', 'Une erreur est survenue');
+        showError(t('common.error'), t('componentsEvents.followError'));
       } finally {
         setIsLoading(false);
       }
@@ -161,7 +163,7 @@ function FollowEventButtonImpl({
       setShowPreferences(false);
     } catch (error) {
       if (__DEV__) console.error('Error updating preferences:', error);
-      showError('Erreur', 'Impossible de mettre à jour les préférences');
+      showError(t('common.error'), t('componentsEvents.followPreferencesError'));
     } finally {
       setIsLoading(false);
     }
@@ -169,22 +171,22 @@ function FollowEventButtonImpl({
 
   const selectNotificationLevel = () => {
     showAlert(
-      'Niveau de notifications',
-      'Choisissez le niveau de notifications',
+      t('componentsEvents.followLevelTitle'),
+      t('componentsEvents.followLevelMessage'),
       [
         {
-          text: 'Toutes',
+          text: t('componentsEvents.followLevelAll'),
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'all' })),
         },
         {
-          text: 'Importantes',
+          text: t('componentsEvents.followLevelImportant'),
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'important' })),
         },
         {
-          text: 'Aucune',
+          text: t('componentsEvents.followLevelNone'),
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'none' })),
         },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ],
       'info'
     );
@@ -193,13 +195,13 @@ function FollowEventButtonImpl({
   const getNotificationLabel = () => {
     switch (preferences.notification_preference) {
       case 'all':
-        return 'Toutes les notifications';
+        return t('componentsEvents.followNotifAll');
       case 'important':
-        return 'Importantes uniquement';
+        return t('componentsEvents.followNotifImportant');
       case 'none':
-        return 'Aucune notification';
+        return t('componentsEvents.followNotifNone');
       default:
-        return 'Importantes uniquement';
+        return t('componentsEvents.followNotifImportant');
     }
   };
 
@@ -260,7 +262,7 @@ function FollowEventButtonImpl({
               color={isFollowing ? colors.accent : colors.gray600}
             />
             <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && { color: colors.accent }]}>
-              {isFollowing ? 'Sauvegardé' : 'Sauvegarder'}
+              {isFollowing ? t('componentsEvents.followSaveLabel') : t('componentsEvents.followSaveLabelDefault')}
             </Text>
           </>
         )}
@@ -295,7 +297,7 @@ function FollowEventButtonImpl({
                 color={isFollowing ? colors.accent : Colors.white}
               />
               <Text style={[styles.mainButtonText, isFollowing && { color: colors.accent }]}>
-                {isFollowing ? 'Événement sauvegardé' : 'Sauvegarder cet événement'}
+                {isFollowing ? t('componentsEvents.followMainSaved') : t('componentsEvents.followMainDefault')}
               </Text>
               {showFollowerCount && followersCount > 0 && (
                 <View style={[styles.badge, isFollowing && { backgroundColor: colors.accent + '26' }]}>
@@ -341,8 +343,8 @@ function FollowEventButtonImpl({
                 <Ionicons name="close" size={18} color={colors.gray600} />
               </TouchableOpacity>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.modalEyebrowE, { color: colors.accent }]}>NOTIFICATIONS • EVENT</Text>
-                <Text style={[styles.modalTitleE, { color: colors.text }]}>Préférences</Text>
+                <Text style={[styles.modalEyebrowE, { color: colors.accent }]}>{t('componentsEvents.followModalEyebrow')}</Text>
+                <Text style={[styles.modalTitleE, { color: colors.text }]}>{t('componentsEvents.followModalTitle')}</Text>
               </View>
             </View>
           </View>
@@ -350,13 +352,13 @@ function FollowEventButtonImpl({
           <View style={styles.modalContentE}>
             {/* === LEVEL SEGMENTED === */}
             <View style={styles.section}>
-              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>ÉTAPE 01 • NIVEAU</Text>
-              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Niveau de notifications</Text>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>{t('componentsEvents.followStepLevel')}</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('componentsEvents.followLevelSectionTitle')}</Text>
               <View style={styles.levelSegmented}>
                 {[
-                  { key: 'all' as const, label: 'Toutes', icon: 'notifications' as const, eyebrow: 'MAX' },
-                  { key: 'important' as const, label: 'Importantes', icon: 'star' as const, eyebrow: 'MOYEN' },
-                  { key: 'none' as const, label: 'Aucune', icon: 'notifications-off' as const, eyebrow: 'OFF' },
+                  { key: 'all' as const, label: t('componentsEvents.followLevelAll'), icon: 'notifications' as const, eyebrow: t('componentsEvents.followLevelMaxEyebrow') },
+                  { key: 'important' as const, label: t('componentsEvents.followLevelImportant'), icon: 'star' as const, eyebrow: t('componentsEvents.followLevelMediumEyebrow') },
+                  { key: 'none' as const, label: t('componentsEvents.followLevelNone'), icon: 'notifications-off' as const, eyebrow: t('componentsEvents.followLevelOffEyebrow') },
                 ].map((level) => {
                   const active = preferences.notification_preference === level.key;
                   return (
@@ -395,16 +397,16 @@ function FollowEventButtonImpl({
 
             {/* === CHANNELS === */}
             <View style={styles.section}>
-              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>ÉTAPE 02 • CANAUX</Text>
-              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Comment te joindre</Text>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>{t('componentsEvents.followStepChannels')}</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('componentsEvents.followChannelsTitle')}</Text>
               <View style={[styles.switchCard, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
                 <View style={styles.switchRowE}>
                   <View style={[styles.switchIcon, { backgroundColor: '#3B82F615' }]}>
                     <Ionicons name="mail" size={14} color="#3B82F6" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.switchTitle, { color: colors.text }]}>Email</Text>
-                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Récap par email</Text>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>{t('componentsEvents.followChannelEmailTitle')}</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>{t('componentsEvents.followChannelEmailSub')}</Text>
                   </View>
                   <Switch
                     value={preferences.notify_email}
@@ -419,8 +421,8 @@ function FollowEventButtonImpl({
                     <Ionicons name="notifications" size={14} color={colors.primary} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.switchTitle, { color: colors.text }]}>Push</Text>
-                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Notifications app</Text>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>{t('componentsEvents.followChannelPushTitle')}</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>{t('componentsEvents.followChannelPushSub')}</Text>
                   </View>
                   <Switch
                     value={preferences.notify_push}
@@ -434,16 +436,16 @@ function FollowEventButtonImpl({
 
             {/* === EVENTS === */}
             <View style={styles.section}>
-              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>ÉTAPE 03 • TYPES</Text>
-              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Me notifier pour</Text>
+              <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>{t('componentsEvents.followStepTypes')}</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('componentsEvents.followTypesTitle')}</Text>
               <View style={[styles.switchCard, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
                 <View style={styles.switchRowE}>
                   <View style={[styles.switchIcon, { backgroundColor: '#A855F715' }]}>
                     <Ionicons name="megaphone" size={14} color="#A855F7" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.switchTitle, { color: colors.text }]}>Mises à jour</Text>
-                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Changements de l'event</Text>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>{t('componentsEvents.followTypeUpdatesTitle')}</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>{t('componentsEvents.followTypeUpdatesSub')}</Text>
                   </View>
                   <Switch
                     value={preferences.notify_updates}
@@ -458,8 +460,8 @@ function FollowEventButtonImpl({
                     <Ionicons name="alarm" size={14} color="#F59E0B" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.switchTitle, { color: colors.text }]}>Rappels</Text>
-                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>7j et 1j avant</Text>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>{t('componentsEvents.followTypeRemindersTitle')}</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>{t('componentsEvents.followTypeRemindersSub')}</Text>
                   </View>
                   <Switch
                     value={preferences.notify_reminders}
@@ -474,8 +476,8 @@ function FollowEventButtonImpl({
                     <Ionicons name="close-circle" size={14} color="#EF4444" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.switchTitle, { color: colors.text }]}>Annulations</Text>
-                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>Si l'event est annulé</Text>
+                    <Text style={[styles.switchTitle, { color: colors.text }]}>{t('componentsEvents.followTypeCancellationTitle')}</Text>
+                    <Text style={[styles.switchSub, { color: colors.gray500 }]}>{t('componentsEvents.followTypeCancellationSub')}</Text>
                   </View>
                   <Switch
                     value={preferences.notify_cancellation}
@@ -507,8 +509,8 @@ function FollowEventButtonImpl({
               ) : (
                 <>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.modalSaveEyebrow}>SAUVEGARDE</Text>
-                    <Text style={styles.modalSaveLabel}>Enregistrer mes préférences</Text>
+                    <Text style={styles.modalSaveEyebrow}>{t('componentsEvents.followSaveEyebrow')}</Text>
+                    <Text style={styles.modalSaveLabel}>{t('componentsEvents.followSaveCta')}</Text>
                   </View>
                   <View style={styles.modalSaveArrow}>
                     <Ionicons name="checkmark" size={18} color={Colors.white} />

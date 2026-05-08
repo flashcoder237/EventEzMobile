@@ -309,8 +309,8 @@ export default function InvitationsScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={styles.headerTextCol}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>INVITATIONS • RSVP</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Tu es convié.e</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('invitations.headerEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('invitations.headerTitle')}</Text>
           </View>
           {stats.pendingReceived > 0 && (
             <View style={[styles.pendingBadge, { backgroundColor: '#FEF3C7' }]}>
@@ -334,15 +334,15 @@ export default function InvitationsScreen() {
                 <View style={[styles.statDotE, { backgroundColor: '#F59E0B' }]} />
               )}
             </View>
-            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>EN ATTENTE</Text>
+            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>{t('invitations.statEyebrowPending')}</Text>
           </View>
           <View style={[styles.statCell, { borderRightColor: hairline }]}>
             <Text style={[styles.statNumber, { color: colors.text }]}>{stats.acceptedReceived}</Text>
-            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>ACCEPTÉES</Text>
+            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>{t('invitations.statEyebrowAccepted')}</Text>
           </View>
           <View style={styles.statCellLast}>
             <Text style={[styles.statNumber, { color: colors.text }]}>{stats.totalSent}</Text>
-            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>ENVOYÉES</Text>
+            <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>{t('invitations.statEyebrowSent')}</Text>
           </View>
         </View>
 

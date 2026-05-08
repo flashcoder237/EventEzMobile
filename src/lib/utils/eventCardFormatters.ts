@@ -13,6 +13,8 @@ export interface CardPriceParams {
   priceMax?: number;
   currency: string;
   eventType?: 'billetterie' | 'inscription';
+  /** Optional translation function. If absent, falls back to French strings (for back-compat). */
+  t?: (key: string, options?: any) => string;
 }
 
 // ---------- Price formatting ----------
@@ -28,9 +30,17 @@ export interface CardPriceParams {
  *  - fallback → "Prix variable"
  */
 export function formatCardPrice(params: CardPriceParams): string {
-  const { isFree, price, priceMax, currency, eventType } = params;
+  const { isFree, price, priceMax, currency, eventType, t } = params;
+  const tx = t ?? ((k: string) => {
+    // Fallback labels — used when no translation function is provided
+    // (e.g. unit tests or legacy call sites).
+    if (k === 'componentsEvents.priceFree') return 'Gratuit';
+    if (k === 'componentsEvents.priceFromShort') return `Des {{price}} {{currency}}`;
+    if (k === 'componentsEvents.priceVariable') return 'Prix variable';
+    return k;
+  });
 
-  if (isFree) return 'Gratuit';
+  if (isFree) return tx('componentsEvents.priceFree');
 
   if (
     typeof price === 'number' &&
@@ -42,15 +52,15 @@ export function formatCardPrice(params: CardPriceParams): string {
   }
 
   if (typeof price === 'number' && price > 0)
-    return `Des ${price.toLocaleString()} ${currency}`;
+    return tx('componentsEvents.priceFromShort', { price: price.toLocaleString(), currency });
 
-  if (typeof price === 'number' && price === 0) return 'Gratuit';
+  if (typeof price === 'number' && price === 0) return tx('componentsEvents.priceFree');
 
   if (typeof price === 'string' && price.trim()) return price;
 
-  if (eventType === 'inscription') return 'Gratuit';
+  if (eventType === 'inscription') return tx('componentsEvents.priceFree');
 
-  return 'Prix variable';
+  return tx('componentsEvents.priceVariable');
 }
 
 /**
@@ -68,18 +78,18 @@ export function formatPriceShort(params: CardPriceParams): string {
  *
  * Example: "MAR. 15 JAN · 19:30"
  */
-export function formatDateAccent(date: string): string {
+export function formatDateAccent(date: string, locale: string = 'fr-FR'): string {
   try {
     const eventDate = new Date(date);
     const day = eventDate
-      .toLocaleDateString('fr-FR', { weekday: 'short' })
+      .toLocaleDateString(locale, { weekday: 'short' })
       .slice(0, 3)
       .toUpperCase();
     const dayNum = eventDate.getDate();
     const month = eventDate
-      .toLocaleDateString('fr-FR', { month: 'short' })
+      .toLocaleDateString(locale, { month: 'short' })
       .toUpperCase();
-    const timeStr = eventDate.toLocaleTimeString('fr-FR', {
+    const timeStr = eventDate.toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -94,16 +104,16 @@ export function formatDateAccent(date: string): string {
  *
  * Example: "MAR 15 JAN"
  */
-export function formatDateShort(date: string): string {
+export function formatDateShort(date: string, locale: string = 'fr-FR'): string {
   try {
     const eventDate = new Date(date);
     const day = eventDate
-      .toLocaleDateString('fr-FR', { weekday: 'short' })
+      .toLocaleDateString(locale, { weekday: 'short' })
       .slice(0, 3)
       .toUpperCase();
     const dayNum = eventDate.getDate();
     const month = eventDate
-      .toLocaleDateString('fr-FR', { month: 'short' })
+      .toLocaleDateString(locale, { month: 'short' })
       .toUpperCase();
     return `${day} ${dayNum} ${month}`;
   } catch {

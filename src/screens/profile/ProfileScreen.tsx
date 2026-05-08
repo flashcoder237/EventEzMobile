@@ -569,7 +569,7 @@ export default function ProfileScreen() {
           onClose={() => setShowMyQR(false)}
           data={`EVENTEZ-USER-${user.id}`}
           title={t('profile.myQRTitle')}
-          subtitle="Faites scanner ce code pour partager votre profil"
+          subtitle={t('editProfile.qrShareSubtitle')}
         />
       )}
       </View>

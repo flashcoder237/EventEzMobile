@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { seatingAPI, floorPlansAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -58,6 +59,7 @@ interface VenueTabProps {
 
 export default function VenueTab({ eventId }: VenueTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [seatingPlans, setSeatingPlans] = useState<SeatingPlan[]>([]);
   const [floorPlans, setFloorPlans] = useState<FloorPlan[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,7 +90,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
 
   const handleReserve = async () => {
     if (!selectedPlan || !selectedZone || !seatLabel.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      Alert.alert(t('common.error'), t('componentsEvents.venueFillFields'));
       return;
     }
     setReserving(true);
@@ -98,13 +100,13 @@ export default function VenueTab({ eventId }: VenueTabProps) {
         zone: selectedZone,
         seat_label: seatLabel.trim(),
       });
-      Alert.alert('Succès', 'Votre place a été réservée !');
+      Alert.alert(t('common.success'), t('componentsEvents.venueReserved'));
       setSeatLabel('');
       setSelectedZone('');
       fetchData();
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || 'Erreur lors de la réservation';
-      Alert.alert('Erreur', msg);
+      const msg = error?.response?.data?.detail || t('componentsEvents.venueReserveError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setReserving(false);
     }
@@ -114,7 +116,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement du plan...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.venueLoading')}</Text>
       </View>
     );
   }
@@ -122,10 +124,10 @@ export default function VenueTab({ eventId }: VenueTabProps) {
   if (seatingPlans.length === 0 && floorPlans.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Placement</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.venueTitle')}</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="map-outline" size={40} color={colors.gray300} />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun plan de salle pour cet evenement</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.venueEmpty')}</Text>
         </View>
       </View>
     );
@@ -138,7 +140,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
       {/* Seating Plans */}
       {seatingPlans.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Plans de salle</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.venueSeatingPlansTitle')}</Text>
           {seatingPlans.map((plan) => {
             const reserved = plan.reserved_seats || 0;
             const total = plan.total_seats || 0;
@@ -159,7 +161,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                   <Text style={[styles.planName, { color: colors.gray900 }]}>{plan.name}</Text>
                   <View style={styles.availBadge}>
                     <Text style={styles.availBadgeText}>
-                      {available} dispo.
+                      {t('componentsEvents.venueAvailable', { count: available })}
                     </Text>
                   </View>
                 </View>
@@ -208,7 +210,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                             { color: zone.color || colors.gray600 },
                           ]}
                         >
-                          {zone.name} ({zone.capacity - (zone.reserved_count || 0)} dispo.)
+                          {zone.name} ({t('componentsEvents.venueZoneAvailable', { count: zone.capacity - (zone.reserved_count || 0) })})
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -221,14 +223,14 @@ export default function VenueTab({ eventId }: VenueTabProps) {
           {/* Reservation form */}
           {selectedPlan && (
             <View style={[styles.reserveCard, { backgroundColor: colors.gray50 }]}>
-              <Text style={[styles.reserveTitle, { color: colors.gray900 }]}>Reserver une place</Text>
+              <Text style={[styles.reserveTitle, { color: colors.gray900 }]}>{t('componentsEvents.venueReserveSeat')}</Text>
               <View style={styles.reserveForm}>
                 {!selectedZone && currentPlan?.zones && currentPlan.zones.length > 0 && (
-                  <Text style={styles.reserveHint}>Selectionnez une zone ci-dessus</Text>
+                  <Text style={styles.reserveHint}>{t('componentsEvents.venueSelectZoneHint')}</Text>
                 )}
                 <TextInput
                   style={[styles.reserveInput, { backgroundColor: colors.surface, borderColor: colors.gray200, color: colors.gray900 }]}
-                  placeholder="Numero de siege (ex: A12)"
+                  placeholder={t('componentsEvents.venueSeatPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={seatLabel}
                   onChangeText={setSeatLabel}
@@ -242,7 +244,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                   {reserving ? (
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
-                    <Text style={styles.reserveButtonText}>Reserver</Text>
+                    <Text style={styles.reserveButtonText}>{t('componentsEvents.venueReserveCta')}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -255,7 +257,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
       {floorPlans.length > 0 && (
         <>
           <Text style={[styles.sectionTitle, { color: colors.gray900 }, seatingPlans.length > 0 && { marginTop: Spacing.lg }]}>
-            Plans d'etage
+            {t('componentsEvents.venueFloorPlansTitle')}
           </Text>
           {floorPlans.map((fp) => (
             <View key={fp.id} style={[styles.floorPlanCard, { backgroundColor: colors.gray50 }]}>
@@ -297,7 +299,7 @@ export default function VenueTab({ eventId }: VenueTabProps) {
                 )}
                 {fp.is_published && (
                   <View style={[styles.metaBadge, { backgroundColor: Colors.successLight }]}>
-                    <Text style={[styles.metaBadgeText, { color: Colors.success }]}>Publie</Text>
+                    <Text style={[styles.metaBadgeText, { color: Colors.success }]}>{t('componentsEvents.venuePublished')}</Text>
                   </View>
                 )}
               </View>

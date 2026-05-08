@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -27,6 +28,7 @@ interface SendEmailModalProps {
 }
 
 function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { showSuccess, showError } = useAlert();
@@ -37,7 +39,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
 
   const handleSend = async () => {
     if (!subject.trim() || !message.trim()) {
-      showError('Erreur', 'Veuillez remplir le sujet et le message');
+      showError(t('common.error'), t('componentsOrganizer.sendEmail.errorMissingFields'));
       return;
     }
 
@@ -49,15 +51,15 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
         message: message.trim(),
       });
       showSuccess(
-        'Succès',
-        `Email envoyé à ${registrationIds.length} participant${registrationIds.length > 1 ? 's' : ''}`
+        t('common.success'),
+        t('componentsOrganizer.sendEmail.successMessage', { count: registrationIds.length })
       );
       setSubject('');
       setMessage('');
       onClose();
     } catch (error) {
       if (__DEV__) console.error('Erreur envoi email:', error);
-      showError('Erreur', "Impossible d'envoyer l'email");
+      showError(t('common.error'), t('componentsOrganizer.sendEmail.errorSending'));
     } finally {
       setSending(false);
     }
@@ -107,7 +109,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
             <Text style={[styles.title, { color: colors.gray900 }]}>
-              Envoyer un email
+              {t('componentsOrganizer.sendEmail.title')}
             </Text>
             <TouchableOpacity onPress={handleClose} disabled={sending}>
               <Ionicons name="close" size={24} color={colors.gray600} />
@@ -118,13 +120,13 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
           <View style={styles.badge}>
             <Ionicons name="people" size={16} color={Colors.primary} />
             <Text style={[styles.badgeText, { color: colors.gray600 }]}>
-              {registrationIds.length} destinataire{registrationIds.length > 1 ? 's' : ''}
+              {t('componentsOrganizer.sendEmail.recipients', { count: registrationIds.length })}
             </Text>
           </View>
 
           {/* Form */}
           <View style={styles.body}>
-            <Text style={[styles.label, { color: colors.gray700 }]}>Sujet</Text>
+            <Text style={[styles.label, { color: colors.gray700 }]}>{t('componentsOrganizer.sendEmail.subjectLabel')}</Text>
             <TextInput
               style={[
                 styles.input,
@@ -136,11 +138,11 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
               ]}
               value={subject}
               onChangeText={setSubject}
-              placeholder="Sujet de l'email..."
+              placeholder={t('componentsOrganizer.sendEmail.subjectPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
 
-            <Text style={[styles.label, { color: colors.gray700 }]}>Message</Text>
+            <Text style={[styles.label, { color: colors.gray700 }]}>{t('componentsOrganizer.sendEmail.messageLabel')}</Text>
             <TextInput
               style={[
                 styles.input,
@@ -153,7 +155,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
               ]}
               value={message}
               onChangeText={setMessage}
-              placeholder="Votre message..."
+              placeholder={t('componentsOrganizer.sendEmail.messagePlaceholder')}
               placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={6}
@@ -168,7 +170,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
               onPress={handleClose}
               disabled={sending}
             >
-              <Text style={[styles.cancelText, { color: colors.gray700 }]}>Annuler</Text>
+              <Text style={[styles.cancelText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.sendBtn, { backgroundColor: Colors.primary }]}
@@ -180,7 +182,7 @@ function SendEmailModal({ visible, onClose, registrationIds }: SendEmailModalPro
               ) : (
                 <>
                   <Ionicons name="send" size={16} color={Colors.white} />
-                  <Text style={styles.sendText}>Envoyer</Text>
+                  <Text style={styles.sendText}>{t('componentsOrganizer.sendEmail.send')}</Text>
                 </>
               )}
             </TouchableOpacity>

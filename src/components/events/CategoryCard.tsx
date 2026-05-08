@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import AnimatedPressable from '../ui/AnimatedPressable';
 import CategoryIcon from '../icons/CategoryIcons';
 import {
@@ -66,6 +67,7 @@ function CategoryCard({
   accessibilityLabel: a11yLabel,
 }: CategoryCardProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const gradientColors: [string, string] = color
     ? [color, color]
@@ -83,7 +85,7 @@ function CategoryCard({
         scaleValue={0.96}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel={a11yLabel || `Cat\u00e9gorie ${name}`}
+        accessibilityLabel={a11yLabel || t('componentsEvents.categoryA11y', { name })}
       >
         {imageUrl ? (
           <ImageBackground
@@ -97,7 +99,7 @@ function CategoryCard({
             >
               <Text style={styles.largeName}>{name}</Text>
               {eventCount !== undefined && eventCount > 0 && (
-                <Text style={styles.largeCount}>{eventCount} evenement{eventCount > 1 ? 's' : ''}</Text>
+                <Text style={styles.largeCount}>{t('componentsEvents.categoryEventsCount', { count: eventCount })}</Text>
               )}
             </LinearGradient>
           </ImageBackground>
@@ -127,7 +129,7 @@ function CategoryCard({
         scaleValue={0.95}
         accessible={true}
         accessibilityRole="button"
-        accessibilityLabel={a11yLabel || `Cat\u00e9gorie ${name}`}
+        accessibilityLabel={a11yLabel || t('componentsEvents.categoryA11y', { name })}
       >
         <View style={[styles.compactIconBg, { backgroundColor: `${gradientColors[0]}15` }]}>
           <CategoryIcon name={name} size={18} color={gradientColors[0]} strokeWidth={2} />
@@ -148,7 +150,7 @@ function CategoryCard({
       scaleValue={0.95}
       accessible={true}
       accessibilityRole="button"
-      accessibilityLabel={a11yLabel || `Cat\u00e9gorie ${name}`}
+      accessibilityLabel={a11yLabel || t('componentsEvents.categoryA11y', { name })}
     >
       <LinearGradient
         colors={gradientColors}

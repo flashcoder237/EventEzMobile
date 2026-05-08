@@ -7,6 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Localization from 'expo-localization';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
@@ -52,6 +53,7 @@ interface Props {
 }
 
 export default function FXIndicator({ amount, fromCurrency }: Props) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [converted, setConverted] = useState<{ value: number; currency: string } | null>(null);
   const [targetCurrency] = useState<string>(() => inferPayerCurrency());
@@ -87,6 +89,8 @@ export default function FXIndicator({ amount, fromCurrency }: Props) {
   const mainTextColor = isDark ? '#BEE3F8' : '#1E40AF';
   const subTextColor = isDark ? '#A0C4E8' : '#1D4ED8';
 
+  const formattedConverted = formatMoney(converted.value, converted.currency);
+
   return (
     <View
       style={[
@@ -94,7 +98,7 @@ export default function FXIndicator({ amount, fromCurrency }: Props) {
         { backgroundColor: bgColor, borderColor },
       ]}
       accessible
-      accessibilityLabel={`Vous serez debite en ${fromCurrency.toUpperCase()}. Estimation indicative : environ ${formatMoney(converted.value, converted.currency)}. Le taux reel est celui de votre banque.`}
+      accessibilityLabel={t('componentsPayment.fxA11y', { currency: fromCurrency.toUpperCase(), amount: formattedConverted })}
     >
       <Ionicons
         name="information-circle-outline"
@@ -104,12 +108,12 @@ export default function FXIndicator({ amount, fromCurrency }: Props) {
       />
       <View style={styles.textBlock}>
         <Text style={[styles.mainText, { color: mainTextColor }]}>
-          Vous serez debite en <Text style={styles.bold}>{fromCurrency.toUpperCase()}</Text>
-          {'  '}Estimation :{' '}
-          <Text style={styles.bold}>≈ {formatMoney(converted.value, converted.currency)}</Text>
+          {t('componentsPayment.fxBilledIn')} <Text style={styles.bold}>{fromCurrency.toUpperCase()}</Text>
+          {'  '}{t('componentsPayment.fxEstimation')}{' '}
+          <Text style={styles.bold}>{t('componentsPayment.fxApprox', { amount: formattedConverted })}</Text>
         </Text>
         <Text style={[styles.subText, { color: subTextColor }]}>
-          Le taux reel applique est celui de votre banque ou de votre carte.
+          {t('componentsPayment.fxBankRateNote')}
         </Text>
       </View>
     </View>

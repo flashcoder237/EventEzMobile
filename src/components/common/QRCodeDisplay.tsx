@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -44,6 +45,7 @@ export default function QRCodeDisplay({
   onClose,
 }: QRCodeDisplayProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
@@ -115,7 +117,7 @@ export default function QRCodeDisplay({
 
         {/* Hint */}
         <Text style={[styles.hint, { color: colors.gray500 }]}>
-          Faites scanner ce QR code
+          {t('componentsCommon.qrCodeHint')}
         </Text>
       </Reanimated.View>
     </Modal>

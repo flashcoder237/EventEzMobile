@@ -18,6 +18,7 @@ import Animated, {
   cancelAnimation,
   interpolate,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { Colors, FontFamily, FontSizes, Spacing } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 
@@ -28,6 +29,7 @@ interface TypingIndicatorProps {
 
 export default function TypingIndicator({ typingUsers, compact = false }: TypingIndicatorProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   // 3 dots — shared values sur l'UI thread
   const dot1 = useSharedValue(0);
@@ -79,12 +81,12 @@ export default function TypingIndicator({ typingUsers, compact = false }: Typing
   // Formatage du texte
   const getTypingText = () => {
     if (typingUsers.length === 1) {
-      return `${typingUsers[0]} ecrit`;
+      return t('componentsMessages.typingOne', { name: typingUsers[0] });
     }
     if (typingUsers.length === 2) {
-      return `${typingUsers[0]} et ${typingUsers[1]} ecrivent`;
+      return t('componentsMessages.typingTwo', { name1: typingUsers[0], name2: typingUsers[1] });
     }
-    return `${typingUsers[0]} et ${typingUsers.length - 1} autres ecrivent`;
+    return t('componentsMessages.typingMany', { name: typingUsers[0], count: typingUsers.length - 1 });
   };
 
   if (compact) {

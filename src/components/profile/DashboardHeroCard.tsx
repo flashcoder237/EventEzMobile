@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
@@ -30,11 +31,12 @@ interface Props {
 export default function DashboardHeroCard({ stats }: Props) {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const cells: Stat[] = [
-    { value: stats.tickets, label: 'BILLETS' },
-    { value: stats.favorites, label: 'FAVORIS' },
-    { value: stats.reviews, label: 'AVIS' },
+    { value: stats.tickets, label: t('componentsProfile.dashboardStatTickets') },
+    { value: stats.favorites, label: t('componentsProfile.dashboardStatFavorites') },
+    { value: stats.reviews, label: t('componentsProfile.dashboardStatReviews') },
   ];
 
   const gradientColors = isDark
@@ -46,7 +48,7 @@ export default function DashboardHeroCard({ stats }: Props) {
       onPress={() => navigation.navigate('UserDashboard')}
       activeOpacity={0.92}
       accessibilityRole="button"
-      accessibilityLabel="Tableau de bord. Voir mon activité en détail"
+      accessibilityLabel={t('componentsProfile.dashboardA11y')}
       style={styles.wrapper}
     >
       <LinearGradient
@@ -58,8 +60,8 @@ export default function DashboardHeroCard({ stats }: Props) {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.eyebrow}>MON ACTIVITÉ</Text>
-            <Text style={styles.title}>Tableau de bord</Text>
+            <Text style={styles.eyebrow}>{t('componentsProfile.dashboardEyebrow')}</Text>
+            <Text style={styles.title}>{t('componentsProfile.dashboardTitle')}</Text>
           </View>
           <View style={styles.iconDisc}>
             <Ionicons name="grid" size={18} color="#FFFFFF" />
@@ -81,7 +83,7 @@ export default function DashboardHeroCard({ stats }: Props) {
 
         {/* Footer CTA */}
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Suivez votre activité en détail</Text>
+          <Text style={styles.footerText}>{t('componentsProfile.dashboardFooterText')}</Text>
           <View style={styles.ctaArrow}>
             <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
           </View>

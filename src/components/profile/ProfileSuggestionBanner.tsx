@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { User, RootStackParamList } from '../../types';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
@@ -31,7 +32,12 @@ interface Props {
  * Construit la liste des suggestions selon l'etat du compte.
  * Plus la priorite est haute, plus c'est critique.
  */
-function buildSuggestions(user: User | null, wallet: Props['wallet'], isOrganizer: boolean): Suggestion[] {
+function buildSuggestions(
+  user: User | null,
+  wallet: Props['wallet'],
+  isOrganizer: boolean,
+  t: (k: string, opts?: any) => string,
+): Suggestion[] {
   if (!user) return [];
 
   const list: Suggestion[] = [];
@@ -46,9 +52,9 @@ function buildSuggestions(user: User | null, wallet: Props['wallet'], isOrganize
     list.push({
       id: 'wallet-config',
       icon: 'wallet-outline',
-      title: 'Configure ton wallet',
-      message: 'Ajoute une méthode de retrait pour recevoir tes paiements.',
-      cta: 'Configurer',
+      title: t('componentsProfile.suggestWalletTitle'),
+      message: t('componentsProfile.suggestWalletMessage'),
+      cta: t('componentsProfile.suggestWalletCta'),
       priority: 100,
       onPress: (nav) => nav.navigate('Wallet'),
     });
@@ -59,11 +65,11 @@ function buildSuggestions(user: User | null, wallet: Props['wallet'], isOrganize
     list.push({
       id: 'verify-account',
       icon: 'shield-checkmark-outline',
-      title: 'Vérifie ton compte',
+      title: t('componentsProfile.suggestVerifyTitle'),
       message: isOrganizer
-        ? 'La vérification est requise pour créer des événements.'
-        : 'Confirme ton identité pour débloquer toutes les fonctionnalités.',
-      cta: 'Vérifier',
+        ? t('componentsProfile.suggestVerifyMessageOrganizer')
+        : t('componentsProfile.suggestVerifyMessageDefault'),
+      cta: t('componentsProfile.suggestVerifyCta'),
       priority: 90,
       onPress: (nav) => nav.navigate('Verification'),
     });
@@ -74,9 +80,9 @@ function buildSuggestions(user: User | null, wallet: Props['wallet'], isOrganize
     list.push({
       id: 'add-photo',
       icon: 'camera-outline',
-      title: 'Ajoute une photo',
-      message: 'Personnalise ton compte pour être reconnu.',
-      cta: 'Ajouter',
+      title: t('componentsProfile.suggestPhotoTitle'),
+      message: t('componentsProfile.suggestPhotoMessage'),
+      cta: t('componentsProfile.suggestPhotoCta'),
       priority: 30,
       onPress: (nav) => nav.navigate('EditProfile'),
     });
@@ -87,9 +93,9 @@ function buildSuggestions(user: User | null, wallet: Props['wallet'], isOrganize
     list.push({
       id: 'complete-profile',
       icon: 'person-outline',
-      title: 'Complète ton profil',
-      message: 'Ajoute une bio ou un numéro de téléphone.',
-      cta: 'Compléter',
+      title: t('componentsProfile.suggestCompleteTitle'),
+      message: t('componentsProfile.suggestCompleteMessage'),
+      cta: t('componentsProfile.suggestCompleteCta'),
       priority: 20,
       onPress: (nav) => nav.navigate('EditProfile'),
     });
@@ -126,10 +132,11 @@ function profileCompleteness(user: User | null, wallet: Props['wallet'], isOrgan
 export default function ProfileSuggestionBanner({ user, wallet, isOrganizer }: Props) {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const suggestions = useMemo(
-    () => buildSuggestions(user, wallet, isOrganizer),
-    [user, wallet, isOrganizer]
+    () => buildSuggestions(user, wallet, isOrganizer, t),
+    [user, wallet, isOrganizer, t]
   );
 
   const { done, total } = useMemo(
@@ -164,9 +171,9 @@ export default function ProfileSuggestionBanner({ user, wallet, isOrganizer }: P
 
         <View style={styles.textCol}>
           <View style={styles.headerRow}>
-            <Text style={[styles.eyebrow, { color: accentColor }]}>POUR VOUS</Text>
+            <Text style={[styles.eyebrow, { color: accentColor }]}>{t('componentsProfile.suggestEyebrow')}</Text>
             <Text style={[styles.completeness, { color: colors.gray500 }]}>
-              {done} / {total} ÉTAPES
+              {t('componentsProfile.suggestStepsLabel', { done, total })}
             </Text>
           </View>
           <Text style={[styles.title, { color: colors.gray900 }]} numberOfLines={1}>

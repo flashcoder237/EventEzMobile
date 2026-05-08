@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { Session, RootStackParamList } from '../../types';
 import { FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -17,15 +18,15 @@ export interface AgendaTabProps {
 
 type SessionStatus = 'past' | 'live' | 'upcoming';
 
-const TYPE_LABELS: Record<string, string> = {
-  keynote: 'Keynote',
-  talk: 'Talk',
-  workshop: 'Atelier',
-  panel: 'Panel',
-  break: 'Pause',
-  networking: 'Réseautage',
-  meal: 'Repas',
-  other: 'Session',
+const TYPE_LABEL_KEYS: Record<string, string> = {
+  keynote: 'componentsEvents.sessionTypeKeynote',
+  talk: 'componentsEvents.sessionTypeTalk',
+  workshop: 'componentsEvents.sessionTypeWorkshop',
+  panel: 'componentsEvents.sessionTypePanel',
+  break: 'componentsEvents.sessionTypeBreak',
+  networking: 'componentsEvents.sessionTypeNetworking',
+  meal: 'componentsEvents.sessionTypeMeal',
+  other: 'componentsEvents.sessionTypeOther',
 };
 
 // ============================================================================
@@ -70,6 +71,7 @@ function dayKey(d: Date): string {
 
 export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const now = useMemo(() => new Date(), []);
 
@@ -95,11 +97,11 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
   if (loadingSessions) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>Programme</Text>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Déroulé de la journée</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.agendaEyebrow')}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('componentsEvents.agendaSectionTitle')}</Text>
         <View style={styles.emptyTab}>
           <LoadingSpinner />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement du programme…</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.agendaLoading')}</Text>
         </View>
       </View>
     );
@@ -108,15 +110,15 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
   if (!sessions || sessions.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>Programme</Text>
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Déroulé de la journée</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.agendaEyebrow')}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('componentsEvents.agendaSectionTitle')}</Text>
         <View style={styles.emptyTab}>
           <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryBg }]}>
             <Ionicons name="calendar-outline" size={32} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Programme à venir</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('componentsEvents.agendaEmptyTitle')}</Text>
           <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>
-            L&apos;organisateur n&apos;a pas encore publié le déroulé.
+            {t('componentsEvents.agendaEmptyText')}
           </Text>
         </View>
       </View>
@@ -133,11 +135,11 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.eyebrow, { color: colors.accent }]}>
-            Programme · {totalSessions} session{totalSessions > 1 ? 's' : ''}
-            {isMultiDay && ` · ${groupedByDay.length} jours`}
+            {t('componentsEvents.agendaEyebrow')} · {t('componentsEvents.agendaSessions', { count: totalSessions })}
+            {isMultiDay && ` · ${t('componentsEvents.agendaDays', { count: groupedByDay.length })}`}
           </Text>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Déroulé de la journée
+            {t('componentsEvents.agendaSectionTitle')}
           </Text>
         </View>
       </View>
@@ -155,7 +157,7 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                   <Text style={[styles.dayTileMonth, { color: colors.primary }]}>{mon}</Text>
                 </View>
                 <View style={{ flex: 1, marginLeft: Spacing.md }}>
-                  <Text style={[styles.dayHeaderEyebrow, { color: colors.gray500 }]}>JOUR {dayIndex + 1}</Text>
+                  <Text style={[styles.dayHeaderEyebrow, { color: colors.gray500 }]}>{t('componentsEvents.agendaDayNumber', { number: dayIndex + 1 })}</Text>
                   <Text style={[styles.dayHeaderTitle, { color: colors.text }]}>
                     {dow.charAt(0) + dow.slice(1).toLowerCase()}
                   </Text>
@@ -175,7 +177,7 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                 const isLast = idx === day.sessions.length - 1;
                 const speakers = session.speakers_detail || [];
                 const typeLabel = session.session_type
-                  ? TYPE_LABELS[session.session_type] || session.session_type
+                  ? (TYPE_LABEL_KEYS[session.session_type] ? t(TYPE_LABEL_KEYS[session.session_type]) : session.session_type)
                   : null;
 
                 const statusConfig = {
@@ -256,19 +258,19 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                       }
                       activeOpacity={0.85}
                       accessibilityRole="button"
-                      accessibilityLabel={`Session ${session.title} à ${fmtTime(start)}`}
+                      accessibilityLabel={t('componentsEvents.agendaSessionA11y', { title: session.title, time: fmtTime(start) })}
                     >
                       {/* Top row: status + type + registration badge */}
                       <View style={styles.cardTopRow}>
                         {status === 'live' && (
                           <View style={[styles.livePill, { backgroundColor: colors.accent }]}>
                             <View style={styles.livePulse} />
-                            <Text style={styles.livePillText}>EN COURS</Text>
+                            <Text style={styles.livePillText}>{t('componentsEvents.agendaLive')}</Text>
                           </View>
                         )}
                         {status === 'past' && (
                           <View style={[styles.statusPill, { backgroundColor: colors.gray100 }]}>
-                            <Text style={[styles.statusPillText, { color: colors.gray500 }]}>TERMINÉ</Text>
+                            <Text style={[styles.statusPillText, { color: colors.gray500 }]}>{t('componentsEvents.agendaPast')}</Text>
                           </View>
                         )}
                         {/* Badge "Inscrit" / "Liste d'attente" pour rendre l'état de l'utilisateur
@@ -276,13 +278,13 @@ export default function AgendaTab({ sessions, loadingSessions }: AgendaTabProps)
                         {status !== 'past' && session.is_registered && (
                           <View style={[styles.regPill, { backgroundColor: '#10B981' }]}>
                             <Ionicons name="checkmark" size={10} color="#fff" />
-                            <Text style={styles.regPillText}>INSCRIT</Text>
+                            <Text style={styles.regPillText}>{t('componentsEvents.agendaRegistered')}</Text>
                           </View>
                         )}
                         {status !== 'past' && !session.is_registered && session.is_in_waitlist && (
                           <View style={[styles.regPill, { backgroundColor: '#F59E0B' }]}>
                             <Ionicons name="hourglass" size={10} color="#fff" />
-                            <Text style={styles.regPillText}>EN ATTENTE</Text>
+                            <Text style={styles.regPillText}>{t('componentsEvents.agendaWaiting')}</Text>
                           </View>
                         )}
                         {typeLabel && (

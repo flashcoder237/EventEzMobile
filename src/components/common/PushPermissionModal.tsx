@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
@@ -26,6 +27,7 @@ export default function PushPermissionModal({
   onDecline,
 }: PushPermissionModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
@@ -62,21 +64,21 @@ export default function PushPermissionModal({
         </View>
 
         {/* Title */}
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>Ne manque rien</Text>
-        <Text style={[styles.title, { color: colors.gray900 }]}>Restez informé</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsCommon.pushEyebrow')}</Text>
+        <Text style={[styles.title, { color: colors.gray900 }]}>{t('componentsCommon.pushTitle')}</Text>
 
         {/* Description */}
         <Text style={[styles.description, { color: colors.gray600 }]}>
-          Activez les notifications pour recevoir :
+          {t('componentsCommon.pushDescription')}
         </Text>
 
         {/* Features */}
         <View style={styles.featureList}>
           {[
-            { icon: 'calendar-outline' as const, label: 'Rappels de vos événements' },
-            { icon: 'ticket-outline' as const, label: "Confirmations d'inscription" },
-            { icon: 'chatbubble-outline' as const, label: 'Nouveaux messages' },
-            { icon: 'card-outline' as const, label: 'Confirmations de paiement' },
+            { icon: 'calendar-outline' as const, label: t('componentsCommon.pushFeatureReminders') },
+            { icon: 'ticket-outline' as const, label: t('componentsCommon.pushFeatureRegistrations') },
+            { icon: 'chatbubble-outline' as const, label: t('componentsCommon.pushFeatureMessages') },
+            { icon: 'card-outline' as const, label: t('componentsCommon.pushFeaturePayments') },
           ].map(({ icon, label }) => (
             <View key={label} style={styles.featureItem}>
               <Ionicons name={icon} size={20} color={colors.primary} />
@@ -91,11 +93,11 @@ export default function PushPermissionModal({
           onPress={onAccept}
           activeOpacity={0.8}
         >
-          <Text style={styles.acceptButtonText}>Activer les notifications</Text>
+          <Text style={styles.acceptButtonText}>{t('componentsCommon.pushAccept')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.declineButton} onPress={onDecline} activeOpacity={0.8}>
-          <Text style={[styles.declineButtonText, { color: colors.gray500 }]}>Plus tard</Text>
+          <Text style={[styles.declineButtonText, { color: colors.gray500 }]}>{t('componentsCommon.pushDecline')}</Text>
         </TouchableOpacity>
       </Reanimated.View>
     </Modal>

@@ -21,6 +21,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { eventTemplatesAPI } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -73,19 +74,24 @@ const ICON_MAP: Record<string, keyof typeof Ionicons.glyphMap> = {
 const resolveIcon = (icon?: string): keyof typeof Ionicons.glyphMap =>
   (icon && ICON_MAP[icon]) || 'sparkles-outline';
 
-const formatTemplateMeta = (t: EventTemplate): string => {
-  const parts: string[] = [];
-  parts.push(t.event_type === 'inscription' ? 'Inscription' : 'Billetterie');
-  if (t.duration_hours != null) {
-    parts.push(`~${Number(t.duration_hours).toFixed(1).replace('.0', '')}h`);
-  }
-  if (t.location_type === 'online') parts.push('En ligne');
-  else if (t.location_type === 'hybrid') parts.push('Hybride');
-  else if (t.location_type === 'in_person') parts.push('Présentiel');
-  return parts.join(' · ');
+const useFormatTemplateMeta = () => {
+  const { t } = useTranslation();
+  return (tpl: EventTemplate): string => {
+    const parts: string[] = [];
+    parts.push(tpl.event_type === 'inscription' ? t('componentsOrganizer.templatePicker.metaInscription') : t('componentsOrganizer.templatePicker.metaBilletterie'));
+    if (tpl.duration_hours != null) {
+      parts.push(`~${Number(tpl.duration_hours).toFixed(1).replace('.0', '')}h`);
+    }
+    if (tpl.location_type === 'online') parts.push(t('componentsOrganizer.templatePicker.metaOnline'));
+    else if (tpl.location_type === 'hybrid') parts.push(t('componentsOrganizer.templatePicker.metaHybrid'));
+    else if (tpl.location_type === 'in_person') parts.push(t('componentsOrganizer.templatePicker.metaInPerson'));
+    return parts.join(' · ');
+  };
 };
 
 export default function TemplatePicker({ onApply }: Props) {
+  const { t } = useTranslation();
+  const formatTemplateMeta = useFormatTemplateMeta();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
   const [templates, setTemplates] = useState<EventTemplate[] | null>(null);
@@ -132,10 +138,10 @@ export default function TemplatePicker({ onApply }: Props) {
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>RACCOURCIS</Text>
-      <Text style={[styles.title, { color: colors.text }]}>Démarrer depuis un modèle</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsOrganizer.templatePicker.eyebrow')}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t('componentsOrganizer.templatePicker.title')}</Text>
       <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-        Pré-remplit type, durée, billets suggérés. Tu peux tout modifier ensuite.
+        {t('componentsOrganizer.templatePicker.subtitle')}
       </Text>
 
       {/* Trigger button — affiche le template appliqué OU un placeholder.
@@ -150,8 +156,8 @@ export default function TemplatePicker({ onApply }: Props) {
         accessibilityRole="button"
         accessibilityLabel={
           applied
-            ? `Modèle appliqué : ${applied.name}. Toucher pour en choisir un autre.`
-            : 'Choisir un modèle'
+            ? t('componentsOrganizer.templatePicker.a11yApplied', { name: applied.name })
+            : t('componentsOrganizer.templatePicker.a11yChoose')
         }
       >
         {applied ? (
@@ -169,7 +175,7 @@ export default function TemplatePicker({ onApply }: Props) {
             </View>
             <View style={[styles.appliedPill, { backgroundColor: `${colors.success}14` }]}>
               <Ionicons name="checkmark-circle" size={12} color={colors.success} />
-              <Text style={[styles.appliedPillText, { color: colors.success }]}>Appliqué</Text>
+              <Text style={[styles.appliedPillText, { color: colors.success }]}>{t('componentsOrganizer.templatePicker.applied')}</Text>
             </View>
           </>
         ) : (
@@ -179,10 +185,10 @@ export default function TemplatePicker({ onApply }: Props) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={[styles.triggerLabel, { color: colors.text }]} numberOfLines={1}>
-                Parcourir les modèles
+                {t('componentsOrganizer.templatePicker.browseTemplates')}
               </Text>
               <Text style={[styles.triggerMeta, { color: colors.gray500 }]} numberOfLines={1}>
-                {templates.length} modèle{templates.length > 1 ? 's' : ''} disponible{templates.length > 1 ? 's' : ''}
+                {t('componentsOrganizer.templatePicker.templatesAvailable', { count: templates.length })}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
@@ -193,17 +199,17 @@ export default function TemplatePicker({ onApply }: Props) {
       <SearchableSelectModal<EventTemplate>
         visible={modalOpen}
         onClose={() => setModalOpen(false)}
-        eyebrow="RACCOURCIS"
-        title="Démarrer depuis un modèle"
-        searchPlaceholder="Rechercher un modèle..."
+        eyebrow={t('componentsOrganizer.templatePicker.eyebrow')}
+        title={t('componentsOrganizer.templatePicker.modalTitle')}
+        searchPlaceholder={t('componentsOrganizer.templatePicker.searchPlaceholder')}
         items={templates}
-        getKey={t => t.id}
-        getLabel={t => t.name}
-        getDescription={t => formatTemplateMeta(t)}
-        getIcon={t => resolveIcon(t.icon)}
+        getKey={tpl => tpl.id}
+        getLabel={tpl => tpl.name}
+        getDescription={tpl => formatTemplateMeta(tpl)}
+        getIcon={tpl => resolveIcon(tpl.icon)}
         selectedKey={appliedId}
         onSelect={handleSelect}
-        emptyText="Aucun modèle ne correspond à cette recherche."
+        emptyText={t('componentsOrganizer.templatePicker.emptyText')}
       />
     </View>
   );

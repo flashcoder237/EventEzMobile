@@ -10,6 +10,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { virtualRoomsAPI, recordingsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
@@ -46,6 +47,7 @@ interface VirtualTabProps {
 export default function VirtualTab({ eventId, isRegistered = false }: VirtualTabProps) {
   const { colors, isDark } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [rooms, setRooms] = useState<VirtualRoom[]>([]);
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,9 +81,9 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
     // Utiliser event_join qui retourne le token et l'URL selon le provider
     if (!isRegistered) {
       Alert.alert(
-        'Inscription requise',
-        'Vous devez être inscrit à cet événement pour rejoindre la visioconférence.',
-        [{ text: 'OK' }]
+        t('componentsEvents.virtualRegistrationRequiredTitle'),
+        t('componentsEvents.virtualRegistrationRequiredMessage'),
+        [{ text: t('common.ok') }]
       );
       return;
     }
@@ -92,7 +94,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       const data = res.data;
 
       if (!data.url) {
-        Alert.alert('Erreur', "Impossible d'obtenir l'URL de la salle.");
+        Alert.alert(t('common.error'), t('componentsEvents.virtualUrlError'));
         return;
       }
 
@@ -106,12 +108,12 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
 
       if (data.provider === 'jitsi_public' && data.password) {
         Alert.alert(
-          'Mot de passe de la salle',
-          `Mot de passe : ${data.password}\n\nCopier ce mot de passe avant de rejoindre la salle.`,
+          t('componentsEvents.virtualPasswordTitle'),
+          t('componentsEvents.virtualPasswordMessage', { password: data.password }),
           [
-            { text: 'Annuler', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Rejoindre',
+              text: t('componentsEvents.virtualJoinAction'),
               onPress: () => navigation.navigate('Browser', { url: finalUrl }),
             },
           ]
@@ -122,12 +124,12 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
 
       fetchVirtualData();
     } catch (error: any) {
-      const msg = error?.response?.data?.error || "Impossible de rejoindre la salle.";
+      const msg = error?.response?.data?.error || t('componentsEvents.virtualGenericError');
       const minsRemaining = error?.response?.data?.minutes_remaining;
       Alert.alert(
-        'Accès refusé',
+        t('componentsEvents.virtualAccessDenied'),
         minsRemaining
-          ? `La salle ouvrira dans ${minsRemaining} min.`
+          ? t('componentsEvents.virtualAccessLater', { minutes: minsRemaining })
           : msg
       );
     } finally {
@@ -163,7 +165,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -173,10 +175,10 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
   if (!hasContent) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Virtuel</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.virtualTitle')}</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="videocam-outline" size={40} color={colors.gray300} />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun contenu virtuel disponible</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.virtualEmpty')}</Text>
         </View>
       </View>
     );
@@ -187,7 +189,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       {/* Virtual Rooms */}
       {rooms.length > 0 && (
         <>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Salles virtuelles</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.virtualRoomsTitle')}</Text>
           {rooms.map((room) => {
             const active = isRoomActive(room);
             return (
@@ -197,7 +199,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
                   <View style={styles.roomInfo}>
                     <Text style={[styles.roomName, { color: colors.gray900 }]}>{room.name}</Text>
                     <Text style={[styles.roomStatus, { color: colors.gray500 }]}>
-                      {active ? 'En cours' : 'Terminé'}
+                      {active ? t('componentsEvents.virtualRoomActive') : t('componentsEvents.virtualRoomEnded')}
                     </Text>
                   </View>
                   {room.participants_count !== undefined && (
@@ -231,7 +233,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
                       <Ionicons name="videocam" size={16} color={Colors.white} />
                     )}
                     <Text style={styles.joinButtonText}>
-                      {joiningRoomId === room.id ? 'Connexion...' : 'Rejoindre'}
+                      {joiningRoomId === room.id ? t('componentsEvents.virtualConnecting') : t('componentsEvents.virtualJoinAction')}
                     </Text>
                   </TouchableOpacity>
                 )}
@@ -245,7 +247,7 @@ export default function VirtualTab({ eventId, isRegistered = false }: VirtualTab
       {recordings.length > 0 && (
         <>
           <Text style={[styles.sectionTitle, { color: colors.gray900 }, rooms.length > 0 && { marginTop: Spacing.lg }]}>
-            Replays
+            {t('componentsEvents.virtualReplaysTitle')}
           </Text>
           {recordings.map((recording) => (
             <TouchableOpacity

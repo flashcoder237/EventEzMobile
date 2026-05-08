@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -39,10 +40,12 @@ export default function DatePickerField({
   minimumDate,
   maximumDate,
   disabled = false,
-  placeholder = 'Sélectionner une date',
+  placeholder,
 }: DatePickerFieldProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
+  const resolvedPlaceholder = placeholder ?? t('componentsUI.datePickerPlaceholder');
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('fr-FR', {
@@ -95,7 +98,7 @@ export default function DatePickerField({
         activeOpacity={disabled ? 1 : TOUCH_OPACITY}
       >
         <Text style={value ? [styles.valueText, { color: colors.gray900 }] : [styles.placeholderText, { color: colors.gray400 }]}>
-          {value ? formatDate(value) : placeholder}
+          {value ? formatDate(value) : resolvedPlaceholder}
         </Text>
         <Ionicons
           name="calendar-outline"
@@ -113,11 +116,11 @@ export default function DatePickerField({
             <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={[styles.modalCancel, { color: colors.gray500 }]}>Annuler</Text>
+                  <Text style={[styles.modalCancel, { color: colors.gray500 }]}>{t('componentsUI.modalCancel')}</Text>
                 </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: colors.gray900 }]}>{label || 'Date'}</Text>
+                <Text style={[styles.modalTitle, { color: colors.gray900 }]}>{label || t('componentsUI.modalDate')}</Text>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={[styles.modalDone, { color: colors.primary }]}>Valider</Text>
+                  <Text style={[styles.modalDone, { color: colors.primary }]}>{t('componentsUI.modalValidate')}</Text>
                 </TouchableOpacity>
               </View>
               {renderPicker()}

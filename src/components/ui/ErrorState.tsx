@@ -6,6 +6,7 @@
 import React, { memo } from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { FontFamily, FontSizes, Spacing, BorderRadius } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import GradientButton from './GradientButton';
@@ -25,10 +26,10 @@ interface ErrorStateProps {
 }
 
 function ErrorStateComponent({
-  title = 'Oups !',
-  message = 'Une erreur est survenue. Veuillez reessayer.',
+  title,
+  message,
   onRetry,
-  retryLabel = 'Reessayer',
+  retryLabel,
   icon = 'alert-circle-outline',
   iconSize = 64,
   style,
@@ -36,19 +37,23 @@ function ErrorStateComponent({
   showRetry = true,
   accessibilityLabel: a11yLabel,
 }: ErrorStateProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
+  const resolvedTitle = title ?? t('componentsUI.errorTitle');
+  const resolvedMessage = message ?? t('componentsUI.errorMessage');
+  const resolvedRetryLabel = retryLabel ?? t('componentsUI.errorRetry');
 
   const content = (
     <>
       <View style={[styles.iconContainer, { backgroundColor: colors.errorBg }]}>
         <Ionicons name={icon} size={iconSize} color={colors.error} />
       </View>
-      <Text style={[styles.title, { color: colors.gray900 }]}>{title}</Text>
-      <Text style={[styles.message, { color: colors.gray600 }]}>{message}</Text>
+      <Text style={[styles.title, { color: colors.gray900 }]}>{resolvedTitle}</Text>
+      <Text style={[styles.message, { color: colors.gray600 }]}>{resolvedMessage}</Text>
       {showRetry && onRetry && (
         <View style={styles.actionContainer}>
           <GradientButton
-            title={retryLabel}
+            title={resolvedRetryLabel}
             onPress={onRetry}
             variant="outline"
             size="md"
@@ -63,7 +68,7 @@ function ErrorStateComponent({
     return (
       <View
         accessibilityRole="alert"
-        accessibilityLabel={a11yLabel || `${title}. ${message}`}
+        accessibilityLabel={a11yLabel || `${resolvedTitle}. ${resolvedMessage}`}
         style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.error + '20' }, style]}
       >
         {content}
@@ -74,7 +79,7 @@ function ErrorStateComponent({
   return (
     <View
       accessibilityRole="alert"
-      accessibilityLabel={a11yLabel || `${title}. ${message}`}
+      accessibilityLabel={a11yLabel || `${resolvedTitle}. ${resolvedMessage}`}
       style={[styles.container, style]}
     >
       {content}

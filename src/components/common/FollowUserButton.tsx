@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { usersAPI } from '../../api';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import { useAuth } from '../../contexts/AuthContext';
@@ -53,6 +54,7 @@ function FollowUserButtonImpl({
   initialFollowing = false,
 }: FollowUserButtonProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { showAlert, showError, showWarning } = useAlert();
   // Safe area inset bas — utilisé pour décaler le sticky bottom CTA du modal
@@ -117,7 +119,7 @@ function FollowUserButtonImpl({
     if (isLoading) return;
 
     if (!user) {
-      showWarning('Connexion requise', 'Vous devez etre connecte pour suivre un utilisateur');
+      showWarning(t('componentsCommon.followLoginRequiredTitle'), t('componentsCommon.followLoginRequiredMsg'));
       return;
     }
 
@@ -140,7 +142,7 @@ function FollowUserButtonImpl({
       }
     } catch (error) {
       if (__DEV__) console.error('Error toggling user follow:', error);
-      showError('Erreur', 'Une erreur est survenue');
+      showError(t('common.error'), t('componentsCommon.followGenericError'));
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +155,7 @@ function FollowUserButtonImpl({
       setShowPreferences(false);
     } catch (error) {
       if (__DEV__) console.error('Error updating user follow preferences:', error);
-      showError('Erreur', 'Impossible de mettre a jour les preferences');
+      showError(t('common.error'), t('componentsCommon.followPrefsError'));
     } finally {
       setIsLoading(false);
     }
@@ -161,22 +163,22 @@ function FollowUserButtonImpl({
 
   const selectNotificationLevel = () => {
     showAlert(
-      'Niveau de notifications',
-      'Choisissez le niveau de notifications',
+      t('componentsCommon.followNotifLevelTitle'),
+      t('componentsCommon.followNotifLevelMsg'),
       [
         {
-          text: 'Toutes',
+          text: t('componentsCommon.followNotifAll'),
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'all' })),
         },
         {
-          text: 'Importantes',
+          text: t('componentsCommon.followNotifImportant'),
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'important' })),
         },
         {
-          text: 'Aucune',
+          text: t('componentsCommon.followNotifNone'),
           onPress: () => setPreferences(p => ({ ...p, notification_preference: 'none' })),
         },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ],
       'info'
     );
@@ -185,13 +187,13 @@ function FollowUserButtonImpl({
   const getNotificationLabel = () => {
     switch (preferences.notification_preference) {
       case 'all':
-        return 'Toutes les notifications';
+        return t('componentsCommon.followNotifAllLabel');
       case 'important':
-        return 'Importantes uniquement';
+        return t('componentsCommon.followNotifImportantLabel');
       case 'none':
-        return 'Aucune notification';
+        return t('componentsCommon.followNotifNoneLabel');
       default:
-        return 'Importantes uniquement';
+        return t('componentsCommon.followNotifImportantLabel');
     }
   };
 
@@ -244,7 +246,7 @@ function FollowUserButtonImpl({
               color={isFollowing ? colors.primary : colors.gray600}
             />
             <Text style={[styles.compactText, { color: colors.gray700 }, isFollowing && [styles.compactTextActive, { color: colors.primary }]]}>
-              {isFollowing ? 'Suivi' : 'Suivre'}
+              {isFollowing ? t('componentsCommon.followFollowing') : t('componentsCommon.followFollow')}
             </Text>
           </>
         )}
@@ -290,7 +292,7 @@ function FollowUserButtonImpl({
             numberOfLines={1}
             ellipsizeMode="tail"
           >
-            {isFollowing ? 'Abonné' : 'Suivre'}
+            {isFollowing ? t('componentsCommon.followSubscribed') : t('componentsCommon.followFollow')}
           </Text>
           {showFollowerCount && followersCount > 0 && (
             <View
@@ -334,8 +336,8 @@ function FollowUserButtonImpl({
           <WatermarkNumeral>NOTIF</WatermarkNumeral>
           <View style={{ flex: 1, zIndex: 1 }}>
             <EditorialHeader
-              eyebrow="PRÉFÉRENCES · NOTIFICATIONS"
-              title="Comment être prévenu"
+              eyebrow={t('componentsCommon.followPrefsTitleEyebrow')}
+              title={t('componentsCommon.followPrefsTitle')}
               back
               onBack={() => setShowPreferences(false)}
             />
@@ -344,9 +346,9 @@ function FollowUserButtonImpl({
               {/* Section : niveau de notifications */}
               <View style={styles.modalSection}>
                 <View style={styles.editorialSectionHead}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>FRÉQUENCE</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('componentsCommon.followPrefsFrequencyEyebrow')}</Text>
                   <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                    Niveau d'alerte
+                    {t('componentsCommon.followPrefsFrequencyTitle')}
                   </Text>
                 </View>
                 <TouchableOpacity
@@ -355,7 +357,7 @@ function FollowUserButtonImpl({
                   activeOpacity={0.85}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={[styles.levelLabel, { color: colors.gray500 }]}>SÉLECTIONNÉ</Text>
+                    <Text style={[styles.levelLabel, { color: colors.gray500 }]}>{t('componentsCommon.followPrefsSelected')}</Text>
                     <Text style={[styles.levelText, { color: colors.gray900 }]}>{getNotificationLabel()}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
@@ -365,9 +367,9 @@ function FollowUserButtonImpl({
               {/* Section : canaux */}
               <View style={styles.modalSection}>
                 <View style={styles.editorialSectionHead}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>CANAUX</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('componentsCommon.followPrefsChannelsEyebrow')}</Text>
                   <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                    Où recevoir
+                    {t('componentsCommon.followPrefsChannelsTitle')}
                   </Text>
                 </View>
                 <View style={[styles.switchCard, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
@@ -376,8 +378,8 @@ function FollowUserButtonImpl({
                       <Ionicons name="mail-outline" size={16} color={colors.primary} />
                     </View>
                     <View style={styles.switchBody}>
-                      <Text style={[styles.switchTitle, { color: colors.gray900 }]}>E-mail</Text>
-                      <Text style={[styles.switchSubtitle, { color: colors.gray500 }]}>Recap dans ta boîte mail</Text>
+                      <Text style={[styles.switchTitle, { color: colors.gray900 }]}>{t('componentsCommon.followPrefsEmail')}</Text>
+                      <Text style={[styles.switchSubtitle, { color: colors.gray500 }]}>{t('componentsCommon.followPrefsEmailSubtitle')}</Text>
                     </View>
                     <Switch
                       value={preferences.notify_email}
@@ -392,8 +394,8 @@ function FollowUserButtonImpl({
                       <Ionicons name="notifications-outline" size={16} color={colors.accent} />
                     </View>
                     <View style={styles.switchBody}>
-                      <Text style={[styles.switchTitle, { color: colors.gray900 }]}>Push</Text>
-                      <Text style={[styles.switchSubtitle, { color: colors.gray500 }]}>Notification immédiate sur ton tel</Text>
+                      <Text style={[styles.switchTitle, { color: colors.gray900 }]}>{t('componentsCommon.followPrefsPush')}</Text>
+                      <Text style={[styles.switchSubtitle, { color: colors.gray500 }]}>{t('componentsCommon.followPrefsPushSubtitle')}</Text>
                     </View>
                     <Switch
                       value={preferences.notify_push}
@@ -408,9 +410,9 @@ function FollowUserButtonImpl({
               {/* Section : événements */}
               <View style={styles.modalSection}>
                 <View style={styles.editorialSectionHead}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>DÉCLENCHEURS</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('componentsCommon.followPrefsTriggersEyebrow')}</Text>
                   <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                    Me notifier pour
+                    {t('componentsCommon.followPrefsTriggersTitle')}
                   </Text>
                 </View>
                 <View style={[styles.switchCard, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
@@ -419,9 +421,9 @@ function FollowUserButtonImpl({
                       <Ionicons name="calendar-outline" size={16} color="#A855F7" />
                     </View>
                     <View style={styles.switchBody}>
-                      <Text style={[styles.switchTitle, { color: colors.gray900 }]}>Nouveaux événements</Text>
+                      <Text style={[styles.switchTitle, { color: colors.gray900 }]}>{t('componentsCommon.followPrefsNewEvents')}</Text>
                       <Text style={[styles.switchSubtitle, { color: colors.gray500 }]}>
-                        Quand cet organisateur publie un nouvel event
+                        {t('componentsCommon.followPrefsNewEventsSubtitle')}
                       </Text>
                     </View>
                     <Switch
@@ -453,7 +455,7 @@ function FollowUserButtonImpl({
                 disabled={isLoading}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Enregistrer les préférences"
+                accessibilityLabel={t('componentsCommon.followPrefsSaveA11y')}
                 style={[
                   styles.savePill,
                   { backgroundColor: colors.primary },
@@ -465,7 +467,7 @@ function FollowUserButtonImpl({
                 ) : (
                   <>
                     <Ionicons name="checkmark" size={18} color="#FFFFFF" />
-                    <Text style={styles.savePillText}>Enregistrer les préférences</Text>
+                    <Text style={styles.savePillText}>{t('componentsCommon.followPrefsSave')}</Text>
                   </>
                 )}
               </TouchableOpacity>

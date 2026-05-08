@@ -909,7 +909,7 @@ export default function PaymentScreen() {
             disabled={processing}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={processing ? colors.gray400 : colors.gray600} />
           </TouchableOpacity>
@@ -1440,7 +1440,7 @@ export default function PaymentScreen() {
                     }}
                     keyboardType="phone-pad"
                     maxLength={(countryConfig?.phone_digits || 9) + 2}
-                    accessibilityLabel="Numero de telephone"
+                    accessibilityLabel={t('payment.phoneNumber')}
                   />
                 </View>
                 {(!countryConfig || countryConfig.country_code === 'CM') && (
@@ -1491,7 +1491,7 @@ export default function PaymentScreen() {
                 Shadows.buttonPrimary,
               ]}
               activeOpacity={0.9}
-              accessibilityLabel="Confirmer le paiement"
+              accessibilityLabel={t('payment.confirmPaymentA11y')}
             >
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}

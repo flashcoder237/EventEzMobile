@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { Colors, FontFamily, Spacing, BorderRadius } from '../../constants/theme';
 import { authAPI } from '../../api';
@@ -14,6 +15,7 @@ interface VerificationBannerProps {
  */
 export default function VerificationBanner({ compact = false }: VerificationBannerProps) {
   const { user, isAuthenticated } = useAuth();
+  const { t } = useTranslation();
   const [sending, setSending] = useState(false);
   const [dismissed, setDismissed] = useState(false);
 
@@ -29,11 +31,11 @@ export default function VerificationBanner({ compact = false }: VerificationBann
     setSending(true);
     try {
       await authAPI.resendVerificationEmail(user.email);
-      Alert.alert('Email envoyé', 'Consultez votre boîte de réception pour vérifier votre compte.');
+      Alert.alert(t('componentsAuth.verifyEmailSentTitle'), t('componentsAuth.verifyEmailSentMsg'));
     } catch (err: any) {
       Alert.alert(
-        'Erreur',
-        err?.response?.data?.detail || "Impossible d'envoyer l'email",
+        t('common.error'),
+        err?.response?.data?.detail || t('componentsAuth.verifyResendError'),
       );
     } finally {
       setSending(false);
@@ -51,13 +53,13 @@ export default function VerificationBanner({ compact = false }: VerificationBann
       <Ionicons name="warning-outline" size={20} color="#B45309" />
       <View style={styles.textWrap}>
         <Text style={[styles.title, { color: '#78350F' }]} numberOfLines={1}>
-          Vérifiez votre email
+          {t('componentsAuth.bannerTitle')}
         </Text>
         {!compact && (
           <Text style={[styles.subtitle, { color: '#92400E' }]} numberOfLines={2}>
             {user?.email
-              ? `Un lien a été envoyé à ${user.email}.`
-              : 'Un lien de vérification est requis pour débloquer toutes les actions.'}
+              ? t('componentsAuth.bannerSubtitleSent', { email: user.email })
+              : t('componentsAuth.bannerSubtitleDefault')}
           </Text>
         )}
       </View>
@@ -67,12 +69,12 @@ export default function VerificationBanner({ compact = false }: VerificationBann
         disabled={sending}
         style={styles.resendBtn}
         accessibilityRole="button"
-        accessibilityLabel="Renvoyer l'email de vérification"
+        accessibilityLabel={t('componentsAuth.bannerResendA11y')}
       >
         {sending ? (
           <ActivityIndicator size="small" color="#78350F" />
         ) : (
-          <Text style={[styles.resendText, { color: '#78350F' }]}>Renvoyer</Text>
+          <Text style={[styles.resendText, { color: '#78350F' }]}>{t('componentsAuth.bannerResend')}</Text>
         )}
       </TouchableOpacity>
 
@@ -80,7 +82,7 @@ export default function VerificationBanner({ compact = false }: VerificationBann
         onPress={() => setDismissed(true)}
         style={styles.closeBtn}
         accessibilityRole="button"
-        accessibilityLabel="Fermer"
+        accessibilityLabel={t('componentsAuth.bannerCloseA11y')}
         hitSlop={8}
       >
         <Ionicons name="close" size={16} color="#78350F" />

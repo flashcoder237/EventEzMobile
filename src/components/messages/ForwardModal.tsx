@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { User } from '../../types';
 import {
   Colors,
@@ -58,6 +59,7 @@ function ForwardModal({
   onSelectTarget,
 }: ForwardModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
@@ -100,7 +102,7 @@ function ForwardModal({
     <View style={styles.emptyContainer}>
       <Ionicons name="people-outline" size={48} color={colors.gray300} />
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        {searchQuery ? 'Aucun résultat' : 'Aucun contact disponible'}
+        {searchQuery ? t('componentsMessages.forwardEmptyNoResult') : t('componentsMessages.forwardEmptyNoContact')}
       </Text>
     </View>
   );
@@ -140,7 +142,7 @@ function ForwardModal({
 
           {/* Header */}
           <View style={[styles.header, { borderBottomColor: colors.gray100 }]}>
-            <Text style={[styles.title, { color: colors.gray900 }]}>Transférer à</Text>
+            <Text style={[styles.title, { color: colors.gray900 }]}>{t('componentsMessages.forwardTitle')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
@@ -151,7 +153,7 @@ function ForwardModal({
             <Ionicons name="search" size={18} color={colors.gray400} />
             <TextInput
               style={[styles.searchInput, { color: colors.gray900 }]}
-              placeholder="Rechercher un contact..."
+              placeholder={t('componentsMessages.forwardSearchPlaceholder')}
               placeholderTextColor={colors.gray400}
               value={searchQuery}
               onChangeText={onSearchChange}

@@ -27,6 +27,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -81,12 +82,15 @@ export default function SearchableSelectModal<T>({
   selectedKey,
   onSelect,
   onClear,
-  searchPlaceholder = 'Rechercher...',
+  searchPlaceholder,
   renderItemExtra,
-  emptyText = 'Aucun résultat.',
+  emptyText,
 }: Props<T>) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('componentsCommon.searchableSearchPlaceholder');
+  const resolvedEmptyText = emptyText ?? t('componentsCommon.searchableEmpty');
   const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
   const [query, setQuery] = useState('');
 
@@ -138,7 +142,7 @@ export default function SearchableSelectModal<T>({
             onPress={handleClose}
             style={[styles.closeBtn, { backgroundColor: colors.card, borderColor: hairline }]}
             hitSlop={8}
-            accessibilityLabel="Fermer"
+            accessibilityLabel={t('componentsCommon.searchableClose')}
           >
             <Ionicons name="close" size={18} color={colors.text} />
           </TouchableOpacity>
@@ -156,7 +160,7 @@ export default function SearchableSelectModal<T>({
             value={query}
             onChangeText={setQuery}
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder={searchPlaceholder}
+            placeholder={resolvedSearchPlaceholder}
             placeholderTextColor={colors.gray400}
             autoCapitalize="none"
             autoCorrect={false}
@@ -180,7 +184,7 @@ export default function SearchableSelectModal<T>({
           ListEmptyComponent={
             <View style={styles.emptyWrap}>
               <Ionicons name="search-outline" size={28} color={colors.gray400} />
-              <Text style={[styles.emptyText, { color: colors.gray500 }]}>{emptyText}</Text>
+              <Text style={[styles.emptyText, { color: colors.gray500 }]}>{resolvedEmptyText}</Text>
             </View>
           }
           contentContainerStyle={[
@@ -246,11 +250,11 @@ export default function SearchableSelectModal<T>({
               }}
               style={[styles.clearBtn, { borderColor: hairline }]}
               accessibilityRole="button"
-              accessibilityLabel="Effacer la sélection"
+              accessibilityLabel={t('componentsCommon.searchableClearSelection')}
             >
               <Ionicons name="trash-outline" size={16} color={colors.error} />
               <Text style={[styles.clearText, { color: colors.error }]}>
-                Effacer la sélection
+                {t('componentsCommon.searchableClearSelection')}
               </Text>
             </TouchableOpacity>
           </View>

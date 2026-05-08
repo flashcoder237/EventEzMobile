@@ -27,6 +27,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { useStatus } from '../../contexts/StatusContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -35,13 +36,11 @@ import { BorderRadius, FontFamily, Shadows, Spacing } from '../../constants/them
 
 const APP_VERSION = Constants.expoConfig?.version || '';
 
-const DEFAULT_MESSAGE =
-  'Pour continuer à utiliser EventEz, mettez à jour vers la dernière version disponible.';
-
 export default function ForceUpdateGate({ children }: { children: React.ReactNode }) {
   const { snapshot } = useStatus();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const mobile = snapshot?.client_versions?.mobile;
   const minSupported = mobile?.min_supported || '';
@@ -65,7 +64,7 @@ export default function ForceUpdateGate({ children }: { children: React.ReactNod
     return <>{children}</>;
   }
 
-  const message = (mobile?.force_update_message || '').trim() || DEFAULT_MESSAGE;
+  const message = (mobile?.force_update_message || '').trim() || t('componentsCommon.forceUpdateDefaultMessage');
   const cardBg = isDark ? colors.gray100 : '#FFFFFF';
 
   return (
@@ -76,11 +75,11 @@ export default function ForceUpdateGate({ children }: { children: React.ReactNod
         </View>
 
         <Text style={[styles.title, { color: colors.text }]}>
-          Mise à jour requise
+          {t('componentsCommon.forceUpdateTitle')}
         </Text>
 
         <Text style={[styles.versionLine, { color: colors.gray500 }]}>
-          Version installée : {APP_VERSION || '—'} · Requise : {minSupported}
+          {t('componentsCommon.forceUpdateVersionLine', { installed: APP_VERSION || '—', required: minSupported })}
         </Text>
 
         <Text style={[styles.message, { color: colors.gray700 }]}>{message}</Text>
@@ -94,12 +93,12 @@ export default function ForceUpdateGate({ children }: { children: React.ReactNod
               style={{ marginRight: Spacing.sm }}
             />
             <Text style={styles.primaryBtnText}>
-              {Platform.OS === 'ios' ? 'Ouvrir App Store' : 'Ouvrir Play Store'}
+              {Platform.OS === 'ios' ? t('componentsCommon.forceUpdateOpenAppStore') : t('componentsCommon.forceUpdateOpenPlayStore')}
             </Text>
           </TouchableOpacity>
         ) : (
           <Text style={[styles.fallbackHint, { color: colors.gray500 }]}>
-            Veuillez mettre à jour l'application depuis votre store habituel.
+            {t('componentsCommon.forceUpdateFallbackHint')}
           </Text>
         )}
       </View>

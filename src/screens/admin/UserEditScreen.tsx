@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { usersAPI } from '../../api';
@@ -31,6 +32,7 @@ type RouteProps = RouteProp<RootStackParamList, 'UserEdit'>;
 const ROLES = ['user', 'organizer', 'moderator', 'admin'] as const;
 
 export default function UserEditScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { userId } = route.params;
@@ -54,7 +56,7 @@ export default function UserEditScreen() {
       setSelectedRole(res.data.role || 'user');
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement utilisateur:', error);
-      showError('Erreur', 'Impossible de charger l\'utilisateur');
+      showError(t('common.error'), t('admin.userEdit.loadError'));
     } finally {
       setLoading(false);
     }
@@ -66,9 +68,9 @@ export default function UserEditScreen() {
     try {
       await usersAPI.updateUser(userId, { role: selectedRole });
       setUser(prev => prev ? { ...prev, role: selectedRole as import('../../types').UserRole } : prev);
-      showSuccess('Succès', 'Rôle mis à jour');
+      showSuccess(t('common.success'), t('admin.userEdit.roleUpdated'));
     } catch (error) {
-      showError('Erreur', 'Impossible de mettre à jour le rôle');
+      showError(t('common.error'), t('admin.userEdit.roleUpdateError'));
     } finally {
       setSaving(false);
     }
@@ -84,9 +86,9 @@ export default function UserEditScreen() {
         await usersAPI.verifyProfile(userId);
       }
       setUser(prev => prev ? { ...prev, is_verified: !prev.is_verified } : prev);
-      showSuccess('Succès', `Utilisateur ${user.is_verified ? 'dévérifié' : 'vérifié'}`);
+      showSuccess(t('common.success'), user.is_verified ? t('admin.userEdit.userUnverified') : t('admin.userEdit.userVerified'));
     } catch (error) {
-      showError('Erreur', 'Impossible de modifier la vérification');
+      showError(t('common.error'), t('admin.userEdit.verificationToggleError'));
     } finally {
       setSaving(false);
     }
@@ -98,9 +100,9 @@ export default function UserEditScreen() {
     try {
       await usersAPI.updateUser(userId, { is_active: !user.is_active });
       setUser(prev => prev ? { ...prev, is_active: !prev.is_active } : prev);
-      showSuccess('Succès', `Compte ${user.is_active ? 'désactivé' : 'activé'}`);
+      showSuccess(t('common.success'), user.is_active ? t('admin.userEdit.accountDeactivated') : t('admin.userEdit.accountActivated'));
     } catch (error) {
-      showError('Erreur', 'Impossible de modifier le statut');
+      showError(t('common.error'), t('admin.userEdit.statusToggleError'));
     } finally {
       setSaving(false);
     }
@@ -108,15 +110,15 @@ export default function UserEditScreen() {
 
   const handleDelete = () => {
     showConfirm(
-      'Supprimer l\'utilisateur',
-      'Cette action est irréversible. Êtes-vous sûr ?',
+      t('admin.userEdit.deleteTitle'),
+      t('admin.userEdit.deleteConfirm'),
       async () => {
         try {
           await usersAPI.deleteUser(userId);
-          showSuccess('Succès', 'Utilisateur supprimé');
+          showSuccess(t('common.success'), t('admin.userEdit.userDeleted'));
           navigation.goBack();
         } catch (error) {
-          showError('Erreur', 'Impossible de supprimer l\'utilisateur');
+          showError(t('common.error'), t('admin.userEdit.deleteError'));
         }
       }
     );
@@ -129,13 +131,13 @@ export default function UserEditScreen() {
         onPress={() => navigation.goBack()}
         activeOpacity={0.7}
         accessibilityRole="button"
-        accessibilityLabel="Retour"
+        accessibilityLabel={t('common.back')}
       >
         <Ionicons name="chevron-back" size={18} color={colors.text} />
       </TouchableOpacity>
       <View style={{ flex: 1, marginLeft: Spacing.md }}>
-        <Text style={[styles.headerEyebrow, { color: colors.accent }]}>FICHE MEMBRE</Text>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Modifier utilisateur</Text>
+        <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.userEdit.eyebrow')}</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.userEdit.title')}</Text>
       </View>
     </View>
   );
@@ -176,13 +178,13 @@ export default function UserEditScreen() {
           </Text>
           <Text style={[styles.email, { color: colors.gray500 }]}>{user.email}</Text>
           <View style={styles.badges}>
-            <Badge label={user.is_active ? 'Actif' : 'Inactif'} variant={user.is_active ? 'success' : 'destructive'} size="sm" />
-            <Badge label={user.is_verified ? 'Vérifié' : 'Non vérifié'} variant={user.is_verified ? 'success' : 'warning'} size="sm" />
+            <Badge label={user.is_active ? t('admin.userEdit.active') : t('admin.userEdit.inactive')} variant={user.is_active ? 'success' : 'destructive'} size="sm" />
+            <Badge label={user.is_verified ? t('admin.userEdit.verified') : t('admin.userEdit.unverified')} variant={user.is_verified ? 'success' : 'warning'} size="sm" />
           </View>
         </View>
 
         {/* Role Selection */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>RÔLE</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.userEdit.roleSection')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {ROLES.map((role) => {
             const active = selectedRole === role;
@@ -201,7 +203,7 @@ export default function UserEditScreen() {
                   {active && <View style={[styles.roleRadioDot, { backgroundColor: colors.primary }]} />}
                 </View>
                 <Text style={[styles.roleLabel, { color: active ? colors.primary : colors.text }]}>
-                  {role === 'user' ? 'Utilisateur' : role === 'organizer' ? 'Organisateur' : role === 'moderator' ? 'Modérateur' : 'Administrateur'}
+                  {role === 'user' ? t('admin.userEdit.rolesLabels.user') : role === 'organizer' ? t('admin.userEdit.rolesLabels.organizer') : role === 'moderator' ? t('admin.userEdit.rolesLabels.moderator') : t('admin.userEdit.rolesLabels.admin')}
                 </Text>
               </TouchableOpacity>
             );

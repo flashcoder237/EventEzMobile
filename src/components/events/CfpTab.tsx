@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { cfpAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -41,6 +42,7 @@ interface CfpTabProps {
 
 export default function CfpTab({ eventId }: CfpTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [cfp, setCfp] = useState<CallForPapers | null>(null);
   const [proposals, setProposals] = useState<TalkProposal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,19 +91,19 @@ export default function CfpTab({ eventId }: CfpTabProps) {
       case 'accepted':
       case 'accepte':
       case 'approved':
-        return { label: 'Accepte', color: Colors.success, bg: Colors.successLight };
+        return { label: t('componentsEvents.cfpStatusAccepted'), color: Colors.success, bg: Colors.successLight };
       case 'rejected':
       case 'refuse':
-        return { label: 'Refuse', color: Colors.error, bg: Colors.errorLight };
+        return { label: t('componentsEvents.cfpStatusRejected'), color: Colors.error, bg: Colors.errorLight };
       case 'pending':
       case 'en_attente':
       case 'submitted':
-        return { label: 'En attente', color: Colors.warning, bg: Colors.warningLight };
+        return { label: t('componentsEvents.cfpStatusPending'), color: Colors.warning, bg: Colors.warningLight };
       case 'draft':
       case 'brouillon':
-        return { label: 'Brouillon', color: Colors.gray600, bg: Colors.gray100 };
+        return { label: t('componentsEvents.cfpStatusDraft'), color: Colors.gray600, bg: Colors.gray100 };
       default:
-        return { label: status || 'Inconnu', color: Colors.gray600, bg: Colors.gray100 };
+        return { label: status || t('componentsEvents.cfpStatusUnknown'), color: Colors.gray600, bg: Colors.gray100 };
     }
   };
 
@@ -120,7 +122,7 @@ export default function CfpTab({ eventId }: CfpTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -128,10 +130,10 @@ export default function CfpTab({ eventId }: CfpTabProps) {
   if (!cfp) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Appel a contributions</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.cfpTitle')}</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="mic-outline" size={40} color={colors.gray300} />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun appel a contributions pour cet evenement</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.cfpEmpty')}</Text>
         </View>
       </View>
     );
@@ -142,14 +144,14 @@ export default function CfpTab({ eventId }: CfpTabProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Appel a contributions</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.cfpTitle')}</Text>
 
       {/* CFP Status Card */}
       <View style={[styles.cfpStatusCard, { backgroundColor: colors.gray50 }]}>
         <View style={styles.cfpStatusHeader}>
           <View style={[styles.statusIndicator, { backgroundColor: isOpen && !isDeadlinePassed ? colors.success : colors.error }]} />
           <Text style={[styles.cfpStatusText, { color: colors.gray700 }]}>
-            {isOpen && !isDeadlinePassed ? 'Ouvert aux soumissions' : 'Ferme'}
+            {isOpen && !isDeadlinePassed ? t('componentsEvents.cfpStatusOpen') : t('componentsEvents.cfpStatusClosed')}
           </Text>
         </View>
         {cfp.title && (
@@ -162,13 +164,13 @@ export default function CfpTab({ eventId }: CfpTabProps) {
           <View style={styles.deadlineRow}>
             <Ionicons name="time-outline" size={16} color={colors.gray500} />
             <Text style={[styles.deadlineText, { color: colors.gray600 }]}>
-              Date limite : {formatDeadline(cfp.deadline)}
+              {t('componentsEvents.cfpDeadline', { date: formatDeadline(cfp.deadline) })}
             </Text>
           </View>
         )}
         {cfp.topics && cfp.topics.length > 0 && (
           <View style={styles.topicsContainer}>
-            <Text style={[styles.topicsLabel, { color: colors.gray600 }]}>Sujets :</Text>
+            <Text style={[styles.topicsLabel, { color: colors.gray600 }]}>{t('componentsEvents.cfpTopicsLabel')}</Text>
             <View style={styles.topicsList}>
               {cfp.topics.map((topic, index) => (
                 <View key={index} style={[styles.topicBadge, { backgroundColor: colors.primaryBg }]}>
@@ -183,7 +185,7 @@ export default function CfpTab({ eventId }: CfpTabProps) {
       {/* Proposals */}
       {proposals.length > 0 && (
         <>
-          <Text style={[styles.subsectionTitle, { color: colors.gray900 }]}>Mes propositions</Text>
+          <Text style={[styles.subsectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.cfpProposalsTitle')}</Text>
           {proposals.map((proposal) => {
             const statusBadge = getStatusBadge(proposal.status);
             const speakerName = getSpeakerName(proposal);

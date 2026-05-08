@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { getMediaUrl } from '../../api';
 import { formatDate } from '../../lib/utils/dateFormatters';
@@ -23,15 +24,6 @@ interface MapEventCardProps {
   bottomOffset?: number;
 }
 
-function formatPrice(marker: MapMarker): string {
-  if (marker.is_free) return 'Gratuit';
-  const p = marker.min_price || marker.price;
-  if (p && p > 0) {
-    return p.toLocaleString('fr-FR') + ' FCFA';
-  }
-  return 'Gratuit';
-}
-
 function MapEventCardComponent({
   marker,
   userLocation,
@@ -39,7 +31,17 @@ function MapEventCardComponent({
   calculateDistance,
   bottomOffset,
 }: MapEventCardProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+
+  const formatPrice = (m: MapMarker): string => {
+    if (m.is_free) return t('componentsMaps.free');
+    const p = m.min_price || m.price;
+    if (p && p > 0) {
+      return t('componentsMaps.priceFcfa', { amount: p.toLocaleString('fr-FR') });
+    }
+    return t('componentsMaps.free');
+  };
   const imageUrl = getMediaUrl(marker.banner_image);
 
   const distance = userLocation && marker.lat && marker.lng && calculateDistance

@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import {
   FontFamily,
   FontSizes,
@@ -35,6 +36,7 @@ function ReactionPickerModal({
   onSelectReaction,
 }: ReactionPickerModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
@@ -53,7 +55,7 @@ function ReactionPickerModal({
     >
       {/* Backdrop */}
       <Reanimated.View style={[StyleSheet.absoluteFill, styles.backdrop, backdropAnim]} />
-      <TouchableWithoutFeedback onPress={onClose} accessibilityLabel="Fermer les reactions">
+      <TouchableWithoutFeedback onPress={onClose} accessibilityLabel={t('componentsMessages.reactionCloseA11y')}>
         <View style={StyleSheet.absoluteFill} />
       </TouchableWithoutFeedback>
 
@@ -70,17 +72,17 @@ function ReactionPickerModal({
       >
         <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
 
-        <Text style={[styles.title, { color: colors.gray600 }]}>Réagir au message</Text>
+        <Text style={[styles.title, { color: colors.gray600 }]}>{t('componentsMessages.reactionTitle')}</Text>
 
         <View style={styles.emojiRow}>
           {REACTION_EMOJIS.map((emoji) => {
             const emojiLabels: Record<string, string> = {
-              '\u{1F44D}': 'Pouce en haut',
-              '\u{2764}\u{FE0F}': 'Coeur',
-              '\u{1F602}': 'Rire',
-              '\u{1F62E}': 'Surpris',
-              '\u{1F622}': 'Triste',
-              '\u{1F389}': 'Celebration',
+              '\u{1F44D}': t('componentsMessages.reactionThumb'),
+              '\u{2764}\u{FE0F}': t('componentsMessages.reactionHeart'),
+              '\u{1F602}': t('componentsMessages.reactionLaugh'),
+              '\u{1F62E}': t('componentsMessages.reactionWow'),
+              '\u{1F622}': t('componentsMessages.reactionSad'),
+              '\u{1F389}': t('componentsMessages.reactionParty'),
             };
             return (
               <TouchableOpacity

@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventsAPI } from '../../api';
@@ -32,6 +33,7 @@ interface AddToCalendarButtonProps {
 
 function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState<'google' | 'ical' | null>(null);
 
@@ -70,7 +72,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
     if (isAvailable) {
       await Sharing.shareAsync(file.uri, {
         mimeType: 'text/calendar',
-        dialogTitle: 'Ajouter au calendrier',
+        dialogTitle: t('componentsEvents.calendarShareDialogTitle'),
         UTI: 'com.apple.ical.ics',
       });
     }
@@ -140,7 +142,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
         />
         {!isSmall && (
           <Text style={[styles.buttonLabel, { color: colors.gray600 }]}>
-            Calendrier
+            {t('componentsEvents.calendarLabel')}
           </Text>
         )}
       </TouchableOpacity>
@@ -158,9 +160,9 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
         >
           <View style={[styles.sheet, { backgroundColor: colors.card }]}>
             <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
-            <Text style={[styles.sheetEyebrow, { color: colors.accent }]}>N’oublie rien</Text>
+            <Text style={[styles.sheetEyebrow, { color: colors.accent }]}>{t('componentsEvents.calendarSheetEyebrow')}</Text>
             <Text style={[styles.sheetTitle, { color: colors.gray900 }]}>
-              Ajouter au calendrier
+              {t('componentsEvents.calendarSheetTitle')}
             </Text>
 
             <TouchableOpacity
@@ -178,10 +180,10 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
               </View>
               <View style={styles.optionText}>
                 <Text style={[styles.optionTitle, { color: colors.gray900 }]}>
-                  Google Calendar
+                  {t('componentsEvents.calendarGoogleTitle')}
                 </Text>
                 <Text style={[styles.optionSubtitle, { color: colors.gray500 }]}>
-                  Ouvrir dans Google Calendar
+                  {t('componentsEvents.calendarGoogleSubtitle')}
                 </Text>
               </View>
               <Ionicons name="open-outline" size={20} color={colors.gray400} />
@@ -202,10 +204,10 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
               </View>
               <View style={styles.optionText}>
                 <Text style={[styles.optionTitle, { color: colors.gray900 }]}>
-                  {Platform.OS === 'ios' ? 'Apple Calendar' : 'Calendrier (iCal)'}
+                  {Platform.OS === 'ios' ? t('componentsEvents.calendarAppleTitle') : t('componentsEvents.calendarIcalTitle')}
                 </Text>
                 <Text style={[styles.optionSubtitle, { color: colors.gray500 }]}>
-                  Telecharger le fichier .ics
+                  {t('componentsEvents.calendarIcalSubtitle')}
                 </Text>
               </View>
               <Ionicons name="download-outline" size={20} color={colors.gray400} />
@@ -216,7 +218,7 @@ function AddToCalendarButton({ event, size = 'md' }: AddToCalendarButtonProps) {
               onPress={() => setShowModal(false)}
             >
               <Text style={[styles.cancelText, { color: colors.gray700 }]}>
-                Annuler
+                {t('common.cancel')}
               </Text>
             </TouchableOpacity>
           </View>

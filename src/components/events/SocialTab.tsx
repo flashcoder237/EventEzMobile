@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { socialAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -85,6 +86,7 @@ const getActivityColor = (type?: string): string => {
 
 export default function SocialTab({ eventId }: SocialTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -113,11 +115,11 @@ export default function SocialTab({ eventId }: SocialTabProps) {
       const last = item.actor.last_name || '';
       return `${first} ${last}`.trim();
     }
-    return 'Quelqu\'un';
+    return t('componentsEvents.socialFallbackActor');
   };
 
   const getActionText = (item: ActivityItem): string => {
-    return item.content || item.action || item.verb || 'a fait une action';
+    return item.content || item.action || item.verb || t('componentsEvents.socialFallbackAction');
   };
 
   const formatTimestamp = (dateString?: string): string => {
@@ -129,10 +131,10 @@ export default function SocialTab({ eventId }: SocialTabProps) {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'A l\'instant';
-    if (diffMins < 60) return `Il y a ${diffMins}min`;
-    if (diffHours < 24) return `Il y a ${diffHours}h`;
-    if (diffDays < 7) return `Il y a ${diffDays}j`;
+    if (diffMins < 1) return t('componentsEvents.socialJustNow');
+    if (diffMins < 60) return t('componentsEvents.socialMinutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('componentsEvents.socialHoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('componentsEvents.socialDaysAgo', { count: diffDays });
 
     return date.toLocaleDateString('fr-FR', {
       day: 'numeric',
@@ -144,7 +146,7 @@ export default function SocialTab({ eventId }: SocialTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.socialLoading')}</Text>
       </View>
     );
   }
@@ -152,10 +154,10 @@ export default function SocialTab({ eventId }: SocialTabProps) {
   if (!activities || activities.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Activite</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.socialActivityTitle')}</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="pulse-outline" size={40} color={colors.gray300} />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucune activite recente</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.socialEmpty')}</Text>
         </View>
       </View>
     );
@@ -163,7 +165,7 @@ export default function SocialTab({ eventId }: SocialTabProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Activite</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.socialActivityTitle')}</Text>
       {activities.map((item, index) => {
         const icon = getActivityIcon(item.activity_type);
         const iconColor = getActivityColor(item.activity_type);

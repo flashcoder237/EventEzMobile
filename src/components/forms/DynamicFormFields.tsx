@@ -10,6 +10,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { FormField } from '../../types';
 import DatePickerField from '../ui/DatePickerField';
@@ -41,6 +42,7 @@ export default function DynamicFormFields({
   onFieldChange,
   errors = {},
 }: DynamicFormFieldsProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -53,7 +55,7 @@ export default function DynamicFormFields({
       if (!groups[stepNum]) {
         groups[stepNum] = {
           fields: [],
-          title: (field as any).step_title || `Etape ${stepNum}`,
+          title: (field as any).step_title || t('componentsForms.dynamicFields.stepFallback', { step: stepNum }),
         };
       }
       groups[stepNum].fields.push(field);
@@ -65,7 +67,7 @@ export default function DynamicFormFields({
     });
 
     return groups;
-  }, [formFields]);
+  }, [formFields, t]);
 
   const steps = Object.keys(stepGroups).map(Number).sort((a, b) => a - b);
   const totalSteps = steps.length;
@@ -222,7 +224,7 @@ export default function DynamicFormFields({
             value={value ? new Date(value) : undefined}
             onChange={(date) => onFieldChange(field.label, date.toISOString().split('T')[0])}
             error={error}
-            placeholder={field.placeholder || 'Selectionner une date'}
+            placeholder={field.placeholder || t('componentsForms.dynamicFields.selectDatePlaceholder')}
           />
         )}
 
@@ -236,7 +238,7 @@ export default function DynamicFormFields({
               onFieldChange(field.label, `${h}:${m}`);
             }}
             error={error}
-            placeholder={field.placeholder || 'Selectionner une heure'}
+            placeholder={field.placeholder || t('componentsForms.dynamicFields.selectTimePlaceholder')}
           />
         )}
 
@@ -260,7 +262,7 @@ export default function DynamicFormFields({
   if (!isMultiStep) {
     return (
       <View style={styles.container}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Informations requises</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsForms.dynamicFields.sectionTitle')}</Text>
         {formFields
           .sort((a, b) => a.order - b.order)
           .map((field, index) => renderField(field, index))}
@@ -320,7 +322,7 @@ export default function DynamicFormFields({
         </View>
         <Text style={[styles.stepTitle, { color: colors.gray900 }]}>{currentStepData?.title}</Text>
         <Text style={[styles.stepProgress, { color: colors.gray500 }]}>
-          Etape {steps.indexOf(currentStep) + 1} sur {totalSteps}
+          {t('componentsForms.dynamicFields.stepProgress', { current: steps.indexOf(currentStep) + 1, total: totalSteps })}
         </Text>
       </View>
 
@@ -338,7 +340,7 @@ export default function DynamicFormFields({
         >
           <Ionicons name="chevron-back" size={20} color={isFirstStep ? colors.gray300 : colors.gray700} />
           <Text style={[styles.navButtonText, { color: colors.gray700 }, isFirstStep && { color: colors.gray300 }]}>
-            Precedent
+            {t('componentsForms.dynamicFields.previous')}
           </Text>
         </TouchableOpacity>
 
@@ -347,7 +349,7 @@ export default function DynamicFormFields({
             style={[styles.navButton, styles.navButtonPrimary, { backgroundColor: colors.primary }]}
             onPress={handleNext}
           >
-            <Text style={styles.navButtonTextPrimary}>Suivant</Text>
+            <Text style={styles.navButtonTextPrimary}>{t('componentsForms.dynamicFields.next')}</Text>
             <Ionicons name="chevron-forward" size={20} color={Colors.white} />
           </TouchableOpacity>
         )}

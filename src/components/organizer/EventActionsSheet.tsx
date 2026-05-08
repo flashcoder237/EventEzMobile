@@ -20,6 +20,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, Spacing, BorderRadius } from '../../constants/theme';
@@ -79,6 +80,7 @@ export default function EventActionsSheet({
   subtitle,
   sections,
 }: EventActionsSheetProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -156,7 +158,7 @@ export default function EventActionsSheet({
             style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.45)' }]}
             onPress={handleClose}
             accessibilityRole="button"
-            accessibilityLabel="Fermer le menu"
+            accessibilityLabel={t('componentsOrganizer.actionsSheet.closeA11y')}
           />
         </Animated.View>
 
@@ -290,9 +292,9 @@ export default function EventActionsSheet({
                 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Annuler"
+              accessibilityLabel={t('componentsOrganizer.actionsSheet.cancel')}
             >
-              <Text style={[styles.cancelLabel, { color: colors.text }]}>Annuler</Text>
+              <Text style={[styles.cancelLabel, { color: colors.text }]}>{t('componentsOrganizer.actionsSheet.cancel')}</Text>
             </Pressable>
           </Animated.View>
         </GestureDetector>

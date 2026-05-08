@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useExport, ExportFormat } from '../../hooks/useExport';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
@@ -46,6 +47,7 @@ export default function ExportButton({
   compact = false,
 }: ExportButtonProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
   const { exportData, loading } = useExport();
@@ -78,7 +80,7 @@ export default function ExportButton({
           <Ionicons name="download-outline" size={20} color={colors.primary} />
         )}
         {!compact && (
-          <Text style={[styles.buttonText, { color: colors.primary }]}>Exporter</Text>
+          <Text style={[styles.buttonText, { color: colors.primary }]}>{t('componentsCommon.exportButton')}</Text>
         )}
       </TouchableOpacity>
 
@@ -108,7 +110,7 @@ export default function ExportButton({
         >
           <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
 
-          <Text style={[styles.title, { color: colors.gray900 }]}>Choisir le format</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]}>{t('componentsCommon.exportTitle')}</Text>
 
           {filteredOptions.map((option) => (
             <TouchableOpacity
@@ -127,7 +129,7 @@ export default function ExportButton({
             onPress={handleClose}
             activeOpacity={TOUCH_OPACITY}
           >
-            <Text style={[styles.cancelText, { color: colors.gray500 }]}>Annuler</Text>
+            <Text style={[styles.cancelText, { color: colors.gray500 }]}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </Reanimated.View>
       </Modal>

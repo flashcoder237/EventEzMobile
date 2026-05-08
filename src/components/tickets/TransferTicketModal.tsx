@@ -15,6 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { ticketTransfersAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -48,6 +49,7 @@ export default function TransferTicketModal({
   ticket,
   onTransferComplete,
 }: TransferTicketModalProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
   const { showSuccess, showError, showConfirm } = useAlert();
@@ -67,14 +69,14 @@ export default function TransferTicketModal({
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!recipientEmail.trim()) {
-      newErrors.email = "L'email du destinataire est requis";
+      newErrors.email = t('componentsTickets.errorEmailRequired');
     } else if (!validateEmail(recipientEmail)) {
-      newErrors.email = 'Email invalide';
+      newErrors.email = t('componentsTickets.errorEmailInvalid');
     }
     if (quantity < 1) {
-      newErrors.quantity = 'La quantité doit être au moins 1';
+      newErrors.quantity = t('componentsTickets.errorQuantityMin');
     } else if (ticket && quantity > ticket.quantity) {
-      newErrors.quantity = `Vous ne pouvez transférer que ${ticket.quantity} billet(s)`;
+      newErrors.quantity = t('componentsTickets.errorQuantityMax', { max: ticket.quantity });
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -84,8 +86,12 @@ export default function TransferTicketModal({
     if (!ticket || !validate()) return;
 
     showConfirm(
-      'Confirmer le transfert',
-      `Transférer ${quantity} billet${quantity > 1 ? 's' : ''} « ${ticket.ticket_type_name} » à ${recipientEmail} ?`,
+      t('componentsTickets.confirmTransferTitle'),
+      t('componentsTickets.confirmTransferMessage', {
+        count: quantity,
+        name: ticket.ticket_type_name,
+        email: recipientEmail,
+      }),
       async () => {
         setLoading(true);
         try {
@@ -97,8 +103,8 @@ export default function TransferTicketModal({
             message: message.trim() || undefined,
           });
           showSuccess(
-            'Transfert initié',
-            `Un email a été envoyé à ${recipientEmail} pour accepter le transfert.`,
+            t('componentsTickets.transferInitiatedTitle'),
+            t('componentsTickets.transferInitiatedMessage', { email: recipientEmail }),
           );
           resetForm();
           onTransferComplete();
@@ -108,8 +114,8 @@ export default function TransferTicketModal({
             error.response?.data?.detail ||
             error.response?.data?.message ||
             Object.values(error.response?.data || {}).flat().join(', ') ||
-            'Erreur lors du transfert';
-          showError('Erreur', errorMessage);
+            t('componentsTickets.errorTransferGeneric');
+          showError(t('componentsTickets.errorTitle'), errorMessage);
         } finally {
           setLoading(false);
         }
@@ -171,10 +177,10 @@ export default function TransferTicketModal({
           <View style={[styles.header, { borderBottomColor: softBorder }]}>
             <View style={{ flex: 1 }}>
               <Text style={[styles.eyebrow, { color: colors.accent }]}>
-                TRANSFERT · BILLET
+                {t('componentsTickets.transferEyebrow')}
               </Text>
               <Text style={[styles.title, { color: colors.text }]}>
-                Offrir ce billet
+                {t('componentsTickets.transferTitle')}
               </Text>
             </View>
             <TouchableOpacity
@@ -182,7 +188,7 @@ export default function TransferTicketModal({
               style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Fermer"
+              accessibilityLabel={t('componentsTickets.close')}
             >
               <Ionicons name="close" size={18} color={colors.gray600} />
             </TouchableOpacity>
@@ -208,11 +214,11 @@ export default function TransferTicketModal({
 
               {/* Top row : eyebrow + qty pill */}
               <View style={styles.stubTopRow}>
-                <Text style={styles.stubEyebrow}>BILLET ACTIF</Text>
+                <Text style={styles.stubEyebrow}>{t('componentsTickets.stubActiveLabel')}</Text>
                 <View style={styles.stubQtyPill}>
                   <Ionicons name="ticket-outline" size={11} color="#FFF" />
                   <Text style={styles.stubQtyText}>
-                    {ticket.quantity} dispo
+                    {t('componentsTickets.stubAvailable', { count: ticket.quantity })}
                   </Text>
                 </View>
               </View>
@@ -241,24 +247,24 @@ export default function TransferTicketModal({
               {/* Footer row : icon + label + arrow */}
               <View style={styles.stubFooterRow}>
                 <Ionicons name="paper-plane-outline" size={14} color="rgba(255,255,255,0.7)" />
-                <Text style={styles.stubFooterLabel}>EN ATTENTE DE TRANSFERT</Text>
+                <Text style={styles.stubFooterLabel}>{t('componentsTickets.stubFooterLabel')}</Text>
               </View>
             </View>
 
             {/* === SECTION 01 : DESTINATAIRE === */}
             <View style={styles.sectionHeader}>
               <View style={[styles.sectionDot, { backgroundColor: colors.primary }]} />
-              <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>SECTION 01</Text>
+              <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('componentsTickets.section01')}</Text>
               <View style={[styles.sectionLine, { backgroundColor: softBorder }]} />
               <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>
-                Destinataire
+                {t('componentsTickets.sectionRecipient')}
               </Text>
             </View>
 
             {/* Email */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.gray600 }]}>
-                EMAIL · OBLIGATOIRE
+                {t('componentsTickets.labelEmailRequired')}
               </Text>
               <View
                 style={[
@@ -280,7 +286,7 @@ export default function TransferTicketModal({
                 />
                 <TextInput
                   style={[styles.inputText, { color: colors.text }]}
-                  placeholder="ami@exemple.com"
+                  placeholder={t('componentsTickets.emailPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={recipientEmail}
                   onChangeText={(text) => {
@@ -305,7 +311,7 @@ export default function TransferTicketModal({
             {/* Name */}
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.gray600 }]}>
-                PRÉNOM · OPTIONNEL
+                {t('componentsTickets.labelFirstNameOptional')}
               </Text>
               <View
                 style={[
@@ -323,7 +329,7 @@ export default function TransferTicketModal({
                 />
                 <TextInput
                   style={[styles.inputText, { color: colors.text }]}
-                  placeholder="Prénom du destinataire"
+                  placeholder={t('componentsTickets.firstNamePlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={recipientName}
                   onChangeText={setRecipientName}
@@ -339,16 +345,16 @@ export default function TransferTicketModal({
               <>
                 <View style={styles.sectionHeader}>
                   <View style={[styles.sectionDot, { backgroundColor: colors.accent }]} />
-                  <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>SECTION 02</Text>
+                  <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('componentsTickets.section02')}</Text>
                   <View style={[styles.sectionLine, { backgroundColor: softBorder }]} />
                   <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>
-                    Quantité
+                    {t('componentsTickets.sectionQuantity')}
                   </Text>
                 </View>
 
                 <View style={styles.inputGroup}>
                   <Text style={[styles.inputLabel, { color: colors.gray600 }]}>
-                    NOMBRE DE BILLETS À TRANSFÉRER
+                    {t('componentsTickets.labelTicketCount')}
                   </Text>
                   <View style={[styles.qtyRow, { backgroundColor: inputBg, borderColor: softBorder }]}>
                     <TouchableOpacity
@@ -363,7 +369,7 @@ export default function TransferTicketModal({
                       ]}
                       activeOpacity={0.7}
                       accessibilityRole="button"
-                      accessibilityLabel="Diminuer la quantité"
+                      accessibilityLabel={t('componentsTickets.decreaseQuantity')}
                     >
                       <Ionicons
                         name="remove"
@@ -391,7 +397,7 @@ export default function TransferTicketModal({
                       ]}
                       activeOpacity={0.7}
                       accessibilityRole="button"
-                      accessibilityLabel="Augmenter la quantité"
+                      accessibilityLabel={t('componentsTickets.increaseQuantity')}
                     >
                       <Ionicons
                         name="add"
@@ -414,17 +420,17 @@ export default function TransferTicketModal({
             <View style={styles.sectionHeader}>
               <View style={[styles.sectionDot, { backgroundColor: '#10B981' }]} />
               <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
-                SECTION {ticket.quantity > 1 ? '03' : '02'}
+                {ticket.quantity > 1 ? t('componentsTickets.section03') : t('componentsTickets.section02')}
               </Text>
               <View style={[styles.sectionLine, { backgroundColor: softBorder }]} />
               <Text style={[styles.sectionLabel, { color: colors.gray500 }]}>
-                Mot personnel
+                {t('componentsTickets.sectionMessage')}
               </Text>
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={[styles.inputLabel, { color: colors.gray600 }]}>
-                MESSAGE · OPTIONNEL
+                {t('componentsTickets.labelMessageOptional')}
               </Text>
               <View
                 style={[
@@ -437,7 +443,7 @@ export default function TransferTicketModal({
               >
                 <TextInput
                   style={[styles.textareaInput, { color: colors.text }]}
-                  placeholder="Ajoute un mot pour accompagner le billet…"
+                  placeholder={t('componentsTickets.messagePlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={message}
                   onChangeText={setMessage}
@@ -461,10 +467,10 @@ export default function TransferTicketModal({
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.noteEyebrow, { color: colors.primary }]}>
-                  COMMENT ÇA MARCHE
+                  {t('componentsTickets.noteEyebrow')}
                 </Text>
                 <Text style={[styles.noteText, { color: colors.text }]}>
-                  Le destinataire reçoit un email avec un lien pour accepter ou refuser. Le transfert expire après 48 heures.
+                  {t('componentsTickets.noteText')}
                 </Text>
               </View>
             </View>
@@ -477,7 +483,7 @@ export default function TransferTicketModal({
               onPress={handleClose}
               activeOpacity={0.85}
             >
-              <Text style={[styles.cancelBtnText, { color: colors.text }]}>Annuler</Text>
+              <Text style={[styles.cancelBtnText, { color: colors.text }]}>{t('componentsTickets.cancel')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -490,7 +496,7 @@ export default function TransferTicketModal({
               disabled={loading || !recipientEmail.trim()}
               activeOpacity={0.9}
               accessibilityRole="button"
-              accessibilityLabel="Envoyer le transfert"
+              accessibilityLabel={t('componentsTickets.sendTransferA11y')}
             >
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
@@ -502,7 +508,7 @@ export default function TransferTicketModal({
                 <ActivityIndicator size="small" color={Colors.white} />
               ) : (
                 <>
-                  <Text style={styles.confirmBtnText}>Envoyer</Text>
+                  <Text style={styles.confirmBtnText}>{t('componentsTickets.send')}</Text>
                   <View style={styles.confirmArrow}>
                     <Ionicons name="paper-plane" size={14} color={Colors.white} />
                   </View>

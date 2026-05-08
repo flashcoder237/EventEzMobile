@@ -27,6 +27,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 import { useAnnouncements } from '../../contexts/AnnouncementsContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -49,6 +50,7 @@ export default function AnnouncementsModal() {
   const { next, dismiss } = useAnnouncements();
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
 
   const handleClose = useCallback(() => {
     if (!next) return;
@@ -139,7 +141,7 @@ export default function AnnouncementsModal() {
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.ghostBtnText, { color: colors.text }]}>
-                      Fermer
+                      {t('componentsCommon.announcementClose')}
                     </Text>
                   </TouchableOpacity>
                 ) : null}

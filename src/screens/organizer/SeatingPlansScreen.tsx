@@ -26,6 +26,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -47,6 +48,7 @@ export default function SeatingPlansScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -67,12 +69,12 @@ export default function SeatingPlansScreen() {
       const data: SeatingPlan[] = res.data?.results || res.data || [];
       setPlans(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de charger les plans.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlans.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [eventId, showError]);
+  }, [eventId, showError, t]);
 
   useEffect(() => {
     fetchData();
@@ -94,7 +96,7 @@ export default function SeatingPlansScreen() {
   const submitCreate = async () => {
     const name = createName.trim();
     if (!name) {
-      showError('Nom requis', 'Donne un nom au plan (ex : Configuration concert).');
+      showError(t('organizer.seatingPlans.nameRequiredTitle'), t('organizer.seatingPlans.nameRequiredMessage'));
       return;
     }
     setCreating(true);
@@ -117,9 +119,9 @@ export default function SeatingPlansScreen() {
       setCreateOpen(false);
       setCreateName('');
       setCreateDescription('');
-      showSuccess('Plan créé', 'Ajoute des zones pour répartir les sièges.');
+      showSuccess(t('organizer.seatingPlans.createSuccessTitle'), t('organizer.seatingPlans.createSuccessMessage'));
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Création impossible.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlans.createError'));
     } finally {
       setCreating(false);
     }
@@ -127,15 +129,15 @@ export default function SeatingPlansScreen() {
 
   const handleDelete = (plan: SeatingPlan) => {
     showConfirm(
-      'Supprimer ce plan ?',
-      `« ${plan.name} » et toutes ses zones seront supprimées. Les réservations existantes seront annulées en cascade.`,
+      t('organizer.seatingPlans.deleteConfirmTitle'),
+      t('organizer.seatingPlans.deleteConfirmMessage', { name: plan.name }),
       async () => {
         try {
           await seatingAPI.deletePlan(plan.id);
           setPlans(prev => prev.filter(p => p.id !== plan.id));
-          showSuccess('Supprimé', '');
+          showSuccess(t('organizer.seatingPlans.deletedTitle'), '');
         } catch (error: any) {
-          showError('Erreur', error?.response?.data?.detail || 'Suppression impossible.');
+          showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlans.deleteError'));
         }
       },
     );
@@ -153,7 +155,7 @@ export default function SeatingPlansScreen() {
         onLongPress={() => handleDelete(item)}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel={`Éditer ${item.name}`}
+        accessibilityLabel={t('organizer.seatingPlans.editA11y', { name: item.name })}
       >
         <View style={styles.cardTop}>
           <View style={[styles.iconWell, { backgroundColor: `${colors.primary}15` }]}>
@@ -169,7 +171,7 @@ export default function SeatingPlansScreen() {
           </View>
           {!item.is_active && (
             <View style={[styles.statusPill, { backgroundColor: '#F59E0B15' }]}>
-              <Text style={[styles.statusText, { color: '#B45309' }]}>INACTIF</Text>
+              <Text style={[styles.statusText, { color: '#B45309' }]}>{t('organizer.seatingPlans.inactive')}</Text>
             </View>
           )}
         </View>
@@ -177,17 +179,17 @@ export default function SeatingPlansScreen() {
         <View style={[styles.statsRow, { borderTopColor: hairline }]}>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.text }]}>{item.total_seats}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>SIÈGES</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.seatsLabel')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: hairline }]} />
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.text }]}>{zonesCount}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>ZONES</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.zonesLabel')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: hairline }]} />
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.primary }]}>{reserved}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>RÉSERVÉS</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.reservedLabel')}</Text>
           </View>
         </View>
 
@@ -208,20 +210,20 @@ export default function SeatingPlansScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>SALLE & PLACES</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Plans de placement</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.seatingPlans.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.seatingPlans.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
           onPress={() => setCreateOpen(true)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Nouveau plan"
+          accessibilityLabel={t('organizer.seatingPlans.newPlanA11y')}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
@@ -241,9 +243,9 @@ export default function SeatingPlansScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="grid-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun plan</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.seatingPlans.emptyTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Crée un plan pour répartir les sièges en zones (catégories, tarifs).
+                {t('organizer.seatingPlans.emptyText')}
               </Text>
             </View>
           }
@@ -254,26 +256,26 @@ export default function SeatingPlansScreen() {
       <Modal visible={createOpen} transparent animationType="fade" onRequestClose={() => !creating && setCreateOpen(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
-            <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVEAU</Text>
-            <Text style={[styles.modalTitle, { color: colors.text }]}>Plan de placement</Text>
+            <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.seatingPlans.modalEyebrow')}</Text>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>{t('organizer.seatingPlans.modalTitle')}</Text>
 
-            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Nom *</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.nameField')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
               value={createName}
               onChangeText={setCreateName}
-              placeholder="Configuration concert / Conférence salle A…"
+              placeholder={t('organizer.seatingPlans.namePlaceholder')}
               placeholderTextColor={colors.gray400}
               editable={!creating}
               maxLength={200}
             />
 
-            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Description</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.descriptionField')}</Text>
             <TextInput
               style={[styles.input, styles.textArea, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
               value={createDescription}
               onChangeText={setCreateDescription}
-              placeholder="Notes internes : configuration scène, accessibilité, etc."
+              placeholder={t('organizer.seatingPlans.descriptionPlaceholder')}
               placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={3}
@@ -288,7 +290,7 @@ export default function SeatingPlansScreen() {
                 disabled={creating}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalBtn, { backgroundColor: colors.primary }, creating && { opacity: 0.6 }]}
@@ -299,7 +301,7 @@ export default function SeatingPlansScreen() {
                 {creating ? (
                   <ActivityIndicator size="small" color={Colors.white} />
                 ) : (
-                  <Text style={[styles.modalBtnText, { color: Colors.white }]}>Créer & ajouter zones</Text>
+                  <Text style={[styles.modalBtnText, { color: Colors.white }]}>{t('organizer.seatingPlans.createAndAdd')}</Text>
                 )}
               </TouchableOpacity>
             </View>

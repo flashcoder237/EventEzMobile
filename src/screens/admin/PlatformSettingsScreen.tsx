@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -51,14 +52,16 @@ interface SettingRowProps {
 }
 
 export default function PlatformSettingsScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="CFG" title="Paramètres plateforme">
+    <RoleGuard allow={['admin']} watermark={t('admin.platformSettings.watermark')} title={t('admin.platformSettings.guardTitle')}>
       <PlatformSettingsContent />
     </RoleGuard>
   );
 }
 
 function PlatformSettingsContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showError, showSuccess } = useAlert();
@@ -77,7 +80,7 @@ function PlatformSettingsContent() {
       setSettings(res.data || {});
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      showError('Erreur', detail || 'Impossible de charger les paramètres.');
+      showError(t('common.error'), detail || t('admin.platformSettings.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -108,12 +111,12 @@ function PlatformSettingsContent() {
       if (key === 'phone_otp_enabled' || key === 'sms_notifications_enabled') {
         invalidateFeatureFlagsCache();
       }
-      showSuccess('Mis à jour', 'Le paramètre a été enregistré.');
+      showSuccess(t('admin.platformSettings.updatedTitle'), t('admin.platformSettings.updatedMessage'));
     } catch (error: any) {
       // Rollback optimistic
       setSettings(prev => prev ? { ...prev, [key]: !next } : prev);
       const detail = error?.response?.data?.detail;
-      showError('Erreur', detail || 'Modification refusée.');
+      showError(t('common.error'), detail || t('admin.platformSettings.updateRefused'));
     } finally {
       setPatchingKey(null);
     }
@@ -195,35 +198,35 @@ function PlatformSettingsContent() {
     rows: (Omit<SettingRowProps, 'isLast'> & { key: string })[];
   }[] = [
     {
-      title: 'GÉNÉRAL',
+      title: t('admin.platformSettings.general'),
       rows: [
-        { key: 'name', icon: 'globe-outline', title: 'Nom de la plateforme', subtitle: 'Nom affiché aux utilisateurs', value: 'EventEz', color: '#4F46E5' },
-        { key: 'tz', icon: 'time-outline', title: 'Fuseau horaire', subtitle: 'Fuseau horaire par défaut', value: 'Africa/Douala', color: '#4F46E5' },
-        { key: 'lang', icon: 'language-outline', title: 'Langue', subtitle: 'Langue par défaut', value: 'Français', color: '#4F46E5' },
+        { key: 'name', icon: 'globe-outline', title: t('admin.platformSettings.rows.platformNameTitle'), subtitle: t('admin.platformSettings.rows.platformNameSubtitle'), value: 'EventEz', color: '#4F46E5' },
+        { key: 'tz', icon: 'time-outline', title: t('admin.platformSettings.rows.timezoneTitle'), subtitle: t('admin.platformSettings.rows.timezoneSubtitle'), value: 'Africa/Douala', color: '#4F46E5' },
+        { key: 'lang', icon: 'language-outline', title: t('admin.platformSettings.rows.languageTitle'), subtitle: t('admin.platformSettings.rows.languageSubtitle'), value: t('admin.platformSettings.rows.languageValue'), color: '#4F46E5' },
       ],
     },
     {
-      title: 'PAIEMENTS',
+      title: t('admin.platformSettings.payments'),
       rows: [
-        { key: 'gateway', icon: 'card-outline', title: 'Passerelle de paiement', subtitle: 'Service de paiement intégré', value: 'NotchPay', color: '#10B981' },
-        { key: 'currency', icon: 'cash-outline', title: 'Devise', subtitle: 'Devise par défaut', value: 'XAF (FCFA)', color: '#10B981' },
-        { key: 'commission', icon: 'calculator-outline', title: 'Commission', subtitle: 'Taux de commission plateforme', value: 'Variable', color: '#10B981' },
+        { key: 'gateway', icon: 'card-outline', title: t('admin.platformSettings.rows.gatewayTitle'), subtitle: t('admin.platformSettings.rows.gatewaySubtitle'), value: 'NotchPay', color: '#10B981' },
+        { key: 'currency', icon: 'cash-outline', title: t('admin.platformSettings.rows.currencyTitle'), subtitle: t('admin.platformSettings.rows.currencySubtitle'), value: 'XAF (FCFA)', color: '#10B981' },
+        { key: 'commission', icon: 'calculator-outline', title: t('admin.platformSettings.rows.commissionTitle'), subtitle: t('admin.platformSettings.rows.commissionSubtitle'), value: t('admin.platformSettings.rows.commissionValue'), color: '#10B981' },
       ],
     },
     {
-      title: 'SÉCURITÉ',
+      title: t('admin.platformSettings.security'),
       rows: [
-        { key: 'jwt', icon: 'key-outline', title: 'Tokens JWT', subtitle: 'Durée de vie des tokens', value: '15min / 7j', color: '#F59E0B' },
-        { key: 'mod', icon: 'shield-checkmark-outline', title: 'Modération', subtitle: 'Validation requise pour publier', value: 'Activée', color: '#F59E0B' },
-        { key: 'audit', icon: 'document-text-outline', title: 'Audit', subtitle: 'Journalisation des actions', value: 'Actif', color: '#F59E0B' },
+        { key: 'jwt', icon: 'key-outline', title: t('admin.platformSettings.rows.jwtTitle'), subtitle: t('admin.platformSettings.rows.jwtSubtitle'), value: '15min / 7j', color: '#F59E0B' },
+        { key: 'mod', icon: 'shield-checkmark-outline', title: t('admin.platformSettings.rows.moderationTitle'), subtitle: t('admin.platformSettings.rows.moderationSubtitle'), value: t('admin.platformSettings.rows.moderationValue'), color: '#F59E0B' },
+        { key: 'audit', icon: 'document-text-outline', title: t('admin.platformSettings.rows.auditTitle'), subtitle: t('admin.platformSettings.rows.auditSubtitle'), value: t('admin.platformSettings.rows.auditValue'), color: '#F59E0B' },
       ],
     },
     {
-      title: 'INFRASTRUCTURE',
+      title: t('admin.platformSettings.infrastructure'),
       rows: [
-        { key: 'db', icon: 'server-outline', title: 'Base de données', subtitle: 'Type et nom', value: 'PostgreSQL', color: '#A855F7' },
-        { key: 'cache', icon: 'flash-outline', title: 'Cache & Queues', subtitle: 'Celery + Redis', value: 'Redis', color: '#A855F7' },
-        { key: 'ws', icon: 'wifi-outline', title: 'WebSocket', subtitle: 'Messagerie temps réel', value: 'Channels', color: '#A855F7' },
+        { key: 'db', icon: 'server-outline', title: t('admin.platformSettings.rows.dbTitle'), subtitle: t('admin.platformSettings.rows.dbSubtitle'), value: 'PostgreSQL', color: '#A855F7' },
+        { key: 'cache', icon: 'flash-outline', title: t('admin.platformSettings.rows.cacheTitle'), subtitle: t('admin.platformSettings.rows.cacheSubtitle'), value: 'Redis', color: '#A855F7' },
+        { key: 'ws', icon: 'wifi-outline', title: t('admin.platformSettings.rows.wsTitle'), subtitle: t('admin.platformSettings.rows.wsSubtitle'), value: 'Channels', color: '#A855F7' },
       ],
     },
   ];
@@ -236,13 +239,13 @@ function PlatformSettingsContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LE MOTEUR</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Paramètres plateforme</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.platformSettings.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.platformSettings.title')}</Text>
         </View>
       </View>
 
@@ -254,56 +257,56 @@ function PlatformSettingsContent() {
         }
       >
         {/* === FLAGS ÉDITABLES (POST /api/site-settings/) === */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>FONCTIONNALITÉS</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.platformSettings.features')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {loading ? (
             <View style={styles.loadingRow}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.loadingText, { color: colors.gray500 }]}>
-                Chargement des paramètres...
+                {t('admin.platformSettings.loadingSettings')}
               </Text>
             </View>
           ) : (
             <>
               <ToggleRow
                 icon="sparkles-outline"
-                title="Modération IA"
-                subtitle="Validation auto des events par Claude"
+                title={t('admin.platformSettings.rows.aiModerationTitle')}
+                subtitle={t('admin.platformSettings.rows.aiModerationSubtitle')}
                 settingKey="ai_moderation_enabled"
                 color="#8B5CF6"
               />
               <ToggleRow
                 icon="bulb-outline"
-                title="Assistant IA création"
-                subtitle="Suggestions auto à la création d'event"
+                title={t('admin.platformSettings.rows.aiAssistTitle')}
+                subtitle={t('admin.platformSettings.rows.aiAssistSubtitle')}
                 settingKey="ai_assist_enabled"
                 color="#8B5CF6"
               />
               <ToggleRow
                 icon="phone-portrait-outline"
-                title="OTP par téléphone"
-                subtitle="Permettre la connexion via SMS"
+                title={t('admin.platformSettings.rows.phoneOtpTitle')}
+                subtitle={t('admin.platformSettings.rows.phoneOtpSubtitle')}
                 settingKey="phone_otp_enabled"
                 color="#10B981"
               />
               <ToggleRow
                 icon="chatbox-outline"
-                title="Notifications SMS"
-                subtitle="Activer le canal SMS global"
+                title={t('admin.platformSettings.rows.smsNotifsTitle')}
+                subtitle={t('admin.platformSettings.rows.smsNotifsSubtitle')}
                 settingKey="sms_notifications_enabled"
                 color="#10B981"
               />
               <ToggleRow
                 icon="card-outline"
-                title="SMS pré-paiement"
-                subtitle="Confirmation avant débit MoMo"
+                title={t('admin.platformSettings.rows.smsPreTitle')}
+                subtitle={t('admin.platformSettings.rows.smsPreSubtitle')}
                 settingKey="sms_pre_payment_enabled"
                 color="#F59E0B"
               />
               <ToggleRow
                 icon="receipt-outline"
-                title="SMS post-paiement"
-                subtitle="Reçu SMS après transaction"
+                title={t('admin.platformSettings.rows.smsPostTitle')}
+                subtitle={t('admin.platformSettings.rows.smsPostSubtitle')}
                 settingKey="sms_post_payment_enabled"
                 color="#F59E0B"
                 isLast

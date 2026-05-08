@@ -12,6 +12,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -42,6 +43,7 @@ interface Report {
 
 export default function ReportsScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError } = useAlert();
   const [reports, setReports] = useState<Report[]>([]);
@@ -76,12 +78,12 @@ export default function ReportsScreen() {
     try {
       await analyticsAPI.generateReport({
         report_type: 'custom',
-        title: `Rapport ${new Date().toLocaleDateString('fr-FR')}`,
+        title: `${t('organizer.reports.reportTitlePrefix')} ${new Date().toLocaleDateString('fr-FR')}`,
       });
-      showSuccess('Succès', 'Rapport généré avec succès');
+      showSuccess(t('common.success'), t('organizer.reports.generateSuccess'));
       fetchReports();
     } catch (error) {
-      showError('Erreur', 'Impossible de générer le rapport');
+      showError(t('common.error'), t('organizer.reports.generateError'));
     } finally {
       setGenerating(false);
     }
@@ -97,10 +99,10 @@ export default function ReportsScreen() {
 
   const getStatusBadge = (status?: string): { label: string; variant: 'success' | 'warning' | 'info' | 'secondary' } => {
     switch (status) {
-      case 'completed': return { label: 'Complété', variant: 'success' };
-      case 'processing': return { label: 'En cours', variant: 'warning' };
-      case 'scheduled': return { label: 'Planifié', variant: 'info' };
-      default: return { label: status || 'Nouveau', variant: 'secondary' };
+      case 'completed': return { label: t('organizer.reports.statusCompleted'), variant: 'success' };
+      case 'processing': return { label: t('organizer.reports.statusProcessing'), variant: 'warning' };
+      case 'scheduled': return { label: t('organizer.reports.statusScheduled'), variant: 'info' };
+      default: return { label: status || t('organizer.reports.statusNew'), variant: 'secondary' };
     }
   };
 
@@ -125,7 +127,7 @@ export default function ReportsScreen() {
         </View>
         {item.report_type && (
           <Text style={[styles.reportType, { color: colors.gray400 }]}>
-            Type: {item.report_type}
+            {t('organizer.reports.typeLabel')}: {item.report_type}
           </Text>
         )}
         <View style={styles.reportActions}>
@@ -143,9 +145,9 @@ export default function ReportsScreen() {
       <View style={[styles.emptyIcon, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="document-text-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun rapport</Text>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>{t('organizer.reports.emptyTitle')}</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        Générez votre premier rapport pour analyser vos événements
+        {t('organizer.reports.emptyText')}
       </Text>
     </View>
   );
@@ -163,8 +165,8 @@ export default function ReportsScreen() {
           <Ionicons name="arrow-back" size={22} color={colors.gray700} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>Tes chiffres</Text>
-          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Rapports</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.reports.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('organizer.reports.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.generateBtn, { backgroundColor: '#4F46E5' }]}
@@ -176,7 +178,7 @@ export default function ReportsScreen() {
           ) : (
             <>
               <Ionicons name="add" size={18} color="#FFFFFF" />
-              <Text style={styles.generateBtnText}>Générer</Text>
+              <Text style={styles.generateBtnText}>{t('organizer.reports.generate')}</Text>
             </>
           )}
         </TouchableOpacity>

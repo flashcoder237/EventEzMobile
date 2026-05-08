@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { Feedback, User, RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -47,6 +48,7 @@ export default function ReviewsTab({
   eventTitle,
 }: ReviewsTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   // Pagination locale : on affiche INITIAL_COUNT avis, puis tous au clic sur "Voir plus".
@@ -70,17 +72,17 @@ export default function ReviewsTab({
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>Avis</Text>
-      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Parole aux participants</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.reviewsEyebrow')}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.reviewsSectionTitle')}</Text>
 
       {/* Review Form */}
       {showReviewForm && (
         <View style={[styles.reviewFormCard, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
-          <Text style={[styles.reviewFormTitle, { color: colors.gray900 }]}>Votre avis</Text>
+          <Text style={[styles.reviewFormTitle, { color: colors.gray900 }]}>{t('componentsEvents.reviewsFormTitle')}</Text>
 
           {/* Rating Stars */}
           <View style={styles.ratingInputRow}>
-            <Text style={[styles.ratingLabel, { color: colors.gray600 }]}>Note :</Text>
+            <Text style={[styles.ratingLabel, { color: colors.gray600 }]}>{t('componentsEvents.reviewsRatingLabel')}</Text>
             <View style={styles.ratingStars}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -101,7 +103,7 @@ export default function ReviewsTab({
           {/* Comment Input */}
           <TextInput
             style={[styles.reviewInput, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
-            placeholder="Partagez votre experience (optionnel)"
+            placeholder={t('componentsEvents.reviewsCommentPlaceholder')}
             placeholderTextColor={colors.gray400}
             multiline
             numberOfLines={4}
@@ -120,7 +122,7 @@ export default function ReviewsTab({
                 setReviewRating(5);
               }}
             >
-              <Text style={[styles.cancelReviewText, { color: colors.gray500 }]}>Annuler</Text>
+              <Text style={[styles.cancelReviewText, { color: colors.gray500 }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.submitReviewButton}
@@ -130,7 +132,7 @@ export default function ReviewsTab({
               {submittingReview ? (
                 <ActivityIndicator size="small" color={Colors.white} />
               ) : (
-                <Text style={styles.submitReviewText}>Soumettre</Text>
+                <Text style={styles.submitReviewText}>{t('componentsEvents.reviewsSubmit')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -140,7 +142,7 @@ export default function ReviewsTab({
       {loadingFeedbacks ? (
         <View style={styles.emptyTab}>
           <LoadingSpinner />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement des avis...</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.reviewsLoading')}</Text>
         </View>
       ) : feedbacks && feedbacks.length > 0 ? (
         <>
@@ -154,7 +156,7 @@ export default function ReviewsTab({
                 </View>
                 <View style={styles.reviewUserInfo}>
                   <Text style={[styles.reviewUserName, { color: colors.gray900 }]}>
-                    {feedback.user_name || `${(feedback.user as any)?.first_name || ''} ${(feedback.user as any)?.last_name || ''}`.trim() || 'Utilisateur'}
+                    {feedback.user_name || `${(feedback.user as any)?.first_name || ''} ${(feedback.user as any)?.last_name || ''}`.trim() || t('componentsEvents.reviewsFallbackUser')}
                   </Text>
                   <View style={styles.reviewRating}>
                     {[1, 2, 3, 4, 5].map((star) => (
@@ -180,10 +182,10 @@ export default function ReviewsTab({
               style={[styles.showMoreBtn, { borderColor: colors.gray200 }]}
               onPress={() => setShowAll((v) => !v)}
               accessibilityRole="button"
-              accessibilityLabel={showAll ? 'Reduire la liste' : `Voir les ${hiddenCount} avis restants`}
+              accessibilityLabel={showAll ? t('componentsEvents.reviewsCollapseA11y') : t('componentsEvents.reviewsExpandA11y', { count: hiddenCount })}
             >
               <Text style={[styles.showMoreText, { color: colors.primary }]}>
-                {showAll ? 'Voir moins' : `Voir ${hiddenCount} avis de plus`}
+                {showAll ? t('componentsEvents.reviewsViewLess') : t('componentsEvents.reviewsViewMore', { count: hiddenCount })}
               </Text>
               <Ionicons
                 name={showAll ? 'chevron-up' : 'chevron-down'}
@@ -199,11 +201,11 @@ export default function ReviewsTab({
               style={[styles.showAllBtn, { backgroundColor: colors.primaryBg }]}
               onPress={goToFullList}
               accessibilityRole="button"
-              accessibilityLabel="Voir tous les avis"
+              accessibilityLabel={t('componentsEvents.reviewsViewAllA11y')}
             >
               <Ionicons name="list-outline" size={18} color={colors.primary} />
               <Text style={[styles.showAllText, { color: colors.primary }]}>
-                Voir tous les avis
+                {t('componentsEvents.reviewsViewAll')}
               </Text>
               <Ionicons name="arrow-forward" size={16} color={colors.primary} />
             </TouchableOpacity>
@@ -215,11 +217,11 @@ export default function ReviewsTab({
               style={[styles.bottomReviewCta, { backgroundColor: colors.primaryBg }]}
               onPress={() => setShowReviewForm(true)}
               accessibilityRole="button"
-              accessibilityLabel="Laisser un avis"
+              accessibilityLabel={t('componentsEvents.reviewsLeaveA11y')}
             >
               <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
               <Text style={[styles.bottomReviewCtaText, { color: colors.primary }]}>
-                Laisser un avis
+                {t('componentsEvents.reviewsLeave')}
               </Text>
             </TouchableOpacity>
           )}
@@ -227,13 +229,13 @@ export default function ReviewsTab({
       ) : !showReviewForm ? (
         <View style={styles.emptyTab}>
           <Ionicons name="star-outline" size={40} color={colors.gray300} />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun avis pour le moment</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.reviewsEmpty')}</Text>
           {user && (
             <TouchableOpacity
               style={[styles.firstReviewButton, { backgroundColor: colors.primaryBg }]}
               onPress={() => setShowReviewForm(true)}
             >
-              <Text style={[styles.firstReviewText, { color: colors.primary }]}>Soyez le premier a donner votre avis</Text>
+              <Text style={[styles.firstReviewText, { color: colors.primary }]}>{t('componentsEvents.reviewsBeFirst')}</Text>
             </TouchableOpacity>
           )}
         </View>

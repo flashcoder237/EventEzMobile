@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
@@ -43,27 +44,28 @@ const roleBadgeVariant = (role: string): 'default' | 'secondary' | 'info' | 'war
   }
 };
 
-const roleLabel = (role: string): string => {
-  switch (role) {
-    case 'admin': return 'Admin';
-    case 'moderator': return 'Modérateur';
-    case 'organizer': return 'Organisateur';
-    default: return 'Utilisateur';
-  }
-};
-
 export default function UserManagementScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="USR" title="Utilisateurs">
+    <RoleGuard allow={['admin']} watermark={t('admin.users.watermark')} title={t('admin.users.guardTitle')}>
       <UserManagementContent />
     </RoleGuard>
   );
 }
 
 function UserManagementContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
+  const roleLabel = (role: string): string => {
+    switch (role) {
+      case 'admin': return t('admin.users.roles.admin');
+      case 'moderator': return t('admin.users.roles.moderator');
+      case 'organizer': return t('admin.users.roles.organizer');
+      default: return t('admin.users.roles.user');
+    }
+  };
   const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [users, setUsers] = useState<User[]>([]);
@@ -91,6 +93,7 @@ function UserManagementContent() {
       setUsers(data);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement utilisateurs:', error);
+      showError(t('common.error'), t('admin.users.loadError'));
     } finally {
       setLoading(false);
     }
@@ -152,11 +155,11 @@ function UserManagementContent() {
       setBulkLoading(false);
 
       if (fail === 0) {
-        showSuccess('Succès', successLabel(ok));
+        showSuccess(t('common.success'), successLabel(ok));
       } else {
         showError(
-          'Action partielle',
-          `${ok} traité(s), ${fail} en échec. Réessaye plus tard pour les utilisateurs en échec.`,
+          t('admin.users.bulk.partial'),
+          t('admin.users.bulk.partialDetail', { ok, fail }),
         );
       }
       // Refetch pour synchroniser l'UI avec l'état serveur
@@ -168,25 +171,25 @@ function UserManagementContent() {
   const handleBulkVerify = () =>
     runBulk(
       (id) => usersAPI.verifyProfile(id, { verified_status: true }),
-      'Vérifier la sélection',
-      `Marquer ${selectedIds.size} utilisateur(s) comme vérifié(s) ?`,
-      (n) => `${n} utilisateur(s) vérifié(s)`,
+      t('admin.users.bulk.verifyTitle'),
+      t('admin.users.bulk.verifyConfirm', { count: selectedIds.size }),
+      (n) => t('admin.users.bulk.verifySuccess', { count: n }),
     );
 
   const handleBulkDeactivate = () =>
     runBulk(
       (id) => usersAPI.updateUser(id, { is_active: false }),
-      'Désactiver la sélection',
-      `Désactiver ${selectedIds.size} compte(s) ? Les utilisateurs ne pourront plus se connecter.`,
-      (n) => `${n} compte(s) désactivé(s)`,
+      t('admin.users.bulk.deactivateTitle'),
+      t('admin.users.bulk.deactivateConfirm', { count: selectedIds.size }),
+      (n) => t('admin.users.bulk.deactivateSuccess', { count: n }),
     );
 
   const handleBulkActivate = () =>
     runBulk(
       (id) => usersAPI.updateUser(id, { is_active: true }),
-      'Réactiver la sélection',
-      `Réactiver ${selectedIds.size} compte(s) ?`,
-      (n) => `${n} compte(s) réactivé(s)`,
+      t('admin.users.bulk.activateTitle'),
+      t('admin.users.bulk.activateConfirm', { count: selectedIds.size }),
+      (n) => t('admin.users.bulk.activateSuccess', { count: n }),
     );
 
   const filteredUsers = users.filter(u => {
@@ -256,13 +259,13 @@ function UserManagementContent() {
           <View style={styles.metaItem}>
             <Ionicons name={item.is_verified ? 'checkmark-circle' : 'close-circle-outline'} size={13} color={item.is_verified ? '#10B981' : '#EF4444'} />
             <Text style={[styles.metaText, { color: colors.gray500 }]}>
-              {item.is_verified ? 'Vérifié' : 'Non vérifié'}
+              {item.is_verified ? t('admin.users.verified') : t('admin.users.unverified')}
             </Text>
           </View>
           {item.is_active === false && (
             <View style={styles.metaItem}>
               <Ionicons name="ban" size={12} color="#EF4444" />
-              <Text style={[styles.metaText, { color: '#EF4444' }]}>Désactivé</Text>
+              <Text style={[styles.metaText, { color: '#EF4444' }]}>{t('admin.users.deactivated')}</Text>
             </View>
           )}
           <Text style={[styles.metaText, { color: colors.gray500 }]}>
@@ -274,11 +277,11 @@ function UserManagementContent() {
   };
 
   const roles: { key: RoleFilter; label: string }[] = [
-    { key: 'all', label: 'Tous' },
-    { key: 'user', label: 'Users' },
-    { key: 'organizer', label: 'Organisateurs' },
-    { key: 'moderator', label: 'Modérateurs' },
-    { key: 'admin', label: 'Admins' },
+    { key: 'all', label: t('admin.users.filters.all') },
+    { key: 'user', label: t('admin.users.filters.user') },
+    { key: 'organizer', label: t('admin.users.filters.organizer') },
+    { key: 'moderator', label: t('admin.users.filters.moderator') },
+    { key: 'admin', label: t('admin.users.filters.admin') },
   ];
 
   return (
@@ -289,13 +292,13 @@ function UserManagementContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>LA COMMUNAUTÉ</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Utilisateurs</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.users.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.users.title')}</Text>
         </View>
         <View style={[styles.countPill, { backgroundColor: `${colors.primary}15` }]}>
           <Text style={[styles.countText, { color: colors.primary }]}>{filteredUsers.length}</Text>
@@ -309,7 +312,7 @@ function UserManagementContent() {
       </View>
 
       <View style={styles.searchSection}>
-        <RegistrationSearchBar onSearch={setSearchQuery} placeholder="Rechercher un utilisateur..." />
+        <RegistrationSearchBar onSearch={setSearchQuery} placeholder={t('admin.users.searchPlaceholder')} />
       </View>
 
       <View style={styles.filtersRow}>
@@ -352,7 +355,7 @@ function UserManagementContent() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="people-outline" size={48} color={colors.gray300} />
-            <Text style={[styles.emptyText, { color: colors.gray500 }]}>Aucun utilisateur trouvé</Text>
+            <Text style={[styles.emptyText, { color: colors.gray500 }]}>{t('admin.users.empty')}</Text>
           </View>
         }
       />
@@ -365,12 +368,12 @@ function UserManagementContent() {
             disabled={bulkLoading}
             style={[styles.bulkClose, { backgroundColor: 'rgba(255,255,255,0.12)' }]}
             accessibilityRole="button"
-            accessibilityLabel="Annuler la sélection"
+            accessibilityLabel={t('admin.users.bulk.cancelSelection')}
           >
             <Ionicons name="close" size={18} color={colors.background} />
           </TouchableOpacity>
           <Text style={[styles.bulkCount, { color: colors.background }]}>
-            {selectedIds.size} sélectionné{selectedIds.size > 1 ? 's' : ''}
+            {t('admin.users.bulk.selected', { count: selectedIds.size })}
           </Text>
           <View style={styles.bulkActions}>
             <TouchableOpacity
@@ -378,30 +381,30 @@ function UserManagementContent() {
               disabled={bulkLoading}
               style={[styles.bulkBtn, { backgroundColor: '#10B981' }, bulkLoading && { opacity: 0.5 }]}
               accessibilityRole="button"
-              accessibilityLabel="Vérifier la sélection"
+              accessibilityLabel={t('admin.users.bulk.verifyTitle')}
             >
               <Ionicons name="checkmark-circle" size={14} color="#FFFFFF" />
-              <Text style={styles.bulkBtnText}>Vérifier</Text>
+              <Text style={styles.bulkBtnText}>{t('admin.users.bulk.verify')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleBulkActivate}
               disabled={bulkLoading}
               style={[styles.bulkBtn, { backgroundColor: '#3B82F6' }, bulkLoading && { opacity: 0.5 }]}
               accessibilityRole="button"
-              accessibilityLabel="Réactiver la sélection"
+              accessibilityLabel={t('admin.users.bulk.activateTitle')}
             >
               <Ionicons name="power" size={14} color="#FFFFFF" />
-              <Text style={styles.bulkBtnText}>Activer</Text>
+              <Text style={styles.bulkBtnText}>{t('admin.users.bulk.activate')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleBulkDeactivate}
               disabled={bulkLoading}
               style={[styles.bulkBtn, { backgroundColor: '#EF4444' }, bulkLoading && { opacity: 0.5 }]}
               accessibilityRole="button"
-              accessibilityLabel="Désactiver la sélection"
+              accessibilityLabel={t('admin.users.bulk.deactivateTitle')}
             >
               <Ionicons name="ban" size={14} color="#FFFFFF" />
-              <Text style={styles.bulkBtnText}>Désactiver</Text>
+              <Text style={styles.bulkBtnText}>{t('admin.users.bulk.deactivate')}</Text>
             </TouchableOpacity>
           </View>
         </View>

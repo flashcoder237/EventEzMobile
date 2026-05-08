@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Event, WaitlistEntry } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -24,21 +25,21 @@ export interface TicketsTabProps {
 
 // Tier color mapping — adapts to common ticket-type names. Falls back to
 // primary indigo so any custom name still renders in-brand.
-function tierAccent(name: string): { color: string; bg: string; label: string } {
+function tierAccent(name: string, t: (k: string) => string): { color: string; bg: string; label: string } {
   const lower = name.toLowerCase();
   if (lower.includes('vip') || lower.includes('platinum') || lower.includes('platine')) {
-    return { color: '#A78BFA', bg: '#A78BFA1A', label: 'VIP' };
+    return { color: '#A78BFA', bg: '#A78BFA1A', label: t('componentsEvents.ticketsTierVip') };
   }
   if (lower.includes('gold') || lower.includes('or ') || lower === 'or') {
-    return { color: '#F59E0B', bg: '#F59E0B1A', label: 'GOLD' };
+    return { color: '#F59E0B', bg: '#F59E0B1A', label: t('componentsEvents.ticketsTierGold') };
   }
   if (lower.includes('early') || lower.includes('bird') || lower.includes('preventes')) {
-    return { color: '#10B981', bg: '#10B9811A', label: 'EARLY' };
+    return { color: '#10B981', bg: '#10B9811A', label: t('componentsEvents.ticketsTierEarly') };
   }
   if (lower.includes('etudiant') || lower.includes('etudiante')) {
-    return { color: '#3B82F6', bg: '#3B82F61A', label: 'ÉTUDIANT' };
+    return { color: '#3B82F6', bg: '#3B82F61A', label: t('componentsEvents.ticketsTierStudent') };
   }
-  return { color: '#4F46E5', bg: '#4F46E51A', label: 'STANDARD' };
+  return { color: '#4F46E5', bg: '#4F46E51A', label: t('componentsEvents.ticketsTierStandard') };
 }
 
 export default function TicketsTab({
@@ -51,6 +52,7 @@ export default function TicketsTab({
   onLeaveWaitlist,
 }: TicketsTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const isBilletterie = event.event_type === 'billetterie';
@@ -60,10 +62,10 @@ export default function TicketsTab({
     <View style={styles.section}>
       {/* === Header === */}
       <Text style={[styles.eyebrow, { color: colors.accent }]}>
-        {isBilletterie ? `Billets · ${tickets.length} formule${tickets.length > 1 ? 's' : ''}` : 'Inscription'}
+        {isBilletterie ? t('componentsEvents.ticketsEyebrowBilletterie', { count: tickets.length }) : t('componentsEvents.ticketsEyebrowInscription')}
       </Text>
       <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        {isBilletterie ? 'Choisis ta place' : "Rejoins l'événement"}
+        {isBilletterie ? t('componentsEvents.ticketsTitleBilletterie') : t('componentsEvents.ticketsTitleInscription')}
       </Text>
 
       {tickets.length > 0 ? (
@@ -72,7 +74,7 @@ export default function TicketsTab({
             const available = getTicketAvailability(ticket);
             const isSoldOut = available <= 0;
             const isLowStock = !isSoldOut && available <= 10;
-            const accent = tierAccent(ticket.name);
+            const accent = tierAccent(ticket.name, t);
             const isFree = ticket.price === 0;
 
             return (
@@ -119,13 +121,13 @@ export default function TicketsTab({
                       <View style={[styles.urgencyPill, { backgroundColor: colors.accent }]}>
                         <Ionicons name="flash" size={9} color="#fff" />
                         <Text style={styles.urgencyText}>
-                          PLUS QUE {available}
+                          {t('componentsEvents.ticketsLowStock', { count: available })}
                         </Text>
                       </View>
                     )}
                     {isSoldOut && (
                       <View style={[styles.soldOutPill, { backgroundColor: colors.gray100 }]}>
-                        <Text style={[styles.soldOutText, { color: colors.gray500 }]}>ÉPUISÉ</Text>
+                        <Text style={[styles.soldOutText, { color: colors.gray500 }]}>{t('componentsEvents.ticketsSoldOutPill')}</Text>
                       </View>
                     )}
                   </View>
@@ -178,16 +180,16 @@ export default function TicketsTab({
                         ]}
                       >
                         {isSoldOut
-                          ? 'Épuisé'
+                          ? t('componentsEvents.ticketsSoldOutText')
                           : isLowStock
-                          ? `${available} place${available > 1 ? 's' : ''} restante${available > 1 ? 's' : ''}`
-                          : `${available} disponibles`}
+                          ? t('componentsEvents.ticketsRemaining', { count: available })
+                          : t('componentsEvents.ticketsAvailable', { count: available })}
                       </Text>
                     </View>
 
                     <View style={styles.priceWrap}>
                       {isFree ? (
-                        <Text style={[styles.priceFree, { color: '#10B981' }]}>GRATUIT</Text>
+                        <Text style={[styles.priceFree, { color: '#10B981' }]}>{t('componentsEvents.ticketsFree')}</Text>
                       ) : (
                         <>
                           <Text
@@ -225,15 +227,15 @@ export default function TicketsTab({
               </View>
               <View style={styles.waitlistTextWrap}>
                 <Text style={[styles.waitlistEyebrow, { color: colors.accent }]}>
-                  TOUT EST PARTI
+                  {t('componentsEvents.waitlistEyebrow')}
                 </Text>
                 <Text style={[styles.waitlistTitle, { color: colors.text }]}>
-                  {waitlistEntry ? 'Tu es sur la liste' : 'Liste d\'attente'}
+                  {waitlistEntry ? t('componentsEvents.waitlistTitleJoined') : t('componentsEvents.waitlistTitleDefault')}
                 </Text>
                 <Text style={[styles.waitlistBody, { color: colors.gray600 }]}>
                   {waitlistEntry
-                    ? 'On te prévient dès qu\'une place se libère.'
-                    : 'Sois notifié·e si une place se libère.'}
+                    ? t('componentsEvents.waitlistBodyJoined')
+                    : t('componentsEvents.waitlistBodyDefault')}
                 </Text>
               </View>
               {waitlistEntry ? (
@@ -242,7 +244,7 @@ export default function TicketsTab({
                   onPress={onLeaveWaitlist}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.waitlistBtnGhostText, { color: colors.gray600 }]}>Quitter</Text>
+                  <Text style={[styles.waitlistBtnGhostText, { color: colors.gray600 }]}>{t('componentsEvents.waitlistLeave')}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity
@@ -256,7 +258,7 @@ export default function TicketsTab({
                   ) : (
                     <>
                       <Ionicons name="notifications" size={14} color="#fff" />
-                      <Text style={styles.waitlistBtnFilledText}>Me prévenir</Text>
+                      <Text style={styles.waitlistBtnFilledText}>{t('componentsEvents.waitlistJoin')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -274,12 +276,12 @@ export default function TicketsTab({
             />
           </View>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            {isBilletterie ? 'Bientôt en vente' : 'Inscription gratuite'}
+            {isBilletterie ? t('componentsEvents.ticketsEmptyTitleBilletterie') : t('componentsEvents.ticketsEmptyTitleInscription')}
           </Text>
           <Text style={[styles.emptyText, { color: colors.gray500 }]}>
             {isBilletterie
-              ? "Les billets seront mis en vente sous peu."
-              : 'Pas de billet à acheter — inscris-toi simplement.'}
+              ? t('componentsEvents.ticketsEmptyTextBilletterie')
+              : t('componentsEvents.ticketsEmptyTextInscription')}
           </Text>
         </View>
       )}

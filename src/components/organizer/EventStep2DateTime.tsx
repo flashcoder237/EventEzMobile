@@ -7,6 +7,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { Spacing } from '../../constants/theme';
@@ -102,17 +103,18 @@ export default function EventStep2DateTime({
   onOnlinePasscodeChange,
   stepErrors = {},
 }: EventStep2DateTimeProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
 
   return (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, themed.stepTitle]}>Date et Lieu</Text>
-      <Text style={[styles.stepDescription, themed.stepDescription]}>Quand et où se déroulera ton événement ?</Text>
+      <Text style={[styles.stepTitle, themed.stepTitle]}>{t('componentsOrganizer.step2.title')}</Text>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>{t('componentsOrganizer.step2.description')}</Text>
 
       {/* Dates */}
       <DateTimePickerField
-        label="Date de début *"
+        label={t('componentsOrganizer.step2.startDateLabel')}
         value={startDate}
         onChange={(date) => {
           onStartDateChange(date);
@@ -123,7 +125,7 @@ export default function EventStep2DateTime({
       />
 
       <DateTimePickerField
-        label="Date de fin *"
+        label={t('componentsOrganizer.step2.endDateLabel')}
         value={endDate}
         onChange={onEndDateChange}
         minimumDate={startDate}
@@ -132,8 +134,8 @@ export default function EventStep2DateTime({
       {/* Registration Deadline */}
       <View style={[styles.switchRow, themed.switchRow]}>
         <View style={styles.switchContent}>
-          <Text style={[styles.switchLabel, themed.switchLabel]}>Date limite d'inscription</Text>
-          <Text style={[styles.switchDescription, themed.switchDescription]}>Definir une date limite pour s'inscrire</Text>
+          <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step2.deadlineToggleLabel')}</Text>
+          <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step2.deadlineToggleDesc')}</Text>
         </View>
         <Switch
           value={hasRegistrationDeadline}
@@ -152,17 +154,17 @@ export default function EventStep2DateTime({
 
       {hasRegistrationDeadline && (
         <DatePickerField
-          label="Date limite"
+          label={t('componentsOrganizer.step2.deadlineLabel')}
           value={registrationDeadline || undefined}
           onChange={(date) => onRegistrationDeadlineChange(date)}
           maximumDate={startDate}
-          placeholder="Sélectionner une date"
+          placeholder={t('componentsOrganizer.step2.deadlinePlaceholder')}
         />
       )}
 
       {/* Location Type */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Type de lieu *</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.locationTypeLabel')}</Text>
         <View style={styles.locationTypeSelector}>
           {LOCATION_TYPES.map((type) => (
             <TouchableOpacity
@@ -187,19 +189,19 @@ export default function EventStep2DateTime({
       {/* Physical Location Fields */}
       {(locationType === 'in_person' || locationType === 'hybrid') && (
         <View style={[styles.locationFields, themed.locationFields]}>
-          <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Lieu physique</Text>
+          <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>{t('componentsOrganizer.step2.physicalLocationTitle')}</Text>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Nom du lieu</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.venueNameLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={locationName}
               onChangeText={onLocationNameChange}
-              placeholder="Ex: Palais des Congrès"
+              placeholder={t('componentsOrganizer.step2.venueNamePlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Ville *</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.cityLabel')}</Text>
             <TextInput
               style={[
                 styles.input,
@@ -208,7 +210,7 @@ export default function EventStep2DateTime({
               ]}
               value={locationCity}
               onChangeText={onLocationCityChange}
-              placeholder="Ex: Douala"
+              placeholder={t('componentsOrganizer.step2.cityPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
             {stepErrors.locationCity && (
@@ -216,19 +218,19 @@ export default function EventStep2DateTime({
             )}
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Adresse</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.addressLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={locationAddress}
               onChangeText={onLocationAddressChange}
-              placeholder="Adresse complète"
+              placeholder={t('componentsOrganizer.step2.addressPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
 
           {/* Map Picker */}
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Emplacement sur la carte</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.mapLocationLabel')}</Text>
             <TouchableOpacity
               style={[styles.mapPickerButton, themed.mapPickerButton]}
               onPress={onShowMapPicker}
@@ -236,8 +238,8 @@ export default function EventStep2DateTime({
               <Ionicons name="map-outline" size={20} color={colors.primary} />
               <Text style={[styles.mapPickerButtonText, themed.mapPickerButtonText]}>
                 {locationLatitude && locationLongitude
-                  ? 'Modifier l\'emplacement sur la carte'
-                  : 'Choisir sur la carte'}
+                  ? t('componentsOrganizer.step2.mapEditLocation')
+                  : t('componentsOrganizer.step2.mapChooseLocation')}
               </Text>
               <Ionicons name="chevron-forward" size={18} color={colors.gray400} />
             </TouchableOpacity>
@@ -252,7 +254,7 @@ export default function EventStep2DateTime({
             )}
 
             <Text style={[styles.inputHint, themed.inputHint]}>
-              Pour afficher l'événement sur la carte et permettre la navigation
+              {t('componentsOrganizer.step2.mapHint')}
             </Text>
           </View>
         </View>
@@ -261,19 +263,19 @@ export default function EventStep2DateTime({
       {/* Online Location Fields */}
       {(locationType === 'online' || locationType === 'hybrid') && (
         <View style={[styles.locationFields, themed.locationFields]}>
-          <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Lieu virtuel</Text>
+          <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>{t('componentsOrganizer.step2.virtualLocationTitle')}</Text>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Plateforme</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.platformLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={onlinePlatform}
               onChangeText={onOnlinePlatformChange}
-              placeholder="Ex: Zoom, Google Meet, Teams"
+              placeholder={t('componentsOrganizer.step2.platformPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Lien de connexion <Text style={{ color: colors.error || '#EF4444' }}>*</Text></Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.connectionUrlLabel')} <Text style={{ color: colors.error || '#EF4444' }}>*</Text></Text>
             <TextInput
               style={[
                 styles.input,
@@ -282,7 +284,7 @@ export default function EventStep2DateTime({
               ]}
               value={onlineUrl}
               onChangeText={onOnlineUrlChange}
-              placeholder="https://..."
+              placeholder={t('componentsOrganizer.step2.connectionUrlPlaceholder')}
               placeholderTextColor={colors.gray400}
               keyboardType="url"
               autoCapitalize="none"
@@ -292,32 +294,32 @@ export default function EventStep2DateTime({
             )}
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>ID de réunion</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.meetingIdLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={onlineMeetingId}
               onChangeText={onOnlineMeetingIdChange}
-              placeholder="Ex: 123 456 7890"
+              placeholder={t('componentsOrganizer.step2.meetingIdPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Code d'accès</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.passcodeLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={onlinePasscode}
               onChangeText={onOnlinePasscodeChange}
-              placeholder="Ex: abc123"
+              placeholder={t('componentsOrganizer.step2.passcodePlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Instructions de connexion</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step2.instructionsLabel')}</Text>
             <TextInput
               style={[styles.input, styles.textAreaSmall, themed.input]}
               value={onlineInstructions}
               onChangeText={onOnlineInstructionsChange}
-              placeholder="Instructions pour rejoindre l'événement..."
+              placeholder={t('componentsOrganizer.step2.instructionsPlaceholder')}
               placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={3}

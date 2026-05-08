@@ -13,6 +13,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { messagesAPI } from '../../api';
 import { downloadConversationBackup, getLastExportAt } from '../../lib/utils/conversationExport';
 import { formatBytes } from '../../constants/messaging';
@@ -43,20 +44,20 @@ interface Props {
   onQuotaUpdate?: (state: QuotaState) => void;
 }
 
-function formatRelativeFr(iso: string): string {
-  const t = new Date(iso).getTime();
-  if (!Number.isFinite(t)) return '';
-  const diffMs = Date.now() - t;
+function formatRelativeFr(iso: string, t: (k: string, opts?: any) => string): string {
+  const ts = new Date(iso).getTime();
+  if (!Number.isFinite(ts)) return '';
+  const diffMs = Date.now() - ts;
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "à l'instant";
-  if (diffMin < 60) return `il y a ${diffMin} min`;
+  if (diffMin < 1) return t('componentsMessages.relativeNow');
+  if (diffMin < 60) return t('componentsMessages.relativeMin', { count: diffMin });
   const diffH = Math.floor(diffMin / 60);
-  if (diffH < 24) return `il y a ${diffH} h`;
+  if (diffH < 24) return t('componentsMessages.relativeHour', { count: diffH });
   const diffJ = Math.floor(diffH / 24);
-  if (diffJ === 1) return 'hier';
-  if (diffJ < 7) return `il y a ${diffJ} jours`;
-  if (diffJ < 30) return `il y a ${Math.floor(diffJ / 7)} semaines`;
-  return `il y a ${Math.floor(diffJ / 30)} mois`;
+  if (diffJ === 1) return t('componentsMessages.relativeYesterday');
+  if (diffJ < 7) return t('componentsMessages.relativeDays', { count: diffJ });
+  if (diffJ < 30) return t('componentsMessages.relativeWeeks', { count: Math.floor(diffJ / 7) });
+  return t('componentsMessages.relativeMonths', { count: Math.floor(diffJ / 30) });
 }
 
 export default function ConversationQuotaBanner({
@@ -65,6 +66,7 @@ export default function ConversationQuotaBanner({
   onQuotaUpdate,
 }: Props) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { showSuccess, showError } = useAlert();
   const [state, setState] = useState<QuotaState | null>(null);
   const [loading, setLoading] = useState(true);
@@ -117,15 +119,15 @@ export default function ConversationQuotaBanner({
     try {
       const { data } = await downloadConversationBackup(conversationId);
       showSuccess(
-        'Sauvegarde locale',
-        `${data.conversation.message_count} messages enregistrés sur votre appareil.`,
+        t('componentsMessages.quotaSaving'),
+        t('componentsMessages.quotaSavingMsg', { count: data.conversation.message_count }),
       );
       const v = await getLastExportAt(conversationId);
       setLastExportAt(v);
     } catch (err: any) {
       showError(
-        'Erreur',
-        err?.response?.data?.detail || 'Impossible de sauvegarder la conversation.',
+        t('common.error'),
+        err?.response?.data?.detail || t('componentsMessages.quotaSaveError'),
       );
     } finally {
       setExporting(false);
@@ -154,14 +156,15 @@ export default function ConversationQuotaBanner({
         <View style={styles.readOnlyBanner}>
           <Ionicons name="lock-closed" size={18} color="#b91c1c" style={{ marginTop: 2 }} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.readOnlyTitle}>Lecture seule — sauvegardez maintenant</Text>
+            <Text style={styles.readOnlyTitle}>{t('componentsMessages.quotaReadOnlyTitle')}</Text>
             <Text style={styles.readOnlyText}>
-              Cette discussion sera supprimée
-              {state.auto_delete_at ? ` le ${formatDate(state.auto_delete_at)}` : ' bientôt'}
+              {state.auto_delete_at
+                ? t('componentsMessages.quotaReadOnlyTextScheduled', { date: formatDate(state.auto_delete_at) })
+                : t('componentsMessages.quotaReadOnlyTextSoon')}
               {state.days_until_delete != null && state.days_until_delete >= 0
-                ? ` (dans ${state.days_until_delete} jour${state.days_until_delete > 1 ? 's' : ''})`
+                ? t('componentsMessages.quotaReadOnlyDays', { count: state.days_until_delete })
                 : ''}
-              . Plus aucun nouveau message ne peut être envoyé.
+              {t('componentsMessages.quotaReadOnlyEnd')}
             </Text>
           </View>
           <Pressable
@@ -177,7 +180,7 @@ export default function ConversationQuotaBanner({
             ) : (
               <Ionicons name="download-outline" size={14} color="#fff" />
             )}
-            <Text style={styles.actionButtonPrimaryText}>Sauvegarder</Text>
+            <Text style={styles.actionButtonPrimaryText}>{t('componentsMessages.quotaSaveBtn')}</Text>
           </Pressable>
         </View>
       )}
@@ -212,7 +215,7 @@ export default function ConversationQuotaBanner({
             <View style={styles.metaPill}>
               <Ionicons name="calendar-outline" size={11} color="#7c3aed" />
               <Text style={styles.metaPillText}>
-                Suppression dans {state.days_until_delete} jour{state.days_until_delete > 1 ? 's' : ''}
+                {t('componentsMessages.quotaDeleteIn', { count: state.days_until_delete })}
               </Text>
             </View>
           )}
@@ -221,7 +224,7 @@ export default function ConversationQuotaBanner({
             <View style={[styles.metaPill, { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }]}>
               <Ionicons name="download-outline" size={11} color="#059669" />
               <Text style={[styles.metaPillText, { color: '#065f46' }]}>
-                Sauvegardé {formatRelativeFr(lastExportAt)}
+                {t('componentsMessages.quotaSavedRelative', { relative: formatRelativeFr(lastExportAt, t) })}
               </Text>
             </View>
           )}
@@ -241,7 +244,7 @@ export default function ConversationQuotaBanner({
             ) : (
               <Ionicons name="download-outline" size={14} color={colors.text} />
             )}
-            <Text style={[styles.actionButtonSecondaryText, { color: colors.text }]}>Sauvegarder</Text>
+            <Text style={[styles.actionButtonSecondaryText, { color: colors.text }]}>{t('componentsMessages.quotaSaveBtn')}</Text>
           </Pressable>
         )}
       </View>

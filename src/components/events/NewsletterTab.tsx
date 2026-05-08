@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { newslettersAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -46,6 +47,7 @@ interface NewsletterTabProps {
 
 export default function NewsletterTab({ eventId, categoryName }: NewsletterTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -53,7 +55,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
 
   const handleSubscribe = async () => {
     if (!email.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer votre email');
+      Alert.alert(t('common.error'), t('componentsEvents.newsletterEmailRequired'));
       return;
     }
     setSubmitting(true);
@@ -63,10 +65,10 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
         name: name.trim() || undefined,
       });
       setSubscribed(true);
-      Alert.alert('Succès', 'Vous êtes inscrit à la newsletter !');
+      Alert.alert(t('common.success'), t('componentsEvents.newsletterSubscribed'));
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || error?.response?.data?.message || "Erreur lors de l'inscription";
-      Alert.alert('Erreur', msg);
+      const msg = error?.response?.data?.detail || error?.response?.data?.message || t('componentsEvents.newsletterSubscribeError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -79,10 +81,11 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
           <View style={styles.successIcon}>
             <Ionicons name="checkmark-circle" size={48} color={colors.success} />
           </View>
-          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Merci pour votre inscription !</Text>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>{t('componentsEvents.newsletterSuccessTitle')}</Text>
           <Text style={[styles.successDescription, { color: colors.gray500 }]}>
-            Vous recevrez nos prochaines newsletters
-            {categoryName ? ` sur "${categoryName}"` : ''} directement dans votre boite mail.
+            {categoryName
+              ? t('componentsEvents.newsletterSuccessTextCategory', { category: categoryName })
+              : t('componentsEvents.newsletterSuccessText')}
           </Text>
         </View>
       </View>
@@ -91,7 +94,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Newsletter</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.newsletterTitle')}</Text>
 
       <View style={[styles.newsletterCard, { backgroundColor: colors.primaryBg, borderColor: colors.primary + '30' }]}>
         <View style={styles.iconRow}>
@@ -100,16 +103,17 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
           </View>
         </View>
 
-        <Text style={[styles.cardTitle, { color: colors.gray900 }]}>Restez informe !</Text>
+        <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{t('componentsEvents.newsletterCardTitle')}</Text>
         <Text style={[styles.cardDescription, { color: colors.gray600 }]}>
-          Inscrivez-vous a notre newsletter pour recevoir les dernieres actualites
-          {categoryName ? ` sur les evenements "${categoryName}"` : ''}, les nouveaux evenements et des offres exclusives.
+          {categoryName
+            ? t('componentsEvents.newsletterCardDescriptionCategory', { category: categoryName })
+            : t('componentsEvents.newsletterCardDescription')}
         </Text>
 
         <View style={styles.formContainer}>
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
-            placeholder="Votre nom (optionnel)"
+            placeholder={t('componentsEvents.newsletterNamePlaceholder')}
             placeholderTextColor={colors.gray400}
             value={name}
             onChangeText={setName}
@@ -117,7 +121,7 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
           />
           <TextInput
             style={[styles.input, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
-            placeholder="Votre email *"
+            placeholder={t('componentsEvents.newsletterEmailPlaceholder')}
             placeholderTextColor={colors.gray400}
             value={email}
             onChangeText={setEmail}
@@ -135,14 +139,14 @@ export default function NewsletterTab({ eventId, categoryName }: NewsletterTabPr
             ) : (
               <>
                 <Ionicons name="send" size={16} color={Colors.white} />
-                <Text style={styles.subscribeButtonText}>S'inscrire a la newsletter</Text>
+                <Text style={styles.subscribeButtonText}>{t('componentsEvents.newsletterSubscribeCta')}</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
 
         <Text style={[styles.privacyText, { color: colors.gray400 }]}>
-          Vous pouvez vous desabonner a tout moment. Nous respectons votre vie privee.
+          {t('componentsEvents.newsletterPrivacy')}
         </Text>
       </View>
     </View>

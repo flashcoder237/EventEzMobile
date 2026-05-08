@@ -29,6 +29,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 
 import { useStatus } from '../../contexts/StatusContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -45,6 +46,7 @@ export default function IncidentBanner() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { lastServiceIncident, blockingIncident, clearServiceIncident } = useStatus();
 
   // Si MaintenanceGate prend le dessus (incident bloquant global), on
@@ -165,7 +167,7 @@ export default function IncidentBanner() {
           >
             {incident.latest_update?.message ||
               incident.public_message ||
-              "Nos équipes sont sur le coup."}
+              t('componentsCommon.incidentDefaultMessage')}
           </Text>
 
           <View style={styles.actions}>
@@ -176,9 +178,9 @@ export default function IncidentBanner() {
                 { backgroundColor: severityColor, opacity: pressed ? 0.85 : 1 },
               ]}
               accessibilityRole="button"
-              accessibilityLabel="Voir l'évolution de l'incident"
+              accessibilityLabel={t('componentsCommon.incidentViewDetailsA11y')}
             >
-              <Text style={styles.viewButtonText}>Voir l'évolution</Text>
+              <Text style={styles.viewButtonText}>{t('componentsCommon.incidentViewDetails')}</Text>
               <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
             </Pressable>
           </View>
@@ -189,7 +191,7 @@ export default function IncidentBanner() {
           style={styles.closeButton}
           hitSlop={8}
           accessibilityRole="button"
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t('componentsCommon.incidentClose')}
         >
           <Ionicons name="close" size={20} color={colors.gray500} />
         </Pressable>

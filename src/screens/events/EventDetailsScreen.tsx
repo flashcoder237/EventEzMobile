@@ -302,7 +302,7 @@ export default function EventDetailsScreen() {
               style={[visibilityStyles.codeInput, { borderColor: colors.gray200, color: colors.gray900, backgroundColor: colors.gray50 }]}
               value={accessCodeInput}
               onChangeText={setAccessCodeInput}
-              placeholder="Entrez le code d'accès"
+              placeholder={t('eventDetails.accessCodePlaceholder')}
               placeholderTextColor={colors.gray400}
               autoFocus
             />
@@ -352,7 +352,7 @@ export default function EventDetailsScreen() {
             style={[styles.blurHeaderBtn, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="arrow-back" size={22} color={colors.gray900} />
           </TouchableOpacity>
@@ -362,7 +362,7 @@ export default function EventDetailsScreen() {
             style={[styles.blurHeaderBtn, { backgroundColor: colors.gray100 }]}
             onPress={handleShare}
             accessibilityRole="button"
-            accessibilityLabel="Partager l'evenement"
+            accessibilityLabel={t('eventDetails.shareEventA11y')}
           >
             <Ionicons name="share-outline" size={20} color={colors.gray900} />
           </TouchableOpacity>
@@ -411,7 +411,7 @@ export default function EventDetailsScreen() {
             style={StyleSheet.absoluteFill}
             onPress={() => openViewer(0)}
             accessibilityRole="button"
-            accessibilityLabel="Voir les photos en plein ecran"
+            accessibilityLabel={t('eventDetails.viewPhotosFullscreenA11y')}
           />
 
           {/* 4. Hint visuel "1/N" ou "Agrandir" — pointerEvents none pour laisser passer */}
@@ -438,7 +438,7 @@ export default function EventDetailsScreen() {
                 style={styles.floatingHeaderBtn}
                 onPress={() => navigation.goBack()}
                 accessibilityRole="button"
-                accessibilityLabel="Retour"
+                accessibilityLabel={t('common.back')}
               >
                 <Ionicons name="arrow-back" size={22} color="#0F172A" />
               </TouchableOpacity>
@@ -453,7 +453,7 @@ export default function EventDetailsScreen() {
                   style={styles.floatingHeaderBtn}
                   onPress={handleShare}
                   accessibilityRole="button"
-                  accessibilityLabel="Partager l'evenement"
+                  accessibilityLabel={t('eventDetails.shareEventA11y')}
                 >
                   <Ionicons name="share-outline" size={20} color="#0F172A" />
                 </TouchableOpacity>
@@ -571,7 +571,7 @@ export default function EventDetailsScreen() {
                 style={[styles.shareButton, { backgroundColor: colors.gray100 }]}
                 onPress={handleShare}
                 accessibilityRole="button"
-                accessibilityLabel="Partager l'evenement"
+                accessibilityLabel={t('eventDetails.shareEventA11y')}
               >
                 <Ionicons name="share-social-outline" size={20} color={colors.gray600} />
               </TouchableOpacity>
@@ -579,7 +579,7 @@ export default function EventDetailsScreen() {
                 style={[styles.shareButton, { backgroundColor: colors.successLight }]}
                 onPress={handleShareToWhatsApp}
                 accessibilityRole="button"
-                accessibilityLabel="Partager sur WhatsApp"
+                accessibilityLabel={t('eventDetails.shareWhatsappA11y')}
               >
                 <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
               </TouchableOpacity>
@@ -1026,7 +1026,7 @@ export default function EventDetailsScreen() {
             style={[styles.previewCloseBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
-            accessibilityLabel="Fermer l'aperçu"
+            accessibilityLabel={t('eventDetails.closePreviewA11y')}
           >
             <Text style={[styles.previewCloseText, { color: colors.background }]}>{t('eventDetails.previewClose')}</Text>
           </TouchableOpacity>

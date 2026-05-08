@@ -12,6 +12,7 @@ import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+import { useTranslation } from 'react-i18next';
 import { recommendationsAPI, getMediaUrl } from '../../api';
 import { Event, RootStackParamList } from '../../types';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -43,6 +44,7 @@ const SimilarEventCard = memo(function SimilarEventCard({
   onPress: () => void;
 }) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const banner = getMediaUrl(event.banner_image || event.display_image);
 
   return (
@@ -51,7 +53,7 @@ const SimilarEventCard = memo(function SimilarEventCard({
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
-      accessibilityLabel={`Voir ${event.title}`}
+      accessibilityLabel={t('componentsEvents.similarEventA11y', { title: event.title })}
     >
       <Image
         source={banner || require('../../../assets/defaults/default-event.png')}
@@ -77,6 +79,7 @@ const SimilarEventCard = memo(function SimilarEventCard({
 export default function SimilarEventsSection({ eventId, limit = 5 }: Props) {
   const navigation = useNavigation<NavigationProp>();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [items, setItems] = useState<Event[] | null>(null);
 
   useEffect(() => {
@@ -102,8 +105,8 @@ export default function SimilarEventsSection({ eventId, limit = 5 }: Props) {
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>RECOMMANDATIONS</Text>
-      <Text style={[styles.title, { color: colors.text }]}>Événements similaires</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.similarEventsEyebrow')}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t('componentsEvents.similarEventsTitle')}</Text>
       <FlatList
         data={items}
         keyExtractor={(item) => String(item.id)}

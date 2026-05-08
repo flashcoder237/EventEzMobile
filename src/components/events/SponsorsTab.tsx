@@ -10,6 +10,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { sponsorsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
@@ -53,6 +54,23 @@ function tierConfig(level?: string): { color: string; label: string; weight: num
 export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   const { colors, isDark } = useTheme();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
+  const tierConfigLocalized = (level?: string): { color: string; label: string; weight: number } => {
+    const lower = (level || '').toLowerCase();
+    if (lower.includes('platinum') || lower.includes('platine')) {
+      return { color: '#A78BFA', label: t('componentsEvents.sponsorTierPlatine'), weight: 4 };
+    }
+    if (lower.includes('gold') || lower === 'or') {
+      return { color: '#F59E0B', label: t('componentsEvents.sponsorTierGold'), weight: 3 };
+    }
+    if (lower.includes('silver') || lower.includes('argent')) {
+      return { color: '#94A3B8', label: t('componentsEvents.sponsorTierSilver'), weight: 2 };
+    }
+    if (lower.includes('bronze')) {
+      return { color: '#D97706', label: t('componentsEvents.sponsorTierBronze'), weight: 1 };
+    }
+    return { color: '#6B7280', label: level || t('componentsEvents.sponsorTierPartner'), weight: 0 };
+  };
   const [sponsors, setSponsors] = useState<Sponsor[] | null>(null);
 
   useEffect(() => {
@@ -77,7 +95,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
     if (!sponsors) return [];
     const map = new Map<string, { config: ReturnType<typeof tierConfig>; sponsors: Sponsor[] }>();
     sponsors.forEach(s => {
-      const tier = tierConfig(s.sponsor_level || s.package_name);
+      const tier = tierConfigLocalized(s.sponsor_level || s.package_name);
       const key = tier.label;
       if (!map.has(key)) map.set(key, { config: tier, sponsors: [] });
       map.get(key)!.sponsors.push(s);
@@ -104,9 +122,9 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
   return (
     <View style={styles.section}>
       {/* === Header === */}
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>Sponsors</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.sponsorsEyebrow')}</Text>
       <Text style={[styles.sectionTitle, { color: colors.text }]}>
-        Ils soutiennent l&apos;événement
+        {t('componentsEvents.sponsorsSectionTitle')}
       </Text>
 
       {/* === Grouped by tier === */}
@@ -123,7 +141,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
                 {group.config.label.toUpperCase()}
               </Text>
               <Text style={[styles.tierCount, { color: colors.gray500 }]}>
-                {group.sponsors.length} {group.sponsors.length > 1 ? 'sponsors' : 'sponsor'}
+                {t('componentsEvents.sponsorsCount', { count: group.sponsors.length })}
               </Text>
             </View>
 
@@ -143,7 +161,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
                   onPress={() => handleSponsorPress(sponsor)}
                   activeOpacity={0.85}
                   accessibilityRole="button"
-                  accessibilityLabel={`Sponsor ${sponsor.name}`}
+                  accessibilityLabel={t('componentsEvents.sponsorA11y', { name: sponsor.name })}
                   disabled={!sponsor.website}
                 >
                   {sponsor.logo ? (
@@ -176,7 +194,7 @@ export default function SponsorsTab({ eventId }: SponsorsTabProps) {
                   {sponsor.website && (
                     <View style={styles.linkRow}>
                       <Ionicons name="open-outline" size={9} color={colors.gray400} />
-                      <Text style={[styles.linkText, { color: colors.gray400 }]}>Visiter</Text>
+                      <Text style={[styles.linkText, { color: colors.gray400 }]}>{t('componentsEvents.sponsorVisit')}</Text>
                     </View>
                   )}
                 </TouchableOpacity>

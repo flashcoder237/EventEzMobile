@@ -8,6 +8,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useOrganizerWallet } from '../../hooks/useOrganizerWallet';
@@ -86,6 +87,7 @@ function FormFieldsSection({
   onUpdateFormField: (index: number, field: string, value: any) => void;
   onRemoveFormField: (index: number) => void;
 }) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
   if (formFields.length === 0) {
@@ -95,16 +97,16 @@ function FormFieldsSection({
           <Ionicons name="document-text-outline" size={40} color={colors.gray400} />
         </View>
         <Text style={[styles.emptyTitle, themed.emptyTitle]}>
-          {isOptional ? 'Aucun champ supplémentaire' : 'Aucun champ'}
+          {isOptional ? t('componentsOrganizer.step3.noFieldsOptional') : t('componentsOrganizer.step3.noFieldsRequired')}
         </Text>
         <Text style={[styles.emptyText, themed.emptyText]}>
           {isOptional
-            ? 'Ajoutez des champs pour collecter des informations supplémentaires lors de l\'achat'
-            : 'Ajoutez des champs pour collecter les informations des participants'}
+            ? t('componentsOrganizer.step3.noFieldsOptionalText')
+            : t('componentsOrganizer.step3.noFieldsRequiredText')}
         </Text>
         <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddFormField}>
           <Ionicons name="add" size={20} color={colors.white} />
-          <Text style={[styles.addButtonText, themed.addButtonText]}>Ajouter un champ</Text>
+          <Text style={[styles.addButtonText, themed.addButtonText]}>{t('componentsOrganizer.step3.addField')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -115,25 +117,25 @@ function FormFieldsSection({
       {formFields.map((field, index) => (
         <View key={index} style={[styles.card, themed.card]}>
           <View style={[styles.cardHeader, themed.cardHeader]}>
-            <Text style={[styles.cardTitle, themed.cardTitle]}>Champ {index + 1}</Text>
+            <Text style={[styles.cardTitle, themed.cardTitle]}>{t('componentsOrganizer.step3.fieldIndex', { index: index + 1 })}</Text>
             <TouchableOpacity onPress={() => onRemoveFormField(index)}>
               <Ionicons name="trash-outline" size={20} color={colors.error} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Intitulé *</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.fieldLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={field.label}
               onChangeText={(value) => onUpdateFormField(index, 'label', value)}
-              placeholder="Ex: Nom complet, Entreprise, Poste"
+              placeholder={t('componentsOrganizer.step3.fieldLabelPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Type de champ</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.fieldTypeLabel')}</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.chipContainer}>
                 {FIELD_TYPES.map((type) => (
@@ -160,44 +162,44 @@ function FormFieldsSection({
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Placeholder</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.placeholderLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={field.placeholder}
               onChangeText={(value) => onUpdateFormField(index, 'placeholder', value)}
-              placeholder="Texte d'aide dans le champ"
+              placeholder={t('componentsOrganizer.step3.placeholderPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
 
           {['select', 'checkbox', 'radio'].includes(field.field_type) && (
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, themed.label]}>Options (séparées par des virgules) *</Text>
+              <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.optionsLabel')}</Text>
               <TextInput
                 style={[styles.input, themed.input]}
                 value={field.options}
                 onChangeText={(value) => onUpdateFormField(index, 'options', value)}
-                placeholder="Ex: Option 1, Option 2, Option 3"
+                placeholder={t('componentsOrganizer.step3.optionsPlaceholder')}
                 placeholderTextColor={colors.gray400}
               />
             </View>
           )}
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, themed.label]}>Texte d'aide</Text>
+            <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.helpTextLabel')}</Text>
             <TextInput
               style={[styles.input, themed.input]}
               value={field.help_text}
               onChangeText={(value) => onUpdateFormField(index, 'help_text', value)}
-              placeholder="Instructions supplémentaires"
+              placeholder={t('componentsOrganizer.step3.helpTextPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
 
           <View style={[styles.switchRow, themed.switchRow]}>
             <View style={styles.switchContent}>
-              <Text style={[styles.switchLabel, themed.switchLabel]}>Obligatoire</Text>
-              <Text style={[styles.switchDescription, themed.switchDescription]}>Ce champ doit être rempli</Text>
+              <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step3.requiredLabel')}</Text>
+              <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step3.requiredDesc')}</Text>
             </View>
             <Switch
               value={field.required}
@@ -211,7 +213,7 @@ function FormFieldsSection({
 
       <TouchableOpacity style={[styles.addAnotherButton, themed.addAnotherButton]} onPress={onAddFormField}>
         <Ionicons name="add" size={20} color={colors.primary} />
-        <Text style={[styles.addAnotherText, themed.addAnotherText]}>Ajouter un autre champ</Text>
+        <Text style={[styles.addAnotherText, themed.addAnotherText]}>{t('componentsOrganizer.step3.addAnotherField')}</Text>
       </TouchableOpacity>
     </>
   );
@@ -251,6 +253,7 @@ export default function EventStep3Pricing({
   onSetFormFields,
   onSuggestPricing,
 }: EventStep3PricingProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   // Strategie "Event mono-devise" : la devise est celle du wallet de l'organisateur,
   // heritee par l'evenement au create et verrouillee ensuite (cf. docs/CURRENCY_STRATEGY.md)
@@ -261,12 +264,12 @@ export default function EventStep3Pricing({
   return (
     <View style={styles.stepContent}>
       <Text style={[styles.stepTitle, themed.stepTitle]}>
-        {eventType === 'billetterie' ? 'Billetterie' : 'Formulaire d\'inscription'}
+        {eventType === 'billetterie' ? t('componentsOrganizer.step3.titleBilletterie') : t('componentsOrganizer.step3.titleInscription')}
       </Text>
       <Text style={[styles.stepDescription, themed.stepDescription]}>
         {eventType === 'billetterie'
-          ? 'Créez les différents types de billets pour votre événement'
-          : 'Définissez les champs du formulaire d\'inscription'}
+          ? t('componentsOrganizer.step3.descriptionBilletterie')
+          : t('componentsOrganizer.step3.descriptionInscription')}
       </Text>
 
       {eventType === 'billetterie' && (
@@ -289,16 +292,16 @@ export default function EventStep3Pricing({
             color={isDark ? '#A5B4FC' : '#4F46E5'}
           />
           <Text style={{ fontFamily: FontFamily.medium, fontSize: 12, lineHeight: 17, color: isDark ? '#C7D2FE' : '#4338CA', flex: 1 }}>
-            Devise : <Text style={{ fontFamily: FontFamily.bold }}>{walletCurrency}</Text>
+            {t('componentsOrganizer.step3.currencyLabel')} <Text style={{ fontFamily: FontFamily.bold }}>{walletCurrency}</Text>
             {displayCurrency !== walletCurrency ? ` (${displayCurrency})` : ''}
-            {' '}— héritée de votre compte, verrouillée pour cet événement.
+            {t('componentsOrganizer.step3.currencyInherited')}
           </Text>
         </View>
       )}
 
       {aiEnabled && eventType === 'billetterie' && (
         <AIAssistButton
-          label="Suggérer des prix avec l'IA"
+          label={t('componentsOrganizer.step3.suggestPricesAI')}
           onPress={onSuggestPricing}
           isLoading={aiPricingLoading}
           variant="full"
@@ -310,8 +313,8 @@ export default function EventStep3Pricing({
           {/* Free event toggle */}
           <View style={[styles.switchRow, themed.switchRow]}>
             <View style={styles.switchContent}>
-              <Text style={[styles.switchLabel, themed.switchLabel]}>Événement gratuit</Text>
-              <Text style={[styles.switchDescription, themed.switchDescription]}>Aucun billet payant ne sera proposé</Text>
+              <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step3.freeEventLabel')}</Text>
+              <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step3.freeEventDesc')}</Text>
             </View>
             <Switch
               value={isFree}
@@ -320,7 +323,7 @@ export default function EventStep3Pricing({
                 if (value && ticketTypes.length === 0) {
                   onAddTicketType();
                   setTimeout(() => {
-                    onUpdateTicketType(0, 'name', 'Entrée gratuite');
+                    onUpdateTicketType(0, 'name', t('componentsOrganizer.step3.freeEntryName'));
                     onUpdateTicketType(0, 'price', '0');
                   }, 100);
                 }
@@ -335,7 +338,7 @@ export default function EventStep3Pricing({
             <View style={[styles.sectionIconContainer, themed.sectionIconContainer]}>
               <Ionicons name="ticket-outline" size={20} color={colors.primary} />
             </View>
-            <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>Types de billets</Text>
+            <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>{t('componentsOrganizer.step3.ticketTypesTitle')}</Text>
           </View>
 
           {ticketTypes.length === 0 ? (
@@ -343,13 +346,13 @@ export default function EventStep3Pricing({
               <View style={[styles.emptyIcon, themed.emptyIcon]}>
                 <Ionicons name="ticket-outline" size={40} color={colors.gray400} />
               </View>
-              <Text style={[styles.emptyTitle, themed.emptyTitle]}>Aucun type de billet</Text>
+              <Text style={[styles.emptyTitle, themed.emptyTitle]}>{t('componentsOrganizer.step3.noTicketsTitle')}</Text>
               <Text style={[styles.emptyText, themed.emptyText]}>
-                Créez au moins un type de billet pour votre événement
+                {t('componentsOrganizer.step3.noTicketsText')}
               </Text>
               <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddTicketType}>
                 <Ionicons name="add" size={20} color={colors.white} />
-                <Text style={[styles.addButtonText, themed.addButtonText]}>Ajouter un billet</Text>
+                <Text style={[styles.addButtonText, themed.addButtonText]}>{t('componentsOrganizer.step3.addTicket')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -357,30 +360,30 @@ export default function EventStep3Pricing({
               {ticketTypes.map((ticket, index) => (
                 <View key={index} style={[styles.card, themed.card]}>
                   <View style={[styles.cardHeader, themed.cardHeader]}>
-                    <Text style={[styles.cardTitle, themed.cardTitle]}>Billet {index + 1}</Text>
+                    <Text style={[styles.cardTitle, themed.cardTitle]}>{t('componentsOrganizer.step3.ticketIndex', { index: index + 1 })}</Text>
                     <TouchableOpacity onPress={() => onRemoveTicketType(index)}>
                       <Ionicons name="trash-outline" size={20} color={colors.error} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, themed.label]}>Nom du billet *</Text>
+                    <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.ticketNameLabel')}</Text>
                     <TextInput
                       style={[styles.input, themed.input]}
                       value={ticket.name}
                       onChangeText={(value) => onUpdateTicketType(index, 'name', value)}
-                      placeholder="Ex: Standard, VIP, Early Bird"
+                      placeholder={t('componentsOrganizer.step3.ticketNamePlaceholder')}
                       placeholderTextColor={colors.gray400}
                     />
                   </View>
 
                   <View style={styles.inputGroup}>
-                    <Text style={[styles.label, themed.label]}>Description</Text>
+                    <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.ticketDescriptionLabel')}</Text>
                     <TextInput
                       style={[styles.input, styles.textAreaSmall, themed.input]}
                       value={ticket.description}
                       onChangeText={(value) => onUpdateTicketType(index, 'description', value)}
-                      placeholder="Décrivez ce que ce billet inclut"
+                      placeholder={t('componentsOrganizer.step3.ticketDescriptionPlaceholder')}
                       placeholderTextColor={colors.gray400}
                       multiline
                       numberOfLines={2}
@@ -390,7 +393,7 @@ export default function EventStep3Pricing({
 
                   <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>Prix ({displayCurrency}) *</Text>
+                      <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.priceLabel', { currency: displayCurrency })}</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.price}
@@ -402,7 +405,7 @@ export default function EventStep3Pricing({
                       />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>Quantité *</Text>
+                      <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.quantityLabel')}</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.quantity_total}
@@ -416,7 +419,7 @@ export default function EventStep3Pricing({
 
                   <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>Min/commande</Text>
+                      <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.minPerOrderLabel')}</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.min_per_order}
@@ -427,7 +430,7 @@ export default function EventStep3Pricing({
                       />
                     </View>
                     <View style={[styles.inputGroup, { flex: 1 }]}>
-                      <Text style={[styles.label, themed.label]}>Max/commande</Text>
+                      <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.maxPerOrderLabel')}</Text>
                       <TextInput
                         style={[styles.input, themed.input]}
                         value={ticket.max_per_order}
@@ -440,13 +443,13 @@ export default function EventStep3Pricing({
                   </View>
 
                   <DateTimePickerField
-                    label="Début des ventes"
+                    label={t('componentsOrganizer.step3.salesStartLabel')}
                     value={ticket.sales_start}
                     onChange={(date) => onUpdateTicketType(index, 'sales_start', date)}
                   />
 
                   <DateTimePickerField
-                    label="Fin des ventes"
+                    label={t('componentsOrganizer.step3.salesEndLabel')}
                     value={ticket.sales_end}
                     onChange={(date) => onUpdateTicketType(index, 'sales_end', date)}
                     minimumDate={ticket.sales_start}
@@ -455,8 +458,8 @@ export default function EventStep3Pricing({
 
                   <View style={[styles.switchRow, themed.switchRow]}>
                     <View style={styles.switchContent}>
-                      <Text style={[styles.switchLabel, themed.switchLabel]}>Visible</Text>
-                      <Text style={[styles.switchDescription, themed.switchDescription]}>Afficher ce billet publiquement</Text>
+                      <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step3.visibleLabel')}</Text>
+                      <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step3.visibleDesc')}</Text>
                     </View>
                     <Switch
                       value={ticket.is_visible}
@@ -470,7 +473,7 @@ export default function EventStep3Pricing({
 
               <TouchableOpacity style={[styles.addAnotherButton, themed.addAnotherButton]} onPress={onAddTicketType}>
                 <Ionicons name="add" size={20} color={colors.primary} />
-                <Text style={[styles.addAnotherText, themed.addAnotherText]}>Ajouter un autre billet</Text>
+                <Text style={[styles.addAnotherText, themed.addAnotherText]}>{t('componentsOrganizer.step3.addAnotherTicket')}</Text>
               </TouchableOpacity>
             </>
           )}
@@ -482,9 +485,9 @@ export default function EventStep3Pricing({
                 <Ionicons name="document-text-outline" size={20} color={colors.secondary || '#D97706'} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>Formulaire d'inscription (optionnel)</Text>
+                <Text style={[styles.sectionHeaderTitle, themed.sectionHeaderTitle]}>{t('componentsOrganizer.step3.registrationFormTitle')}</Text>
                 <Text style={[styles.sectionHeaderDescription, themed.sectionHeaderDescription]}>
-                  Collectez des informations supplémentaires lors de l'achat
+                  {t('componentsOrganizer.step3.registrationFormDesc')}
                 </Text>
               </View>
               <Switch
@@ -505,7 +508,7 @@ export default function EventStep3Pricing({
                 <View style={[styles.infoBox, themed.infoBox]}>
                   <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
                   <Text style={[styles.infoBoxText, themed.infoBoxText]}>
-                    Ces champs seront affichés lors de l'achat de billets pour collecter des informations sur les participants (allergies, taille de t-shirt, etc.)
+                    {t('componentsOrganizer.step3.registrationFormInfo')}
                   </Text>
                 </View>
                 <FormFieldsSection
@@ -532,15 +535,15 @@ export default function EventStep3Pricing({
 
       {/* Common settings */}
       <View style={{ marginTop: Spacing.lg, paddingTop: Spacing.lg, borderTopWidth: 1, borderTopColor: colors.gray100 }}>
-        <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>Paramètres généraux</Text>
+        <Text style={[styles.subSectionTitle, themed.subSectionTitle]}>{t('componentsOrganizer.step3.generalSettings')}</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={[styles.label, themed.label]}>Nombre maximum de participants</Text>
+          <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step3.maxParticipantsLabel')}</Text>
           <TextInput
             style={[styles.input, themed.input]}
             value={maxParticipants}
             onChangeText={onMaxParticipantsChange}
-            placeholder="Laisser vide pour illimité"
+            placeholder={t('componentsOrganizer.step3.maxParticipantsPlaceholder')}
             placeholderTextColor={colors.gray400}
             keyboardType="numeric"
           />
@@ -548,8 +551,8 @@ export default function EventStep3Pricing({
 
         <View style={[styles.switchRow, themed.switchRow]}>
           <View style={styles.switchContent}>
-            <Text style={[styles.switchLabel, themed.switchLabel]}>Approbation automatique</Text>
-            <Text style={[styles.switchDescription, themed.switchDescription]}>Les inscriptions sont confirmées automatiquement</Text>
+            <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step3.autoApproveLabel')}</Text>
+            <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step3.autoApproveDesc')}</Text>
           </View>
           <Switch
             value={autoApproveRegistrations}
@@ -562,11 +565,11 @@ export default function EventStep3Pricing({
         {eventType === 'billetterie' && !isFree && (
           <View style={[styles.switchRow, themed.switchRow]}>
             <View style={styles.switchContent}>
-              <Text style={[styles.switchLabel, themed.switchLabel]}>Absorber les frais de service</Text>
+              <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step3.absorbFeesLabel')}</Text>
               <Text style={[styles.switchDescription, themed.switchDescription]}>
                 {feeBearer === 'organizer'
-                  ? 'Les frais seront déduits de vos revenus'
-                  : 'Les frais sont ajoutés au prix payé par le participant'}
+                  ? t('componentsOrganizer.step3.absorbFeesOrganizer')
+                  : t('componentsOrganizer.step3.absorbFeesParticipant')}
               </Text>
             </View>
             <Switch
@@ -581,40 +584,40 @@ export default function EventStep3Pricing({
 
       {/* Summary */}
       <View style={[styles.summaryCard, themed.summaryCard]}>
-        <Text style={styles.summaryTitle}>Récapitulatif</Text>
+        <Text style={styles.summaryTitle}>{t('componentsOrganizer.step3.summaryTitle')}</Text>
         <View style={[styles.summaryRow, themed.summaryRow]}>
-          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Titre</Text>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>{t('componentsOrganizer.step3.summaryLabelTitle')}</Text>
           <Text style={[styles.summaryValue, themed.summaryValue]} numberOfLines={1}>{title || '-'}</Text>
         </View>
         <View style={[styles.summaryRow, themed.summaryRow]}>
-          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Type</Text>
-          <Text style={[styles.summaryValue, themed.summaryValue]}>{eventType === 'billetterie' ? 'Billetterie' : 'Inscription'}</Text>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>{t('componentsOrganizer.step3.summaryLabelType')}</Text>
+          <Text style={[styles.summaryValue, themed.summaryValue]}>{eventType === 'billetterie' ? t('componentsOrganizer.step3.titleBilletterie') : t('componentsOrganizer.step1.eventTypeInscription')}</Text>
         </View>
         <View style={[styles.summaryRow, themed.summaryRow]}>
-          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Date</Text>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>{t('componentsOrganizer.step3.summaryLabelDate')}</Text>
           <Text style={[styles.summaryValue, themed.summaryValue]}>{formatDate(startDate)}</Text>
         </View>
         <View style={[styles.summaryRow, themed.summaryRow]}>
-          <Text style={[styles.summaryLabel, themed.summaryLabel]}>Lieu</Text>
+          <Text style={[styles.summaryLabel, themed.summaryLabel]}>{t('componentsOrganizer.step3.summaryLabelLocation')}</Text>
           <Text style={[styles.summaryValue, themed.summaryValue]}>
-            {locationType === 'online' ? 'En ligne' : locationType === 'hybrid' ? 'Hybride' : locationCity || '-'}
+            {locationType === 'online' ? t('componentsOrganizer.step3.summaryOnline') : locationType === 'hybrid' ? t('componentsOrganizer.step3.summaryHybrid') : locationCity || '-'}
           </Text>
         </View>
         <View style={[styles.summaryRow, themed.summaryRow]}>
           <Text style={[styles.summaryLabel, themed.summaryLabel]}>
-            {eventType === 'billetterie' ? 'Billets' : 'Champs'}
+            {eventType === 'billetterie' ? t('componentsOrganizer.step3.summaryLabelTickets') : t('componentsOrganizer.step3.summaryLabelFields')}
           </Text>
           <Text style={[styles.summaryValue, { color: colors.primary }]}>
             {eventType === 'billetterie'
-              ? (isFree ? 'Gratuit' : `${ticketTypes.length} type(s)`)
-              : `${formFields.length} champ(s)`}
+              ? (isFree ? t('componentsOrganizer.step3.summaryFree') : t('componentsOrganizer.step3.summaryTicketTypes', { count: ticketTypes.length }))
+              : t('componentsOrganizer.step3.summaryFields', { count: formFields.length })}
           </Text>
         </View>
         {eventType === 'billetterie' && showFormFieldsForBilletterie && formFields.length > 0 && (
           <View style={[styles.summaryRow, themed.summaryRow]}>
-            <Text style={[styles.summaryLabel, themed.summaryLabel]}>Champs d'inscription</Text>
+            <Text style={[styles.summaryLabel, themed.summaryLabel]}>{t('componentsOrganizer.step3.summaryLabelRegFields')}</Text>
             <Text style={[styles.summaryValue, { color: colors.secondary || '#D97706' }]}>
-              {formFields.length} champ(s)
+              {t('componentsOrganizer.step3.summaryFields', { count: formFields.length })}
             </Text>
           </View>
         )}

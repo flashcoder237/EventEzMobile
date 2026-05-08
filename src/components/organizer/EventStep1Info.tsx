@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, Spacing, FontFamily, BorderRadius, FontSizes } from '../../constants/theme';
@@ -157,6 +158,7 @@ export default function EventStep1Info({
   stepErrors = {},
   onApplyTemplate,
 }: EventStep1InfoProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
   const hairline = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(17,17,16,0.08)';
@@ -165,9 +167,9 @@ export default function EventStep1Info({
 
   return (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, themed.stepTitle]}>À quoi ressemble votre événement ?</Text>
+      <Text style={[styles.stepTitle, themed.stepTitle]}>{t('componentsOrganizer.step1.title')}</Text>
       <Text style={[styles.stepDescription, themed.stepDescription]}>
-        Commencez par l'affiche et l'histoire. Les détails pratiques viennent ensuite.
+        {t('componentsOrganizer.step1.description')}
       </Text>
 
       {/* Templates — raccourci pour bootstrapper le form depuis un modèle. Si
@@ -187,7 +189,7 @@ export default function EventStep1Info({
 
       {/* Banner Image */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Affiche</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step1.bannerLabel')}</Text>
         <TouchableOpacity style={[styles.imagePickerButton, themed.imagePickerButton]} onPress={onPickImage}>
           {bannerImage ? (
             <View style={styles.imagePreviewContainer}>
@@ -205,8 +207,8 @@ export default function EventStep1Info({
                 <Ionicons name="image-outline" size={26} color={themed.imagePickerIconColor} />
               </View>
               <View style={styles.imagePickerTextGroup}>
-                <Text style={[styles.imagePickerText, themed.imagePickerText]}>Ajouter une affiche</Text>
-                <Text style={[styles.imagePickerSubtext, themed.imagePickerSubtext]}>1920×1080 recommandé</Text>
+                <Text style={[styles.imagePickerText, themed.imagePickerText]}>{t('componentsOrganizer.step1.bannerAdd')}</Text>
+                <Text style={[styles.imagePickerSubtext, themed.imagePickerSubtext]}>{t('componentsOrganizer.step1.bannerSize')}</Text>
               </View>
             </View>
           )}
@@ -218,8 +220,8 @@ export default function EventStep1Info({
         <EncouragementTip
           tone="accent"
           icon="sparkles"
-          title="Ça donne envie !"
-          message="Une affiche claire augmente sensiblement le taux d'inscription. Tu es sur la bonne voie."
+          title={t('componentsOrganizer.step1.encouragementTitle')}
+          message={t('componentsOrganizer.step1.encouragementMessage')}
         />
       )}
 
@@ -227,13 +229,13 @@ export default function EventStep1Info({
       <View style={styles.inputGroup}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: Spacing.sm }}>
           <Text style={[styles.label, themed.label]}>
-            Galerie de photos
+            {t('componentsOrganizer.step1.galleryLabel')}
             {galleryImages.length > 0 ? ` (${galleryImages.length}/10)` : ''}
           </Text>
           {galleryImages.length < 10 && (
             <TouchableOpacity onPress={onPickGalleryImages} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
               <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
-              <Text style={{ fontFamily: FontFamily.semiBold, color: colors.primary, fontSize: 13 }}>Ajouter</Text>
+              <Text style={{ fontFamily: FontFamily.semiBold, color: colors.primary, fontSize: 13 }}>{t('componentsOrganizer.step1.galleryAdd')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -244,7 +246,7 @@ export default function EventStep1Info({
           >
             <View style={[styles.imagePickerPlaceholder, themed.imagePickerPlaceholder, { paddingVertical: 12 }]}>
               <Ionicons name="images-outline" size={28} color={colors.gray400} />
-              <Text style={[styles.imagePickerText, themed.imagePickerText]}>Ajouter des photos supplémentaires</Text>
+              <Text style={[styles.imagePickerText, themed.imagePickerText]}>{t('componentsOrganizer.step1.galleryEmpty')}</Text>
             </View>
           </TouchableOpacity>
         ) : (
@@ -273,7 +275,7 @@ export default function EventStep1Info({
       {/* Title — editorial display font + char counter inline */}
       <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
-          <Text style={[styles.labelRowLabel, themed.labelRowLabel]}>Titre de l'événement *</Text>
+          <Text style={[styles.labelRowLabel, themed.labelRowLabel]}>{t('componentsOrganizer.step1.titleLabel')}</Text>
           <Text style={[styles.labelRowCounter, themed.labelRowCounter]}>{title.length}/80</Text>
         </View>
         <TextInput
@@ -285,7 +287,7 @@ export default function EventStep1Info({
           ]}
           value={title}
           onChangeText={onTitleChange}
-          placeholder="Ex: Masterclass Jazz au Palais"
+          placeholder={t('componentsOrganizer.step1.titlePlaceholder')}
           placeholderTextColor={colors.gray400}
           maxLength={80}
         />
@@ -297,7 +299,7 @@ export default function EventStep1Info({
         {aiEnabled && (
           <View style={{ marginTop: Spacing.sm, alignSelf: 'flex-start' }}>
             <AIAssistButton
-              label="Optimiser avec l'IA"
+              label={t('componentsOrganizer.step1.optimizeWithAI')}
               onPress={onOptimizeTitle}
               isLoading={aiTitleLoading}
               disabled={!title.trim() || title.length < 5}
@@ -309,14 +311,14 @@ export default function EventStep1Info({
       {/* Short Description — label row with counter */}
       <View style={styles.inputGroup}>
         <View style={styles.labelRow}>
-          <Text style={[styles.labelRowLabel, themed.labelRowLabel]}>Description courte</Text>
+          <Text style={[styles.labelRowLabel, themed.labelRowLabel]}>{t('componentsOrganizer.step1.shortDescriptionLabel')}</Text>
           <Text style={[styles.labelRowCounter, themed.labelRowCounter]}>{shortDescription.length}/150</Text>
         </View>
         <TextInput
           style={[styles.input, themed.input]}
           value={shortDescription}
           onChangeText={onShortDescriptionChange}
-          placeholder="Un résumé en quelques mots"
+          placeholder={t('componentsOrganizer.step1.shortDescriptionPlaceholder')}
           placeholderTextColor={colors.gray400}
           maxLength={150}
         />
@@ -324,7 +326,7 @@ export default function EventStep1Info({
 
       {/* Full Description */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>L'histoire de l'événement *</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step1.fullDescriptionLabel')}</Text>
         <TextInput
           style={[
             styles.input,
@@ -334,7 +336,7 @@ export default function EventStep1Info({
           ]}
           value={description}
           onChangeText={onDescriptionChange}
-          placeholder="Qu'est-ce qui rend ton événement unique ? Pourquoi les gens doivent-ils absolument venir ?"
+          placeholder={t('componentsOrganizer.step1.fullDescriptionPlaceholder')}
           placeholderTextColor={colors.gray400}
           multiline
           numberOfLines={5}
@@ -348,7 +350,7 @@ export default function EventStep1Info({
         {aiEnabled && (
           <View style={{ marginTop: Spacing.sm, alignSelf: 'flex-start' }}>
             <AIAssistButton
-              label="Rédiger un brouillon avec l'IA"
+              label={t('componentsOrganizer.step1.draftWithAI')}
               onPress={onGenerateDescription}
               isLoading={aiDescLoading}
               disabled={!title.trim()}
@@ -359,7 +361,7 @@ export default function EventStep1Info({
 
       {/* Event Type */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Type d'événement *</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step1.eventTypeLabel')}</Text>
         <View style={styles.typeSelector}>
           <TouchableOpacity
             style={[styles.typeOption, themed.typeOption, eventType === 'billetterie' && styles.typeOptionActive]}
@@ -371,7 +373,7 @@ export default function EventStep1Info({
               color={eventType === 'billetterie' ? Colors.white : colors.gray600}
             />
             <Text style={[styles.typeOptionText, themed.typeOptionText, eventType === 'billetterie' && styles.typeOptionTextActive]}>
-              Billetterie
+              {t('componentsOrganizer.step1.eventTypeBilletterie')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -384,7 +386,7 @@ export default function EventStep1Info({
               color={eventType === 'inscription' ? Colors.white : colors.gray600}
             />
             <Text style={[styles.typeOptionText, themed.typeOptionText, eventType === 'inscription' && styles.typeOptionTextActive]}>
-              Inscription
+              {t('componentsOrganizer.step1.eventTypeInscription')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -395,7 +397,7 @@ export default function EventStep1Info({
           Maintenant : un seul bouton qui montre la catégorie sélectionnée
           (icône + nom) ou un placeholder, et ouvre la liste filtrée au tap. */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Catégorie *</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step1.categoryLabel')}</Text>
         <TouchableOpacity
           onPress={() => setCategoryModalOpen(true)}
           style={[
@@ -406,8 +408,8 @@ export default function EventStep1Info({
           accessibilityRole="button"
           accessibilityLabel={
             selectedCategory
-              ? `Catégorie : ${selectedCategory.name}. Toucher pour changer.`
-              : 'Choisir une catégorie'
+              ? t('componentsOrganizer.step1.categoryA11y', { name: selectedCategory.name })
+              : t('componentsOrganizer.step1.chooseCategory')
           }
         >
           {selectedCategory ? (
@@ -454,7 +456,7 @@ export default function EventStep1Info({
               <Text
                 style={[categorySelectStyles.triggerPlaceholder, { color: colors.gray500 }]}
               >
-                Choisir une catégorie
+                {t('componentsOrganizer.step1.chooseCategory')}
               </Text>
             </>
           )}
@@ -465,9 +467,9 @@ export default function EventStep1Info({
       <SearchableSelectModal<Category>
         visible={categoryModalOpen}
         onClose={() => setCategoryModalOpen(false)}
-        eyebrow="ÉVÉNEMENT"
-        title="Catégorie"
-        searchPlaceholder="Rechercher une catégorie..."
+        eyebrow={t('componentsOrganizer.step1.categoryEyebrow')}
+        title={t('componentsOrganizer.step1.categoryModalTitle')}
+        searchPlaceholder={t('componentsOrganizer.step1.categorySearchPlaceholder')}
         items={categories}
         getKey={c => String(c.id)}
         getLabel={c => c.name}
@@ -476,14 +478,14 @@ export default function EventStep1Info({
         selectedKey={categoryId != null ? String(categoryId) : null}
         onSelect={c => onCategoryChange(c.id)}
         onClear={() => onCategoryChange(null)}
-        emptyText="Aucune catégorie ne correspond à cette recherche."
+        emptyText={t('componentsOrganizer.step1.categoryEmpty')}
       />
 
       {/* Tags */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Tags</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step1.tagsLabel')}</Text>
         <Text style={[styles.inputHint, themed.inputHint]}>
-          Ajoutez des mots-clés pour aider les participants à trouver votre événement
+          {t('componentsOrganizer.step1.tagsHint')}
         </Text>
         <View style={{ marginTop: Spacing.sm }}>
           <TagInput
@@ -499,13 +501,13 @@ export default function EventStep1Info({
 
       {/* Visibility */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Visibilité</Text>
-        <Text style={[styles.inputHint, themed.inputHint]}>Qui peut voir et accéder à votre événement</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step1.visibilityLabel')}</Text>
+        <Text style={[styles.inputHint, themed.inputHint]}>{t('componentsOrganizer.step1.visibilityHint')}</Text>
         <View style={styles.optionCardRow}>
           {([
-            { value: 'public' as const, label: 'Public', icon: 'globe-outline' as const, desc: 'Visible par tous' },
-            { value: 'unlisted' as const, label: 'Non listé', icon: 'link-outline' as const, desc: 'Via le lien' },
-            { value: 'invite_only' as const, label: 'Invitation', icon: 'lock-closed-outline' as const, desc: 'Sur invitation' },
+            { value: 'public' as const, label: t('componentsOrganizer.step1.visibilityPublic'), icon: 'globe-outline' as const, desc: t('componentsOrganizer.step1.visibilityPublicDesc') },
+            { value: 'unlisted' as const, label: t('componentsOrganizer.step1.visibilityUnlisted'), icon: 'link-outline' as const, desc: t('componentsOrganizer.step1.visibilityUnlistedDesc') },
+            { value: 'invite_only' as const, label: t('componentsOrganizer.step1.visibilityInvite'), icon: 'lock-closed-outline' as const, desc: t('componentsOrganizer.step1.visibilityInviteDesc') },
           ]).map((opt) => {
             const active = visibility === opt.value;
             return (
@@ -536,15 +538,15 @@ export default function EventStep1Info({
 
       {/* Access Code (optional) */}
       <View style={styles.inputGroup}>
-        <Text style={[styles.label, themed.label]}>Code d'accès (optionnel)</Text>
+        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step1.accessCodeLabel')}</Text>
         <Text style={[styles.inputHint, themed.inputHint]}>
-          Les visiteurs devront entrer ce code pour voir les détails
+          {t('componentsOrganizer.step1.accessCodeHint')}
         </Text>
         <TextInput
           style={[styles.input, themed.input]}
           value={accessCode}
           onChangeText={onAccessCodeChange}
-          placeholder="Laisser vide pour pas de code"
+          placeholder={t('componentsOrganizer.step1.accessCodePlaceholder')}
           placeholderTextColor={colors.gray400}
           secureTextEntry={false}
         />
@@ -554,7 +556,7 @@ export default function EventStep1Info({
       <View style={[styles.warningInfoBox, themed.warningInfoBox]}>
         <Ionicons name="star-outline" size={20} color={colors.warningDark} />
         <Text style={[styles.warningInfoBoxText, themed.warningInfoBoxText]}>
-          Vous pourrez demander la mise en avant de votre événement après sa création depuis "Mes événements".
+          {t('componentsOrganizer.step1.featuredInfo')}
         </Text>
       </View>
     </View>

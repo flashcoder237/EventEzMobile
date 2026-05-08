@@ -28,6 +28,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -56,18 +57,26 @@ interface Newsletter {
   created_at: string;
 }
 
-const STATUS_CONFIG: Record<NewsletterStatus, { label: string; bg: string; fg: string }> = {
-  draft: { label: 'BROUILLON', bg: '#F3F4F615', fg: '#6B7280' },
-  scheduled: { label: 'PROGRAMMÉE', bg: '#3B82F615', fg: '#1D4ED8' },
-  sending: { label: 'ENVOI…', bg: '#F59E0B15', fg: '#B45309' },
-  sent: { label: 'ENVOYÉE', bg: '#10B98115', fg: '#059669' },
-  failed: { label: 'ÉCHEC', bg: '#EF444415', fg: '#B91C1C' },
+const STATUS_BG_FG: Record<NewsletterStatus, { bg: string; fg: string }> = {
+  draft: { bg: '#F3F4F615', fg: '#6B7280' },
+  scheduled: { bg: '#3B82F615', fg: '#1D4ED8' },
+  sending: { bg: '#F59E0B15', fg: '#B45309' },
+  sent: { bg: '#10B98115', fg: '#059669' },
+  failed: { bg: '#EF444415', fg: '#B91C1C' },
 };
 
 export default function NewslettersScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
+  const STATUS_LABELS: Record<NewsletterStatus, string> = {
+    draft: t('organizer.newsletters.statusDraft'),
+    scheduled: t('organizer.newsletters.statusScheduled'),
+    sending: t('organizer.newsletters.statusSending'),
+    sent: t('organizer.newsletters.statusSent'),
+    failed: t('organizer.newsletters.statusFailed'),
+  };
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [items, setItems] = useState<Newsletter[]>([]);
@@ -87,12 +96,12 @@ export default function NewslettersScreen() {
       const data: Newsletter[] = res.data?.results || res.data || [];
       setItems(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de charger les newsletters.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, [showError, t]);
 
   useEffect(() => {
     fetchData();
@@ -107,11 +116,11 @@ export default function NewslettersScreen() {
     const subject = createSubject.trim();
     const content = createContent.trim();
     if (!subject) {
-      showError('Sujet requis', 'Indique l\'objet de l\'email.');
+      showError(t('organizer.newsletters.subjectRequiredTitle'), t('organizer.newsletters.subjectRequiredMessage'));
       return;
     }
     if (!content) {
-      showError('Contenu requis', 'Écris le corps de la newsletter.');
+      showError(t('organizer.newsletters.contentRequiredTitle'), t('organizer.newsletters.contentRequiredMessage'));
       return;
     }
     setCreating(true);
@@ -123,12 +132,12 @@ export default function NewslettersScreen() {
       } else {
         await fetchData();
       }
-      showSuccess('Newsletter créée', 'Tu peux la prévisualiser et l\'envoyer depuis la liste.');
+      showSuccess(t('organizer.newsletters.createSuccessTitle'), t('organizer.newsletters.createSuccessMessage'));
       setCreateOpen(false);
       setCreateSubject('');
       setCreateContent('');
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de créer la newsletter.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.createError'));
     } finally {
       setCreating(false);
     }
@@ -136,12 +145,12 @@ export default function NewslettersScreen() {
 
   const handleSendNow = (item: Newsletter) => {
     if (item.status !== 'draft') {
-      showError('Pas envoyable', 'Seules les newsletters en brouillon peuvent être envoyées.');
+      showError(t('organizer.newsletters.notSendableTitle'), t('organizer.newsletters.notSendableMessage'));
       return;
     }
     showConfirm(
-      'Envoyer maintenant ?',
-      `« ${item.subject} » sera envoyée immédiatement à tous les abonnés ciblés. Action irréversible.`,
+      t('organizer.newsletters.sendNowTitle'),
+      t('organizer.newsletters.sendNowMessage', { subject: item.subject }),
       async () => {
         setActionId(item.id);
         // Optimistic flip vers "sending"
@@ -150,10 +159,10 @@ export default function NewslettersScreen() {
           await newslettersAPI.sendNow(item.id);
           // Re-fetch pour récupérer le statut backend final (sent / scheduled selon stratégie).
           await fetchData();
-          showSuccess('Envoi déclenché', 'La file d\'envoi a été notifiée.');
+          showSuccess(t('organizer.newsletters.sendTriggeredTitle'), t('organizer.newsletters.sendTriggeredMessage'));
         } catch (error: any) {
           setItems(prev => prev.map(n => n.id === item.id ? { ...n, status: 'draft' } : n));
-          showError('Erreur', error?.response?.data?.detail || 'Envoi impossible.');
+          showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.sendError'));
         } finally {
           setActionId(null);
         }
@@ -163,22 +172,23 @@ export default function NewslettersScreen() {
 
   const handleDelete = (item: Newsletter) => {
     showConfirm(
-      'Supprimer la newsletter ?',
-      `« ${item.subject} » sera définitivement supprimée. Action irréversible.`,
+      t('organizer.newsletters.deleteTitle'),
+      t('organizer.newsletters.deleteMessage', { subject: item.subject }),
       async () => {
         try {
           await newslettersAPI.delete(item.id);
           setItems(prev => prev.filter(n => n.id !== item.id));
-          showSuccess('Supprimée', '');
+          showSuccess(t('organizer.newsletters.deletedTitle'), '');
         } catch (error: any) {
-          showError('Erreur', error?.response?.data?.detail || 'Suppression impossible.');
+          showError(t('common.error'), error?.response?.data?.detail || t('organizer.newsletters.deleteError'));
         }
       },
     );
   };
 
   const renderItem = ({ item }: { item: Newsletter }) => {
-    const config = STATUS_CONFIG[item.status] || STATUS_CONFIG.draft;
+    const colorConfig = STATUS_BG_FG[item.status] || STATUS_BG_FG.draft;
+    const label = STATUS_LABELS[item.status] || STATUS_LABELS.draft;
     const isProcessing = actionId === item.id;
     const canSend = item.status === 'draft';
 
@@ -196,8 +206,8 @@ export default function NewslettersScreen() {
               {item.content.replace(/<[^>]*>/g, '').slice(0, 120)}
             </Text>
           </View>
-          <View style={[styles.statusPill, { backgroundColor: config.bg }]}>
-            <Text style={[styles.statusText, { color: config.fg }]}>{config.label}</Text>
+          <View style={[styles.statusPill, { backgroundColor: colorConfig.bg }]}>
+            <Text style={[styles.statusText, { color: colorConfig.fg }]}>{label}</Text>
           </View>
         </View>
 
@@ -214,7 +224,7 @@ export default function NewslettersScreen() {
               ) : (
                 <>
                   <Ionicons name="paper-plane-outline" size={14} color={colors.primary} />
-                  <Text style={[styles.actionText, { color: colors.primary }]}>Envoyer</Text>
+                  <Text style={[styles.actionText, { color: colors.primary }]}>{t('organizer.newsletters.send')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -226,7 +236,7 @@ export default function NewslettersScreen() {
             activeOpacity={0.7}
           >
             <Ionicons name="trash-outline" size={14} color="#EF4444" />
-            <Text style={[styles.actionText, { color: '#EF4444' }]}>Supprimer</Text>
+            <Text style={[styles.actionText, { color: '#EF4444' }]}>{t('common.delete')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -241,20 +251,20 @@ export default function NewslettersScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>COMMUNICATION</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Newsletters</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.newsletters.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.newsletters.title')}</Text>
         </View>
         <TouchableOpacity
           style={[styles.iconDisc, { backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30` }, Shadows.sm]}
           onPress={() => setCreateOpen(true)}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Nouvelle newsletter"
+          accessibilityLabel={t('organizer.newsletters.newA11y')}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
@@ -274,9 +284,9 @@ export default function NewslettersScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="mail-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucune newsletter</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.newsletters.emptyTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Crée une newsletter pour informer tes abonnés de tes prochains événements.
+                {t('organizer.newsletters.emptyText')}
               </Text>
             </View>
           }
@@ -288,21 +298,21 @@ export default function NewslettersScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVELLE NEWSLETTER</Text>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Brouillon</Text>
+              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.newsletters.modalEyebrow')}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('organizer.newsletters.modalTitle')}</Text>
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Sujet *</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.newsletters.subjectField')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                 value={createSubject}
                 onChangeText={setCreateSubject}
-                placeholder="Annonce nouveau festival, programme été…"
+                placeholder={t('organizer.newsletters.subjectPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 editable={!creating}
                 maxLength={255}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Contenu *</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.newsletters.contentField')}</Text>
               <TextInput
                 style={[
                   styles.input,
@@ -311,7 +321,7 @@ export default function NewslettersScreen() {
                 ]}
                 value={createContent}
                 onChangeText={setCreateContent}
-                placeholder="Écris ton message ici. Du HTML simple est accepté (<b>, <a>, <p>…)."
+                placeholder={t('organizer.newsletters.contentPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 multiline
                 numberOfLines={10}
@@ -319,7 +329,7 @@ export default function NewslettersScreen() {
                 editable={!creating}
               />
               <Text style={[styles.helpText, { color: colors.gray500 }]}>
-                Pour de la mise en forme avancée, utilise l'éditeur web. Les abonnés sont ciblés selon les catégories que tu paramètres ensuite.
+                {t('organizer.newsletters.helpText')}
               </Text>
 
               <View style={styles.modalActions}>
@@ -329,7 +339,7 @@ export default function NewslettersScreen() {
                   disabled={creating}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: colors.primary }, creating && { opacity: 0.6 }]}
@@ -340,7 +350,7 @@ export default function NewslettersScreen() {
                   {creating ? (
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
-                    <Text style={[styles.modalBtnText, { color: Colors.white }]}>Créer le brouillon</Text>
+                    <Text style={[styles.modalBtnText, { color: Colors.white }]}>{t('organizer.newsletters.createDraft')}</Text>
                   )}
                 </TouchableOpacity>
               </View>

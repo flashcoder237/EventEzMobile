@@ -73,7 +73,7 @@ export default function AuthGuardScreen({ illustration = 'profile', title, subti
               pour une transition visuelle continue. */}
           <EditorialButton
             label={t('authGuard.loginCta')}
-            eyebrow="Entrer"
+            eyebrow={t('componentsAuth.guardEnter')}
             onPress={() => navigation.navigate('Login')}
             variant="primary"
             fullWidth

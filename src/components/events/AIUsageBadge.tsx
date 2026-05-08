@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import type { AIUsage } from '../../types';
@@ -11,6 +12,7 @@ interface AIUsageBadgeProps {
 
 export default function AIUsageBadge({ usage }: AIUsageBadgeProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   if (!usage) return null;
 
@@ -35,10 +37,10 @@ export default function AIUsageBadge({ usage }: AIUsageBadgeProps) {
       <Ionicons name="sparkles" size={12} color={textColor} />
       <Text style={[styles.text, { color: textColor }]}>
         {isUnlimited
-          ? 'IA illimitée'
+          ? t('componentsEvents.aiUnlimited')
           : remaining <= 0
-            ? 'Limite IA atteinte'
-            : `${usage.daily_count}/${usage.daily_limit} IA`}
+            ? t('componentsEvents.aiLimitReached')
+            : t('componentsEvents.aiUsageCount', { count: usage.daily_count, limit: usage.daily_limit })}
       </Text>
     </View>
   );

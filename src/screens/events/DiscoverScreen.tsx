@@ -1591,7 +1591,7 @@ export default function DiscoverScreen() {
                   <View style={styles.section}>
                     <SectionHeader
                       eyebrow={t('eyebrow.upcoming')}
-                      title="The Incoming"
+                      title={t('discover.incomingTitle')}
                       onSeeAll={() => activateSearch()}
                     />
                     <View style={{ paddingHorizontal: Spacing.lg }}>{renderIncoming()}</View>

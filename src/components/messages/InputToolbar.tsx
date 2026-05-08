@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Message } from '../../types';
 import { AttachedFile } from '../../hooks/useMessageState';
 import {
@@ -75,6 +76,7 @@ function InputToolbar({
   onCancelEdit,
 }: InputToolbarProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const inputRef = useRef<TextInput>(null);
   const recordingAnim = useRef(new Animated.Value(1)).current;
 
@@ -120,7 +122,7 @@ function InputToolbar({
           <View style={[styles.previewBar, { backgroundColor: colors.primary }]} />
           <View style={styles.previewContent}>
             <Text style={[styles.previewLabel, { color: colors.primary }]}>
-              Repondre a {replyToMessage.sender_name || 'Utilisateur'}
+              {t('componentsMessages.inputReplyTo', { name: replyToMessage.sender_name || t('componentsMessages.userFallback') })}
             </Text>
             <Text style={[styles.previewMessage, { color: colors.gray600 }]} numberOfLines={1}>
               {replyToMessage.content}
@@ -143,7 +145,7 @@ function InputToolbar({
         <View style={styles.previewLeft}>
           <Ionicons name="create-outline" size={20} color={colors.primary} />
           <View style={styles.previewContent}>
-            <Text style={[styles.previewLabel, { color: colors.primary }]}>Modifier le message</Text>
+            <Text style={[styles.previewLabel, { color: colors.primary }]}>{t('componentsMessages.inputEditing')}</Text>
             <Text style={[styles.previewMessage, { color: colors.gray600 }]} numberOfLines={1}>
               {editingMessage.content}
             </Text>
@@ -232,8 +234,8 @@ function InputToolbar({
           style={styles.actionButton}
           onPress={onPickImage}
           activeOpacity={TOUCH_OPACITY}
-          accessibilityLabel="Joindre un fichier"
-          accessibilityHint="Images max 5 Mo, fichiers max 10 Mo"
+          accessibilityLabel={t('componentsMessages.inputJoinFile')}
+          accessibilityHint={t('componentsMessages.inputJoinFileHint')}
           accessibilityRole="button"
         >
           <Ionicons name="image-outline" size={22} color={colors.primary} />
@@ -246,7 +248,7 @@ function InputToolbar({
             style={[styles.input, { color: colors.gray900 }]}
             value={value}
             onChangeText={onChangeText}
-            placeholder={editingMessage ? 'Modifier le message...' : 'Écrivez votre message...'}
+            placeholder={editingMessage ? t('componentsMessages.inputEditPlaceholder') : t('componentsMessages.inputPlaceholder')}
             placeholderTextColor={colors.gray400}
             multiline
             // Android : sans `textAlignVertical=top`, RN centre verticalement
@@ -255,7 +257,7 @@ function InputToolbar({
             // disparaître le clipping de la dernière ligne.
             textAlignVertical="top"
             maxLength={1000}
-            accessibilityLabel="Ecrire un message"
+            accessibilityLabel={t('componentsMessages.inputWriteMessage')}
           />
         </View>
 
@@ -266,7 +268,7 @@ function InputToolbar({
             onPress={handleSend}
             disabled={sending}
             activeOpacity={TOUCH_OPACITY}
-            accessibilityLabel="Envoyer"
+            accessibilityLabel={t('componentsMessages.inputSend')}
             accessibilityRole="button"
           >
             {sending ? (
@@ -280,7 +282,7 @@ function InputToolbar({
             style={[styles.micButton, { backgroundColor: colors.gray100 }]}
             onPress={onStartRecording}
             activeOpacity={TOUCH_OPACITY}
-            accessibilityLabel="Enregistrer un message vocal"
+            accessibilityLabel={t('componentsMessages.inputRecordVoice')}
             accessibilityRole="button"
           >
             <Ionicons name="mic" size={22} color={colors.primary} />

@@ -9,6 +9,7 @@ import {
   Clipboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
 import WebViewMap from '../maps/WebViewMap';
@@ -37,20 +38,21 @@ interface LocationTabProps {
 }
 
 // City-specific advice — keeps the local flavor that the original component had
-function getCityAdvice(city?: string): string {
-  if (!city) return 'On te conseille d\'arriver au moins 15 minutes avant le début.';
+function getCityAdvice(city: string | undefined, t: (k: string) => string): string {
+  if (!city) return t('componentsEvents.locationCityAdviceDefault');
   const c = city.toLowerCase();
   if (c.includes('douala'))
-    return 'À Douala, prévois 30 min d\'avance — le trafic est dense surtout en fin de journée.';
+    return t('componentsEvents.locationCityAdviceDouala');
   if (c.includes('yaound'))
-    return 'À Yaoundé, ajoute un buffer pour les embouteillages, surtout sur l\'axe Bastos / Mvog-Ada.';
+    return t('componentsEvents.locationCityAdviceYaounde');
   if (c.includes('abidjan'))
-    return 'À Abidjan, anticipe le trafic — surtout si tu traverses la lagune.';
-  return 'On te conseille d\'arriver au moins 15 minutes avant le début.';
+    return t('componentsEvents.locationCityAdviceAbidjan');
+  return t('componentsEvents.locationCityAdviceDefault');
 }
 
 export default function LocationTab({ event }: LocationTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
   const hasPhysicalLocation = event.location_type === 'in_person' || event.location_type === 'hybrid';
@@ -94,8 +96,8 @@ export default function LocationTab({ event }: LocationTabProps) {
         id: event.id,
         lat: event.location_latitude!,
         lng: event.location_longitude!,
-        title: event.location_name || 'Lieu',
-        location_name: event.location_name || 'Lieu',
+        title: event.location_name || t('componentsEvents.locationVenuePlaceholder'),
+        location_name: event.location_name || t('componentsEvents.locationVenuePlaceholder'),
         location_city: event.location_city || '',
         start_date: event.start_date || '',
         category: event.category?.name || null,
@@ -109,8 +111,8 @@ export default function LocationTab({ event }: LocationTabProps) {
   return (
     <View style={styles.section}>
       {/* === Section header === */}
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>Lieu</Text>
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Où ça se passe</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.locationEyebrow')}</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('componentsEvents.locationSectionTitle')}</Text>
 
       {/* === Physical Location === */}
       {hasPhysicalLocation && (
@@ -133,7 +135,7 @@ export default function LocationTab({ event }: LocationTabProps) {
             ) : (
               <View style={[styles.noMapWrap, { backgroundColor: colors.gray100 }]}>
                 <Ionicons name="map-outline" size={42} color={colors.gray400} />
-                <Text style={[styles.noMapText, { color: colors.gray500 }]}>Carte non disponible</Text>
+                <Text style={[styles.noMapText, { color: colors.gray500 }]}>{t('componentsEvents.locationMapUnavailable')}</Text>
               </View>
             )}
 
@@ -152,7 +154,7 @@ export default function LocationTab({ event }: LocationTabProps) {
               </View>
               <View style={styles.venueTextWrap}>
                 <Text style={[styles.venueName, { color: colors.text }]} numberOfLines={1}>
-                  {event.location_name || 'Lieu à définir'}
+                  {event.location_name || t('componentsEvents.locationVenueTba')}
                 </Text>
                 <Text style={[styles.venueAddress, { color: colors.gray500 }]} numberOfLines={1}>
                   {fullAddress || event.location_city}
@@ -162,7 +164,7 @@ export default function LocationTab({ event }: LocationTabProps) {
                 onPress={copyAddress}
                 style={styles.copyDisc}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityLabel="Copier l'adresse"
+                accessibilityLabel={t('componentsEvents.locationCopyA11y')}
               >
                 <Ionicons
                   name={copied ? 'checkmark' : 'copy-outline'}
@@ -183,7 +185,7 @@ export default function LocationTab({ event }: LocationTabProps) {
               <View style={[styles.actionIconWrap, { backgroundColor: '#4285F415' }]}>
                 <Ionicons name="map" size={18} color="#4285F4" />
               </View>
-              <Text style={[styles.actionLabel, { color: colors.text }]}>Maps</Text>
+              <Text style={[styles.actionLabel, { color: colors.text }]}>{t('componentsEvents.locationActionMaps')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -194,7 +196,7 @@ export default function LocationTab({ event }: LocationTabProps) {
               <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(255,255,255,0.18)' }]}>
                 <Ionicons name="navigate" size={18} color="#fff" />
               </View>
-              <Text style={styles.actionLabelPrimary}>Itinéraire</Text>
+              <Text style={styles.actionLabelPrimary}>{t('componentsEvents.locationActionDirections')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -205,7 +207,7 @@ export default function LocationTab({ event }: LocationTabProps) {
               <View style={[styles.actionIconWrap, { backgroundColor: '#33CCFF15' }]}>
                 <Ionicons name="car" size={18} color="#33CCFF" />
               </View>
-              <Text style={[styles.actionLabel, { color: colors.text }]}>Waze</Text>
+              <Text style={[styles.actionLabel, { color: colors.text }]}>{t('componentsEvents.locationActionWaze')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -223,9 +225,9 @@ export default function LocationTab({ event }: LocationTabProps) {
               <Ionicons name="bulb" size={18} color={colors.accent} />
             </View>
             <View style={styles.tipsTextWrap}>
-              <Text style={[styles.tipsEyebrow, { color: colors.accent }]}>CONSEIL LOCAL</Text>
+              <Text style={[styles.tipsEyebrow, { color: colors.accent }]}>{t('componentsEvents.locationTipsEyebrow')}</Text>
               <Text style={[styles.tipsBody, { color: colors.gray700 }]}>
-                {getCityAdvice(event.location_city)}
+                {getCityAdvice(event.location_city, t)}
               </Text>
             </View>
           </View>
@@ -240,11 +242,11 @@ export default function LocationTab({ event }: LocationTabProps) {
               <Ionicons name="videocam" size={20} color="#3B82F6" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.onlineEyebrow, { color: '#3B82F6' }]}>EN LIGNE</Text>
+              <Text style={[styles.onlineEyebrow, { color: '#3B82F6' }]}>{t('componentsEvents.locationOnlineEyebrow')}</Text>
               <Text style={[styles.onlineTitle, { color: colors.text }]}>
                 {event.online_platform === 'eventez_visio'
-                  ? 'EventEz Visio'
-                  : event.online_platform || 'Visioconférence'}
+                  ? t('componentsEvents.locationOnlineEventEzVisio')
+                  : event.online_platform || t('componentsEvents.locationOnlineDefault')}
               </Text>
             </View>
           </View>
@@ -256,13 +258,13 @@ export default function LocationTab({ event }: LocationTabProps) {
               activeOpacity={0.85}
             >
               <Ionicons name="open-outline" size={16} color="#fff" />
-              <Text style={styles.joinOnlineBtnText}>Rejoindre la réunion</Text>
+              <Text style={styles.joinOnlineBtnText}>{t('componentsEvents.locationJoinMeeting')}</Text>
             </TouchableOpacity>
           )}
 
           {event.online_instructions && (
             <View style={[styles.instructionsBox, { backgroundColor: colors.gray50, borderColor: hairline }]}>
-              <Text style={[styles.instructionsLabel, { color: colors.gray500 }]}>INSTRUCTIONS</Text>
+              <Text style={[styles.instructionsLabel, { color: colors.gray500 }]}>{t('componentsEvents.locationInstructionsLabel')}</Text>
               <Text style={[styles.instructionsText, { color: colors.gray700 }]}>
                 {event.online_instructions}
               </Text>
@@ -277,9 +279,9 @@ export default function LocationTab({ event }: LocationTabProps) {
           <View style={[styles.emptyIconWrap, { backgroundColor: colors.primaryBg }]}>
             <Ionicons name="location-outline" size={28} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Lieu à confirmer</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('componentsEvents.locationEmptyTitle')}</Text>
           <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-            L&apos;organisateur n&apos;a pas encore communiqué le lieu.
+            {t('componentsEvents.locationEmptyText')}
           </Text>
         </View>
       )}

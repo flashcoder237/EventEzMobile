@@ -8,6 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 
@@ -31,6 +32,7 @@ export default function AIQuickCreatePanel({
   aiEnabled,
 }: AIQuickCreatePanelProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [prompt, setPrompt] = useState('');
 
@@ -53,8 +55,8 @@ export default function AIQuickCreatePanel({
             <Ionicons name="sparkles" size={18} color="#A855F7" />
           </View>
           <View>
-            <Text style={styles.headerEyebrow}>Propulsé par l'IA</Text>
-            <Text style={styles.headerTitle}>Création rapide</Text>
+            <Text style={styles.headerEyebrow}>{t('componentsEvents.aiQuickPoweredBy')}</Text>
+            <Text style={styles.headerTitle}>{t('componentsEvents.aiQuickTitle')}</Text>
           </View>
         </View>
         <Ionicons
@@ -70,7 +72,7 @@ export default function AIQuickCreatePanel({
             style={[styles.promptInput, { backgroundColor: colors.surface, color: colors.gray900 }]}
             value={prompt}
             onChangeText={setPrompt}
-            placeholder="Ex: Un concert de jazz le 15 mars à Douala avec 3 types de billets..."
+            placeholder={t('componentsEvents.aiQuickPlaceholder')}
             placeholderTextColor={colors.gray400}
             multiline
             numberOfLines={3}
@@ -92,7 +94,7 @@ export default function AIQuickCreatePanel({
               <Ionicons name="sparkles" size={18} color={Colors.white} />
             )}
             <Text style={styles.generateButtonText}>
-              {isLoading ? 'Génération...' : 'Générer avec l\'IA'}
+              {isLoading ? t('componentsEvents.aiQuickGenerating') : t('componentsEvents.aiQuickGenerate')}
             </Text>
           </TouchableOpacity>
 
@@ -105,22 +107,22 @@ export default function AIQuickCreatePanel({
 
           {result && (
             <View style={[styles.resultBox, { backgroundColor: colors.surface }]}>
-              <Text style={styles.resultTitle}>Événement généré</Text>
+              <Text style={styles.resultTitle}>{t('componentsEvents.aiQuickResultTitle')}</Text>
               {result.title && (
                 <Text style={styles.resultField}>
-                  <Text style={styles.resultLabel}>Titre: </Text>
+                  <Text style={styles.resultLabel}>{t('componentsEvents.aiQuickResultTitleLabel')}</Text>
                   {result.title}
                 </Text>
               )}
               {result.description && (
                 <Text style={styles.resultField} numberOfLines={3}>
-                  <Text style={styles.resultLabel}>Description: </Text>
+                  <Text style={styles.resultLabel}>{t('componentsEvents.aiQuickResultDescriptionLabel')}</Text>
                   {result.description}
                 </Text>
               )}
               <TouchableOpacity style={styles.applyButton} onPress={() => onApply(result)}>
                 <Ionicons name="checkmark-circle" size={18} color={Colors.white} />
-                <Text style={styles.applyButtonText}>Appliquer au formulaire</Text>
+                <Text style={styles.applyButtonText}>{t('componentsEvents.aiQuickApply')}</Text>
               </TouchableOpacity>
             </View>
           )}

@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { WebView } from 'react-native-webview';
+import { useTranslation } from 'react-i18next';
 import { Colors } from '../../constants/theme';
 import { LoadingSpinner } from '../ui/LoadingOverlay';
 import { MapMarker } from '../../types';
@@ -57,6 +58,7 @@ export default function WebViewMap({
   showRadius = false,
   isDark = false,
 }: WebViewMapProps) {
+  const { t } = useTranslation();
   const webViewRef = useRef<WebView>(null);
   const [isLoading, setIsLoading] = useState(true);
   const mapReadyRef = useRef(false);
@@ -92,12 +94,14 @@ export default function WebViewMap({
   }, []);
 
   // HTML generated once (or when isDark changes)
+  const yourPositionLabel = t('componentsMaps.yourPosition');
   const htmlContent = useMemo(() => {
     const tileUrl = isDark
       ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
       : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
     const tileAttrib = isDark ? '&copy; CartoDB' : '&copy; OpenStreetMap';
     const clusterBase = isDark ? '#818CF8' : '#4F46E5';
+    const safeYourPosition = JSON.stringify(yourPositionLabel);
 
     return `<!DOCTYPE html>
 <html>
@@ -346,7 +350,7 @@ export default function WebViewMap({
           iconAnchor: [10, 10]
         });
         userMarker = L.marker([userLoc.lat, userLoc.lng], { icon: pulseIcon });
-        userMarker.bindTooltip('Votre position', { permanent: false, direction: 'top' });
+        userMarker.bindTooltip(${safeYourPosition}, { permanent: false, direction: 'top' });
         userMarker.addTo(map);
       }
     }
@@ -399,7 +403,7 @@ export default function WebViewMap({
   </script>
 </body>
 </html>`;
-  }, [isDark, centerLat, centerLng, zoom]);
+  }, [isDark, centerLat, centerLng, zoom, yourPositionLabel]);
 
   // Handle messages from WebView
   const handleMessage = useCallback((event: any) => {

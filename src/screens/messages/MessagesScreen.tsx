@@ -176,7 +176,7 @@ const ConversationCard = memo(function ConversationCard({
               cardStyles.presenceDot,
               { backgroundColor: '#22C55E', borderColor: colors.background },
             ]}
-            accessibilityLabel="En ligne"
+            accessibilityLabel={t('messages.online')}
           />
         )}
       </View>
@@ -966,7 +966,7 @@ export default function MessagesScreen() {
             ]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.text} />
           </TouchableOpacity>
@@ -989,7 +989,7 @@ export default function MessagesScreen() {
             ]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Rechercher"
+            accessibilityLabel={t('common.search')}
           >
             <Ionicons name={searchOpen ? 'close' : 'search'} size={18} color={colors.text} />
           </TouchableOpacity>
@@ -997,7 +997,7 @@ export default function MessagesScreen() {
             onPress={handleOpenNewModal}
             style={[styles.composeBtn, { backgroundColor: colors.primary }, Shadows.md]}
             activeOpacity={0.85}
-            accessibilityLabel="Nouveau message"
+            accessibilityLabel={t('messages.newMessage')}
             accessibilityRole="button"
           >
             <Ionicons name="create-outline" size={18} color="#FFFFFF" />

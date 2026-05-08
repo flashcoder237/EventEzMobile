@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -70,6 +71,7 @@ export default function MapPickerModal({
   initialLng,
 }: MapPickerModalProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const mapRef = useRef<MapView>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -131,7 +133,7 @@ export default function MapPickerModal({
         lng: roundedLng,
         address: data.display_name || '',
         city: data.address?.city || data.address?.town || data.address?.village || data.address?.municipality || '',
-        country: data.address?.country || 'Cameroun',
+        country: data.address?.country || t('componentsCommon.mapDefaultCountry'),
         locationName: data.name || data.address?.road || '',
       };
 
@@ -210,7 +212,7 @@ export default function MapPickerModal({
       lng,
       address: result.display_name,
       city: addressParts.length > 2 ? addressParts[addressParts.length - 3]?.trim() : '',
-      country: addressParts[addressParts.length - 1]?.trim() || 'Cameroun',
+      country: addressParts[addressParts.length - 1]?.trim() || t('componentsCommon.mapDefaultCountry'),
       locationName: result.name || addressParts[0]?.trim() || '',
     };
 
@@ -223,7 +225,7 @@ export default function MapPickerModal({
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        alert('Permission de localisation requise');
+        alert(t('componentsCommon.mapPermissionRequired'));
         return;
       }
 
@@ -247,7 +249,7 @@ export default function MapPickerModal({
       await reverseGeocode(latitude, longitude);
     } catch (error) {
       if (__DEV__) console.error('Geolocation error:', error);
-      alert('Impossible de récupérer votre position');
+      alert(t('componentsCommon.mapLocationError'));
     } finally {
       setLoadingLocation(false);
     }
@@ -307,7 +309,7 @@ export default function MapPickerModal({
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Ionicons name="location" size={20} color={Colors.white} />
-            <Text style={styles.headerTitle}>Sélectionner un emplacement</Text>
+            <Text style={styles.headerTitle}>{t('componentsCommon.mapHeaderTitle')}</Text>
           </View>
           <View style={{ width: 40 }} />
         </View>
@@ -320,7 +322,7 @@ export default function MapPickerModal({
               style={[styles.searchInput, { color: colors.gray900 }]}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder="Rechercher un lieu..."
+              placeholder={t('componentsCommon.mapSearchPlaceholder')}
               placeholderTextColor={colors.gray400}
               onSubmitEditing={handleSearch}
               returnKeyType="search"
@@ -340,7 +342,7 @@ export default function MapPickerModal({
             {searching ? (
               <ActivityIndicator size="small" color={Colors.white} />
             ) : (
-              <Text style={styles.searchButtonText}>Rechercher</Text>
+              <Text style={styles.searchButtonText}>{t('componentsCommon.mapSearchButton')}</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity
@@ -403,7 +405,7 @@ export default function MapPickerModal({
         {selectedLocation && (
           <View style={[styles.selectedLocationContainer, { backgroundColor: colors.gray50, borderTopColor: colors.gray200 }]}>
             <View style={styles.selectedLocationInfo}>
-              <Text style={[styles.selectedLocationLabel, { color: colors.gray500 }]}>Emplacement sélectionné</Text>
+              <Text style={[styles.selectedLocationLabel, { color: colors.gray500 }]}>{t('componentsCommon.mapSelectedLabel')}</Text>
               <Text style={[styles.selectedLocationName, { color: colors.gray900 }]} numberOfLines={1}>
                 {selectedLocation.locationName || `${selectedLocation.lat.toFixed(6)}, ${selectedLocation.lng.toFixed(6)}`}
               </Text>
@@ -419,7 +421,7 @@ export default function MapPickerModal({
               activeOpacity={TOUCH_OPACITY}
             >
               <Ionicons name="checkmark" size={20} color={Colors.white} />
-              <Text style={styles.confirmButtonText}>Confirmer</Text>
+              <Text style={styles.confirmButtonText}>{t('componentsCommon.mapConfirm')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -436,7 +438,7 @@ export default function MapPickerModal({
         >
           <Ionicons name="information-circle-outline" size={16} color={colors.info} />
           <Text style={[styles.helpText, { color: colors.info }]}>
-            Appuyez sur la carte pour placer un marqueur, ou utilisez la recherche
+            {t('componentsCommon.mapHelpText')}
           </Text>
         </View>
       </KeyboardAvoidingView>

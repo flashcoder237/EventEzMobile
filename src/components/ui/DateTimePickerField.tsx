@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -43,18 +44,22 @@ export default function DateTimePickerField({
   minimumDate,
   maximumDate,
   disabled = false,
-  placeholder = 'Sélectionner date et heure',
+  placeholder,
 }: DateTimePickerFieldProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
+  const resolvedPlaceholder = placeholder ?? t('componentsUI.dateTimePickerPlaceholder');
   const [pickerStep, setPickerStep] = useState<'hidden' | 'date' | 'time'>('hidden');
   const [tempDate, setTempDate] = useState<Date>(value || new Date());
 
   const formatDateTime = (date: Date) => {
-    return date.toLocaleDateString('fr-FR', {
+    const locale = t('componentsUI.dateTimePickerLocale');
+    const separator = t('componentsUI.dateTimePickerSeparator');
+    return date.toLocaleDateString(locale, {
       day: '2-digit',
       month: 'long',
       year: 'numeric',
-    }) + ' à ' + date.toLocaleTimeString('fr-FR', {
+    }) + separator + date.toLocaleTimeString(locale, {
       hour: '2-digit',
       minute: '2-digit',
     });
@@ -133,7 +138,7 @@ export default function DateTimePickerField({
         activeOpacity={disabled ? 1 : TOUCH_OPACITY}
       >
         <Text style={value ? [styles.valueText, { color: colors.gray900 }] : [styles.placeholderText, { color: colors.gray400 }]}>
-          {value ? formatDateTime(value) : placeholder}
+          {value ? formatDateTime(value) : resolvedPlaceholder}
         </Text>
         <Ionicons
           name="calendar-outline"
@@ -151,16 +156,16 @@ export default function DateTimePickerField({
             <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
                 <TouchableOpacity onPress={() => setPickerStep('hidden')}>
-                  <Text style={[styles.modalCancel, { color: colors.gray500 }]}>Annuler</Text>
+                  <Text style={[styles.modalCancel, { color: colors.gray500 }]}>{t('componentsUI.modalCancel')}</Text>
                 </TouchableOpacity>
                 <Text style={[styles.modalTitle, { color: colors.gray900 }]}>
-                  {pickerStep === 'date' ? 'Choisir la date' : 'Choisir l\'heure'}
+                  {pickerStep === 'date' ? t('componentsUI.modalChooseDate') : t('componentsUI.modalChooseTime')}
                 </Text>
                 <TouchableOpacity
                   onPress={pickerStep === 'date' ? handleIOSNext : handleIOSConfirm}
                 >
                   <Text style={[styles.modalDone, { color: colors.primary }]}>
-                    {pickerStep === 'date' ? 'Suivant' : 'Valider'}
+                    {pickerStep === 'date' ? t('componentsUI.modalNext') : t('componentsUI.modalValidate')}
                   </Text>
                 </TouchableOpacity>
               </View>

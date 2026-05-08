@@ -18,6 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import {
   FontFamily,
   FontSizes,
@@ -38,17 +39,19 @@ export type ReportReason =
 
 interface ReportReasonOption {
   value: ReportReason;
-  label: string;
-  description: string;
+  /** i18n key for label */
+  labelKey: string;
+  /** i18n key for description */
+  descKey: string;
 }
 
 const REASONS: ReportReasonOption[] = [
-  { value: 'spam', label: 'Spam', description: 'Messages publicitaires non sollicités' },
-  { value: 'harassment', label: 'Harcèlement', description: 'Comportement insultant ou menaçant' },
-  { value: 'hate_speech', label: 'Discours haineux', description: 'Propos discriminatoires' },
-  { value: 'inappropriate', label: 'Contenu inapproprié', description: 'Sexuel, violent ou choquant' },
-  { value: 'scam', label: 'Arnaque', description: 'Tentative de fraude ou phishing' },
-  { value: 'other', label: 'Autre', description: 'Une autre raison' },
+  { value: 'spam', labelKey: 'componentsMessages.reportReasonSpam', descKey: 'componentsMessages.reportReasonSpamDesc' },
+  { value: 'harassment', labelKey: 'componentsMessages.reportReasonHarassment', descKey: 'componentsMessages.reportReasonHarassmentDesc' },
+  { value: 'hate_speech', labelKey: 'componentsMessages.reportReasonHate', descKey: 'componentsMessages.reportReasonHateDesc' },
+  { value: 'inappropriate', labelKey: 'componentsMessages.reportReasonInappropriate', descKey: 'componentsMessages.reportReasonInappropriateDesc' },
+  { value: 'scam', labelKey: 'componentsMessages.reportReasonScam', descKey: 'componentsMessages.reportReasonScamDesc' },
+  { value: 'other', labelKey: 'componentsMessages.reportReasonOther', descKey: 'componentsMessages.reportReasonOtherDesc' },
 ];
 
 interface ReportMessageModalProps {
@@ -65,6 +68,7 @@ function ReportMessageModal({
   submitting = false,
 }: ReportMessageModalProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
@@ -113,10 +117,10 @@ function ReportMessageModal({
 
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>MODÉRATION</Text>
-          <Text style={[styles.title, { color: colors.text }]}>Signaler ce message</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsMessages.reportEyebrow')}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('componentsMessages.reportTitle')}</Text>
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-            Choisis la raison principale. Notre équipe examinera ton signalement sous 24h.
+            {t('componentsMessages.reportSubtitle')}
           </Text>
         </View>
 
@@ -156,10 +160,10 @@ function ReportMessageModal({
                       { color: active ? colors.accent : colors.text },
                     ]}
                   >
-                    {reason.label}
+                    {t(reason.labelKey)}
                   </Text>
                   <Text style={[styles.reasonDesc, { color: colors.gray500 }]}>
-                    {reason.description}
+                    {t(reason.descKey)}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -168,7 +172,7 @@ function ReportMessageModal({
         </View>
 
         {/* Description */}
-        <Text style={[styles.inputLabel, { color: colors.gray500 }]}>DÉTAILS (OPTIONNEL)</Text>
+        <Text style={[styles.inputLabel, { color: colors.gray500 }]}>{t('componentsMessages.reportDetailsLabel')}</Text>
         <TextInput
           style={[
             styles.descriptionInput,
@@ -180,7 +184,7 @@ function ReportMessageModal({
           ]}
           value={description}
           onChangeText={setDescription}
-          placeholder="Ajoute du contexte si tu le souhaites…"
+          placeholder={t('componentsMessages.reportDetailsPlaceholder')}
           placeholderTextColor={colors.gray400}
           multiline
           maxLength={500}
@@ -205,7 +209,7 @@ function ReportMessageModal({
               },
             ]}
           >
-            <Text style={[styles.cancelText, { color: colors.text }]}>Annuler</Text>
+            <Text style={[styles.cancelText, { color: colors.text }]}>{t('componentsMessages.actionCancel')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleSubmit}
@@ -217,13 +221,13 @@ function ReportMessageModal({
                 backgroundColor: canSubmit ? colors.accent : colors.gray300,
               },
             ]}
-            accessibilityLabel="Envoyer le signalement"
+            accessibilityLabel={t('componentsMessages.reportSubmitA11y')}
             accessibilityRole="button"
           >
             {submitting ? (
               <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
-              <Text style={styles.submitText}>Envoyer</Text>
+              <Text style={styles.submitText}>{t('componentsMessages.reportSubmit')}</Text>
             )}
           </TouchableOpacity>
         </View>

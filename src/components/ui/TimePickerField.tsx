@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RNDateTimePicker from '@react-native-community/datetimepicker';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -35,10 +36,12 @@ export default function TimePickerField({
   label,
   error,
   disabled = false,
-  placeholder = 'Sélectionner une heure',
+  placeholder,
 }: TimePickerFieldProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const [showPicker, setShowPicker] = useState(false);
+  const resolvedPlaceholder = placeholder ?? t('componentsUI.timePickerPlaceholder');
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('fr-FR', {
@@ -87,7 +90,7 @@ export default function TimePickerField({
         activeOpacity={disabled ? 1 : TOUCH_OPACITY}
       >
         <Text style={value ? [styles.valueText, { color: colors.gray900 }] : [styles.placeholderText, { color: colors.gray400 }]}>
-          {value ? formatTime(value) : placeholder}
+          {value ? formatTime(value) : resolvedPlaceholder}
         </Text>
         <Ionicons
           name="time-outline"
@@ -105,11 +108,11 @@ export default function TimePickerField({
             <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
               <View style={[styles.modalHeader, { borderBottomColor: colors.gray100 }]}>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={[styles.modalCancel, { color: colors.gray500 }]}>Annuler</Text>
+                  <Text style={[styles.modalCancel, { color: colors.gray500 }]}>{t('componentsUI.modalCancel')}</Text>
                 </TouchableOpacity>
-                <Text style={[styles.modalTitle, { color: colors.gray900 }]}>{label || 'Heure'}</Text>
+                <Text style={[styles.modalTitle, { color: colors.gray900 }]}>{label || t('componentsUI.modalTime')}</Text>
                 <TouchableOpacity onPress={() => setShowPicker(false)}>
-                  <Text style={[styles.modalDone, { color: colors.primary }]}>Valider</Text>
+                  <Text style={[styles.modalDone, { color: colors.primary }]}>{t('componentsUI.modalValidate')}</Text>
                 </TouchableOpacity>
               </View>
               {renderPicker()}

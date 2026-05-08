@@ -8,30 +8,13 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { SessionForm, SESSION_TYPES } from '../../hooks/useEventForm';
 import DateTimePickerField from '../ui/DateTimePickerField';
 import styles from './eventCreateStyles';
 import { useEventCreateThemedStyles } from './useEventCreateThemedStyles';
-
-// ============================================
-// Constants
-// ============================================
-
-const LEVEL_OPTIONS = [
-  { value: 'all', label: 'Tous' },
-  { value: 'beginner', label: 'Débutant' },
-  { value: 'intermediate', label: 'Intermédiaire' },
-  { value: 'advanced', label: 'Avancé' },
-];
-
-const LANGUAGE_OPTIONS = [
-  { value: 'fr', label: 'Français' },
-  { value: 'en', label: 'Anglais' },
-  { value: 'es', label: 'Espagnol' },
-  { value: 'de', label: 'Allemand' },
-];
 
 // ============================================
 // Props
@@ -54,9 +37,24 @@ export default function EventStep4Sessions({
   onUpdateSession,
   onRemoveSession,
 }: EventStep4SessionsProps) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const themed = useEventCreateThemedStyles();
   const [advancedOpen, setAdvancedOpen] = useState<Record<number, boolean>>({});
+
+  const LEVEL_OPTIONS = [
+    { value: 'all', label: t('componentsOrganizer.step4.levelAll') },
+    { value: 'beginner', label: t('componentsOrganizer.step4.levelBeginner') },
+    { value: 'intermediate', label: t('componentsOrganizer.step4.levelIntermediate') },
+    { value: 'advanced', label: t('componentsOrganizer.step4.levelAdvanced') },
+  ];
+
+  const LANGUAGE_OPTIONS = [
+    { value: 'fr', label: t('componentsOrganizer.step4.languageFr') },
+    { value: 'en', label: t('componentsOrganizer.step4.languageEn') },
+    { value: 'es', label: t('componentsOrganizer.step4.languageEs') },
+    { value: 'de', label: t('componentsOrganizer.step4.languageDe') },
+  ];
 
   const toggleAdvanced = (index: number) => {
     setAdvancedOpen(prev => ({ ...prev, [index]: !prev[index] }));
@@ -66,14 +64,14 @@ export default function EventStep4Sessions({
 
   return (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, themed.stepTitle]}>Sessions (optionnel)</Text>
-      <Text style={[styles.stepDescription, themed.stepDescription]}>Ajoutez des sessions à votre événement</Text>
+      <Text style={[styles.stepTitle, themed.stepTitle]}>{t('componentsOrganizer.step4.title')}</Text>
+      <Text style={[styles.stepDescription, themed.stepDescription]}>{t('componentsOrganizer.step4.description')}</Text>
 
       {/* Info box */}
       <View style={[styles.infoBox, themed.infoBox]}>
         <Ionicons name="information-circle-outline" size={20} color={colors.primary} />
         <Text style={[styles.infoBoxText, themed.infoBoxText]}>
-          Cette étape est optionnelle. Vous pouvez ajouter des sessions plus tard depuis votre tableau de bord.
+          {t('componentsOrganizer.step4.infoBox')}
         </Text>
       </View>
 
@@ -82,13 +80,13 @@ export default function EventStep4Sessions({
           <View style={[styles.emptyIcon, themed.emptyIcon]}>
             <Ionicons name="layers-outline" size={40} color={colors.gray400} />
           </View>
-          <Text style={[styles.emptyTitle, themed.emptyTitle]}>Aucune session</Text>
+          <Text style={[styles.emptyTitle, themed.emptyTitle]}>{t('componentsOrganizer.step4.noSessionsTitle')}</Text>
           <Text style={[styles.emptyText, themed.emptyText]}>
-            Cliquez sur "Ajouter une session" pour commencer
+            {t('componentsOrganizer.step4.noSessionsText')}
           </Text>
           <TouchableOpacity style={[styles.addButton, themed.addButton]} onPress={onAddSession}>
             <Ionicons name="add" size={20} color={colors.white} />
-            <Text style={[styles.addButtonText, themed.addButtonText]}>Ajouter une session</Text>
+            <Text style={[styles.addButtonText, themed.addButtonText]}>{t('componentsOrganizer.step4.addSession')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -96,7 +94,7 @@ export default function EventStep4Sessions({
           {sessions.map((session, index) => (
             <View key={index} style={[styles.card, themed.card]}>
               <View style={[styles.cardHeader, themed.cardHeader]}>
-                <Text style={[styles.cardTitle, themed.cardTitle]}>Session {index + 1}</Text>
+                <Text style={[styles.cardTitle, themed.cardTitle]}>{t('componentsOrganizer.step4.sessionIndex', { index: index + 1 })}</Text>
                 <TouchableOpacity onPress={() => onRemoveSession(index)}>
                   <Ionicons name="trash-outline" size={20} color={colors.error} />
                 </TouchableOpacity>
@@ -105,18 +103,18 @@ export default function EventStep4Sessions({
               {/* === Section essentielle === */}
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, themed.label]}>Titre de la session *</Text>
+                <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.sessionTitleLabel')}</Text>
                 <TextInput
                   style={[styles.input, themed.input]}
                   value={session.title}
                   onChangeText={(value) => onUpdateSession(index, 'title', value)}
-                  placeholder="Ex: Conférence inaugurale"
+                  placeholder={t('componentsOrganizer.step4.sessionTitlePlaceholder')}
                   placeholderTextColor={colors.gray400}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, themed.label]}>Type de session</Text>
+                <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.sessionTypeLabel')}</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.chipContainer}>
                     {SESSION_TYPES.map((type) => (
@@ -143,53 +141,53 @@ export default function EventStep4Sessions({
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, themed.label]}>Lieu/Bâtiment</Text>
+                <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.venueLabel')}</Text>
                 <TextInput
                   style={[styles.input, themed.input]}
                   value={session.location}
                   onChangeText={(value) => onUpdateSession(index, 'location', value)}
-                  placeholder="Ex: Bâtiment principal"
+                  placeholder={t('componentsOrganizer.step4.venuePlaceholder')}
                   placeholderTextColor={colors.gray400}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, themed.label]}>Salle</Text>
+                <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.roomLabel')}</Text>
                 <TextInput
                   style={[styles.input, themed.input]}
                   value={session.room}
                   onChangeText={(value) => onUpdateSession(index, 'room', value)}
-                  placeholder="Ex: Salle A, Amphithéâtre"
+                  placeholder={t('componentsOrganizer.step4.roomPlaceholder')}
                   placeholderTextColor={colors.gray400}
                 />
               </View>
 
               <View style={styles.inputGroup}>
                 <DateTimePickerField
-                  label="Heure de début"
+                  label={t('componentsOrganizer.step4.startTimeLabel')}
                   value={session.start_time || undefined}
                   onChange={(date) => onUpdateSession(index, 'start_time', date)}
-                  placeholder="Sélectionner date et heure de début"
+                  placeholder={t('componentsOrganizer.step4.startTimePlaceholder')}
                 />
               </View>
 
               <View style={styles.inputGroup}>
                 <DateTimePickerField
-                  label="Heure de fin"
+                  label={t('componentsOrganizer.step4.endTimeLabel')}
                   value={session.end_time || undefined}
                   onChange={(date) => onUpdateSession(index, 'end_time', date)}
                   minimumDate={session.start_time || undefined}
-                  placeholder="Sélectionner date et heure de fin"
+                  placeholder={t('componentsOrganizer.step4.endTimePlaceholder')}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, themed.label]}>Description</Text>
+                <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.descriptionLabel')}</Text>
                 <TextInput
                   style={[styles.input, styles.textAreaSmall, themed.input]}
                   value={session.description}
                   onChangeText={(value) => onUpdateSession(index, 'description', value)}
-                  placeholder="Décrivez le contenu de cette session"
+                  placeholder={t('componentsOrganizer.step4.descriptionPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   multiline
                   numberOfLines={3}
@@ -198,12 +196,12 @@ export default function EventStep4Sessions({
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={[styles.label, themed.label]}>Capacité maximale</Text>
+                <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.maxCapacityLabel')}</Text>
                 <TextInput
                   style={[styles.input, themed.input]}
                   value={session.max_capacity}
                   onChangeText={(value) => onUpdateSession(index, 'max_capacity', value)}
-                  placeholder="Ex: 100"
+                  placeholder={t('componentsOrganizer.step4.maxCapacityPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   keyboardType="numeric"
                 />
@@ -217,7 +215,7 @@ export default function EventStep4Sessions({
                     onPress={() => toggleAdvanced(index)}
                   >
                     <Text style={[styles.advancedToggleText, themed.advancedToggleText]}>
-                      Options avancées
+                      {t('componentsOrganizer.step4.advancedOptions')}
                     </Text>
                     <Ionicons
                       name={advancedOpen[index] ? 'chevron-up' : 'chevron-down'}
@@ -232,8 +230,8 @@ export default function EventStep4Sessions({
                       {/* Session virtuelle */}
                       <View style={[styles.switchRow, themed.switchRow]}>
                         <View style={styles.switchContent}>
-                          <Text style={[styles.switchLabel, themed.switchLabel]}>Session virtuelle</Text>
-                          <Text style={[styles.switchDescription, themed.switchDescription]}>Session en ligne / à distance</Text>
+                          <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step4.virtualSessionLabel')}</Text>
+                          <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step4.virtualSessionDesc')}</Text>
                         </View>
                         <Switch
                           value={session.is_virtual}
@@ -245,7 +243,7 @@ export default function EventStep4Sessions({
 
                       {session.is_virtual && (
                         <View style={styles.inputGroup}>
-                          <Text style={[styles.label, themed.label]}>Lien de la session virtuelle</Text>
+                          <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.virtualLinkLabel')}</Text>
                           <TextInput
                             style={[styles.input, themed.input]}
                             value={session.virtual_link}
@@ -260,7 +258,7 @@ export default function EventStep4Sessions({
 
                       {/* Niveau */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, themed.label]}>Niveau</Text>
+                        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.levelLabel')}</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                           <View style={styles.chipContainer}>
                             {LEVEL_OPTIONS.map((opt) => (
@@ -288,7 +286,7 @@ export default function EventStep4Sessions({
 
                       {/* Langue */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, themed.label]}>Langue</Text>
+                        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.languageLabel')}</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                           <View style={styles.chipContainer}>
                             {LANGUAGE_OPTIONS.map((opt) => (
@@ -317,8 +315,8 @@ export default function EventStep4Sessions({
                       {/* Inscription requise */}
                       <View style={[styles.switchRow, themed.switchRow]}>
                         <View style={styles.switchContent}>
-                          <Text style={[styles.switchLabel, themed.switchLabel]}>Inscription requise</Text>
-                          <Text style={[styles.switchDescription, themed.switchDescription]}>Les participants doivent s'inscrire</Text>
+                          <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step4.regRequiredLabel')}</Text>
+                          <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step4.regRequiredDesc')}</Text>
                         </View>
                         <Switch
                           value={session.requires_registration}
@@ -331,8 +329,8 @@ export default function EventStep4Sessions({
                       {/* Session mise en avant */}
                       <View style={[styles.switchRow, themed.switchRow]}>
                         <View style={styles.switchContent}>
-                          <Text style={[styles.switchLabel, themed.switchLabel]}>Mise en avant</Text>
-                          <Text style={[styles.switchDescription, themed.switchDescription]}>Session principale (keynote...)</Text>
+                          <Text style={[styles.switchLabel, themed.switchLabel]}>{t('componentsOrganizer.step4.featuredLabel')}</Text>
+                          <Text style={[styles.switchDescription, themed.switchDescription]}>{t('componentsOrganizer.step4.featuredDesc')}</Text>
                         </View>
                         <Switch
                           value={session.is_featured}
@@ -344,7 +342,7 @@ export default function EventStep4Sessions({
 
                       {/* URL des slides */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, themed.label]}>URL des slides</Text>
+                        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.slidesUrlLabel')}</Text>
                         <TextInput
                           style={[styles.input, themed.input]}
                           value={session.slides_url}
@@ -358,7 +356,7 @@ export default function EventStep4Sessions({
 
                       {/* URL de l'enregistrement */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, themed.label]}>URL de l'enregistrement</Text>
+                        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.recordingUrlLabel')}</Text>
                         <TextInput
                           style={[styles.input, themed.input]}
                           value={session.recording_url}
@@ -372,18 +370,18 @@ export default function EventStep4Sessions({
 
                       {/* Tags */}
                       <View style={styles.inputGroup}>
-                        <Text style={[styles.label, themed.label]}>Tags</Text>
+                        <Text style={[styles.label, themed.label]}>{t('componentsOrganizer.step4.tagsLabel')}</Text>
                         <TextInput
                           style={[styles.input, themed.input]}
                           value={Array.isArray(session.tags) ? session.tags.join(', ') : ''}
                           onChangeText={(value) => {
-                            const tagsArray = value.split(',').map(t => t.trim()).filter(Boolean);
+                            const tagsArray = value.split(',').map(tag => tag.trim()).filter(Boolean);
                             onUpdateSession(index, 'tags', tagsArray);
                           }}
-                          placeholder="Ex: react, javascript, web"
+                          placeholder={t('componentsOrganizer.step4.tagsPlaceholder')}
                           placeholderTextColor={colors.gray400}
                         />
-                        <Text style={[styles.inputHint, themed.inputHint]}>Séparez les tags par des virgules</Text>
+                        <Text style={[styles.inputHint, themed.inputHint]}>{t('componentsOrganizer.step4.tagsHint')}</Text>
                       </View>
 
                     </View>
@@ -395,7 +393,7 @@ export default function EventStep4Sessions({
 
           <TouchableOpacity style={[styles.addAnotherButton, themed.addAnotherButton]} onPress={onAddSession}>
             <Ionicons name="add" size={20} color={colors.primary} />
-            <Text style={[styles.addAnotherText, themed.addAnotherText]}>Ajouter une autre session</Text>
+            <Text style={[styles.addAnotherText, themed.addAnotherText]}>{t('componentsOrganizer.step4.addAnotherSession')}</Text>
           </TouchableOpacity>
         </>
       )}

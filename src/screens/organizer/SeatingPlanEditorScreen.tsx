@@ -32,6 +32,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -76,6 +77,7 @@ export default function SeatingPlanEditorScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { planId } = route.params;
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError, showConfirm } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -99,12 +101,12 @@ export default function SeatingPlanEditorScreen() {
       // Le serializer SeatingPlan inclut déjà zones via prefetch_related.
       setZones(p.zones || []);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de charger le plan.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlanEditor.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [planId, showError]);
+  }, [planId, showError, t]);
 
   useEffect(() => {
     fetchPlan();
@@ -183,15 +185,15 @@ export default function SeatingPlanEditorScreen() {
     const priceModifier = parseFloat(zoneForm.priceModifier.replace(',', '.')) || 0;
 
     if (!name) {
-      showError('Nom requis', 'Donne un nom à la zone (ex : Carré or, Tribune).');
+      showError(t('organizer.seatingPlanEditor.zoneNameRequiredTitle'), t('organizer.seatingPlanEditor.zoneNameRequiredMessage'));
       return;
     }
     if (!Number.isFinite(rows) || rows < 1 || rows > 50) {
-      showError('Rangées invalides', 'Entre 1 et 50 rangées.');
+      showError(t('organizer.seatingPlanEditor.rowsInvalidTitle'), t('organizer.seatingPlanEditor.rowsInvalidMessage'));
       return;
     }
     if (!Number.isFinite(cols) || cols < 1 || cols > 50) {
-      showError('Colonnes invalides', 'Entre 1 et 50 colonnes.');
+      showError(t('organizer.seatingPlanEditor.colsInvalidTitle'), t('organizer.seatingPlanEditor.colsInvalidMessage'));
       return;
     }
 
@@ -235,11 +237,14 @@ export default function SeatingPlanEditorScreen() {
       ).reduce((sum, z) => sum + (z.capacity || 0), 0);
 
       await syncTotalSeats(newTotal, newLayout);
-      showSuccess(editingZone ? 'Zone mise à jour' : 'Zone créée', `${capacity} sièges (${rows}×${cols}).`);
+      showSuccess(
+        editingZone ? t('organizer.seatingPlanEditor.zoneUpdated') : t('organizer.seatingPlanEditor.zoneCreated'),
+        t('organizer.seatingPlanEditor.zoneCapacityInfo', { capacity, rows, cols }),
+      );
       setZoneModalOpen(false);
       setEditingZone(null);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Enregistrement refusé.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlanEditor.saveError'));
     } finally {
       setZoneSubmitting(false);
     }
@@ -247,8 +252,8 @@ export default function SeatingPlanEditorScreen() {
 
   const handleDeleteZone = (zone: SeatingZone) => {
     showConfirm(
-      'Supprimer cette zone ?',
-      `« ${zone.name} » et ses ${zone.capacity} sièges seront supprimés. Les réservations associées seront annulées.`,
+      t('organizer.seatingPlanEditor.deleteZoneTitle'),
+      t('organizer.seatingPlanEditor.deleteZoneMessage', { name: zone.name, capacity: zone.capacity }),
       async () => {
         try {
           await seatingAPI.deleteZone(zone.id);
@@ -261,9 +266,9 @@ export default function SeatingPlanEditorScreen() {
             next.reduce((sum, z) => sum + (z.capacity || 0), 0),
             { ...(plan?.layout_data || {}), zones: layoutZones },
           );
-          showSuccess('Zone supprimée', '');
+          showSuccess(t('organizer.seatingPlanEditor.zoneDeleted'), '');
         } catch (error: any) {
-          showError('Erreur', error?.response?.data?.detail || 'Suppression impossible.');
+          showError(t('common.error'), error?.response?.data?.detail || t('organizer.seatingPlanEditor.deleteError'));
         }
       },
     );
@@ -279,13 +284,13 @@ export default function SeatingPlanEditorScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
           <Text style={[styles.headerEyebrow, { color: colors.accent }]} numberOfLines={1}>
-            ÉDITION PLAN
+            {t('organizer.seatingPlanEditor.eyebrow')}
           </Text>
           <Text style={[styles.headerTitle, { color: colors.text }]} numberOfLines={1}>
             {plan?.name || '…'}
@@ -296,7 +301,7 @@ export default function SeatingPlanEditorScreen() {
           onPress={openCreateZone}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Ajouter une zone"
+          accessibilityLabel={t('organizer.seatingPlanEditor.addZoneA11y')}
         >
           <Ionicons name="add" size={20} color={colors.primary} />
         </TouchableOpacity>
@@ -315,27 +320,27 @@ export default function SeatingPlanEditorScreen() {
           <View style={[styles.statsCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
             <View style={styles.stat}>
               <Text style={[styles.statValue, { color: colors.text }]}>{totalCapacity}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>SIÈGES</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.seatsLabel')}</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: hairline }]} />
             <View style={styles.stat}>
               <Text style={[styles.statValue, { color: colors.primary }]}>{zones.length}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>ZONES</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.zonesLabel')}</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: hairline }]} />
             <View style={styles.stat}>
               <Text style={[styles.statValue, { color: '#10B981' }]}>{plan?.reserved_seats ?? 0}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>RÉSERVÉS</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.reservedLabel')}</Text>
             </View>
           </View>
 
           {/* === Aperçu visuel === */}
           {zones.length > 0 && (
             <View style={[styles.previewCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
-              <Text style={[styles.previewEyebrow, { color: colors.accent }]}>APERÇU SCÈNE</Text>
+              <Text style={[styles.previewEyebrow, { color: colors.accent }]}>{t('organizer.seatingPlanEditor.previewEyebrow')}</Text>
               {/* Bandeau "Scène" */}
               <View style={[styles.stageBar, { backgroundColor: isDark ? colors.gray200 : colors.gray100 }]}>
-                <Text style={[styles.stageBarText, { color: colors.gray500 }]}>SCÈNE</Text>
+                <Text style={[styles.stageBarText, { color: colors.gray500 }]}>{t('organizer.seatingPlanEditor.stage')}</Text>
               </View>
               {zones.map((zone) => {
                 const grid = getZoneGrid(zone.id, zone.capacity);
@@ -366,12 +371,12 @@ export default function SeatingPlanEditorScreen() {
                       ))}
                       {grid.cols > previewCols && (
                         <Text style={[styles.previewTruncated, { color: colors.gray500 }]}>
-                          …+{grid.cols - previewCols} colonnes
+                          {t('organizer.seatingPlanEditor.truncatedCols', { count: grid.cols - previewCols })}
                         </Text>
                       )}
                       {grid.rows > previewRows && (
                         <Text style={[styles.previewTruncated, { color: colors.gray500 }]}>
-                          …+{grid.rows - previewRows} rangées
+                          {t('organizer.seatingPlanEditor.truncatedRows', { count: grid.rows - previewRows })}
                         </Text>
                       )}
                     </View>
@@ -385,9 +390,9 @@ export default function SeatingPlanEditorScreen() {
           {zones.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="apps-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucune zone</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.seatingPlanEditor.noZoneTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Crée des zones (Carré or, Mezzanine, etc.) pour répartir les sièges et leurs tarifs.
+                {t('organizer.seatingPlanEditor.noZoneText')}
               </Text>
               <TouchableOpacity
                 style={[styles.emptyCta, { backgroundColor: colors.primary }]}
@@ -395,12 +400,12 @@ export default function SeatingPlanEditorScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="add" size={16} color="#fff" />
-                <Text style={styles.emptyCtaText}>Ajouter une zone</Text>
+                <Text style={styles.emptyCtaText}>{t('organizer.seatingPlanEditor.addZone')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.zonesList}>
-              <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>ZONES</Text>
+              <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('organizer.seatingPlans.zonesLabel')}</Text>
               {zones.map((zone) => {
                 const grid = getZoneGrid(zone.id, zone.capacity);
                 return (
@@ -411,7 +416,7 @@ export default function SeatingPlanEditorScreen() {
                     onLongPress={() => handleDeleteZone(zone)}
                     activeOpacity={0.85}
                     accessibilityRole="button"
-                    accessibilityLabel={`Modifier ${zone.name}`}
+                    accessibilityLabel={t('organizer.seatingPlanEditor.editZoneA11y', { name: zone.name })}
                   >
                     <View style={[styles.zoneColorBlock, { backgroundColor: zone.color }]} />
                     <View style={{ flex: 1 }}>
@@ -419,7 +424,7 @@ export default function SeatingPlanEditorScreen() {
                         {zone.name}
                       </Text>
                       <Text style={[styles.zoneMeta, { color: colors.gray500 }]}>
-                        {zone.capacity} sièges · {grid.rows}×{grid.cols}
+                        {t('organizer.seatingPlanEditor.zoneMeta', { capacity: zone.capacity, rows: grid.rows, cols: grid.cols })}
                         {Number(zone.price_modifier) !== 0 ? ` · +${zone.price_modifier}` : ''}
                       </Text>
                     </View>
@@ -450,22 +455,22 @@ export default function SeatingPlanEditorScreen() {
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <Text style={[styles.modalEyebrow, { color: colors.accent }]}>
-                {editingZone ? 'MODIFIER' : 'NOUVELLE'}
+                {editingZone ? t('organizer.seatingPlanEditor.modalEdit') : t('organizer.seatingPlanEditor.modalNew')}
               </Text>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Zone</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('organizer.seatingPlanEditor.zone')}</Text>
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Nom *</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlans.nameField')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                 value={zoneForm.name}
                 onChangeText={(v) => setZoneForm({ ...zoneForm, name: v })}
-                placeholder="Carré or / Mezzanine / Tribune"
+                placeholder={t('organizer.seatingPlanEditor.zoneNamePlaceholder')}
                 placeholderTextColor={colors.gray400}
                 editable={!zoneSubmitting}
                 maxLength={100}
               />
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Couleur</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlanEditor.colorField')}</Text>
               <View style={styles.colorRow}>
                 {ZONE_COLORS.map(c => {
                   const active = c === zoneForm.color;
@@ -479,7 +484,7 @@ export default function SeatingPlanEditorScreen() {
                       onPress={() => !zoneSubmitting && setZoneForm({ ...zoneForm, color: c })}
                       activeOpacity={0.85}
                       accessibilityRole="button"
-                      accessibilityLabel={`Couleur ${c}`}
+                      accessibilityLabel={t('organizer.seatingPlanEditor.colorA11y', { color: c })}
                     >
                       {active && <Ionicons name="checkmark" size={14} color="#fff" />}
                     </TouchableOpacity>
@@ -489,7 +494,7 @@ export default function SeatingPlanEditorScreen() {
 
               <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Rangées</Text>
+                  <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlanEditor.rowsField')}</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                     value={zoneForm.rows}
@@ -499,7 +504,7 @@ export default function SeatingPlanEditorScreen() {
                   />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Colonnes</Text>
+                  <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlanEditor.colsField')}</Text>
                   <TextInput
                     style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                     value={zoneForm.cols}
@@ -510,18 +515,18 @@ export default function SeatingPlanEditorScreen() {
                 </View>
               </View>
 
-              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Modificateur de prix (par siège)</Text>
+              <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('organizer.seatingPlanEditor.priceModifierField')}</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
                 value={zoneForm.priceModifier}
                 onChangeText={(v) => setZoneForm({ ...zoneForm, priceModifier: v })}
-                placeholder="0 (ajout au prix de base du ticket)"
+                placeholder={t('organizer.seatingPlanEditor.priceModifierPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 keyboardType="decimal-pad"
                 editable={!zoneSubmitting}
               />
               <Text style={[styles.helpText, { color: colors.gray500 }]}>
-                Capacité calculée : {(parseInt(zoneForm.rows, 10) || 0) * (parseInt(zoneForm.cols, 10) || 0)} sièges.
+                {t('organizer.seatingPlanEditor.calculatedCapacity', { count: (parseInt(zoneForm.rows, 10) || 0) * (parseInt(zoneForm.cols, 10) || 0) })}
               </Text>
 
               <View style={styles.modalActions}>
@@ -531,7 +536,7 @@ export default function SeatingPlanEditorScreen() {
                   disabled={zoneSubmitting}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                  <Text style={[styles.modalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: colors.primary }, zoneSubmitting && { opacity: 0.6 }]}
@@ -543,7 +548,7 @@ export default function SeatingPlanEditorScreen() {
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
                     <Text style={[styles.modalBtnText, { color: Colors.white }]}>
-                      {editingZone ? 'Enregistrer' : 'Créer la zone'}
+                      {editingZone ? t('common.save') : t('organizer.seatingPlanEditor.createZone')}
                     </Text>
                   )}
                 </TouchableOpacity>

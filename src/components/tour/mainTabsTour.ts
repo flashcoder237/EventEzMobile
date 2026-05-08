@@ -68,20 +68,35 @@ export const MAIN_TABS_TOUR_STEPS: TourStep[] = [
 
 /**
  * Localized version of MAIN_TABS_TOUR_STEPS. Use this from React components
- * with `useTranslation()` so the editorial eyebrows are translated.
+ * with `useTranslation()` so the editorial eyebrows, titles, and bodies
+ * are translated.
  */
 export function getMainTabsTourSteps(t: TFunction): TourStep[] {
-  return MAIN_TABS_TOUR_STEPS.map((step, index) => {
-    const eyebrowKeys = [
-      'eyebrow.tabDiscover',
-      'eyebrow.tabSaved',
-      'eyebrow.tabMessages',
-      'eyebrow.tabTickets',
-      'eyebrow.tabProfile',
-    ];
-    return {
-      ...step,
-      eyebrow: t(eyebrowKeys[index]),
-    };
-  });
+  const eyebrowKeys = [
+    'eyebrow.tabDiscover',
+    'eyebrow.tabSaved',
+    'eyebrow.tabMessages',
+    'eyebrow.tabTickets',
+    'eyebrow.tabProfile',
+  ];
+  const titleKeys = [
+    'componentsTour.mainDiscoverTitle',
+    'componentsTour.mainSavedTitle',
+    'componentsTour.mainMessagesTitle',
+    'componentsTour.mainTicketsTitle',
+    'componentsTour.mainProfileTitle',
+  ];
+  const bodyKeys = [
+    'componentsTour.mainDiscoverBody',
+    'componentsTour.mainSavedBody',
+    'componentsTour.mainMessagesBody',
+    'componentsTour.mainTicketsBody',
+    'componentsTour.mainProfileBody',
+  ];
+  return MAIN_TABS_TOUR_STEPS.map((step, index) => ({
+    ...step,
+    eyebrow: t(eyebrowKeys[index]),
+    title: t(titleKeys[index]),
+    body: t(bodyKeys[index]),
+  }));
 }

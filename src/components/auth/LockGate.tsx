@@ -9,6 +9,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAppLock } from '../../hooks/useAppLock';
 import { useTheme } from '../../contexts/ThemeContext';
 import { AnimatedIllustration, BiometricLock } from '../illustrations';
@@ -28,6 +29,7 @@ interface Props {
 export default function LockGate({ children }: Props) {
   const { status, authenticate } = useAppLock();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   // Tente l'auth automatiquement dès que l'écran lock est affiché. Si la
   // biométrie échoue ou l'utilisateur annule, on reste sur cet écran avec un
@@ -51,21 +53,20 @@ export default function LockGate({ children }: Props) {
           <BiometricLock color={colors.primary} size={180} />
         </AnimatedIllustration>
       </View>
-      <Text style={[styles.eyebrow, { color: colors.accent }]}>VERROUILLÉ</Text>
-      <Text style={[styles.title, { color: colors.text }]}>EventEz est verrouillé</Text>
+      <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsAuth.lockEyebrow')}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{t('componentsAuth.lockTitle')}</Text>
       <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-        Pour ta sécurité, utilise FaceID, l'empreinte digitale ou ton code de
-        déverrouillage.
+        {t('componentsAuth.lockSubtitle')}
       </Text>
       <TouchableOpacity
         style={[styles.cta, { backgroundColor: colors.primary }]}
         onPress={authenticate}
         activeOpacity={0.85}
         accessibilityRole="button"
-        accessibilityLabel="Déverrouiller l'application"
+        accessibilityLabel={t('componentsAuth.lockUnlockA11y')}
       >
         <Ionicons name="finger-print" size={18} color={Colors.white} />
-        <Text style={styles.ctaText}>Déverrouiller</Text>
+        <Text style={styles.ctaText}>{t('componentsAuth.lockUnlock')}</Text>
       </TouchableOpacity>
     </View>
   );

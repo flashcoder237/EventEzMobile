@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { volunteersAPI } from '../../api';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -31,6 +32,7 @@ interface VolunteersTabProps {
 
 export default function VolunteersTab({ eventId }: VolunteersTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [roles, setRoles] = useState<VolunteerRole[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedRole, setExpandedRole] = useState<string | null>(null);
@@ -73,15 +75,15 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
         availability: availability || undefined,
         experience: experience || undefined,
       });
-      Alert.alert('Succès', 'Votre candidature a été envoyée !');
+      Alert.alert(t('common.success'), t('componentsEvents.volunteersApplied'));
       setMyApplications((prev) => [...prev, roleId]);
       setApplyingRole(null);
       setMotivation('');
       setAvailability('');
       setExperience('');
     } catch (error: any) {
-      const msg = error?.response?.data?.detail || 'Erreur lors de la candidature';
-      Alert.alert('Erreur', msg);
+      const msg = error?.response?.data?.detail || t('componentsEvents.volunteersApplyError');
+      Alert.alert(t('common.error'), msg);
     } finally {
       setSubmitting(false);
     }
@@ -91,7 +93,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
     return (
       <View style={styles.emptyTab}>
         <LoadingSpinner />
-        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Chargement...</Text>
+        <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -99,10 +101,10 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
   if (roles.length === 0) {
     return (
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Benevoles</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.volunteersTitle')}</Text>
         <View style={styles.emptyTab}>
           <Ionicons name="people-outline" size={40} color={colors.gray300} />
-          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>Aucun poste de benevole pour cet evenement</Text>
+          <Text style={[styles.emptyTabText, { color: colors.gray500 }]}>{t('componentsEvents.volunteersEmpty')}</Text>
         </View>
       </View>
     );
@@ -110,7 +112,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
 
   return (
     <View style={styles.section}>
-      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Postes de benevoles</Text>
+      <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.volunteersTitleSection')}</Text>
 
       {roles.map((role) => {
         const hasApplied = myApplications.includes(role.id);
@@ -139,16 +141,16 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                 {hasApplied ? (
                   <View style={[styles.statusBadge, { backgroundColor: Colors.infoBg }]}>
                     <Ionicons name="time-outline" size={12} color={Colors.info} />
-                    <Text style={[styles.statusBadgeText, { color: Colors.info }]}>Envoye</Text>
+                    <Text style={[styles.statusBadgeText, { color: Colors.info }]}>{t('componentsEvents.volunteersStatusSent')}</Text>
                   </View>
                 ) : isFull ? (
                   <View style={[styles.statusBadge, { backgroundColor: Colors.errorLight }]}>
-                    <Text style={[styles.statusBadgeText, { color: Colors.error }]}>Complet</Text>
+                    <Text style={[styles.statusBadgeText, { color: Colors.error }]}>{t('componentsEvents.volunteersStatusFull')}</Text>
                   </View>
                 ) : (
                   <View style={[styles.statusBadge, { backgroundColor: Colors.successLight }]}>
                     <Text style={[styles.statusBadgeText, { color: Colors.success }]}>
-                      {spotsLeft} place{spotsLeft !== 1 ? 's' : ''}
+                      {t('componentsEvents.volunteersSpots', { count: spotsLeft })}
                     </Text>
                   </View>
                 )}
@@ -182,7 +184,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                 {/* Responsibilities */}
                 {role.responsibilities && role.responsibilities.length > 0 && (
                   <View style={styles.responsibilitiesSection}>
-                    <Text style={[styles.subsectionTitle, { color: colors.gray700 }]}>Responsabilites</Text>
+                    <Text style={[styles.subsectionTitle, { color: colors.gray700 }]}>{t('componentsEvents.volunteersResponsibilities')}</Text>
                     {role.responsibilities.map((resp, idx) => (
                       <View key={idx} style={styles.responsibilityRow}>
                         <Ionicons name="checkmark-circle" size={16} color={colors.primary} />
@@ -197,10 +199,10 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                   <>
                     {isApplying ? (
                       <View style={[styles.applyForm, { backgroundColor: colors.card }]}>
-                        <Text style={[styles.subsectionTitle, { color: colors.gray700 }]}>Postuler</Text>
+                        <Text style={[styles.subsectionTitle, { color: colors.gray700 }]}>{t('componentsEvents.volunteersApplyTitle')}</Text>
                         <TextInput
                           style={[styles.applyInput, styles.applyTextarea, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
-                          placeholder="Pourquoi souhaitez-vous etre benevole ?"
+                          placeholder={t('componentsEvents.volunteersMotivationPlaceholder')}
                           placeholderTextColor={colors.gray400}
                           multiline
                           numberOfLines={3}
@@ -210,14 +212,14 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                         />
                         <TextInput
                           style={[styles.applyInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
-                          placeholder="Disponibilite (ex: Samedi 9h-18h)"
+                          placeholder={t('componentsEvents.volunteersAvailabilityPlaceholder')}
                           placeholderTextColor={colors.gray400}
                           value={availability}
                           onChangeText={setAvailability}
                         />
                         <TextInput
                           style={[styles.applyInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.gray900 }]}
-                          placeholder="Experience (ex: 2 ans evenementiel)"
+                          placeholder={t('componentsEvents.volunteersExperiencePlaceholder')}
                           placeholderTextColor={colors.gray400}
                           value={experience}
                           onChangeText={setExperience}
@@ -232,7 +234,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                               setExperience('');
                             }}
                           >
-                            <Text style={[styles.cancelButtonText, { color: colors.gray500 }]}>Annuler</Text>
+                            <Text style={[styles.cancelButtonText, { color: colors.gray500 }]}>{t('common.cancel')}</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.submitButton}
@@ -244,7 +246,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                             ) : (
                               <>
                                 <Ionicons name="send" size={16} color={Colors.white} />
-                                <Text style={styles.submitButtonText}>Envoyer</Text>
+                                <Text style={styles.submitButtonText}>{t('common.send')}</Text>
                               </>
                             )}
                           </TouchableOpacity>
@@ -257,7 +259,7 @@ export default function VolunteersTab({ eventId }: VolunteersTabProps) {
                         activeOpacity={0.8}
                       >
                         <Ionicons name="hand-left-outline" size={18} color={Colors.white} />
-                        <Text style={styles.applyButtonText}>Devenir benevole</Text>
+                        <Text style={styles.applyButtonText}>{t('componentsEvents.volunteersBecome')}</Text>
                       </TouchableOpacity>
                     )}
                   </>

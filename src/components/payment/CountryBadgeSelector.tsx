@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, FontSizes, BorderRadius, Spacing } from '../../constants/theme';
 import { useBottomSheetAnim } from '../../hooks/useBottomSheetAnim';
@@ -60,6 +61,7 @@ export default function CountryBadgeSelector({
   onChange,
   disabled = false,
 }: CountryBadgeSelectorProps) {
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
@@ -78,7 +80,7 @@ export default function CountryBadgeSelector({
         <View style={styles.hintRow}>
           <Ionicons name="earth-outline" size={14} color={colors.gray500} />
           <Text style={[styles.hint, { color: colors.gray600 }]} numberOfLines={2}>
-            Les méthodes de paiement varient selon votre pays
+            {t('componentsPayment.countryHint')}
           </Text>
         </View>
 
@@ -94,7 +96,7 @@ export default function CountryBadgeSelector({
             },
           ]}
           accessibilityRole="button"
-          accessibilityLabel={`Pays: ${current.name}. Appuyez pour changer`}
+          accessibilityLabel={t('componentsPayment.countryA11y', { name: current.name })}
         >
           <Text style={styles.flag}>{current.flag}</Text>
           <View style={styles.badgeText}>
@@ -136,13 +138,13 @@ export default function CountryBadgeSelector({
           <View style={[styles.handle, { backgroundColor: colors.gray300 }]} />
 
           <Text style={[styles.sheetEyebrow, { color: colors.accent }]}>
-            Pays du payeur
+            {t('componentsPayment.sheetEyebrow')}
           </Text>
           <Text style={[styles.sheetTitle, { color: colors.gray900 }]}>
-            Choisissez votre pays
+            {t('componentsPayment.sheetTitle')}
           </Text>
           <Text style={[styles.sheetSubtitle, { color: colors.gray600 }]}>
-            Les moyens de paiement affichés dépendent du pays sélectionné.
+            {t('componentsPayment.sheetSubtitle')}
           </Text>
 
           <ScrollView
@@ -174,8 +176,8 @@ export default function CountryBadgeSelector({
                     </Text>
                     <Text style={[styles.itemCurrency, { color: colors.gray500 }]}>
                       {country.code === INTL_CODE
-                        ? 'Carte bancaire et PayPal'
-                        : `Devise ${country.currency}`}
+                        ? t('componentsPayment.intlMethods')
+                        : t('componentsPayment.currencyLabel', { currency: country.currency })}
                     </Text>
                   </View>
                   {selected && (

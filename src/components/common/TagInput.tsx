@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import {
   Colors,
@@ -40,6 +41,7 @@ export default function TagInput({
   onCustomTagRemove,
 }: TagInputProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
 
   const handleAddCustomTag = () => {
@@ -102,7 +104,7 @@ export default function TagInput({
           style={[styles.input, { color: colors.gray900 }]}
           value={inputValue}
           onChangeText={setInputValue}
-          placeholder="Ajouter un tag personnalisé"
+          placeholder={t('componentsCommon.tagInputPlaceholder')}
           placeholderTextColor={colors.gray400}
           onSubmitEditing={handleAddCustomTag}
           returnKeyType="done"
@@ -122,7 +124,7 @@ export default function TagInput({
 
       {/* Available Tags */}
       <View style={styles.availableTagsSection}>
-        <Text style={[styles.availableTagsLabel, { color: colors.gray600 }]}>Tags disponibles :</Text>
+        <Text style={[styles.availableTagsLabel, { color: colors.gray600 }]}>{t('componentsCommon.tagAvailableLabel')}</Text>
         <ScrollView
           style={[styles.availableTagsScroll, { backgroundColor: colors.gray50 }]}
           contentContainerStyle={styles.availableTagsContent}

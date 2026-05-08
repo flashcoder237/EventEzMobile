@@ -9,6 +9,7 @@ import {
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import AnimatedPressable from '../ui/AnimatedPressable';
 import { AnimatedBookmark } from '../ui/Animations';
 import {
@@ -32,14 +33,27 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const DEFAULT_EVENT_IMAGE = require('../../../assets/defaults/default-event.png');
 
-const MONTHS_FR = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUI', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
+const MONTH_KEYS = [
+  'componentsEvents.monthJan',
+  'componentsEvents.monthFeb',
+  'componentsEvents.monthMar',
+  'componentsEvents.monthApr',
+  'componentsEvents.monthMay',
+  'componentsEvents.monthJun',
+  'componentsEvents.monthJul',
+  'componentsEvents.monthAug',
+  'componentsEvents.monthSep',
+  'componentsEvents.monthOct',
+  'componentsEvents.monthNov',
+  'componentsEvents.monthDec',
+];
 
-function splitDate(iso: string) {
+function splitDate(iso: string, t: (k: string) => string) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return { day: '--', month: '---' };
   return {
     day: String(d.getDate()).padStart(2, '0'),
-    month: MONTHS_FR[d.getMonth()],
+    month: t(MONTH_KEYS[d.getMonth()]),
   };
 }
 
@@ -103,23 +117,24 @@ function EventCardComponent({
   onLikePress,
 }: EventCardProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const resolvedImageUrl = getMediaUrl(imageUrl);
   const blurPlaceholder = imagePlaceholder || DEFAULT_BLUR_DATA_URL;
 
   // === Derived values ===
-  const priceParams = { isFree, price, priceMax, currency, eventType };
+  const priceParams = { isFree, price, priceMax, currency, eventType, t };
   const cardPriceText = formatCardPrice(priceParams);
   const shortPriceText = formatPriceShort(priceParams);
-  const { day, month } = splitDate(date);
+  const { day, month } = splitDate(date, t);
   const dUntil = daysUntil(date);
   const isSoon = dUntil !== null && dUntil <= 7;
 
-  const isGratuit = isFree || cardPriceText === 'Gratuit';
+  const isGratuit = isFree || cardPriceText === t('componentsEvents.priceFree');
   const cardShadow = isDark ? Shadows.md : Shadows.cardViolet;
   const eventAccessibilityLabel = `${title}, ${day} ${month}, ${location}`;
-  const eventAccessibilityHint = "Appuyez pour voir les détails de l'événement";
+  const eventAccessibilityHint = t('componentsEvents.eventCardA11yHint');
 
   const locIcon: keyof typeof Ionicons.glyphMap =
     locationType === 'online' ? 'videocam-outline' :
@@ -188,7 +203,7 @@ function EventCardComponent({
           <View style={styles.horizontalFooter}>
             {isGratuit ? (
               <View style={[styles.pricePillFree, { backgroundColor: '#10B98115' }]}>
-                <Text style={styles.pricePillFreeText}>GRATUIT</Text>
+                <Text style={styles.pricePillFreeText}>{t('componentsEvents.eventCardFree')}</Text>
               </View>
             ) : (
               <Text style={[styles.priceTextE, { color: colors.text }]}>{shortPriceText}</Text>
@@ -196,7 +211,7 @@ function EventCardComponent({
             {isSoon && dUntil !== null && (
               <View style={[styles.urgentPill, { backgroundColor: `${colors.accent}15` }]}>
                 <Text style={[styles.urgentPillText, { color: colors.accent }]}>
-                  {dUntil === 0 ? 'AUJOURD\'HUI' : dUntil === 1 ? 'DEMAIN' : `J−${dUntil}`}
+                  {dUntil === 0 ? t('componentsEvents.eventCardTodayLabel') : dUntil === 1 ? t('componentsEvents.eventCardTomorrowLabel') : t('componentsEvents.eventCardJMinus', { count: dUntil })}
                 </Text>
               </View>
             )}
@@ -264,7 +279,7 @@ function EventCardComponent({
           </Text>
           <View style={styles.compactFooter}>
             {isGratuit ? (
-              <Text style={[styles.compactPriceFree, { color: '#10B981' }]}>GRATUIT</Text>
+              <Text style={[styles.compactPriceFree, { color: '#10B981' }]}>{t('componentsEvents.eventCardFree')}</Text>
             ) : (
               <Text style={[styles.compactPrice, { color: colors.text }]} numberOfLines={1}>
                 {shortPriceText}
@@ -315,7 +330,7 @@ function EventCardComponent({
           {isFeatured && (
             <View style={[styles.featuredEyebrowPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
               <Ionicons name="star" size={10} color={colors.accent} />
-              <Text style={[styles.featuredEyebrowText, { color: Colors.gray900 }]}>EN VEDETTE</Text>
+              <Text style={[styles.featuredEyebrowText, { color: Colors.gray900 }]}>{t('componentsEvents.eventCardFeatured')}</Text>
             </View>
           )}
 
@@ -362,14 +377,14 @@ function EventCardComponent({
               <View style={[styles.metaRow, { marginTop: 4 }]}>
                 <Ionicons name="people-outline" size={11} color={colors.gray500} />
                 <Text style={[styles.metaText, { color: colors.gray500 }]} numberOfLines={1}>
-                  {formatCount(attendees, 'inscrit')}
+                  {t('componentsEvents.registeredCount', { count: attendees })}
                 </Text>
               </View>
             )}
           </View>
           {isGratuit ? (
             <View style={[styles.pricePillFree, { backgroundColor: '#10B98115' }]}>
-              <Text style={styles.pricePillFreeText}>GRATUIT</Text>
+              <Text style={styles.pricePillFreeText}>{t('componentsEvents.eventCardFree')}</Text>
             </View>
           ) : (
             <View style={[styles.pricePillPaid, { backgroundColor: colors.text }]}>
@@ -458,7 +473,7 @@ function EventCardComponent({
           </View>
           <View style={styles.gridFooter}>
             {isGratuit ? (
-              <Text style={[styles.compactPriceFree, { color: '#10B981' }]}>GRATUIT</Text>
+              <Text style={[styles.compactPriceFree, { color: '#10B981' }]}>{t('componentsEvents.eventCardFree')}</Text>
             ) : (
               <Text style={[styles.gridPrice, { color: colors.text }]} numberOfLines={1}>
                 {shortPriceText}
@@ -510,7 +525,7 @@ function EventCardComponent({
         {isFeatured ? (
           <View style={[styles.eyebrowPillFloat, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
             <Ionicons name="star" size={10} color={colors.accent} />
-            <Text style={[styles.eyebrowFloatText, { color: Colors.gray900 }]}>EN VEDETTE</Text>
+            <Text style={[styles.eyebrowFloatText, { color: Colors.gray900 }]}>{t('componentsEvents.eventCardFeatured')}</Text>
           </View>
         ) : category ? (
           <View style={[styles.eyebrowPillFloat, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
@@ -558,14 +573,14 @@ function EventCardComponent({
             <View style={[styles.urgentPillInline, { marginTop: 4 }]}>
               <View style={[styles.urgentDot, { backgroundColor: colors.accent }]} />
               <Text style={[styles.urgentPillText, { color: colors.accent }]}>
-                {dUntil === 0 ? 'AUJOURD\'HUI' : dUntil === 1 ? 'DEMAIN' : `J−${dUntil}`}
+                {dUntil === 0 ? t('componentsEvents.eventCardTodayLabel') : dUntil === 1 ? t('componentsEvents.eventCardTomorrowLabel') : t('componentsEvents.eventCardJMinus', { count: dUntil })}
               </Text>
             </View>
           )}
         </View>
         {isGratuit ? (
           <View style={[styles.pricePillFree, { backgroundColor: '#10B98115' }]}>
-            <Text style={styles.pricePillFreeText}>GRATUIT</Text>
+            <Text style={styles.pricePillFreeText}>{t('componentsEvents.eventCardFree')}</Text>
           </View>
         ) : (
           <View style={[styles.pricePillPaid, { backgroundColor: colors.text }]}>

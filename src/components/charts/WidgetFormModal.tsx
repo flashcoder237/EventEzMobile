@@ -24,6 +24,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -51,33 +52,34 @@ interface Props {
   onSuccess: (w: DashboardWidget) => void;
 }
 
-const WIDGET_TYPES: { key: WidgetType; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { key: 'number', label: 'Indicateur', icon: 'stats-chart-outline' },
-  { key: 'chart', label: 'Graphique', icon: 'analytics-outline' },
-  { key: 'list', label: 'Liste', icon: 'list-outline' },
-  { key: 'table', label: 'Tableau', icon: 'grid-outline' },
+const WIDGET_TYPE_KEYS: { key: WidgetType; labelKey: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: 'number', labelKey: 'componentsCharts.widgetForm.typeNumber', icon: 'stats-chart-outline' },
+  { key: 'chart', labelKey: 'componentsCharts.widgetForm.typeChart', icon: 'analytics-outline' },
+  { key: 'list', labelKey: 'componentsCharts.widgetForm.typeList', icon: 'list-outline' },
+  { key: 'table', labelKey: 'componentsCharts.widgetForm.typeTable', icon: 'grid-outline' },
 ];
 
-const CHART_TYPES: { key: ChartType; label: string }[] = [
-  { key: 'line', label: 'Ligne' },
-  { key: 'bar', label: 'Barres' },
-  { key: 'pie', label: 'Camembert' },
-  { key: 'area', label: 'Aire' },
+const CHART_TYPE_KEYS: { key: ChartType; labelKey: string }[] = [
+  { key: 'line', labelKey: 'componentsCharts.widgetForm.chartLine' },
+  { key: 'bar', labelKey: 'componentsCharts.widgetForm.chartBar' },
+  { key: 'pie', labelKey: 'componentsCharts.widgetForm.chartPie' },
+  { key: 'area', labelKey: 'componentsCharts.widgetForm.chartArea' },
 ];
 
-const DATA_SOURCES: { key: WidgetDataSource; label: string; goesWith: WidgetType[] }[] = [
-  { key: 'event_count', label: "Nb d'événements", goesWith: ['number'] },
-  { key: 'registration_count', label: "Nb d'inscriptions", goesWith: ['number'] },
-  { key: 'revenue', label: 'Revenus totaux', goesWith: ['number'] },
-  { key: 'user_count', label: "Nb d'utilisateurs", goesWith: ['number'] },
-  { key: 'revenue_trends', label: 'Tendance revenus', goesWith: ['chart'] },
-  { key: 'registration_trends', label: 'Tendance inscriptions', goesWith: ['chart'] },
-  { key: 'event_types', label: "Répartition types d'event", goesWith: ['chart', 'list', 'table'] },
-  { key: 'payment_methods', label: 'Méthodes de paiement', goesWith: ['chart', 'list', 'table'] },
-  { key: 'geographical', label: 'Répartition géographique', goesWith: ['chart', 'list', 'table'] },
+const DATA_SOURCE_KEYS: { key: WidgetDataSource; labelKey: string; goesWith: WidgetType[] }[] = [
+  { key: 'event_count', labelKey: 'componentsCharts.widgetForm.sourceEventCount', goesWith: ['number'] },
+  { key: 'registration_count', labelKey: 'componentsCharts.widgetForm.sourceRegistrationCount', goesWith: ['number'] },
+  { key: 'revenue', labelKey: 'componentsCharts.widgetForm.sourceRevenue', goesWith: ['number'] },
+  { key: 'user_count', labelKey: 'componentsCharts.widgetForm.sourceUserCount', goesWith: ['number'] },
+  { key: 'revenue_trends', labelKey: 'componentsCharts.widgetForm.sourceRevenueTrends', goesWith: ['chart'] },
+  { key: 'registration_trends', labelKey: 'componentsCharts.widgetForm.sourceRegistrationTrends', goesWith: ['chart'] },
+  { key: 'event_types', labelKey: 'componentsCharts.widgetForm.sourceEventTypes', goesWith: ['chart', 'list', 'table'] },
+  { key: 'payment_methods', labelKey: 'componentsCharts.widgetForm.sourcePaymentMethods', goesWith: ['chart', 'list', 'table'] },
+  { key: 'geographical', labelKey: 'componentsCharts.widgetForm.sourceGeographical', goesWith: ['chart', 'list', 'table'] },
 ];
 
 export default function WidgetFormModal({ visible, widget, onClose, onSuccess }: Props) {
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showError } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -108,19 +110,19 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
   // Quand on change de widget_type, on s'assure que la data_source actuelle
   // est toujours compatible — sinon on bascule sur la première dispo.
   useEffect(() => {
-    const current = DATA_SOURCES.find(d => d.key === dataSource);
+    const current = DATA_SOURCE_KEYS.find(d => d.key === dataSource);
     if (!current || !current.goesWith.includes(widgetType)) {
-      const fallback = DATA_SOURCES.find(d => d.goesWith.includes(widgetType));
+      const fallback = DATA_SOURCE_KEYS.find(d => d.goesWith.includes(widgetType));
       if (fallback) setDataSource(fallback.key);
     }
   }, [widgetType, dataSource]);
 
-  const filteredSources = DATA_SOURCES.filter(d => d.goesWith.includes(widgetType));
+  const filteredSources = DATA_SOURCE_KEYS.filter(d => d.goesWith.includes(widgetType));
 
   const submit = async () => {
     const trimmed = title.trim();
     if (!trimmed) {
-      showError('Titre requis', 'Donne un titre au widget.');
+      showError(t('componentsCharts.widgetForm.errorTitleRequired'), t('componentsCharts.widgetForm.errorTitleRequiredDesc'));
       return;
     }
     setSubmitting(true);
@@ -139,7 +141,7 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
       }
       onSuccess(res.data);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || (isEditing ? 'Modification refusée.' : 'Création refusée.'));
+      showError(t('common.error'), error?.response?.data?.detail || (isEditing ? t('componentsCharts.widgetForm.errorEditDenied') : t('componentsCharts.widgetForm.errorCreateDenied')));
     } finally {
       setSubmitting(false);
     }
@@ -150,27 +152,27 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
       <View style={styles.backdrop}>
         <View style={[styles.card, { backgroundColor: colors.card }]}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>{isEditing ? 'MODIFIER' : 'NOUVEAU'}</Text>
-            <Text style={[styles.title, { color: colors.text }]}>Widget</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{isEditing ? t('componentsCharts.widgetForm.modeEdit') : t('componentsCharts.widgetForm.modeNew')}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('componentsCharts.widgetForm.title')}</Text>
 
-            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Titre *</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('componentsCharts.widgetForm.titleFieldLabel')}</Text>
             <TextInput
               style={[styles.input, { backgroundColor: isDark ? colors.gray100 : colors.gray50, borderColor: hairline, color: colors.text }]}
               value={title}
               onChangeText={setTitle}
-              placeholder="Ex : Revenus du mois"
+              placeholder={t('componentsCharts.widgetForm.titlePlaceholder')}
               placeholderTextColor={colors.gray400}
               editable={!submitting}
               maxLength={120}
             />
 
-            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Type de widget</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('componentsCharts.widgetForm.widgetTypeLabel')}</Text>
             <View style={styles.typeGrid}>
-              {WIDGET_TYPES.map(t => {
-                const active = t.key === widgetType;
+              {WIDGET_TYPE_KEYS.map(wt => {
+                const active = wt.key === widgetType;
                 return (
                   <TouchableOpacity
-                    key={t.key}
+                    key={wt.key}
                     style={[
                       styles.typeCard,
                       {
@@ -178,12 +180,12 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
                         borderColor: active ? colors.primary : hairline,
                       },
                     ]}
-                    onPress={() => !submitting && setWidgetType(t.key)}
+                    onPress={() => !submitting && setWidgetType(wt.key)}
                     activeOpacity={0.85}
                   >
-                    <Ionicons name={t.icon} size={18} color={active ? '#fff' : colors.gray600} />
+                    <Ionicons name={wt.icon} size={18} color={active ? '#fff' : colors.gray600} />
                     <Text style={[styles.typeLabel, { color: active ? '#fff' : colors.gray700 }]}>
-                      {t.label}
+                      {t(wt.labelKey)}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -192,9 +194,9 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
 
             {widgetType === 'chart' && (
               <>
-                <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Sous-type de graphique</Text>
+                <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('componentsCharts.widgetForm.chartSubtypeLabel')}</Text>
                 <View style={styles.chips}>
-                  {CHART_TYPES.map(c => {
+                  {CHART_TYPE_KEYS.map(c => {
                     const active = c.key === chartType;
                     return (
                       <TouchableOpacity
@@ -209,7 +211,7 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
                         onPress={() => !submitting && setChartType(c.key)}
                         activeOpacity={0.85}
                       >
-                        <Text style={[styles.chipText, { color: active ? '#fff' : colors.gray700 }]}>{c.label}</Text>
+                        <Text style={[styles.chipText, { color: active ? '#fff' : colors.gray700 }]}>{t(c.labelKey)}</Text>
                       </TouchableOpacity>
                     );
                   })}
@@ -217,7 +219,7 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
               </>
             )}
 
-            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>Source de données</Text>
+            <Text style={[styles.fieldLabel, { color: colors.gray500 }]}>{t('componentsCharts.widgetForm.dataSourceLabel')}</Text>
             <View style={styles.chips}>
               {filteredSources.map(d => {
                 const active = d.key === dataSource;
@@ -234,7 +236,7 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
                     onPress={() => !submitting && setDataSource(d.key)}
                     activeOpacity={0.85}
                   >
-                    <Text style={[styles.chipText, { color: active ? '#fff' : colors.gray700 }]}>{d.label}</Text>
+                    <Text style={[styles.chipText, { color: active ? '#fff' : colors.gray700 }]}>{t(d.labelKey)}</Text>
                   </TouchableOpacity>
                 );
               })}
@@ -247,7 +249,7 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
                 disabled={submitting}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.btnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.btnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.btn, { backgroundColor: colors.primary }, submitting && { opacity: 0.6 }]}
@@ -259,7 +261,7 @@ export default function WidgetFormModal({ visible, widget, onClose, onSuccess }:
                   <ActivityIndicator size="small" color={Colors.white} />
                 ) : (
                   <Text style={[styles.btnText, { color: Colors.white }]}>
-                    {isEditing ? 'Enregistrer' : 'Créer le widget'}
+                    {isEditing ? t('componentsCharts.widgetForm.btnSave') : t('componentsCharts.widgetForm.btnCreate')}
                   </Text>
                 )}
               </TouchableOpacity>

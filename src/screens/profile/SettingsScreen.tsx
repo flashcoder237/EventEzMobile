@@ -632,7 +632,7 @@ export default function SettingsScreen() {
             ]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.text} />
           </TouchableOpacity>
@@ -1023,8 +1023,8 @@ export default function SettingsScreen() {
           <OptionCard
             icon="radio-outline"
             eyebrow={t('eyebrow.presence')}
-            title="Présence visible"
-            subtitle="Les autres voient quand tu es en ligne"
+            title={t('settings.rowPresenceVisible')}
+            subtitle={t('settings.rowPresenceVisibleSubtitle')}
             right={
               <SoftToggle
                 value={messagingPresenceVisible}
@@ -1038,8 +1038,8 @@ export default function SettingsScreen() {
           <OptionCard
             icon="ban-outline"
             eyebrow={blockedCount > 0 ? t('settings.blockedSection', { count: blockedCount, plural: blockedCount > 1 ? 'S' : '' }) : t('settings.blockedSectionNone')}
-            title="Utilisateurs bloqués"
-            subtitle="Gère la liste des comptes que tu as bloqués"
+            title={t('settings.rowBlockedUsers')}
+            subtitle={t('settings.rowBlockedUsersSubtitle')}
             tone="accent"
             onPress={() => navigation.navigate('BlockedUsers')}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
@@ -1055,28 +1055,28 @@ export default function SettingsScreen() {
           <OptionCard
             icon="help-circle-outline"
             eyebrow={t('eyebrow.support')}
-            title="Centre d'aide"
+            title={t('settings.rowHelpCenter')}
             onPress={() => {}}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
             icon="document-text-outline"
             eyebrow={t('eyebrow.legal')}
-            title="Conditions d'utilisation"
+            title={t('settings.rowTermsOfUse')}
             onPress={() => navigation.navigate('Terms')}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
             icon="shield-outline"
             eyebrow={t('eyebrow.gdpr')}
-            title="Politique de confidentialité"
+            title={t('settings.rowPrivacyPolicy')}
             onPress={() => {}}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
             icon="information-outline"
             eyebrow={t('eyebrow.version')}
-            title="EventEz 1.0.0"
+            title={t('settings.rowAppVersion')}
             right={
               <View style={[styles.versionPill, { backgroundColor: colors.gray100 }]}>
                 <Text style={[styles.versionPillText, { color: colors.gray600 }]}>BUILD 2026</Text>
@@ -1094,7 +1094,7 @@ export default function SettingsScreen() {
           <OptionCard
             icon="log-out-outline"
             eyebrow={t('eyebrow.session')}
-            title="Déconnexion"
+            title={t('settings.rowLogout')}
             onPress={handleLogout}
             danger
             right={<Ionicons name="chevron-forward" size={18} color={colors.accent} />}
@@ -1102,7 +1102,7 @@ export default function SettingsScreen() {
           <OptionCard
             icon="trash-outline"
             eyebrow={t('eyebrow.irreversible')}
-            title="Supprimer mon compte"
+            title={t('settings.rowDeleteAccount')}
             onPress={() => setShowDeleteModal(true)}
             danger
             right={<Ionicons name="chevron-forward" size={18} color={colors.accent} />}

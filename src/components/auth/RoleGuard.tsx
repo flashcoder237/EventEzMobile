@@ -14,6 +14,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { EditorialCanvas, WatermarkNumeral } from '../ui/editorial';
@@ -40,14 +41,17 @@ interface RoleGuardProps {
 export default function RoleGuard({
   allow,
   watermark,
-  eyebrow = 'ACCÈS RESTREINT',
-  title = 'Zone réservée',
+  eyebrow,
+  title,
   message,
   children,
 }: RoleGuardProps) {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const resolvedEyebrow = eyebrow ?? t('componentsAuth.roleAccessRestrictedEyebrow');
+  const resolvedTitle = title ?? t('componentsAuth.roleZoneTitle');
 
   const userRole = (user?.role || 'user') as Role;
   // is_staff/is_superuser élèvent au rang admin pour les comptes Django créés
@@ -62,10 +66,10 @@ export default function RoleGuard({
   const wm = watermark || allow[0]?.toUpperCase().slice(0, 3) || 'OFF';
   const defaultMessage =
     allow.includes('admin') && allow.length === 1
-      ? "Cette section est réservée aux administrateurs de la plateforme."
+      ? t('componentsAuth.roleAdminMessage')
       : allow.includes('moderator')
-        ? "Cette section est réservée aux modérateurs et administrateurs."
-        : "Tu n'as pas les droits requis pour accéder à cette section.";
+        ? t('componentsAuth.roleModeratorMessage')
+        : t('componentsAuth.roleDefaultMessage');
 
   return (
     <EditorialCanvas edges={['top', 'bottom']}>
@@ -74,17 +78,17 @@ export default function RoleGuard({
         <AnimatedIllustration entry="scaleIn" idle="float">
           <AccessDenied color={colors.primary} size={160} />
         </AnimatedIllustration>
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>{eyebrow}</Text>
-        <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>{resolvedEyebrow}</Text>
+        <Text style={[styles.title, { color: colors.text }]}>{resolvedTitle}</Text>
         <Text style={[styles.message, { color: colors.gray500 }]}>{message || defaultMessage}</Text>
         <TouchableOpacity
           style={[styles.cta, { backgroundColor: colors.text }]}
           onPress={() => navigation.goBack()}
           activeOpacity={0.8}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('componentsAuth.roleBackA11y')}
         >
-          <Text style={[styles.ctaText, { color: colors.background }]}>Retour</Text>
+          <Text style={[styles.ctaText, { color: colors.background }]}>{t('componentsAuth.roleBack')}</Text>
         </TouchableOpacity>
       </View>
     </EditorialCanvas>

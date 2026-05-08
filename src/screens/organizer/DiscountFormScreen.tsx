@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -42,6 +43,7 @@ export default function DiscountFormScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
   const { eventId, discountId } = route.params;
+  const { t } = useTranslation();
   const { showSuccess, showError } = useAlert();
   const { colors } = useTheme();
 
@@ -109,31 +111,31 @@ export default function DiscountFormScreen() {
     const newErrors: Record<string, string> = {};
 
     if (!code.trim()) {
-      newErrors.code = 'Le code est requis';
+      newErrors.code = t('organizer.discountForm.errCodeRequired');
     } else if (code.length > 20) {
-      newErrors.code = 'Max 20 caractères';
+      newErrors.code = t('organizer.discountForm.errCodeMax');
     }
 
     const numValue = parseFloat(value);
     if (!value || isNaN(numValue) || numValue <= 0) {
-      newErrors.value = 'La valeur doit être > 0';
+      newErrors.value = t('organizer.discountForm.errValuePositive');
     } else if (discountType === 'percentage' && numValue > 100) {
-      newErrors.value = 'Max 100%';
+      newErrors.value = t('organizer.discountForm.errValueMaxPercent');
     }
 
     if (!validFrom) {
-      newErrors.valid_from = 'Date de début requise';
+      newErrors.valid_from = t('organizer.discountForm.errStartRequired');
     }
     if (!validUntil) {
-      newErrors.valid_until = 'Date de fin requise';
+      newErrors.valid_until = t('organizer.discountForm.errEndRequired');
     }
     if (validFrom && validUntil && validFrom >= validUntil) {
-      newErrors.valid_until = 'Doit être après la date de début';
+      newErrors.valid_until = t('organizer.discountForm.errEndAfterStart');
     }
 
     const numMaxUses = parseInt(maxUses);
     if (!maxUses || isNaN(numMaxUses) || numMaxUses < 1) {
-      newErrors.max_uses = 'Minimum 1 utilisation';
+      newErrors.max_uses = t('organizer.discountForm.errMaxUsesMin');
     }
 
     setErrors(newErrors);

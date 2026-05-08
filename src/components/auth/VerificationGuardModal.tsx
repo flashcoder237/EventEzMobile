@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { eventBus } from '../../lib/eventBus';
@@ -27,6 +28,7 @@ import GradientButton from '../ui/GradientButton';
 export default function VerificationGuardModal() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [sending, setSending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -50,14 +52,14 @@ export default function VerificationGuardModal() {
     try {
       await authAPI.resendVerificationEmail(user.email);
       Alert.alert(
-        'Email envoyé',
-        'Consultez votre boîte de réception pour vérifier votre compte.',
+        t('componentsAuth.verifyEmailSentTitle'),
+        t('componentsAuth.verifyEmailSentMsg'),
       );
       setVisible(false);
     } catch (err: any) {
       Alert.alert(
-        'Erreur',
-        err?.response?.data?.detail || "Impossible d'envoyer l'email",
+        t('common.error'),
+        err?.response?.data?.detail || t('componentsAuth.verifyResendError'),
       );
     } finally {
       setSending(false);
@@ -86,11 +88,10 @@ export default function VerificationGuardModal() {
           </View>
 
           <Text style={[styles.title, { color: colors.text }]}>
-            Vérification requise
+            {t('componentsAuth.verifyModalTitle')}
           </Text>
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-            {message ||
-              "Pour protéger votre compte, cette action n'est disponible qu'après vérification de votre email."}
+            {message || t('componentsAuth.verifyModalDefault')}
           </Text>
           {user?.email && (
             <Text style={[styles.email, { color: colors.primary }]}>
@@ -104,12 +105,12 @@ export default function VerificationGuardModal() {
               style={[styles.secondaryBtn, { backgroundColor: colors.gray100 }]}
             >
               <Text style={[styles.secondaryText, { color: colors.text }]}>
-                Plus tard
+                {t('componentsAuth.verifyModalLater')}
               </Text>
             </TouchableOpacity>
             <View style={styles.primaryWrap}>
               <GradientButton
-                title={sending ? '' : 'Envoyer le lien'}
+                title={sending ? '' : t('componentsAuth.verifyModalSendLink')}
                 onPress={handleResend}
                 disabled={sending || !user?.email}
                 size="md"

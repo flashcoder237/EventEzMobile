@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Event } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, TextStyles } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -27,23 +28,24 @@ export default function AboutTab({
   onNavigateVolunteers,
 }: AboutTabProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <>
       {/* About Section — primary */}
       <View style={styles.section}>
-        <Text style={[styles.eyebrow, { color: colors.accent }]}>À propos</Text>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>De l'événement</Text>
+        <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('componentsEvents.aboutEyebrow')}</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.aboutSectionTitle')}</Text>
         <Text style={[styles.description, { color: colors.gray600 }]}>
-          {event.description || event.short_description || 'Aucune description disponible pour cet evenement.'}
+          {event.description || event.short_description || t('componentsEvents.aboutNoDescription')}
         </Text>
       </View>
 
       {/* Follow Section — primary CTA */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Reste connecté</Text>
+        <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.stayConnected')}</Text>
         <Text style={[styles.followDescription, { color: colors.gray500 }]}>
-          Reçois des notifications pour les mises à jour, rappels et annonces.
+          {t('componentsEvents.stayConnectedDescription')}
         </Text>
         <FollowEventButton
           eventId={eventId}
@@ -57,7 +59,7 @@ export default function AboutTab({
       {/* Tags — secondary (subsection) */}
       {event.tags && event.tags.length > 0 && (
         <View style={styles.section}>
-          <Text style={[styles.subsectionTitle, { color: colors.gray900 }]}>Thématiques</Text>
+          <Text style={[styles.subsectionTitle, { color: colors.gray900 }]}>{t('componentsEvents.tagsTitle')}</Text>
           <View style={styles.tagsRow}>
             {event.tags.map((tag) => (
               <View key={tag.id} style={[styles.tag, { backgroundColor: colors.gray100 }]}>
@@ -79,8 +81,8 @@ export default function AboutTab({
             <Ionicons name="people-outline" size={22} color={colors.primary} />
           </View>
           <View style={styles.volunteerTextContainer}>
-            <Text style={[styles.volunteerTitle, { color: colors.gray900 }]}>Benevoles</Text>
-            <Text style={[styles.volunteerSubtitle, { color: colors.gray500 }]}>Voir ou rejoindre l'equipe de benevoles</Text>
+            <Text style={[styles.volunteerTitle, { color: colors.gray900 }]}>{t('componentsEvents.volunteersTitle')}</Text>
+            <Text style={[styles.volunteerSubtitle, { color: colors.gray500 }]}>{t('componentsEvents.volunteersSubtitle')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
         </TouchableOpacity>

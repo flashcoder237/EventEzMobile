@@ -22,6 +22,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { messagesAPI } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -47,24 +48,12 @@ interface GroupAdminPanelProps {
 
 const MODE_OPTIONS: Array<{
   value: 'all' | 'organizer_only' | 'admins_only';
-  title: string;
-  description: string;
+  titleKey: string;
+  descKey: string;
 }> = [
-  {
-    value: 'all',
-    title: 'Tout le monde peut écrire',
-    description: 'Les participants peuvent envoyer des messages et fichiers (par défaut).',
-  },
-  {
-    value: 'organizer_only',
-    title: 'Vous uniquement',
-    description: 'Seul l\'organisateur peut écrire. Les participants peuvent lire.',
-  },
-  {
-    value: 'admins_only',
-    title: 'Vous et les modérateurs EventEz',
-    description: 'Vous + l\'équipe plateforme. Les participants peuvent lire.',
-  },
+  { value: 'all', titleKey: 'componentsMessages.groupModeAllTitle', descKey: 'componentsMessages.groupModeAllDesc' },
+  { value: 'organizer_only', titleKey: 'componentsMessages.groupModeOrganizerTitle', descKey: 'componentsMessages.groupModeOrganizerDesc' },
+  { value: 'admins_only', titleKey: 'componentsMessages.groupModeAdminsTitle', descKey: 'componentsMessages.groupModeAdminsDesc' },
 ];
 
 // Hauteur estimée d'une ligne participant
@@ -80,6 +69,7 @@ export default function GroupAdminPanel({
   onMutationApplied,
 }: GroupAdminPanelProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { showSuccess, showError } = useAlert();
 
   const [mode, setMode] = useState<'all' | 'organizer_only' | 'admins_only'>(initialPostingMode);
@@ -118,10 +108,10 @@ export default function GroupAdminPanel({
     try {
       await messagesAPI.setPostingMode(conversationId, newMode);
       setMode(newMode);
-      showSuccess('Permissions mises à jour', '');
+      showSuccess(t('componentsMessages.groupPermissionsUpdated'), '');
       onMutationApplied?.();
     } catch (err: any) {
-      showError('Erreur', err?.response?.data?.detail || 'Impossible de modifier les permissions.');
+      showError(t('common.error'), err?.response?.data?.detail || t('componentsMessages.groupPermissionsError'));
     } finally {
       setSavingMode(false);
     }
@@ -138,7 +128,7 @@ export default function GroupAdminPanel({
           next.delete(userId);
           return next;
         });
-        showSuccess('Démuté', 'Le participant peut à nouveau écrire.');
+        showSuccess(t('componentsMessages.groupUnmuted'), t('componentsMessages.groupUnmutedMsg'));
       } else {
         await messagesAPI.muteParticipant(conversationId, userId);
         setMutedIds((prev) => {
@@ -146,11 +136,11 @@ export default function GroupAdminPanel({
           next.add(userId);
           return next;
         });
-        showSuccess('Muté', 'Le participant ne peut plus écrire.');
+        showSuccess(t('componentsMessages.groupMuted'), t('componentsMessages.groupMutedMsg'));
       }
       onMutationApplied?.();
     } catch (err: any) {
-      showError('Erreur', err?.response?.data?.detail || 'Action impossible.');
+      showError(t('common.error'), err?.response?.data?.detail || t('componentsMessages.groupActionImpossible'));
     } finally {
       setTogglingId(null);
     }
@@ -178,12 +168,12 @@ export default function GroupAdminPanel({
               </Text>
               {isOrganizer && (
                 <View style={[styles.badge, { backgroundColor: colors.primary + '22' }]}>
-                  <Text style={[styles.badgeText, { color: colors.primary }]}>ORGANISATEUR</Text>
+                  <Text style={[styles.badgeText, { color: colors.primary }]}>{t('componentsMessages.groupBadgeOrganizer')}</Text>
                 </View>
               )}
               {isMuted && (
                 <View style={[styles.badge, { backgroundColor: '#fef3c7' }]}>
-                  <Text style={[styles.badgeText, { color: '#92400e' }]}>MUTÉ</Text>
+                  <Text style={[styles.badgeText, { color: '#92400e' }]}>{t('componentsMessages.groupBadgeMuted')}</Text>
                 </View>
               )}
             </View>
@@ -219,7 +209,7 @@ export default function GroupAdminPanel({
                 { color: isMuted ? '#065f46' : colors.text },
               ]}
             >
-              {isMuted ? 'Démuter' : 'Muter'}
+              {isMuted ? t('componentsMessages.groupBtnUnmute') : t('componentsMessages.groupBtnMute')}
             </Text>
           </Pressable>
         )}
@@ -239,10 +229,10 @@ export default function GroupAdminPanel({
               </View>
               <View>
                 <Text style={[styles.headerTitle, { color: colors.text }]}>
-                  Permissions du groupe
+                  {t('componentsMessages.groupHeaderTitle')}
                 </Text>
                 <Text style={[styles.headerSubtitle, { color: colors.gray500 }]}>
-                  Réservé à l&apos;organisateur
+                  {t('componentsMessages.groupHeaderSubtitle')}
                 </Text>
               </View>
             </View>
@@ -255,7 +245,7 @@ export default function GroupAdminPanel({
             {/* Section : qui peut écrire */}
             <View style={[styles.section, { borderBottomColor: colors.gray100 }]}>
               <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                Qui peut écrire ?
+                {t('componentsMessages.groupSectionWho')}
               </Text>
               {MODE_OPTIONS.map((opt) => {
                 const isActive = mode === opt.value;
@@ -287,10 +277,10 @@ export default function GroupAdminPanel({
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.modeTitle, { color: isActive ? colors.primary : colors.text }]}>
-                        {opt.title}
+                        {t(opt.titleKey)}
                       </Text>
                       <Text style={[styles.modeDescription, { color: colors.gray500 }]}>
-                        {opt.description}
+                        {t(opt.descKey)}
                       </Text>
                     </View>
                   </Pressable>
@@ -302,11 +292,11 @@ export default function GroupAdminPanel({
             <View style={styles.section}>
               <View style={styles.participantsHeader}>
                 <Text style={[styles.sectionTitle, { color: colors.text }]}>
-                  Membres du groupe ({participants.length})
+                  {t('componentsMessages.groupSectionMembers', { count: participants.length })}
                 </Text>
                 {mutedIds.size > 0 && (
                   <Text style={[styles.mutedCount, { color: colors.gray500 }]}>
-                    {mutedIds.size} muté{mutedIds.size > 1 ? 's' : ''}
+                    {t('componentsMessages.groupMutedCount', { count: mutedIds.size })}
                   </Text>
                 )}
               </View>

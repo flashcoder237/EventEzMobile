@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Message } from '../../types';
 import {
   Colors,
@@ -96,6 +97,7 @@ const VoiceAttachment = memo(function VoiceAttachment({
   inactiveBar,
   textColor,
 }: VoiceAttachmentProps) {
+  const { t } = useTranslation();
   // Waveform stable : on génère les hauteurs une seule fois.
   // Si le backend fournit waveform_data (array de 0..1), on l'utilise.
   // Sinon on hash sur duration_seconds uniquement — c'est la seule propriété
@@ -127,7 +129,7 @@ const VoiceAttachment = memo(function VoiceAttachment({
       onPress={onPress}
       activeOpacity={0.85}
       accessibilityRole="button"
-      accessibilityLabel={isPlaying ? 'Mettre en pause' : 'Lire le message vocal'}
+      accessibilityLabel={isPlaying ? t('componentsMessages.voicePause') : t('componentsMessages.voicePlay')}
     >
       <View style={styles.voiceIconWrap}>
         {isLoading ? (
@@ -174,6 +176,7 @@ function MessageBubble({
   onPlayVoice,
 }: MessageBubbleProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const avatar = getMessageAvatar(message);
   const initials = getMessageInitials(message);
   const hasAttachments = message.attachments && message.attachments.length > 0;
@@ -202,7 +205,7 @@ function MessageBubble({
             style={[styles.replyName, { color: colors.primary }, isMine && styles.replyNameMine]}
             numberOfLines={1}
           >
-            {replyToMessage.sender_name || 'Utilisateur'}
+            {replyToMessage.sender_name || t('componentsMessages.userFallback')}
           </Text>
           <Text
             style={[styles.replyText, { color: colors.gray600 }, isMine && styles.replyTextMine]}
@@ -298,7 +301,7 @@ function MessageBubble({
             style={[styles.documentName, { color: isMine ? Colors.white : peerTextColor }]}
             numberOfLines={1}
           >
-            {attachment.file_name || 'Document'}
+            {attachment.file_name || t('componentsMessages.documentFallback')}
           </Text>
         </TouchableOpacity>
         {isUploading && (
@@ -333,7 +336,7 @@ function MessageBubble({
       <TouchableOpacity
         style={[styles.messageRow, isMine && styles.messageRowMine, isGrouped && styles.messageRowGrouped]}
         activeOpacity={1}
-        accessibilityLabel="Message supprime"
+        accessibilityLabel={t('componentsMessages.deletedA11y')}
       >
         {!isMine && (
           <View style={[styles.avatarPlaceholder, { backgroundColor: colors.gray200 }]}>
@@ -344,7 +347,7 @@ function MessageBubble({
           <View style={[styles.bubble, styles.deletedBubble, { backgroundColor: colors.gray100 }]}>
             <View style={styles.deletedContent}>
               <Ionicons name="trash-outline" size={14} color={colors.gray400} />
-              <Text style={[styles.deletedText, { color: colors.gray400 }]}>Ce message a été supprimé</Text>
+              <Text style={[styles.deletedText, { color: colors.gray400 }]}>{t('componentsMessages.deletedMessage')}</Text>
             </View>
           </View>
           <View style={[styles.timeRow, isMine && styles.timeRowMine]}>
@@ -381,7 +384,7 @@ function MessageBubble({
 
         {/* Attachments */}
         {hasAttachments && (
-          <View style={styles.attachmentsContainer} accessibilityLabel="Piece jointe">
+          <View style={styles.attachmentsContainer} accessibilityLabel={t('componentsMessages.attachmentA11y')}>
             {message.attachments?.map((att, i) => renderAttachment(att, i))}
           </View>
         )}
@@ -399,7 +402,7 @@ function MessageBubble({
           >
             <Text
               accessibilityRole="text"
-              accessibilityLabel={`${message.sender_name || 'Utilisateur'}: ${message.content}`}
+              accessibilityLabel={`${message.sender_name || t('componentsMessages.userFallback')}: ${message.content}`}
               style={[styles.messageText, { color: isMine ? Colors.white : peerTextColor }]}
             >
               {message.content}
@@ -413,7 +416,7 @@ function MessageBubble({
         {/* Time and Status */}
         <View style={[styles.timeRow, isMine && styles.timeRowMine]}>
           {message.is_edited && (
-            <Text style={[styles.editedLabel, { color: colors.gray400 }]}>modifie</Text>
+            <Text style={[styles.editedLabel, { color: colors.gray400 }]}>{t('componentsMessages.messageEdited')}</Text>
           )}
           <Text style={[styles.timeText, { color: colors.gray400 }]}>{formatMessageTime(message.created_at)}</Text>
           {status && (

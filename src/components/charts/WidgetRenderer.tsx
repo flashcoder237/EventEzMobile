@@ -18,6 +18,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useWidgetData } from '../../hooks/useWidgetData';
@@ -53,6 +54,7 @@ function formatBigNumber(n: number, unit?: string): string {
 
 export default function WidgetRenderer({ widget, refreshKey = 0, onLongPress }: Props) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const data = useWidgetData(widget.data_source, refreshKey);
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -101,7 +103,7 @@ export default function WidgetRenderer({ widget, refreshKey = 0, onLongPress }: 
   // === chart line / area ===
   if (widget.widget_type === 'chart' && (widget.chart_type === 'line' || widget.chart_type === 'area')) {
     if (!data.series || data.series.length === 0) {
-      return <EmptyCard title={widget.title} hint="Pas encore de données pour cette période." />;
+      return <EmptyCard title={widget.title} hint={t('componentsCharts.widgetNoDataPeriod')} />;
     }
     return (
       <TrendLineChart
@@ -116,7 +118,7 @@ export default function WidgetRenderer({ widget, refreshKey = 0, onLongPress }: 
   // === chart bar (default chart) ===
   if (widget.widget_type === 'chart' && (widget.chart_type === 'bar' || !widget.chart_type)) {
     if (!data.series || data.series.length === 0) {
-      return <EmptyCard title={widget.title} hint="Pas encore de données." />;
+      return <EmptyCard title={widget.title} hint={t('componentsCharts.widgetNoData')} />;
     }
     return (
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
@@ -136,7 +138,7 @@ export default function WidgetRenderer({ widget, refreshKey = 0, onLongPress }: 
   if (widget.widget_type === 'chart' && (widget.chart_type === 'pie' || widget.chart_type === 'doughnut')) {
     const total = data.series.reduce((sum, s) => sum + s.value, 0);
     if (total <= 0 || data.series.length === 0) {
-      return <EmptyCard title={widget.title} hint="Pas encore de données." />;
+      return <EmptyCard title={widget.title} hint={t('componentsCharts.widgetNoData')} />;
     }
     return (
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
@@ -167,7 +169,7 @@ export default function WidgetRenderer({ widget, refreshKey = 0, onLongPress }: 
   if (widget.widget_type === 'list' || widget.widget_type === 'table') {
     const rows = data.rows.length > 0 ? data.rows : data.series;
     if (!rows || rows.length === 0) {
-      return <EmptyCard title={widget.title} hint="Aucune ligne." />;
+      return <EmptyCard title={widget.title} hint={t('componentsCharts.widgetNoRows')} />;
     }
     return (
       <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
@@ -208,14 +210,14 @@ export default function WidgetRenderer({ widget, refreshKey = 0, onLongPress }: 
         <View style={styles.errorBody}>
           <Ionicons name="map-outline" size={20} color={colors.gray400} />
           <Text style={[styles.errorText, { color: colors.gray500 }]}>
-            Carte non disponible sur mobile. Consulte ce widget sur le web.
+            {t('componentsCharts.widgetMapUnsupported')}
           </Text>
         </View>
       </View>
     );
   }
 
-  return <EmptyCard title={widget.title} hint="Type de widget non supporté." />;
+  return <EmptyCard title={widget.title} hint={t('componentsCharts.widgetTypeUnsupported')} />;
 }
 
 function EmptyCard({ title, hint }: { title: string; hint: string }) {

@@ -30,6 +30,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { advertisementsAPI, AdvertisementPublic } from '../../api';
@@ -48,6 +49,7 @@ interface Props {
 
 function AdvertisementCard({ ad, trackView = true }: Props) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const viewedRef = useRef(false);
 
@@ -86,7 +88,7 @@ function AdvertisementCard({ ad, trackView = true }: Props) {
       onPress={handlePress}
       disabled={!tappable}
       accessibilityRole={tappable ? 'button' : 'none'}
-      accessibilityLabel={`Publicité : ${ad.title}`}
+      accessibilityLabel={t('componentsCommon.advertA11y', { title: ad.title })}
       style={({ pressed }) => [
         styles.card,
         {
@@ -119,7 +121,7 @@ function AdvertisementCard({ ad, trackView = true }: Props) {
         />
         <View style={styles.eyebrowPill}>
           <Ionicons name="megaphone" size={9} color="#FFFFFF" />
-          <Text style={styles.eyebrowText}>SPONSORISÉ</Text>
+          <Text style={styles.eyebrowText}>{t('componentsCommon.advertSponsored')}</Text>
         </View>
       </View>
 
@@ -134,7 +136,7 @@ function AdvertisementCard({ ad, trackView = true }: Props) {
         )}
         {tappable && (
           <View style={[styles.ctaRow, { backgroundColor: colors.primary }]}>
-            <Text style={styles.ctaText}>{ad.cta_label || 'En savoir plus'}</Text>
+            <Text style={styles.ctaText}>{ad.cta_label || t('componentsCommon.advertCtaDefault')}</Text>
             <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
           </View>
         )}

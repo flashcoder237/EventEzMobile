@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import Reanimated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { Message } from '../../types';
 import {
   FontFamily,
@@ -53,7 +54,8 @@ interface MessageActionModalProps {
 interface ActionItem {
   type: MessageActionType;
   icon: keyof typeof Ionicons.glyphMap;
-  label: string;
+  /** i18n key for the label */
+  labelKey: string;
   destructive?: boolean;
   ownerOnly?: boolean;
   /** Visible uniquement sur les messages des autres (pas les miens). */
@@ -65,14 +67,14 @@ interface ActionItem {
 }
 
 const ACTIONS: ActionItem[] = [
-  { type: 'reply',   icon: 'arrow-undo-outline', label: 'Répondre',                                                hideOnSystem: true },
-  { type: 'react',   icon: 'happy-outline',      label: 'Réagir',                                                  hideOnSystem: true },
-  { type: 'forward', icon: 'arrow-redo-outline', label: 'Transférer',                                              hideOnSystem: true },
-  { type: 'copy',    icon: 'copy-outline',       label: 'Copier' },
-  { type: 'edit',    icon: 'create-outline',     label: 'Modifier',                          ownerOnly: true,     hideOnSystem: true },
-  { type: 'delete',  icon: 'trash-outline',      label: 'Supprimer', destructive: true,      ownerOnly: true,     hideOnSystem: true },
-  { type: 'report',  icon: 'flag-outline',       label: 'Signaler',  destructive: true,      othersOnly: true,    hideOnSystem: true },
-  { type: 'block',   icon: 'ban-outline',        label: 'Bloquer',   destructive: true,      othersOnly: true,    directOnly: true, hideOnSystem: true },
+  { type: 'reply',   icon: 'arrow-undo-outline', labelKey: 'componentsMessages.actionReply',                                                hideOnSystem: true },
+  { type: 'react',   icon: 'happy-outline',      labelKey: 'componentsMessages.actionReact',                                                hideOnSystem: true },
+  { type: 'forward', icon: 'arrow-redo-outline', labelKey: 'componentsMessages.actionForward',                                              hideOnSystem: true },
+  { type: 'copy',    icon: 'copy-outline',       labelKey: 'componentsMessages.actionCopy' },
+  { type: 'edit',    icon: 'create-outline',     labelKey: 'componentsMessages.actionEdit',                          ownerOnly: true,     hideOnSystem: true },
+  { type: 'delete',  icon: 'trash-outline',      labelKey: 'componentsMessages.actionDelete', destructive: true,      ownerOnly: true,     hideOnSystem: true },
+  { type: 'report',  icon: 'flag-outline',       labelKey: 'componentsMessages.actionReport', destructive: true,      othersOnly: true,    hideOnSystem: true },
+  { type: 'block',   icon: 'ban-outline',        labelKey: 'componentsMessages.actionBlock',  destructive: true,      othersOnly: true,    directOnly: true, hideOnSystem: true },
 ];
 
 function MessageActionModal({
@@ -84,6 +86,7 @@ function MessageActionModal({
   onAction,
 }: MessageActionModalProps) {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { modalOpen, sheetAnim, backdropAnim } = useBottomSheetAnim(visible);
 
@@ -135,48 +138,51 @@ function MessageActionModal({
         {/* Message preview */}
         {message && (
           <View style={[styles.preview, { borderBottomColor: colors.gray100 }]}>
-            <Text style={[styles.previewLabel, { color: colors.gray500 }]}>Message</Text>
+            <Text style={[styles.previewLabel, { color: colors.gray500 }]}>{t('componentsMessages.messagePreviewLabel')}</Text>
             <Text
               style={[styles.previewText, { color: colors.gray700 }]}
               numberOfLines={2}
             >
-              {message.content || '[Pièce jointe]'}
+              {message.content || t('componentsMessages.attachmentPlaceholder')}
             </Text>
           </View>
         )}
 
         {/* Actions */}
         <View style={styles.actionsContainer}>
-          {filteredActions.map((action, index) => (
-            <TouchableOpacity
-              key={action.type}
-              style={[
-                styles.actionItem,
-                { borderBottomColor: colors.gray100 },
-                index === filteredActions.length - 1 && styles.actionItemLast,
-              ]}
-              onPress={() => handleAction(action.type)}
-              activeOpacity={TOUCH_OPACITY}
-              accessibilityRole="button"
-              accessibilityLabel={action.label}
-            >
-              <View style={[styles.actionIcon, { backgroundColor: action.destructive ? `${colors.error}12` : colors.gray50 }]}>
-                <Ionicons
-                  name={action.icon}
-                  size={20}
-                  color={action.destructive ? colors.error : colors.gray700}
-                />
-              </View>
-              <Text
+          {filteredActions.map((action, index) => {
+            const label = t(action.labelKey);
+            return (
+              <TouchableOpacity
+                key={action.type}
                 style={[
-                  styles.actionLabel,
-                  { color: action.destructive ? colors.error : colors.gray700 },
+                  styles.actionItem,
+                  { borderBottomColor: colors.gray100 },
+                  index === filteredActions.length - 1 && styles.actionItemLast,
                 ]}
+                onPress={() => handleAction(action.type)}
+                activeOpacity={TOUCH_OPACITY}
+                accessibilityRole="button"
+                accessibilityLabel={label}
               >
-                {action.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <View style={[styles.actionIcon, { backgroundColor: action.destructive ? `${colors.error}12` : colors.gray50 }]}>
+                  <Ionicons
+                    name={action.icon}
+                    size={20}
+                    color={action.destructive ? colors.error : colors.gray700}
+                  />
+                </View>
+                <Text
+                  style={[
+                    styles.actionLabel,
+                    { color: action.destructive ? colors.error : colors.gray700 },
+                  ]}
+                >
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Cancel */}
@@ -184,10 +190,10 @@ function MessageActionModal({
           style={[styles.cancelButton, { backgroundColor: colors.gray100 }]}
           onPress={onClose}
           activeOpacity={TOUCH_OPACITY}
-          accessibilityLabel="Fermer"
+          accessibilityLabel={t('componentsMessages.actionsCloseA11y')}
           accessibilityRole="button"
         >
-          <Text style={[styles.cancelText, { color: colors.gray600 }]}>Annuler</Text>
+          <Text style={[styles.cancelText, { color: colors.gray600 }]}>{t('componentsMessages.actionCancel')}</Text>
         </TouchableOpacity>
       </Reanimated.View>
     </Modal>

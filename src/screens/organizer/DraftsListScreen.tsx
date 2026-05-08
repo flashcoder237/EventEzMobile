@@ -18,6 +18,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useNamedDrafts, NamedDraftMeta } from '../../hooks/useNamedDrafts';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -34,24 +35,29 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-function formatRelative(iso: string) {
-  try {
-    const d = new Date(iso);
-    const diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60) return "à l'instant";
-    if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
-    if (diff < 604800) return `il y a ${Math.floor(diff / 86400)} j`;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return '';
-  }
+function useFormatRelative() {
+  const { t } = useTranslation();
+  return React.useCallback((iso: string) => {
+    try {
+      const d = new Date(iso);
+      const diff = (Date.now() - d.getTime()) / 1000;
+      if (diff < 60) return t('organizer.draftsList.relativeNow');
+      if (diff < 3600) return t('organizer.draftsList.relativeMin', { count: Math.floor(diff / 60) });
+      if (diff < 86400) return t('organizer.draftsList.relativeHour', { count: Math.floor(diff / 3600) });
+      if (diff < 604800) return t('organizer.draftsList.relativeDay', { count: Math.floor(diff / 86400) });
+      return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch {
+      return '';
+    }
+  }, [t]);
 }
 
 export default function DraftsListScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showConfirm } = useAlert();
+  const formatRelative = useFormatRelative();
   const { drafts, loading, deleteById, refresh } = useNamedDrafts();
   const [refreshing, setRefreshing] = React.useState(false);
 
@@ -67,8 +73,8 @@ export default function DraftsListScreen() {
 
   const handleDelete = (draft: NamedDraftMeta) => {
     showConfirm(
-      'Supprimer ce brouillon ?',
-      `"${draft.name}" sera définitivement supprimé. Cette action est irréversible.`,
+      t('organizer.draftsList.deleteConfirmTitle'),
+      t('organizer.draftsList.deleteConfirmMessage', { name: draft.name }),
       () => deleteById(draft.id),
     );
   };
@@ -84,7 +90,7 @@ export default function DraftsListScreen() {
         Shadows.sm,
       ]}
       accessibilityRole="button"
-      accessibilityLabel={`Brouillon ${item.name}, sauvegardé ${formatRelative(item.savedAt)}`}
+      accessibilityLabel={t('organizer.draftsList.draftA11y', { name: item.name, saved: formatRelative(item.savedAt) })}
     >
       <View style={[styles.iconWell, { backgroundColor: `${colors.primary}15` }]}>
         <Ionicons name="document-text" size={20} color={colors.primary} />
@@ -99,7 +105,7 @@ export default function DraftsListScreen() {
           </Text>
         ) : null}
         <Text style={[styles.cardTime, { color: colors.gray400 }]}>
-          Sauvegardé {formatRelative(item.savedAt)}
+          {t('organizer.draftsList.savedAt', { time: formatRelative(item.savedAt) })}
         </Text>
       </View>
       <View style={styles.chevron}>
@@ -113,9 +119,9 @@ export default function DraftsListScreen() {
       <View style={[styles.emptyIcon, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="document-outline" size={32} color={colors.gray400} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun brouillon</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.draftsList.emptyTitle')}</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        Tes brouillons d'événement apparaîtront ici. Crée-en depuis l'écran de création d'événement.
+        {t('organizer.draftsList.emptyText')}
       </Text>
       <TouchableOpacity
         onPress={() => navigation.navigate('EventCreate' as any, undefined)}
@@ -123,7 +129,7 @@ export default function DraftsListScreen() {
         activeOpacity={0.85}
       >
         <Ionicons name="add" size={18} color="#fff" />
-        <Text style={styles.emptyCtaText}>Nouveau brouillon</Text>
+        <Text style={styles.emptyCtaText}>{t('organizer.draftsList.newDraft')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -147,13 +153,13 @@ export default function DraftsListScreen() {
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: Spacing.md }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>EN CHANTIER</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Mes brouillons</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('organizer.draftsList.eyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.draftsList.title')}</Text>
           </View>
           {drafts.length > 0 && (
             <View style={[styles.countPill, { backgroundColor: `${colors.primary}15` }]}>
@@ -164,7 +170,7 @@ export default function DraftsListScreen() {
 
         {drafts.length > 0 && (
           <Text style={[styles.hint, { color: colors.gray500 }]}>
-            Tap pour reprendre · appui long pour supprimer
+            {t('organizer.draftsList.hint')}
           </Text>
         )}
 

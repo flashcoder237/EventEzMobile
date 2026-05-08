@@ -90,12 +90,13 @@ const ICON: Record<AlertType, keyof typeof Ionicons.glyphMap> = {
   confirm: 'help',
 };
 
-const EYEBROW: Record<AlertType, string> = {
-  success: 'SUCCÈS',
-  error: 'ERREUR',
-  warning: 'ATTENTION',
-  info: 'INFO',
-  confirm: 'CONFIRMATION',
+// EYEBROW labels resolved via i18n at render-time (see component below).
+const EYEBROW_KEYS: Record<AlertType, string> = {
+  success: 'componentsCommon.alertEyebrowSuccess',
+  error: 'componentsCommon.alertEyebrowError',
+  warning: 'componentsCommon.alertEyebrowWarning',
+  info: 'componentsCommon.alertEyebrowInfo',
+  confirm: 'componentsCommon.alertEyebrowConfirm',
 };
 
 const WATERMARK: Record<AlertType, string> = {
@@ -124,6 +125,7 @@ export default function CustomAlert({
   onClose,
 }: CustomAlertProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -319,7 +321,7 @@ export default function CustomAlert({
         </Reanimated.View>
 
         {/* Eyebrow */}
-        <Text style={[styles.eyebrow, { color: accent }]}>{EYEBROW[type]}</Text>
+        <Text style={[styles.eyebrow, { color: accent }]}>{t(EYEBROW_KEYS[type])}</Text>
 
         {/* Title display */}
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
