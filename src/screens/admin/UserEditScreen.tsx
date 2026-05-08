@@ -215,13 +215,13 @@ export default function UserEditScreen() {
               disabled={saving}
               activeOpacity={0.85}
             >
-              {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.saveBtnText}>Enregistrer le rôle</Text>}
+              {saving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Text style={styles.saveBtnText}>{t('admin.userEdit.saveRole')}</Text>}
             </TouchableOpacity>
           )}
         </View>
 
         {/* Actions */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>ACTIONS</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.userEdit.actionsSection')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           <TouchableOpacity
             style={[styles.actionRow, { borderBottomWidth: 1, borderBottomColor: hairline }]}
@@ -233,7 +233,7 @@ export default function UserEditScreen() {
               <Ionicons name={user.is_verified ? 'shield-checkmark' : 'shield-outline'} size={16} color="#10B981" />
             </View>
             <Text style={[styles.actionText, { color: colors.text }]}>
-              {user.is_verified ? 'Retirer la vérification' : 'Vérifier le profil'}
+              {user.is_verified ? t('admin.userEdit.removeVerification') : t('admin.userEdit.verifyProfile')}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
           </TouchableOpacity>
@@ -247,7 +247,7 @@ export default function UserEditScreen() {
               <Ionicons name={user.is_active ? 'ban' : 'checkmark-circle-outline'} size={16} color={user.is_active ? '#F59E0B' : '#10B981'} />
             </View>
             <Text style={[styles.actionText, { color: colors.text }]}>
-              {user.is_active ? 'Désactiver le compte' : 'Activer le compte'}
+              {user.is_active ? t('admin.userEdit.deactivateAccount') : t('admin.userEdit.activateAccount')}
             </Text>
             <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
           </TouchableOpacity>
@@ -255,19 +255,19 @@ export default function UserEditScreen() {
             <View style={[styles.iconWell, { backgroundColor: '#EF444415' }]}>
               <Ionicons name="trash-outline" size={16} color="#EF4444" />
             </View>
-            <Text style={[styles.actionText, { color: '#EF4444' }]}>Supprimer l'utilisateur</Text>
+            <Text style={[styles.actionText, { color: '#EF4444' }]}>{t('admin.userEdit.deleteUser')}</Text>
             <Ionicons name="chevron-forward" size={16} color="#EF4444" />
           </TouchableOpacity>
         </View>
 
         {/* Info */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>INFORMATIONS</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.userEdit.infoSection')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {[
-            { label: 'ID', value: String(user.id) },
-            { label: 'Téléphone', value: user.phone || '-' },
-            { label: 'Entreprise', value: user.company_name || '-' },
-            { label: 'Inscription', value: user.date_joined ? new Date(user.date_joined).toLocaleDateString('fr-FR') : '-' },
+            { label: t('admin.userEdit.infoId'), value: String(user.id) },
+            { label: t('admin.userEdit.infoPhone'), value: user.phone || '-' },
+            { label: t('admin.userEdit.infoCompany'), value: user.company_name || '-' },
+            { label: t('admin.userEdit.infoJoined'), value: user.date_joined ? new Date(user.date_joined).toLocaleDateString('fr-FR') : '-' },
           ].map((item, idx) => (
             <View key={item.label} style={[styles.infoRow, idx > 0 && { borderTopWidth: 1, borderTopColor: hairline }]}>
               <Text style={[styles.infoLabel, { color: colors.gray500 }]}>{item.label}</Text>

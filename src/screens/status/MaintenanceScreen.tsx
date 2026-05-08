@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useStatus } from '../../contexts/StatusContext';
@@ -35,18 +36,18 @@ const SEVERITY_GRADIENTS: Record<IncidentSeverity, readonly [string, string, str
   minor: ['#D97706', '#B45309', '#78350F'] as const,
 };
 
-const SEVERITY_LABEL: Record<IncidentSeverity, string> = {
-  critical: 'Sévérité critique',
-  major: 'Sévérité majeure',
-  minor: 'Sévérité mineure',
+const SEVERITY_KEY: Record<IncidentSeverity, string> = {
+  critical: 'maintenance.severityCritical',
+  major: 'maintenance.severityMajor',
+  minor: 'maintenance.severityMinor',
 };
 
-const STATUS_LABEL: Record<IncidentStatus, string> = {
-  scheduled: 'Planifié',
-  investigating: 'En investigation',
-  identified: 'Identifié',
-  monitoring: 'Sous surveillance',
-  resolved: 'Résolu',
+const STATUS_KEY: Record<IncidentStatus, string> = {
+  scheduled: 'maintenance.statusScheduled',
+  investigating: 'maintenance.statusInvestigating',
+  identified: 'maintenance.statusIdentified',
+  monitoring: 'maintenance.statusMonitoring',
+  resolved: 'maintenance.statusResolved',
 };
 
 const STATUS_COLORS: Record<IncidentStatus, { bg: string; text: string }> = {
@@ -57,10 +58,10 @@ const STATUS_COLORS: Record<IncidentStatus, { bg: string; text: string }> = {
   resolved: { bg: '#D1FAE5', text: '#047857' },
 };
 
-function formatDateTime(iso: string | null): string {
+function formatDateTime(iso: string | null, locale: string): string {
   if (!iso) return '—';
   try {
-    return new Intl.DateTimeFormat('fr-FR', {
+    return new Intl.DateTimeFormat(locale, {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(iso));
@@ -72,7 +73,9 @@ function formatDateTime(iso: string | null): string {
 export default function MaintenanceScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors } = useTheme();
+  const { t, i18n } = useTranslation();
   const { blockingIncident, lastServiceIncident, refresh, isLoading } = useStatus();
+  const locale = i18n.language === 'en' ? 'en-US' : 'fr-FR';
 
   const incident = blockingIncident || lastServiceIncident;
   const severity = (incident?.severity || 'major') as IncidentSeverity;
@@ -106,17 +109,17 @@ export default function MaintenanceScreen() {
                 color="#FFFFFF"
               />
               <Text style={styles.heroBadgeText}>
-                {isScheduled ? 'Maintenance planifiée' : 'Incident en cours'}
+                {isScheduled ? t('maintenance.heroBadgeScheduled') : t('maintenance.heroBadgeIncident')}
               </Text>
             </View>
 
             <Text style={styles.heroTitle}>
-              {incident?.title || 'EventEz est temporairement indisponible'}
+              {incident?.title || t('maintenance.heroTitleFallback')}
             </Text>
 
             <Text style={styles.heroSubtitle}>
               {incident?.public_message ||
-                "Nous effectuons une maintenance planifiée. Merci de votre patience."}
+                t('maintenance.heroSubtitleFallback')}
             </Text>
           </LinearGradient>
         </StaggeredItem>
@@ -127,18 +130,18 @@ export default function MaintenanceScreen() {
             <View style={styles.pillsRow}>
               <View style={[styles.pill, { backgroundColor: statusColor.bg }]}>
                 <Text style={[styles.pillText, { color: statusColor.text }]}>
-                  {STATUS_LABEL[status]}
+                  {t(STATUS_KEY[status])}
                 </Text>
               </View>
               <View style={[styles.pill, { backgroundColor: colors.errorBg }]}>
                 <Text style={[styles.pillText, { color: colors.error }]}>
-                  {SEVERITY_LABEL[severity]}
+                  {t(SEVERITY_KEY[severity])}
                 </Text>
               </View>
               {incident.is_blocking && (
                 <View style={[styles.pill, { backgroundColor: '#FEE2E2' }]}>
                   <Ionicons name="lock-closed" size={11} color="#DC2626" />
-                  <Text style={[styles.pillText, { color: '#DC2626' }]}>Bloquant</Text>
+                  <Text style={[styles.pillText, { color: '#DC2626' }]}>{t('maintenance.blocking')}</Text>
                 </View>
               )}
             </View>
@@ -155,10 +158,10 @@ export default function MaintenanceScreen() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.updateEyebrow, { color: colors.gray400 }]}>
-                    Dernière mise à jour
+                    {t('maintenance.lastUpdate')}
                   </Text>
                   <Text style={[styles.updateTime, { color: colors.gray700 }]}>
-                    {formatDateTime(incident.latest_update.created_at)}
+                    {formatDateTime(incident.latest_update.created_at, locale)}
                   </Text>
                 </View>
               </View>

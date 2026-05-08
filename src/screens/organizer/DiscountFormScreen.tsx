@@ -160,18 +160,18 @@ export default function DiscountFormScreen() {
 
       if (isEditing && discountId) {
         await discountsAPI.updateDiscount(String(discountId), payload);
-        showSuccess('Code promo mis à jour');
+        showSuccess(t('organizer.discountForm.updated'));
       } else {
         await discountsAPI.createDiscount(payload);
-        showSuccess('Code promo créé');
+        showSuccess(t('organizer.discountForm.created'));
       }
       navigation.goBack();
     } catch (error: any) {
       const detail = error.response?.data?.code?.[0] || error.response?.data?.detail || '';
       if (detail.toLowerCase().includes('unique') || detail.toLowerCase().includes('existe')) {
-        showError('Ce code promo existe déjà');
+        showError(t('organizer.discountForm.errCodeExists'));
       } else {
-        showError(detail || 'Erreur lors de la sauvegarde');
+        showError(detail || t('organizer.discountForm.errSave'));
       }
       if (__DEV__) console.error('Erreur sauvegarde:', error);
     } finally {
@@ -222,10 +222,10 @@ export default function DiscountFormScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={[styles.headerEyebrowE, { color: colors.accent }]}>
-              {isEditing ? 'MODIFIER • CODE' : 'NOUVEAU • DEAL'}
+              {isEditing ? t('organizer.discountForm.editEyebrow') : t('organizer.discountForm.newEyebrow')}
             </Text>
             <Text style={[styles.headerTitleE, { color: colors.text }]}>
-              {isEditing ? 'Modifier le code' : 'Nouveau code'}
+              {isEditing ? t('organizer.discountForm.editTitle') : t('organizer.discountForm.newTitle')}
             </Text>
           </View>
         </View>
@@ -239,8 +239,8 @@ export default function DiscountFormScreen() {
         >
           {/* === CODE === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 01</Text>
-            <Text style={[styles.fieldTitle, { color: colors.text }]}>Choisis ton code</Text>
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>{t('organizer.discountForm.step01')}</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>{t('organizer.discountForm.codeStepTitle')}</Text>
             <View style={styles.codeRow}>
               <TextInput
                 style={[
@@ -252,7 +252,7 @@ export default function DiscountFormScreen() {
                   setCode(t.toUpperCase());
                   setErrors(prev => ({ ...prev, code: '' }));
                 }}
-                placeholder="EX: PROMO25"
+                placeholder={t('organizer.discountForm.codePlaceholder')}
                 placeholderTextColor={colors.gray400}
                 autoCapitalize="characters"
                 maxLength={20}
@@ -271,8 +271,8 @@ export default function DiscountFormScreen() {
 
           {/* === TYPE === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 02</Text>
-            <Text style={[styles.fieldTitle, { color: colors.text }]}>Type de réduction</Text>
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>{t('organizer.discountForm.step02')}</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>{t('organizer.discountForm.typeStepTitle')}</Text>
             <View style={styles.typeRow}>
               <TouchableOpacity
                 style={[
@@ -287,8 +287,8 @@ export default function DiscountFormScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={[styles.typeBigSign, { color: discountType === 'percentage' ? colors.primary : colors.gray400 }]}>%</Text>
-                <Text style={[styles.typeLabel, { color: colors.text }]}>Pourcentage</Text>
-                <Text style={[styles.typeSub, { color: colors.gray500 }]}>Ex: 25%</Text>
+                <Text style={[styles.typeLabel, { color: colors.text }]}>{t('organizer.discountForm.percentage')}</Text>
+                <Text style={[styles.typeSub, { color: colors.gray500 }]}>{t('organizer.discountForm.percentageEx')}</Text>
                 {discountType === 'percentage' && (
                   <View style={[styles.typeCheck, { backgroundColor: colors.primary }]}>
                     <Ionicons name="checkmark" size={11} color="#FFFFFF" />
@@ -307,8 +307,8 @@ export default function DiscountFormScreen() {
                 activeOpacity={0.85}
               >
                 <Text style={[styles.typeBigSign, { color: discountType === 'fixed' ? colors.primary : colors.gray400 }]}>{platformCurrency}</Text>
-                <Text style={[styles.typeLabel, { color: colors.text }]}>Montant fixe</Text>
-                <Text style={[styles.typeSub, { color: colors.gray500 }]}>Ex: 5000</Text>
+                <Text style={[styles.typeLabel, { color: colors.text }]}>{t('organizer.discountForm.fixedAmount')}</Text>
+                <Text style={[styles.typeSub, { color: colors.gray500 }]}>{t('organizer.discountForm.fixedAmountEx')}</Text>
                 {discountType === 'fixed' && (
                   <View style={[styles.typeCheck, { backgroundColor: colors.primary }]}>
                     <Ionicons name="checkmark" size={11} color="#FFFFFF" />
@@ -320,9 +320,9 @@ export default function DiscountFormScreen() {
 
           {/* === VALUE === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 03</Text>
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>{t('organizer.discountForm.step03')}</Text>
             <Text style={[styles.fieldTitle, { color: colors.text }]}>
-              Valeur de la réduction
+              {t('organizer.discountForm.valueStepTitle')}
             </Text>
             <View style={styles.valueInputRow}>
               <TextInput
@@ -355,31 +355,31 @@ export default function DiscountFormScreen() {
 
           {/* === DATES === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 04</Text>
-            <Text style={[styles.fieldTitle, { color: colors.text }]}>Période de validité</Text>
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>{t('organizer.discountForm.step04')}</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>{t('organizer.discountForm.datesStepTitle')}</Text>
             <View style={styles.dateRow}>
               <View style={{ flex: 1 }}>
                 <DateTimePickerField
-                  label="Début"
+                  label={t('organizer.discountForm.startLabel')}
                   value={validFrom}
                   onChange={(date) => {
                     setValidFrom(date);
                     setErrors(prev => ({ ...prev, valid_from: '' }));
                   }}
-                  placeholder="Date de début"
+                  placeholder={t('organizer.discountForm.startPlaceholder')}
                   error={errors.valid_from}
                 />
               </View>
               <View style={{ flex: 1 }}>
                 <DateTimePickerField
-                  label="Fin"
+                  label={t('organizer.discountForm.endLabel')}
                   value={validUntil}
                   onChange={(date) => {
                     setValidUntil(date);
                     setErrors(prev => ({ ...prev, valid_until: '' }));
                   }}
                   minimumDate={validFrom}
-                  placeholder="Date de fin"
+                  placeholder={t('organizer.discountForm.endPlaceholder')}
                   error={errors.valid_until}
                 />
               </View>
@@ -388,8 +388,8 @@ export default function DiscountFormScreen() {
 
           {/* === MAX USES === */}
           <View style={styles.fieldContainer}>
-            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 05</Text>
-            <Text style={[styles.fieldTitle, { color: colors.text }]}>Limite d'utilisations</Text>
+            <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>{t('organizer.discountForm.step05')}</Text>
+            <Text style={[styles.fieldTitle, { color: colors.text }]}>{t('organizer.discountForm.maxUsesStepTitle')}</Text>
             <View style={styles.valueInputRow}>
               <TextInput
                 style={[
@@ -406,7 +406,7 @@ export default function DiscountFormScreen() {
                 keyboardType="numeric"
               />
               <View style={[styles.valueSuffix, { backgroundColor: colors.gray100 }]}>
-                <Text style={[styles.valueSuffixText, { color: colors.gray700 }]}>USAGES</Text>
+                <Text style={[styles.valueSuffixText, { color: colors.gray700 }]}>{t('organizer.discountForm.usesSuffix')}</Text>
               </View>
             </View>
             {errors.max_uses ? (
@@ -420,10 +420,10 @@ export default function DiscountFormScreen() {
           {/* === TICKET TYPES === */}
           {ticketTypes.length > 0 && (
             <View style={styles.fieldContainer}>
-              <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>ÉTAPE 06 (OPT)</Text>
-              <Text style={[styles.fieldTitle, { color: colors.text }]}>Tickets applicables</Text>
+              <Text style={[styles.fieldEyebrow, { color: colors.accent }]}>{t('organizer.discountForm.step06')}</Text>
+              <Text style={[styles.fieldTitle, { color: colors.text }]}>{t('organizer.discountForm.ticketsStepTitle')}</Text>
               <Text style={[styles.fieldHintE, { color: colors.gray500 }]}>
-                Laisser vide = tous les tickets éligibles
+                {t('organizer.discountForm.ticketsStepHint')}
               </Text>
               <View style={styles.ticketTypesList}>
                 {ticketTypes.map((tt) => {

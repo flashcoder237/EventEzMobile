@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { usersAPI, auditAPI, analyticsAPI } from '../../api';
@@ -29,14 +30,16 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AdminDashboardScreen() {
+  const { t } = useTranslation();
   return (
-    <RoleGuard allow={['admin']} watermark="ADM" title="Cockpit administrateur">
+    <RoleGuard allow={['admin']} watermark={t('admin.dashboard.watermark')} title={t('admin.dashboard.guardTitle')}>
       <AdminDashboardContent />
     </RoleGuard>
   );
 }
 
 function AdminDashboardContent() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -89,14 +92,14 @@ function AdminDashboardContent() {
   };
 
   const quickActions: { icon: keyof typeof Ionicons.glyphMap; title: string; screen: string; color: string }[] = [
-    { icon: 'people-outline', title: 'Utilisateurs', screen: 'UserManagement', color: '#4F46E5' },
-    { icon: 'receipt-outline', title: 'Abonnements', screen: 'SubscriptionManagement', color: '#A855F7' },
-    { icon: 'shield-outline', title: 'Audit', screen: 'AuditLogs', color: '#10B981' },
-    { icon: 'megaphone-outline', title: 'Annonces', screen: 'AnnouncementsAdmin', color: '#3B82F6' },
-    { icon: 'pricetag-outline', title: 'Publicités', screen: 'AdminAds', color: '#EC4899' },
-    { icon: 'cloud-download-outline', title: 'Versions client', screen: 'ClientReleaseAdmin', color: '#7C3AED' },
-    { icon: 'settings-outline', title: 'Paramètres', screen: 'PlatformSettings', color: '#F59E0B' },
-    { icon: 'cash-outline', title: 'Trésorerie', screen: 'TreasuryOverview', color: '#EF4444' },
+    { icon: 'people-outline', title: t('admin.dashboard.actions.users'), screen: 'UserManagement', color: '#4F46E5' },
+    { icon: 'receipt-outline', title: t('admin.dashboard.actions.subscriptions'), screen: 'SubscriptionManagement', color: '#A855F7' },
+    { icon: 'shield-outline', title: t('admin.dashboard.actions.audit'), screen: 'AuditLogs', color: '#10B981' },
+    { icon: 'megaphone-outline', title: t('admin.dashboard.actions.announcements'), screen: 'AnnouncementsAdmin', color: '#3B82F6' },
+    { icon: 'pricetag-outline', title: t('admin.dashboard.actions.ads'), screen: 'AdminAds', color: '#EC4899' },
+    { icon: 'cloud-download-outline', title: t('admin.dashboard.actions.clientReleases'), screen: 'ClientReleaseAdmin', color: '#7C3AED' },
+    { icon: 'settings-outline', title: t('admin.dashboard.actions.settings'), screen: 'PlatformSettings', color: '#F59E0B' },
+    { icon: 'cash-outline', title: t('admin.dashboard.actions.treasury'), screen: 'TreasuryOverview', color: '#EF4444' },
   ];
 
   return (
@@ -107,13 +110,13 @@ function AdminDashboardContent() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>COCKPIT</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Administration</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('admin.dashboard.eyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('admin.dashboard.title')}</Text>
         </View>
       </View>
 
@@ -124,16 +127,16 @@ function AdminDashboardContent() {
       >
         {/* KPI Cards */}
         <View style={styles.kpiRow}>
-          <KPICard title="Utilisateurs" value={stats.totalUsers} icon="people-outline" color="#4F46E5" />
-          <KPICard title="Evenements" value={stats.totalEvents} icon="calendar-outline" color="#A855F7" />
+          <KPICard title={t('admin.dashboard.kpiUsers')} value={stats.totalUsers} icon="people-outline" color="#4F46E5" />
+          <KPICard title={t('admin.dashboard.kpiEvents')} value={stats.totalEvents} icon="calendar-outline" color="#A855F7" />
         </View>
         <View style={styles.kpiRow}>
-          <KPICard title="Revenus" value={`${stats.totalRevenue.toLocaleString()} ${platformCurrency}`} icon="cash-outline" color="#10B981" />
-          <KPICard title="Verifications" value={stats.pendingVerifications} icon="shield-checkmark-outline" color="#F59E0B" />
+          <KPICard title={t('admin.dashboard.kpiRevenue')} value={`${stats.totalRevenue.toLocaleString()} ${platformCurrency}`} icon="cash-outline" color="#10B981" />
+          <KPICard title={t('admin.dashboard.kpiVerifications')} value={stats.pendingVerifications} icon="shield-checkmark-outline" color="#F59E0B" />
         </View>
 
         {/* Quick Actions */}
-        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>ACTIONS RAPIDES</Text>
+        <Text style={[styles.sectionEyebrow, { color: colors.gray500 }]}>{t('admin.dashboard.quickActions')}</Text>
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}>
           {quickActions.map((action, idx) => (
             <TouchableOpacity
