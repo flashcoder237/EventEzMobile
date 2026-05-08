@@ -1225,12 +1225,14 @@ export default function DiscoverScreen() {
                           (location && nearbyEvents[0]?.location_city) ||
                           featuredEvents[0]?.location_city ||
                           upcomingEvents[0]?.location_city;
-                        return city ? `DÉCOUVRIR • ${city.toUpperCase()}` : 'DÉCOUVRIR';
+                        return city
+                          ? t('discover.headerCityWithName', { city: city.toUpperCase() })
+                          : t('discover.headerCityPrefix');
                       })()}
                     </Text>
                     <View style={styles.headerTitleRow}>
                       <Text style={[styles.headerTitle, { color: colors.text }]}>
-                        Ce qui bouge
+                        {t('discover.headerTitle')}
                       </Text>
                       
                     </View>
@@ -1469,7 +1471,7 @@ export default function DiscoverScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
-                        PRÈS DE TOI
+                        {t('discover.nearbyTeaserEyebrow')}
                       </Text>
                       <Text
                         style={{
@@ -1480,7 +1482,7 @@ export default function DiscoverScreen() {
                           marginTop: 2,
                         }}
                       >
-                        Active ta position pour voir ce qui bouge dans ton coin
+                        {t('discover.nearbyTeaserTitle')}
                       </Text>
                     </View>
                     <View
@@ -1499,7 +1501,7 @@ export default function DiscoverScreen() {
                           letterSpacing: 0.3,
                         }}
                       >
-                        Activer
+                        {t('discover.nearbyTeaserCTA')}
                       </Text>
                     </View>
                   </TouchableOpacity>

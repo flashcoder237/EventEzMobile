@@ -258,8 +258,9 @@ export interface EventImage {
 // Category (events.EventCategory)
 export interface Category {
   id: number;
-  name: string;
-  description?: string;
+  slug?: string; // Identifiant stable utilisé comme clé i18n côté client (ex: 'musique', 'tech')
+  name: string; // Localisé par le backend selon Accept-Language
+  description?: string; // Localisé par le backend
   image?: string;
   image_placeholder?: string;
   default_event_image?: string;
@@ -267,6 +268,10 @@ export interface Category {
   event_count?: number; // SerializerMethodField
   // Admin serializer only
   is_active?: boolean;
+  name_fr?: string;
+  name_en?: string;
+  description_fr?: string;
+  description_en?: string;
   created_by?: number;
   created_by_name?: string;
   created_at?: string;

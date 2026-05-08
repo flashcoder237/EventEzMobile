@@ -464,7 +464,13 @@
     "noResultsMessage": "Try a different keyword",
     "viewMap": "View map",
     "viewList": "View list",
-    "loading": "Loading events..."
+    "loading": "Loading events...",
+    "headerCityPrefix": "DISCOVER",
+    "headerCityWithName": "DISCOVER · {{city}}",
+    "headerTitle": "What's happening",
+    "nearbyTeaserEyebrow": "NEAR YOU",
+    "nearbyTeaserTitle": "Enable location to see what's happening around you",
+    "nearbyTeaserCTA": "Enable"
   },
   "eventDetails": {
     "eyebrow": "EVENT",
@@ -1352,7 +1358,12 @@
     "rowPrivacyPolicy": "Privacy policy",
     "rowAppVersion": "EventEz 1.0.0",
     "rowLogout": "Sign out",
-    "rowDeleteAccount": "Delete my account"
+    "rowDeleteAccount": "Delete my account",
+    "languageActivated": "Language activated",
+    "shortcutInvoices": "Invoices",
+    "shortcutTaxes": "Taxes",
+    "shortcutMyEvents": "My Events",
+    "shortcutHelp": "Help"
   },
   "messages": {
     "title": "Messages",

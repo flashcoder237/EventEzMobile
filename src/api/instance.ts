@@ -9,6 +9,7 @@ import Constants from 'expo-constants';
 import { eventBus } from '../lib/eventBus';
 import { captureMessage } from '../services/crashReporting';
 import { API_BASE_URL, ACCESS_TOKEN_KEY, REFRESH_TOKEN_KEY } from './config';
+import i18n from '../i18n';
 
 // Identifiants client envoyés à chaque requête. Le backend les utilise pour
 // cibler les annonces (`X-App-Version`, `X-App-Platform`) et calculer si un
@@ -52,6 +53,14 @@ api.interceptors.request.use(
       }
       if (!config.headers['X-App-Platform']) {
         config.headers['X-App-Platform'] = APP_PLATFORM;
+      }
+      // Accept-Language : permet au backend de servir les contenus localisés
+      // (catégories, emails, factures) selon la langue active i18next.
+      // Le middleware backend (apps.core.middleware) le lit + override par
+      // User.language si l'utilisateur est authentifié.
+      if (!config.headers['Accept-Language']) {
+        const lang = i18n.language === 'en' ? 'en' : 'fr';
+        config.headers['Accept-Language'] = lang;
       }
     }
     // En React Native, le FormData est un polyfill — Axios peut ne pas le reconnaître

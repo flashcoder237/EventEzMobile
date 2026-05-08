@@ -667,25 +667,25 @@ export default function SettingsScreen() {
           <View style={styles.shortcutsRow}>
             <ShortcutTile
               icon="receipt-outline"
-              label="Factures"
+              label={t('settings.shortcutInvoices')}
               tone="primary"
               onPress={() => navigation.navigate('MyPayments')}
             />
             <ShortcutTile
               icon="cash-outline"
-              label="Fiscalité"
+              label={t('settings.shortcutTaxes')}
               tone="secondary"
               onPress={() => navigation.navigate('MyPayments')}
             />
             <ShortcutTile
               icon="calendar-outline"
-              label="Mes Évén."
+              label={t('settings.shortcutMyEvents')}
               tone="primary"
               onPress={() => navigation.navigate('Main', { screen: 'Tickets' } as any)}
             />
             <ShortcutTile
               icon="help-circle-outline"
-              label="Aide"
+              label={t('settings.shortcutHelp')}
               tone="accent"
             />
           </View>

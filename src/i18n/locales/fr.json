@@ -464,7 +464,13 @@
     "noResultsMessage": "Essaie un autre mot-clé",
     "viewMap": "Voir sur la carte",
     "viewList": "Voir en liste",
-    "loading": "Chargement des événements..."
+    "loading": "Chargement des événements...",
+    "headerCityPrefix": "DÉCOUVRIR",
+    "headerCityWithName": "DÉCOUVRIR · {{city}}",
+    "headerTitle": "Ce qui bouge",
+    "nearbyTeaserEyebrow": "PRÈS DE TOI",
+    "nearbyTeaserTitle": "Active ta position pour voir ce qui bouge dans ton coin",
+    "nearbyTeaserCTA": "Activer"
   },
   "eventDetails": {
     "eyebrow": "ÉVÉNEMENT",
@@ -1352,7 +1358,12 @@
     "rowPrivacyPolicy": "Politique de confidentialité",
     "rowAppVersion": "EventEz 1.0.0",
     "rowLogout": "Déconnexion",
-    "rowDeleteAccount": "Supprimer mon compte"
+    "rowDeleteAccount": "Supprimer mon compte",
+    "languageActivated": "Langue activée",
+    "shortcutInvoices": "Factures",
+    "shortcutTaxes": "Fiscalité",
+    "shortcutMyEvents": "Mes Évén.",
+    "shortcutHelp": "Aide"
   },
   "messages": {
     "title": "Messages",
