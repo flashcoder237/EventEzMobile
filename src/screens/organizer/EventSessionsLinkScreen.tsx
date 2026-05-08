@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -29,19 +30,6 @@ import { StaggeredItem } from '../../components/ui/Animations';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type RoutePropType = RouteProp<RootStackParamList, 'EventSessionsLink'>;
 
-const sessionTypeLabel = (type?: string) => {
-  switch (type) {
-    case 'keynote': return 'Keynote';
-    case 'talk': return 'Conférence';
-    case 'panel': return 'Panel';
-    case 'workshop': return 'Atelier';
-    case 'networking': return 'Networking';
-    case 'break': return 'Pause';
-    case 'lunch': return 'Déjeuner';
-    default: return 'Session';
-  }
-};
-
 const formatTime = (iso: string) => {
   try {
     return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -58,8 +46,22 @@ export default function EventSessionsLinkScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
+  const { t } = useTranslation();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+
+  const sessionTypeLabel = React.useCallback((type?: string) => {
+    switch (type) {
+      case 'keynote': return t('organizer.sessionsLink.typeKeynote');
+      case 'talk': return t('organizer.sessionsLink.typeTalk');
+      case 'panel': return t('organizer.sessionsLink.typePanel');
+      case 'workshop': return t('organizer.sessionsLink.typeWorkshop');
+      case 'networking': return t('organizer.sessionsLink.typeNetworking');
+      case 'break': return t('organizer.sessionsLink.typeBreak');
+      case 'lunch': return t('organizer.sessionsLink.typeLunch');
+      default: return t('organizer.sessionsLink.typeDefault');
+    }
+  }, [t]);
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [tickets, setTickets] = useState<TicketType[]>([]);
@@ -88,7 +90,7 @@ export default function EventSessionsLinkScreen() {
       setLinks(initialLinks);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement liaisons:', error);
-      showError('Impossible de charger les billets et sessions');
+      showError(t('organizer.sessionsLink.loadError'));
     } finally {
       setLoading(false);
     }
@@ -150,11 +152,11 @@ export default function EventSessionsLinkScreen() {
           })
         );
       await Promise.all(updates);
-      showSuccess('Liaisons enregistrées');
+      showSuccess(t('organizer.sessionsLink.saveSuccess'));
       await fetchData();
     } catch (error: any) {
       if (__DEV__) console.error('Erreur sauvegarde liaisons:', error);
-      showError(error?.response?.data?.detail || 'Échec de l\'enregistrement');
+      showError(error?.response?.data?.detail || t('organizer.sessionsLink.saveError'));
     } finally {
       setSaving(false);
     }
@@ -188,14 +190,14 @@ export default function EventSessionsLinkScreen() {
                 <Text style={[styles.ticketPrice, { color: colors.gray500 }]}>
                   {ticket.price > 0
                     ? Number(ticket.price).toLocaleString('fr-FR')
-                    : 'Gratuit'}
+                    : t('organizer.sessionsLink.free')}
                 </Text>
               </View>
             </View>
             <View style={[styles.linkPill, { backgroundColor: none ? `${colors.accent}15` : `${colors.primary}15` }]}>
               <Text style={[styles.linkPillText, { color: none ? colors.accent : colors.primary }]}>
                 {none
-                  ? 'TOUTES'
+                  ? t('organizer.sessionsLink.linkAll')
                   : `${linked.length}/${sessions.length}`}
               </Text>
             </View>
@@ -216,7 +218,7 @@ export default function EventSessionsLinkScreen() {
               ]}
             >
               <Ionicons name="checkmark-done" size={13} color={colors.primary} />
-              <Text style={[styles.bulkBtnText, { color: colors.primary }]}>Tout cocher</Text>
+              <Text style={[styles.bulkBtnText, { color: colors.primary }]}>{t('organizer.sessionsLink.selectAll')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setAll(ticketId, false)}
@@ -231,7 +233,7 @@ export default function EventSessionsLinkScreen() {
               ]}
             >
               <Ionicons name="close" size={13} color={colors.gray600} />
-              <Text style={[styles.bulkBtnText, { color: colors.gray600 }]}>Tout décocher</Text>
+              <Text style={[styles.bulkBtnText, { color: colors.gray600 }]}>{t('organizer.sessionsLink.selectNone')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -254,7 +256,7 @@ export default function EventSessionsLinkScreen() {
                   ]}
                   accessibilityRole="checkbox"
                   accessibilityState={{ checked }}
-                  accessibilityLabel={`${session.title}, ${checked ? 'inclus' : 'exclu'}`}
+                  accessibilityLabel={t('organizer.sessionsLink.sessionA11y', { title: session.title, state: checked ? t('organizer.sessionsLink.stateIncluded') : t('organizer.sessionsLink.stateExcluded') })}
                 >
                   <View
                     style={[
@@ -308,13 +310,13 @@ export default function EventSessionsLinkScreen() {
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('organizer.sessionsLink.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>ACCÈS • SESSIONS</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Lier les billets</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('organizer.sessionsLink.headerEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.sessionsLink.headerTitle')}</Text>
           </View>
         </View>
       </View>
@@ -328,12 +330,12 @@ export default function EventSessionsLinkScreen() {
           <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>
             <Ionicons name="link" size={32} color={colors.primary} />
           </View>
-          <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>RIEN À LIER</Text>
+          <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{t('organizer.sessionsLink.emptyEyebrow')}</Text>
           <Text style={[styles.emptyTitle, { color: colors.text }]}>
-            {tickets.length === 0 ? 'Crée d\'abord tes billets' : 'Crée d\'abord tes sessions'}
+            {tickets.length === 0 ? t('organizer.sessionsLink.emptyTicketsTitle') : t('organizer.sessionsLink.emptySessionsTitle')}
           </Text>
           <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
-            Tu as besoin d'au moins un type de billet{'\n'}et une session pour configurer l'accès.
+            {t('organizer.sessionsLink.emptySubtitle')}
           </Text>
         </View>
       ) : (
@@ -348,7 +350,15 @@ export default function EventSessionsLinkScreen() {
           <View style={[styles.infoNote, { backgroundColor: `${colors.primary}08`, borderColor: `${colors.primary}20` }]}>
             <Ionicons name="information-circle" size={16} color={colors.primary} style={{ marginTop: 1 }} />
             <Text style={[styles.infoNoteText, { color: colors.text }]}>
-              Sans cocher de sessions, le billet donne accès à <Text style={{ fontFamily: FontFamily.semiBold }}>toutes les sessions</Text> de l'événement.
+              {(() => {
+                const note = t('organizer.sessionsLink.infoNote');
+                const parts = note.split(/<bold>(.*?)<\/bold>/);
+                return parts.map((part, idx) => (
+                  idx % 2 === 1
+                    ? <Text key={idx} style={{ fontFamily: FontFamily.semiBold }}>{part}</Text>
+                    : <Text key={idx}>{part}</Text>
+                ));
+              })()}
             </Text>
           </View>
 
@@ -370,7 +380,7 @@ export default function EventSessionsLinkScreen() {
           ]}
         >
           <Text style={[styles.saveBarHint, { color: colors.gray500 }]}>
-            {isModified ? 'Modifications non enregistrées' : 'Aucune modification'}
+            {isModified ? t('organizer.sessionsLink.modifications') : t('organizer.sessionsLink.noModifications')}
           </Text>
           <TouchableOpacity
             onPress={handleSave}
@@ -378,7 +388,7 @@ export default function EventSessionsLinkScreen() {
             activeOpacity={0.85}
             style={[styles.saveBtn, !canSave && { opacity: 0.4 }]}
             accessibilityRole="button"
-            accessibilityLabel="Enregistrer les liaisons"
+            accessibilityLabel={t('organizer.sessionsLink.saveA11y')}
           >
             <LinearGradient
               colors={[colors.primary, colors.primaryDark]}
@@ -391,7 +401,7 @@ export default function EventSessionsLinkScreen() {
             ) : (
               <>
                 <Ionicons name="save" size={16} color={Colors.white} />
-                <Text style={styles.saveBtnLabel}>Enregistrer</Text>
+                <Text style={styles.saveBtnLabel}>{t('organizer.sessionsLink.save')}</Text>
               </>
             )}
           </TouchableOpacity>

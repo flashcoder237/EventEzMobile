@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -68,6 +69,7 @@ export default function QRScannerScreen() {
   const { eventId } = route.params;
   const { showError } = useAlert();
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
@@ -240,7 +242,7 @@ export default function QRScannerScreen() {
           });
           setScanResult({
             success: true,
-            message: 'En attente de connexion — présence en queue',
+            message: t('organizer.qrScanner.sessionAttendanceQueued'),
           });
           setStats(prev => ({
             ...prev,
@@ -256,7 +258,7 @@ export default function QRScannerScreen() {
         const data: any = response.data;
         setScanResult({
           success: !!data?.valid,
-          message: data?.message || 'Présence enregistrée à la session.',
+          message: data?.message || t('organizer.qrScanner.sessionAttendanceRecorded'),
           alreadyCheckedIn: !!data?.already_attended,
         });
         setStats(prev => ({
@@ -286,8 +288,8 @@ export default function QRScannerScreen() {
         setScanResult({
           success: true,
           message: autoCheckIn
-            ? 'En attente de connexion — check-in en queue'
-            : 'En attente de connexion — vérification en queue',
+            ? t('organizer.qrScanner.queuedCheckin')
+            : t('organizer.qrScanner.queuedVerify'),
         });
         setStats(prev => ({
           ...prev,
@@ -321,12 +323,12 @@ export default function QRScannerScreen() {
         success: true,
         registration,
         message: eventMismatch
-          ? '⚠ Billet d\'un autre événement — valide quand même ?'
+          ? t('organizer.qrScanner.eventMismatch')
           : data?.message
           ? data.message
           : autoCheckIn
-          ? 'Check-in effectué avec succès!'
-          : 'Billet vérifié avec succès!',
+          ? t('organizer.qrScanner.checkInSuccess')
+          : t('organizer.qrScanner.verifySuccess'),
         alreadyCheckedIn,
       });
       setStats(prev => ({
@@ -340,12 +342,12 @@ export default function QRScannerScreen() {
       if (__DEV__) console.error('Scan error:', error);
 
       let message = source === 'manual'
-        ? 'Code de référence invalide'
-        : 'Code QR invalide ou non reconnu';
+        ? t('organizer.qrScanner.manualInvalid')
+        : t('organizer.qrScanner.qrInvalid');
       if (error.response?.status === 404) {
-        message = 'Aucun billet trouvé pour ce code';
+        message = t('organizer.qrScanner.noTicketFound');
       } else if (error.response?.status === 400) {
-        message = error.response.data?.detail || error.response.data?.message || 'Billet déjà utilisé ou invalide';
+        message = error.response.data?.detail || error.response.data?.message || t('organizer.qrScanner.ticketUsed');
       } else if (error.response?.data?.detail) {
         message = error.response.data.detail;
       }
@@ -370,7 +372,7 @@ export default function QRScannerScreen() {
 
     const info = extractScanInfo(data);
     if (!info) {
-      setScanResult({ success: false, message: 'Format de QR code non reconnu' });
+      setScanResult({ success: false, message: t('organizer.qrScanner.qrFormatInvalid') });
       setStats(prev => ({ ...prev, scanned: prev.scanned + 1, failed: prev.failed + 1 }));
       playSound('scan-fail');
       vibrateFail();
@@ -427,7 +429,7 @@ export default function QRScannerScreen() {
     }
     setScanResult({
       success: false,
-      message: 'Code invalide : attendu UUID ou code de référence (8-20 caractères A-Z/0-9).',
+      message: t('organizer.qrScanner.manualCodeInvalid'),
     });
     setStats(prev => ({ ...prev, scanned: prev.scanned + 1, failed: prev.failed + 1 }));
     playSound('scan-fail');
@@ -450,11 +452,11 @@ export default function QRScannerScreen() {
       setScanResult(prev => prev ? {
         ...prev,
         success: true,
-        message: 'Check-in effectué avec succès!',
+        message: t('organizer.qrScanner.checkInSuccess'),
         alreadyCheckedIn: false,
       } : null);
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || 'Impossible d\'effectuer le check-in');
+      showError(t('common.error'), error.response?.data?.detail || t('organizer.qrScanner.checkInError'));
     } finally {
       setProcessing(false);
     }
@@ -463,7 +465,7 @@ export default function QRScannerScreen() {
   if (!permission) {
     return (
       <View style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
-<LoadingSpinner message="Chargement..." />
+<LoadingSpinner message={t('organizer.qrScanner.loading')} />
       </View>
     );
   }
@@ -474,9 +476,9 @@ export default function QRScannerScreen() {
         <WatermarkNumeral>QR</WatermarkNumeral>
         <View style={[styles.permissionContainer, { zIndex: 1 }]}>
           <Ionicons name="camera-outline" size={64} color={colors.gray400} />
-          <Text style={[styles.permissionTitle, { color: colors.text }]}>Accès à la caméra requis</Text>
+          <Text style={[styles.permissionTitle, { color: colors.text }]}>{t('organizer.qrScanner.permissionTitle')}</Text>
           <Text style={[styles.permissionText, { color: colors.gray500 }]}>
-            Pour scanner les QR codes, autorisez l'accès à la caméra
+            {t('organizer.qrScanner.permissionText')}
           </Text>
           <TouchableOpacity
             style={[styles.permissionButton, { backgroundColor: colors.primary }]}
@@ -489,27 +491,27 @@ export default function QRScannerScreen() {
               }
             }}
             accessibilityRole="button"
-            accessibilityLabel="Autoriser l'acces a la camera"
+            accessibilityLabel={t('organizer.qrScanner.permissionAllowA11y')}
           >
             <Text style={styles.permissionButtonText}>
-              {permission?.canAskAgain ? "Autoriser l'accès" : 'Ouvrir les paramètres'}
+              {permission?.canAskAgain ? t('organizer.qrScanner.permissionAllow') : t('organizer.qrScanner.permissionOpenSettings')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backLink}
             onPress={() => setManualOpen(true)}
             accessibilityRole="button"
-            accessibilityLabel="Saisie manuelle"
+            accessibilityLabel={t('organizer.qrScanner.manualEntryA11y')}
           >
-            <Text style={[styles.backLinkText, { color: colors.primary }]}>Saisie manuelle de la référence</Text>
+            <Text style={[styles.backLinkText, { color: colors.primary }]}>{t('organizer.qrScanner.manualEntry')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.backLink}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
-            <Text style={[styles.backLinkText, { color: colors.gray500 }]}>Retour</Text>
+            <Text style={[styles.backLinkText, { color: colors.gray500 }]}>{t('organizer.qrScanner.back')}</Text>
           </TouchableOpacity>
         </View>
       </EditorialCanvas>
@@ -545,24 +547,30 @@ export default function QRScannerScreen() {
               if (stats.scanned > 0) {
                 const elapsedMs = Date.now() - sessionStartedAtRef.current;
                 const elapsedMin = Math.max(1, Math.floor(elapsedMs / 60000));
+                const recapBody = t('organizer.qrScanner.sessionRecapBody', {
+                  scanned: stats.scanned,
+                  minutes: elapsedMin,
+                  success: stats.success,
+                  failed: stats.failed,
+                });
+                const queueSuffix = pendingCount > 0
+                  ? t('organizer.qrScanner.sessionRecapQueue', { count: pendingCount })
+                  : '';
                 showError(
-                  'Bilan de la session',
-                  `${stats.scanned} scan${stats.scanned > 1 ? 's' : ''} en ${elapsedMin} min\n` +
-                    `✓ ${stats.success} validé${stats.success > 1 ? 's' : ''}\n` +
-                    `✗ ${stats.failed} échoué${stats.failed > 1 ? 's' : ''}` +
-                    (pendingCount > 0 ? `\n⏳ ${pendingCount} en queue offline` : ''),
+                  t('organizer.qrScanner.sessionRecapTitle'),
+                  recapBody + queueSuffix,
                 );
               }
               navigation.goBack();
             }}
             accessibilityRole="button"
-            accessibilityLabel="Fermer le scanner"
+            accessibilityLabel={t('organizer.qrScanner.closeA11y')}
           >
             <Ionicons name="close" size={24} color={colors.white} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerEyebrow}>Check-in</Text>
-            <Text style={styles.headerTitle}>Scanner QR</Text>
+            <Text style={styles.headerEyebrow}>{t('organizer.qrScanner.headerEyebrow')}</Text>
+            <Text style={styles.headerTitle}>{t('organizer.qrScanner.headerTitle')}</Text>
             {event && (
               <Text style={styles.headerSubtitle} numberOfLines={1}>
                 {event.title}
@@ -573,7 +581,7 @@ export default function QRScannerScreen() {
             style={styles.headerButton}
             onPress={() => setFlashOn(!flashOn)}
             accessibilityRole="button"
-            accessibilityLabel={flashOn ? 'Desactiver le flash' : 'Activer le flash'}
+            accessibilityLabel={flashOn ? t('organizer.qrScanner.flashOffA11y') : t('organizer.qrScanner.flashOnA11y')}
           >
             <Ionicons
               name={flashOn ? 'flash' : 'flash-outline'}
@@ -594,7 +602,7 @@ export default function QRScannerScreen() {
               ]}
               onPress={() => setScanMode({ kind: 'main' })}
               accessibilityRole="button"
-              accessibilityLabel="Scanner pour l'entrée principale"
+              accessibilityLabel={t('organizer.qrScanner.scanMainA11y')}
             >
               <Ionicons
                 name="enter-outline"
@@ -607,7 +615,7 @@ export default function QRScannerScreen() {
                   scanMode.kind === 'main' && { color: colors.primary },
                 ]}
               >
-                Entrée principale
+                {t('organizer.qrScanner.scanMain')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -617,7 +625,7 @@ export default function QRScannerScreen() {
               ]}
               onPress={() => setSessionPickerOpen(true)}
               accessibilityRole="button"
-              accessibilityLabel="Scanner pour une session"
+              accessibilityLabel={t('organizer.qrScanner.scanSessionA11y')}
             >
               <Ionicons
                 name="layers-outline"
@@ -631,7 +639,7 @@ export default function QRScannerScreen() {
                 ]}
                 numberOfLines={1}
               >
-                {scanMode.kind === 'session' ? scanMode.sessionTitle : 'Session…'}
+                {scanMode.kind === 'session' ? scanMode.sessionTitle : t('organizer.qrScanner.scanSession')}
               </Text>
               <Ionicons
                 name="chevron-down"
@@ -654,12 +662,12 @@ export default function QRScannerScreen() {
             {processing && (
               <View style={styles.processingOverlay}>
                 <ActivityIndicator size="large" color={colors.white} />
-                <Text style={styles.processingText}>Vérification...</Text>
+                <Text style={styles.processingText}>{t('organizer.qrScanner.verifying')}</Text>
               </View>
             )}
           </View>
           <Text style={styles.scanHint}>
-            Place le QR code du billet dans le cadre
+            {t('organizer.qrScanner.scanHint')}
           </Text>
 
           {/* Offline badge — visible quand pas de réseau ou queue non vide */}
@@ -671,8 +679,8 @@ export default function QRScannerScreen() {
               accessibilityRole="button"
               accessibilityLabel={
                 !isOnline
-                  ? `Hors-ligne, ${pendingCount} scan${pendingCount > 1 ? 's' : ''} en queue`
-                  : `Synchroniser ${pendingCount} scan${pendingCount > 1 ? 's' : ''}`
+                  ? t('organizer.qrScanner.offlineA11y', { count: pendingCount })
+                  : t('organizer.qrScanner.syncCountA11y', { count: pendingCount })
               }
             >
               <Ionicons
@@ -682,10 +690,10 @@ export default function QRScannerScreen() {
               />
               <Text style={styles.offlineBadgeText}>
                 {!isOnline
-                  ? `Hors-ligne · ${pendingCount} en queue`
+                  ? t('organizer.qrScanner.offlineTitle', { count: pendingCount })
                   : isFlushing
-                  ? `Sync...`
-                  : `${pendingCount} scan${pendingCount > 1 ? 's' : ''} à syncer`}
+                  ? t('organizer.qrScanner.syncingTitle')
+                  : t('organizer.qrScanner.syncCount', { count: pendingCount })}
               </Text>
             </TouchableOpacity>
           )}
@@ -696,10 +704,10 @@ export default function QRScannerScreen() {
             onPress={() => setManualOpen(true)}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Saisir une référence manuellement"
+            accessibilityLabel={t('organizer.qrScanner.manualBtnA11y')}
           >
             <Ionicons name="keypad-outline" size={14} color="#fff" />
-            <Text style={styles.manualEntryBtnText}>Saisie manuelle</Text>
+            <Text style={styles.manualEntryBtnText}>{t('organizer.qrScanner.manualBtn')}</Text>
           </TouchableOpacity>
         </View>
 
@@ -709,17 +717,17 @@ export default function QRScannerScreen() {
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
               <Text style={styles.statValue}>{stats.scanned}</Text>
-              <Text style={styles.statLabel}>Scannés</Text>
+              <Text style={styles.statLabel}>{t('organizer.qrScanner.statScanned')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.success }]}>{stats.success}</Text>
-              <Text style={styles.statLabel}>Validés</Text>
+              <Text style={styles.statLabel}>{t('organizer.qrScanner.statValidated')}</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.error }]}>{stats.failed}</Text>
-              <Text style={styles.statLabel}>Échoués</Text>
+              <Text style={styles.statLabel}>{t('organizer.qrScanner.statFailed')}</Text>
             </View>
           </View>
 
@@ -729,12 +737,12 @@ export default function QRScannerScreen() {
             onPress={toggleLowPower}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: lowPowerMode }}
-            accessibilityLabel="Mode économie de batterie"
+            accessibilityLabel={t('organizer.qrScanner.lowPowerA11y')}
           >
             <View style={[styles.checkbox, lowPowerMode && [styles.checkboxActive, { backgroundColor: colors.warning, borderColor: colors.warning }]]}>
               {lowPowerMode && <Ionicons name="leaf" size={12} color={colors.white} />}
             </View>
-            <Text style={styles.autoCheckInText}>Mode économie de batterie</Text>
+            <Text style={styles.autoCheckInText}>{t('organizer.qrScanner.lowPower')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -742,12 +750,12 @@ export default function QRScannerScreen() {
             onPress={toggleAutoCheckIn}
             accessibilityRole="checkbox"
             accessibilityState={{ checked: autoCheckIn }}
-            accessibilityLabel="Check-in automatique apres scan"
+            accessibilityLabel={t('organizer.qrScanner.autoCheckInA11y')}
           >
             <View style={[styles.checkbox, autoCheckIn && [styles.checkboxActive, { backgroundColor: colors.primary, borderColor: colors.primary }]]}>
               {autoCheckIn && <Ionicons name="checkmark" size={14} color={colors.white} />}
             </View>
-            <Text style={styles.autoCheckInText}>Check-in automatique après scan</Text>
+            <Text style={styles.autoCheckInText}>{t('organizer.qrScanner.autoCheckIn')}</Text>
           </TouchableOpacity>
         </SafeAreaView>
       </View>
@@ -767,14 +775,14 @@ export default function QRScannerScreen() {
                   <Ionicons name="checkmark-circle" size={64} color={colors.success} />
                 </View>
                 <Text style={[styles.resultTitle, { color: colors.text }]}>
-                  {scanResult.alreadyCheckedIn ? 'Déjà enregistré' : 'Succès!'}
+                  {scanResult.alreadyCheckedIn ? t('organizer.qrScanner.alreadyCheckedIn') : t('organizer.qrScanner.success')}
                 </Text>
                 <Text style={[styles.resultMessage, { color: colors.gray500 }]}>{scanResult.message}</Text>
 
                 {scanResult.registration && (
                   <View style={[styles.ticketDetails, { backgroundColor: colors.gray50 }]}>
                     <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Participant</Text>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldParticipant')}</Text>
                       <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.user_name ||
                           `${scanResult.registration.user?.first_name || ''} ${scanResult.registration.user?.last_name || ''}`.trim() ||
@@ -783,19 +791,19 @@ export default function QRScannerScreen() {
                       </Text>
                     </View>
                     <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Email</Text>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldEmail')}</Text>
                       <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.user_email || scanResult.registration.user?.email || 'N/A'}
                       </Text>
                     </View>
                     <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Type</Text>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldType')}</Text>
                       <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.registration_type || 'Standard'}
                       </Text>
                     </View>
                     <View style={[styles.ticketDetailRow, { borderBottomColor: colors.gray200 }]}>
-                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>Référence</Text>
+                      <Text style={[styles.ticketDetailLabel, { color: colors.gray500 }]}>{t('organizer.qrScanner.fieldReference')}</Text>
                       <Text style={[styles.ticketDetailValue, { color: colors.gray900 }]}>
                         {scanResult.registration.reference_code || scanResult.registration.id?.slice(0, 8).toUpperCase()}
                       </Text>
@@ -809,14 +817,14 @@ export default function QRScannerScreen() {
                     onPress={handleManualCheckIn}
                     disabled={processing}
                     accessibilityRole="button"
-                    accessibilityLabel="Effectuer le check-in"
+                    accessibilityLabel={t('organizer.qrScanner.manualCheckInA11y')}
                   >
                     {processing ? (
                       <ActivityIndicator size="small" color={colors.white} />
                     ) : (
                       <>
                         <Ionicons name="checkmark-done" size={20} color={colors.white} />
-                        <Text style={styles.manualCheckInText}>Effectuer le check-in</Text>
+                        <Text style={styles.manualCheckInText}>{t('organizer.qrScanner.manualCheckIn')}</Text>
                       </>
                     )}
                   </TouchableOpacity>
@@ -827,7 +835,7 @@ export default function QRScannerScreen() {
                 <View style={[styles.resultIcon, { backgroundColor: colors.errorLight }]}>
                   <Ionicons name="close-circle" size={64} color={colors.error} />
                 </View>
-                <Text style={[styles.resultTitle, { color: colors.text }]}>Échec</Text>
+                <Text style={[styles.resultTitle, { color: colors.text }]}>{t('organizer.qrScanner.failure')}</Text>
                 <Text style={[styles.resultMessage, { color: colors.gray500 }]}>{scanResult?.message}</Text>
               </>
             )}
@@ -836,10 +844,10 @@ export default function QRScannerScreen() {
               style={[styles.continueButton, { backgroundColor: colors.primary }]}
               onPress={handleContinueScan}
               accessibilityRole="button"
-              accessibilityLabel="Scanner un autre QR code"
+              accessibilityLabel={t('organizer.qrScanner.scanAnotherA11y')}
             >
               <Ionicons name="scan-outline" size={20} color={colors.white} />
-              <Text style={styles.continueButtonText}>Scanner un autre</Text>
+              <Text style={styles.continueButtonText}>{t('organizer.qrScanner.scanAnother')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -854,10 +862,10 @@ export default function QRScannerScreen() {
       >
         <Pressable style={styles.manualBackdrop} onPress={() => setManualOpen(false)}>
           <Pressable style={[styles.manualCard, { backgroundColor: colors.card }]} onPress={(e) => e.stopPropagation()}>
-            <Text style={[styles.manualEyebrow, { color: colors.accent }]}>SAISIE MANUELLE</Text>
-            <Text style={[styles.manualTitle, { color: colors.text }]}>Référence du billet</Text>
+            <Text style={[styles.manualEyebrow, { color: colors.accent }]}>{t('organizer.qrScanner.manualEyebrow')}</Text>
+            <Text style={[styles.manualTitle, { color: colors.text }]}>{t('organizer.qrScanner.manualTitle')}</Text>
             <Text style={[styles.manualHint, { color: colors.gray500 }]}>
-              Entre les 10 caractères du code de référence (ex. A8K9X3M2QR).
+              {t('organizer.qrScanner.manualHint')}
             </Text>
             <TextInput
               style={[styles.manualInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
@@ -876,7 +884,7 @@ export default function QRScannerScreen() {
                 onPress={() => setManualOpen(false)}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.manualBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.manualBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.manualBtn, { backgroundColor: colors.primary }, !manualCode.trim() && { opacity: 0.5 }]}
@@ -884,7 +892,7 @@ export default function QRScannerScreen() {
                 disabled={!manualCode.trim()}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.manualBtnText, { color: '#fff' }]}>Vérifier</Text>
+                <Text style={[styles.manualBtnText, { color: '#fff' }]}>{t('organizer.qrScanner.verify')}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -903,10 +911,10 @@ export default function QRScannerScreen() {
             style={[styles.manualCard, { backgroundColor: colors.card, maxHeight: '70%' }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={[styles.manualEyebrow, { color: colors.accent }]}>SCANNER POUR</Text>
-            <Text style={[styles.manualTitle, { color: colors.text }]}>Choisir une session</Text>
+            <Text style={[styles.manualEyebrow, { color: colors.accent }]}>{t('organizer.qrScanner.sessionPickerEyebrow')}</Text>
+            <Text style={[styles.manualTitle, { color: colors.text }]}>{t('organizer.qrScanner.sessionPickerTitle')}</Text>
             <Text style={[styles.manualHint, { color: colors.gray500 }]}>
-              Le QR scanné marquera la présence à la session sélectionnée (et non un check-in d'entrée).
+              {t('organizer.qrScanner.sessionPickerHint')}
             </Text>
             <View style={{ marginTop: Spacing.md, gap: Spacing.xs }}>
               {sessions.map((session) => {
@@ -952,7 +960,7 @@ export default function QRScannerScreen() {
                 onPress={() => setSessionPickerOpen(false)}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.manualBtnText, { color: colors.gray800 }]}>Fermer</Text>
+                <Text style={[styles.manualBtnText, { color: colors.gray800 }]}>{t('organizer.qrScanner.close')}</Text>
               </TouchableOpacity>
             </View>
           </Pressable>

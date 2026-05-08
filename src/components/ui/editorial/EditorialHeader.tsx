@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { editorial } from './editorialTokens';
 
@@ -38,6 +39,7 @@ export default function EditorialHeader({
 }: EditorialHeaderProps) {
   const { colors } = useTheme();
   const navigation = useNavigation();
+  const { t } = useTranslation();
 
   const handleBack = () => {
     if (onBack) {
@@ -54,7 +56,7 @@ export default function EditorialHeader({
           style={editorial.headerBack}
           onPress={handleBack}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Ionicons name="arrow-back" size={22} color={colors.gray900} />

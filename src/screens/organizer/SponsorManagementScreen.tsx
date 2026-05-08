@@ -25,6 +25,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -63,6 +64,7 @@ export default function SponsorManagementScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showSuccess, showError } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -78,12 +80,12 @@ export default function SponsorManagementScreen() {
       const data: Sponsor[] = res.data?.results || res.data || [];
       setSponsors(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de charger les sponsors.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.sponsorManagement.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [eventId, showError]);
+  }, [eventId, showError, t]);
 
   useEffect(() => {
     fetchSponsors();
@@ -102,10 +104,10 @@ export default function SponsorManagementScreen() {
     setSponsors(prev => prev.map(s => s.id === sponsor.id ? { ...s, is_confirmed: true } : s));
     try {
       await sponsorsAPI.confirm(sponsor.id);
-      showSuccess('Sponsor confirmé', `${sponsor.sponsor_name} apparaît maintenant publiquement.`);
+      showSuccess(t('organizer.sponsorManagement.confirmedTitle'), t('organizer.sponsorManagement.confirmedMessage', { name: sponsor.sponsor_name }));
     } catch (error: any) {
       setSponsors(prev => prev.map(s => s.id === sponsor.id ? { ...s, is_confirmed: false } : s));
-      showError('Erreur', error?.response?.data?.detail || 'Impossible de confirmer.');
+      showError(t('common.error'), error?.response?.data?.detail || t('organizer.sponsorManagement.confirmError'));
     } finally {
       setConfirmingId(null);
     }
@@ -145,7 +147,7 @@ export default function SponsorManagementScreen() {
               styles.statusText,
               { color: item.is_confirmed ? '#059669' : '#B45309' },
             ]}>
-              {item.is_confirmed ? 'CONFIRMÉ' : 'EN ATTENTE'}
+              {item.is_confirmed ? t('organizer.sponsorManagement.statusConfirmed') : t('organizer.sponsorManagement.statusPending')}
             </Text>
           </View>
         </View>
@@ -153,12 +155,12 @@ export default function SponsorManagementScreen() {
         <View style={[styles.statsRow, { borderTopColor: hairline }]}>
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.text }]}>{item.visibility_count ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>VUES</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.sponsorManagement.statViews')}</Text>
           </View>
           <View style={[styles.statDivider, { backgroundColor: hairline }]} />
           <View style={styles.stat}>
             <Text style={[styles.statValue, { color: colors.text }]}>{item.click_count ?? 0}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>CLICS</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.sponsorManagement.statClicks')}</Text>
           </View>
           {item.amount_paid != null && Number(item.amount_paid) > 0 && (
             <>
@@ -167,7 +169,7 @@ export default function SponsorManagementScreen() {
                 <Text style={[styles.statValue, { color: colors.text }]}>
                   {Number(item.amount_paid).toLocaleString()}
                 </Text>
-                <Text style={[styles.statLabel, { color: colors.gray500 }]}>PAYÉ</Text>
+                <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.sponsorManagement.statPaid')}</Text>
               </View>
             </>
           )}
@@ -189,7 +191,7 @@ export default function SponsorManagementScreen() {
             ) : (
               <>
                 <Ionicons name="checkmark-circle" size={16} color={Colors.white} />
-                <Text style={styles.confirmBtnText}>Confirmer le sponsor</Text>
+                <Text style={styles.confirmBtnText}>{t('organizer.sponsorManagement.confirm')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -206,13 +208,13 @@ export default function SponsorManagementScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('organizer.sponsorManagement.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>PARTENARIATS</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Sponsors</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.sponsorManagement.headerEyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.sponsorManagement.headerTitle')}</Text>
         </View>
       </View>
 
@@ -230,9 +232,9 @@ export default function SponsorManagementScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="business-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun sponsor</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.sponsorManagement.emptyTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Les sponsors apparaîtront ici quand un partenariat sera ajouté.
+                {t('organizer.sponsorManagement.emptyText')}
               </Text>
             </View>
           }

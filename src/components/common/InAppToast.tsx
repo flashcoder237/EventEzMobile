@@ -20,6 +20,7 @@ import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -73,6 +74,7 @@ export const InAppToast: React.FC<InAppToastProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const translateY = useSharedValue(-200);
   const opacity = useSharedValue(0);
 
@@ -155,7 +157,10 @@ export const InAppToast: React.FC<InAppToastProps> = ({
             Platform.OS === 'ios' ? styles.shadowIOS : styles.shadowAndroid,
           ]}
           accessibilityRole="button"
-          accessibilityLabel={`${title}. ${body ?? ''}. Touchez pour ouvrir.`}
+          accessibilityLabel={t('componentsCommon.inAppToastA11y', {
+            title,
+            body: body ?? '',
+          })}
         >
           {/* Avatar (messages) ou icon */}
           {avatarUrl ? (

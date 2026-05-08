@@ -12,6 +12,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -60,6 +61,7 @@ export default function DiscountManagementScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
   const { eventId } = route.params;
+  const { t } = useTranslation();
   const { showAlert, showError } = useAlert();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -115,12 +117,12 @@ export default function DiscountManagementScreen() {
 
   const handleDelete = (discount: Discount) => {
     showAlert(
-      'Supprimer le code promo',
-      `Voulez-vous supprimer le code "${discount.code}" ?`,
+      t('organizer.discountManagement.deleteTitle'),
+      t('organizer.discountManagement.deleteMessage', { code: discount.code }),
       [
-        { text: 'Annuler', style: 'cancel', onPress: () => {} },
+        { text: t('common.cancel'), style: 'cancel', onPress: () => {} },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -128,7 +130,7 @@ export default function DiscountManagementScreen() {
               setDiscounts(prev => prev.filter(d => d.id !== discount.id));
             } catch (error) {
               if (__DEV__) console.error('Erreur suppression:', error);
-              showError('Échec de la suppression');
+              showError(t('organizer.discountManagement.deleteError'));
             }
           },
         },
@@ -143,15 +145,15 @@ export default function DiscountManagementScreen() {
     const until = new Date(d.valid_until);
 
     if (d.times_used >= d.max_uses) {
-      return { status: 'exhausted', label: 'Épuisé', eyebrow: 'OUT', color: colors.gray600 };
+      return { status: 'exhausted', label: t('organizer.discountManagement.statusExhausted'), eyebrow: t('organizer.discountManagement.eyebrowOut'), color: colors.gray600 };
     }
     if (now > until) {
-      return { status: 'expired', label: 'Expiré', eyebrow: 'EXP', color: '#EF4444' };
+      return { status: 'expired', label: t('organizer.discountManagement.statusExpired'), eyebrow: t('organizer.discountManagement.eyebrowExp'), color: '#EF4444' };
     }
     if (now < from) {
-      return { status: 'upcoming', label: 'À venir', eyebrow: 'SOON', color: '#3B82F6' };
+      return { status: 'upcoming', label: t('organizer.discountManagement.statusUpcoming'), eyebrow: t('organizer.discountManagement.eyebrowSoon'), color: '#3B82F6' };
     }
-    return { status: 'active', label: 'Actif', eyebrow: 'LIVE', color: '#10B981' };
+    return { status: 'active', label: t('organizer.discountManagement.statusActive'), eyebrow: t('organizer.discountManagement.eyebrowLive'), color: '#10B981' };
   };
 
   const renderDiscount = ({ item, index }: { item: Discount; index: number }) => {
@@ -183,7 +185,7 @@ export default function DiscountManagementScreen() {
                 {isPercentage ? '%' : platformCurrency}
               </Text>
               <Text style={[styles.heroLabel, { color }]}>
-                {isPercentage ? 'POURCENT' : 'FIXE'}
+                {isPercentage ? t('organizer.discountManagement.labelPercent') : t('organizer.discountManagement.labelFixed')}
               </Text>
             </View>
 
@@ -201,7 +203,7 @@ export default function DiscountManagementScreen() {
                 <Text style={styles.codeBlockText}>{item.code}</Text>
               </View>
               <Text style={[styles.heroSub, { color: colors.gray500 }]}>
-                Code à partager
+                {t('organizer.discountManagement.shareCode')}
               </Text>
             </View>
           </View>
@@ -219,7 +221,7 @@ export default function DiscountManagementScreen() {
           {/* === USAGE BAR === */}
           <View style={styles.usageRow}>
             <View style={styles.usageHeader}>
-              <Text style={[styles.usageLabel, { color: colors.gray500 }]}>UTILISATION</Text>
+              <Text style={[styles.usageLabel, { color: colors.gray500 }]}>{t('organizer.discountManagement.usage')}</Text>
               <Text style={[styles.usagePercent, { color: colors.text }]}>{Math.round(usagePercent)}%</Text>
             </View>
             <View style={[styles.usageBarBg, { backgroundColor: colors.gray100 }]}>
@@ -246,7 +248,7 @@ export default function DiscountManagementScreen() {
               activeOpacity={0.85}
             >
               <Ionicons name="create-outline" size={13} color={colors.gray700} />
-              <Text style={[styles.actionPillText, { color: colors.gray700 }]}>Modifier</Text>
+              <Text style={[styles.actionPillText, { color: colors.gray700 }]}>{t('organizer.discountManagement.edit')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.actionPillDanger, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
@@ -254,7 +256,7 @@ export default function DiscountManagementScreen() {
               activeOpacity={0.85}
             >
               <Ionicons name="trash-outline" size={13} color="#DC2626" />
-              <Text style={styles.actionPillDangerText}>Supprimer</Text>
+              <Text style={styles.actionPillDangerText}>{t('organizer.discountManagement.delete')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
@@ -267,10 +269,10 @@ export default function DiscountManagementScreen() {
       <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>
         <Text style={[styles.emptyIconBig, { color: colors.primary }]}>%</Text>
       </View>
-      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>AUCUN DEAL</Text>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Crée ton 1er code</Text>
+      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{t('organizer.discountManagement.emptyEyebrow')}</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('organizer.discountManagement.emptyTitle')}</Text>
       <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
-        Attire plus de participants{'\n'}avec des réductions stratégiques
+        {t('organizer.discountManagement.emptySubtitle')}
       </Text>
       <TouchableOpacity
         style={[styles.emptyCta, Shadows.buttonPrimary]}
@@ -284,8 +286,8 @@ export default function DiscountManagementScreen() {
           style={StyleSheet.absoluteFill}
         />
         <View style={{ flex: 1 }}>
-          <Text style={styles.emptyCtaEyebrow}>NOUVEAU CODE</Text>
-          <Text style={styles.emptyCtaLabel}>Créer un code promo</Text>
+          <Text style={styles.emptyCtaEyebrow}>{t('organizer.discountManagement.emptyCtaEyebrow')}</Text>
+          <Text style={styles.emptyCtaLabel}>{t('organizer.discountManagement.emptyCtaLabel')}</Text>
         </View>
         <View style={styles.emptyCtaArrow}>
           <Ionicons name="add" size={18} color={Colors.white} />
@@ -305,22 +307,22 @@ export default function DiscountManagementScreen() {
       >
         <View style={[styles.statCell, { borderRightColor: hairline }]}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats.total}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>TOTAL</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.discountManagement.statTotal')}</Text>
         </View>
         <View style={[styles.statCell, { borderRightColor: hairline }]}>
           <View style={styles.statValueRow}>
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.active}</Text>
             {stats.active > 0 && <View style={[styles.statDot, { backgroundColor: '#10B981' }]} />}
           </View>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>ACTIFS</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.discountManagement.statActive')}</Text>
         </View>
         <View style={[styles.statCell, { borderRightColor: hairline }]}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats.expired}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>EXPIRÉS</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.discountManagement.statExpired')}</Text>
         </View>
         <View style={styles.statCellLast}>
           <Text style={[styles.statValue, { color: colors.text }]}>{stats.totalUsages}</Text>
-          <Text style={[styles.statLabel, { color: colors.gray500 }]}>USAGES</Text>
+          <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('organizer.discountManagement.statUsages')}</Text>
         </View>
       </View>
     </View>
@@ -349,8 +351,8 @@ export default function DiscountManagementScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>DEAL • PROMO</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Codes promo</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('organizer.discountManagement.headerEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.discountManagement.headerTitle')}</Text>
           </View>
           <TouchableOpacity
             onPress={() => navigation.navigate('DiscountForm', { eventId })}

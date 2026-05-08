@@ -12,6 +12,7 @@ import {
   TextInput,
   ScrollView,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -53,16 +54,10 @@ interface VolunteerApplication {
   created_at: string;
 }
 
-const APPLICATION_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending: { label: 'En attente', color: Colors.warning, bg: Colors.warningLight },
-  approved: { label: 'Approuvée', color: Colors.success, bg: Colors.successLight },
-  rejected: { label: 'Refusée', color: Colors.error, bg: Colors.errorLight },
-  withdrawn: { label: 'Retirée', color: Colors.textLight, bg: Colors.gray100 },
-};
-
 export default function VolunteerScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<VolunteerRouteProp>();
+  const { t } = useTranslation();
   const { colors } = useTheme();
   const { user } = useAuth();
   const eventId = route.params?.eventId;
@@ -106,11 +101,11 @@ export default function VolunteerScreen() {
     const title = createTitle.trim();
     const cap = parseInt(createCapacity, 10);
     if (!title) {
-      Alert.alert('Titre requis', 'Donne un titre au rôle (ex : "Accueil entrée principale").');
+      Alert.alert(t('organizer.volunteer.titleRequiredTitle'), t('organizer.volunteer.titleRequiredMessage'));
       return;
     }
     if (!Number.isFinite(cap) || cap < 1) {
-      Alert.alert('Capacité invalide', 'Indique combien de bénévoles tu cherches.');
+      Alert.alert(t('organizer.volunteer.capacityInvalidTitle'), t('organizer.volunteer.capacityInvalidMessage'));
       return;
     }
     setCreateLoading(true);
@@ -129,12 +124,12 @@ export default function VolunteerScreen() {
       } else {
         await fetchData();
       }
-      Alert.alert('Rôle créé', 'Les bénévoles peuvent désormais postuler.');
+      Alert.alert(t('organizer.volunteer.roleCreatedTitle'), t('organizer.volunteer.roleCreatedMessage'));
       setCreateOpen(false);
       resetCreateForm();
     } catch (error: any) {
-      const detail = error?.response?.data?.detail || 'Impossible de créer le rôle.';
-      Alert.alert('Erreur', detail);
+      const detail = error?.response?.data?.detail || t('organizer.volunteer.createRoleError');
+      Alert.alert(t('common.error'), detail);
     } finally {
       setCreateLoading(false);
     }
@@ -172,22 +167,22 @@ export default function VolunteerScreen() {
 
   const handleApply = (role: VolunteerRole) => {
     Alert.alert(
-      'Postuler comme bénévole',
-      `Souhaitez-vous postuler pour le rôle "${role.title}" ?`,
+      t('organizer.volunteer.applyTitle'),
+      t('organizer.volunteer.applyMessage', { title: role.title }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Postuler',
+          text: t('organizer.volunteer.apply'),
           onPress: async () => {
             setActionLoading(role.id);
             try {
               await volunteersAPI.apply({ role: role.id });
-              Alert.alert('Succès', 'Votre candidature a été envoyée !');
+              Alert.alert(t('common.success'), t('organizer.volunteer.applySuccess'));
               fetchData();
             } catch (error: any) {
               if (__DEV__) console.error('Erreur apply volunteer:', error);
-              const message = error?.response?.data?.detail || 'Impossible de postuler.';
-              Alert.alert('Erreur', message);
+              const message = error?.response?.data?.detail || t('organizer.volunteer.applyError');
+              Alert.alert(t('common.error'), message);
             } finally {
               setActionLoading(null);
             }
@@ -199,21 +194,21 @@ export default function VolunteerScreen() {
 
   const handleCompleteTask = (taskId: string) => {
     Alert.alert(
-      'Marquer comme terminée',
-      'La tâche sera marquée comme accomplie. Tu pourras toujours contacter l\'organisateur si besoin.',
+      t('organizer.volunteer.completeTaskTitle'),
+      t('organizer.volunteer.completeTaskMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Terminer',
+          text: t('organizer.volunteer.complete'),
           onPress: async () => {
             setActionLoading(taskId);
             // Optimistic : on flip le status local pour éviter d'attendre.
-            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: 'completed' } : t));
+            setTasks(prev => prev.map(task => task.id === taskId ? { ...task, status: 'completed' } : task));
             try {
               await volunteersAPI.completeTask(taskId);
             } catch (error: any) {
-              setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: t.status === 'completed' ? 'in_progress' : t.status } : t));
-              Alert.alert('Erreur', error?.response?.data?.detail || 'Impossible de marquer la tâche.');
+              setTasks(prev => prev.map(task => task.id === taskId ? { ...task, status: task.status === 'completed' ? 'in_progress' : task.status } : task));
+              Alert.alert(t('common.error'), error?.response?.data?.detail || t('organizer.volunteer.completeError'));
             } finally {
               setActionLoading(null);
             }
@@ -225,22 +220,22 @@ export default function VolunteerScreen() {
 
   const handleWithdraw = (applicationId: string) => {
     Alert.alert(
-      'Retirer la candidature',
-      'Êtes-vous sûr de vouloir retirer votre candidature ?',
+      t('organizer.volunteer.withdrawTitle'),
+      t('organizer.volunteer.withdrawMessage'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Retirer',
+          text: t('organizer.volunteer.withdraw'),
           style: 'destructive',
           onPress: async () => {
             setActionLoading(applicationId);
             try {
               await volunteersAPI.withdrawApplication(applicationId);
-              Alert.alert('Succès', 'Candidature retirée.');
+              Alert.alert(t('common.success'), t('organizer.volunteer.withdrawSuccess'));
               fetchData();
             } catch (error) {
               if (__DEV__) console.error('Erreur withdraw:', error);
-              Alert.alert('Erreur', 'Impossible de retirer la candidature.');
+              Alert.alert(t('common.error'), t('organizer.volunteer.withdrawError'));
             } finally {
               setActionLoading(null);
             }
@@ -302,7 +297,7 @@ export default function VolunteerScreen() {
         {/* Capacity Bar */}
         <View style={styles.capacitySection}>
           <View style={styles.capacityLabelRow}>
-            <Text style={[styles.capacityLabel, { color: colors.textLight }]}>Places</Text>
+            <Text style={[styles.capacityLabel, { color: colors.textLight }]}>{t('organizer.volunteer.places')}</Text>
             <Text style={[styles.capacityValue, { color: colors.text }]}>
               {filled}/{capacity}
             </Text>
@@ -322,7 +317,7 @@ export default function VolunteerScreen() {
         {hasApplied ? (
           <View style={[styles.appliedBadge, { backgroundColor: colors.successLight }]}>
             <Ionicons name="checkmark-circle" size={16} color={colors.success} />
-            <Text style={[styles.appliedText, { color: colors.success }]}>Candidature envoyee</Text>
+            <Text style={[styles.appliedText, { color: colors.success }]}>{t('organizer.volunteer.applied')}</Text>
           </View>
         ) : (
           <TouchableOpacity
@@ -336,7 +331,7 @@ export default function VolunteerScreen() {
               <>
                 <Ionicons name="add" size={18} color={colors.white} />
                 <Text style={[styles.applyButtonText, { color: colors.white }]}>
-                  {isFull ? 'Complet' : 'Postuler'}
+                  {isFull ? t('organizer.volunteer.full') : t('organizer.volunteer.apply')}
                 </Text>
               </>
             )}
@@ -356,10 +351,10 @@ export default function VolunteerScreen() {
       : priority === 'high' ? '#F59E0B'
       : priority === 'medium' ? '#3B82F6'
       : colors.textLight;
-    const priorityLabel = priority === 'urgent' ? 'URGENT'
-      : priority === 'high' ? 'HAUTE'
-      : priority === 'medium' ? 'MOYENNE'
-      : 'BASSE';
+    const priorityLabel = priority === 'urgent' ? t('organizer.volunteer.priorityUrgent')
+      : priority === 'high' ? t('organizer.volunteer.priorityHigh')
+      : priority === 'medium' ? t('organizer.volunteer.priorityMedium')
+      : t('organizer.volunteer.priorityLow');
 
     return (
       <View style={[styles.applicationCard, { backgroundColor: colors.card }, isCompleted && { opacity: 0.7 }]}>
@@ -373,7 +368,7 @@ export default function VolunteerScreen() {
               ]}
               numberOfLines={2}
             >
-              {item.title || 'Tâche'}
+              {item.title || t('organizer.volunteer.fallbackTask')}
             </Text>
             {item.event_title && (
               <Text style={[styles.applicationApplicant, { color: colors.textSecondary }]} numberOfLines={1}>
@@ -401,7 +396,7 @@ export default function VolunteerScreen() {
               size={12}
               color={isCompleted ? colors.success : colors.textLight}
             />{' '}
-            {isCompleted ? 'Terminée' : isCancelled ? 'Annulée' : status === 'in_progress' ? 'En cours' : 'À faire'}
+            {isCompleted ? t('organizer.volunteer.taskCompleted') : isCancelled ? t('organizer.volunteer.taskCancelled') : status === 'in_progress' ? t('organizer.volunteer.taskInProgress') : t('organizer.volunteer.taskTodo')}
             {item.due_date ? ` · ${formatDate(item.due_date)}` : ''}
           </Text>
 
@@ -416,7 +411,7 @@ export default function VolunteerScreen() {
               ) : (
                 <>
                   <Ionicons name="checkmark" size={14} color={colors.success} />
-                  <Text style={[styles.withdrawText, { color: colors.success }]}>Terminer</Text>
+                  <Text style={[styles.withdrawText, { color: colors.success }]}>{t('organizer.volunteer.complete')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -428,10 +423,10 @@ export default function VolunteerScreen() {
 
   const renderApplicationCard = ({ item }: { item: VolunteerApplication }) => {
     const statusColors: Record<string, { label: string; color: string; bg: string }> = {
-      pending: { label: 'En attente', color: colors.warning, bg: colors.warningLight },
-      approved: { label: 'Approuvée', color: colors.success, bg: colors.successLight },
-      rejected: { label: 'Refusée', color: colors.error, bg: colors.errorLight },
-      withdrawn: { label: 'Retirée', color: colors.textLight, bg: colors.gray100 },
+      pending: { label: t('organizer.volunteer.statusPending'), color: colors.warning, bg: colors.warningLight },
+      approved: { label: t('organizer.volunteer.statusApproved'), color: colors.success, bg: colors.successLight },
+      rejected: { label: t('organizer.volunteer.statusRejected'), color: colors.error, bg: colors.errorLight },
+      withdrawn: { label: t('organizer.volunteer.statusWithdrawn'), color: colors.textLight, bg: colors.gray100 },
     };
     const statusConfig = statusColors[item.status] || statusColors.pending;
     const isPending = item.status === 'pending';
@@ -442,7 +437,7 @@ export default function VolunteerScreen() {
         <View style={styles.applicationHeader}>
           <View style={styles.applicationInfo}>
             <Text style={[styles.applicationRole, { color: colors.text }]} numberOfLines={1}>
-              {item.role_title || item.role_name || 'Role benevole'}
+              {item.role_title || item.role_name || t('organizer.volunteer.fallbackRole')}
             </Text>
             {item.applicant_name && (
               <Text style={[styles.applicationApplicant, { color: colors.textSecondary }]}>
@@ -480,7 +475,7 @@ export default function VolunteerScreen() {
               ) : (
                 <>
                   <Ionicons name="close-circle-outline" size={16} color={colors.error} />
-                  <Text style={[styles.withdrawText, { color: colors.error }]}>Retirer</Text>
+                  <Text style={[styles.withdrawText, { color: colors.error }]}>{t('organizer.volunteer.withdraw')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -514,15 +509,15 @@ export default function VolunteerScreen() {
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleWrap}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>L'équipe derrière</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Bénévoles</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.volunteer.headerEyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.volunteer.headerTitle')}</Text>
         </View>
         {isOrganizerView ? (
           <TouchableOpacity
             onPress={() => setCreateOpen(true)}
             style={[styles.backButton, { backgroundColor: `${colors.primary}15` }]}
             accessibilityRole="button"
-            accessibilityLabel="Créer un rôle bénévole"
+            accessibilityLabel={t('organizer.volunteer.createRoleA11y')}
           >
             <Ionicons name="add" size={22} color={colors.primary} />
           </TouchableOpacity>
@@ -544,7 +539,7 @@ export default function VolunteerScreen() {
             style={{ marginRight: 4 }}
           />
           <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'roles' && { color: colors.primary }]}>
-            Roles ({roles.length})
+            {t('organizer.volunteer.tabRoles', { count: roles.length })}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -558,7 +553,7 @@ export default function VolunteerScreen() {
             style={{ marginRight: 4 }}
           />
           <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'applications' && { color: colors.primary }]}>
-            Candidatures ({applications.length})
+            {t('organizer.volunteer.tabApplications', { count: applications.length })}
           </Text>
         </TouchableOpacity>
         {/* Tab Tâches : visible uniquement si l'utilisateur a des tâches assignées
@@ -576,7 +571,7 @@ export default function VolunteerScreen() {
               style={{ marginRight: 4 }}
             />
             <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'tasks' && { color: colors.primary }]}>
-              Tâches ({tasks.length})
+              {t('organizer.volunteer.tabTasks', { count: tasks.length })}
             </Text>
           </TouchableOpacity>
         )}
@@ -594,9 +589,9 @@ export default function VolunteerScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="people-outline" size={48} color={colors.textLight} />
-              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun role disponible</Text>
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>{t('organizer.volunteer.emptyRolesTitle')}</Text>
               <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
-                Les postes de benevoles seront affiches ici lorsqu'ils seront disponibles.
+                {t('organizer.volunteer.emptyRolesText')}
               </Text>
             </View>
           }
@@ -614,9 +609,9 @@ export default function VolunteerScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="document-text-outline" size={48} color={colors.textLight} />
-              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucune candidature</Text>
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>{t('organizer.volunteer.emptyApplicationsTitle')}</Text>
               <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
-                Postulez a un role pour voir votre candidature ici.
+                {t('organizer.volunteer.emptyApplicationsText')}
               </Text>
             </View>
           }
@@ -634,9 +629,9 @@ export default function VolunteerScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="checkbox-outline" size={48} color={colors.textLight} />
-              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucune tâche assignée</Text>
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>{t('organizer.volunteer.emptyTasksTitle')}</Text>
               <Text style={[styles.emptySubtext, { color: colors.textLight }]}>
-                L'organisateur t'assignera des tâches après validation de ta candidature.
+                {t('organizer.volunteer.emptyTasksText')}
               </Text>
             </View>
           }
@@ -655,21 +650,21 @@ export default function VolunteerScreen() {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
-              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>NOUVEAU RÔLE</Text>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>Recrute des bénévoles</Text>
+              <Text style={[styles.modalEyebrow, { color: colors.accent }]}>{t('organizer.volunteer.modalEyebrow')}</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('organizer.volunteer.modalTitle')}</Text>
 
-              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Titre *</Text>
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>{t('organizer.volunteer.titleField')}</Text>
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.gray50, color: colors.text }]}
                 value={createTitle}
                 onChangeText={setCreateTitle}
-                placeholder="Ex : Accueil entrée principale"
+                placeholder={t('organizer.volunteer.titlePlaceholder')}
                 placeholderTextColor={colors.textLight}
                 editable={!createLoading}
                 maxLength={120}
               />
 
-              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Capacité *</Text>
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>{t('organizer.volunteer.capacityField')}</Text>
               <TextInput
                 style={[styles.modalInput, { backgroundColor: colors.gray50, color: colors.text }]}
                 value={createCapacity}
@@ -680,12 +675,12 @@ export default function VolunteerScreen() {
                 editable={!createLoading}
               />
 
-              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Description</Text>
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>{t('organizer.volunteer.descriptionField')}</Text>
               <TextInput
                 style={[styles.modalInput, styles.modalTextArea, { backgroundColor: colors.gray50, color: colors.text }]}
                 value={createDescription}
                 onChangeText={setCreateDescription}
-                placeholder="Tâches, horaires, point de rdv…"
+                placeholder={t('organizer.volunteer.descriptionPlaceholder')}
                 placeholderTextColor={colors.textLight}
                 multiline
                 numberOfLines={3}
@@ -694,12 +689,12 @@ export default function VolunteerScreen() {
                 maxLength={500}
               />
 
-              <Text style={[styles.modalLabel, { color: colors.textLight }]}>Pré-requis</Text>
+              <Text style={[styles.modalLabel, { color: colors.textLight }]}>{t('organizer.volunteer.requirementsField')}</Text>
               <TextInput
                 style={[styles.modalInput, styles.modalTextArea, { backgroundColor: colors.gray50, color: colors.text }]}
                 value={createRequirements}
                 onChangeText={setCreateRequirements}
-                placeholder="Ex : majeur, anglais courant…"
+                placeholder={t('organizer.volunteer.requirementsPlaceholder')}
                 placeholderTextColor={colors.textLight}
                 multiline
                 numberOfLines={2}
@@ -715,7 +710,7 @@ export default function VolunteerScreen() {
                   disabled={createLoading}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.modalBtnText, { color: colors.text }]}>Annuler</Text>
+                  <Text style={[styles.modalBtnText, { color: colors.text }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalBtn, { backgroundColor: colors.primary }, createLoading && { opacity: 0.6 }]}
@@ -726,7 +721,7 @@ export default function VolunteerScreen() {
                   {createLoading ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
-                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>Créer</Text>
+                    <Text style={[styles.modalBtnText, { color: '#fff' }]}>{t('organizer.volunteer.create')}</Text>
                   )}
                 </TouchableOpacity>
               </View>

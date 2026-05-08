@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { analyticsAPI, eventsAPI } from '../../api';
@@ -37,6 +38,7 @@ export default function EventAnalyticsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { eventId } = route.params;
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -114,8 +116,8 @@ export default function EventAnalyticsScreen() {
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON IMPACT</Text>
-          <Text style={[styles.headerTitle, { color: colors.text }]}>Analytiques</Text>
+          <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('organizer.eventAnalytics.headerEyebrow')}</Text>
+          <Text style={[styles.headerTitle, { color: colors.text }]}>{t('organizer.eventAnalytics.headerTitle')}</Text>
         </View>
       </View>
 
@@ -134,7 +136,7 @@ export default function EventAnalyticsScreen() {
             Shadows.sm,
           ]}
         >
-          <Text style={[styles.eventEyebrow, { color: colors.gray500 }]}>ÉVÉNEMENT</Text>
+          <Text style={[styles.eventEyebrow, { color: colors.gray500 }]}>{t('organizer.eventAnalytics.eventLabel')}</Text>
           <Text style={[styles.eventTitle, { color: colors.text }]} numberOfLines={2}>
             {event?.title}
           </Text>
@@ -145,10 +147,10 @@ export default function EventAnalyticsScreen() {
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <KPICard title="Vues" value={formatNumber(views)} icon="eye-outline" color={colors.primary} style={{ width: STAT_CARD_WIDTH }} />
-          <KPICard title="Inscriptions" value={formatNumber(registrations)} icon="people-outline" color="#10B981" style={{ width: STAT_CARD_WIDTH }} />
-          <KPICard title="Conversion" value={`${conversionRate}%`} icon="trending-up-outline" color="#F59E0B" style={{ width: STAT_CARD_WIDTH }} />
-          <KPICard title="Revenus" value={formatCurrency(revenue)} icon="wallet-outline" color="#6366F1" style={{ width: STAT_CARD_WIDTH }} />
+          <KPICard title={t('organizer.eventAnalytics.kpiViews')} value={formatNumber(views)} icon="eye-outline" color={colors.primary} style={{ width: STAT_CARD_WIDTH }} />
+          <KPICard title={t('organizer.eventAnalytics.kpiRegistrations')} value={formatNumber(registrations)} icon="people-outline" color="#10B981" style={{ width: STAT_CARD_WIDTH }} />
+          <KPICard title={t('organizer.eventAnalytics.kpiConversion')} value={`${conversionRate}%`} icon="trending-up-outline" color="#F59E0B" style={{ width: STAT_CARD_WIDTH }} />
+          <KPICard title={t('organizer.eventAnalytics.kpiRevenue')} value={formatCurrency(revenue)} icon="wallet-outline" color="#6366F1" style={{ width: STAT_CARD_WIDTH }} />
         </View>
 
         {/* Prédiction d'affluence — render only if backend a envoyé un nombre.
@@ -163,7 +165,7 @@ export default function EventAnalyticsScreen() {
           if (predicted == null) return null;
           return (
             <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Prédiction</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('organizer.eventAnalytics.predictionTitle')}</Text>
               <View
                 style={[
                   styles.performanceCard,
@@ -181,14 +183,14 @@ export default function EventAnalyticsScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={[styles.performanceLabel, { color: colors.gray500 }]}>
-                      Affluence estimée jour J
+                      {t('organizer.eventAnalytics.predictionLabel')}
                     </Text>
                     <Text style={[styles.performanceValue, { color: colors.text, fontSize: 22, marginTop: 2 }]}>
-                      ≈ {formatNumber(Number(predicted))} personnes
+                      {t('organizer.eventAnalytics.predictionValue', { count: formatNumber(Number(predicted)) })}
                     </Text>
                     {confidence != null && (
                       <Text style={[styles.performanceLabel, { color: colors.gray500, marginTop: 4 }]}>
-                        Confiance : {Math.round(Number(confidence) * 100)}%
+                        {t('organizer.eventAnalytics.predictionConfidence', { percent: Math.round(Number(confidence) * 100) })}
                       </Text>
                     )}
                   </View>
@@ -200,7 +202,7 @@ export default function EventAnalyticsScreen() {
 
         {/* Performance Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Performance</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('organizer.eventAnalytics.performance')}</Text>
           <View
             style={[
               styles.performanceCard,
@@ -208,7 +210,7 @@ export default function EventAnalyticsScreen() {
               Shadows.sm,
             ]}
           >
-            <Text style={[styles.performanceLabel, { color: colors.gray500 }]}>Capacité utilisée</Text>
+            <Text style={[styles.performanceLabel, { color: colors.gray500 }]}>{t('organizer.eventAnalytics.capacityUsed')}</Text>
             <View style={[styles.progressContainer, { backgroundColor: isDark ? colors.gray200 : colors.gray100 }]}>
               <View
                 style={[
@@ -228,7 +230,7 @@ export default function EventAnalyticsScreen() {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Actions rapides</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('organizer.eventAnalytics.quickActions')}</Text>
           <View style={styles.actionsRow}>
             <TouchableOpacity
               style={[styles.actionCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.sm]}
@@ -238,7 +240,7 @@ export default function EventAnalyticsScreen() {
               <View style={[styles.actionIcon, { backgroundColor: `${colors.primary}15` }]}>
                 <Ionicons name="list-outline" size={20} color={colors.primary} />
               </View>
-              <Text style={[styles.actionText, { color: colors.text }]}>Inscriptions</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionRegistrations')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -249,7 +251,7 @@ export default function EventAnalyticsScreen() {
               <View style={[styles.actionIcon, { backgroundColor: `${colors.primary}15` }]}>
                 <Ionicons name="qr-code-outline" size={20} color={colors.primary} />
               </View>
-              <Text style={[styles.actionText, { color: colors.text }]}>Scanner</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionScanner')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -260,14 +262,14 @@ export default function EventAnalyticsScreen() {
               <View style={[styles.actionIcon, { backgroundColor: `${colors.primary}15` }]}>
                 <Ionicons name="create-outline" size={20} color={colors.primary} />
               </View>
-              <Text style={[styles.actionText, { color: colors.text }]}>Modifier</Text>
+              <Text style={[styles.actionText, { color: colors.text }]}>{t('organizer.eventAnalytics.actionEdit')}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Insights */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Aperçu</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('organizer.eventAnalytics.insightsTitle')}</Text>
           <View
             style={[
               styles.insightCard,
@@ -281,8 +283,8 @@ export default function EventAnalyticsScreen() {
               </View>
               <Text style={[styles.insightText, { color: colors.text }]}>
                 {views > 0
-                  ? `Votre événement a été vu ${formatNumber(views)} fois`
-                  : 'Partagez votre événement pour obtenir plus de vues'}
+                  ? t('organizer.eventAnalytics.insightViewsHas', { count: formatNumber(views) })
+                  : t('organizer.eventAnalytics.insightViewsNone')}
               </Text>
             </View>
             {registrations > 0 && (
@@ -291,8 +293,7 @@ export default function EventAnalyticsScreen() {
                   <Ionicons name="people" size={18} color={colors.primary} />
                 </View>
                 <Text style={[styles.insightText, { color: colors.text }]}>
-                  {formatNumber(registrations)} personne{registrations > 1 ? 's' : ''} inscrite
-                  {registrations > 1 ? 's' : ''}
+                  {t('organizer.eventAnalytics.insightRegistered', { count: registrations })}
                 </Text>
               </View>
             )}
