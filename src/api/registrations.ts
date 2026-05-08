@@ -51,10 +51,10 @@ export const registrationsAPI = {
   bulkGenerateTickets: (registrationIds: string[]) =>
     api.post('/registrations/bulk_generate_tickets/', { registration_ids: registrationIds }),
 
-  // Validation et annulation
-  validateRegistration: (id: string) =>
-    api.post(`/registrations/${id}/validate/`),
-
+  // Annulation. La "validation" d'une registration côté organizer passe par
+  // les actions `approveRegistration` / `rejectRegistration` plus bas — il n'y
+  // a pas d'endpoint `validate` dédié sur RegistrationViewSet (le `validate`
+  // backend existant est sur DiscountViewSet pour les codes promo).
   cancelRegistration: (id: string) =>
     api.post(`/registrations/${id}/cancel/`),
 

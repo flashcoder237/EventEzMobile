@@ -175,14 +175,14 @@ describe('messagesAPI', () => {
     expect(api.get).toHaveBeenCalledWith('/user-messaging-settings/blocked_list/');
   });
 
-  it('muteConversation(convId) → POST /user-messaging-settings/mute_conversation/', async () => {
+  it('muteConversation(convId) → POST /user-messaging-settings/mute-conversation/', async () => {
     await messagesAPI.muteConversation('c-1');
-    expect(api.post).toHaveBeenCalledWith('/user-messaging-settings/mute_conversation/', { conversation_id: 'c-1' });
+    expect(api.post).toHaveBeenCalledWith('/user-messaging-settings/mute-conversation/', { conversation_id: 'c-1' });
   });
 
-  it('unmuteConversation(convId) → POST /user-messaging-settings/unmute_conversation/', async () => {
+  it('unmuteConversation(convId) → POST /user-messaging-settings/unmute-conversation/', async () => {
     await messagesAPI.unmuteConversation('c-1');
-    expect(api.post).toHaveBeenCalledWith('/user-messaging-settings/unmute_conversation/', { conversation_id: 'c-1' });
+    expect(api.post).toHaveBeenCalledWith('/user-messaging-settings/unmute-conversation/', { conversation_id: 'c-1' });
   });
 
   // ---- Reports / search ----

@@ -36,12 +36,14 @@ export const treasuryAPI = {
   getOverview: () =>
     api.get('/admin/treasury/overview/'),
 
-  // Wallet
+  // Wallet — exposé directement dans la réponse de getOverview() (champ `wallet`).
+  // Ces aliases conservent la compat des callers historiques mais tapent les
+  // endpoints réels du `TreasuryOverviewViewSet`.
   getWallet: () =>
-    api.get('/admin/treasury/wallet/'),
+    api.get('/admin/treasury/overview/'),
 
   recomputeWallet: () =>
-    api.post('/admin/treasury/wallet/recompute/'),
+    api.post('/admin/treasury/overview/recompute/'),
 
   // Transactions
   getTransactions: (params?: any) =>
@@ -76,8 +78,9 @@ export const treasuryAPI = {
   createStaffPayment: (data: any) =>
     api.post('/admin/treasury/staff-payments/', data),
 
+  // Backend action `generate` sur StaffPaymentViewSet (cf. apps/treasury/views.py)
   generatePayroll: (data: { month: number; year: number }) =>
-    api.post('/admin/treasury/staff-payments/generate_payroll/', data),
+    api.post('/admin/treasury/staff-payments/generate/', data),
 
   // Expenses
   getExpenses: (params?: any) =>

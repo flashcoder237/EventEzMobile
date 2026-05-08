@@ -107,13 +107,13 @@ export const messagesAPI = {
 
   /** Mute serveur d'une conversation — remplace l'ancien stockage AsyncStorage local. */
   muteConversation: (conversationId: string | number) =>
-    api.post('/user-messaging-settings/mute_conversation/', {
+    api.post('/user-messaging-settings/mute-conversation/', {
       conversation_id: conversationId,
     }),
 
   /** Retire le mute serveur d'une conversation. */
   unmuteConversation: (conversationId: string | number) =>
-    api.post('/user-messaging-settings/unmute_conversation/', {
+    api.post('/user-messaging-settings/unmute-conversation/', {
       conversation_id: conversationId,
     }),
 

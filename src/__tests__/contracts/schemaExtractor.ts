@@ -192,11 +192,48 @@ function extractActionsFromViews(
     const body = source.slice(cls.start, end);
 
     // Match @action(...) puis def <name>(
-    const actionRegex = /@action\(([^)]*)\)\s*\n\s*def\s+(\w+)\s*\(/g;
-    let am: RegExpExecArray | null;
-    while ((am = actionRegex.exec(body)) !== null) {
-      const args = am[1];
-      const fnName = am[2];
+    // On utilise un matching paren-balanced parce que les arguments peuvent
+    // contenir des parens internes (ex: `permission_classes=[permissions.AllowAny()]`
+    // ou `url_path=r'event/(?P<event_id>[^/.]+)/join'`). Une simple regex
+    // `\([^)]*\)` s'arrête au premier `)` rencontré et casse le parsing.
+    const startRe = /@action\(/g;
+    let sm: RegExpExecArray | null;
+    while ((sm = startRe.exec(body)) !== null) {
+      let depth = 1;
+      let j = sm.index + sm[0].length;
+      let inStr: string | null = null;
+      while (j < body.length && depth > 0) {
+        const ch = body[j];
+        if (inStr) {
+          if (ch === '\\' && j + 1 < body.length) {
+            j += 2;
+            continue;
+          }
+          if (ch === inStr) inStr = null;
+        } else {
+          if (ch === '\'' || ch === '"') inStr = ch;
+          else if (ch === '(') depth++;
+          else if (ch === ')') {
+            depth--;
+            if (depth === 0) break;
+          }
+        }
+        j++;
+      }
+      if (depth !== 0) {
+        startRe.lastIndex = sm.index + sm[0].length;
+        continue;
+      }
+      const args = body.slice(sm.index + sm[0].length, j);
+      // Cherche la def qui suit
+      const tail = body.slice(j + 1);
+      const defMatch = tail.match(/^\s*\n\s*def\s+(\w+)\s*\(/);
+      if (!defMatch) {
+        startRe.lastIndex = j + 1;
+        continue;
+      }
+      const fnName = defMatch[1];
+
       const detail = /detail\s*=\s*True/.test(args);
       const methodsMatch = args.match(/methods\s*=\s*\[([^\]]+)\]/);
       let methods: string[] = ['GET'];
@@ -206,7 +243,8 @@ function extractActionsFromViews(
           .map((s) => s.trim().replace(/^['"]|['"]$/g, '').toUpperCase())
           .filter(Boolean);
       }
-      const urlPathMatch = args.match(/url_path\s*=\s*['"]([^'"]+)['"]/);
+      // url_path peut être quoté avec r'...' (raw string) — accepte le préfixe r/R optionnel.
+      const urlPathMatch = args.match(/url_path\s*=\s*[rR]?['"]([^'"]+)['"]/);
       out.push({
         viewset: cls.name,
         action: fnName,
@@ -214,6 +252,8 @@ function extractActionsFromViews(
         methods,
         urlPath: urlPathMatch ? urlPathMatch[1] : undefined,
       });
+
+      startRe.lastIndex = j + 1;
     }
   }
   return out;
@@ -228,6 +268,16 @@ function actionToUrlSlug(actionName: string, explicit?: string): string {
   if (explicit) return explicit;
   // DRF default: function name as-is (snake_case)
   return actionName;
+}
+
+/**
+ * Normalise un `url_path` DRF en path OpenAPI :
+ *  - `(?P<event_id>[^/.]+)` → `{event_id}` (regex named groups)
+ *  - `verify-payment/(?P<payment_id>[^/.]+)` → `verify-payment/{payment_id}`
+ *  - laisse les segments littéraux tels quels
+ */
+function normalizeUrlPath(urlPath: string): string {
+  return urlPath.replace(/\(\?P<(\w+)>[^)]+\)/g, '{$1}');
 }
 
 /**
@@ -266,7 +316,7 @@ function buildViewSetEndpoints(
 
   // Custom actions
   for (const a of actions.filter((x) => x.viewset === viewsetName)) {
-    const slug = actionToUrlSlug(a.action, a.urlPath);
+    const slug = normalizeUrlPath(actionToUrlSlug(a.action, a.urlPath));
     const actionPath = a.detail ? `${base}{id}/${slug}/` : `${base}${slug}/`;
     out.push({
       path: actionPath,

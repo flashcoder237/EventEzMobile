@@ -20,14 +20,14 @@ describe('treasuryAPI', () => {
       expect(api.get).toHaveBeenCalledWith('/admin/treasury/overview/');
     });
 
-    it('getWallet() GETs /admin/treasury/wallet/', async () => {
+    it('getWallet() GETs /admin/treasury/overview/ (alias — wallet inclus dans overview)', async () => {
       await treasuryAPI.getWallet();
-      expect(api.get).toHaveBeenCalledWith('/admin/treasury/wallet/');
+      expect(api.get).toHaveBeenCalledWith('/admin/treasury/overview/');
     });
 
-    it('recomputeWallet() POSTs /admin/treasury/wallet/recompute/', async () => {
+    it('recomputeWallet() POSTs /admin/treasury/overview/recompute/', async () => {
       await treasuryAPI.recomputeWallet();
-      expect(api.post).toHaveBeenCalledWith('/admin/treasury/wallet/recompute/');
+      expect(api.post).toHaveBeenCalledWith('/admin/treasury/overview/recompute/');
     });
   });
 
@@ -90,10 +90,10 @@ describe('treasuryAPI', () => {
       expect(api.post).toHaveBeenCalledWith('/admin/treasury/staff-payments/', data);
     });
 
-    it('generatePayroll() POSTs /admin/treasury/staff-payments/generate_payroll/', async () => {
+    it('generatePayroll() POSTs /admin/treasury/staff-payments/generate/', async () => {
       const data = { month: 5, year: 2026 };
       await treasuryAPI.generatePayroll(data);
-      expect(api.post).toHaveBeenCalledWith('/admin/treasury/staff-payments/generate_payroll/', data);
+      expect(api.post).toHaveBeenCalledWith('/admin/treasury/staff-payments/generate/', data);
     });
   });
 

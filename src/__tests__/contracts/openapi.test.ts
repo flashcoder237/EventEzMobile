@@ -47,6 +47,10 @@ const STRICT = process.env.CONTRACT_STRICT === '1';
  * Le mobile appelle `/events/` mais le backend peut le stocker sous
  * `/api/events/` (selon que le schéma vient de drf-spectacular avec
  * `SCHEMA_PATH_PREFIX`).
+ *
+ * Normalise aussi les placeholders : `{token}`, `{user_id}`, `{payment_id}` etc.
+ * sont équivalents à `{id}` côté mobile (le collector mobile remplace tous
+ * les `${...}` par `{id}`).
  */
 function pathVariants(mobilePath: string): string[] {
   const trimmed = mobilePath.replace(/\/+$/, '');
@@ -65,6 +69,14 @@ function pathVariants(mobilePath: string): string[] {
   );
 }
 
+/**
+ * Normalise tous les placeholders `{xyz}` à `{id}` pour comparaison souple.
+ * Ex: `/password-reset/validate/{token}/` → `/password-reset/validate/{id}/`
+ */
+function normalizePathParams(p: string): string {
+  return p.replace(/\{[^}]+\}/g, '{id}');
+}
+
 interface MismatchRecord {
   endpoint: MobileEndpoint;
   reason: 'unknown_path' | 'wrong_method';
@@ -78,22 +90,48 @@ function findMismatches(
 ): MismatchRecord[] {
   const mismatches: MismatchRecord[] = [];
 
+  // Index supplémentaire avec les paths normalisés (tous les placeholders → {id})
+  // pour la matching souple. Permet ex: backend `/verify-email/{token}/`
+  // de matcher mobile `/verify-email/{id}/`.
+  const normalizedIndex = new Map<string, Set<string>>();
+  for (const [p, methods] of backendIndex) {
+    const norm = normalizePathParams(p);
+    if (!normalizedIndex.has(norm)) normalizedIndex.set(norm, new Set());
+    const set = normalizedIndex.get(norm)!;
+    for (const m of methods) set.add(m);
+  }
+
   for (const ep of mobile) {
     const variants = pathVariants(ep.path);
     let matched: string | null = null;
+    let allowed: Set<string> | null = null;
+
+    // 1ère passe : match exact
     for (const v of variants) {
       if (backendIndex.has(v)) {
         matched = v;
+        allowed = backendIndex.get(v)!;
         break;
       }
     }
 
+    // 2ème passe : match avec placeholders normalisés
     if (!matched) {
+      for (const v of variants) {
+        const norm = normalizePathParams(v);
+        if (normalizedIndex.has(norm)) {
+          matched = norm;
+          allowed = normalizedIndex.get(norm)!;
+          break;
+        }
+      }
+    }
+
+    if (!matched || !allowed) {
       mismatches.push({ endpoint: ep, reason: 'unknown_path' });
       continue;
     }
 
-    const allowed = backendIndex.get(matched)!;
     if (!allowed.has(ep.method)) {
       mismatches.push({
         endpoint: ep,

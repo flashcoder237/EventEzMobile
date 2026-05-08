@@ -54,8 +54,13 @@ export const invitationsAPI = {
   create: (data: { event: string; invitee_email: string; invitee_name?: string; message?: string }) =>
     api.post('/invitations/', data),
 
+  /**
+   * Le backend `EventInvitationViewSet.create()` accepte directement une liste
+   * d'invitees via `BulkInvitationCreateSerializer` — pas d'action `bulk_invite/`
+   * dédiée. On post donc sur l'endpoint racine.
+   */
   bulkInvite: (data: { event: string; invitees: Array<{ email: string; name?: string }>; message?: string }) =>
-    api.post('/invitations/bulk_invite/', data),
+    api.post('/invitations/', data),
 
   accept: (id: string) =>
     api.post(`/invitations/${id}/accept/`),
@@ -63,14 +68,29 @@ export const invitationsAPI = {
   decline: (id: string) =>
     api.post(`/invitations/${id}/decline/`),
 
+  /**
+   * Annule une invitation pending (inviter only). Le backend implémente
+   * l'annulation via `DELETE /invitations/{id}/` (cf `EventInvitationViewSet.destroy`).
+   */
   cancel: (id: string) =>
-    api.post(`/invitations/${id}/cancel/`),
+    api.delete(`/invitations/${id}/`),
 
   getMyInvitations: () =>
     api.get('/invitations/my_invitations/'),
 
-  respondByToken: (token: string, action: 'accept' | 'decline') =>
-    api.post('/invitations/respond_by_token/', { token, action }),
+  /**
+   * Récupère une invitation via son token public puis répond via accept/decline.
+   * Pas d'endpoint single-shot côté backend — on chaîne `by_token` puis l'action.
+   */
+  respondByToken: async (token: string, actionType: 'accept' | 'decline') => {
+    const inv = await api.get('/invitations/by_token/', { params: { token } });
+    const id = (inv.data as { id?: string })?.id;
+    if (!id) throw new Error('Invitation introuvable.');
+    if (actionType === 'accept') {
+      return api.post(`/invitations/${id}/accept/`);
+    }
+    return api.post(`/invitations/${id}/decline/`);
+  },
 };
 
 // ============================================

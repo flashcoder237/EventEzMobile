@@ -30,10 +30,10 @@ describe('invitationsAPI', () => {
     expect(api.post).toHaveBeenCalledWith('/invitations/', data);
   });
 
-  it('bulkInvite() POSTs /invitations/bulk_invite/', async () => {
+  it('bulkInvite() POSTs /invitations/ (backend create() gère le bulk via BulkInvitationCreateSerializer)', async () => {
     const data = { event: 'eid', invitees: [{ email: 'a@b.com', name: 'A' }], message: 'hi' };
     await invitationsAPI.bulkInvite(data);
-    expect(api.post).toHaveBeenCalledWith('/invitations/bulk_invite/', data);
+    expect(api.post).toHaveBeenCalledWith('/invitations/', data);
   });
 
   it('accept() POSTs /invitations/{id}/accept/', async () => {
@@ -46,9 +46,9 @@ describe('invitationsAPI', () => {
     expect(api.post).toHaveBeenCalledWith('/invitations/inv1/decline/');
   });
 
-  it('cancel() POSTs /invitations/{id}/cancel/', async () => {
+  it('cancel() DELETE /invitations/{id}/ (backend implémente cancel via destroy())', async () => {
     await invitationsAPI.cancel('inv1');
-    expect(api.post).toHaveBeenCalledWith('/invitations/inv1/cancel/');
+    expect(api.delete).toHaveBeenCalledWith('/invitations/inv1/');
   });
 
   it('getMyInvitations() GETs /invitations/my_invitations/', async () => {
@@ -56,11 +56,10 @@ describe('invitationsAPI', () => {
     expect(api.get).toHaveBeenCalledWith('/invitations/my_invitations/');
   });
 
-  it('respondByToken() POSTs /invitations/respond_by_token/ with token+action', async () => {
+  it('respondByToken() chaîne by_token → accept/decline (pas d\'endpoint single-shot backend)', async () => {
+    api.get.mockResolvedValueOnce({ data: { id: 'inv1' } });
     await invitationsAPI.respondByToken('tok123', 'accept');
-    expect(api.post).toHaveBeenCalledWith('/invitations/respond_by_token/', {
-      token: 'tok123',
-      action: 'accept',
-    });
+    expect(api.get).toHaveBeenCalledWith('/invitations/by_token/', { params: { token: 'tok123' } });
+    expect(api.post).toHaveBeenCalledWith('/invitations/inv1/accept/');
   });
 });

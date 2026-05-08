@@ -79,11 +79,6 @@ describe('registrationsAPI', () => {
     });
   });
 
-  it('validateRegistration() POSTs /registrations/{id}/validate/', async () => {
-    await registrationsAPI.validateRegistration('rid');
-    expect(api.post).toHaveBeenCalledWith('/registrations/rid/validate/');
-  });
-
   it('cancelRegistration() POSTs /registrations/{id}/cancel/', async () => {
     await registrationsAPI.cancelRegistration('rid');
     expect(api.post).toHaveBeenCalledWith('/registrations/rid/cancel/');

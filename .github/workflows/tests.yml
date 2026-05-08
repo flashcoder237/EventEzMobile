@@ -1,0 +1,165 @@
+name: Tests Mobile
+
+# Filet anti-régression multi-niveaux :
+# - typecheck : tsc --noEmit
+# - smoke    : 904 tests Jest (modules API + formulaires)
+# - integration : 21 tests MSW (vrais flows axios)
+# - contracts : OpenAPI mobile↔backend (soft-warn par défaut, strict via env)
+# - mutation : qualité des tests sur 5 modules critiques (informatif)
+#
+# Tous les jobs run en parallèle sauf typecheck (gate).
+
+on:
+  push:
+    branches: [master, main, develop]
+    paths:
+      - 'src/**'
+      - 'jest.config.js'
+      - 'jest.integration.config.js'
+      - 'jest.setup.js'
+      - 'package.json'
+      - '.github/workflows/tests.yml'
+  pull_request:
+    branches: [master, main, develop]
+
+# Annule les runs en cours sur la même branche/PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # Gate : TypeScript doit compiler avant le reste
+  # ============================================================
+  typecheck:
+    name: TypeScript check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - name: tsc --noEmit
+        run: npx tsc --noEmit
+
+  # ============================================================
+  # Smoke : tests Jest unitaires (904 tests, 95 suites, ~10s)
+  # ============================================================
+  smoke:
+    name: Smoke tests (904)
+    runs-on: ubuntu-latest
+    needs: typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - name: Run jest
+        run: npx jest --silent --maxWorkers=2
+      - name: Coverage report
+        if: success()
+        run: npx jest --coverage --silent --maxWorkers=2
+        continue-on-error: true
+      - name: Upload coverage
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-smoke
+          path: coverage/
+          retention-days: 7
+
+  # ============================================================
+  # Integration MSW : vrais flows axios (~21 tests, ~5s)
+  # ============================================================
+  integration:
+    name: Integration MSW (21)
+    runs-on: ubuntu-latest
+    needs: typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+      - name: Run MSW integration
+        run: npx jest --config jest.integration.config.js --silent
+
+  # ============================================================
+  # Contracts OpenAPI : mobile ↔ backend mismatches
+  # ============================================================
+  contracts:
+    name: OpenAPI contracts
+    runs-on: ubuntu-latest
+    needs: typecheck
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+
+      # Récupère le schéma OpenAPI du backend Django si disponible.
+      # Le repo backend est séparé : on tente un curl vers staging,
+      # sinon le test fallback sur le parsing Python statique.
+      - name: Fetch OpenAPI schema (best-effort)
+        run: |
+          curl -fsSL https://api.eventez.online/api/schema/ -o src/__tests__/__fixtures__/openapi-schema.json || \
+            echo "OpenAPI schema fetch failed — fallback to static parsing"
+        continue-on-error: true
+
+      - name: Run contract tests (soft-warn)
+        run: npx jest src/__tests__/contracts/openapi.test.ts --silent
+
+      # Mode strict : décommente pour bloquer le build si mismatches.
+      # - name: Run contract tests (strict)
+      #   run: CONTRACT_STRICT=1 npx jest src/__tests__/contracts/openapi.test.ts
+
+  # ============================================================
+  # Mutation testing (informatif — pas bloquant)
+  # ============================================================
+  mutation:
+    name: Mutation testing
+    runs-on: ubuntu-latest
+    needs: smoke # bench mutation sur tests qui passent déjà
+    if: github.event_name == 'push' # skip sur PR pour économiser les minutes
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+      - run: yarn install --frozen-lockfile
+
+      - name: Run mutation testing on 5 critical modules
+        run: |
+          for mod in auth events registrations payments messages; do
+            echo "=== $mod ==="
+            node scripts/mutation-test.js --module $mod --max 5 || true
+          done
+        continue-on-error: true
+
+  # ============================================================
+  # Summary : agrège les statuts
+  # ============================================================
+  summary:
+    name: Test summary
+    runs-on: ubuntu-latest
+    needs: [smoke, integration, contracts]
+    if: always()
+    steps:
+      - name: Print status
+        run: |
+          echo "Smoke:       ${{ needs.smoke.result }}"
+          echo "Integration: ${{ needs.integration.result }}"
+          echo "Contracts:   ${{ needs.contracts.result }}"
+          if [ "${{ needs.smoke.result }}" != "success" ] || \
+             [ "${{ needs.integration.result }}" != "success" ] || \
+             [ "${{ needs.contracts.result }}" != "success" ]; then
+            exit 1
+          fi
