@@ -20,6 +20,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import QRCode from 'react-native-qrcode-svg';
@@ -47,6 +48,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
 
 export default function QRCodeScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const route = useRoute<QRCodeRouteProp>();
@@ -67,10 +69,10 @@ export default function QRCodeScreen() {
 
   const handleReveal = useCallback(async () => {
     const confirmed = await biometric.confirm({
-      promptMessage: 'Authentification requise pour afficher le QR code',
+      promptMessage: t('qrCode.biometricPromptMessage'),
     });
     if (confirmed) setRevealed(true);
-  }, [biometric]);
+  }, [biometric, t]);
 
   // Ref vers le composant QRCode SVG affiché : permet de récupérer son contenu
   // en base64 PNG (toDataURL) pour l'embed dans le PDF — évite de dépendre d'une
@@ -108,17 +110,17 @@ export default function QRCodeScreen() {
       setTicket(response.data);
     } catch (error) {
       if (__DEV__) console.error('Error fetching ticket:', error);
-      showError('Erreur', 'Impossible de charger les détails du billet');
+      showError(t('common.error'), t('qrCode.loadError'));
     } finally {
       setLoading(false);
     }
   };
 
   const generateTicketHTML = (qrImageUrl: string): string => {
-    const eventTitle = event?.title || (ticket as any)?.event_title || 'Événement';
+    const eventTitle = event?.title || (ticket as any)?.event_title || t('qrCode.eventFallback');
     const qrUrl = qrImageUrl
       || `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(verificationUrl)}&size=200x200&format=png&qzone=1&margin=0&bgcolor=FFFFFF&color=5B21B6`;
-    const ticketTypeName = ticketType?.name || (ticket as any)?.ticket_type_name || 'Standard';
+    const ticketTypeName = ticketType?.name || (ticket as any)?.ticket_type_name || t('qrCode.ticketTypeFallback');
     const reference = String(ticketId).slice(0, 8).toUpperCase();
     const statusLabel = getStatusConfig(ticket?.status).label;
 
@@ -158,7 +160,7 @@ export default function QRCodeScreen() {
         <div class="ticket">
           <div class="header">
             <h1>EventEz</h1>
-            <p>Billet électronique</p>
+            <p>${t('qrCode.pdfElectronicTicket')}</p>
           </div>
           <div class="event-section">
             <div class="event-title">${eventTitle}</div>
@@ -170,47 +172,47 @@ export default function QRCodeScreen() {
             <div class="qr-container">
               <img src="${qrUrl}" alt="QR Code" />
             </div>
-            <p class="qr-hint">Présentez ce QR code à l'entrée de l'événement</p>
+            <p class="qr-hint">${t('qrCode.pdfQrHint')}</p>
           </div>
           <div class="details-section">
             <div class="detail-row">
-              <span class="detail-label">Statut</span>
+              <span class="detail-label">${t('qrCode.pdfStatus')}</span>
               <span class="status-badge">${statusLabel}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Type de billet</span>
+              <span class="detail-label">${t('qrCode.pdfTicketType')}</span>
               <span class="detail-value">${ticketTypeName}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Quantité</span>
+              <span class="detail-label">${t('qrCode.pdfQuantity')}</span>
               <span class="detail-value">${ticket?.quantity || 1}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Prix unitaire</span>
-              <span class="detail-value">${ticket?.unit_price ? `${ticket.unit_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}</span>
+              <span class="detail-label">${t('qrCode.pdfUnitPrice')}</span>
+              <span class="detail-value">${ticket?.unit_price ? `${ticket.unit_price.toLocaleString()} ${event?.currency || 'FCFA'}` : t('qrCode.free')}</span>
             </div>
             ${(ticket?.discount_amount ?? 0) > 0 ? `
             <div class="detail-row">
-              <span class="detail-label">Réduction</span>
+              <span class="detail-label">${t('qrCode.pdfDiscount')}</span>
               <span class="detail-value" style="color: #059669;">-${ticket!.discount_amount!.toLocaleString()} ${event?.currency || 'FCFA'}</span>
             </div>` : ''}
             <div class="detail-row">
-              <span class="detail-label">Total payé</span>
-              <span class="detail-value total">${ticket?.total_price ? `${ticket.total_price.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}</span>
+              <span class="detail-label">${t('qrCode.pdfTotalPaid')}</span>
+              <span class="detail-value total">${ticket?.total_price ? `${ticket.total_price.toLocaleString()} ${event?.currency || 'FCFA'}` : t('qrCode.free')}</span>
             </div>
             <div class="detail-row">
-              <span class="detail-label">Référence</span>
+              <span class="detail-label">${t('qrCode.pdfReference')}</span>
               <span class="detail-value">${reference}</span>
             </div>
           </div>
           ${ticket?.attendee_name || ticket?.attendee_email ? `
           <div class="attendee-section">
-            <h3>Participant</h3>
+            <h3>${t('qrCode.pdfAttendee')}</h3>
             ${ticket?.attendee_name ? `<div class="attendee-row">👤 ${ticket.attendee_name}</div>` : ''}
             ${ticket?.attendee_email ? `<div class="attendee-row">✉️ ${ticket.attendee_email}</div>` : ''}
           </div>` : ''}
           <div class="footer">
-            Généré par EventEz — ${new Date().toLocaleDateString('fr-FR')}
+            ${t('qrCode.pdfFooter')} — ${new Date().toLocaleDateString('fr-FR')}
           </div>
         </div>
       </body>
@@ -228,15 +230,15 @@ export default function QRCodeScreen() {
       if (sharingAvailable) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Sauvegarder le billet PDF',
+          dialogTitle: t('qrCode.pdfShareDialog'),
           UTI: 'com.adobe.pdf',
         });
       } else {
-        showError('Partage indisponible', 'Le partage de fichier n\'est pas disponible sur cet appareil.');
+        showError(t('qrCode.shareUnavailableTitle'), t('qrCode.shareUnavailableMsg'));
       }
     } catch (error) {
       if (__DEV__) console.error('Error generating PDF:', error);
-      showError('Erreur', 'Impossible de générer le PDF');
+      showError(t('common.error'), t('qrCode.pdfError'));
     }
   };
 
@@ -248,17 +250,17 @@ export default function QRCodeScreen() {
       await Print.printAsync({ html });
     } catch (error) {
       if (__DEV__) console.error('Error printing:', error);
-      showError('Erreur', 'Impossible d\'imprimer le billet');
+      showError(t('common.error'), t('qrCode.printError'));
     }
   };
 
   const handleShare = async () => {
     if (!ticket) return;
-    const eventTitle = (ticket as any)?.event?.title || (ticket as any)?.event_title || 'Événement';
+    const eventTitle = (ticket as any)?.event?.title || (ticket as any)?.event_title || t('qrCode.eventFallback');
     try {
       await Share.share({
-        message: `Mon billet pour ${eventTitle}\n\nRéférence: ${String(ticketId).slice(0, 8).toUpperCase()}`,
-        title: 'Mon billet EventEz',
+        message: t('qrCode.shareMessage', { event: eventTitle, ref: String(ticketId).slice(0, 8).toUpperCase() }),
+        title: t('qrCode.shareTitle'),
       });
     } catch (error) {
       if (__DEV__) console.error('Error sharing:', error);
@@ -287,15 +289,15 @@ export default function QRCodeScreen() {
     switch (status) {
       case 'confirmed':
       case 'completed':
-        return { color: colors.success, bg: colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
+        return { color: colors.success, bg: colors.successLight, label: t('qrCode.statusConfirmed'), icon: 'checkmark-circle' };
       case 'pending':
-        return { color: colors.warning, bg: colors.warningLight, label: 'En attente', icon: 'time' };
+        return { color: colors.warning, bg: colors.warningLight, label: t('qrCode.statusPending'), icon: 'time' };
       case 'cancelled':
-        return { color: colors.error, bg: colors.errorLight, label: 'Annulé', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: t('qrCode.statusCancelled'), icon: 'close-circle' };
       case 'checked_in':
-        return { color: colors.success, bg: colors.successLight, label: 'Validé', icon: 'checkmark-done-circle' };
+        return { color: colors.success, bg: colors.successLight, label: t('qrCode.statusValidated'), icon: 'checkmark-done-circle' };
       default:
-        return { color: colors.success, bg: colors.successLight, label: 'Confirmé', icon: 'checkmark-circle' };
+        return { color: colors.success, bg: colors.successLight, label: t('qrCode.statusConfirmed'), icon: 'checkmark-circle' };
     }
   };
 
@@ -316,14 +318,14 @@ export default function QRCodeScreen() {
         <WatermarkNumeral>QR</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           <EditorialHeader
-            eyebrow="BILLET"
-            title="Mon billet"
+            eyebrow={t('qrCode.headerEyebrowFallback')}
+            title={t('qrCode.headerTitle')}
             back
             onBack={() => navigation.goBack()}
           />
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.errorText, { color: colors.gray500 }]}>Billet non trouvé</Text>
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('qrCode.notFound')}</Text>
           </View>
         </View>
       </EditorialCanvas>
@@ -334,7 +336,7 @@ export default function QRCodeScreen() {
   const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
   const statusConfig = getStatusConfig(ticket.status);
   const reference = String(ticketId).slice(0, 8).toUpperCase();
-  const ticketName = ticketType?.name || ticket.ticket_type_name || 'Standard';
+  const ticketName = ticketType?.name || ticket.ticket_type_name || t('qrCode.ticketTypeFallback');
   const ticketQty = ticket.quantity || 1;
   const ticketPrice = Number(ticket.total_price) || 0;
 
@@ -346,20 +348,20 @@ export default function QRCodeScreen() {
   // Instructions dynamiques selon le contexte du billet
   const instructions: { icon: string; color: string; text: string }[] = isOnlineEvent
     ? [
-        { icon: 'wifi-outline', color: colors.primary, text: 'Teste ta connexion internet à l\'avance' },
-        { icon: 'volume-high-outline', color: colors.accent, text: 'Vérifie ton micro et tes haut-parleurs' },
-        { icon: 'log-in-outline', color: '#A855F7', text: 'Connecte-toi 5 min avant le début' },
+        { icon: 'wifi-outline', color: colors.primary, text: t('qrCode.tipWifi') },
+        { icon: 'volume-high-outline', color: colors.accent, text: t('qrCode.tipMic') },
+        { icon: 'log-in-outline', color: '#A855F7', text: t('qrCode.tipLoginEarly') },
       ]
     : isHybridEvent
     ? [
-        { icon: 'scan-outline', color: colors.primary, text: 'QR code à scanner si tu viens sur place' },
-        { icon: 'wifi-outline', color: colors.accent, text: 'Sinon teste ta connexion pour le live' },
-        { icon: 'phone-portrait-outline', color: '#A855F7', text: 'Garde ton téléphone chargé' },
+        { icon: 'scan-outline', color: colors.primary, text: t('qrCode.tipScanIfOnSite') },
+        { icon: 'wifi-outline', color: colors.accent, text: t('qrCode.tipWifiHybrid') },
+        { icon: 'phone-portrait-outline', color: '#A855F7', text: t('qrCode.tipPhoneCharged') },
       ]
     : [
-        { icon: 'scan-outline', color: colors.primary, text: 'Le QR code sera scanné à l\'entrée' },
-        { icon: 'phone-portrait-outline', color: colors.accent, text: 'Garde ton téléphone chargé' },
-        { icon: 'time-outline', color: '#A855F7', text: 'Arrive à l\'heure pour éviter les files' },
+        { icon: 'scan-outline', color: colors.primary, text: t('qrCode.tipScanEntrance') },
+        { icon: 'phone-portrait-outline', color: colors.accent, text: t('qrCode.tipPhoneCharged') },
+        { icon: 'time-outline', color: '#A855F7', text: t('qrCode.tipArriveLines') },
       ];
 
   return (
@@ -368,8 +370,8 @@ export default function QRCodeScreen() {
       <View style={{ flex: 1, zIndex: 1 }}>
         {/* Header éditorial : eyebrow contexte + actions discrètes (print, dl, share) */}
         <EditorialHeader
-          eyebrow={`BILLET · ${reference}`}
-          title="Mon billet"
+          eyebrow={t('qrCode.headerEyebrow', { ref: reference })}
+          title={t('qrCode.headerTitle')}
           back
           onBack={() => navigation.goBack()}
           right={
@@ -377,21 +379,21 @@ export default function QRCodeScreen() {
               <TouchableOpacity
                 style={styles.headerIconBtn}
                 onPress={handlePrint}
-                accessibilityLabel="Imprimer le billet"
+                accessibilityLabel={t('qrCode.printA11y')}
               >
                 <Ionicons name="print-outline" size={20} color={colors.gray700} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerIconBtn}
                 onPress={handleDownloadPDF}
-                accessibilityLabel="Télécharger le billet"
+                accessibilityLabel={t('qrCode.downloadA11y')}
               >
                 <Ionicons name="download-outline" size={20} color={colors.gray700} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.headerIconBtn}
                 onPress={handleShare}
-                accessibilityLabel="Partager le billet"
+                accessibilityLabel={t('qrCode.shareA11y')}
               >
                 <Ionicons name="share-outline" size={20} color={colors.gray700} />
               </TouchableOpacity>
@@ -410,7 +412,7 @@ export default function QRCodeScreen() {
               <View style={styles.typePillRow}>
                 <View style={[styles.typePill, { backgroundColor: `${colors.primary}15` }]}>
                   <Ionicons name="ticket" size={10} color={colors.primary} />
-                  <Text style={[styles.typePillText, { color: colors.primary }]}>BILLET INDIVIDUEL</Text>
+                  <Text style={[styles.typePillText, { color: colors.primary }]}>{t('qrCode.individualBadge')}</Text>
                 </View>
                 {event?.category?.name && (
                   <Text style={[styles.categoryEyebrow, { color: colors.gray500 }]} numberOfLines={1}>
@@ -423,7 +425,7 @@ export default function QRCodeScreen() {
               <View style={styles.heroRow}>
                 <View style={{ flex: 1, paddingRight: Spacing.md }}>
                   <Text style={[styles.heroTitle, { color: colors.gray900 }]} numberOfLines={3}>
-                    {event?.title || (ticket as any)?.event_title || 'Événement'}
+                    {event?.title || (ticket as any)?.event_title || t('qrCode.eventFallback')}
                   </Text>
                 </View>
                 {event?.start_date && (
@@ -455,7 +457,7 @@ export default function QRCodeScreen() {
                 {isOnlineEvent && (
                   <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                     <Ionicons name="videocam-outline" size={12} color={colors.primary} />
-                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>En ligne</Text>
+                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>{t('qrCode.online')}</Text>
                   </View>
                 )}
                 {!isOnlineEvent && !!(event?.location_name || event?.location_city) && (
@@ -476,10 +478,10 @@ export default function QRCodeScreen() {
                   if (eventId) navigation.navigate('EventDetails', { eventId });
                 }}
                 accessibilityRole="button"
-                accessibilityLabel="Voir les détails de l'événement"
+                accessibilityLabel={t('qrCode.viewEventA11y')}
               >
                 <Ionicons name="eye-outline" size={14} color={colors.gray700} />
-                <Text style={[styles.editorialChipCTAText, { color: colors.gray800 }]}>Voir l'événement</Text>
+                <Text style={[styles.editorialChipCTAText, { color: colors.gray800 }]}>{t('qrCode.viewEvent')}</Text>
                 <Ionicons name="arrow-forward" size={14} color={colors.gray700} />
               </TouchableOpacity>
             </View>
@@ -495,17 +497,17 @@ export default function QRCodeScreen() {
             <View style={styles.qrSection}>
               <View style={styles.editorialSectionHead}>
                 <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>
-                  {isOnlineEvent ? 'RÉFÉRENCE · CODE UNIQUE' : 'SCANNER · ENTRÉE'}
+                  {isOnlineEvent ? t('qrCode.qrEyebrowReference') : t('qrCode.qrEyebrowScanner')}
                 </Text>
                 <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                  {isOnlineEvent ? 'Ton code de réservation' : 'Ton sésame'}
+                  {isOnlineEvent ? t('qrCode.qrTitleReference') : t('qrCode.qrTitleScanner')}
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
                 <View style={styles.qrFrame}>
                   <View
                     style={[styles.qrContainer, { borderColor: colors.gray100, backgroundColor: '#FFFFFF' }]}
-                    accessibilityLabel="QR code du billet"
+                    accessibilityLabel={t('qrCode.qrA11y')}
                     accessibilityRole="image"
                   >
                     {isLocked ? (
@@ -516,7 +518,7 @@ export default function QRCodeScreen() {
                         style={[styles.qrLockPlaceholder, { width: QR_SIZE, height: QR_SIZE }]}
                         onPress={handleReveal}
                         accessibilityRole="button"
-                        accessibilityLabel="Authentifier pour afficher le QR code"
+                        accessibilityLabel={t('qrCode.qrLockA11y')}
                         activeOpacity={0.85}
                       >
                         <Ionicons
@@ -525,12 +527,12 @@ export default function QRCodeScreen() {
                           color={colors.primary}
                         />
                         <Text style={[styles.qrLockTitle, { color: colors.gray900 }]}>
-                          QR verrouillé
+                          {t('qrCode.qrLockedTitle')}
                         </Text>
                         <Text style={[styles.qrLockHint, { color: colors.gray500 }]}>
                           {biometric.type === 'face'
-                            ? 'Touche pour déverrouiller avec Face ID'
-                            : 'Touche pour déverrouiller avec ton empreinte'}
+                            ? t('qrCode.qrLockHintFace')
+                            : t('qrCode.qrLockHintTouch')}
                         </Text>
                       </TouchableOpacity>
                     ) : (
@@ -559,17 +561,17 @@ export default function QRCodeScreen() {
                   />
                   <Text style={[styles.qrHint, { color: colors.gray500 }]}>
                     {isOnlineEvent
-                      ? 'À conserver — preuve de ta réservation'
+                      ? t('qrCode.qrHintReference')
                       : isHybridEvent
-                      ? 'Présente ce code si tu viens sur place'
-                      : 'Présente ce code à l\'entrée'}
+                      ? t('qrCode.qrHintHybrid')
+                      : t('qrCode.qrHintScanner')}
                   </Text>
                 </View>
                 {/* Explication contenu QR */}
                 <View style={[styles.qrExplain, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                   <Ionicons name="link-outline" size={12} color={colors.primary} />
                   <Text style={[styles.qrExplainText, { color: colors.gray600 }]}>
-                    Lien unique vers ta page de validation — aucune donnée sensible n'est encodée
+                    {t('qrCode.qrExplain')}
                   </Text>
                 </View>
               </View>
@@ -578,8 +580,8 @@ export default function QRCodeScreen() {
             {/* Détails billet — pattern éditorial vertical (eyebrow / valeur) */}
             <View style={styles.detailsSection}>
               <View style={styles.editorialSectionHead}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉCAP · TON BILLET</Text>
-                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Détails</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.recapEyebrow')}</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('qrCode.recapTitle')}</Text>
               </View>
 
               {/* Status badge éditorial */}
@@ -591,16 +593,16 @@ export default function QRCodeScreen() {
               {/* Grille verticale : eyebrow + valeur */}
               <View style={styles.detailGrid}>
                 <View style={styles.detailCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>TYPE</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelType')}</Text>
                   <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>{ticketName}</Text>
                 </View>
                 <View style={styles.detailCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>QUANTITÉ</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelQty')}</Text>
                   <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>×{ticketQty}</Text>
                 </View>
                 {ticket.unit_price ? (
                   <View style={styles.detailCell}>
-                    <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>PRIX UNITAIRE</Text>
+                    <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelUnitPrice')}</Text>
                     <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>
                       {ticket.unit_price.toLocaleString()} {event?.currency || 'FCFA'}
                     </Text>
@@ -608,14 +610,14 @@ export default function QRCodeScreen() {
                 ) : null}
                 {(ticket.discount_amount ?? 0) > 0 && (
                   <View style={styles.detailCell}>
-                    <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉDUCTION</Text>
+                    <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelDiscount')}</Text>
                     <Text style={[styles.detailValueEditorial, { color: colors.success }]}>
                       −{ticket.discount_amount!.toLocaleString()} {event?.currency || 'FCFA'}
                     </Text>
                   </View>
                 )}
                 <View style={styles.detailCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉFÉRENCE</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelReference')}</Text>
                   <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>{reference}</Text>
                 </View>
               </View>
@@ -623,11 +625,11 @@ export default function QRCodeScreen() {
               {/* Total payé en grand display */}
               <View style={[styles.totalRow, { borderTopColor: colors.border }]}>
                 <View>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>TOTAL PAYÉ</Text>
-                  <Text style={[styles.totalSub, { color: colors.gray600 }]}>Tout compris</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.labelTotal')}</Text>
+                  <Text style={[styles.totalSub, { color: colors.gray600 }]}>{t('qrCode.totalSub')}</Text>
                 </View>
                 <Text style={[styles.totalAmount, { color: colors.gray900 }]}>
-                  {ticketPrice > 0 ? `${ticketPrice.toLocaleString()} ${event?.currency || 'FCFA'}` : 'Gratuit'}
+                  {ticketPrice > 0 ? `${ticketPrice.toLocaleString()} ${event?.currency || 'FCFA'}` : t('qrCode.free')}
                 </Text>
               </View>
             </View>
@@ -637,11 +639,11 @@ export default function QRCodeScreen() {
           {(isOnlineEvent || isHybridEvent) && (
             <View style={[styles.onlineCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
               <View style={styles.editorialSectionHead}>
-                <Text style={[editorial.eyebrowAccent]}>EN DIRECT · ACCÈS LIVE</Text>
-                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Comment rejoindre</Text>
+                <Text style={[editorial.eyebrowAccent]}>{t('qrCode.onlineAccessEyebrow')}</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('qrCode.onlineAccessTitle')}</Text>
               </View>
               {event?.online_platform && (
-                <Text style={[styles.onlinePlatform, { color: colors.info }]}>Via {event.online_platform}</Text>
+                <Text style={[styles.onlinePlatform, { color: colors.info }]}>{t('qrCode.onlineVia', { platform: event.online_platform })}</Text>
               )}
               {event?.online_instructions && (
                 <Text style={[styles.onlineInstructions, { color: colors.gray600 }]}>{event.online_instructions}</Text>
@@ -650,13 +652,13 @@ export default function QRCodeScreen() {
                 <View style={[styles.meetingBox, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                   {event.online_meeting_id && (
                     <View style={styles.meetingRow}>
-                      <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>ID DE RÉUNION</Text>
+                      <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.meetingId')}</Text>
                       <Text style={[styles.meetingValue, { color: colors.gray900 }]}>{event.online_meeting_id}</Text>
                     </View>
                   )}
                   {event.online_passcode && (
                     <View style={styles.meetingRow}>
-                      <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>CODE D'ACCÈS</Text>
+                      <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.passcode')}</Text>
                       <Text style={[styles.meetingValue, { color: colors.gray900 }]}>{event.online_passcode}</Text>
                     </View>
                   )}
@@ -665,11 +667,11 @@ export default function QRCodeScreen() {
               {event?.online_url && (
                 <View style={{ marginTop: Spacing.md }}>
                   <EditorialPillCTA
-                    eyebrow="OUVRIR"
-                    label="Rejoindre maintenant"
+                    eyebrow={t('qrCode.openCta')}
+                    label={t('qrCode.joinNow')}
                     onPress={() => {
                       Linking.openURL(event.online_url!).catch(() => {
-                        showError('Erreur', 'Impossible d\'ouvrir le lien');
+                        showError(t('common.error'), t('qrCode.openLinkError'));
                       });
                     }}
                     tone="primary"
@@ -684,18 +686,18 @@ export default function QRCodeScreen() {
           {!!(ticket.attendee_name || ticket.attendee_email) && (
             <View style={[styles.attendeeCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
               <View style={styles.editorialSectionHead}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>NOMINATIF</Text>
-                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Participant</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.attendeeEyebrow')}</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('qrCode.attendeeTitle')}</Text>
               </View>
               {ticket.attendee_name && (
                 <View style={styles.attendeeCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>NOM</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.attendeeName')}</Text>
                   <Text style={[styles.attendeeValue, { color: colors.gray900 }]}>{ticket.attendee_name}</Text>
                 </View>
               )}
               {ticket.attendee_email && (
                 <View style={styles.attendeeCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>EMAIL</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.attendeeEmail')}</Text>
                   <Text style={[styles.attendeeValue, { color: colors.gray900 }]}>{ticket.attendee_email}</Text>
                 </View>
               )}
@@ -705,9 +707,9 @@ export default function QRCodeScreen() {
           {/* Bon à savoir dynamique */}
           <View style={styles.instructions}>
             <View style={styles.editorialSectionHead}>
-              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>BON À SAVOIR</Text>
+              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('qrCode.tipsEyebrow')}</Text>
               <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                {isOnlineEvent ? 'Préparer le live' : isHybridEvent ? 'Sur place ou en ligne' : 'Le jour J'}
+                {isOnlineEvent ? t('qrCode.tipsPrepLive') : isHybridEvent ? t('qrCode.tipsHybrid') : t('qrCode.tipsDDay')}
               </Text>
             </View>
             {instructions.map((inst, idx) => (
@@ -728,10 +730,10 @@ export default function QRCodeScreen() {
             <View style={[styles.banner, { backgroundColor: colors.successLight, borderColor: colors.success }]}>
               <Ionicons name="checkmark-done-circle" size={24} color={colors.success} />
               <View style={styles.bannerText}>
-                <Text style={[styles.bannerTitle, { color: colors.success }]}>Billet validé</Text>
+                <Text style={[styles.bannerTitle, { color: colors.success }]}>{t('qrCode.validatedTitle')}</Text>
                 {ticket.checked_in_at && (
                   <Text style={[styles.bannerDesc, { color: colors.gray600 }]}>
-                    Entrée le {formatDate(ticket.checked_in_at)} à {formatTime(ticket.checked_in_at)}
+                    {t('qrCode.validatedAt', { date: formatDate(ticket.checked_in_at), time: formatTime(ticket.checked_in_at) })}
                   </Text>
                 )}
               </View>
@@ -743,9 +745,9 @@ export default function QRCodeScreen() {
             <View style={[styles.banner, { backgroundColor: colors.warningLight, borderColor: colors.warning }]}>
               <Ionicons name="warning" size={24} color={colors.warning} />
               <View style={styles.bannerText}>
-                <Text style={[styles.bannerTitle, { color: colors.warning }]}>Paiement en attente</Text>
+                <Text style={[styles.bannerTitle, { color: colors.warning }]}>{t('qrCode.paymentPendingTitle')}</Text>
                 <Text style={[styles.bannerDesc, { color: colors.gray600 }]}>
-                  Finalise ton paiement pour confirmer
+                  {t('qrCode.paymentPendingDesc')}
                 </Text>
               </View>
             </View>
@@ -755,8 +757,8 @@ export default function QRCodeScreen() {
           <View style={styles.actionsSection}>
             {ticket.status === 'pending' && isPaymentRequired(ticket) && (
               <EditorialPillCTA
-                eyebrow="FINALISER"
-                label="Finaliser le paiement"
+                eyebrow={t('qrCode.finalizeEyebrow')}
+                label={t('qrCode.finalizePayment')}
                 onPress={() => {
                   const regId = ticket.registration_id || ticket.registration;
                   if (regId) navigation.navigate('Payment', { registrationId: regId });
@@ -768,8 +770,8 @@ export default function QRCodeScreen() {
 
             {(ticket.status === 'confirmed' || ticket.status === 'completed') && (
               <EditorialPillCTA
-                eyebrow="AJOUTER"
-                label="Acheter plus de billets"
+                eyebrow={t('qrCode.addEyebrow')}
+                label={t('qrCode.buyMoreTickets')}
                 onPress={() => {
                   const eventId = event?.id || ticket.event_id;
                   if (eventId) navigation.navigate('TicketPurchase', { eventId, additionalTickets: true });

@@ -21,6 +21,7 @@ import { feedbacksAPI } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTranslation } from 'react-i18next';
 import { Feedback, RootStackParamList } from '../../types';
 import {
   Colors,
@@ -168,6 +169,7 @@ export default function EventReviewsScreen() {
   const { colors, isDark } = useTheme();
   const { user } = useAuth();
   const { showAlert } = useAlert();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [state, dispatch] = useReducer(reducer, initialState);
 
@@ -214,7 +216,7 @@ export default function EventReviewsScreen() {
         });
       } catch (err: any) {
         if (__DEV__) console.error('Load reviews error:', err);
-        dispatch({ type: 'ERROR', error: 'Impossible de charger les avis.' });
+        dispatch({ type: 'ERROR', error: t('eventReviews.loadError') });
       }
     },
     [eventId, state.sort]
@@ -235,7 +237,7 @@ export default function EventReviewsScreen() {
       dispatch({ type: 'LOAD_MORE_SUCCESS', items, hasMore: !!meta.next });
     } catch (err: any) {
       if (__DEV__) console.error('Load more reviews error:', err);
-      dispatch({ type: 'ERROR', error: 'Impossible de charger plus d\'avis.' });
+      dispatch({ type: 'ERROR', error: t('eventReviews.loadMoreError') });
     }
   }, [eventId, state.page, state.sort, state.hasMore, state.loading, state.loadingMore]);
 
@@ -258,7 +260,7 @@ export default function EventReviewsScreen() {
   const handleSubmitReview = useCallback(async () => {
     if (state.submitting) return;
     if (state.formRating < 1) {
-      showAlert('Note requise', 'Veuillez attribuer une note de 1 a 5 etoiles.');
+      showAlert(t('eventReviews.ratingRequired'), t('eventReviews.ratingRequiredMessage'));
       return;
     }
     dispatch({ type: 'SUBMIT_START' });
@@ -269,16 +271,16 @@ export default function EventReviewsScreen() {
         comment: state.formComment.trim(),
       });
       dispatch({ type: 'SUBMIT_SUCCESS', feedback: response.data });
-      showAlert('Merci !', 'Votre avis a ete publie.');
+      showAlert(t('eventReviews.thanks'), t('eventReviews.publishedSuccess'));
     } catch (err: any) {
       dispatch({ type: 'SUBMIT_END' });
       const message =
         err?.response?.data?.detail ||
         err?.response?.data?.non_field_errors?.[0] ||
-        'Impossible de publier votre avis. Reessayez plus tard.';
-      showAlert('Erreur', message);
+        t('eventReviews.publishError');
+      showAlert(t('common.error'), message);
     }
-  }, [eventId, state.formRating, state.formComment, state.submitting, showAlert]);
+  }, [eventId, state.formRating, state.formComment, state.submitting, showAlert, t]);
 
   // === Render helpers ===
 
@@ -299,7 +301,7 @@ export default function EventReviewsScreen() {
           ))}
         </View>
         <Text style={[styles.totalText, { color: colors.gray500 }]}>
-          {state.total} avis au total
+          {t('eventReviews.totalReviews', { count: state.total })}
         </Text>
       </View>
 
@@ -307,7 +309,7 @@ export default function EventReviewsScreen() {
       <View style={styles.sortRow}>
         {(['recent', 'top', 'low'] as SortOrder[]).map((s) => {
           const active = state.sort === s;
-          const label = s === 'recent' ? 'Recents' : s === 'top' ? 'Mieux notes' : 'Moins notes';
+          const label = s === 'recent' ? t('eventReviews.sortRecent') : s === 'top' ? t('eventReviews.sortTop') : t('eventReviews.sortLow');
           return (
             <TouchableOpacity
               key={s}
@@ -335,9 +337,9 @@ export default function EventReviewsScreen() {
       {/* Add review form (expanded) */}
       {user && state.showForm && (
         <View style={[styles.formCard, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
-          <Text style={[styles.formTitle, { color: colors.gray900 }]}>Votre avis</Text>
+          <Text style={[styles.formTitle, { color: colors.gray900 }]}>{t('eventReviews.yourReview')}</Text>
           <View style={styles.ratingInputRow}>
-            <Text style={[styles.ratingLabel, { color: colors.gray600 }]}>Note</Text>
+            <Text style={[styles.ratingLabel, { color: colors.gray600 }]}>{t('eventReviews.noteLabel')}</Text>
             <View style={styles.ratingStarsInput}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <TouchableOpacity
@@ -345,7 +347,7 @@ export default function EventReviewsScreen() {
                   onPress={() => dispatch({ type: 'SET_RATING', rating: star })}
                   style={styles.ratingStarTouch}
                   accessibilityRole="button"
-                  accessibilityLabel={`Note de ${star} etoiles`}
+                  accessibilityLabel={t('eventReviews.noteStarA11y', { count: star })}
                 >
                   <Ionicons
                     name={star <= state.formRating ? 'star' : 'star-outline'}
@@ -358,7 +360,7 @@ export default function EventReviewsScreen() {
           </View>
           <TextInput
             style={[styles.formInput, { backgroundColor: colors.card, borderColor: colors.gray200, color: colors.gray900 }]}
-            placeholder="Partagez votre experience (optionnel)"
+            placeholder={t('eventReviews.commentPlaceholder')}
             placeholderTextColor={colors.gray400}
             multiline
             numberOfLines={4}
@@ -372,7 +374,7 @@ export default function EventReviewsScreen() {
               onPress={() => dispatch({ type: 'TOGGLE_FORM', show: false })}
               disabled={state.submitting}
             >
-              <Text style={[styles.formCancelText, { color: colors.gray500 }]}>Annuler</Text>
+              <Text style={[styles.formCancelText, { color: colors.gray500 }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.formSubmitBtn, { backgroundColor: colors.primary }]}
@@ -382,7 +384,7 @@ export default function EventReviewsScreen() {
               {state.submitting ? (
                 <ActivityIndicator size="small" color={Colors.white} />
               ) : (
-                <Text style={styles.formSubmitText}>Publier</Text>
+                <Text style={styles.formSubmitText}>{t('eventReviews.publish')}</Text>
               )}
             </TouchableOpacity>
           </View>
@@ -396,7 +398,7 @@ export default function EventReviewsScreen() {
       const displayName =
         item.user_name ||
         `${(item.user as any)?.first_name || ''} ${(item.user as any)?.last_name || ''}`.trim() ||
-        'Utilisateur';
+        t('eventReviews.userFallback');
       const initial = displayName[0]?.toUpperCase() || 'U';
       return (
         <View style={[styles.reviewCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
@@ -434,7 +436,7 @@ export default function EventReviewsScreen() {
         </View>
       );
     },
-    [colors]
+    [colors, t]
   );
 
   const keyExtractor = useCallback((item: Feedback) => String(item.id), []);
@@ -450,7 +452,7 @@ export default function EventReviewsScreen() {
     if (!state.hasMore && state.feedbacks.length > 0) {
       return (
         <Text style={[styles.endText, { color: colors.gray400 }]}>
-          Vous avez vu tous les avis.
+          {t('eventReviews.endText')}
         </Text>
       );
     }
@@ -462,9 +464,9 @@ export default function EventReviewsScreen() {
     return (
       <View style={styles.emptyState}>
         <Ionicons name="star-outline" size={48} color={colors.gray300} />
-        <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun avis</Text>
+        <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>{t('eventReviews.emptyTitle')}</Text>
         <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-          Soyez le premier a partager votre experience.
+          {t('eventReviews.emptyMessage')}
         </Text>
       </View>
     );
@@ -483,13 +485,13 @@ export default function EventReviewsScreen() {
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
         <View style={styles.topBarTitleWrap}>
           <Text style={[styles.topBarTitle, { color: colors.gray900 }]} numberOfLines={1}>
-            Avis
+            {t('eventReviews.title')}
           </Text>
           {eventTitle && (
             <Text style={[styles.topBarSubtitle, { color: colors.gray500 }]} numberOfLines={1}>
@@ -542,10 +544,10 @@ export default function EventReviewsScreen() {
           onPress={() => dispatch({ type: 'TOGGLE_FORM', show: true })}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel="Laisser un avis"
+          accessibilityLabel={t('eventReviews.leaveReview')}
         >
           <Ionicons name="create-outline" size={20} color={Colors.white} />
-          <Text style={styles.fabText}>Laisser un avis</Text>
+          <Text style={styles.fabText}>{t('eventReviews.leaveReview')}</Text>
         </TouchableOpacity>
       )}
       </View>

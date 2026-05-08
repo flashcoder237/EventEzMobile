@@ -14,6 +14,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { paymentsAPI } from '../../api';
 import { Payment, RootStackParamList } from '../../types';
 import { SkeletonList, PaymentCardSkeleton, MyPaymentsScreenSkeleton } from '../../components/ui/Skeleton';
@@ -43,34 +44,37 @@ interface PaymentSection {
   data: PaymentWithEvent[];
 }
 
-const statusConfig: Record<
-  string,
-  { color: string; label: string; icon: keyof typeof Ionicons.glyphMap; eyebrow: string }
-> = {
-  pending: { color: '#E0A800', label: 'En attente', icon: 'time', eyebrow: 'WAIT' },
-  processing: { color: '#3B82F6', label: 'En cours', icon: 'sync', eyebrow: 'PROC' },
-  completed: { color: '#10B981', label: 'Complété', icon: 'checkmark-circle', eyebrow: 'OK' },
-  failed: { color: '#EF4444', label: 'Échoué', icon: 'close-circle', eyebrow: 'FAIL' },
-  refunded: { color: '#6366F1', label: 'Remboursé', icon: 'refresh-circle', eyebrow: 'BACK' },
-  cancelled: { color: '#6B7280', label: 'Annulé', icon: 'ban', eyebrow: 'CXL' },
-};
-
-const methodConfig: Record<
-  string,
-  { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; mark: string }
-> = {
-  mtn_money: { label: 'MTN Money', icon: 'phone-portrait', color: '#FFCC00', mark: 'MTN' },
-  orange_money: { label: 'Orange Money', icon: 'phone-portrait', color: '#FF6600', mark: 'OM' },
-  credit_card: { label: 'Carte bancaire', icon: 'card', color: '#3B82F6', mark: 'VISA' },
-  card: { label: 'Carte bancaire', icon: 'card', color: '#3B82F6', mark: 'CARD' },
-  bank_transfer: { label: 'Virement', icon: 'business', color: '#10B981', mark: 'BANK' },
-};
+// statusConfig and methodConfig are computed inside the component to access t()
 
 export default function MyPaymentsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError } = useAlert();
   const { colors, isDark } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
+  const { t } = useTranslation();
+
+  const statusConfig: Record<
+    string,
+    { color: string; label: string; icon: keyof typeof Ionicons.glyphMap; eyebrow: string }
+  > = {
+    pending: { color: '#E0A800', label: t('payment.myPaymentsStatusPending'), icon: 'time', eyebrow: 'WAIT' },
+    processing: { color: '#3B82F6', label: t('payment.myPaymentsStatusProcessing'), icon: 'sync', eyebrow: 'PROC' },
+    completed: { color: '#10B981', label: t('payment.myPaymentsStatusCompleted'), icon: 'checkmark-circle', eyebrow: 'OK' },
+    failed: { color: '#EF4444', label: t('payment.myPaymentsStatusFailed'), icon: 'close-circle', eyebrow: 'FAIL' },
+    refunded: { color: '#6366F1', label: t('payment.myPaymentsStatusRefunded'), icon: 'refresh-circle', eyebrow: 'BACK' },
+    cancelled: { color: '#6B7280', label: t('payment.myPaymentsStatusCancelled'), icon: 'ban', eyebrow: 'CXL' },
+  };
+
+  const methodConfig: Record<
+    string,
+    { label: string; icon: keyof typeof Ionicons.glyphMap; color: string; mark: string }
+  > = {
+    mtn_money: { label: t('payment.myPaymentsMethodMTN'), icon: 'phone-portrait', color: '#FFCC00', mark: 'MTN' },
+    orange_money: { label: t('payment.myPaymentsMethodOrange'), icon: 'phone-portrait', color: '#FF6600', mark: 'OM' },
+    credit_card: { label: t('payment.myPaymentsMethodCard'), icon: 'card', color: '#3B82F6', mark: 'VISA' },
+    card: { label: t('payment.myPaymentsMethodCard'), icon: 'card', color: '#3B82F6', mark: 'CARD' },
+    bank_transfer: { label: t('payment.myPaymentsMethodTransfer'), icon: 'business', color: '#10B981', mark: 'BANK' },
+  };
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [payments, setPayments] = useState<PaymentWithEvent[]>([]);
@@ -91,7 +95,7 @@ export default function MyPaymentsScreen() {
       setPayments(data);
     } catch (error) {
       if (__DEV__) console.error('Error fetching payments:', error);
-      showError('Erreur', 'Impossible de charger tes paiements');
+      showError(t('common.error'), t('payment.myPaymentsLoadError'));
     } finally {
       setLoading(false);
     }
@@ -201,7 +205,7 @@ export default function MyPaymentsScreen() {
   };
 
   const getEventTitle = (payment: PaymentWithEvent) =>
-    payment.event_title || payment.registration_details?.event_detail?.title || 'Paiement';
+    payment.event_title || payment.registration_details?.event_detail?.title || t('payment.myPaymentsFallbackTitle');
 
   const getStatusConfig = (status: string) => statusConfig[status] || statusConfig.pending;
 
@@ -209,7 +213,7 @@ export default function MyPaymentsScreen() {
     const key = method?.toLowerCase().replace(/\s+/g, '_');
     return (
       methodConfig[key] || {
-        label: method || 'Paiement',
+        label: method || t('payment.myPaymentsFallbackTitle'),
         icon: 'cash' as keyof typeof Ionicons.glyphMap,
         color: colors.gray500,
         mark: 'PAY',
@@ -333,7 +337,7 @@ export default function MyPaymentsScreen() {
         </View>
         {monthTotal > 0 && (
           <View style={[styles.sectionMonthTotal, { backgroundColor: colors.gray100 }]}>
-            <Text style={[styles.sectionMonthLabel, { color: colors.gray500 }]}>SOLDE</Text>
+            <Text style={[styles.sectionMonthLabel, { color: colors.gray500 }]}>{t('payment.myPaymentsBalance')}</Text>
             <Text style={[styles.sectionMonthValue, { color: colors.text }]}>
               {formatAmount(monthTotal)} {platformCurrency}
             </Text>
@@ -348,8 +352,8 @@ export default function MyPaymentsScreen() {
       <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>
         <Ionicons name="receipt-outline" size={40} color={colors.primary} />
       </View>
-      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>LEDGER VIDE</Text>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun paiement</Text>
+      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{t('payment.myPaymentsEmptyEyebrow')}</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('payment.myPaymentsEmpty')}</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {searchQuery || statusFilter !== 'all'
           ? 'Aucun paiement ne correspond à tes critères.'
@@ -373,9 +377,9 @@ export default function MyPaymentsScreen() {
   // Status filter chips data
   const statusChips: { key: StatusFilter; label: string; count: number; color: string }[] = [
     { key: 'all', label: 'Tout', count: payments.length, color: colors.text },
-    { key: 'completed', label: 'Complétés', count: stats.completed, color: '#10B981' },
-    { key: 'pending', label: 'Attente', count: stats.pending, color: '#E0A800' },
-    { key: 'failed', label: 'Échoués', count: stats.failed, color: '#EF4444' },
+    { key: 'completed', label: t('payment.myPaymentsFilterCompleted'), count: stats.completed, color: '#10B981' },
+    { key: 'pending', label: t('payment.myPaymentsFilterPending'), count: stats.pending, color: '#E0A800' },
+    { key: 'failed', label: t('payment.myPaymentsFilterFailed'), count: stats.failed, color: '#EF4444' },
     { key: 'refunded', label: 'Remb.', count: stats.refunded, color: '#6366F1' },
   ];
 
@@ -399,16 +403,16 @@ export default function MyPaymentsScreen() {
               style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Retour"
+              accessibilityLabel={t('common.back')}
             >
               <Ionicons name="chevron-back" size={18} color={colors.gray600} />
             </TouchableOpacity>
 
             <View style={styles.headerTextCol}>
               <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
-                LEDGER • HISTORIQUE
+                {t('payment.myPaymentsHeaderEyebrow')}
               </Text>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Paiements</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('payment.myPaymentsTitle')}</Text>
             </View>
 
             <TouchableOpacity
@@ -416,7 +420,7 @@ export default function MyPaymentsScreen() {
               style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Rechercher"
+              accessibilityLabel={t('payment.myPaymentsSearch')}
             >
               <Ionicons
                 name={searchOpen ? 'close' : 'search'}
@@ -437,7 +441,7 @@ export default function MyPaymentsScreen() {
               <Ionicons name="search" size={16} color={colors.gray400} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Événement, transaction, méthode..."
+                placeholder={t('payment.myPaymentsSearchPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -480,10 +484,10 @@ export default function MyPaymentsScreen() {
               <View style={styles.heroCircle2} />
 
               <View style={styles.heroTopRow}>
-                <Text style={styles.heroEyebrow}>TOTAL DÉPENSÉ</Text>
+                <Text style={styles.heroEyebrow}>{t('payment.myPaymentsHeroEyebrow')}</Text>
                 <View style={styles.heroBadge}>
                   <Ionicons name="lock-closed" size={9} color={Colors.white} />
-                  <Text style={styles.heroBadgeText}>SÉCURISÉ</Text>
+                  <Text style={styles.heroBadgeText}>{t('payment.myPaymentsHeroBadge')}</Text>
                 </View>
               </View>
 
@@ -496,7 +500,7 @@ export default function MyPaymentsScreen() {
 
               <View style={styles.heroBottomRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.heroSubEyebrow}>CE MOIS-CI</Text>
+                  <Text style={styles.heroSubEyebrow}>{t('payment.myPaymentsThisMonth')}</Text>
                   <Text style={styles.heroSubAmount}>
                     {formatAmount(stats.thisMonthTotal)} {platformCurrency}
                   </Text>

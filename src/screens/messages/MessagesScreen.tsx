@@ -22,6 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { messagesAPI, usersAPI, getMediaUrl } from '../../api';
 import CacheService from '../../services/CacheService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -78,6 +79,7 @@ const ConversationCard = memo(function ConversationCard({
   onLongPress,
 }: ConversationCardProps) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const otherUser = conversation.participants?.find(p => p.id !== currentUserId) || conversation.participants?.[0];
   const conversationType = (conversation as any).conversation_type;
   const isGroupOrEvent = conversationType === 'event' || conversationType === 'group';
@@ -99,7 +101,7 @@ const ConversationCard = memo(function ConversationCard({
   const preview =
     (typeof conversation.last_message === 'object'
       ? conversation.last_message?.content
-      : conversation.last_message) || 'Aucun message';
+      : conversation.last_message) || t('messages.noMessageFallback');
 
   // Anneau d'accent autour de l'avatar pour les conversations non lues —
   // pattern Instagram stories. Couleur = corail (accent), atténuée si mute.
@@ -452,6 +454,7 @@ export default function MessagesScreen() {
   const { showConfirm, showAlert } = useAlert();
   const { isMuted, toggle: toggleMute } = useMutedConversations();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -797,8 +800,8 @@ export default function MessagesScreen() {
 
   const handleDelete = (conversationId: string) => {
     showConfirm(
-      'Supprimer',
-      'Supprimer cette conversation ?',
+      t('messages.deleteConvTitle'),
+      t('messages.deleteConvDetail'),
       async () => {
         try {
           await messagesAPI.deleteConversation(conversationId);
@@ -862,16 +865,16 @@ export default function MessagesScreen() {
             const convId = String(item.id);
             const muted = isMuted(convId);
             showAlert(
-              'Options',
+              t('messages.options'),
               `${displayName}\n\nQue veux-tu faire ?`,
               [
                 {
-                  text: muted ? 'Réactiver les notifs' : 'Couper les notifs',
+                  text: muted ? t('messages.unmuteNotifs') : t('messages.muteNotifs'),
                   onPress: () => toggleMute(convId),
                 },
-                { text: 'Archiver', onPress: () => handleArchive(convId) },
-                { text: 'Supprimer', style: 'destructive', onPress: () => handleDelete(convId) },
-                { text: 'Annuler', style: 'cancel' },
+                { text: t('messages.archive'), onPress: () => handleArchive(convId) },
+                { text: t('messages.deleteAction'), style: 'destructive', onPress: () => handleDelete(convId) },
+                { text: t('common.cancel'), style: 'cancel' },
               ],
               'info',
             );
@@ -883,7 +886,7 @@ export default function MessagesScreen() {
 
   const renderEmpty = () => {
     const eyebrow = activeTab === 'archived' ? 'BOÎTE ARCHIVÉE' : 'BOÎTE VIDE';
-    const title = activeTab === 'archived' ? 'Rien ici' : 'Pas encore';
+    const title = activeTab === 'archived' ? t('messages.archivedEmpty') : t('messages.noConversationsYet');
     const sub =
       activeTab === 'archived'
         ? 'Les conversations archivées viendront se loger ici.'
@@ -906,7 +909,7 @@ export default function MessagesScreen() {
             onPress={handleOpenNewModal}
             activeOpacity={0.85}
           >
-            <Text style={styles.emptyCtaText}>NOUVEAU MESSAGE</Text>
+            <Text style={styles.emptyCtaText}>{t('messages.newMessageCTA')}</Text>
             <View style={styles.emptyCtaDisc}>
               <Ionicons name="arrow-forward" size={14} color={colors.primary} />
             </View>
@@ -933,9 +936,9 @@ export default function MessagesScreen() {
   type ChipDef = { key: TabType; label: string };
   const chips: ChipDef[] = [
     { key: 'all', label: 'Tous' },
-    { key: 'unread', label: 'Non lus' },
-    { key: 'events', label: 'Événements' },
-    { key: 'archived', label: 'Archivés' },
+    { key: 'unread', label: t('messages.filterUnread') },
+    { key: 'events', label: t('messages.filterEvents') },
+    { key: 'archived', label: t('messages.filterArchived') },
   ];
 
   return (
@@ -969,9 +972,9 @@ export default function MessagesScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: Spacing.md }}>
             <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
-              ÉCHANGES • {unreadCount > 0 ? `${unreadCount} NON LUS` : 'TOUT LU'}
+              {t('messages.headerEyebrow', { count: unreadCount > 0 ? t('messages.headerEyebrowUnread', { count: unreadCount }) : t('messages.headerEyebrowAllRead') })}
             </Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Inbox</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('messages.headerInbox')}</Text>
           </View>
           <TouchableOpacity
             onPress={() => setSearchOpen(s => !s)}
@@ -1016,7 +1019,7 @@ export default function MessagesScreen() {
               <Ionicons name="search" size={16} color={colors.gray500} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Chercher une conversation ou un message…"
+                placeholder={t('messages.searchPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -1114,7 +1117,7 @@ export default function MessagesScreen() {
                     style={[styles.messageSearchSender, { color: colors.primary }]}
                     numberOfLines={1}
                   >
-                    {msg.sender_name || 'Utilisateur'}
+                    {msg.sender_name || t('messages.userPlaceholder')}
                   </Text>
                   <Text
                     style={[styles.messageSearchContent, { color: colors.text }]}
@@ -1196,7 +1199,7 @@ export default function MessagesScreen() {
               <View style={styles.modalHeader}>
                 <View>
                   <Text style={[styles.modalEyebrow, { color: colors.accent }]}>DÉMARRER</Text>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Nouveau</Text>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>{t('messages.newConversationTitle')}</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => setShowNewModal(false)}
@@ -1224,7 +1227,7 @@ export default function MessagesScreen() {
                 <Ionicons name="search" size={16} color={colors.gray500} />
                 <TextInput
                   style={[styles.modalSearchInput, { color: colors.text }]}
-                  placeholder="Chercher un contact…"
+                  placeholder={t('messages.contactSearchPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={userSearch}
                   onChangeText={setUserSearch}
@@ -1250,9 +1253,9 @@ export default function MessagesScreen() {
                       <AnimatedIllustration entry="fadeIn" idle="breathe">
                         <PeopleSearch color={colors.primary} size={120} />
                       </AnimatedIllustration>
-                      <Text style={[styles.noUsersEyebrow, { color: colors.gray500 }]}>RECHERCHE</Text>
+                      <Text style={[styles.noUsersEyebrow, { color: colors.gray500 }]}>{t('messages.searchEyebrow')}</Text>
                       <Text style={[styles.noUsersTitle, { color: colors.text }]}>
-                        {userSearch.length < 2 ? 'Tape pour chercher' : 'Personne trouvée'}
+                        {userSearch.length < 2 ? t('messages.searchHint') : t('messages.noOneFound')}
                       </Text>
                     </View>
                   }

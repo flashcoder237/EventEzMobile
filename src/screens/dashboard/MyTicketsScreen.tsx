@@ -26,6 +26,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { registrationsAPI } from '../../api';
 import { Searching, Empty, AnimatedIllustration } from '../../components/illustrations';
 import { Registration, RootStackParamList, Event } from '../../types';
@@ -288,6 +289,7 @@ export default function MyTicketsScreen() {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
+  const { t } = useTranslation();
   const [state, dispatch] = useReducer(ticketsReducer, initialState);
   const {
     registrations,
@@ -338,7 +340,7 @@ export default function MyTicketsScreen() {
                 reference_code: r.reference_code,
                 event: {
                   id: r.event_details?.id || r.event,
-                  title: r.event_details?.title || 'Événement',
+                  title: r.event_details?.title || t('tickets.eventFallback'),
                   start_date: r.event_details?.start_date || '',
                 },
               },
@@ -399,18 +401,18 @@ export default function MyTicketsScreen() {
       switch (status) {
         case 'confirmed':
         case 'completed':
-          return { bg: colors.primary, fg: Colors.white, label: 'Confirmé' };
+          return { bg: colors.primary, fg: Colors.white, label: t('tickets.statusConfirmed') };
         case 'pending':
         case 'pending_approval':
-          return { bg: colors.warning, fg: Colors.white, label: 'En attente' };
+          return { bg: colors.warning, fg: Colors.white, label: t('tickets.statusPendingFr') };
         case 'cancelled':
-          return { bg: colors.error, fg: Colors.white, label: 'Annulé' };
+          return { bg: colors.error, fg: Colors.white, label: t('tickets.statusCancelledFr') };
         case 'rejected':
-          return { bg: colors.error, fg: Colors.white, label: 'Refusé' };
+          return { bg: colors.error, fg: Colors.white, label: t('tickets.statusRefusedFr') };
         case 'checked_in':
-          return { bg: colors.success, fg: Colors.white, label: 'Validé' };
+          return { bg: colors.success, fg: Colors.white, label: t('tickets.statusValidatedFr') };
         default:
-          return { bg: colors.gray400, fg: Colors.white, label: status || 'Inconnu' };
+          return { bg: colors.gray400, fg: Colors.white, label: status || t('tickets.statusUnknown') };
       }
     },
     [colors],
@@ -571,12 +573,12 @@ export default function MyTicketsScreen() {
           typeof firstTicket.ticket_type === 'object' ? firstTicket.ticket_type : null;
         const totalQty = reg.tickets.reduce((sum, t) => sum + (t.quantity || 1), 0);
         return {
-          name: ticketType?.name || firstTicket.ticket_type_name || 'Billet',
+          name: ticketType?.name || firstTicket.ticket_type_name || t('tickets.ticketFallback'),
           quantity: totalQty,
           type: 'billetterie' as RegistrationType,
         };
       }
-      return { name: 'Inscription', quantity: 1, type: 'inscription' as RegistrationType };
+      return { name: t('tickets.registrationFallback'), quantity: 1, type: 'inscription' as RegistrationType };
     },
     [getRegistrationType],
   );
@@ -629,15 +631,15 @@ export default function MyTicketsScreen() {
     // === TYPE THEMING (billetterie vs inscription) ===
     const typeColor = isInscription ? '#A855F7' : colors.primary; // violet vs indigo
     const typeIcon: keyof typeof Ionicons.glyphMap = isInscription ? 'document-text' : 'ticket';
-    const typeLabel = isInscription ? 'INSCRIPTION' : 'BILLET';
-    const stubLabel = isInscription ? 'PASS' : 'TIX';
+    const typeLabel = isInscription ? t('tickets.labelInscription') : t('tickets.labelTicket');
+    const stubLabel = isInscription ? t('tickets.stubPass') : t('tickets.stubTix');
 
     // Eyebrow label (category or type)
     const eyebrow = isArchived
-      ? 'Terminé'
+      ? t('tickets.ticketEnded')
       : isInscription
-      ? 'Inscription'
-      : event?.category?.name || 'Événement';
+      ? t('tickets.registrationFallback')
+      : event?.category?.name || t('tickets.eventFallback');
 
     return (
       <StaggeredItem index={index} staggerDelay={60}>
@@ -659,7 +661,7 @@ export default function MyTicketsScreen() {
               isArchived && Shadows.sm,
             ]}
             accessibilityRole="button"
-            accessibilityLabel={`${event?.title || 'Événement'}${
+            accessibilityLabel={`${event?.title || t('tickets.eventFallback')}${
               dateInfo ? `, ${dateInfo.full}` : ''
             }`}
           >
@@ -713,7 +715,7 @@ export default function MyTicketsScreen() {
                     ]}
                     numberOfLines={2}
                   >
-                    {event?.title || 'Événement'}
+                    {event?.title || t('tickets.eventFallback')}
                   </Text>
                 </View>
 
@@ -793,10 +795,10 @@ export default function MyTicketsScreen() {
                       }}
                       activeOpacity={0.85}
                       accessibilityRole="button"
-                      accessibilityLabel="Finaliser le paiement"
+                      accessibilityLabel={t('eventDetails.finalizePayment')}
                     >
                       <Ionicons name="card-outline" size={11} color="#fff" />
-                      <Text style={styles.payInlineBtnText}>Payer</Text>
+                      <Text style={styles.payInlineBtnText}>{t('tickets.payInline')}</Text>
                     </TouchableOpacity>
                   </View>
                 )}
@@ -876,7 +878,7 @@ export default function MyTicketsScreen() {
                       justifyContent: 'center',
                     },
                   ]}
-                  accessibilityLabel="Toucher pour voir le QR code"
+                  accessibilityLabel={t('tickets.tapToShowQR')}
                 >
                   <Ionicons name="qr-code-outline" size={32} color={typeColor} />
                   <Text
@@ -920,7 +922,7 @@ export default function MyTicketsScreen() {
                   ]}
                 >
                   <Ionicons name="person" size={10} color={typeColor} />
-                  <Text style={[styles.qtyText, { color: colors.text }]}>SOLO</Text>
+                  <Text style={[styles.qtyText, { color: colors.text }]}>{t('tickets.qtySolo')}</Text>
                 </View>
               )}
 
@@ -935,7 +937,7 @@ export default function MyTicketsScreen() {
               )}
               {isArchived && (
                 <View style={[styles.archivedPill, { backgroundColor: colors.gray100 }]}>
-                  <Text style={[styles.archivedPillText, { color: colors.gray500 }]}>Terminé</Text>
+                  <Text style={[styles.archivedPillText, { color: colors.gray500 }]}>{t('tickets.archivedLabel')}</Text>
                 </View>
               )}
             </View>
@@ -976,8 +978,8 @@ export default function MyTicketsScreen() {
   // ==========================================================
   const SECTION_THRESHOLD = 10;
   const MONTHS_FR_LONG = [
-    'JANVIER', 'FÉVRIER', 'MARS', 'AVRIL', 'MAI', 'JUIN',
-    'JUILLET', 'AOÛT', 'SEPTEMBRE', 'OCTOBRE', 'NOVEMBRE', 'DÉCEMBRE',
+    t('tickets.monthJanuary'), t('tickets.monthFebruary'), t('tickets.monthMarch'), t('tickets.monthApril'), t('tickets.monthMay'), t('tickets.monthJune'),
+    t('tickets.monthJuly'), t('tickets.monthAugust'), t('tickets.monthSeptember'), t('tickets.monthOctober'), t('tickets.monthNovember'), t('tickets.monthDecember'),
   ];
   type ListItem =
     | { kind: 'header'; key: string; label: string }
@@ -998,8 +1000,8 @@ export default function MyTicketsScreen() {
     filteredRegistrations.forEach((r) => {
       const ev = getEventData(r);
       const dateStr = ev?.start_date;
-      let key = 'SANS DATE';
-      let label = 'Sans date';
+      let key = t('tickets.noDateKey');
+      let label = t('tickets.noDateLabel');
       if (dateStr) {
         try {
           const d = new Date(dateStr);
@@ -1048,13 +1050,13 @@ export default function MyTicketsScreen() {
         )}
       </AnimatedIllustration>
       <Text style={[styles.emptyTitle, { color: colors.gray700 }]}>
-        {activeTab === 'upcoming' && 'Aucun billet à venir'}
-        {activeTab === 'past' && 'Aucun billet passé'}
-        {activeTab === 'cancelled' && 'Aucune annulation'}
+        {activeTab === 'upcoming' && t('tickets.emptyUpcoming')}
+        {activeTab === 'past' && t('tickets.emptyPast')}
+        {activeTab === 'cancelled' && t('tickets.emptyCancelled')}
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {activeTab === 'upcoming'
-          ? 'Explorez les événements et achetez vos premiers billets !'
+          ? t('tickets.emptyHint')
           : 'Les billets correspondants apparaîtront ici.'}
       </Text>
       {activeTab === 'upcoming' && (
@@ -1063,7 +1065,7 @@ export default function MyTicketsScreen() {
           onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
           activeOpacity={0.8}
         >
-          <Text style={styles.emptyButtonText}>Explorer les événements</Text>
+          <Text style={styles.emptyButtonText}>{t('tickets.emptyExplore')}</Text>
           <Ionicons name="arrow-forward" size={18} color={Colors.white} />
         </TouchableOpacity>
       )}
@@ -1073,9 +1075,9 @@ export default function MyTicketsScreen() {
   // Tabs config (chips) — memoized to avoid recreating on every render
   const tabs = useMemo<{ key: TabType; label: string; count: number }[]>(
     () => [
-      { key: 'upcoming', label: 'À venir', count: stats.upcoming },
-      { key: 'past', label: 'Passés', count: stats.past },
-      { key: 'cancelled', label: 'Annulés', count: stats.cancelled },
+      { key: 'upcoming', label: t('tickets.tabUpcoming'), count: stats.upcoming },
+      { key: 'past', label: t('tickets.tabPast'), count: stats.past },
+      { key: 'cancelled', label: t('tickets.tabCancelled'), count: stats.cancelled },
     ],
     [stats],
   );
@@ -1105,9 +1107,9 @@ export default function MyTicketsScreen() {
         >
           <View style={styles.headerTopRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>BILLETTERIE</Text>
+              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('tickets.myTicketsEyebrow')}</Text>
               <View style={styles.headerTitleRow}>
-                <Text style={[styles.headerTitle, { color: colors.text }]}>Mes Billets</Text>
+                <Text style={[styles.headerTitle, { color: colors.text }]}>{t('tickets.myTicketsHeading')}</Text>
               </View>
             </View>
             <View style={styles.headerActions}>
@@ -1116,7 +1118,7 @@ export default function MyTicketsScreen() {
                 onPress={() => dispatch({ type: 'SET_SEARCH_OPEN', payload: !searchOpen })}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Rechercher"
+                accessibilityLabel={t('common.search')}
               >
                 <Ionicons
                   name={searchOpen ? 'close' : 'search'}
@@ -1132,7 +1134,7 @@ export default function MyTicketsScreen() {
                 accessibilityLabel={
                   activeFilterCount > 0
                     ? `Filtres (${activeFilterCount} actifs)`
-                    : 'Filtres'
+                    : t('tickets.myTicketsFilters')
                 }
               >
                 <Ionicons name="options" size={18} color={colors.gray600} />
@@ -1205,13 +1207,13 @@ export default function MyTicketsScreen() {
 
             {/* Type filter chips — inline with tabs */}
             <View style={[styles.tabSeparator, { backgroundColor: colors.border }]} />
-            {(['billetterie', 'inscription'] as FilterType[]).map((t) => {
-              const isActive = typeFilter === t;
-              const count = typeCounts[t as keyof typeof typeCounts] || 0;
+            {(['billetterie', 'inscription'] as FilterType[]).map((typeKey) => {
+              const isActive = typeFilter === typeKey;
+              const count = typeCounts[typeKey as keyof typeof typeCounts] || 0;
               if (count === 0 && !isActive) return null;
               return (
                 <TouchableOpacity
-                  key={t}
+                  key={typeKey}
                   style={[
                     styles.tabChip,
                     isActive
@@ -1221,13 +1223,13 @@ export default function MyTicketsScreen() {
                   onPress={() =>
                     dispatch({
                       type: 'SET_TYPE_FILTER',
-                      payload: typeFilter === t ? 'all' : t,
+                      payload: typeFilter === typeKey ? 'all' : typeKey,
                     })
                   }
                   activeOpacity={0.75}
                 >
                   <Ionicons
-                    name={t === 'billetterie' ? 'ticket-outline' : 'document-text-outline'}
+                    name={typeKey === 'billetterie' ? 'ticket-outline' : 'document-text-outline'}
                     size={13}
                     color={isActive ? colors.primary : colors.gray500}
                   />
@@ -1237,7 +1239,7 @@ export default function MyTicketsScreen() {
                       { color: isActive ? colors.primary : colors.gray500 },
                     ]}
                   >
-                    {t === 'billetterie' ? 'Billets' : 'Inscriptions'}
+                    {typeKey === 'billetterie' ? t('tickets.filterTicketType') : t('tickets.filterRegistrationType')}
                   </Text>
                 </TouchableOpacity>
               );
@@ -1257,7 +1259,7 @@ export default function MyTicketsScreen() {
               <Ionicons name="search" size={16} color={colors.gray400} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Titre, réf, lieu..."
+                placeholder={t('tickets.searchTitleRefVenue')}
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={(text: string) =>
@@ -1288,7 +1290,7 @@ export default function MyTicketsScreen() {
             ]}
           >
             <View style={styles.advancedSection}>
-              <Text style={[styles.advancedLabel, { color: colors.gray500 }]}>Statut</Text>
+              <Text style={[styles.advancedLabel, { color: colors.gray500 }]}>{t('tickets.advancedStatusLabel')}</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1296,20 +1298,20 @@ export default function MyTicketsScreen() {
               >
                 {(
                   [
-                    { key: 'all' as StatusFilterType, label: 'Tous', color: colors.gray600 },
+                    { key: 'all' as StatusFilterType, label: t('tickets.filterAllStatus'), color: colors.gray600 },
                     {
                       key: 'confirmed' as StatusFilterType,
-                      label: 'Confirmés',
+                      label: t('tickets.filterConfirmed'),
                       color: colors.success,
                     },
                     {
                       key: 'pending' as StatusFilterType,
-                      label: 'En attente',
+                      label: t('tickets.filterPending'),
                       color: colors.warning,
                     },
                     {
                       key: 'checked_in' as StatusFilterType,
-                      label: 'Validés',
+                      label: t('tickets.filterValidated'),
                       color: colors.success,
                     },
                   ]
@@ -1341,7 +1343,7 @@ export default function MyTicketsScreen() {
             </View>
 
             <View style={styles.advancedSection}>
-              <Text style={[styles.advancedLabel, { color: colors.gray500 }]}>Trier par</Text>
+              <Text style={[styles.advancedLabel, { color: colors.gray500 }]}>{t('tickets.filterSortLabel')}</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -1349,8 +1351,8 @@ export default function MyTicketsScreen() {
               >
                 {(
                   [
-                    { key: 'event_date' as SortType, label: 'Date événement' },
-                    { key: 'registration_date' as SortType, label: 'Inscription' },
+                    { key: 'event_date' as SortType, label: t('tickets.sortByEventDate') },
+                    { key: 'registration_date' as SortType, label: t('tickets.sortByRegistrationDate') },
                     { key: 'name' as SortType, label: 'Nom A-Z' },
                   ]
                 ).map(({ key, label }) => {

@@ -12,6 +12,7 @@ import {
   Animated,
   Easing,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -153,6 +154,8 @@ export default function ScanScreen() {
   const { user: currentUser } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
 
   const [permission, requestPermission] = useCameraPermissions();
   const [flashOn, setFlashOn] = useState(false);
@@ -236,7 +239,7 @@ export default function ScanScreen() {
           ticket: {
             registrationId: regId,
             registration: reg,
-            eventTitle: eventDetail.title || 'Événement',
+            eventTitle: eventDetail.title || t('scanForm.fallbackEvent'),
             eventId: eventDetail.id || (typeof reg.event === 'string' ? reg.event : reg.event?.id) || '',
             userName: reg.user_name || '',
             userEmail: reg.user_email || '',
@@ -257,7 +260,7 @@ export default function ScanScreen() {
           ticket: {
             registrationId: parsed.registrationId,
             registration: reg,
-            eventTitle: eventDetail.title || 'Événement',
+            eventTitle: eventDetail.title || t('scanForm.fallbackEvent'),
             eventId: eventDetail.id || (typeof reg.event === 'string' ? reg.event : reg.event?.id) || '',
             userName: reg.user_name || '',
             userEmail: reg.user_email || '',
@@ -268,12 +271,12 @@ export default function ScanScreen() {
           },
         });
       } else {
-        setResult({ type: 'error', errorMessage: 'QR code non reconnu' });
+        setResult({ type: 'error', errorMessage: t('scanForm.unknownQR') });
       }
     } catch (error: any) {
       if (__DEV__) console.error('Scan error:', error);
-      let msg = 'Impossible de traiter ce QR code';
-      if (error.response?.status === 404) msg = 'Élément non trouvé';
+      let msg = t('scanForm.scanFailed');
+      if (error.response?.status === 404) msg = t('scanForm.notFound');
       else if (error.response?.data?.detail) msg = error.response.data.detail;
       setResult({ type: 'error', errorMessage: msg });
     }
@@ -287,10 +290,10 @@ export default function ScanScreen() {
     setActionLoading(true);
     try {
       await ticketTransfersAPI.acceptByToken(token);
-      showSuccess('Transfert accepté', 'Le billet a été ajouté à votre compte !');
+      showSuccess(t('scanForm.transferAccepted'), t('scanForm.transferAcceptedMessage'));
       navigation.goBack();
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || "Impossible d'accepter le transfert");
+      showError(t('common.error'), error.response?.data?.detail || t('scanForm.transferAcceptError'));
     } finally {
       setActionLoading(false);
     }
@@ -300,10 +303,10 @@ export default function ScanScreen() {
     setActionLoading(true);
     try {
       await ticketTransfersAPI.declineByToken(token);
-      showSuccess('Transfert refusé', "L'expéditeur a été notifié.");
+      showSuccess(t('scanForm.transferDeclined'), t('scanForm.transferDeclinedMessage'));
       navigation.goBack();
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || 'Impossible de refuser le transfert');
+      showError(t('common.error'), error.response?.data?.detail || t('scanForm.transferDeclineError'));
     } finally {
       setActionLoading(false);
     }
@@ -321,7 +324,7 @@ export default function ScanScreen() {
         setResult(prev => prev ? { ...prev, isFollowing: true } : prev);
       }
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || 'Action impossible');
+      showError(t('common.error'), error.response?.data?.detail || t('scanForm.followError'));
     } finally {
       setActionLoading(false);
     }
@@ -344,7 +347,7 @@ export default function ScanScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
+    return date.toLocaleDateString(dateLocale, {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -357,14 +360,14 @@ export default function ScanScreen() {
     const now = new Date();
     const expires = new Date(expiresAt);
     const diff = expires.getTime() - now.getTime();
-    if (diff <= 0) return 'Expiré';
+    if (diff <= 0) return t('scanForm.expiredFlag');
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     if (hours > 24) {
       const days = Math.floor(hours / 24);
-      return `${days}j ${hours % 24}h restant`;
+      return t('scanForm.daysHoursRemaining', { days, hours: hours % 24 });
     }
-    return `${hours}h ${minutes}min restant`;
+    return t('scanForm.hoursMinutesRemaining', { hours, minutes });
   };
 
   const getUserDisplayName = (u: UserData) => {
@@ -381,9 +384,9 @@ export default function ScanScreen() {
 
   const getRoleBadge = (role?: string) => {
     switch (role) {
-      case 'organizer': return { label: 'Organisateur', color: colors.primary };
-      case 'moderator': return { label: 'Modérateur', color: colors.warning };
-      case 'admin': return { label: 'Admin', color: colors.error };
+      case 'organizer': return { label: t('scanForm.roleOrganizer'), color: colors.primary };
+      case 'moderator': return { label: t('scanForm.roleModerator'), color: colors.warning };
+      case 'admin': return { label: t('scanForm.roleAdmin'), color: colors.error };
       default: return null;
     }
   };
@@ -391,7 +394,7 @@ export default function ScanScreen() {
   // ── Permission screens ──
 
   if (!permission) {
-    return <LoadingSpinner message="Chargement..." />;
+    return <LoadingSpinner message={t('scanForm.loading')} />;
   }
 
   if (!permission.granted) {
@@ -399,15 +402,15 @@ export default function ScanScreen() {
       <SafeAreaView style={[{ flex: 1, backgroundColor: colors.background }]} edges={['top', 'bottom']}>
         <View style={[styles.permissionContainer, { backgroundColor: colors.background }]}>
           <Ionicons name="camera-outline" size={64} color={colors.gray400} />
-          <Text style={[styles.permissionTitle, { color: colors.text }]}>Accès à la caméra requis</Text>
+          <Text style={[styles.permissionTitle, { color: colors.text }]}>{t('scanForm.permissionTitle')}</Text>
           <Text style={[styles.permissionText, { color: colors.textSecondary }]}>
-            Pour scanner les QR codes, autorisez l'accès à la caméra
+            {t('scanForm.permissionDescription')}
           </Text>
           <TouchableOpacity style={[styles.permissionButton, { backgroundColor: colors.primary }]} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Autoriser l'accès</Text>
+            <Text style={styles.permissionButtonText}>{t('scanForm.permissionAllow')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.backLink} onPress={() => navigation.goBack()}>
-            <Text style={[styles.backLinkText, { color: colors.textSecondary }]}>Retour</Text>
+            <Text style={[styles.backLinkText, { color: colors.textSecondary }]}>{t('scanForm.back')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -438,7 +441,7 @@ export default function ScanScreen() {
 
             <View style={styles.liveTag}>
               <Animated.View style={[styles.liveDot, { opacity: liveDotAnim }]} />
-              <Text style={styles.liveTagText}>EN DIRECT</Text>
+              <Text style={styles.liveTagText}>{t('scanForm.liveTag')}</Text>
             </View>
 
             <TouchableOpacity style={styles.closeDisc} onPress={() => setFlashOn(!flashOn)}>
@@ -451,8 +454,8 @@ export default function ScanScreen() {
           </View>
 
           <View style={styles.editorialHeader}>
-            <Text style={styles.editorialEyebrow}>VISE ET SCANNE</Text>
-            <Text style={styles.editorialTitle}>Scanner</Text>
+            <Text style={styles.editorialEyebrow}>{t('scanForm.headerEyebrow')}</Text>
+            <Text style={styles.editorialTitle}>{t('scanForm.headerTitle')}</Text>
           </View>
         </SafeAreaView>
 
@@ -460,7 +463,7 @@ export default function ScanScreen() {
         <View style={styles.scanAreaContainer}>
           {/* Floating MODE CAMÉRA pill */}
           <View style={styles.modePill}>
-            <Text style={styles.modePillText}>MODE CAMÉRA</Text>
+            <Text style={styles.modePillText}>{t('scanForm.modePill')}</Text>
             <View style={styles.modePillDivider} />
             <Ionicons name="flash" size={12} color="#FCD34D" />
           </View>
@@ -492,27 +495,27 @@ export default function ScanScreen() {
             {scanState === 'loading' && (
               <View style={styles.processingOverlay}>
                 <ActivityIndicator size="large" color={colors.primary} />
-                <Text style={styles.processingText}>Analyse...</Text>
+                <Text style={styles.processingText}>{t('scanForm.processing')}</Text>
               </View>
             )}
           </View>
 
-          <Text style={styles.scanHint}>Placez un QR code EventEz dans le cadre</Text>
+          <Text style={styles.scanHint}>{t('scanForm.scanArea')}</Text>
         </View>
 
         {/* Bottom hint chips */}
         <SafeAreaView style={styles.bottomHints} edges={['bottom']}>
           <View style={styles.hintChip}>
             <Ionicons name="qr-code-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.hintChipText}>BILLET</Text>
+            <Text style={styles.hintChipText}>{t('scanForm.hintTicket')}</Text>
           </View>
           <View style={[styles.hintChip, styles.hintChipAccent]}>
             <Ionicons name="ticket-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.hintChipText}>TRANSFERT</Text>
+            <Text style={styles.hintChipText}>{t('scanForm.hintTransfer')}</Text>
           </View>
           <View style={styles.hintChip}>
             <Ionicons name="person-outline" size={14} color="#FFFFFF" />
-            <Text style={styles.hintChipText}>PROFIL</Text>
+            <Text style={styles.hintChipText}>{t('scanForm.hintProfile')}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -584,9 +587,9 @@ export default function ScanScreen() {
                   <View style={[styles.errorIcon, { backgroundColor: colors.gray100 }]}>
                     <Ionicons name="help-circle" size={64} color={colors.gray400} />
                   </View>
-                  <Text style={[styles.errorTitle, { color: colors.gray900 }]}>QR code non reconnu</Text>
+                  <Text style={[styles.errorTitle, { color: colors.gray900 }]}>{t('scanForm.unknownQRError')}</Text>
                   <Text style={[styles.errorMessage, { color: colors.gray500 }]}>
-                    {result.errorMessage || 'Ce QR code ne correspond pas à un format EventEz.'}
+                    {result.errorMessage || t('scanForm.unknownQRDescription')}
                   </Text>
                 </View>
               )}
@@ -595,7 +598,7 @@ export default function ScanScreen() {
             {/* Scan another - Colors.white on colored button is fine */}
             <TouchableOpacity style={[styles.scanAgainButton, { backgroundColor: colors.primary }]} onPress={handleReset}>
               <Ionicons name="scan-outline" size={20} color={Colors.white} />
-              <Text style={styles.scanAgainText}>Scanner un autre</Text>
+              <Text style={styles.scanAgainText}>{t('scanForm.scanAnother')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -624,6 +627,7 @@ function TransferResult({
   getTimeRemaining: (d: string) => string;
 }) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   return (
     <>
@@ -631,12 +635,12 @@ function TransferResult({
         <View style={[styles.resultIconBg, { backgroundColor: isDark ? 'rgba(238,242,255,0.15)' : '#EEF2FF' }]}>
           <Ionicons name="ticket" size={32} color={colors.primary} />
         </View>
-        <Text style={[styles.resultTitle, { color: colors.gray900 }]}>Transfert de billet</Text>
+        <Text style={[styles.resultTitle, { color: colors.gray900 }]}>{t('scanForm.transferTitle')}</Text>
       </View>
 
       {/* Event info */}
       <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
-        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Événement</Text>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>{t('scanForm.cardEvent')}</Text>
         <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{transfer.event_info.title}</Text>
         {transfer.event_info.start_date && (
           <View style={styles.cardRow}>
@@ -654,13 +658,13 @@ function TransferResult({
 
       {/* Ticket info */}
       <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
-        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Billet</Text>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>{t('scanForm.cardTicket')}</Text>
         <Text style={[styles.cardTitle, { color: colors.gray900 }]}>
           {transfer.ticket_info.transfer_quantity}x {transfer.ticket_info.ticket_type_name}
         </Text>
         <View style={styles.cardRow}>
           <Ionicons name="person-outline" size={16} color={colors.gray500} />
-          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>De : {transfer.sender_name}</Text>
+          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{t('scanForm.cardFrom', { name: transfer.sender_name })}</Text>
         </View>
         <View style={styles.cardRow}>
           <Ionicons name="mail-outline" size={16} color={colors.gray500} />
@@ -676,7 +680,7 @@ function TransferResult({
           color={transfer.is_expired ? colors.error : colors.warning}
         />
         <Text style={[styles.expirationText, transfer.is_expired && { color: colors.error }]}>
-          {transfer.is_expired ? 'Ce transfert a expiré' : getTimeRemaining(transfer.expires_at)}
+          {transfer.is_expired ? t('scanForm.expired') : getTimeRemaining(transfer.expires_at)}
         </Text>
       </View>
 
@@ -693,7 +697,7 @@ function TransferResult({
             ) : (
               <>
                 <Ionicons name="close" size={18} color={colors.error} />
-                <Text style={[styles.declineBtnText, { color: colors.error }]}>Refuser</Text>
+                <Text style={[styles.declineBtnText, { color: colors.error }]}>{t('scanForm.decline')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -707,7 +711,7 @@ function TransferResult({
             ) : (
               <>
                 <Ionicons name="checkmark" size={18} color={Colors.white} />
-                <Text style={styles.acceptBtnText}>Accepter</Text>
+                <Text style={styles.acceptBtnText}>{t('scanForm.accept')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -717,10 +721,10 @@ function TransferResult({
       {transfer.status !== 'pending' && (
         <View style={[styles.statusInfo, { backgroundColor: colors.gray100 }]}>
           <Text style={[styles.statusInfoText, { color: colors.gray600 }]}>
-            {transfer.status === 'accepted' ? 'Ce transfert a déjà été accepté.' :
-             transfer.status === 'declined' ? 'Ce transfert a été refusé.' :
-             transfer.status === 'cancelled' ? 'Ce transfert a été annulé.' :
-             `Statut : ${transfer.status}`}
+            {transfer.status === 'accepted' ? t('scanForm.transferAccepted2') :
+             transfer.status === 'declined' ? t('scanForm.transferDeclined2') :
+             transfer.status === 'cancelled' ? t('scanForm.transferCancelled') :
+             t('scanForm.transferStatus', { status: transfer.status })}
           </Text>
         </View>
       )}
@@ -740,16 +744,17 @@ function TicketResult({
   onViewTicket: (registrationId: string) => void;
 }) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'confirmed': return { label: 'Confirmé', color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
-      case 'completed': return { label: 'Terminé', color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
-      case 'checked_in': return { label: 'Enregistré', color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
-      case 'pending': return { label: 'En attente', color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
-      case 'pending_approval': return { label: 'En approbation', color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
-      case 'cancelled': return { label: 'Annulé', color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
-      case 'rejected': return { label: 'Rejeté', color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
+      case 'confirmed': return { label: t('scanForm.statusConfirmed'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
+      case 'completed': return { label: t('scanForm.statusCompleted'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
+      case 'checked_in': return { label: t('scanForm.statusCheckedIn'), color: colors.success, bg: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' };
+      case 'pending': return { label: t('scanForm.statusPending'), color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
+      case 'pending_approval': return { label: t('scanForm.statusPendingApproval'), color: colors.warning, bg: isDark ? 'rgba(254,243,199,0.15)' : '#FEF3C7' };
+      case 'cancelled': return { label: t('scanForm.statusCancelled'), color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
+      case 'rejected': return { label: t('scanForm.statusRejected'), color: colors.error, bg: isDark ? 'rgba(254,226,226,0.15)' : '#FEE2E2' };
       default: return { label: status, color: colors.gray500, bg: colors.gray100 };
     }
   };
@@ -762,18 +767,18 @@ function TicketResult({
         <View style={[styles.resultIconBg, { backgroundColor: isDark ? 'rgba(209,250,229,0.15)' : '#D1FAE5' }]}>
           <Ionicons name="qr-code" size={32} color={colors.success} />
         </View>
-        <Text style={[styles.resultTitle, { color: colors.gray900 }]}>Billet vérifié</Text>
+        <Text style={[styles.resultTitle, { color: colors.gray900 }]}>{t('scanForm.ticketTitle')}</Text>
       </View>
 
       {/* Event info */}
       <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
-        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Événement</Text>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>{t('scanForm.cardEvent')}</Text>
         <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{ticket.eventTitle}</Text>
       </View>
 
       {/* Ticket details */}
       <View style={[styles.resultCard, { backgroundColor: colors.gray50 }]}>
-        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>Inscription</Text>
+        <Text style={[styles.cardLabel, { color: colors.gray500 }]}>{t('scanForm.cardRegistration')}</Text>
         <View style={styles.cardRow}>
           <Ionicons name="person-outline" size={16} color={colors.gray500} />
           <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{ticket.userName || ticket.userEmail}</Text>
@@ -786,12 +791,12 @@ function TicketResult({
         ) : null}
         <View style={styles.cardRow}>
           <Ionicons name="document-text-outline" size={16} color={colors.gray500} />
-          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>Réf: {ticket.referenceCode}</Text>
+          <Text style={[styles.cardRowText, { color: colors.gray600 }]}>{t('scanForm.cardRefPrefix', { code: ticket.referenceCode })}</Text>
         </View>
         <View style={styles.cardRow}>
           <Ionicons name="pricetag-outline" size={16} color={colors.gray500} />
           <Text style={[styles.cardRowText, { color: colors.gray600 }]}>
-            {ticket.registrationType === 'billetterie' ? 'Billetterie' : 'Inscription'}
+            {ticket.registrationType === 'billetterie' ? t('scanForm.ticketTypeBilletterie') : t('scanForm.ticketTypeRegistration')}
           </Text>
         </View>
       </View>
@@ -811,14 +816,14 @@ function TicketResult({
           onPress={() => onViewEvent(ticket.eventId)}
         >
           <Ionicons name="calendar-outline" size={18} color={colors.primary} />
-          <Text style={[styles.declineBtnText, { color: colors.primary }]}>Voir l'événement</Text>
+          <Text style={[styles.declineBtnText, { color: colors.primary }]}>{t('scanForm.viewEvent')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.acceptBtn, { backgroundColor: colors.primary }]}
           onPress={() => onViewTicket(ticket.registrationId)}
         >
           <Ionicons name="ticket-outline" size={18} color={Colors.white} />
-          <Text style={styles.acceptBtnText}>Voir le billet</Text>
+          <Text style={styles.acceptBtnText}>{t('scanForm.viewTicket')}</Text>
         </TouchableOpacity>
       </View>
     </>
@@ -849,6 +854,7 @@ function UserResult({
   getRoleBadge: (role?: string) => { label: string; color: string } | null;
 }) {
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const roleBadge = getRoleBadge(userData.role);
   const avatarUri = userData.profile_picture || userData.image;
 
@@ -893,14 +899,14 @@ function UserResult({
                   color={isFollowing ? colors.gray700 : Colors.white}
                 />
                 <Text style={[styles.followBtnText, isFollowing && [styles.followBtnTextActive, { color: colors.gray700 }]]}>
-                  {isFollowing ? 'Ne plus suivre' : 'Suivre'}
+                  {isFollowing ? t('scanForm.unfollow') : t('scanForm.follow')}
                 </Text>
               </>
             )}
           </TouchableOpacity>
           <TouchableOpacity style={[styles.messageBtn, { borderColor: colors.primary }]} onPress={onSendMessage}>
             <Ionicons name="chatbubble-outline" size={18} color={colors.primary} />
-            <Text style={[styles.messageBtnText, { color: colors.primary }]}>Message</Text>
+            <Text style={[styles.messageBtnText, { color: colors.primary }]}>{t('scanForm.message')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -908,7 +914,7 @@ function UserResult({
       {isSelf && (
         <View style={[styles.statusInfo, { backgroundColor: colors.gray100 }]}>
           <Ionicons name="information-circle-outline" size={18} color={colors.gray500} />
-          <Text style={[styles.statusInfoText, { color: colors.gray600 }]}>C'est votre propre profil</Text>
+          <Text style={[styles.statusInfoText, { color: colors.gray600 }]}>{t('scanForm.ownProfile')}</Text>
         </View>
       )}
     </>

@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { RootStackParamList } from '../../types';
@@ -48,12 +49,12 @@ interface FAQCategory {
   items: FAQItem[];
 }
 
-const FAQ_DATA: FAQCategory[] = [
+// FAQ static data structure (titles translated via t() in component)
+const FAQ_STATIC = [
   {
     id: 'account',
-    title: 'Compte & Profil',
     eyebrow: 'CAT 01',
-    icon: 'person-outline',
+    icon: 'person-outline' as const,
     color: '#4F46E5',
     items: [
       { question: 'Comment créer un compte ?', answer: 'Téléchargez l\'application EventEz, appuyez sur "S\'inscrire" et remplissez le formulaire avec votre email et mot de passe. Vous recevrez un email de confirmation.' },
@@ -64,9 +65,8 @@ const FAQ_DATA: FAQCategory[] = [
   },
   {
     id: 'events',
-    title: 'Événements',
     eyebrow: 'CAT 02',
-    icon: 'calendar-outline',
+    icon: 'calendar-outline' as const,
     color: '#A855F7',
     items: [
       { question: 'Comment trouver des événements ?', answer: 'Utilisez l\'onglet "Découvrir" pour parcourir les événements. Vous pouvez filtrer par catégorie, date, lieu ou utiliser la recherche.' },
@@ -77,9 +77,8 @@ const FAQ_DATA: FAQCategory[] = [
   },
   {
     id: 'payments',
-    title: 'Paiements',
     eyebrow: 'CAT 03',
-    icon: 'card-outline',
+    icon: 'card-outline' as const,
     color: '#10B981',
     items: [
       { question: 'Quels modes de paiement sont acceptés ?', answer: 'Nous acceptons MTN Mobile Money, Orange Money, les cartes bancaires (Visa, Mastercard), PayPal et les virements bancaires.' },
@@ -89,9 +88,8 @@ const FAQ_DATA: FAQCategory[] = [
   },
   {
     id: 'tickets',
-    title: 'Billets & Inscriptions',
     eyebrow: 'CAT 04',
-    icon: 'ticket-outline',
+    icon: 'ticket-outline' as const,
     color: '#F59E0B',
     items: [
       { question: 'Où trouver mes billets ?', answer: 'Vos billets sont dans l\'onglet "Mes Billets". Chaque billet contient un QR code unique pour l\'entrée à l\'événement.' },
@@ -101,9 +99,8 @@ const FAQ_DATA: FAQCategory[] = [
   },
   {
     id: 'technical',
-    title: 'Technique',
     eyebrow: 'CAT 05',
-    icon: 'construct-outline',
+    icon: 'construct-outline' as const,
     color: '#6366F1',
     items: [
       { question: 'L\'application ne fonctionne pas correctement', answer: 'Essayez de fermer et rouvrir l\'application. Vérifiez que vous avez la dernière version. Si le problème persiste, désinstallez et réinstallez l\'application.' },
@@ -159,11 +156,21 @@ const AccordionItem = memo(({ item, isOpen, onToggle, idx }: {
 export default function HelpScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+
+  const FAQ_DATA: FAQCategory[] = useMemo(
+    () =>
+      FAQ_STATIC.map((cat) => ({
+        ...cat,
+        title: t(`helpCenter.categories.${cat.id}`),
+      })),
+    [t],
+  );
 
   const toggleItem = useCallback((key: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -191,11 +198,11 @@ export default function HelpScreen() {
           : cat.items,
       }))
       .filter((cat) => cat.items.length > 0);
-  }, [searchQuery, activeCategory]);
+  }, [searchQuery, activeCategory, FAQ_DATA]);
 
   const totalItems = useMemo(
     () => FAQ_DATA.reduce((sum, cat) => sum + cat.items.length, 0),
-    [],
+    [FAQ_DATA],
   );
   const filteredCount = useMemo(
     () => filteredData.reduce((sum, cat) => sum + cat.items.length, 0),
@@ -203,10 +210,10 @@ export default function HelpScreen() {
   );
 
   const handleContactEmail = () => {
-    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Support EventEz - Demande d\'aide')}`);
+    Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(t('helpCenter.emailSubject'))}`);
   };
   const handleContactWhatsApp = () => {
-    Linking.openURL('https://wa.me/237600000000?text=Bonjour, j\'ai besoin d\'aide avec EventEz');
+    Linking.openURL(`https://wa.me/237600000000?text=${encodeURIComponent(t('helpCenter.whatsappMessage'))}`);
   };
 
   return (
@@ -232,8 +239,8 @@ export default function HelpScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>CENTRE D'AIDE • SUPPORT</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>On t'écoute</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('helpCenter.headerEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('helpCenter.headerTitle')}</Text>
           </View>
         </View>
       </View>
@@ -255,9 +262,9 @@ export default function HelpScreen() {
             <View style={styles.heroCircle2} />
             <Text style={styles.heroWatermark}>?</Text>
 
-            <Text style={styles.heroEyebrow}>POSE TA QUESTION</Text>
+            <Text style={styles.heroEyebrow}>{t('helpCenter.heroEyebrow')}</Text>
             <Text style={styles.heroTitle} numberOfLines={2}>
-              Comment{'\n'}peut-on aider ?
+              {t('helpCenter.heroTitle')}
             </Text>
 
             {/* Search inside hero */}
@@ -265,7 +272,7 @@ export default function HelpScreen() {
               <Ionicons name="search" size={16} color={colors.gray500} />
               <TextInput
                 style={styles.heroSearchInput}
-                placeholder="Rechercher une question..."
+                placeholder={t('helpCenter.searchPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -281,7 +288,9 @@ export default function HelpScreen() {
             <View style={styles.heroCounter}>
               <View style={styles.heroCounterDot} />
               <Text style={styles.heroCounterText}>
-                {searchQuery ? `${filteredCount} résultat${filteredCount > 1 ? 's' : ''}` : `${totalItems} questions disponibles`}
+                {searchQuery
+                  ? t('helpCenter.resultsCount', { count: filteredCount })
+                  : t('helpCenter.questionsAvailable', { count: totalItems })}
               </Text>
             </View>
           </View>
@@ -298,10 +307,10 @@ export default function HelpScreen() {
               <View style={[styles.contactIcon, { backgroundColor: '#3B82F615' }]}>
                 <Ionicons name="mail" size={18} color="#3B82F6" />
               </View>
-              <Text style={[styles.contactEyebrow, { color: colors.accent }]}>EMAIL</Text>
-              <Text style={[styles.contactLabel, { color: colors.text }]}>Support</Text>
+              <Text style={[styles.contactEyebrow, { color: colors.accent }]}>{t('helpCenter.contactEmailEyebrow')}</Text>
+              <Text style={[styles.contactLabel, { color: colors.text }]}>{t('helpCenter.contactEmailLabel')}</Text>
               <Text style={[styles.contactSub, { color: colors.gray500 }]} numberOfLines={1}>
-                Réponse 24h
+                {t('helpCenter.contactEmailSub')}
               </Text>
             </TouchableOpacity>
 
@@ -313,10 +322,10 @@ export default function HelpScreen() {
               <View style={[styles.contactIcon, { backgroundColor: '#10B98115' }]}>
                 <Ionicons name="logo-whatsapp" size={18} color="#10B981" />
               </View>
-              <Text style={[styles.contactEyebrow, { color: colors.accent }]}>WHATSAPP</Text>
-              <Text style={[styles.contactLabel, { color: colors.text }]}>Chat live</Text>
+              <Text style={[styles.contactEyebrow, { color: colors.accent }]}>{t('helpCenter.contactWhatsappEyebrow')}</Text>
+              <Text style={[styles.contactLabel, { color: colors.text }]}>{t('helpCenter.contactWhatsappLabel')}</Text>
               <Text style={[styles.contactSub, { color: colors.gray500 }]} numberOfLines={1}>
-                Réponse 1h
+                {t('helpCenter.contactWhatsappSub')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -325,8 +334,8 @@ export default function HelpScreen() {
         {/* === CATEGORY FILTER CHIPS === */}
         <StaggeredItem index={2}>
           <View style={styles.categorySection}>
-            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>FILTRER PAR THÈME</Text>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Catégories</Text>
+            <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('helpCenter.filterEyebrow')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('helpCenter.filterTitle')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -349,7 +358,7 @@ export default function HelpScreen() {
                     { color: activeCategory === null ? Colors.white : colors.gray700 },
                   ]}
                 >
-                  Tout
+                  {t('helpCenter.filterAll')}
                 </Text>
               </TouchableOpacity>
               {FAQ_DATA.map((cat) => {
@@ -407,10 +416,10 @@ export default function HelpScreen() {
             <View style={[styles.emptyIconBox, { backgroundColor: `${colors.primary}10` }]}>
               <Ionicons name="search-outline" size={36} color={colors.primary} />
             </View>
-            <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>AUCUN RÉSULTAT</Text>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>Pas trouvé</Text>
+            <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{t('helpCenter.emptyEyebrow')}</Text>
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('helpCenter.emptyTitle')}</Text>
             <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-              Essaie d'autres mots-clés ou contacte directement le support.
+              {t('helpCenter.emptyText')}
             </Text>
           </View>
         ) : (
@@ -456,8 +465,8 @@ export default function HelpScreen() {
 
         {/* === CONTACT SUPPORT CTA === */}
         <View style={styles.supportSection}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>BESOIN D'AUTRE CHOSE</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Pas trouvé ta réponse ?</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('helpCenter.supportEyebrow')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('helpCenter.supportTitle')}</Text>
           <TouchableOpacity
             style={[styles.supportPill, Shadows.buttonPrimary]}
             onPress={handleContactEmail}
@@ -470,8 +479,8 @@ export default function HelpScreen() {
               style={StyleSheet.absoluteFill}
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.supportPillEyebrow}>SUPPORT HUMAIN</Text>
-              <Text style={styles.supportPillLabel}>Contacter notre équipe</Text>
+              <Text style={styles.supportPillEyebrow}>{t('helpCenter.supportPillEyebrow')}</Text>
+              <Text style={styles.supportPillLabel}>{t('helpCenter.supportPillLabel')}</Text>
             </View>
             <View style={styles.supportPillArrow}>
               <Ionicons name="mail" size={18} color={Colors.white} />
@@ -481,8 +490,8 @@ export default function HelpScreen() {
 
         {/* === LEGAL LINKS === */}
         <View style={styles.legalSection}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>JURIDIQUE</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Mentions légales</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('helpCenter.legalEyebrow')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('helpCenter.legalTitle')}</Text>
           <View style={[styles.legalCard, { backgroundColor: colors.card, borderColor: hairline }, Shadows.xs]}>
             <TouchableOpacity
               style={[styles.legalRow, { borderBottomColor: hairline }]}
@@ -493,8 +502,8 @@ export default function HelpScreen() {
                 <Ionicons name="document-text-outline" size={16} color={colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.legalEyebrow, { color: colors.accent }]}>DOC 01</Text>
-                <Text style={[styles.legalLabel, { color: colors.text }]}>Conditions d'utilisation</Text>
+                <Text style={[styles.legalEyebrow, { color: colors.accent }]}>{t('helpCenter.legalDoc1Eyebrow')}</Text>
+                <Text style={[styles.legalLabel, { color: colors.text }]}>{t('helpCenter.legalDoc1Label')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
             </TouchableOpacity>
@@ -507,8 +516,8 @@ export default function HelpScreen() {
                 <Ionicons name="shield-checkmark-outline" size={16} color="#10B981" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={[styles.legalEyebrow, { color: colors.accent }]}>DOC 02</Text>
-                <Text style={[styles.legalLabel, { color: colors.text }]}>Politique de confidentialité</Text>
+                <Text style={[styles.legalEyebrow, { color: colors.accent }]}>{t('helpCenter.legalDoc2Eyebrow')}</Text>
+                <Text style={[styles.legalLabel, { color: colors.text }]}>{t('helpCenter.legalDoc2Label')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.gray400} />
             </TouchableOpacity>

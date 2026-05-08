@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import QRCode from 'react-native-qrcode-svg';
 
 import { registrationsAPI, ticketTransfersAPI, paymentsAPI } from '../../api';
@@ -52,6 +53,7 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const QR_SIZE = Math.min(SCREEN_WIDTH - Spacing['2xl'] * 5, 260);
 
 export default function RegistrationDetailsScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const route = useRoute<RegistrationDetailsRouteProp>();
@@ -140,11 +142,11 @@ export default function RegistrationDetailsScreen() {
                 reference_code: reg.reference_code,
                 event: {
                   id: event?.id || reg.event_id || '',
-                  title: event?.title || 'Événement',
+                  title: event?.title || t('registrationDetails.eventFallback'),
                   start_date: event?.start_date || '',
                 },
               },
-              ticket_type_name: ticketType?.name || ticket.ticket_type_name || 'Billet',
+              ticket_type_name: ticketType?.name || ticket.ticket_type_name || t('registrationDetails.ticketFallback'),
               quantity: ticket.quantity || 1,
               qr_code: ticket.qr_code,
             });
@@ -153,7 +155,7 @@ export default function RegistrationDetailsScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error('Error fetching registration:', error);
-      showError('Erreur', 'Impossible de charger les détails de l\'inscription');
+      showError(t('common.error'), t('registrationDetails.loadError'));
     } finally {
       setLoading(false);
     }
@@ -162,7 +164,7 @@ export default function RegistrationDetailsScreen() {
   const handleAlreadyPaid = async () => {
     const paymentId = registration?.payment_info?.id || registration?.payment;
     if (!paymentId) {
-      showError('Erreur', 'Aucun paiement associé à cette inscription');
+      showError(t('common.error'), t('registrationDetails.noPaymentLinked'));
       return;
     }
     setVerifyingPayment(true);
@@ -172,18 +174,18 @@ export default function RegistrationDetailsScreen() {
       const status = (data?.status || data?.payment_status || data?.payment?.status || '').toLowerCase();
 
       if (isPaymentSuccess(status)) {
-        showSuccess('Paiement confirmé', 'Votre paiement a été vérifié avec succès !');
+        showSuccess(t('registrationDetails.paymentConfirmed'), t('registrationDetails.paymentConfirmedMsg'));
         fetchRegistration(); // Refresh to show updated status
       } else if (isPaymentFailed(status)) {
-        showError('Paiement échoué', data?.message || 'Le paiement n\'a pas abouti. Veuillez réessayer.');
+        showError(t('registrationDetails.paymentFailed'), data?.message || t('registrationDetails.paymentFailedMsg'));
       } else {
-        showError('En cours', 'Le paiement est toujours en cours de traitement. Réessayez dans quelques instants.');
+        showError(t('registrationDetails.paymentInProgress'), t('registrationDetails.paymentInProgressMsg'));
       }
     } catch (error: any) {
       if (__DEV__) console.error('[RegistrationDetails] Payment verification error:', error);
       showError(
-        'Erreur de vérification',
-        error?.response?.data?.message || 'Impossible de vérifier le paiement. Vérifiez votre connexion et réessayez.'
+        t('registrationDetails.verificationError'),
+        error?.response?.data?.message || t('registrationDetails.verificationErrorMsg')
       );
     } finally {
       setVerifyingPayment(false);
@@ -193,11 +195,11 @@ export default function RegistrationDetailsScreen() {
   const handleShare = async () => {
     if (!registration) return;
     const event = registration.event_detail || registration.event;
-    const eventTitle = typeof event === 'object' ? event.title : 'Événement';
+    const eventTitle = typeof event === 'object' ? event.title : t('registrationDetails.eventFallback');
     try {
       await Share.share({
-        message: `Mon inscription pour ${eventTitle}\n\nRéférence: ${registration.reference_code}`,
-        title: 'Mon inscription EventEz',
+        message: t('registrationDetails.shareMessage', { event: eventTitle, ref: registration.reference_code }),
+        title: t('registrationDetails.shareTitle'),
       });
     } catch (error) {
       if (__DEV__) console.error('Error sharing:', error);
@@ -212,7 +214,7 @@ export default function RegistrationDetailsScreen() {
 
     const isNowEnabled = await toggleReminder({
       id: event.id,
-      title: event.title || 'Événement',
+      title: event.title || t('registrationDetails.eventFallback'),
       start_date: event.start_date || '',
       location_name: event.location_name,
       location_city: event.location_city,
@@ -221,23 +223,23 @@ export default function RegistrationDetailsScreen() {
     setReminderEnabled(isNowEnabled);
 
     if (isNowEnabled) {
-      showSuccess('Rappel activé', 'Vous recevrez une notification 24h et 1h avant l\'événement');
+      showSuccess(t('registrationDetails.reminderEnabled'), t('registrationDetails.reminderEnabledMsg'));
     } else {
-      showSuccess('Rappel désactivé', 'Vous ne recevrez plus de notification pour cet événement');
+      showSuccess(t('registrationDetails.reminderDisabled'), t('registrationDetails.reminderDisabledMsg'));
     }
   };
 
   const handleCancelRegistration = () => {
     showConfirm(
-      'Annuler l\'inscription',
-      'Voulez-vous vraiment annuler votre inscription à cet événement ?',
+      t('registrationDetails.cancelTitle'),
+      t('registrationDetails.cancelConfirm'),
       async () => {
         try {
           await registrationsAPI.cancelRegistration(registrationId);
-          showSuccess('Succès', 'Votre inscription a été annulée');
+          showSuccess(t('common.success'), t('registrationDetails.cancelSuccess'));
           navigation.goBack();
         } catch (error) {
-          showError('Erreur', 'Impossible d\'annuler l\'inscription');
+          showError(t('common.error'), t('registrationDetails.cancelError'));
         }
       }
     );
@@ -263,23 +265,23 @@ export default function RegistrationDetailsScreen() {
 
   const getStatusConfig = (status: string, approvalStatus?: string) => {
     if (approvalStatus === 'pending') {
-      return { color: colors.warning, bg: colors.warningLight, label: 'En attente de validation', icon: 'hourglass-outline' };
+      return { color: colors.warning, bg: colors.warningLight, label: t('registrationDetails.statusInscriptionPendingApproval'), icon: 'hourglass-outline' };
     }
     switch (status) {
       case 'confirmed':
       case 'completed':
-        return { color: colors.success, bg: colors.successLight, label: 'Confirmée', icon: 'checkmark-circle' };
+        return { color: colors.success, bg: colors.successLight, label: t('registrationDetails.statusInscriptionConfirmed'), icon: 'checkmark-circle' };
       case 'pending':
       case 'pending_approval':
-        return { color: colors.warning, bg: colors.warningLight, label: 'En attente', icon: 'time' };
+        return { color: colors.warning, bg: colors.warningLight, label: t('registrationDetails.statusInscriptionPending'), icon: 'time' };
       case 'cancelled':
-        return { color: colors.error, bg: colors.errorLight, label: 'Annulée', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: t('registrationDetails.statusInscriptionCancelled'), icon: 'close-circle' };
       case 'rejected':
-        return { color: colors.error, bg: colors.errorLight, label: 'Refusée', icon: 'close-circle' };
+        return { color: colors.error, bg: colors.errorLight, label: t('registrationDetails.statusInscriptionRejected'), icon: 'close-circle' };
       case 'checked_in':
-        return { color: colors.success, bg: colors.successLight, label: 'Validée', icon: 'checkmark-done-circle' };
+        return { color: colors.success, bg: colors.successLight, label: t('registrationDetails.statusInscriptionValidated'), icon: 'checkmark-done-circle' };
       default:
-        return { color: colors.gray500, bg: colors.gray100, label: status || 'Inconnu', icon: 'help-circle' };
+        return { color: colors.gray500, bg: colors.gray100, label: status || t('registrationDetails.statusInscriptionUnknown'), icon: 'help-circle' };
     }
   };
 
@@ -295,14 +297,14 @@ export default function RegistrationDetailsScreen() {
         <WatermarkNumeral>INS</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           <EditorialHeader
-            eyebrow="BILLETTERIE"
-            title="Inscription"
+            eyebrow={t('registrationDetails.headerEyebrowFallback')}
+            title={t('registrationDetails.headerTitleFallback')}
             back
             onBack={() => navigation.goBack()}
           />
           <View style={styles.errorContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.errorText, { color: colors.gray500 }]}>Inscription non trouvée</Text>
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('registrationDetails.notFound')}</Text>
           </View>
         </View>
       </EditorialCanvas>
@@ -314,7 +316,7 @@ export default function RegistrationDetailsScreen() {
   const isActive = registration.status !== 'cancelled' && registration.status !== 'rejected';
   const isBilletterie = registration.tickets && registration.tickets.length > 0;
   const totalTicketQuantity = isBilletterie
-    ? registration.tickets!.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)
+    ? registration.tickets!.reduce((sum: number, ticketItem: any) => sum + (ticketItem.quantity || 1), 0)
     : 0;
 
   // Détection du contexte d'événement pour adapter "Bon à savoir"
@@ -327,26 +329,26 @@ export default function RegistrationDetailsScreen() {
   // Hybride → mix QR + connexion ; Présentiel → QR + arrivée
   const instructions: { icon: string; color: string; text: string }[] = !isBilletterie
     ? [
-        { icon: 'mail-outline', color: colors.primary, text: 'Vérifie ta boîte mail — la confirmation contient ton récap' },
-        { icon: 'id-card-outline', color: colors.accent, text: 'Garde une pièce d\'identité à portée de main' },
-        { icon: 'time-outline', color: '#A855F7', text: 'Arrive à l\'heure pour ne rien manquer' },
+        { icon: 'mail-outline', color: colors.primary, text: t('registrationDetails.tipMail') },
+        { icon: 'id-card-outline', color: colors.accent, text: t('registrationDetails.tipId') },
+        { icon: 'time-outline', color: '#A855F7', text: t('registrationDetails.tipArrive') },
       ]
     : isOnlineEvent
     ? [
-        { icon: 'wifi-outline', color: colors.primary, text: 'Teste ta connexion internet quelques minutes avant' },
-        { icon: 'volume-high-outline', color: colors.accent, text: 'Vérifie ton micro et tes haut-parleurs' },
-        { icon: 'log-in-outline', color: '#A855F7', text: 'Rejoins le live 5 min avant le début' },
+        { icon: 'wifi-outline', color: colors.primary, text: t('registrationDetails.tipWifi') },
+        { icon: 'volume-high-outline', color: colors.accent, text: t('registrationDetails.tipMic') },
+        { icon: 'log-in-outline', color: '#A855F7', text: t('registrationDetails.tipJoinEarly') },
       ]
     : isHybridEvent
     ? [
-        { icon: 'scan-outline', color: colors.primary, text: 'QR code à scanner si tu viens sur place' },
-        { icon: 'wifi-outline', color: colors.accent, text: 'Sinon teste ta connexion pour le live' },
-        { icon: 'phone-portrait-outline', color: '#A855F7', text: 'Garde ton téléphone chargé dans tous les cas' },
+        { icon: 'scan-outline', color: colors.primary, text: t('registrationDetails.tipScanIfOnSite') },
+        { icon: 'wifi-outline', color: colors.accent, text: t('registrationDetails.tipWifiHybrid') },
+        { icon: 'phone-portrait-outline', color: '#A855F7', text: t('registrationDetails.tipPhoneCharged') },
       ]
     : [
-        { icon: 'scan-outline', color: colors.primary, text: 'Le QR code sera scanné à l\'entrée' },
-        { icon: 'phone-portrait-outline', color: colors.accent, text: 'Garde ton téléphone chargé' },
-        { icon: 'time-outline', color: '#A855F7', text: 'Arrive à l\'heure pour éviter les files' },
+        { icon: 'scan-outline', color: colors.primary, text: t('registrationDetails.tipScanEntrance') },
+        { icon: 'phone-portrait-outline', color: colors.accent, text: t('registrationDetails.tipPhoneSimple') },
+        { icon: 'time-outline', color: '#A855F7', text: t('registrationDetails.tipArriveLines') },
       ];
 
   return (
@@ -355,8 +357,10 @@ export default function RegistrationDetailsScreen() {
       <View style={{ flex: 1, zIndex: 1 }}>
       {/* Header éditorial : eyebrow contextuel + actions discrètes à droite */}
       <EditorialHeader
-        eyebrow={isBilletterie ? `${totalTicketQuantity} BILLET${totalTicketQuantity > 1 ? 'S' : ''} · ${registration.reference_code}` : `INSCRIPTION · ${registration.reference_code}`}
-        title={isBilletterie ? 'Mes billets' : 'Mon inscription'}
+        eyebrow={isBilletterie
+          ? t('registrationDetails.headerEyebrowTickets', { count: totalTicketQuantity, ref: registration.reference_code })
+          : t('registrationDetails.headerEyebrowInscription', { ref: registration.reference_code })}
+        title={isBilletterie ? t('registrationDetails.headerTickets') : t('registrationDetails.headerInscription')}
         back
         onBack={() => navigation.goBack()}
         right={
@@ -365,7 +369,7 @@ export default function RegistrationDetailsScreen() {
               <TouchableOpacity
                 style={[styles.headerIconBtn, reminderEnabled && { backgroundColor: colors.primaryBg }]}
                 onPress={handleToggleReminder}
-                accessibilityLabel="Activer le rappel d'événement"
+                accessibilityLabel={t('registrationDetails.shareReminderA11y')}
               >
                 <Ionicons
                   name={reminderEnabled ? 'notifications' : 'notifications-outline'}
@@ -377,7 +381,7 @@ export default function RegistrationDetailsScreen() {
             <TouchableOpacity
               style={styles.headerIconBtn}
               onPress={handleShare}
-              accessibilityLabel="Partager"
+              accessibilityLabel={t('registrationDetails.shareA11y')}
             >
               <Ionicons name="share-outline" size={20} color={colors.gray700} />
             </TouchableOpacity>
@@ -405,7 +409,7 @@ export default function RegistrationDetailsScreen() {
                   styles.typePillText,
                   { color: isBilletterie ? colors.primary : '#A855F7' },
                 ]}>
-                  {isBilletterie ? 'BILLETTERIE' : 'INSCRIPTION'}
+                  {isBilletterie ? t('registrationDetails.typeBilletterie') : t('registrationDetails.typeInscription')}
                 </Text>
               </View>
               {event?.category?.name && (
@@ -419,7 +423,7 @@ export default function RegistrationDetailsScreen() {
             <View style={styles.heroRow}>
               <View style={{ flex: 1, paddingRight: Spacing.md }}>
                 <Text style={[styles.heroTitle, { color: colors.gray900 }]} numberOfLines={3}>
-                  {event?.title || 'Événement'}
+                  {event?.title || t('registrationDetails.eventFallback')}
                 </Text>
               </View>
               {event?.start_date && (
@@ -455,7 +459,7 @@ export default function RegistrationDetailsScreen() {
               {event?.location_type === 'online' && (
                 <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                   <Ionicons name="videocam-outline" size={12} color={colors.primary} />
-                  <Text style={[styles.metaChipText, { color: colors.gray700 }]}>En ligne</Text>
+                  <Text style={[styles.metaChipText, { color: colors.gray700 }]}>{t('registrationDetails.online')}</Text>
                 </View>
               )}
               {event?.location_type === 'hybrid' && (
@@ -470,7 +474,7 @@ export default function RegistrationDetailsScreen() {
                   )}
                   <View style={[styles.metaChip, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                     <Ionicons name="videocam-outline" size={12} color={colors.primary} />
-                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>+ en ligne</Text>
+                    <Text style={[styles.metaChipText, { color: colors.gray700 }]}>{t('registrationDetails.plusOnline')}</Text>
                   </View>
                 </>
               )}
@@ -492,11 +496,11 @@ export default function RegistrationDetailsScreen() {
                 if (eventId) navigation.navigate('EventDetails', { eventId });
               }}
               accessibilityRole="button"
-              accessibilityLabel="Voir les détails de l'événement"
+              accessibilityLabel={t('registrationDetails.viewEventA11y')}
             >
               <Ionicons name="eye-outline" size={14} color={colors.gray700} />
               <Text style={[styles.editorialChipCTAText, { color: colors.gray800 }]}>
-                Voir l'événement
+                {t('registrationDetails.viewEvent')}
               </Text>
               <Ionicons name="arrow-forward" size={14} color={colors.gray700} />
             </TouchableOpacity>
@@ -505,14 +509,14 @@ export default function RegistrationDetailsScreen() {
             {(event?.location_type === 'online' || event?.location_type === 'hybrid') && (
               <View style={styles.onlineSection}>
                 <View style={styles.editorialSectionHead}>
-                  <Text style={[editorial.eyebrowAccent]}>EN DIRECT · ACCÈS LIVE</Text>
+                  <Text style={[editorial.eyebrowAccent]}>{t('registrationDetails.onlineEyebrow')}</Text>
                   <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                    Comment rejoindre
+                    {t('registrationDetails.onlineTitle')}
                   </Text>
                 </View>
                 {event.online_platform && (
                   <Text style={[styles.onlinePlatformChip, { color: colors.info }]}>
-                    Via {event.online_platform}
+                    {t('registrationDetails.onlineVia', { platform: event.online_platform })}
                   </Text>
                 )}
                 {event.online_instructions && (
@@ -524,13 +528,13 @@ export default function RegistrationDetailsScreen() {
                   <View style={[styles.onlineMeetingDetails, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     {event.online_meeting_id && (
                       <View style={styles.meetingDetailRow}>
-                        <Text style={[styles.meetingDetailLabel, { color: colors.gray500 }]}>ID DE RÉUNION</Text>
+                        <Text style={[styles.meetingDetailLabel, { color: colors.gray500 }]}>{t('registrationDetails.meetingId')}</Text>
                         <Text style={[styles.meetingDetailValue, { color: colors.gray900 }]}>{event.online_meeting_id}</Text>
                       </View>
                     )}
                     {event.online_passcode && (
                       <View style={styles.meetingDetailRow}>
-                        <Text style={[styles.meetingDetailLabel, { color: colors.gray500 }]}>CODE D'ACCÈS</Text>
+                        <Text style={[styles.meetingDetailLabel, { color: colors.gray500 }]}>{t('registrationDetails.passcode')}</Text>
                         <Text style={[styles.meetingDetailValue, { color: colors.gray900 }]}>{event.online_passcode}</Text>
                       </View>
                     )}
@@ -539,11 +543,11 @@ export default function RegistrationDetailsScreen() {
                 {event.online_url ? (
                   <View style={{ marginTop: Spacing.md }}>
                     <EditorialPillCTA
-                      eyebrow="OUVRIR"
-                      label="Rejoindre maintenant"
+                      eyebrow={t('registrationDetails.openCta')}
+                      label={t('registrationDetails.joinNow')}
                       onPress={() => {
                         Linking.openURL(event.online_url!).catch(() => {
-                          showError('Erreur', 'Impossible d\'ouvrir le lien de l\'événement');
+                          showError(t('common.error'), t('registrationDetails.openLinkError'));
                         });
                       }}
                       tone="primary"
@@ -554,14 +558,14 @@ export default function RegistrationDetailsScreen() {
                   <View style={[styles.editorialNote, { backgroundColor: '#FEF3C7', borderColor: '#FDE68A' }]}>
                     <Ionicons name="time-outline" size={14} color="#92400E" />
                     <Text style={[styles.editorialNoteText, { color: '#78350F' }]}>
-                      EventEz Visio indisponible pour le moment. L'organisateur communiquera le lien de connexion.
+                      {t('registrationDetails.visioUnavailableNote')}
                     </Text>
                   </View>
                 ) : !event.online_meeting_id && !event.online_passcode ? (
                   <View style={[styles.editorialNote, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                     <Ionicons name="time-outline" size={14} color={colors.gray500} />
                     <Text style={[styles.editorialNoteText, { color: colors.gray600 }]}>
-                      Les infos de connexion arrivent avant l'événement.
+                      {t('registrationDetails.infoSoonNote')}
                     </Text>
                   </View>
                 ) : null}
@@ -586,17 +590,17 @@ export default function RegistrationDetailsScreen() {
             <View style={styles.qrSection}>
               <View style={styles.editorialSectionHead}>
                 <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>
-                  {isOnlineEvent ? 'RÉFÉRENCE · CODE UNIQUE' : 'SCANNER · ENTRÉE'}
+                  {isOnlineEvent ? t('registrationDetails.qrEyebrowReference') : t('registrationDetails.qrEyebrowScanner')}
                 </Text>
                 <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                  {isOnlineEvent ? 'Ton code de réservation' : 'Ton sésame'}
+                  {isOnlineEvent ? t('registrationDetails.qrTitleReference') : t('registrationDetails.qrTitleScanner')}
                 </Text>
               </View>
               <View style={{ alignItems: 'center' }}>
                 <View style={styles.qrFrame}>
                   <View
                     style={[styles.qrContainer, { borderColor: colors.gray100, backgroundColor: '#FFFFFF' }]}
-                    accessibilityLabel="QR code de l'inscription"
+                    accessibilityLabel={t('registrationDetails.qrA11y')}
                     accessibilityRole="image"
                   >
                     <QRCode
@@ -619,14 +623,14 @@ export default function RegistrationDetailsScreen() {
                   />
                   <Text style={[styles.qrHint, { color: colors.gray500 }]}>
                     {isOnlineEvent
-                      ? 'À conserver — preuve de ta réservation'
-                      : 'Présente ce code à l\'entrée'}
+                      ? t('registrationDetails.qrHintReference')
+                      : t('registrationDetails.qrHintScanner')}
                   </Text>
                 </View>
                 <View style={[styles.qrExplain, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                   <Ionicons name="link-outline" size={12} color={colors.primary} />
                   <Text style={[styles.qrExplainText, { color: colors.gray600 }]}>
-                    Lien unique vers ta page de validation — aucune donnée sensible n'est encodée
+                    {t('registrationDetails.qrExplain')}
                   </Text>
                 </View>
               </View>
@@ -634,9 +638,9 @@ export default function RegistrationDetailsScreen() {
           ) : (
             <View style={styles.qrSection}>
               <View style={styles.editorialSectionHead}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>UN BILLET · UN QR</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.ticketsQrEyebrow')}</Text>
                 <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                  Chaque billet a son propre code
+                  {t('registrationDetails.ticketsQrTitle')}
                 </Text>
               </View>
               <View style={[styles.qrTicketHint, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
@@ -645,10 +649,10 @@ export default function RegistrationDetailsScreen() {
                 </View>
                 <View style={styles.qrTicketHintBody}>
                   <Text style={[styles.qrTicketHintTitle, { color: colors.gray900 }]}>
-                    Tape sur un billet ci-dessous
+                    {t('registrationDetails.ticketsQrTapTitle')}
                   </Text>
                   <Text style={[styles.qrTicketHintText, { color: colors.gray600 }]}>
-                    Tu verras le QR à présenter à l'entrée. Chaque billet est scanné indépendamment.
+                    {t('registrationDetails.ticketsQrTapHint')}
                   </Text>
                 </View>
                 <Ionicons name="arrow-down" size={18} color={colors.gray400} />
@@ -659,8 +663,8 @@ export default function RegistrationDetailsScreen() {
           {/* Détails inscription — pattern éditorial (eyebrow / value verticales) */}
           <View style={styles.detailsSection}>
             <View style={styles.editorialSectionHead}>
-              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉCAP · TES DONNÉES</Text>
-              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Détails</Text>
+              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.detailsEyebrow')}</Text>
+              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('registrationDetails.detailsTitle')}</Text>
             </View>
 
             {/* Statut en grand badge éditorial */}
@@ -674,20 +678,20 @@ export default function RegistrationDetailsScreen() {
             {/* Grille de paires verticales (eyebrow + valeur) */}
             <View style={styles.detailGrid}>
               <View style={styles.detailCell}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉFÉRENCE</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.labelReference')}</Text>
                 <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>
                   {registration.reference_code}
                 </Text>
               </View>
               <View style={styles.detailCell}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>INSCRIT LE</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.labelRegisteredAt')}</Text>
                 <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>
                   {formatDate(registration.created_at)}
                 </Text>
               </View>
               {registration.confirmed_at && (
                 <View style={styles.detailCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>CONFIRMÉE</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.labelConfirmedAt')}</Text>
                   <Text style={[styles.detailValueEditorial, { color: colors.gray900 }]}>
                     {formatDate(registration.confirmed_at)}
                   </Text>
@@ -701,14 +705,14 @@ export default function RegistrationDetailsScreen() {
         {registration.tickets && registration.tickets.length > 0 && (
           <View style={[styles.ticketsCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
             <View style={styles.editorialSectionHead}>
-              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>BILLETTERIE</Text>
-              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Mes billets</Text>
+              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.ticketsListEyebrow')}</Text>
+              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('registrationDetails.ticketsListTitle')}</Text>
             </View>
             {registration.tickets.map((ticket: any, index: number) => {
               const ticketType = typeof ticket.ticket_type === 'object' ? ticket.ticket_type : null;
               const ticketStatus = ticket.status || 'confirmed';
               const ticketStatusConfig = getStatusConfig(ticketStatus);
-              const ticketName = ticketType?.name || ticket.ticket_type_name || 'Billet';
+              const ticketName = ticketType?.name || ticket.ticket_type_name || t('registrationDetails.ticketFallback');
               const ticketQty = ticket.quantity || 1;
               const ticketPrice = Number(ticket.total_price) || 0;
 
@@ -721,13 +725,13 @@ export default function RegistrationDetailsScreen() {
                     if (ticket.id) navigation.navigate('QRCode', { ticketId: ticket.id });
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Billet ${ticketName}, quantité ${ticketQty}`}
+                  accessibilityLabel={t('registrationDetails.ticketA11y', { name: ticketName, qty: ticketQty })}
                 >
                   {/* Bloc gauche : tile indigo avec quantité (display bold) */}
                   <View style={[styles.ticketStubTile, { backgroundColor: colors.primary }]}>
                     <Text style={styles.ticketStubTileQty}>×{ticketQty}</Text>
                     <Text style={styles.ticketStubTileLabel}>
-                      {ticketQty > 1 ? 'BILLETS' : 'BILLET'}
+                      {ticketQty > 1 ? t('registrationDetails.ticketLabelPlural') : t('registrationDetails.ticketLabel')}
                     </Text>
                   </View>
 
@@ -753,7 +757,7 @@ export default function RegistrationDetailsScreen() {
                       >
                         {ticketPrice > 0
                           ? `${ticketPrice.toLocaleString()} ${event?.currency || 'FCFA'}`
-                          : 'Gratuit'}
+                          : t('common.free')}
                       </Text>
                     </View>
                   </View>
@@ -772,7 +776,7 @@ export default function RegistrationDetailsScreen() {
                           });
                           setTransferModalVisible(true);
                         }}
-                        accessibilityLabel="Transférer ce billet"
+                        accessibilityLabel={t('registrationDetails.transferTicketA11y')}
                       >
                         <Ionicons name="gift-outline" size={12} color={colors.primary} />
                       </TouchableOpacity>
@@ -786,13 +790,13 @@ export default function RegistrationDetailsScreen() {
             {/* Total — barre en pied de section, eyebrow + chiffre display */}
             <View style={[styles.ticketsTotalEditorial, { borderTopColor: colors.border }]}>
               <View>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>TOTAL</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.totalLabel')}</Text>
                 <Text style={[styles.ticketsTotalSub, { color: colors.gray600 }]}>
-                  {registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0)} billet{registration.tickets.reduce((sum: number, t: any) => sum + (t.quantity || 1), 0) > 1 ? 's' : ''}
+                  {t('registrationDetails.totalCount', { count: registration.tickets.reduce((sum: number, ticketItem: any) => sum + (ticketItem.quantity || 1), 0) })}
                 </Text>
               </View>
               <Text style={[styles.ticketsTotalAmount, { color: colors.gray900 }]}>
-                {registration.tickets.reduce((sum: number, t: any) => sum + (Number(t.total_price) || 0), 0).toLocaleString()} {event?.currency || 'FCFA'}
+                {registration.tickets.reduce((sum: number, ticketItem: any) => sum + (Number(ticketItem.total_price) || 0), 0).toLocaleString()} {event?.currency || 'FCFA'}
               </Text>
             </View>
           </View>
@@ -802,8 +806,8 @@ export default function RegistrationDetailsScreen() {
         {registration.form_data && Object.keys(registration.form_data).length > 0 && (
           <View style={[styles.formDataCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
             <View style={styles.editorialSectionHead}>
-              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>RÉPONSES</Text>
-              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Informations fournies</Text>
+              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.answersEyebrow')}</Text>
+              <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('registrationDetails.answersTitle')}</Text>
             </View>
             {Object.entries(registration.form_data).map(([key, value]) => (
               <View key={key} style={styles.formDataCellEditorial}>
@@ -821,10 +825,10 @@ export default function RegistrationDetailsScreen() {
           <View style={[styles.sessionsCard, { backgroundColor: colors.card, borderColor: colors.gray200 }]}>
             <View style={styles.editorialSectionHead}>
               <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>
-                AGENDA · {sessions.length} SESSION{sessions.length > 1 ? 'S' : ''}
+                {t('registrationDetails.agendaEyebrow', { count: sessions.length })}
               </Text>
               <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                Tes sessions
+                {t('registrationDetails.agendaTitle')}
               </Text>
             </View>
             {sessions.map((session: any) => {
@@ -840,23 +844,25 @@ export default function RegistrationDetailsScreen() {
               let statusColor: string;
               let statusBg: string;
               if (!requiresReg) {
-                statusLabel = 'Accès libre';
+                statusLabel = t('registrationDetails.sessionFreeAccess');
                 statusColor = colors.success;
                 statusBg = colors.successLight;
               } else if (isRegistered) {
-                statusLabel = 'Inscrit';
+                statusLabel = t('registrationDetails.sessionRegistered');
                 statusColor = colors.primary;
                 statusBg = `${colors.primary}15`;
               } else if (isInWaitlist) {
-                statusLabel = `Attente${session.waitlist_position ? ` · #${session.waitlist_position}` : ''}`;
+                statusLabel = session.waitlist_position
+                  ? t('registrationDetails.sessionWaitlistPos', { pos: session.waitlist_position })
+                  : t('registrationDetails.sessionWaitlist');
                 statusColor = colors.warning;
                 statusBg = colors.warningLight;
               } else if (isFull) {
-                statusLabel = 'Complet';
+                statusLabel = t('registrationDetails.sessionFull');
                 statusColor = colors.error;
                 statusBg = colors.errorLight;
               } else {
-                statusLabel = 'À inscrire';
+                statusLabel = t('registrationDetails.sessionToRegister');
                 statusColor = colors.accent;
                 statusBg = `${colors.accent}15`;
               }
@@ -871,7 +877,7 @@ export default function RegistrationDetailsScreen() {
                     if (eventId) navigation.navigate('EventDetails', { eventId });
                   }}
                   accessibilityRole="button"
-                  accessibilityLabel={`Session ${session.title}, ${statusLabel}`}
+                  accessibilityLabel={t('registrationDetails.sessionA11y', { title: session.title, status: statusLabel })}
                 >
                   {/* Tile heure : HH:MM display */}
                   {startTime && (
@@ -881,7 +887,7 @@ export default function RegistrationDetailsScreen() {
                       </Text>
                       {endTime && (
                         <Text style={[styles.sessionTimeRange, { color: colors.primary }]}>
-                          {`${Math.round((endTime.getTime() - startTime.getTime()) / 60000)} min`}
+                          {t('registrationDetails.sessionDuration', { min: Math.round((endTime.getTime() - startTime.getTime()) / 60000) })}
                         </Text>
                       )}
                     </View>
@@ -916,7 +922,7 @@ export default function RegistrationDetailsScreen() {
               );
             })}
             <Text style={[styles.sessionsHint, { color: colors.gray500 }]}>
-              Tape sur une session pour voir le détail dans l'agenda de l'événement
+              {t('registrationDetails.sessionsHint')}
             </Text>
           </View>
         )}
@@ -924,9 +930,9 @@ export default function RegistrationDetailsScreen() {
         {/* Instructions — adaptées au type de billet/événement */}
         <View style={styles.instructions}>
           <View style={styles.editorialSectionHead}>
-            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>BON À SAVOIR</Text>
+            <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.tipsEyebrow')}</Text>
             <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-              {!isBilletterie ? 'Avant l\'événement' : isOnlineEvent ? 'Préparer le live' : isHybridEvent ? 'Sur place ou en ligne' : 'Le jour J'}
+              {!isBilletterie ? t('registrationDetails.tipsBeforeEvent') : isOnlineEvent ? t('registrationDetails.tipsPrepLive') : isHybridEvent ? t('registrationDetails.tipsHybrid') : t('registrationDetails.tipsDDay')}
             </Text>
           </View>
           {instructions.map((inst, idx) => (
@@ -948,22 +954,22 @@ export default function RegistrationDetailsScreen() {
         {isActive && (
           <View style={styles.actionsSection}>
             <View style={styles.editorialSectionHead}>
-              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>ACTIONS</Text>
+              <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('registrationDetails.actionsEyebrow')}</Text>
               <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                {registration.status === 'pending' ? 'En attente' : 'Que veux-tu faire ?'}
+                {registration.status === 'pending' ? t('registrationDetails.actionsTitlePending') : t('registrationDetails.actionsTitle')}
               </Text>
             </View>
 
             {/* "J'ai déjà payé" — disponible pour les inscriptions pending avec paiement */}
             {registration.status === 'pending' && (registration.payment_info?.id || registration.payment) && (
               <EditorialPillCTA
-                eyebrow="VÉRIFIER"
-                label={verifyingPayment ? 'Vérification en cours…' : "J'ai déjà payé"}
+                eyebrow={t('registrationDetails.verifyEyebrow')}
+                label={verifyingPayment ? t('registrationDetails.verifyingPayment') : t('registrationDetails.alreadyPaid')}
                 onPress={handleAlreadyPaid}
                 loading={verifyingPayment}
                 tone="lime"
                 icon="checkmark-circle"
-                accessibilityLabel="Confirmer que le paiement est effectué"
+                accessibilityLabel={t('registrationDetails.alreadyPaidA11y')}
               />
             )}
 
@@ -971,8 +977,8 @@ export default function RegistrationDetailsScreen() {
             {(registration.status === 'confirmed' || registration.status === 'completed') &&
               registration.tickets && registration.tickets.length > 0 && (
               <EditorialPillCTA
-                eyebrow="AJOUTER"
-                label="Acheter plus de billets"
+                eyebrow={t('registrationDetails.addEyebrow')}
+                label={t('registrationDetails.buyMoreTickets')}
                 onPress={() => {
                   const eventId = (typeof registration.event === 'string' ? registration.event : event?.id);
                   if (eventId) {
@@ -985,8 +991,8 @@ export default function RegistrationDetailsScreen() {
             )}
 
             <EditorialPillCTA
-              eyebrow="RENONCER"
-              label="Annuler mon inscription"
+              eyebrow={t('registrationDetails.renounceEyebrow')}
+              label={t('registrationDetails.cancelMyRegistration')}
               onPress={handleCancelRegistration}
               tone="accent"
               icon="close-circle"

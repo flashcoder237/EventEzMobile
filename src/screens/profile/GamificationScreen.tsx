@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { gamificationAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -23,21 +24,23 @@ import { StaggeredItem } from '../../components/ui/Animations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const TIER_CONFIG: { points: number; name: string; eyebrow: string; color: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { points: 0, name: 'Bronze', eyebrow: 'TIER 01', color: '#CD7F32', icon: 'shield-outline' },
-  { points: 500, name: 'Argent', eyebrow: 'TIER 02', color: '#9CA3AF', icon: 'shield-half' },
-  { points: 2000, name: 'Or', eyebrow: 'TIER 03', color: '#F59E0B', icon: 'shield' },
-  { points: 5000, name: 'Platine', eyebrow: 'TIER 04', color: '#A855F7', icon: 'star' },
-  { points: 10000, name: 'Légende', eyebrow: 'TIER 05', color: '#EF4444', icon: 'flame' },
+type TierConfig = { points: number; name: string; eyebrow: string; color: string; icon: keyof typeof Ionicons.glyphMap };
+
+const TIER_BASE: { points: number; eyebrow: string; color: string; icon: keyof typeof Ionicons.glyphMap; nameKey: string }[] = [
+  { points: 0, eyebrow: 'TIER 01', color: '#CD7F32', icon: 'shield-outline', nameKey: 'tier1Name' },
+  { points: 500, eyebrow: 'TIER 02', color: '#9CA3AF', icon: 'shield-half', nameKey: 'tier2Name' },
+  { points: 2000, eyebrow: 'TIER 03', color: '#F59E0B', icon: 'shield', nameKey: 'tier3Name' },
+  { points: 5000, eyebrow: 'TIER 04', color: '#A855F7', icon: 'star', nameKey: 'tier4Name' },
+  { points: 10000, eyebrow: 'TIER 05', color: '#EF4444', icon: 'flame', nameKey: 'tier5Name' },
 ];
 
-function getTier(points: number) {
-  let tier = TIER_CONFIG[0];
-  let next = TIER_CONFIG[1];
-  for (let i = 0; i < TIER_CONFIG.length; i++) {
-    if (points >= TIER_CONFIG[i].points) {
-      tier = TIER_CONFIG[i];
-      next = TIER_CONFIG[i + 1] || tier;
+function getTier(points: number, tiers: TierConfig[]) {
+  let tier = tiers[0];
+  let next = tiers[1];
+  for (let i = 0; i < tiers.length; i++) {
+    if (points >= tiers[i].points) {
+      tier = tiers[i];
+      next = tiers[i + 1] || tier;
     }
   }
   return { tier, next };
@@ -46,7 +49,13 @@ function getTier(points: number) {
 export default function GamificationScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+
+  const TIER_CONFIG: TierConfig[] = TIER_BASE.map((tier) => ({
+    ...tier,
+    name: t(`gamification.${tier.nameKey}`),
+  }));
 
   const [badges, setBadges] = useState<any[]>([]);
   const [points, setPoints] = useState<any>(null);
@@ -92,7 +101,7 @@ export default function GamificationScreen() {
   }
 
   const totalPoints = points?.total_points || points?.balance || 0;
-  const { tier, next } = getTier(totalPoints);
+  const { tier, next } = getTier(totalPoints, TIER_CONFIG);
   const isMaxTier = tier === next;
   const tierProgress = isMaxTier
     ? 100
@@ -136,7 +145,7 @@ export default function GamificationScreen() {
               {new Date(item.earned_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }).toUpperCase()}
             </Text>
           ) : (
-            <Text style={[styles.badgeDateE, { color: colors.gray400 }]}>VERROUILLÉ</Text>
+            <Text style={[styles.badgeDateE, { color: colors.gray400 }]}>{t('gamification.lockedLabel')}</Text>
           )}
         </View>
       </StaggeredItem>
@@ -175,10 +184,10 @@ export default function GamificationScreen() {
 
           <View style={{ flex: 1 }}>
             <Text style={[styles.leaderNameE, { color: colors.text }]} numberOfLines={1}>
-              {item.user_name || item.username || 'Utilisateur'}
+              {item.user_name || item.username || t('gamification.fallbackUser')}
             </Text>
             <Text style={[styles.leaderSub, { color: colors.gray500 }]}>
-              {item.badges_count || 0} badge{(item.badges_count || 0) > 1 ? 's' : ''}
+              {t((item.badges_count || 0) > 1 ? 'gamification.badgeOther' : 'gamification.badgeOne', { count: item.badges_count || 0 })}
             </Text>
           </View>
 
@@ -186,7 +195,7 @@ export default function GamificationScreen() {
             <Text style={[styles.leaderPointsValue, { color: colors.text }]}>
               {item.total_points || 0}
             </Text>
-            <Text style={[styles.leaderPointsLabel, { color: colors.gray500 }]}>PTS</Text>
+            <Text style={[styles.leaderPointsLabel, { color: colors.gray500 }]}>{t('gamification.pointsLabel')}</Text>
           </View>
         </View>
       </StaggeredItem>
@@ -216,8 +225,8 @@ export default function GamificationScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>RÉCOMPENSES • XP</Text>
-            <Text style={[styles.title, { color: colors.text }]}>Badges & Points</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('gamification.headerEyebrow')}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('gamification.headerTitle')}</Text>
           </View>
           <View style={[styles.tierPill, { backgroundColor: `${tier.color}15` }]}>
             <Ionicons name={tier.icon} size={11} color={tier.color} />
@@ -251,7 +260,7 @@ export default function GamificationScreen() {
 
           <View style={styles.heroTopRow}>
             <View style={styles.heroEyebrowCol}>
-              <Text style={styles.heroEyebrow}>SOLDE • POINTS</Text>
+              <Text style={styles.heroEyebrow}>{t('gamification.heroEyebrow')}</Text>
               <View style={styles.heroTierBadge}>
                 <Ionicons name={tier.icon} size={10} color="#FFFFFF" />
                 <Text style={styles.heroTierBadgeText}>{tier.eyebrow}</Text>
@@ -263,7 +272,7 @@ export default function GamificationScreen() {
             <Text style={styles.heroPointsValue} numberOfLines={1} adjustsFontSizeToFit>
               {totalPoints.toLocaleString()}
             </Text>
-            <Text style={styles.heroPointsUnit}>PTS</Text>
+            <Text style={styles.heroPointsUnit}>{t('gamification.heroPointsUnit')}</Text>
           </View>
 
           <View style={styles.heroDivider} />
@@ -272,10 +281,10 @@ export default function GamificationScreen() {
           <View style={styles.tierProgressBlock}>
             <View style={styles.tierProgressTop}>
               <Text style={styles.tierProgressLabel}>
-                {isMaxTier ? 'NIVEAU MAX ATTEINT' : `PROCHAIN PALIER · ${next.name.toUpperCase()}`}
+                {isMaxTier ? t('gamification.tierMaxLabel') : t('gamification.tierNextLabel', { tier: next.name.toUpperCase() })}
               </Text>
               <Text style={styles.tierProgressValue}>
-                {isMaxTier ? '∞' : `${pointsToNext} pts`}
+                {isMaxTier ? t('gamification.tierMaxValue') : t('gamification.pointsToNext', { count: pointsToNext })}
               </Text>
             </View>
             <View style={styles.tierProgressBar}>
@@ -300,27 +309,27 @@ export default function GamificationScreen() {
             <Text style={[styles.statValue, { color: colors.text }]}>
               {badges.filter((b) => b.earned_at).length}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>BADGES</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('gamification.statBadges')}</Text>
           </View>
           <View style={[styles.statCell, { borderRightColor: hairline }]}>
             <Text style={[styles.statValue, { color: colors.text }]}>
               {points?.points_today || 0}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>AUJOURD'HUI</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('gamification.statToday')}</Text>
           </View>
           <View style={styles.statCellLast}>
             <Text style={[styles.statValue, { color: colors.text }]}>
               {points?.streak_days || 0}
             </Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>STREAK</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('gamification.statStreak')}</Text>
           </View>
         </View>
 
         {/* === TABS === */}
         <View style={[styles.tabsBar, { backgroundColor: colors.gray100 }]}>
           {([
-            { key: 'badges' as const, label: 'Badges', count: badges.length },
-            { key: 'leaderboard' as const, label: 'Classement', count: leaderboard.length },
+            { key: 'badges' as const, label: t('gamification.tabBadges'), count: badges.length },
+            { key: 'leaderboard' as const, label: t('gamification.tabLeaderboard'), count: leaderboard.length },
           ]).map((tab) => {
             const active = activeTab === tab.key;
             return (
@@ -360,18 +369,18 @@ export default function GamificationScreen() {
               <View style={[styles.emptyIconE, { backgroundColor: `${colors.primary}10` }]}>
                 <Ionicons name="ribbon-outline" size={40} color={colors.primary} />
               </View>
-              <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>COLLECTION VIDE</Text>
-              <Text style={[styles.emptyTitleE, { color: colors.text }]}>Aucun badge</Text>
+              <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>{t('gamification.emptyBadgesEyebrow')}</Text>
+              <Text style={[styles.emptyTitleE, { color: colors.text }]}>{t('gamification.emptyBadgesTitle')}</Text>
               <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>
-                Participez à des événements pour gagner vos premiers badges
+                {t('gamification.emptyBadgesText')}
               </Text>
             </View>
           ) : (
             <View style={styles.section}>
               <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
-                COLLECTION • {badges.filter((b) => b.earned_at).length}/{badges.length}
+                {t('gamification.collectionEyebrow', { earned: badges.filter((b) => b.earned_at).length, total: badges.length })}
               </Text>
-              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Tes badges</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('gamification.collectionTitle')}</Text>
               <FlatList
                 data={badges}
                 numColumns={3}
@@ -388,18 +397,18 @@ export default function GamificationScreen() {
             <View style={[styles.emptyIconE, { backgroundColor: `${colors.primary}10` }]}>
               <Ionicons name="podium-outline" size={40} color={colors.primary} />
             </View>
-            <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>PAS DE TOP</Text>
-            <Text style={[styles.emptyTitleE, { color: colors.text }]}>Classement vide</Text>
+            <Text style={[styles.emptyEyebrowE, { color: colors.accent }]}>{t('gamification.emptyLeaderboardEyebrow')}</Text>
+            <Text style={[styles.emptyTitleE, { color: colors.text }]}>{t('gamification.emptyLeaderboardTitle')}</Text>
             <Text style={[styles.emptyTextE, { color: colors.gray500 }]}>
-              Le leaderboard sera disponible bientôt
+              {t('gamification.emptyLeaderboardText')}
             </Text>
           </View>
         ) : (
           <View style={styles.section}>
             <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>
-              TOP PLAYERS • LIVE
+              {t('gamification.leaderboardEyebrow')}
             </Text>
-            <Text style={[styles.sectionTitleE, { color: colors.text }]}>Classement global</Text>
+            <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('gamification.leaderboardTitle')}</Text>
             {leaderboard.map((item, index) => (
               <View key={item.id || index}>
                 {renderLeaderRow({ item, index })}

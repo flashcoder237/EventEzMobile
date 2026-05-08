@@ -40,6 +40,7 @@ import {
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTranslation } from 'react-i18next';
 import ConfettiEffect from '../../components/ui/ConfettiEffect';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { getEventUrl } from '../../constants/urls';
@@ -74,6 +75,7 @@ export default function PaymentSuccessScreen() {
   const { eventType, approvalStatus, eventTitle, registrationId, amount, currency, eventStartDate, eventId, referenceCode, paymentId } = route.params;
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   // Hooks d'auth/sound déclarés tôt — utilisés par handleInviteFriend ci-dessous
   const { isGuest, user, upgradeGuest } = useAuth();
 
@@ -112,18 +114,18 @@ export default function PaymentSuccessScreen() {
       const rawUrl = res.data?.pdf_url;
       const absoluteUrl = getMediaUrl(rawUrl);
       if (!absoluteUrl) {
-        showError('Facture indisponible', "La facture n'est pas encore disponible.");
+        showError(t('payment.invoice'), t('errors.loadingFailed'));
         return;
       }
       const supported = await Linking.canOpenURL(absoluteUrl);
       if (!supported) {
-        showError('Ouverture impossible', 'Aucune application installée pour ouvrir le PDF.');
+        showError(t('common.error'), t('errors.actionFailed'));
         return;
       }
       await Linking.openURL(absoluteUrl);
     } catch (error: any) {
       const detail = error?.response?.data?.detail;
-      showError('Facture', String(detail || 'Téléchargement de la facture impossible.'));
+      showError(t('payment.invoice'), String(detail || t('errors.downloadFailed')));
     } finally {
       setInvoiceLoading(false);
     }
@@ -201,11 +203,11 @@ export default function PaymentSuccessScreen() {
 
   const handleUpgrade = async () => {
     if (upgradePassword.length < 8) {
-      showError('Mot de passe trop court', 'Au moins 8 caractères.');
+      showError(t('payment.successUpgradePasswordTooShort'), t('payment.successUpgradePasswordTooShortDetail'));
       return;
     }
     if (upgradePassword !== upgradeConfirm) {
-      showError('Mots de passe', "Les deux mots de passe ne correspondent pas.");
+      showError(t('payment.successUpgradePasswordMismatch'), t('payment.successUpgradePasswordMismatchDetail'));
       return;
     }
     setUpgradeLoading(true);
@@ -216,10 +218,10 @@ export default function PaymentSuccessScreen() {
         last_name: upgradeLastName.trim() || undefined,
       });
       setUpgradeModalVisible(false);
-      showSuccess('Compte créé', 'Tes billets sont maintenant rattachés à ton compte.');
+      showSuccess(t('payment.successUpgradeAccountCreated'), t('payment.successUpgradeAccountCreatedDetail'));
     } catch (error: any) {
-      const detail = error?.response?.data?.detail || error?.response?.data?.password?.[0] || 'Impossible de créer le compte.';
-      showError('Erreur', String(detail));
+      const detail = error?.response?.data?.detail || error?.response?.data?.password?.[0] || t('payment.successUpgradeError');
+      showError(t('common.error'), String(detail));
     } finally {
       setUpgradeLoading(false);
     }
@@ -263,20 +265,21 @@ export default function PaymentSuccessScreen() {
     const isPendingApproval = approvalStatus === 'pending';
 
     if (isInscription) {
+      const eventClause = eventTitle ? t('payment.successEventClause', { title: eventTitle }) : '';
       if (isPendingApproval) {
         return {
           icon: 'time',
           iconColor: '#F59E0B',
           iconColorDark: '#D97706',
-          eyebrow: 'EN ATTENTE',
+          eyebrow: t('payment.successPendingEyebrow'),
           watermark: 'WAIT',
-          title: 'Inscription soumise',
-          subtitle: `Ton inscription${eventTitle ? ` pour « ${eventTitle} »` : ''} a été soumise.\nElle est en attente de validation par l'organisateur.`,
+          title: t('payment.successPendingTitle'),
+          subtitle: t('payment.successPendingSubtitle', { eventClause }),
           infoItems: [
-            { icon: 'hourglass-outline', eyebrow: 'ÉTAPE 01', title: 'En attente de validation', description: 'L\'organisateur examinera ton inscription' },
-            { icon: 'notifications-outline', eyebrow: 'ÉTAPE 02', title: 'Notification', description: 'Tu seras notifié·e dès la validation' },
+            { icon: 'hourglass-outline', eyebrow: t('payment.successPendingStep1Eyebrow'), title: t('payment.successPendingStep1Title'), description: t('payment.successPendingStep1Desc') },
+            { icon: 'notifications-outline', eyebrow: t('payment.successPendingStep2Eyebrow'), title: t('payment.successPendingStep2Title'), description: t('payment.successPendingStep2Desc') },
           ],
-          primaryButtonText: 'Voir mes inscriptions',
+          primaryButtonText: t('payment.successPendingButton'),
           primaryButtonIcon: 'list',
           isSuccess: false,
         };
@@ -285,15 +288,15 @@ export default function PaymentSuccessScreen() {
           icon: 'checkmark',
           iconColor: '#10B981',
           iconColorDark: '#059669',
-          eyebrow: 'CONFIRMÉ',
+          eyebrow: t('payment.successInscriptionEyebrow'),
           watermark: 'OK!',
-          title: 'Tu es inscrit.e !',
-          subtitle: `Ton inscription${eventTitle ? ` pour « ${eventTitle} »` : ''} a été confirmée.\nTu recevras un email de confirmation.`,
+          title: t('payment.successInscriptionTitle'),
+          subtitle: t('payment.successInscriptionSubtitle', { eventClause }),
           infoItems: [
-            { icon: 'calendar', eyebrow: 'DÉTAILS', title: 'Ton inscription', description: 'Retrouve les détails dans « Mes Billets »' },
-            { icon: 'qr-code', eyebrow: 'ENTRÉE', title: 'QR Code', description: 'Présente ton QR code à l\'entrée' },
+            { icon: 'calendar', eyebrow: t('payment.successInscriptionStep1Eyebrow'), title: t('payment.successInscriptionStep1Title'), description: t('payment.successInscriptionStep1Desc') },
+            { icon: 'qr-code', eyebrow: t('payment.successInscriptionStep2Eyebrow'), title: t('payment.successInscriptionStep2Title'), description: t('payment.successInscriptionStep2Desc') },
           ],
-          primaryButtonText: 'Voir mes inscriptions',
+          primaryButtonText: t('payment.successInscriptionButton'),
           primaryButtonIcon: 'list',
           isSuccess: true,
         };
@@ -303,20 +306,20 @@ export default function PaymentSuccessScreen() {
         icon: 'checkmark',
         iconColor: '#10B981',
         iconColorDark: '#059669',
-        eyebrow: 'PAIEMENT VALIDÉ',
+        eyebrow: t('payment.successPaidEyebrow'),
         watermark: 'OK!',
-        title: 'Paiement réussi !',
-        subtitle: 'Ton paiement a été effectué avec succès.\nTu recevras un email de confirmation.',
+        title: t('payment.successPaidTitle'),
+        subtitle: t('payment.successPaidSubtitle'),
         infoItems: [
-          { icon: 'ticket', eyebrow: 'BILLETS', title: 'Tes billets', description: 'Retrouve-les dans « Mes Billets »' },
-          { icon: 'qr-code', eyebrow: 'ENTRÉE', title: 'QR Code', description: 'Présente ton QR code à l\'entrée' },
+          { icon: 'ticket', eyebrow: t('payment.successPaidStep1Eyebrow'), title: t('payment.successPaidStep1Title'), description: t('payment.successPaidStep1Desc') },
+          { icon: 'qr-code', eyebrow: t('payment.successPaidStep2Eyebrow'), title: t('payment.successPaidStep2Title'), description: t('payment.successPaidStep2Desc') },
         ],
-        primaryButtonText: 'Voir mes billets',
+        primaryButtonText: t('payment.successPaidButton'),
         primaryButtonIcon: 'ticket',
         isSuccess: true,
       };
     }
-  }, [eventType, approvalStatus, eventTitle]);
+  }, [eventType, approvalStatus, eventTitle, t]);
 
   const showConfetti = content.isSuccess;
 
@@ -332,7 +335,7 @@ export default function PaymentSuccessScreen() {
           style={[styles.muteToggle, { backgroundColor: colors.gray100 }]}
           accessibilityRole="switch"
           accessibilityState={{ checked: soundEnabled }}
-          accessibilityLabel={soundEnabled ? 'Couper le son' : 'Activer le son'}
+          accessibilityLabel={soundEnabled ? t('payment.successSoundOnAccessibility') : t('payment.successSoundOffAccessibility')}
           activeOpacity={0.8}
         >
           <Ionicons
@@ -341,7 +344,7 @@ export default function PaymentSuccessScreen() {
             color={colors.gray600}
           />
           <Text style={[styles.muteToggleText, { color: colors.gray600 }]}>
-            {soundEnabled ? 'Son' : 'Muet'}
+            {soundEnabled ? t('payment.successSoundOn') : t('payment.successSoundOff')}
           </Text>
         </TouchableOpacity>
 
@@ -389,7 +392,7 @@ export default function PaymentSuccessScreen() {
             >
               {amount !== undefined && amount > 0 && (
                 <View style={styles.recapRow}>
-                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Montant</Text>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>{t('payment.successAmount')}</Text>
                   <Text style={[styles.recapValue, { color: colors.text }]}>
                     {amount.toLocaleString()} {currency || ''}
                   </Text>
@@ -397,7 +400,7 @@ export default function PaymentSuccessScreen() {
               )}
               {eventTitle && (
                 <View style={styles.recapRow}>
-                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Événement</Text>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>{t('payment.successEvent')}</Text>
                   <Text style={[styles.recapValue, { color: colors.text }]} numberOfLines={1}>
                     {eventTitle}
                   </Text>
@@ -405,7 +408,7 @@ export default function PaymentSuccessScreen() {
               )}
               {referenceCode && (
                 <View style={styles.recapRow}>
-                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Référence</Text>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>{t('payment.successReference')}</Text>
                   <Text
                     style={[styles.recapValue, { color: colors.text, fontFamily: FontFamily.bold, letterSpacing: 0.5 }]}
                     selectable
@@ -417,9 +420,9 @@ export default function PaymentSuccessScreen() {
               )}
               {daysUntil !== null && (
                 <View style={styles.recapRow}>
-                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>Compte à rebours</Text>
+                  <Text style={[styles.recapLabel, { color: colors.gray500 }]}>{t('payment.successCountdown')}</Text>
                   <Text style={[styles.recapValue, { color: content.iconColor }]}>
-                    {daysUntil === 0 ? "C'est aujourd'hui !" : `J−${daysUntil}`}
+                    {daysUntil === 0 ? t('payment.successToday') : t('payment.successDDay', { days: daysUntil })}
                   </Text>
                 </View>
               )}
@@ -440,13 +443,13 @@ export default function PaymentSuccessScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.upgradeBannerEyebrow, { color: colors.primary }]}>
-                  COMPTE EXPRESS
+                  {t('payment.successUpgradeEyebrow')}
                 </Text>
                 <Text style={[styles.upgradeBannerTitle, { color: colors.text }]} numberOfLines={2}>
-                  Crée ton compte en 5 secondes
+                  {t('payment.successUpgradeBannerTitle')}
                 </Text>
                 <Text style={[styles.upgradeBannerHint, { color: colors.gray500 }]} numberOfLines={2}>
-                  Pose juste un mot de passe pour retrouver tes billets sur n'importe quel téléphone.
+                  {t('payment.successUpgradeBannerHint')}
                 </Text>
               </View>
               <View style={styles.upgradeBannerActions}>
@@ -455,16 +458,16 @@ export default function PaymentSuccessScreen() {
                   style={[styles.upgradeCta, { backgroundColor: colors.primary }]}
                   activeOpacity={0.85}
                   accessibilityRole="button"
-                  accessibilityLabel="Créer mon compte rapide"
+                  accessibilityLabel={t('payment.successUpgradeAccessibility')}
                 >
-                  <Text style={styles.upgradeCtaText}>Créer</Text>
+                  <Text style={styles.upgradeCtaText}>{t('payment.successUpgradeCtaShort')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => setUpgradeDismissed(true)}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityLabel="Plus tard"
+                  accessibilityLabel={t('payment.successUpgradeDismissAccessibility')}
                 >
-                  <Text style={[styles.upgradeDismiss, { color: colors.gray500 }]}>Plus tard</Text>
+                  <Text style={[styles.upgradeDismiss, { color: colors.gray500 }]}>{t('payment.successUpgradeDismiss')}</Text>
                 </TouchableOpacity>
               </View>
             </Animated.View>
@@ -500,7 +503,7 @@ export default function PaymentSuccessScreen() {
             style={[styles.primaryPill, Shadows.buttonPrimary]}
             onPress={handleViewTicket}
             activeOpacity={0.9}
-            accessibilityLabel="Voir mon billet"
+            accessibilityLabel={t('payment.successViewTicketAccessibility')}
           >
             <LinearGradient
               colors={[colors.primary, colors.primaryDark]}
@@ -509,7 +512,7 @@ export default function PaymentSuccessScreen() {
               style={StyleSheet.absoluteFill}
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.primaryPillEyebrow}>PROCHAINE ÉTAPE</Text>
+              <Text style={styles.primaryPillEyebrow}>{t('payment.successNextStep')}</Text>
               <Text style={styles.primaryPillLabel}>{content.primaryButtonText}</Text>
             </View>
             <View style={styles.primaryPillArrow}>
@@ -522,12 +525,12 @@ export default function PaymentSuccessScreen() {
               style={[styles.calendarPill, { borderColor: colors.primary }]}
               onPress={handleAddToCalendar}
               activeOpacity={0.85}
-              accessibilityLabel="Ajouter à mon calendrier"
+              accessibilityLabel={t('payment.successAddToCalendarAccessibility')}
               accessibilityRole="button"
             >
               <Ionicons name="calendar-outline" size={14} color={colors.primary} />
               <Text style={[styles.calendarPillText, { color: colors.primary }]}>
-                Ajouter à mon calendrier
+                {t('payment.successAddToCalendarLabel')}
               </Text>
             </TouchableOpacity>
           )}
@@ -538,7 +541,7 @@ export default function PaymentSuccessScreen() {
               onPress={handleDownloadInvoice}
               activeOpacity={0.85}
               disabled={invoiceLoading}
-              accessibilityLabel="Télécharger ma facture"
+              accessibilityLabel={t('payment.successDownloadInvoiceAccessibility')}
               accessibilityRole="button"
             >
               {invoiceLoading ? (
@@ -547,7 +550,7 @@ export default function PaymentSuccessScreen() {
                 <Ionicons name="document-text-outline" size={14} color={colors.gray700} />
               )}
               <Text style={[styles.calendarPillText, { color: colors.gray700 }]}>
-                Télécharger ma facture
+                {t('payment.successDownloadInvoiceLabel')}
               </Text>
             </TouchableOpacity>
           )}
@@ -557,12 +560,12 @@ export default function PaymentSuccessScreen() {
               style={[styles.invitePill, { backgroundColor: `${colors.accent}15`, borderColor: colors.accent }]}
               onPress={handleInviteFriend}
               activeOpacity={0.85}
-              accessibilityLabel="Inviter un ami"
+              accessibilityLabel={t('payment.successInviteAccessibility')}
               accessibilityRole="button"
             >
               <Ionicons name="people-outline" size={14} color={colors.accent} />
               <Text style={[styles.invitePillText, { color: colors.accent }]}>
-                Inviter un ami
+                {t('payment.successInviteLabel')}
               </Text>
             </TouchableOpacity>
           )}
@@ -571,11 +574,11 @@ export default function PaymentSuccessScreen() {
             style={[styles.secondaryPill, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
             activeOpacity={0.85}
-            accessibilityLabel="Retour à l'accueil"
+            accessibilityLabel={t('payment.successHomeAccessibility')}
           >
             <Ionicons name="home-outline" size={14} color={colors.gray700} />
             <Text style={[styles.secondaryPillText, { color: colors.gray700 }]}>
-              Retour à l'accueil
+              {t('payment.backHome')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -593,23 +596,23 @@ export default function PaymentSuccessScreen() {
             style={[styles.upgradeCard, { backgroundColor: colors.card }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={[styles.upgradeEyebrow, { color: colors.primary }]}>COMPTE EXPRESS</Text>
+            <Text style={[styles.upgradeEyebrow, { color: colors.primary }]}>{t('payment.successUpgradeEyebrow')}</Text>
             <Text style={[styles.upgradeTitle, { color: colors.text }]}>
-              Sauvegarde tes billets
+              {t('payment.successUpgradeModalTitle')}
             </Text>
             <Text style={[styles.upgradeSubtitle, { color: colors.gray500 }]}>
-              On crée un compte pour {user?.email || 'toi'}. Pose juste un mot de passe.
+              {user?.email ? t('payment.successUpgradeModalSubtitleAuth', { email: user.email }) : t('payment.successUpgradeModalSubtitleAnon')}
             </Text>
 
             <View style={styles.upgradeField}>
               <Text style={[styles.upgradeFieldLabel, { color: colors.gray700 }]}>
-                Nom (optionnel)
+                {t('payment.successUpgradeLastNameLabel')}
               </Text>
               <TextInput
                 style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
                 value={upgradeLastName}
                 onChangeText={setUpgradeLastName}
-                placeholder="Dupont"
+                placeholder={t('payment.successUpgradeLastNamePlaceholder')}
                 placeholderTextColor={colors.gray400}
                 autoCapitalize="words"
               />
@@ -617,13 +620,13 @@ export default function PaymentSuccessScreen() {
 
             <View style={styles.upgradeField}>
               <Text style={[styles.upgradeFieldLabel, { color: colors.gray700 }]}>
-                Mot de passe
+                {t('payment.successUpgradePasswordLabel')}
               </Text>
               <TextInput
                 style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
                 value={upgradePassword}
                 onChangeText={setUpgradePassword}
-                placeholder="Au moins 8 caractères"
+                placeholder={t('payment.successUpgradePasswordPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 secureTextEntry
               />
@@ -631,13 +634,13 @@ export default function PaymentSuccessScreen() {
 
             <View style={styles.upgradeField}>
               <Text style={[styles.upgradeFieldLabel, { color: colors.gray700 }]}>
-                Confirme le mot de passe
+                {t('payment.successUpgradeConfirmLabel')}
               </Text>
               <TextInput
                 style={[styles.upgradeInput, { backgroundColor: colors.gray50, borderColor: colors.gray200, color: colors.text }]}
                 value={upgradeConfirm}
                 onChangeText={setUpgradeConfirm}
-                placeholder="Retape-le"
+                placeholder={t('payment.successUpgradeConfirmPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 secureTextEntry
               />
@@ -650,7 +653,7 @@ export default function PaymentSuccessScreen() {
                 disabled={upgradeLoading}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.upgradeBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.upgradeBtnText, { color: colors.gray700 }]}>{t('payment.successUpgradeCancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.upgradeBtn, { backgroundColor: colors.primary }, upgradeLoading && { opacity: 0.6 }]}
@@ -661,7 +664,7 @@ export default function PaymentSuccessScreen() {
                 {upgradeLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={[styles.upgradeBtnText, { color: '#fff' }]}>Créer mon compte</Text>
+                  <Text style={[styles.upgradeBtnText, { color: '#fff' }]}>{t('payment.successUpgradeCreate')}</Text>
                 )}
               </TouchableOpacity>
             </View>

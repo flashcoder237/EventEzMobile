@@ -13,6 +13,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -48,25 +49,10 @@ interface FormErrors {
   phone?: string;
 }
 
-const STEPS = [
-  { number: 1, label: 'Bienvenue' },
-  { number: 2, label: 'Type' },
-  { number: 3, label: 'Details' },
-  { number: 4, label: 'Confirmer' },
-];
+const STEP_NUMBERS = [1, 2, 3, 4] as const;
 
-const STATS = [
-  { icon: 'people-outline' as const, value: '2,500+', label: 'Organisateurs actifs' },
-  { icon: 'ticket-outline' as const, value: '50,000+', label: 'Billets vendus' },
-  { icon: 'star-outline' as const, value: '4.8/5', label: 'Satisfaction' },
-];
-
-const BENEFITS = [
-  { icon: 'calendar-outline' as const, title: 'Creez vos evenements', desc: 'Publiez et gerez facilement' },
-  { icon: 'ticket-outline' as const, title: 'Vendez des billets', desc: 'Billetterie avec QR codes' },
-  { icon: 'analytics-outline' as const, title: 'Suivez les performances', desc: 'Analytics detailles' },
-  { icon: 'wallet-outline' as const, title: 'Recevez vos revenus', desc: 'Paiements securises' },
-];
+const STAT_ICONS = ['people-outline', 'ticket-outline', 'star-outline'] as const;
+const BENEFIT_ICONS = ['calendar-outline', 'ticket-outline', 'analytics-outline', 'wallet-outline'] as const;
 
 export default function BecomeOrganizerScreen() {
   const navigation = useNavigation();
@@ -74,6 +60,25 @@ export default function BecomeOrganizerScreen() {
   const { user, updateUser } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors } = useTheme();
+  const { t } = useTranslation();
+
+  const STEPS = STEP_NUMBERS.map((number, idx) => ({
+    number,
+    label: t(['becomeOrganizerForm.stepWelcome', 'becomeOrganizerForm.stepType', 'becomeOrganizerForm.stepDetails', 'becomeOrganizerForm.stepConfirm'][idx]),
+  }));
+
+  const STATS = [
+    { icon: STAT_ICONS[0], value: t('becomeOrganizerForm.stat1Value'), label: t('becomeOrganizerForm.stat1Label') },
+    { icon: STAT_ICONS[1], value: t('becomeOrganizerForm.stat2Value'), label: t('becomeOrganizerForm.stat2Label') },
+    { icon: STAT_ICONS[2], value: t('becomeOrganizerForm.stat3Value'), label: t('becomeOrganizerForm.stat3Label') },
+  ];
+
+  const BENEFITS = [
+    { icon: BENEFIT_ICONS[0], title: t('becomeOrganizerForm.benefit1Title'), desc: t('becomeOrganizerForm.benefit1Desc') },
+    { icon: BENEFIT_ICONS[1], title: t('becomeOrganizerForm.benefit2Title'), desc: t('becomeOrganizerForm.benefit2Desc') },
+    { icon: BENEFIT_ICONS[2], title: t('becomeOrganizerForm.benefit3Title'), desc: t('becomeOrganizerForm.benefit3Desc') },
+    { icon: BENEFIT_ICONS[3], title: t('becomeOrganizerForm.benefit4Title'), desc: t('becomeOrganizerForm.benefit4Desc') },
+  ];
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<Step>(1);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -113,15 +118,15 @@ export default function BecomeOrganizerScreen() {
 
     if (formData.organizer_type === 'organization') {
       if (!formData.company_name.trim()) {
-        newErrors.company_name = "Le nom de l'entreprise est requis";
+        newErrors.company_name = t('becomeOrganizerForm.errorCompanyNameRequired');
       }
       if (!formData.registration_number.trim()) {
-        newErrors.registration_number = 'Le numero SIRET/RC est requis';
+        newErrors.registration_number = t('becomeOrganizerForm.errorRegistrationNumberRequired');
       }
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Le telephone est requis';
+      newErrors.phone = t('becomeOrganizerForm.errorPhoneRequired');
     }
 
     setErrors(newErrors);
@@ -165,13 +170,13 @@ export default function BecomeOrganizerScreen() {
       await updateUser(userResponse.data);
 
       showSuccess(
-        'Felicitations !',
-        'Vous etes maintenant organisateur. Creez votre premier evenement !'
+        t('becomeOrganizerForm.successTitle'),
+        t('becomeOrganizerForm.successMessage')
       );
       navigation.goBack();
     } catch (error: any) {
       const errorData = error.response?.data;
-      let message = 'Une erreur est survenue';
+      let message = t('becomeOrganizerForm.errorGeneric');
 
       if (errorData?.detail) {
         message = errorData.detail;
@@ -179,7 +184,7 @@ export default function BecomeOrganizerScreen() {
         message = errorData.error;
       }
 
-      showError('Erreur', message);
+      showError(t('becomeOrganizerForm.errorTitle'), message);
     } finally {
       setIsLoading(false);
     }
@@ -197,9 +202,9 @@ export default function BecomeOrganizerScreen() {
       <View style={[styles.heroIcon, { backgroundColor: colors.primary }]}>
         <Ionicons name="megaphone" size={48} color={colors.white} />
       </View>
-      <Text style={[styles.heroTitle, { color: colors.gray900 }]}>Devenez Organisateur</Text>
+      <Text style={[styles.heroTitle, { color: colors.gray900 }]}>{t('becomeOrganizerForm.heroTitle')}</Text>
       <Text style={[styles.heroSubtitle, { color: colors.gray500 }]}>
-        Partagez vos evenements avec des milliers de participants
+        {t('becomeOrganizerForm.heroSubtitle')}
       </Text>
 
       {/* Stats */}
@@ -235,9 +240,9 @@ export default function BecomeOrganizerScreen() {
   // Step 2: Type Selection
   const renderStep2 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>Quel type d'organisateur etes-vous ?</Text>
+      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>{t('becomeOrganizerForm.step2Title')}</Text>
       <Text style={[styles.stepSubtitle, { color: colors.gray500 }]}>
-        Choisissez le profil qui vous correspond le mieux
+        {t('becomeOrganizerForm.step2Subtitle')}
       </Text>
 
       <View style={styles.typeOptions}>
@@ -267,10 +272,10 @@ export default function BecomeOrganizerScreen() {
             { color: colors.gray700 },
             formData.organizer_type === 'individual' && { color: colors.primary },
           ]}>
-            Particulier
+            {t('becomeOrganizerForm.typeIndividualTitle')}
           </Text>
           <Text style={[styles.typeDesc, { color: colors.gray500 }]}>
-            Organisateur independant, freelance ou passione
+            {t('becomeOrganizerForm.typeIndividualDesc')}
           </Text>
           {formData.organizer_type === 'individual' && (
             <View style={styles.typeCheck}>
@@ -305,10 +310,10 @@ export default function BecomeOrganizerScreen() {
             { color: colors.gray700 },
             formData.organizer_type === 'organization' && { color: colors.primary },
           ]}>
-            Organisation
+            {t('becomeOrganizerForm.typeOrganizationTitle')}
           </Text>
           <Text style={[styles.typeDesc, { color: colors.gray500 }]}>
-            Entreprise, association ou structure officielle
+            {t('becomeOrganizerForm.typeOrganizationDesc')}
           </Text>
           {formData.organizer_type === 'organization' && (
             <View style={styles.typeCheck}>
@@ -323,11 +328,11 @@ export default function BecomeOrganizerScreen() {
   // Step 3: Details Form
   const renderStep3 = () => (
     <View style={styles.stepContent}>
-      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>Vos informations</Text>
+      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>{t('becomeOrganizerForm.step3Title')}</Text>
       <Text style={[styles.stepSubtitle, { color: colors.gray500 }]}>
         {formData.organizer_type === 'organization'
-          ? 'Renseignez les informations de votre organisation'
-          : 'Renseignez vos coordonnees de contact'}
+          ? t('becomeOrganizerForm.step3SubtitleOrg')
+          : t('becomeOrganizerForm.step3SubtitleIndividual')}
       </Text>
 
       <View style={styles.formContainer}>
@@ -335,7 +340,7 @@ export default function BecomeOrganizerScreen() {
           <>
             {/* Company Name */}
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>Nom de l'entreprise</Text>
+              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>{t('becomeOrganizerForm.labelCompanyName')}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('company_name', !!errors.company_name)]}>
                 <Ionicons
                   name="business-outline"
@@ -344,7 +349,7 @@ export default function BecomeOrganizerScreen() {
                 />
                 <TextInput
                   style={[styles.input, { color: colors.gray900 }]}
-                  placeholder="Nom de votre entreprise"
+                  placeholder={t('becomeOrganizerForm.placeholderCompanyName')}
                   placeholderTextColor={colors.gray400}
                   value={formData.company_name}
                   onChangeText={(text) => updateField('company_name', text)}
@@ -363,7 +368,7 @@ export default function BecomeOrganizerScreen() {
 
             {/* Registration Number */}
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>Numero SIRET / RC</Text>
+              <Text style={[styles.inputLabel, { color: colors.gray600 }]}>{t('becomeOrganizerForm.labelRegistrationNumber')}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('registration_number', !!errors.registration_number)]}>
                 <Ionicons
                   name="document-text-outline"
@@ -372,7 +377,7 @@ export default function BecomeOrganizerScreen() {
                 />
                 <TextInput
                   style={[styles.input, { color: colors.gray900 }]}
-                  placeholder="Numero d'enregistrement"
+                  placeholder={t('becomeOrganizerForm.placeholderRegistrationNumber')}
                   placeholderTextColor={colors.gray400}
                   value={formData.registration_number}
                   onChangeText={(text) => updateField('registration_number', text)}
@@ -392,7 +397,7 @@ export default function BecomeOrganizerScreen() {
 
         {/* Phone */}
         <View style={styles.inputContainer}>
-          <Text style={[styles.inputLabel, { color: colors.gray600 }]}>Telephone</Text>
+          <Text style={[styles.inputLabel, { color: colors.gray600 }]}>{t('becomeOrganizerForm.labelPhone')}</Text>
           <View style={[styles.inputWrapper, { backgroundColor: colors.card, borderColor: colors.gray200 }, getInputStyle('phone', !!errors.phone)]}>
             <Ionicons
               name="call-outline"
@@ -401,7 +406,7 @@ export default function BecomeOrganizerScreen() {
             />
             <TextInput
               style={[styles.input, { color: colors.gray900 }]}
-              placeholder="Votre numero de telephone"
+              placeholder={t('becomeOrganizerForm.placeholderPhone')}
               placeholderTextColor={colors.gray400}
               value={formData.phone}
               onChangeText={(text) => updateField('phone', text)}
@@ -427,9 +432,9 @@ export default function BecomeOrganizerScreen() {
       <View style={styles.confirmIcon}>
         <Ionicons name="checkmark-circle" size={64} color={colors.success} />
       </View>
-      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>Pret a commencer !</Text>
+      <Text style={[styles.stepTitle, { color: colors.gray900 }]}>{t('becomeOrganizerForm.step4Title')}</Text>
       <Text style={[styles.stepSubtitle, { color: colors.gray500 }]}>
-        Verifiez vos informations avant de confirmer
+        {t('becomeOrganizerForm.step4Subtitle')}
       </Text>
 
       {/* Summary */}
@@ -439,9 +444,9 @@ export default function BecomeOrganizerScreen() {
             <Ionicons name={formData.organizer_type === 'organization' ? 'business' : 'person'} size={20} color={colors.primary} />
           </View>
           <View style={styles.summaryContent}>
-            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>Type</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>{t('becomeOrganizerForm.summaryType')}</Text>
             <Text style={[styles.summaryValue, { color: colors.gray900 }]}>
-              {formData.organizer_type === 'organization' ? 'Organisation' : 'Particulier'}
+              {formData.organizer_type === 'organization' ? t('becomeOrganizerForm.typeOrganizationTitle') : t('becomeOrganizerForm.typeIndividualTitle')}
             </Text>
           </View>
         </View>
@@ -454,7 +459,7 @@ export default function BecomeOrganizerScreen() {
                 <Ionicons name="business-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.summaryContent}>
-                <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>Entreprise</Text>
+                <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>{t('becomeOrganizerForm.summaryCompany')}</Text>
                 <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{formData.company_name}</Text>
               </View>
             </View>
@@ -465,7 +470,7 @@ export default function BecomeOrganizerScreen() {
                 <Ionicons name="document-text-outline" size={20} color={colors.primary} />
               </View>
               <View style={styles.summaryContent}>
-                <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>SIRET/RC</Text>
+                <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>{t('becomeOrganizerForm.summarySiret')}</Text>
                 <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{formData.registration_number}</Text>
               </View>
             </View>
@@ -478,7 +483,7 @@ export default function BecomeOrganizerScreen() {
             <Ionicons name="call-outline" size={20} color={colors.primary} />
           </View>
           <View style={styles.summaryContent}>
-            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>Telephone</Text>
+            <Text style={[styles.summaryLabel, { color: colors.gray500 }]}>{t('becomeOrganizerForm.summaryPhone')}</Text>
             <Text style={[styles.summaryValue, { color: colors.gray900 }]}>{formData.phone}</Text>
           </View>
         </View>
@@ -492,9 +497,9 @@ export default function BecomeOrganizerScreen() {
           ))}
         </View>
         <Text style={[styles.testimonialText, { color: colors.gray700 }]}>
-          "EventEz m'a permis de gerer mes evenements facilement et d'atteindre plus de participants."
+          {t('becomeOrganizerForm.testimonialText')}
         </Text>
-        <Text style={[styles.testimonialAuthor, { color: colors.gray500 }]}>- Marie D., Organisatrice</Text>
+        <Text style={[styles.testimonialAuthor, { color: colors.gray500 }]}>{t('becomeOrganizerForm.testimonialAuthor')}</Text>
       </View>
     </View>
   );
@@ -528,7 +533,7 @@ export default function BecomeOrganizerScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray800} />
         </AnimatedPressable>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Devenir Organisateur</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('becomeOrganizerForm.headerTitle')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -601,13 +606,13 @@ export default function BecomeOrganizerScreen() {
             scaleValue={0.95}
           >
             <Ionicons name="arrow-back" size={20} color={colors.gray600} />
-            <Text style={[styles.backButtonText, { color: colors.gray600 }]}>Retour</Text>
+            <Text style={[styles.backButtonText, { color: colors.gray600 }]}>{t('becomeOrganizerForm.buttonBack')}</Text>
           </AnimatedPressable>
         )}
 
         <GradientButton
           onPress={currentStep === 4 ? handleSubmit : handleNext}
-          title={currentStep === 4 ? 'Confirmer' : 'Continuer'}
+          title={currentStep === 4 ? t('becomeOrganizerForm.buttonConfirm') : t('becomeOrganizerForm.buttonContinue')}
           loading={isLoading}
           icon={
             currentStep === 4

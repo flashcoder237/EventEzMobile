@@ -20,6 +20,7 @@ import { liveAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { Colors, FontSizes, Spacing, BorderRadius, Shadows } from '../../constants/theme';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -58,6 +59,7 @@ export default function LiveEventScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<LiveEventRouteProp>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { eventId } = route.params;
 
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -111,7 +113,7 @@ export default function LiveEventScreen() {
       fetchData();
     } catch (error) {
       if (__DEV__) console.error('Erreur envoi question:', error);
-      Alert.alert('Erreur', 'Impossible d\'envoyer la question.');
+      Alert.alert(t('common.error'), t('liveEvent.submitError'));
     } finally {
       setSubmitting(false);
     }
@@ -148,7 +150,7 @@ export default function LiveEventScreen() {
       );
     } catch (error) {
       if (__DEV__) console.error('Erreur vote:', error);
-      Alert.alert('Erreur', 'Impossible de voter.');
+      Alert.alert(t('common.error'), t('liveEvent.voteError'));
     } finally {
       setVotingId(null);
     }
@@ -178,13 +180,13 @@ export default function LiveEventScreen() {
         <Text style={[styles.questionText, { color: colors.text }]}>{item.content}</Text>
         <View style={styles.questionMeta}>
           <Text style={[styles.questionAuthor, { color: colors.textSecondary }]}>
-            {item.is_anonymous ? 'Anonyme' : item.author_name || 'Participant'}
+            {item.is_anonymous ? t('liveEvent.anonymous') : item.author_name || t('liveEvent.participant')}
           </Text>
           <Text style={[styles.questionTime, { color: colors.textLight }]}>{formatTime(item.created_at)}</Text>
           {item.is_answered && (
             <View style={styles.answeredBadge}>
               <Ionicons name="checkmark-circle" size={12} color={colors.success} />
-              <Text style={[styles.answeredText, { color: colors.success }]}>Repondue</Text>
+              <Text style={[styles.answeredText, { color: colors.success }]}>{t('liveEvent.answered')}</Text>
             </View>
           )}
         </View>
@@ -199,7 +201,7 @@ export default function LiveEventScreen() {
       <View style={[styles.pollCard, { backgroundColor: colors.card }]}>
         <Text style={[styles.pollQuestion, { color: colors.text }]}>{item.question}</Text>
         <Text style={[styles.pollVoteCount, { color: colors.textLight }]}>
-          {item.total_votes} vote{item.total_votes !== 1 ? 's' : ''}
+          {t('liveEvent.vote', { count: item.total_votes })}
         </Text>
 
         {item.options.map((option) => {
@@ -266,7 +268,7 @@ export default function LiveEventScreen() {
         )}
 
         {!item.is_active && (
-          <Text style={[styles.pollClosed, { color: colors.textLight }]}>Sondage termine</Text>
+          <Text style={[styles.pollClosed, { color: colors.textLight }]}>{t('liveEvent.pollClosed')}</Text>
         )}
       </View>
     );
@@ -292,10 +294,10 @@ export default function LiveEventScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>Live</Text>
+        <Text style={[styles.headerTitle, { color: colors.text }]}>{t('liveEvent.title')}</Text>
         <View style={[styles.liveBadge, { backgroundColor: colors.errorLight }]}>
           <View style={[styles.liveIndicator, { backgroundColor: colors.error }]} />
-          <Text style={[styles.liveText, { color: colors.error }]}>EN DIRECT</Text>
+          <Text style={[styles.liveText, { color: colors.error }]}>{t('liveEvent.liveBadge')}</Text>
         </View>
       </View>
 
@@ -312,7 +314,7 @@ export default function LiveEventScreen() {
             style={{ marginRight: 4 }}
           />
           <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'questions' && { color: colors.primary }]}>
-            Questions ({questions.length})
+            {t('liveEvent.tabQuestions', { count: questions.length })}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -326,7 +328,7 @@ export default function LiveEventScreen() {
             style={{ marginRight: 4 }}
           />
           <Text style={[styles.tabText, { color: colors.textLight }, activeTab === 'polls' && { color: colors.primary }]}>
-            Sondages ({polls.length})
+            {t('liveEvent.tabPolls', { count: polls.length })}
           </Text>
         </TouchableOpacity>
       </View>
@@ -344,8 +346,8 @@ export default function LiveEventScreen() {
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Ionicons name="chatbubbles-outline" size={48} color={colors.textLight} />
-                <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucune question pour le moment</Text>
-                <Text style={[styles.emptySubtext, { color: colors.textLight }]}>Soyez le premier a poser une question !</Text>
+                <Text style={[styles.emptyText, { color: colors.textLight }]}>{t('liveEvent.noQuestions')}</Text>
+                <Text style={[styles.emptySubtext, { color: colors.textLight }]}>{t('liveEvent.beFirstQuestion')}</Text>
               </View>
             }
             renderItem={renderQuestion}
@@ -365,7 +367,7 @@ export default function LiveEventScreen() {
             </TouchableOpacity>
             <TextInput
               style={[styles.textInput, { color: colors.text, backgroundColor: colors.gray50 }]}
-              placeholder="Poser une question..."
+              placeholder={t('liveEvent.questionPlaceholder')}
               placeholderTextColor={colors.textLight}
               value={newQuestion}
               onChangeText={setNewQuestion}
@@ -396,8 +398,8 @@ export default function LiveEventScreen() {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Ionicons name="bar-chart-outline" size={48} color={colors.textLight} />
-              <Text style={[styles.emptyText, { color: colors.textLight }]}>Aucun sondage pour le moment</Text>
-              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>Les sondages de l'evenement apparaitront ici.</Text>
+              <Text style={[styles.emptyText, { color: colors.textLight }]}>{t('liveEvent.noPolls')}</Text>
+              <Text style={[styles.emptySubtext, { color: colors.textLight }]}>{t('liveEvent.noPollsHint')}</Text>
             </View>
           }
           renderItem={renderPoll}

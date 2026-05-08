@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import {
   Colors,
@@ -157,6 +158,7 @@ Ces conditions sont régies par les lois camerounaises.`,
 export default function TermsScreen() {
   const navigation = useNavigation();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const scrollRef = useRef<ScrollView>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
@@ -199,8 +201,8 @@ export default function TermsScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>JURIDIQUE • TERMS</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Conditions d'utilisation</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('termsLegal.headerEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('termsLegal.headerTitle')}</Text>
           </View>
         </View>
 
@@ -234,30 +236,30 @@ export default function TermsScreen() {
           <View style={styles.heroCircle2} />
           <Text style={styles.heroWatermark}>§</Text>
 
-          <Text style={styles.heroEyebrow}>DOCUMENT LÉGAL · TOS</Text>
+          <Text style={styles.heroEyebrow}>{t('termsLegal.heroEyebrow')}</Text>
           <Text style={styles.heroTitle} numberOfLines={3}>
-            Les règles{'\n'}qui nous lient
+            {t('termsLegal.heroTitle')}
           </Text>
           <View style={styles.heroMeta}>
             <View style={styles.heroMetaItem}>
               <View style={styles.heroMetaDot} />
-              <Text style={styles.heroMetaText}>{SECTIONS.length} sections</Text>
+              <Text style={styles.heroMetaText}>{t('termsLegal.heroSections', { count: SECTIONS.length })}</Text>
             </View>
             <View style={styles.heroMetaItem}>
               <Ionicons name="time-outline" size={11} color="rgba(255,255,255,0.85)" />
-              <Text style={styles.heroMetaText}>~ 5 min de lecture</Text>
+              <Text style={styles.heroMetaText}>{t('termsLegal.heroReadingTime')}</Text>
             </View>
           </View>
           <View style={styles.heroDateBlock}>
-            <Text style={styles.heroDateLabel}>DERNIÈRE MISE À JOUR</Text>
-            <Text style={styles.heroDateValue}>25 AVRIL 2026</Text>
+            <Text style={styles.heroDateLabel}>{t('termsLegal.heroDateLabel')}</Text>
+            <Text style={styles.heroDateValue}>{t('termsLegal.heroDateValue')}</Text>
           </View>
         </View>
 
         {/* === TOC (Table of Contents) === */}
         <View style={styles.tocSection}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>NAVIGATION • TOC</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Table des matières</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('termsLegal.tocEyebrow')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('termsLegal.tocTitle')}</Text>
           <View style={styles.tocGrid}>
             {SECTIONS.map((section) => (
               <TouchableOpacity
@@ -294,7 +296,7 @@ export default function TermsScreen() {
                   <View style={styles.sectionIconRow}>
                     <Ionicons name={section.icon} size={14} color={colors.gray500} />
                     <Text style={[styles.sectionIconLabel, { color: colors.gray500 }]}>
-                      ARTICLE {section.num}
+                      {t('termsLegal.articleLabel', { num: section.num })}
                     </Text>
                   </View>
                   <Text style={[styles.sectionBlockTitle, { color: colors.text }]}>
@@ -318,9 +320,9 @@ export default function TermsScreen() {
             <Ionicons name="checkmark" size={16} color="#FFFFFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.acceptEyebrow}>ENGAGEMENT</Text>
+            <Text style={styles.acceptEyebrow}>{t('termsLegal.acceptEyebrow')}</Text>
             <Text style={styles.acceptText}>
-              En utilisant EventEz, tu acceptes ces conditions d'utilisation.
+              {t('termsLegal.acceptText')}
             </Text>
           </View>
         </View>

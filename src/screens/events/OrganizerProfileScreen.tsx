@@ -25,6 +25,7 @@ import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList, User, Event } from '../../types';
 import { formatCompactNumber } from '../../lib/utils/numberFormatters';
 import {
@@ -50,6 +51,7 @@ export default function OrganizerProfileScreen() {
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { organizerId } = route.params;
 
   const [organizer, setOrganizer] = useState<User | null>(null);
@@ -84,7 +86,7 @@ export default function OrganizerProfileScreen() {
       }
     } catch (err: any) {
       if (__DEV__) console.error('[OrganizerProfile] Error fetching organizer:', err);
-      showError('Erreur', 'Impossible de charger le profil de l\'organisateur.');
+      showError(t('common.error'), t('organizerProfile.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -128,8 +130,8 @@ export default function OrganizerProfileScreen() {
         <WatermarkNumeral>ORG</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           <EditorialHeader
-            eyebrow="PROFIL"
-            title="Organisateur"
+            eyebrow={t('organizerProfile.eyebrow')}
+            title={t('organizerProfile.title')}
             back
             onBack={() => navigation.goBack()}
           />
@@ -145,14 +147,14 @@ export default function OrganizerProfileScreen() {
         <WatermarkNumeral>NO</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           <EditorialHeader
-            eyebrow="PROFIL"
-            title="Organisateur"
+            eyebrow={t('organizerProfile.eyebrow')}
+            title={t('organizerProfile.title')}
             back
             onBack={() => navigation.goBack()}
           />
           <View style={styles.loadingContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.errorText, { color: colors.gray500 }]}>Organisateur introuvable</Text>
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('organizerProfile.notFound')}</Text>
           </View>
         </View>
       </EditorialCanvas>
@@ -178,8 +180,8 @@ export default function OrganizerProfileScreen() {
 
         {/* Header éditorial : eyebrow + titre + back */}
         <EditorialHeader
-          eyebrow={isVerified ? 'PROFIL · VÉRIFIÉ' : 'PROFIL'}
-          title="Organisateur"
+          eyebrow={isVerified ? t('organizerProfile.eyebrowVerified') : t('organizerProfile.eyebrow')}
+          title={t('organizerProfile.title')}
           back
           onBack={() => navigation.goBack()}
         />
@@ -201,7 +203,7 @@ export default function OrganizerProfileScreen() {
               <View style={[styles.typePill, { backgroundColor: `${colors.primary}15` }]}>
                 <Ionicons name="business" size={10} color={colors.primary} />
                 <Text style={[styles.typePillText, { color: colors.primary }]}>
-                  {organizer.organizer_type === 'organization' ? 'ORGANISATION' : 'ORGANISATEUR'}
+                  {organizer.organizer_type === 'organization' ? t('organizerProfile.typeOrganization') : t('organizerProfile.typeOrganizer')}
                 </Text>
               </View>
               {(organizer.city || organizer.country) && (
@@ -242,12 +244,12 @@ export default function OrganizerProfileScreen() {
             {/* Stats : 3 blocks éditoriaux (eyebrow + display number) */}
             <View style={styles.statsGrid}>
               <View style={styles.statCell}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>ÉVÉNEMENTS</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizerProfile.statsEvents')}</Text>
                 <Text style={[editorial.statNumberSm, { color: colors.gray900 }]}>{eventCount}</Text>
               </View>
               {rating != null && Number.isFinite(rating) && rating > 0 && (
                 <View style={styles.statCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>NOTE</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizerProfile.statsRating')}</Text>
                   <View style={styles.ratingRow}>
                     <Text style={[editorial.statNumberSm, { color: colors.gray900 }]}>{rating.toFixed(1)}</Text>
                     <Ionicons name="star" size={14} color={colors.warning} />
@@ -256,7 +258,7 @@ export default function OrganizerProfileScreen() {
               )}
               {organizer.created_at && (
                 <View style={styles.statCell}>
-                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>DEPUIS</Text>
+                  <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizerProfile.statsSince')}</Text>
                   <Text style={[editorial.statNumberSm, { color: colors.gray900 }]}>
                     {new Date(organizer.created_at).getFullYear()}
                   </Text>
@@ -279,7 +281,7 @@ export default function OrganizerProfileScreen() {
                 onPress={handleContact}
                 activeOpacity={TOUCH_OPACITY}
                 accessibilityRole="button"
-                accessibilityLabel="Contacter l'organisateur"
+                accessibilityLabel={t('organizerProfile.contactA11y')}
               >
                 <Ionicons name="chatbubble-outline" size={20} color={colors.gray700} />
               </TouchableOpacity>
@@ -290,8 +292,8 @@ export default function OrganizerProfileScreen() {
           {description && (
             <View style={styles.editorialSection}>
               <View style={styles.editorialSectionHead}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>BIO</Text>
-                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>À propos</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizerProfile.bioEyebrow')}</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('organizerProfile.bioTitle')}</Text>
               </View>
               <Text style={[styles.descriptionText, { color: colors.gray700 }]}>{description}</Text>
             </View>
@@ -301,8 +303,8 @@ export default function OrganizerProfileScreen() {
           {(socialLinks?.facebook || socialLinks?.twitter || socialLinks?.instagram || socialLinks?.linkedin || profile?.website) && (
             <View style={styles.editorialSection}>
               <View style={styles.editorialSectionHead}>
-                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>EN LIGNE</Text>
-                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>Liens</Text>
+                <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>{t('organizerProfile.linksEyebrow')}</Text>
+                <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>{t('organizerProfile.linksTitle')}</Text>
               </View>
               <View style={styles.socialChipsRow}>
                 {profile?.website && (
@@ -312,7 +314,7 @@ export default function OrganizerProfileScreen() {
                     activeOpacity={TOUCH_OPACITY}
                   >
                     <Ionicons name="globe-outline" size={14} color={colors.primary} />
-                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Site web</Text>
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>{t('organizerProfile.website')}</Text>
                   </TouchableOpacity>
                 )}
                 {socialLinks?.facebook && (
@@ -322,7 +324,7 @@ export default function OrganizerProfileScreen() {
                     activeOpacity={TOUCH_OPACITY}
                   >
                     <Ionicons name="logo-facebook" size={14} color="#1877F2" />
-                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Facebook</Text>
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>{t('organizerProfile.facebook')}</Text>
                   </TouchableOpacity>
                 )}
                 {socialLinks?.instagram && (
@@ -332,7 +334,7 @@ export default function OrganizerProfileScreen() {
                     activeOpacity={TOUCH_OPACITY}
                   >
                     <Ionicons name="logo-instagram" size={14} color="#E4405F" />
-                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Instagram</Text>
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>{t('organizerProfile.instagram')}</Text>
                   </TouchableOpacity>
                 )}
                 {socialLinks?.twitter && (
@@ -342,7 +344,7 @@ export default function OrganizerProfileScreen() {
                     activeOpacity={TOUCH_OPACITY}
                   >
                     <Ionicons name="logo-twitter" size={14} color="#1DA1F2" />
-                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>Twitter</Text>
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>{t('organizerProfile.twitter')}</Text>
                   </TouchableOpacity>
                 )}
                 {socialLinks?.linkedin && (
@@ -352,7 +354,7 @@ export default function OrganizerProfileScreen() {
                     activeOpacity={TOUCH_OPACITY}
                   >
                     <Ionicons name="logo-linkedin" size={14} color="#0A66C2" />
-                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>LinkedIn</Text>
+                    <Text style={[styles.socialChipText, { color: colors.gray800 }]}>{t('organizerProfile.linkedin')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -363,16 +365,16 @@ export default function OrganizerProfileScreen() {
           <View style={styles.editorialSection}>
             <View style={styles.editorialSectionHead}>
               <Text style={[editorial.eyebrow, { color: colors.gray500 }]}>
-                AGENDA · {events.length} ÉVÉNEMENT{events.length > 1 ? 'S' : ''}
+                {t('organizerProfile.agendaEyebrow', { count: events.length })}
               </Text>
               <Text style={[editorial.sectionTitleSm, { color: colors.gray900 }]}>
-                Événements publiés
+                {t('organizerProfile.agendaTitle')}
               </Text>
             </View>
             {isLoadingEvents ? (
               <View style={styles.eventsLoadingContainer}>
                 <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.eventsLoadingText, { color: colors.gray500 }]}>Chargement…</Text>
+                <Text style={[styles.eventsLoadingText, { color: colors.gray500 }]}>{t('organizerProfile.loadingEvents')}</Text>
               </View>
             ) : events.length > 0 ? (
               <FlatList
@@ -431,7 +433,7 @@ export default function OrganizerProfileScreen() {
                         <View style={styles.eventBottomRow}>
                           {event.is_free ? (
                             <View style={[styles.freeBadge, { backgroundColor: colors.successLight }]}>
-                              <Text style={[styles.freeBadgeText, { color: colors.successDark }]}>GRATUIT</Text>
+                              <Text style={[styles.freeBadgeText, { color: colors.successDark }]}>{t('organizerProfile.freeBadge')}</Text>
                             </View>
                           ) : event.base_price != null ? (
                             <Text style={[styles.eventPrice, { color: colors.gray900 }]}>
@@ -454,7 +456,7 @@ export default function OrganizerProfileScreen() {
             ) : (
               <View style={[styles.emptyEventsContainer, { backgroundColor: colors.gray50, borderColor: colors.border }]}>
                 <Ionicons name="calendar-outline" size={32} color={colors.gray400} />
-                <Text style={[styles.emptyEventsText, { color: colors.gray500 }]}>Aucun événement publié</Text>
+                <Text style={[styles.emptyEventsText, { color: colors.gray500 }]}>{t('organizerProfile.noEvents')}</Text>
               </View>
             )}
           </View>

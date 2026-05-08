@@ -1511,7 +1511,7 @@ export default function DiscoverScreen() {
                 <SectionEntrance delay={300}>
                   <View style={styles.section}>
                     <SectionHeader
-                      eyebrow="PRÈS DE TOI"
+                      eyebrow={t('eyebrow.nearby')}
                       title={t('discover.popularNearbyTitle')}
                       onSeeAll={() => activateSearch()}
                     />
@@ -1537,7 +1537,7 @@ export default function DiscoverScreen() {
                 <SectionEntrance delay={380}>
                   <View style={styles.section}>
                     <SectionHeader
-                      eyebrow="POUR TOI"
+                      eyebrow={t('eyebrow.forYou')}
                       title={t('discover.recommendedTitle')}
                       onSeeAll={() => activateSearch()}
                     />
@@ -1590,7 +1590,7 @@ export default function DiscoverScreen() {
                 <SectionEntrance delay={460}>
                   <View style={styles.section}>
                     <SectionHeader
-                      eyebrow="À VENIR"
+                      eyebrow={t('eyebrow.upcoming')}
                       title="The Incoming"
                       onSeeAll={() => activateSearch()}
                     />

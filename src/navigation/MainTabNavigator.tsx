@@ -23,9 +23,10 @@ import { FontFamily, Spacing, Shadows } from '../constants/theme';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { useUnreadCounts } from '../contexts/NotificationContext';
+import { useTranslation } from 'react-i18next';
 import {
   useTour,
-  MAIN_TABS_TOUR_STEPS,
+  getMainTabsTourSteps,
   MAIN_TABS_TOUR_STORAGE_KEY,
   MAIN_TABS_TOUR_DELAY_MS,
 } from '../components/tour';
@@ -553,13 +554,14 @@ function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
 
 export default function MainTabNavigator() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const tour = useTour();
 
   // Auto-start the feature tour on the first authenticated MainTab mount.
   // The seenKey persists in AsyncStorage — won't re-trigger on subsequent boots.
   useEffect(() => {
     const timer = setTimeout(() => {
-      tour.start(MAIN_TABS_TOUR_STEPS, { seenKey: MAIN_TABS_TOUR_STORAGE_KEY });
+      tour.start(getMainTabsTourSteps(t), { seenKey: MAIN_TABS_TOUR_STORAGE_KEY });
     }, MAIN_TABS_TOUR_DELAY_MS);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps

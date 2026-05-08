@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import ImageView from 'react-native-image-viewing';
 import { DEFAULT_BLUR_DATA_URL } from '../../utils/imageUtils';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -75,6 +76,7 @@ export default function EventDetailsScreen() {
   const { eventId, imageUrl: routeImageUrl, previewEvent } = route.params;
   const { colors, isDark, gradients } = useTheme();
   const { requireAuth } = useAuthGuard();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [viewerImageIndex, setViewerImageIndex] = useState(0);
 
@@ -202,7 +204,7 @@ export default function EventDetailsScreen() {
         navigation.replace('EventDetails', { eventId });
       }
     } catch {
-      showError('Erreur', "Code d'accès invalide");
+      showError(t('common.error'), t('eventDetails.invalidCode'));
     } finally {
       setVerifyingCode(false);
     }
@@ -213,12 +215,12 @@ export default function EventDetailsScreen() {
       <EditorialCanvas edges={['top', 'bottom']}>
         <WatermarkNumeral>404</WatermarkNumeral>
         <View style={[styles.errorContainer, { zIndex: 1 }]}>
-          <Text style={[editorialStyles.eyebrow, { color: colors.primary }]}>Introuvable</Text>
-          <Text style={[editorialStyles.errorTitle, { color: colors.gray900 }]}>Evenement non trouve</Text>
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>Le lien a peut-etre expire.</Text>
+          <Text style={[editorialStyles.eyebrow, { color: colors.primary }]}>{t('eventDetails.loadingErrorEyebrow')}</Text>
+          <Text style={[editorialStyles.errorTitle, { color: colors.gray900 }]}>{t('eventDetails.loadingError')}</Text>
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('eventDetails.loadingErrorMessage')}</Text>
           <View style={{ marginTop: 24, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
-              eyebrow="Retour"
+              eyebrow={t('eyebrow.back')}
               label="Revenir en arriere"
               icon="arrow-back"
               onPress={() => navigation.goBack()}
@@ -241,14 +243,14 @@ export default function EventDetailsScreen() {
           <View style={[visibilityStyles.gateIconWrap, { backgroundColor: `${colors.primary}15` }]}>
             <Ionicons name="lock-closed" size={48} color={colors.primary} />
           </View>
-          <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>Événement sur invitation</Text>
+          <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>{t('eventDetails.invitationGate')}</Text>
           <Text style={[visibilityStyles.gateDesc, { color: colors.gray500 }]}>
             Cet événement est réservé aux personnes invitées.
             Si vous avez reçu une invitation, veuillez l'accepter pour y accéder.
           </Text>
           <View style={{ marginTop: 16, flexDirection: 'row', alignSelf: 'stretch' }}>
             <EditorialPillCTA
-              eyebrow="Retour"
+              eyebrow={t('eyebrow.back')}
               label="Revenir a l'accueil"
               icon="arrow-back"
               onPress={() => navigation.goBack()}
@@ -292,7 +294,7 @@ export default function EventDetailsScreen() {
 
           <View style={[visibilityStyles.codeCard, { backgroundColor: colors.card }]}>
             <Ionicons name="key-outline" size={28} color={colors.warning} />
-            <Text style={[visibilityStyles.codeTitle, { color: colors.gray900 }]}>Code d'accès requis</Text>
+            <Text style={[visibilityStyles.codeTitle, { color: colors.gray900 }]}>{t('eventDetails.codeRequired')}</Text>
             <Text style={[visibilityStyles.codeDesc, { color: colors.gray500 }]}>
               Entrez le code pour voir les détails complets
             </Text>
@@ -306,7 +308,7 @@ export default function EventDetailsScreen() {
             />
             <View style={{ marginTop: 8, flexDirection: 'row' }}>
               <EditorialPillCTA
-                eyebrow="Valider"
+                eyebrow={t('eyebrow.validate')}
                 label="Acceder"
                 icon="arrow-forward"
                 onPress={handleVerifyAccessCode}
@@ -420,7 +422,7 @@ export default function EventDetailsScreen() {
               color={Colors.white}
             />
             <Text style={styles.imageZoomHintText}>
-              {allImages.length > 1 ? `1 / ${allImages.length}` : 'Agrandir'}
+              {allImages.length > 1 ? t('eventDetails.imagesCount', { current: 1, total: allImages.length }) : t('eventDetails.imageEnlarge')}
             </Text>
           </View>
 
@@ -479,7 +481,7 @@ export default function EventDetailsScreen() {
               <View style={styles.pendingPaymentInfo}>
                 <Ionicons name="warning" size={24} color={colors.warning} />
                 <View style={styles.pendingPaymentTextContainer}>
-                  <Text style={[styles.pendingPaymentTitle, { color: colors.warning }]}>Paiement en attente</Text>
+                  <Text style={[styles.pendingPaymentTitle, { color: colors.warning }]}>{t('eventDetails.pendingPayment')}</Text>
                   <Text style={[styles.pendingPaymentDescription, { color: colors.gray600 }]}>
                     Finalisez votre paiement pour confirmer votre inscription
                   </Text>
@@ -490,7 +492,7 @@ export default function EventDetailsScreen() {
                 onPress={() => navigation.navigate('Payment', { registrationId: userRegistration.id })}
               >
                 <Ionicons name="card-outline" size={18} color={colors.white} />
-                <Text style={styles.pendingPaymentButtonText}>Finaliser le paiement</Text>
+                <Text style={styles.pendingPaymentButtonText}>{t('eventDetails.finalizePayment')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -541,7 +543,7 @@ export default function EventDetailsScreen() {
               )}
             </View>
             <View style={styles.organizerInfo}>
-              <Text style={[styles.organizerLabel, { color: colors.gray500 }]}>Organisé par</Text>
+              <Text style={[styles.organizerLabel, { color: colors.gray500 }]}>{t('eventDetails.organizedBy')}</Text>
               <Text style={[styles.organizerName, { color: colors.gray900 }]} numberOfLines={1}>
                 {event.organizer?.first_name} {event.organizer?.last_name}
               </Text>
@@ -563,7 +565,7 @@ export default function EventDetailsScreen() {
 
           {/* Share & Calendar Buttons */}
           <View style={styles.shareRow}>
-            <Text style={[styles.shareLabel, { color: colors.gray500 }]}>Partager :</Text>
+            <Text style={[styles.shareLabel, { color: colors.gray500 }]}>{t('eventDetails.shareLabel')}</Text>
             <View style={styles.shareButtons}>
               <TouchableOpacity
                 style={[styles.shareButton, { backgroundColor: colors.gray100 }]}
@@ -593,9 +595,9 @@ export default function EventDetailsScreen() {
                   <Ionicons name="videocam" size={22} color={colors.info} />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={[styles.infoTitle, { color: colors.gray900 }]}>Evenement en ligne</Text>
+                  <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{t('eventDetails.onlineEvent')}</Text>
                   <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>
-                    {event.online_platform || 'Plateforme de visioconference'}
+                    {event.online_platform || t('eventDetails.videoConference')}
                   </Text>
                 </View>
               </View>
@@ -612,13 +614,13 @@ export default function EventDetailsScreen() {
                     <View style={[styles.onlineMeetingInfo, { backgroundColor: colors.gray50 }]}>
                       {event.online_meeting_id && (
                         <View style={styles.meetingInfoRow}>
-                          <Text style={[styles.meetingInfoLabel, { color: colors.gray500 }]}>ID de reunion :</Text>
+                          <Text style={[styles.meetingInfoLabel, { color: colors.gray500 }]}>{t('eventDetails.meetingId')}</Text>
                           <Text style={[styles.meetingInfoValue, { color: colors.gray900 }]}>{event.online_meeting_id}</Text>
                         </View>
                       )}
                       {event.online_passcode && (
                         <View style={styles.meetingInfoRow}>
-                          <Text style={[styles.meetingInfoLabel, { color: colors.gray500 }]}>Code d'acces :</Text>
+                          <Text style={[styles.meetingInfoLabel, { color: colors.gray500 }]}>{t('eventDetails.meetingPasscode')}</Text>
                           <Text style={[styles.meetingInfoValue, { color: colors.gray900 }]}>{event.online_passcode}</Text>
                         </View>
                       )}
@@ -632,7 +634,7 @@ export default function EventDetailsScreen() {
                       }}
                     >
                       <Ionicons name="videocam" size={18} color={colors.white} />
-                      <Text style={styles.joinOnlineButtonText}>Rejoindre l'evenement</Text>
+                      <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinEvent')}</Text>
                     </TouchableOpacity>
                   ) : event.online_platform?.toLowerCase().includes('eventez') ? (
                     <View style={[styles.eventezVisioNotice, { backgroundColor: colors.infoBg }]}>
@@ -667,7 +669,7 @@ export default function EventDetailsScreen() {
                   <Ionicons name="location" size={22} color={colors.primary} />
                 </View>
                 <View style={styles.infoContent}>
-                  <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{event.location_name || 'Lieu a definir'}</Text>
+                  <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{event.location_name || t('eventDetails.venueTBA')}</Text>
                   <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>
                     {event.location_address || `${event.location_city}, ${event.location_country}`}
                   </Text>
@@ -687,12 +689,12 @@ export default function EventDetailsScreen() {
                   style={[styles.joinOnlineButton, { marginTop: Spacing.sm }]}
                   onPress={() => {
                     Linking.openURL(event.online_url!).catch(() => {
-                      showError('Erreur', 'Impossible d\'ouvrir le lien de l\'evenement');
+                      showError(t('common.error'), t('eventDetails.openLinkError'));
                     });
                   }}
                 >
                   <Ionicons name="videocam" size={18} color={colors.white} />
-                  <Text style={styles.joinOnlineButtonText}>Rejoindre en ligne</Text>
+                  <Text style={styles.joinOnlineButtonText}>{t('eventDetails.joinOnline')}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -702,7 +704,7 @@ export default function EventDetailsScreen() {
                 <Ionicons name="location" size={22} color={colors.primary} />
               </View>
               <View style={styles.infoContent}>
-                <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{event.location_name || 'Lieu a definir'}</Text>
+                <Text style={[styles.infoTitle, { color: colors.gray900 }]}>{event.location_name || t('eventDetails.venueTBA')}</Text>
                 <Text style={[styles.infoSubtitle, { color: colors.gray500 }]}>
                   {event.location_address || `${event.location_city}, ${event.location_country}`}
                 </Text>
@@ -719,7 +721,7 @@ export default function EventDetailsScreen() {
               <Text style={[styles.statValue, { color: colors.gray900 }]} numberOfLines={1}>
                 {formatCompactNumber(event.registration_count, { fallbackZero: true })}
               </Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Inscrits</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('eventDetails.registered')}</Text>
             </View>
             {(event.view_count || 0) >= 50 && (
               <>
@@ -728,14 +730,14 @@ export default function EventDetailsScreen() {
                   <Text style={[styles.statValue, { color: colors.gray900 }]} numberOfLines={1}>
                     {formatCompactNumber(event.view_count, { fallbackZero: true })}
                   </Text>
-                  <Text style={[styles.statLabel, { color: colors.gray500 }]}>Vues</Text>
+                  <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('eventDetails.views')}</Text>
                 </View>
               </>
             )}
             <View style={[styles.statDivider, { backgroundColor: colors.gray200 }]} />
             <View style={styles.statItem}>
               <Text style={[styles.statValue, { color: colors.gray900 }]}>{followersCount}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Favoris</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('eventDetails.favorites')}</Text>
             </View>
           </View>
 
@@ -752,15 +754,15 @@ export default function EventDetailsScreen() {
 
           {/* Section: Good to Know — 2-col icon grid (soft editorial) */}
           <View style={[styles.goodToKnowSection, { borderTopColor: colors.gray100 }]}>
-            <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>INFO UTILE</Text>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Bon à savoir</Text>
+            <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>{t('eventDetails.infoEyebrow')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('eventDetails.infoTitle')}</Text>
             <View style={styles.goodToKnowGrid}>
               {event.start_date && (
                 <View style={[styles.goodToKnowItem, { backgroundColor: colors.gray50, borderColor: colors.gray100 }]}>
                   <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.primary}18` }]}>
                     <Ionicons name="time-outline" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Check-in dès {formatTime(event.start_date)}</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{t('eventDetails.checkinFrom', { time: formatTime(event.start_date) })}</Text>
                 </View>
               )}
               {event.location_type === 'in_person' && (
@@ -768,7 +770,7 @@ export default function EventDetailsScreen() {
                   <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.secondary}18` }]}>
                     <Ionicons name="navigate-outline" size={18} color={colors.secondary} />
                   </View>
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Présentiel</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{t('eventDetails.inPerson')}</Text>
                 </View>
               )}
               {event.location_type === 'online' && (
@@ -776,7 +778,7 @@ export default function EventDetailsScreen() {
                   <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.info}18` }]}>
                     <Ionicons name="videocam-outline" size={18} color={colors.info} />
                   </View>
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>En ligne</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{t('eventDetails.online')}</Text>
                 </View>
               )}
               {event.location_type === 'hybrid' && (
@@ -784,7 +786,7 @@ export default function EventDetailsScreen() {
                   <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.info}18` }]}>
                     <Ionicons name="globe-outline" size={18} color={colors.info} />
                   </View>
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Hybride</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{t('eventDetails.hybrid')}</Text>
                 </View>
               )}
               {(event as any).max_attendees && (
@@ -800,7 +802,7 @@ export default function EventDetailsScreen() {
                   <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.success}18` }]}>
                     <Ionicons name="pricetag-outline" size={18} color={colors.success} />
                   </View>
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Gratuit</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{t('eventDetails.free')}</Text>
                 </View>
               )}
               {event.visibility === 'unlisted' && (
@@ -808,7 +810,7 @@ export default function EventDetailsScreen() {
                   <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.warning}18` }]}>
                     <Ionicons name="link-outline" size={18} color={colors.warning} />
                   </View>
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Accessible via lien</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{t('eventDetails.linkAccessible')}</Text>
                 </View>
               )}
               {event.visibility === 'invite_only' && (
@@ -816,7 +818,7 @@ export default function EventDetailsScreen() {
                   <View style={[styles.goodToKnowIcon, { backgroundColor: `${colors.primary}18` }]}>
                     <Ionicons name="lock-closed-outline" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>Sur invitation</Text>
+                  <Text style={[styles.goodToKnowText, { color: colors.gray700 }]}>{t('eventDetails.byInvitation')}</Text>
                 </View>
               )}
             </View>
@@ -825,8 +827,8 @@ export default function EventDetailsScreen() {
           {/* Section: Who's Going — real avatars from opt-in registrants, count fallback otherwise */}
           {(event.registration_count || 0) > 0 && (
             <View style={[styles.whoIsGoingSection, { borderTopColor: colors.gray100 }]}>
-              <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>LA COMMUNAUTÉ</Text>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Qui y va ?</Text>
+              <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>{t('eventDetails.communityEyebrow')}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('eventDetails.communityTitle')}</Text>
               <View style={styles.whoIsGoingRow}>
                 {event.recent_registrants && event.recent_registrants.length > 0 ? (
                   <>
@@ -899,8 +901,8 @@ export default function EventDetailsScreen() {
           {/* Section: Gallery */}
           {allImages.length > 1 && (
             <View style={[styles.gallerySection, { borderTopColor: colors.gray100 }]}>
-              <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>GALERIE</Text>
-              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Photos</Text>
+              <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>{t('eventDetails.galleryEyebrow')}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('eventDetails.galleryTitle')}</Text>
               <FlatList
                 horizontal
                 data={allImages}
@@ -1017,8 +1019,8 @@ export default function EventDetailsScreen() {
         <View style={[styles.previewBottomBar, { backgroundColor: colors.text, paddingBottom: insets.bottom + Spacing.md }]}>
           <Ionicons name="eye-outline" size={18} color={colors.background} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.previewBottomEyebrow, { color: colors.background, opacity: 0.6 }]}>APERÇU</Text>
-            <Text style={[styles.previewBottomText, { color: colors.background }]}>Mode lecture seule — actions désactivées</Text>
+            <Text style={[styles.previewBottomEyebrow, { color: colors.background, opacity: 0.6 }]}>{t('eventDetails.previewEyebrow')}</Text>
+            <Text style={[styles.previewBottomText, { color: colors.background }]}>{t('eventDetails.previewBottom')}</Text>
           </View>
           <TouchableOpacity
             style={[styles.previewCloseBtn, { backgroundColor: 'rgba(255,255,255,0.15)' }]}
@@ -1026,7 +1028,7 @@ export default function EventDetailsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Fermer l'aperçu"
           >
-            <Text style={[styles.previewCloseText, { color: colors.background }]}>Fermer</Text>
+            <Text style={[styles.previewCloseText, { color: colors.background }]}>{t('eventDetails.previewClose')}</Text>
           </TouchableOpacity>
         </View>
       ) : null}
@@ -1043,23 +1045,23 @@ export default function EventDetailsScreen() {
         <View style={styles.priceContainer}>
           {userRegistration ? (
             <>
-              <Text style={[styles.priceLabel, { color: colors.gray500 }]}>Statut</Text>
+              <Text style={[styles.priceLabel, { color: colors.gray500 }]}>{t('eventDetails.statusLabel')}</Text>
               <Badge
-                label={userRegistration.status === 'confirmed' ? 'Inscrit' : userRegistration.status === 'pending' ? 'En attente' : 'Inscrit'}
+                label={userRegistration.status === 'confirmed' ? t('eventDetails.registeredStatus') : userRegistration.status === 'pending' ? t('eventDetails.pendingStatus') : t('eventDetails.registeredStatus')}
                 variant={userRegistration.status === 'confirmed' ? 'success' : userRegistration.status === 'pending' ? 'warning' : 'success'}
               />
             </>
           ) : (
             <>
               <Text style={[styles.priceLabel, { color: colors.gray500 }]}>
-                {minPrice === null ? 'Prix' : minPrice > 0 ? 'A partir de' : 'Prix'}
+                {minPrice === null ? t('eventDetails.priceLabel') : minPrice > 0 ? t('eventDetails.fromLabel') : t('eventDetails.priceLabel')}
               </Text>
               <Text style={[styles.priceValue, { color: colors.gray900 }]}>
                 {minPrice === null
                   ? '—'
                   : minPrice > 0
                   ? `${minPrice.toLocaleString()} ${event?.currency || 'FCFA'}`
-                  : 'Gratuit'}
+                  : t('eventDetails.free')}
               </Text>
               {minPrice !== null && minPrice > 0 && (
                 <ConvertedPrice amount={minPrice} eventCurrency={event?.currency || 'XAF'} />
@@ -1083,7 +1085,7 @@ export default function EventDetailsScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="card-outline" size={18} color={colors.white} />
-                <Text style={styles.ctaButtonText}>Payer</Text>
+                <Text style={styles.ctaButtonText}>{t('eventDetails.ctaPay')}</Text>
               </TouchableOpacity>
             </View>
           ) : userRegistration.status === 'confirmed' ? (
@@ -1107,7 +1109,7 @@ export default function EventDetailsScreen() {
                   activeOpacity={0.8}
                 >
                   <Ionicons name="ticket-outline" size={18} color={colors.white} />
-                  <Text style={styles.ctaButtonText}>Mon Billet</Text>
+                  <Text style={styles.ctaButtonText}>{t('eventDetails.ctaMyTicket')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -1118,7 +1120,7 @@ export default function EventDetailsScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="document-text-outline" size={18} color={colors.white} />
-                <Text style={styles.ctaButtonText}>Mon Inscription</Text>
+                <Text style={styles.ctaButtonText}>{t('eventDetails.ctaMyRegistration')}</Text>
               </TouchableOpacity>
             )
           ) : (
@@ -1127,19 +1129,19 @@ export default function EventDetailsScreen() {
               onPress={() => navigation.navigate('RegistrationDetails', { registrationId: userRegistration.id })}
               activeOpacity={0.8}
             >
-              <Text style={styles.ctaButtonText}>Voir mon inscription</Text>
+              <Text style={styles.ctaButtonText}>{t('eventDetails.ctaViewRegistration')}</Text>
               <Ionicons name="ticket-outline" size={18} color={colors.white} />
             </TouchableOpacity>
           )
         ) : event.status === 'cancelled' ? (
           <View style={[styles.ctaButton, { backgroundColor: colors.error || '#EF4444', opacity: 0.85 }]}>
             <Ionicons name="close-circle-outline" size={18} color={colors.white} />
-            <Text style={styles.ctaButtonText}>Événement annulé</Text>
+            <Text style={styles.ctaButtonText}>{t('eventDetails.ctaCancelled')}</Text>
           </View>
         ) : event.status === 'completed' ? (
           <View style={[styles.ctaButton, { backgroundColor: colors.gray400 || '#9CA3AF' }]}>
             <Ionicons name="checkmark-done-outline" size={18} color={colors.white} />
-            <Text style={styles.ctaButtonText}>Événement terminé</Text>
+            <Text style={styles.ctaButtonText}>{t('eventDetails.ctaEnded')}</Text>
           </View>
         ) : (
           <TouchableOpacity
@@ -1154,7 +1156,7 @@ export default function EventDetailsScreen() {
             )}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel={event.event_type === 'billetterie' ? 'Acheter des billets' : "S'inscrire"}
+            accessibilityLabel={event.event_type === 'billetterie' ? t('eventDetails.ctaBuyTickets') : t('eventDetails.ctaRegister')}
             style={styles.ctaGradientWrap}
           >
             <LinearGradient
@@ -1165,7 +1167,7 @@ export default function EventDetailsScreen() {
             >
               <Ionicons name="lock-closed" size={14} color={colors.white} />
               <Text style={styles.ctaButtonText}>
-                {event.event_type === 'billetterie' ? 'Acheter des billets' : 'S\'inscrire'}
+                {event.event_type === 'billetterie' ? t('eventDetails.ctaBuyTickets') : t('eventDetails.ctaRegister')}
               </Text>
               <Ionicons name="arrow-forward" size={18} color={colors.white} />
             </LinearGradient>
@@ -1192,7 +1194,7 @@ export default function EventDetailsScreen() {
               style={styles.imageViewerClose}
               onPress={() => setShowImageViewer(false)}
               accessibilityRole="button"
-              accessibilityLabel="Fermer la visionneuse"
+              accessibilityLabel={t('eventDetails.imageViewerClose')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
               <Ionicons name="close" size={26} color={Colors.white} />

@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -35,6 +36,7 @@ type TimeRange = '7d' | '30d' | '90d' | '1y';
 
 export default function AnalyticsDashboardScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const { colors, isDark } = useTheme();
   const { showError } = useAlert();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -325,7 +327,7 @@ export default function AnalyticsDashboardScreen() {
         <StaggeredItem index={1}>
           <View style={styles.kpiGrid}>
             <KPICard variant="editorial"
-              eyebrow="REVENUS"
+              eyebrow={t('eyebrow.revenue')}
               label="Sur la période"
               value={totalRevenue.toLocaleString()}
               suffix={platformCurrency}
@@ -335,7 +337,7 @@ export default function AnalyticsDashboardScreen() {
               subtitle={compareLabel}
             />
             <KPICard variant="editorial"
-              eyebrow="INSCRITS"
+              eyebrow={t('eyebrow.registered')}
               label="Total période"
               value={totalRegistrations}
               icon="people-outline"
@@ -349,14 +351,14 @@ export default function AnalyticsDashboardScreen() {
         <StaggeredItem index={2}>
           <View style={styles.kpiGrid}>
             <KPICard variant="editorial"
-              eyebrow="EVENTS"
+              eyebrow={t('eyebrow.eventsShort')}
               label="Actifs et passés"
               value={totalEvents}
               icon="calendar-outline"
               color="#A855F7"
             />
             <KPICard variant="editorial"
-              eyebrow="PRÉSENCE"
+              eyebrow={t('eyebrow.attendance')}
               label="Taux moyen"
               value={`${Math.round(avgAttendance)}%`}
               icon="checkmark-circle-outline"

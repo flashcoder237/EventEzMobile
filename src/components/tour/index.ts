@@ -5,4 +5,5 @@ export {
   MAIN_TABS_TOUR_STEPS,
   MAIN_TABS_TOUR_STORAGE_KEY,
   MAIN_TABS_TOUR_DELAY_MS,
+  getMainTabsTourSteps,
 } from './mainTabsTour';

@@ -38,6 +38,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTour, TourStep, TourTargetMeasurement } from './FeatureTourContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { FontFamily, BorderRadius, Spacing } from '../../constants/theme';
@@ -51,6 +52,7 @@ const COACHMARK_GAP = 16; // espace minimal entre le spotlight et la bulle
 const COACHMARK_LIFT_TOP = 80;
 
 export default function TourOverlay() {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
   const { steps, currentIndex, next, back, skip } = useTour();
@@ -340,7 +342,7 @@ export default function TourOverlay() {
 
           {measureError && (
             <Text style={[styles.errorHint, { color: colors.gray400 }]}>
-              (Élément introuvable — passe au suivant)
+              {t('componentsTour.errorHint')}
             </Text>
           )}
 
@@ -362,7 +364,7 @@ export default function TourOverlay() {
               style={styles.skipBtn}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Text style={[styles.skipText, { color: colors.gray500 }]}>Passer</Text>
+              <Text style={[styles.skipText, { color: colors.gray500 }]}>{t('componentsTour.skip')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -370,7 +372,7 @@ export default function TourOverlay() {
               style={[styles.ctaBtn, { backgroundColor: colors.primary }]}
               activeOpacity={0.85}
             >
-              <Text style={styles.ctaText}>{isLastStep ? 'Compris' : 'Suivant'}</Text>
+              <Text style={styles.ctaText}>{isLastStep ? t('componentsTour.got_it') : t('componentsTour.next')}</Text>
               <Ionicons
                 name={isLastStep ? 'checkmark' : 'arrow-forward'}
                 size={14}

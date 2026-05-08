@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -37,29 +38,29 @@ import {
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 interface StatusConfig {
-  label: string;
+  labelKey: string;
   bg: string;
   fg: string;
   icon: keyof typeof Ionicons.glyphMap;
 }
 
 const STATUS_CONFIG: Record<RefundStatus, StatusConfig> = {
-  requested: { label: 'EN ATTENTE', bg: '#FEF3C7', fg: '#92400E', icon: 'hourglass-outline' },
-  processing: { label: 'EN COURS', bg: '#DBEAFE', fg: '#1E40AF', icon: 'sync-outline' },
-  completed: { label: 'REMBOURSÉ', bg: '#D1FAE5', fg: '#065F46', icon: 'checkmark-circle-outline' },
-  rejected: { label: 'REFUSÉ', bg: '#FEE2E2', fg: '#991B1B', icon: 'close-circle-outline' },
+  requested: { labelKey: 'refundsList.statusRequested', bg: '#FEF3C7', fg: '#92400E', icon: 'hourglass-outline' },
+  processing: { labelKey: 'refundsList.statusProcessing', bg: '#DBEAFE', fg: '#1E40AF', icon: 'sync-outline' },
+  completed: { labelKey: 'refundsList.statusCompleted', bg: '#D1FAE5', fg: '#065F46', icon: 'checkmark-circle-outline' },
+  rejected: { labelKey: 'refundsList.statusRejected', bg: '#FEE2E2', fg: '#991B1B', icon: 'close-circle-outline' },
 };
 
-function formatDateRelative(iso: string) {
+function formatDateRelative(iso: string, t: (k: string, opts?: any) => string, locale: string) {
   try {
     const d = new Date(iso);
     const now = new Date();
     const diff = (now.getTime() - d.getTime()) / 1000;
-    if (diff < 60) return "à l'instant";
-    if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
-    if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
-    if (diff < 604800) return `il y a ${Math.floor(diff / 86400)} j`;
-    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (diff < 60) return t('refundsList.justNow');
+    if (diff < 3600) return t('refundsList.minutesAgo', { count: Math.floor(diff / 60) });
+    if (diff < 86400) return t('refundsList.hoursAgo', { count: Math.floor(diff / 3600) });
+    if (diff < 604800) return t('refundsList.daysAgo', { count: Math.floor(diff / 86400) });
+    return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
   } catch {
     return '';
   }
@@ -69,6 +70,8 @@ export default function RefundsListScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
 
   const [refunds, setRefunds] = useState<Refund[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,11 +84,11 @@ export default function RefundsListScreen() {
       setRefunds(data);
     } catch (error) {
       if (__DEV__) console.error('Error fetching refunds:', error);
-      showError('Erreur', 'Impossible de charger tes demandes de remboursement');
+      showError(t('refundsList.errorTitle'), t('refundsList.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [showError]);
+  }, [showError, t]);
 
   useEffect(() => {
     fetchRefunds();
@@ -128,7 +131,7 @@ export default function RefundsListScreen() {
     const eventTitle =
       (item.payment_details as any)?.event_title ||
       (item.payment_details as any)?.registration?.event?.title ||
-      'Paiement';
+      t('refundsList.paymentFallback');
     const currency = (item.payment_details as any)?.currency || 'XAF';
 
     return (
@@ -142,10 +145,10 @@ export default function RefundsListScreen() {
         <View style={styles.cardHeader}>
           <View style={[styles.statusPill, { backgroundColor: status.bg }]}>
             <Ionicons name={status.icon} size={12} color={status.fg} />
-            <Text style={[styles.statusPillText, { color: status.fg }]}>{status.label}</Text>
+            <Text style={[styles.statusPillText, { color: status.fg }]}>{t(status.labelKey)}</Text>
           </View>
           <Text style={[styles.cardDate, { color: colors.gray500 }]}>
-            {formatDateRelative(item.requested_at)}
+            {formatDateRelative(item.requested_at, t, dateLocale)}
           </Text>
         </View>
 
@@ -154,9 +157,9 @@ export default function RefundsListScreen() {
         </Text>
 
         <View style={styles.cardAmountRow}>
-          <Text style={[styles.cardAmountLabel, { color: colors.gray500 }]}>Montant</Text>
+          <Text style={[styles.cardAmountLabel, { color: colors.gray500 }]}>{t('refundsList.amountLabel')}</Text>
           <Text style={[styles.cardAmount, { color: colors.text }]}>
-            {Number(item.amount).toLocaleString('fr-FR')} {currency}
+            {Number(item.amount).toLocaleString(dateLocale)} {currency}
           </Text>
         </View>
 
@@ -177,7 +180,7 @@ export default function RefundsListScreen() {
 
         {item.status === 'completed' && item.transaction_id ? (
           <Text style={[styles.cardTxn, { color: colors.gray400 }]} numberOfLines={1}>
-            Réf. transaction : {item.transaction_id}
+            {t('refundsList.txRefPrefix', { ref: item.transaction_id })}
           </Text>
         ) : null}
       </View>
@@ -189,9 +192,9 @@ export default function RefundsListScreen() {
       <View style={[styles.emptyIcon, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="receipt-outline" size={32} color={colors.gray400} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucune demande</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('refundsList.emptyTitle')}</Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        Tes demandes de remboursement apparaîtront ici.
+        {t('refundsList.emptyMessage')}
       </Text>
     </View>
   );
@@ -215,13 +218,13 @@ export default function RefundsListScreen() {
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('refundsList.backA11y')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: Spacing.md }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>SUIVI • TRACKING</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Mes remboursements</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('refundsList.eyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('refundsList.title')}</Text>
           </View>
         </View>
 

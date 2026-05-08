@@ -9,6 +9,7 @@ import {
   Share,
   RefreshControl,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -53,6 +54,8 @@ interface ReferralStats {
 export default function ReferralScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { t, i18n } = useTranslation();
+  const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
   const { currency: platformCurrency } = useCommissionConfig();
   const [codes, setCodes] = useState<ReferralCode[]>([]);
   const [stats, setStats] = useState<ReferralStats | null>(null);
@@ -107,19 +110,19 @@ export default function ReferralScreen() {
       setTimeout(() => setCopiedId(null), 2000);
     } catch (error) {
       if (__DEV__) console.error('Erreur copie:', error);
-      Alert.alert('Erreur', 'Impossible de copier le code.');
+      Alert.alert(t('common.error'), t('referralForm.copyError'));
     }
   };
 
   const handleShare = async (code: string, eventName?: string) => {
     try {
       const message = eventName
-        ? `Rejoins-moi sur EventEz pour "${eventName}" ! Utilise mon code de parrainage : ${code}`
-        : `Rejoins EventEz avec mon code de parrainage : ${code}`;
+        ? t('referralForm.shareMessageWithEvent', { event: eventName, code })
+        : t('referralForm.shareMessageGeneric', { code });
 
       await Share.share({
         message,
-        title: 'Parrainage EventEz',
+        title: t('referralForm.shareTitle'),
       });
     } catch (error) {
       if (__DEV__) console.error('Erreur partage:', error);
@@ -127,7 +130,7 @@ export default function ReferralScreen() {
   };
 
   const formatCurrency = (amount: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
+    return new Intl.NumberFormat(numberLocale, {
       style: 'currency',
       currency: platformCurrency,
       maximumFractionDigits: 0,
@@ -160,7 +163,7 @@ export default function ReferralScreen() {
           {/* === HUGE CODE BLOCK (touche unique : ticket-stub style) === */}
           <View style={styles.codeMainBlock}>
             <View style={[styles.codeStubLeft, { backgroundColor: Colors.gray900 }]}>
-              <Text style={styles.codeStubLabel}>CODE</Text>
+              <Text style={styles.codeStubLabel}>{t('referralForm.codeLabel')}</Text>
               <Text style={styles.codeStubValue}>{item.code}</Text>
               <Text style={styles.codeStubSub}>EventEz</Text>
             </View>
@@ -191,7 +194,7 @@ export default function ReferralScreen() {
                     { color: isCopied ? '#10B981' : colors.gray700 },
                   ]}
                 >
-                  {isCopied ? 'Copié' : 'Copier'}
+                  {isCopied ? t('referralForm.copied') : t('referralForm.copy')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -206,7 +209,7 @@ export default function ReferralScreen() {
                   style={StyleSheet.absoluteFill}
                 />
                 <Ionicons name="share-outline" size={14} color={Colors.white} />
-                <Text style={styles.shareBtnText}>Partager</Text>
+                <Text style={styles.shareBtnText}>{t('referralForm.share')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -217,25 +220,25 @@ export default function ReferralScreen() {
               <Text style={[styles.codeStatValue, { color: colors.text }]}>
                 {item.total_clicks || 0}
               </Text>
-              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>CLICS</Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>{t('referralForm.cellClicks')}</Text>
             </View>
             <View style={[styles.codeStatCell, { borderRightColor: hairline }]}>
               <Text style={[styles.codeStatValue, { color: colors.text }]}>
                 {item.total_conversions || 0}
               </Text>
-              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>CONV.</Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>{t('referralForm.cellConversions')}</Text>
             </View>
             <View style={[styles.codeStatCell, { borderRightColor: hairline }]}>
               <Text style={[styles.codeStatValue, { color: colors.text }]}>
                 {Math.round(conversionRate)}%
               </Text>
-              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>TAUX</Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>{t('referralForm.cellRate')}</Text>
             </View>
             <View style={styles.codeStatCellLast}>
               <Text style={[styles.codeStatValue, { color: '#10B981' }]} numberOfLines={1}>
                 {formatCurrency(item.total_earnings || 0)}
               </Text>
-              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>GAINS</Text>
+              <Text style={[styles.codeStatLabel, { color: colors.gray500 }]}>{t('referralForm.cellEarnings')}</Text>
             </View>
           </View>
 
@@ -245,7 +248,7 @@ export default function ReferralScreen() {
               <View style={[styles.detailChipE, { backgroundColor: `${colors.primary}15` }]}>
                 <Ionicons name="trending-up" size={10} color={colors.primary} />
                 <Text style={[styles.detailChipTextE, { color: colors.primary }]}>
-                  {item.commission_percentage}% COMM
+                  {t('referralForm.commissionChip', { percent: item.commission_percentage })}
                 </Text>
               </View>
             )}
@@ -260,7 +263,7 @@ export default function ReferralScreen() {
               <View style={[styles.detailChipE, { backgroundColor: colors.gray100 }]}>
                 <Ionicons name="time-outline" size={10} color={colors.gray700} />
                 <Text style={[styles.detailChipTextE, { color: colors.gray700 }]}>
-                  {new Date(item.valid_until).toLocaleDateString('fr-FR', {
+                  {new Date(item.valid_until).toLocaleDateString(numberLocale, {
                     day: 'numeric',
                     month: 'short',
                   })}
@@ -305,8 +308,8 @@ export default function ReferralScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>PARRAINAGE • REWARDS</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Invite & gagne</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('referralForm.eyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('referralForm.title')}</Text>
           </View>
         </View>
       </View>
@@ -334,10 +337,10 @@ export default function ReferralScreen() {
               <Text style={styles.heroWatermark}>$</Text>
 
               <View style={styles.heroTopRow}>
-                <Text style={styles.heroEyebrow}>GAINS TOTAUX</Text>
+                <Text style={styles.heroEyebrow}>{t('referralForm.totalEarnings')}</Text>
                 <View style={styles.heroBadge}>
                   <Ionicons name="gift" size={10} color={Colors.white} />
-                  <Text style={styles.heroBadgeText}>PROGRAMME</Text>
+                  <Text style={styles.heroBadgeText}>{t('referralForm.badgeProgram')}</Text>
                 </View>
               </View>
 
@@ -351,17 +354,17 @@ export default function ReferralScreen() {
 
               <View style={styles.heroBottomRow}>
                 <View style={styles.heroBottomCell}>
-                  <Text style={styles.heroBottomEyebrow}>CLICS</Text>
+                  <Text style={styles.heroBottomEyebrow}>{t('referralForm.clicksLabel')}</Text>
                   <Text style={styles.heroBottomValue}>{stats?.total_clicks || 0}</Text>
                 </View>
                 <View style={styles.heroBottomDivider} />
                 <View style={styles.heroBottomCell}>
-                  <Text style={styles.heroBottomEyebrow}>CONVERSIONS</Text>
+                  <Text style={styles.heroBottomEyebrow}>{t('referralForm.conversionsLabel')}</Text>
                   <Text style={styles.heroBottomValue}>{stats?.total_conversions || 0}</Text>
                 </View>
                 <View style={styles.heroBottomDivider} />
                 <View style={styles.heroBottomCell}>
-                  <Text style={styles.heroBottomEyebrow}>TAUX</Text>
+                  <Text style={styles.heroBottomEyebrow}>{t('referralForm.rateLabel')}</Text>
                   <Text style={styles.heroBottomValue}>
                     {stats?.total_clicks ? Math.round((stats.total_conversions / stats.total_clicks) * 100) : 0}%
                   </Text>
@@ -371,13 +374,13 @@ export default function ReferralScreen() {
 
             {/* === HOW IT WORKS === */}
             <View style={styles.howItWorks}>
-              <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>COMMENT ÇA MARCHE</Text>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>3 étapes simples</Text>
+              <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('referralForm.howItWorksEyebrow')}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('referralForm.howItWorksTitle')}</Text>
               <View style={styles.stepsRow}>
                 {[
-                  { n: '01', label: 'Partage', icon: 'share-social' as const },
-                  { n: '02', label: 'On clique', icon: 'cursor-default-click' as const },
-                  { n: '03', label: 'Tu gagnes', icon: 'cash' as const },
+                  { n: '01', label: t('referralForm.step1'), icon: 'share-social' as const },
+                  { n: '02', label: t('referralForm.step2'), icon: 'cursor-default-click' as const },
+                  { n: '03', label: t('referralForm.step3'), icon: 'cash' as const },
                 ].map((step, idx) => (
                   <View key={idx} style={[styles.stepCard, { backgroundColor: colors.card, borderColor: hairline }]}>
                     <Text style={[styles.stepNumber, { color: colors.primary }]}>{step.n}</Text>
@@ -389,7 +392,7 @@ export default function ReferralScreen() {
 
             {codes.length > 0 && (
               <Text style={[styles.codesListEyebrow, { color: colors.accent }]}>
-                MES CODES • {codes.length}
+                {t('referralForm.myCodes', { count: codes.length })}
               </Text>
             )}
           </>
@@ -399,10 +402,10 @@ export default function ReferralScreen() {
             <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}10` }]}>
               <Ionicons name="link-outline" size={40} color={colors.primary} />
             </View>
-            <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>BIENTÔT</Text>
-            <Text style={[styles.emptyText, { color: colors.text }]}>Pas de code pour l'instant</Text>
+            <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{t('referralForm.emptyEyebrow')}</Text>
+            <Text style={[styles.emptyText, { color: colors.text }]}>{t('referralForm.emptyTitle')}</Text>
             <Text style={[styles.emptySubtext, { color: colors.gray500 }]}>
-              Vos codes de parrainage apparaîtront ici dès qu'ils seront disponibles.
+              {t('referralForm.emptySubtitle')}
             </Text>
           </View>
         }

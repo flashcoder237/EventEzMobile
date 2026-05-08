@@ -17,6 +17,7 @@ import { speakersAPI } from '../../api';
 import { ProfileSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList, Speaker, Session } from '../../types';
 import {
   Colors,
@@ -37,6 +38,7 @@ export default function SpeakerDetailsScreen() {
   const route = useRoute<RouteProps>();
   const { showError } = useAlert();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { speakerId } = route.params;
 
   const [speaker, setSpeaker] = useState<Speaker | null>(null);
@@ -67,7 +69,7 @@ export default function SpeakerDetailsScreen() {
       }
     } catch (err: any) {
       if (__DEV__) console.error('[SpeakerDetails] Error fetching speaker:', err);
-      showError('Erreur', 'Impossible de charger le profil de l\'intervenant.');
+      showError(t('common.error'), t('speakerDetails.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +115,7 @@ export default function SpeakerDetailsScreen() {
             <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('speakerDetails.title')}</Text>
             <View style={styles.headerRight} />
           </View>
           <ProfileSkeleton />
@@ -131,12 +133,12 @@ export default function SpeakerDetailsScreen() {
             <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('speakerDetails.title')}</Text>
             <View style={styles.headerRight} />
           </View>
           <View style={styles.loadingContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.errorText, { color: colors.gray500 }]}>Intervenant introuvable</Text>
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('speakerDetails.notFound')}</Text>
           </View>
         </View>
       </EditorialCanvas>
@@ -156,7 +158,7 @@ export default function SpeakerDetailsScreen() {
         <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Intervenant</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('speakerDetails.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -179,14 +181,16 @@ export default function SpeakerDetailsScreen() {
 
           {(speaker.title || speaker.company) && (
             <Text style={[styles.roleText, { color: colors.gray500 }]}>
-              {[speaker.title, speaker.company].filter(Boolean).join(' chez ')}
+              {speaker.title && speaker.company
+                ? t('speakerDetails.atCompany', { title: speaker.title, company: speaker.company })
+                : (speaker.title || speaker.company)}
             </Text>
           )}
 
           {speaker.is_featured && (
             <View style={[styles.featuredBadge, { backgroundColor: colors.warningLight }]}>
               <Ionicons name="star" size={14} color={colors.warning} />
-              <Text style={[styles.featuredText, { color: colors.warningDark }]}>Intervenant vedette</Text>
+              <Text style={[styles.featuredText, { color: colors.warningDark }]}>{t('speakerDetails.featured')}</Text>
             </View>
           )}
         </View>
@@ -201,7 +205,7 @@ export default function SpeakerDetailsScreen() {
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="globe-outline" size={22} color={colors.primary} />
-                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Site web</Text>
+                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>{t('speakerDetails.website')}</Text>
               </TouchableOpacity>
             )}
             {speaker.linkedin && (
@@ -211,7 +215,7 @@ export default function SpeakerDetailsScreen() {
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="logo-linkedin" size={22} color="#0A66C2" />
-                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>LinkedIn</Text>
+                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>{t('speakerDetails.linkedin')}</Text>
               </TouchableOpacity>
             )}
             {speaker.twitter && (
@@ -221,7 +225,7 @@ export default function SpeakerDetailsScreen() {
                 activeOpacity={TOUCH_OPACITY}
               >
                 <Ionicons name="logo-twitter" size={22} color="#1DA1F2" />
-                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>Twitter</Text>
+                <Text style={[styles.socialButtonText, { color: colors.gray600 }]}>{t('speakerDetails.twitter')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -230,7 +234,7 @@ export default function SpeakerDetailsScreen() {
         {/* Bio */}
         {speaker.bio && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Biographie</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('speakerDetails.biography')}</Text>
             <Text style={[styles.bioText, { color: colors.gray600 }]}>{speaker.bio}</Text>
           </View>
         )}
@@ -238,7 +242,7 @@ export default function SpeakerDetailsScreen() {
         {/* Contact Info */}
         {(speaker.email || speaker.phone) && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Contact</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('speakerDetails.contact')}</Text>
             <View style={[styles.contactCard, { backgroundColor: colors.gray50 }]}>
               {speaker.email && (
                 <TouchableOpacity
@@ -273,11 +277,11 @@ export default function SpeakerDetailsScreen() {
 
         {/* Sessions */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Sessions</Text>
+          <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('speakerDetails.sessions')}</Text>
           {isLoadingSessions ? (
             <View style={styles.sessionsLoadingContainer}>
               <ActivityIndicator size="small" color={colors.primary} />
-              <Text style={[styles.sessionsLoadingText, { color: colors.gray500 }]}>Chargement des sessions...</Text>
+              <Text style={[styles.sessionsLoadingText, { color: colors.gray500 }]}>{t('speakerDetails.loadingSessions')}</Text>
             </View>
           ) : sessions.length > 0 ? (
             sessions.map((sessionItem) => (
@@ -318,7 +322,7 @@ export default function SpeakerDetailsScreen() {
           ) : (
             <View style={styles.emptySessionsContainer}>
               <Ionicons name="calendar-outline" size={32} color={colors.gray300} />
-              <Text style={[styles.emptySessionsText, { color: colors.gray400 }]}>Aucune session programmee</Text>
+              <Text style={[styles.emptySessionsText, { color: colors.gray400 }]}>{t('speakerDetails.noSessions')}</Text>
             </View>
           )}
         </View>

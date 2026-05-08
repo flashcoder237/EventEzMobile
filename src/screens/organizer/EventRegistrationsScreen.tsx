@@ -17,6 +17,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -79,6 +80,7 @@ const getApprovalBadgeVariant = (status: string): 'default' | 'secondary' | 'des
 export default function EventRegistrationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RoutePropType>();
+  const { t } = useTranslation();
   const { eventId } = route.params;
   const { showAlert, showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
@@ -542,7 +544,7 @@ export default function EventRegistrationsScreen() {
         <WatermarkNumeral>RSVP</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           <EditorialHeader
-            eyebrow="LA FILE D'ENTRÉE"
+            eyebrow={t('eyebrow.entryQueue')}
             title="Inscriptions"
             subtitle={eventTitle || undefined}
             back
@@ -562,7 +564,7 @@ export default function EventRegistrationsScreen() {
       <View style={{ flex: 1, zIndex: 1 }}>
         {/* Header éditorial : eyebrow + display title + actions discrètes */}
         <EditorialHeader
-          eyebrow="LA FILE D'ENTRÉE"
+          eyebrow={t('eyebrow.entryQueue')}
           title="Inscriptions"
           subtitle={eventTitle || undefined}
           back

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TextInput,
   ActivityIndicator,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -34,47 +35,47 @@ type RefundRequestRouteProp = RouteProp<RootStackParamList, 'RefundRequest'>;
 
 interface RefundReason {
   id: string;
-  label: string;
-  description: string;
+  labelKey: string;
+  descriptionKey: string;
   icon: keyof typeof Ionicons.glyphMap;
-  eyebrow: string;
+  eyebrowKey: string;
 }
 
 const refundReasons: RefundReason[] = [
   {
     id: 'event_cancelled',
-    label: 'Événement annulé',
-    description: 'L\'événement a été annulé par l\'organisateur',
+    labelKey: 'refundRequest.reasonEventCancelled',
+    descriptionKey: 'refundRequest.reasonEventCancelledDesc',
     icon: 'calendar-outline',
-    eyebrow: 'CAUSE 01',
+    eyebrowKey: 'refundRequest.cause01',
   },
   {
     id: 'cannot_attend',
-    label: 'Impossible d\'y assister',
-    description: 'Je ne peux plus assister à l\'événement',
+    labelKey: 'refundRequest.reasonCannotAttend',
+    descriptionKey: 'refundRequest.reasonCannotAttendDesc',
     icon: 'walk-outline',
-    eyebrow: 'CAUSE 02',
+    eyebrowKey: 'refundRequest.cause02',
   },
   {
     id: 'duplicate_payment',
-    label: 'Paiement en double',
-    description: 'J\'ai payé deux fois par erreur',
+    labelKey: 'refundRequest.reasonDuplicate',
+    descriptionKey: 'refundRequest.reasonDuplicateDesc',
     icon: 'copy-outline',
-    eyebrow: 'CAUSE 03',
+    eyebrowKey: 'refundRequest.cause03',
   },
   {
     id: 'wrong_event',
-    label: 'Mauvais événement',
-    description: 'Je me suis trompé d\'événement',
+    labelKey: 'refundRequest.reasonWrongEvent',
+    descriptionKey: 'refundRequest.reasonWrongEventDesc',
     icon: 'swap-horizontal-outline',
-    eyebrow: 'CAUSE 04',
+    eyebrowKey: 'refundRequest.cause04',
   },
   {
     id: 'other',
-    label: 'Autre raison',
-    description: 'Une autre raison non listée ci-dessus',
+    labelKey: 'refundRequest.reasonOther',
+    descriptionKey: 'refundRequest.reasonOtherDesc',
     icon: 'ellipsis-horizontal',
-    eyebrow: 'CAUSE 05',
+    eyebrowKey: 'refundRequest.cause05',
   },
 ];
 
@@ -85,6 +86,8 @@ export default function RefundRequestScreen() {
   const { paymentId } = route.params;
   const { showSuccess, showError, showAlert } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t, i18n } = useTranslation();
+  const numberLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
   const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
@@ -107,7 +110,7 @@ export default function RefundRequestScreen() {
       setRefundAmount(String(response.data.amount || 0));
     } catch (error) {
       if (__DEV__) console.error('Error fetching payment:', error);
-      showError('Erreur', 'Impossible de charger les détails du paiement');
+      showError(t('common.error'), t('refundRequest.loadError'));
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -118,7 +121,7 @@ export default function RefundRequestScreen() {
     // Confirmation biométrique avant d'envoyer la demande de remboursement.
     // Catégorie 'payments' (même bucket que retrait/paiement).
     const confirmed = await biometric.confirm({
-      promptMessage: `Confirmer la demande de remboursement de ${amount.toLocaleString()}`,
+      promptMessage: t('refundRequest.biometricPrompt', { amount: amount.toLocaleString(numberLocale) }),
       category: 'payments',
     });
     if (!confirmed) return;
@@ -132,11 +135,11 @@ export default function RefundRequestScreen() {
       });
       // Modal de confirmation avec délai au lieu d'un simple toast
       showAlert(
-        'Demande envoyée',
-        "Ta demande est en cours d'examen. Tu recevras une notif et un email à chaque mise à jour. Délai habituel : 3-5 jours ouvrés.",
+        t('refundRequest.successTitle'),
+        t('refundRequest.successMessage'),
         [
           {
-            text: 'Voir mes demandes',
+            text: t('refundRequest.viewMyRequests'),
             onPress: () => {
               try {
                 navigation.replace('RefundsList' as any);
@@ -145,17 +148,17 @@ export default function RefundRequestScreen() {
               }
             },
           },
-          { text: 'OK', style: 'cancel', onPress: () => navigation.goBack() },
+          { text: t('refundRequest.okButton'), style: 'cancel', onPress: () => navigation.goBack() },
         ],
         'success',
       );
     } catch (error: any) {
       if (__DEV__) console.error('Error creating refund:', error);
       showError(
-        'Erreur',
+        t('common.error'),
         error.response?.data?.detail ||
         error.response?.data?.error ||
-        'Impossible de soumettre la demande de remboursement'
+        t('refundRequest.submitError')
       );
     } finally {
       setSubmitting(false);
@@ -164,11 +167,12 @@ export default function RefundRequestScreen() {
 
   const handleSubmit = async () => {
     if (!selectedReason) {
-      showError('Erreur', 'Sélectionne une raison');
+      showError(t('common.error'), t('refundRequest.selectReasonError'));
       return;
     }
 
-    const reasonLabel = refundReasons.find(r => r.id === selectedReason)?.label || '';
+    const reasonObj = refundReasons.find(r => r.id === selectedReason);
+    const reasonLabel = reasonObj ? t(reasonObj.labelKey) : '';
     const fullReason = additionalDetails.trim()
       ? `${reasonLabel}: ${additionalDetails}`
       : reasonLabel;
@@ -176,35 +180,35 @@ export default function RefundRequestScreen() {
     const amount = isPartialRefund ? parseFloat(refundAmount) : Number(payment?.amount || 0);
 
     if (isNaN(amount) || amount <= 0) {
-      showError('Erreur', 'Montant invalide');
+      showError(t('common.error'), t('refundRequest.invalidAmountError'));
       return;
     }
 
     if (amount > Number(payment?.amount || 0)) {
-      showError('Erreur', 'Le montant ne peut pas dépasser le montant du paiement');
+      showError(t('common.error'), t('refundRequest.amountTooHighError'));
       return;
     }
 
     // Confirmation explicite — c'est une action financière, pas réversible côté UI
     showAlert(
-      'Confirmer la demande',
-      `Tu vas demander le remboursement de ${formatAmount(amount)} ${payment?.currency || 'XAF'}. Cette demande ne pourra pas être annulée.`,
+      t('refundRequest.confirmTitle'),
+      t('refundRequest.confirmMessage', { amount: formatAmount(amount), currency: payment?.currency || 'XAF' }),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Confirmer', style: 'destructive', onPress: () => submitRefund(amount, fullReason) },
+        { text: t('refundRequest.cancelButton'), style: 'cancel' },
+        { text: t('refundRequest.confirmButton'), style: 'destructive', onPress: () => submitRefund(amount, fullReason) },
       ],
       'warning',
     );
   };
 
   const formatAmount = (amount: number | string) => {
-    return Number(amount).toLocaleString('fr-FR');
+    return Number(amount).toLocaleString(numberLocale);
   };
 
   if (loading) {
     return (
       <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>BACK</WatermarkNumeral>
+        <WatermarkNumeral>{t('refundRequest.watermarkBack')}</WatermarkNumeral>
         <LoadingSpinner />
       </EditorialCanvas>
     );
@@ -213,15 +217,15 @@ export default function RefundRequestScreen() {
   if (!payment) {
     return (
       <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>OOPS</WatermarkNumeral>
+        <WatermarkNumeral>{t('refundRequest.watermarkOops')}</WatermarkNumeral>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-          <Text style={[styles.errorText, { color: colors.gray500 }]}>Paiement non trouvé</Text>
+          <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('refundRequest.paymentNotFound')}</Text>
           <TouchableOpacity
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.retryButtonText}>Retour</Text>
+            <Text style={styles.retryButtonText}>{t('refundRequest.back')}</Text>
           </TouchableOpacity>
         </View>
       </EditorialCanvas>
@@ -230,7 +234,7 @@ export default function RefundRequestScreen() {
 
   return (
     <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>BACK</WatermarkNumeral>
+      <WatermarkNumeral>{t('refundRequest.watermarkBack')}</WatermarkNumeral>
 
       {/* === HEADER === */}
       <View
@@ -247,14 +251,14 @@ export default function RefundRequestScreen() {
             onPress={() => navigation.goBack()}
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
-            accessibilityLabel="Fermer"
+            accessibilityLabel={t('refundRequest.closeA11y')}
             accessibilityRole="button"
           >
             <Ionicons name="close" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>REMBOURSEMENT • REFUND</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Réclamer un remb.</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('refundRequest.eyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('refundRequest.title')}</Text>
           </View>
         </View>
       </View>
@@ -277,10 +281,10 @@ export default function RefundRequestScreen() {
           <View style={styles.refCardCircle1} />
           <View style={styles.refCardCircle2} />
           <View style={styles.refCardTopRow}>
-            <Text style={styles.refCardEyebrow}>RÉFÉRENCE PAIEMENT</Text>
+            <Text style={styles.refCardEyebrow}>{t('refundRequest.refCardEyebrow')}</Text>
             <Text style={styles.refCardId}>#{paymentId.slice(0, 8).toUpperCase()}</Text>
           </View>
-          <Text style={styles.refCardLabel}>MONTANT PAYÉ</Text>
+          <Text style={styles.refCardLabel}>{t('refundRequest.refCardLabel')}</Text>
           <View style={styles.refCardAmountRow}>
             <Text style={styles.refCardAmount}>{formatAmount(payment.amount)}</Text>
             <Text style={styles.refCardCurrency}>{payment.currency || 'XAF'}</Text>
@@ -293,23 +297,23 @@ export default function RefundRequestScreen() {
             <Ionicons name="information" size={14} color="#fff" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.transparencyTitle, { color: colors.text }]}>Comment ça marche</Text>
+            <Text style={[styles.transparencyTitle, { color: colors.text }]}>{t('refundRequest.transparencyTitle')}</Text>
             <Text style={[styles.transparencyLine, { color: colors.gray600 }]}>
-              <Text style={{ fontFamily: FontFamily.bold }}>Délai :</Text> 3-5 jours ouvrés après validation par l'organisateur.
+              <Text style={{ fontFamily: FontFamily.bold }}>{t('refundRequest.transparencyDelay')}</Text>{t('refundRequest.transparencyDelayValue')}
             </Text>
             <Text style={[styles.transparencyLine, { color: colors.gray600 }]}>
-              <Text style={{ fontFamily: FontFamily.bold }}>Frais :</Text> les frais de service ne sont pas remboursables.
+              <Text style={{ fontFamily: FontFamily.bold }}>{t('refundRequest.transparencyFees')}</Text>{t('refundRequest.transparencyFeesValue')}
             </Text>
             <Text style={[styles.transparencyLine, { color: colors.gray600 }]}>
-              <Text style={{ fontFamily: FontFamily.bold }}>Suivi :</Text> tu seras notifié·e par email à chaque étape.
+              <Text style={{ fontFamily: FontFamily.bold }}>{t('refundRequest.transparencyTracking')}</Text>{t('refundRequest.transparencyTrackingValue')}
             </Text>
           </View>
         </View>
 
         {/* === REFUND AMOUNT === */}
         <View style={styles.section}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>ÉTAPE 01 • MONTANT</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Que veux-tu récupérer ?</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('refundRequest.step1Eyebrow')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('refundRequest.step1Title')}</Text>
 
           <TouchableOpacity
             style={[
@@ -335,8 +339,8 @@ export default function RefundRequestScreen() {
               {!isPartialRefund && <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.amountOptionEyebrow, { color: colors.accent }]}>OPTION A</Text>
-              <Text style={[styles.amountOptionTitle, { color: colors.text }]}>Remboursement total</Text>
+              <Text style={[styles.amountOptionEyebrow, { color: colors.accent }]}>{t('refundRequest.optionA')}</Text>
+              <Text style={[styles.amountOptionTitle, { color: colors.text }]}>{t('refundRequest.totalRefund')}</Text>
               <Text style={[styles.amountOptionValue, { color: colors.primary }]}>
                 {formatAmount(payment.amount)} {payment.currency || 'XAF'}
               </Text>
@@ -364,8 +368,8 @@ export default function RefundRequestScreen() {
               {isPartialRefund && <View style={[styles.radioInner, { backgroundColor: colors.primary }]} />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.amountOptionEyebrow, { color: colors.accent }]}>OPTION B</Text>
-              <Text style={[styles.amountOptionTitle, { color: colors.text }]}>Remboursement partiel</Text>
+              <Text style={[styles.amountOptionEyebrow, { color: colors.accent }]}>{t('refundRequest.optionB')}</Text>
+              <Text style={[styles.amountOptionTitle, { color: colors.text }]}>{t('refundRequest.partialRefund')}</Text>
               {isPartialRefund && (
                 <View style={styles.partialInputRow}>
                   <TextInput
@@ -380,9 +384,9 @@ export default function RefundRequestScreen() {
                     value={refundAmount}
                     onChangeText={setRefundAmount}
                     keyboardType="numeric"
-                    placeholder="Montant"
+                    placeholder={t('refundRequest.amountPlaceholder')}
                     placeholderTextColor={colors.gray400}
-                    accessibilityLabel="Montant du remboursement"
+                    accessibilityLabel={t('refundRequest.amountA11y')}
                   />
                   <Text style={[styles.amountInputCurrency, { color: colors.gray500 }]}>
                     {payment.currency || 'XAF'}
@@ -395,8 +399,8 @@ export default function RefundRequestScreen() {
 
         {/* === REASON SELECTION === */}
         <View style={styles.section}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>ÉTAPE 02 • RAISON</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Pourquoi ce retour ?</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('refundRequest.step2Eyebrow')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('refundRequest.step2Title')}</Text>
 
           {refundReasons.map((reason) => {
             const isSelected = selectedReason === reason.id;
@@ -429,10 +433,10 @@ export default function RefundRequestScreen() {
                   />
                 </View>
                 <View style={styles.reasonContent}>
-                  <Text style={[styles.reasonEyebrow, { color: colors.accent }]}>{reason.eyebrow}</Text>
-                  <Text style={[styles.reasonTitle, { color: colors.text }]}>{reason.label}</Text>
+                  <Text style={[styles.reasonEyebrow, { color: colors.accent }]}>{t(reason.eyebrowKey)}</Text>
+                  <Text style={[styles.reasonTitle, { color: colors.text }]}>{t(reason.labelKey)}</Text>
                   <Text style={[styles.reasonDescription, { color: colors.gray500 }]}>
-                    {reason.description}
+                    {t(reason.descriptionKey)}
                   </Text>
                 </View>
                 <View
@@ -450,9 +454,9 @@ export default function RefundRequestScreen() {
 
         {/* === ADDITIONAL DETAILS === */}
         <View style={styles.section}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>ÉTAPE 03 • DÉTAILS</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('refundRequest.step3Eyebrow')}</Text>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            Détails (optionnel)
+            {t('refundRequest.step3Title')}
           </Text>
           <TextInput
             style={[
@@ -465,12 +469,12 @@ export default function RefundRequestScreen() {
             ]}
             value={additionalDetails}
             onChangeText={setAdditionalDetails}
-            placeholder="Ajoute des détails pour aider à traiter ta demande..."
+            placeholder={t('refundRequest.detailsPlaceholder')}
             placeholderTextColor={colors.gray400}
             multiline
             numberOfLines={4}
             textAlignVertical="top"
-            accessibilityLabel="Raison du remboursement"
+            accessibilityLabel={t('refundRequest.detailsA11y')}
           />
         </View>
 
@@ -481,9 +485,9 @@ export default function RefundRequestScreen() {
             <Ionicons name="information" size={14} color="#FFFFFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.infoEyebrow}>POLITIQUE • DELAI</Text>
+            <Text style={styles.infoEyebrow}>{t('refundRequest.policyEyebrow')}</Text>
             <Text style={styles.infoText}>
-              Le remboursement sera traité sous 5-10 jours ouvrés. Tu seras notifié dès traitement.
+              {t('refundRequest.policyText')}
             </Text>
           </View>
         </View>
@@ -512,7 +516,7 @@ export default function RefundRequestScreen() {
           const organizerName =
             `${organizerObj?.first_name || ''} ${organizerObj?.last_name || ''}`.trim() ||
             organizerObj?.email ||
-            'Organisateur';
+            t('refundRequest.contactOrganizerFallback');
           return (
             <TouchableOpacity
               style={{
@@ -534,11 +538,11 @@ export default function RefundRequestScreen() {
               }
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Contacter l'organisateur avant remboursement"
+              accessibilityLabel={t('refundRequest.contactOrganizerA11y')}
             >
               <Ionicons name="chatbubble-outline" size={14} color={colors.gray700} />
               <Text style={{ fontFamily: FontFamily.semiBold, fontSize: 13, color: colors.gray700 }}>
-                Contacter l'organisateur d'abord
+                {t('refundRequest.contactOrganizerCTA')}
               </Text>
             </TouchableOpacity>
           );
@@ -553,7 +557,7 @@ export default function RefundRequestScreen() {
           onPress={handleSubmit}
           disabled={!selectedReason || submitting}
           activeOpacity={0.9}
-          accessibilityLabel="Demander le remboursement"
+          accessibilityLabel={t('refundRequest.submitA11y')}
           accessibilityRole="button"
         >
           <LinearGradient
@@ -567,9 +571,9 @@ export default function RefundRequestScreen() {
           ) : (
             <>
               <View style={{ flex: 1 }}>
-                <Text style={styles.submitEyebrow}>RÉCLAMATION</Text>
+                <Text style={styles.submitEyebrow}>{t('refundRequest.submitEyebrow')}</Text>
                 <Text style={styles.submitLabel} numberOfLines={1}>
-                  Soumettre · {formatAmount(isPartialRefund ? refundAmount : payment.amount)} {payment.currency || 'XAF'}
+                  {t('refundRequest.submitLabel', { amount: formatAmount(isPartialRefund ? refundAmount : payment.amount), currency: payment.currency || 'XAF' })}
                 </Text>
               </View>
               <View style={styles.submitArrow}>

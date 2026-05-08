@@ -693,8 +693,8 @@ export default function SettingsScreen() {
 
           <OptionCard
             icon="mail-outline"
-            eyebrow="EMAIL"
-            title="Notifications par email"
+            eyebrow={t('eyebrow.email')}
+            title={t('settings.rowEmailNotifs')}
             right={
               <SoftToggle
                 value={emailNotifications}
@@ -704,15 +704,15 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="phone-portrait-outline"
-            eyebrow="PUSH · BIENTÔT"
-            title="Notifications push"
+            eyebrow={t('eyebrow.pushSoon')}
+            title={t('settings.rowPushNotifs')}
             disabled
             right={<SoftToggle value={pushNotifications} onToggle={() => {}} disabled />}
           />
           <OptionCard
             icon="chatbubble-outline"
-            eyebrow="SMS · BIENTÔT"
-            title="Notifications SMS"
+            eyebrow={t('eyebrow.smsSoon')}
+            title={t('settings.rowSmsNotifs')}
             disabled
             right={<SoftToggle value={smsNotifications} onToggle={() => {}} disabled />}
           />
@@ -721,9 +721,9 @@ export default function SettingsScreen() {
               Les notifs transactionnelles critiques (vérif compte, sécurité) passent toujours. */}
           <OptionCard
             icon="calendar-outline"
-            eyebrow="ÉVÉNEMENTS"
-            title="Mises à jour"
-            subtitle="Rappels, annulations, changements de date/lieu"
+            eyebrow={t('eyebrow.events')}
+            title={t('settings.rowEventUpdates')}
+            subtitle={t('settings.rowEventUpdatesSubtitle')}
             right={
               <SoftToggle
                 value={notifyEventUpdates}
@@ -733,8 +733,8 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="card-outline"
-            eyebrow="PAIEMENTS"
-            title="Confirmations & remboursements"
+            eyebrow={t('eyebrow.payments')}
+            title={t('settings.rowPaymentConfirmations')}
             right={
               <SoftToggle
                 value={notifyPayment}
@@ -744,8 +744,8 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="chatbubbles-outline"
-            eyebrow="MESSAGES"
-            title="Nouvelles conversations"
+            eyebrow={t('eyebrow.messages')}
+            title={t('settings.rowNewConversations')}
             right={
               <SoftToggle
                 value={notifyMessagesPref}
@@ -755,8 +755,8 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="sparkles-outline"
-            eyebrow="SUGGESTIONS"
-            title="Recommandations & promotions"
+            eyebrow={t('eyebrow.suggestions')}
+            title={t('settings.rowMarketing')}
             right={
               <SoftToggle
                 value={notifyMarketing}
@@ -782,7 +782,7 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon={isDark ? 'moon-outline' : 'sunny-outline'}
-            eyebrow="THÈME"
+            eyebrow={t('eyebrow.theme')}
             title={getThemeLabel()}
             onPress={showThemePicker}
             tone="primary"
@@ -790,7 +790,7 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="time-outline"
-            eyebrow="FUSEAU · BIENTÔT"
+            eyebrow={t('eyebrow.timezoneSoon')}
             title={getTimezoneLabel()}
             onPress={showTimezonePicker}
             disabled
@@ -798,9 +798,9 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="musical-note-outline"
-            eyebrow="EFFETS SONORES"
-            title="Sons aux moments clés"
-            subtitle="Joue un son à la confirmation d'un paiement ou d'un scan QR"
+            eyebrow={t('eyebrow.soundEffects')}
+            title={t('settings.rowSounds')}
+            subtitle={t('settings.rowSoundsSubtitle')}
             right={
               <SoftToggle
                 value={soundsEnabled}
@@ -822,8 +822,8 @@ export default function SettingsScreen() {
 
           <OptionCard
             icon="shield-checkmark-outline"
-            eyebrow="AUTHENTIFICATION · BIENTÔT"
-            title="Double authentification"
+            eyebrow={t('eyebrow.authSoon')}
+            title={t('settings.rowTwoFA')}
             disabled
             tone="primary"
             right={
@@ -844,7 +844,7 @@ export default function SettingsScreen() {
           <OptionCard
             icon="finger-print"
             eyebrow={appLockSupported ? t('settings.biometricEyebrow') : t('settings.biometricUnavailable')}
-            title="Verrouiller l'app"
+            title={t('settings.rowAppLock')}
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte requise au lancement et après 1 min en arrière-plan'
@@ -864,7 +864,7 @@ export default function SettingsScreen() {
           <OptionCard
             icon="qr-code-outline"
             eyebrow={appLockSupported ? t('settings.biometricTicketsEyebrow') : t('settings.biometricUnavailable')}
-            title="Verrouiller mes billets"
+            title={t('settings.rowTicketLock')}
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte requise pour révéler le QR code à l\'entrée'
@@ -884,7 +884,7 @@ export default function SettingsScreen() {
           <OptionCard
             icon="card-outline"
             eyebrow={appLockSupported ? t('settings.biometricPaymentsEyebrow') : t('settings.biometricUnavailable')}
-            title="Confirmer mes paiements"
+            title={t('settings.rowPaymentLock')}
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte avant retrait, paiement, modif IBAN, remboursement'
@@ -902,7 +902,7 @@ export default function SettingsScreen() {
           <OptionCard
             icon="person-outline"
             eyebrow={appLockSupported ? t('settings.biometricAccountEyebrow') : t('settings.biometricUnavailable')}
-            title="Confirmer les changements de compte"
+            title={t('settings.rowAccountLock')}
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte pour suppression de compte ou changement de mot de passe'
@@ -921,7 +921,7 @@ export default function SettingsScreen() {
             <OptionCard
               icon="shield-checkmark-outline"
               eyebrow={appLockSupported ? t('settings.biometricAdminEyebrow') : t('settings.biometricUnavailable')}
-              title="Confirmer les actions admin"
+              title={t('settings.rowAdminLock')}
               subtitle={
                 appLockSupported
                   ? t('settings.biometricAdminDescription')
@@ -939,15 +939,15 @@ export default function SettingsScreen() {
           )}
           <OptionCard
             icon="notifications-outline"
-            eyebrow="CONNEXIONS · BIENTÔT"
-            title="Alertes de connexion"
+            eyebrow={t('eyebrow.connectionsSoon')}
+            title={t('settings.rowLoginAlerts')}
             disabled
             right={<SoftToggle value={loginNotifications} onToggle={() => {}} disabled />}
           />
           <OptionCard
             icon="eye-outline"
-            eyebrow="VISIBILITÉ"
-            title="Profil public"
+            eyebrow={t('eyebrow.visibility')}
+            title={t('settings.rowPublicProfile')}
             right={
               <SoftToggle
                 value={publicProfile}
@@ -957,8 +957,8 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="people-outline"
-            eyebrow="ÉVÉNEMENTS"
-            title="Apparaître dans « Qui y va ? »"
+            eyebrow={t('eyebrow.events')}
+            title={t('settings.rowShowInGoing')}
             right={
               <SoftToggle
                 value={showInAttendees}
@@ -968,9 +968,9 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="checkmark-done-outline"
-            eyebrow="MESSAGES"
-            title="Confirmer la lecture"
-            subtitle="Quand désactivé, les autres ne voient plus que tu as lu leurs messages"
+            eyebrow={t('eyebrow.messages')}
+            title={t('settings.rowReadConfirmations')}
+            subtitle={t('settings.rowReadConfirmationsSubtitle')}
             right={
               <SoftToggle
                 value={showReadReceipts}
@@ -991,9 +991,9 @@ export default function SettingsScreen() {
 
           <OptionCard
             icon="chatbubbles-outline"
-            eyebrow="MESSAGERIE"
-            title="Activer la messagerie"
-            subtitle="Désactive pour ne plus recevoir aucun message"
+            eyebrow={t('eyebrow.messaging')}
+            title={t('settings.rowMessagingEnabled')}
+            subtitle={t('settings.rowMessagingEnabledSubtitle')}
             tone="primary"
             right={
               <SoftToggle
@@ -1007,9 +1007,9 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="checkmark-done-outline"
-            eyebrow="LECTURE"
-            title="Confirmations de lecture"
-            subtitle="Affiche le double-check bleu quand tu lis un message"
+            eyebrow={t('eyebrow.reading')}
+            title={t('settings.rowReadReceipts')}
+            subtitle={t('settings.rowReadReceiptsSubtitle')}
             right={
               <SoftToggle
                 value={messagingReadReceipts}
@@ -1022,7 +1022,7 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="radio-outline"
-            eyebrow="PRÉSENCE"
+            eyebrow={t('eyebrow.presence')}
             title="Présence visible"
             subtitle="Les autres voient quand tu es en ligne"
             right={
@@ -1054,28 +1054,28 @@ export default function SettingsScreen() {
           </View>
           <OptionCard
             icon="help-circle-outline"
-            eyebrow="SUPPORT"
+            eyebrow={t('eyebrow.support')}
             title="Centre d'aide"
             onPress={() => {}}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
             icon="document-text-outline"
-            eyebrow="JURIDIQUE"
+            eyebrow={t('eyebrow.legal')}
             title="Conditions d'utilisation"
             onPress={() => navigation.navigate('Terms')}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
             icon="shield-outline"
-            eyebrow="RGPD"
+            eyebrow={t('eyebrow.gdpr')}
             title="Politique de confidentialité"
             onPress={() => {}}
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
             icon="information-outline"
-            eyebrow="VERSION"
+            eyebrow={t('eyebrow.version')}
             title="EventEz 1.0.0"
             right={
               <View style={[styles.versionPill, { backgroundColor: colors.gray100 }]}>
@@ -1093,7 +1093,7 @@ export default function SettingsScreen() {
           </View>
           <OptionCard
             icon="log-out-outline"
-            eyebrow="SESSION"
+            eyebrow={t('eyebrow.session')}
             title="Déconnexion"
             onPress={handleLogout}
             danger
@@ -1101,7 +1101,7 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="trash-outline"
-            eyebrow="IRRÉVERSIBLE"
+            eyebrow={t('eyebrow.irreversible')}
             title="Supprimer mon compte"
             onPress={() => setShowDeleteModal(true)}
             danger

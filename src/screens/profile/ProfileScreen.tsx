@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
+import { useTranslation } from 'react-i18next';
 import { FadeInView, ScaleOnMount } from '../../components/ui/Animations';
 import QRCodeDisplay from '../../components/common/QRCodeDisplay';
 import VerificationBanner from '../../components/auth/VerificationBanner';
@@ -28,7 +29,7 @@ import {
 } from '../../components/profile';
 import { eventsAPI, feedbacksAPI, registrationsAPI, walletAPI } from '../../api';
 import { RootStackParamList } from '../../types';
-import { useTour, MAIN_TABS_TOUR_STEPS } from '../../components/tour';
+import { useTour, getMainTabsTourSteps } from '../../components/tour';
 import {
   Colors,
   FontFamily,
@@ -47,6 +48,7 @@ export default function ProfileScreen() {
   const tour = useTour();
   const { showAlert, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { unreadNotificationCount, unreadMessageCount, pendingInvitationCount, pendingTransferCount } = useUnreadCounts();
   const [showMyQR, setShowMyQR] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -128,8 +130,8 @@ export default function ProfileScreen() {
 
   const handleLogout = () => {
     showConfirm(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      t('profile.logoutConfirmTitle'),
+      t('profile.logoutConfirmDetail'),
       logout
     );
   };
@@ -156,14 +158,14 @@ export default function ProfileScreen() {
         {/* Editorial top row — utilities */}
         <View style={styles.editorialTopRow}>
           <Text style={[styles.editorialKicker, { color: colors.gray500 }]}>
-            MEMBRE EVENTEZ DEPUIS {user?.date_joined ? new Date(user.date_joined).getFullYear() : '2024'}
+            {t('profile.memberSinceShort', { year: user?.date_joined ? new Date(user.date_joined).getFullYear() : '2024' })}
           </Text>
           <View style={styles.editorialTopActions}>
             <TouchableOpacity
               style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}
               onPress={() => setShowMyQR(true)}
               accessibilityRole="button"
-              accessibilityLabel="Afficher mon QR code"
+              accessibilityLabel={t('profile.showQRCode')}
             >
               <Ionicons name="qr-code-outline" size={18} color={colors.text} />
             </TouchableOpacity>
@@ -171,7 +173,7 @@ export default function ProfileScreen() {
               style={[styles.iconDisc, { backgroundColor: colors.card, borderColor: softBorder }, Shadows.sm]}
               onPress={() => navigation.navigate('Settings')}
               accessibilityRole="button"
-              accessibilityLabel="Parametres"
+              accessibilityLabel={t('profile.settingsAccessibility')}
             >
               <Ionicons name="settings-outline" size={18} color={colors.text} />
             </TouchableOpacity>
@@ -185,11 +187,11 @@ export default function ProfileScreen() {
             onPress={() => navigation.navigate('EditProfile')}
             activeOpacity={0.85}
             accessibilityRole="button"
-            accessibilityLabel="Modifier le profil"
+            accessibilityLabel={t('profile.editProfileAccessibility')}
           >
             <View style={styles.heroNameCol}>
               <Text style={[styles.heroName, { color: colors.gray900 }]} numberOfLines={1}>
-                {user?.first_name || user?.last_name || 'Invité'}
+                {user?.first_name || user?.last_name || t('profile.guestPlaceholder')}
                 {(user?.first_name || user?.last_name) ? '.' : ''}
               </Text>
               <Text style={[styles.heroEmail, { color: colors.gray500 }]} numberOfLines={1}>
@@ -197,7 +199,7 @@ export default function ProfileScreen() {
               </Text>
               {isOrganizer && (
                 <View style={[styles.proLimeBadge, { backgroundColor: `${colors.primary}15` }]}>
-                  <Text style={[styles.proLimeBadgeText, { color: colors.primary }]}>ORGANISATEUR</Text>
+                  <Text style={[styles.proLimeBadgeText, { color: colors.primary }]}>{t('profile.labelOrganizer')}</Text>
                 </View>
               )}
             </View>
@@ -219,12 +221,12 @@ export default function ProfileScreen() {
               {user?.is_verified ? (
                 <View style={[styles.verifiedTag, { backgroundColor: colors.primary }]}>
                   <Ionicons name="shield-checkmark" size={10} color="#FFFFFF" />
-                  <Text style={styles.verifiedTagText}>VÉRIFIÉ</Text>
+                  <Text style={styles.verifiedTagText}>{t('profile.labelVerified')}</Text>
                 </View>
               ) : (
                 <View style={[styles.verifiedTag, { backgroundColor: colors.accent }]}>
                   <Ionicons name="time-outline" size={10} color="#FFFFFF" />
-                  <Text style={styles.verifiedTagText}>EN ATTENTE</Text>
+                  <Text style={styles.verifiedTagText}>{t('profile.labelPending')}</Text>
                 </View>
               )}
             </View>
@@ -240,12 +242,12 @@ export default function ProfileScreen() {
           >
             <View style={[styles.chipFilled, { backgroundColor: colors.primary }]}>
               <Text style={styles.chipFilledText}>
-                {isOrganizer ? 'ORGANISATEUR' : 'FAN'}
+                {isOrganizer ? t('profile.labelOrganizer') : t('profile.labelFan')}
               </Text>
             </View>
             <View style={[styles.chipOutline, { backgroundColor: colors.card, borderColor: softBorder }]}>
               <Text style={[styles.chipOutlineText, { color: colors.text }]}>
-                {user?.role === 'admin' ? 'ADMIN' : user?.role === 'moderator' ? 'MODÉRATEUR' : 'MEMBRE'}
+                {user?.role === 'admin' ? t('profile.labelAdmin') : user?.role === 'moderator' ? t('profile.labelModerator') : t('profile.labelMember')}
               </Text>
             </View>
             {user?.city ? (
@@ -274,15 +276,15 @@ export default function ProfileScreen() {
             onPress={() => navigation.navigate('BecomeOrganizer')}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Devenir Organisateur"
+            accessibilityLabel={t('profile.becomeOrganizerCard')}
           >
             <View style={styles.becomeOrganizerIcon}>
               <Ionicons name="megaphone" size={28} color={Colors.white} />
             </View>
             <View style={styles.becomeOrganizerText}>
-              <Text style={[styles.becomeOrganizerTitle, { color: colors.gray900 }]}>Devenir Organisateur</Text>
+              <Text style={[styles.becomeOrganizerTitle, { color: colors.gray900 }]}>{t('profile.becomeOrganizerCard')}</Text>
               <Text style={[styles.becomeOrganizerSubtitle, { color: colors.gray600 }]}>
-                Créez et gérez vos propres événements
+                {t('profile.becomeOrganizerCardSubtitle')}
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={24} color={colors.secondary} />
@@ -292,12 +294,12 @@ export default function ProfileScreen() {
         {/* Moderator Section */}
         {isModerator && (
           <View style={styles.menuSection}>
-            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Modération</Text>
+            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.moderatorSection')}</Text>
             <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
               <MenuItem
                 icon="shield-checkmark-outline"
-                title="File de modération"
-                subtitle="Valider les événements"
+                title={t('profile.moderationQueue')}
+                subtitle={t('profile.moderationQueueSubtitle')}
                 onPress={() => navigation.navigate('Moderation')}
                 isLast
               />
@@ -308,59 +310,59 @@ export default function ProfileScreen() {
         {/* Organizer Section */}
         {isOrganizer && (
           <View style={styles.menuSection}>
-            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Organisateur</Text>
+            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.organizerSection')}</Text>
             <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
               <MenuItem
                 icon="add-circle-outline"
-                title="Créer un événement"
+                title={t('profile.createEventMenu')}
                 onPress={() => navigation.navigate('EventCreate')}
               />
               <MenuItem
                 icon="calendar-outline"
-                title="Mes événements"
+                title={t('profile.myEventsMenu')}
                 onPress={() => navigation.navigate('MyEvents')}
               />
               <MenuItem
                 icon="wallet-outline"
-                title="Mon portefeuille"
+                title={t('profile.myWalletMenu')}
                 onPress={() => navigation.navigate('Wallet')}
                 alert={
                   wallet && !wallet.bank_name?.trim() && !wallet.mobile_money_number?.trim()
-                    ? { type: 'warning', label: 'Méthode de retrait à configurer' }
+                    ? { type: 'warning', label: t('profile.withdrawalMethodWarning') }
                     : undefined
                 }
               />
               <MenuItem
                 icon="analytics-outline"
-                title="Analytics"
-                subtitle="Statistiques et rapports"
+                title={t('profile.analyticsMenu')}
+                subtitle={t('profile.analyticsSubtitle')}
                 onPress={() => navigation.navigate('AnalyticsDashboard')}
               />
               <MenuItem
                 icon="git-network-outline"
-                title="Webhooks"
-                subtitle="Intégrations Zapier, Make, etc."
+                title={t('profile.webhooksMenu')}
+                subtitle={t('profile.webhooksSubtitle')}
                 onPress={() => navigation.navigate('Webhooks')}
               />
               <MenuItem
                 icon="mail-outline"
-                title="Newsletters"
-                subtitle="Communique avec tes abonnés"
+                title={t('profile.newslettersMenu')}
+                subtitle={t('profile.newslettersSubtitle')}
                 onPress={() => navigation.navigate('Newsletters')}
               />
               <MenuItem
                 icon="grid-outline"
-                title="Dashboards"
-                subtitle="Vues personnalisées de tes KPIs"
+                title={t('profile.dashboardsMenu')}
+                subtitle={t('profile.dashboardsSubtitle')}
                 onPress={() => navigation.navigate('Dashboards')}
               />
               <MenuItem
                 icon={user?.is_verified ? "checkmark-circle" : "shield-outline"}
-                title="Vérification du compte"
-                subtitle={user?.is_verified ? "Compte vérifié" : undefined}
+                title={t('profile.verificationMenu')}
+                subtitle={user?.is_verified ? t('profile.verifiedSubtitle') : undefined}
                 alert={
                   !user?.is_verified
-                    ? { type: 'warning', label: 'Action requise' }
+                    ? { type: 'warning', label: t('profile.actionRequired') }
                     : undefined
                 }
                 onPress={() => navigation.navigate('Verification')}
@@ -372,14 +374,14 @@ export default function ProfileScreen() {
 
         {/* Menu Sections */}
         <View style={styles.menuSection}>
-          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Mon compte</Text>
+          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.myAccountSection')}</Text>
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="person-outline"
-              title="Modifier le profil"
+              title={t('profile.editProfileMenu')}
               alert={
                 !user?.profile_picture && !(user as any)?.image
-                  ? { type: 'info', label: 'Ajoute une photo de profil' }
+                  ? { type: 'info', label: t('profile.addProfilePicture') }
                   : undefined
               }
               onPress={() => navigation.navigate('EditProfile')}
@@ -387,11 +389,11 @@ export default function ProfileScreen() {
             {!isOrganizer && (
               <MenuItem
                 icon={user?.is_verified ? 'checkmark-circle' : 'shield-outline'}
-                title="Vérification du compte"
-                subtitle={user?.is_verified ? 'Compte vérifié' : undefined}
+                title={t('profile.verificationMenu')}
+                subtitle={user?.is_verified ? t('profile.verifiedSubtitle') : undefined}
                 alert={
                   !user?.is_verified
-                    ? { type: 'warning', label: 'Action requise' }
+                    ? { type: 'warning', label: t('profile.actionRequired') }
                     : undefined
                 }
                 onPress={() => navigation.navigate('Verification')}
@@ -399,31 +401,31 @@ export default function ProfileScreen() {
             )}
             <MenuItem
               icon="card-outline"
-              title="Mes paiements"
-              subtitle="Historique et remboursements"
+              title={t('profile.myPaymentsMenu')}
+              subtitle={t('profile.myPaymentsSubtitle')}
               onPress={() => navigation.navigate('MyPayments')}
             />
             <MenuItem
               icon="notifications-outline"
-              title="Notifications"
+              title={t('profile.notificationsMenu')}
               badge={unreadNotificationCount}
               onPress={() => navigation.navigate('Notifications')}
             />
             <MenuItem
               icon="chatbubbles-outline"
-              title="Messages"
+              title={t('profile.messagesMenu')}
               badge={unreadMessageCount}
               onPress={() => navigation.navigate('Messages')}
             />
             <MenuItem
               icon="scan-outline"
-              title="Scanner un QR"
-              subtitle="Transfert ou profil"
+              title={t('profile.scanQRMenu')}
+              subtitle={t('profile.scanQRSubtitle')}
               onPress={() => navigation.navigate('Scan')}
             />
             <MenuItem
               icon="mail-outline"
-              title="Invitations"
+              title={t('profile.invitationsMenu')}
               badge={pendingInvitationCount}
               onPress={() => navigation.navigate('Invitations')}
               isLast
@@ -432,32 +434,32 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.menuSection}>
-          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Préférences</Text>
+          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.preferencesSection')}</Text>
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="heart-outline"
-              title="Événements favoris"
+              title={t('profile.favoritesMenu')}
               onPress={() => navigation.navigate('Main', { screen: 'Saved' } as any)}
             />
             <MenuItem
               icon="people-outline"
-              title="Organisateurs suivis"
+              title={t('profile.followedOrganizersMenu')}
               onPress={() => navigation.navigate('FollowingUsers')}
             />
             <MenuItem
               icon="trophy-outline"
-              title="Badges & Points"
+              title={t('profile.badgesPointsMenu')}
               onPress={() => navigation.navigate('Gamification')}
             />
             <MenuItem
               icon="gift-outline"
-              title="Parrainage"
+              title={t('profile.referralMenu')}
               onPress={() => navigation.navigate('Referrals')}
             />
             <MenuItem
               icon="language-outline"
-              title="Langue"
-              subtitle="Français"
+              title={t('profile.languageMenu')}
+              subtitle={t('profile.languageFrench')}
               onPress={() => navigation.navigate('Settings')}
               isLast
             />
@@ -467,41 +469,41 @@ export default function ProfileScreen() {
         {/* Administration Section (admin only) */}
         {isAdmin && (
           <View style={styles.menuSection}>
-            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Administration</Text>
+            <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.adminSection')}</Text>
             <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
               <MenuItem
                 icon="speedometer-outline"
-                title="Dashboard admin"
-                subtitle="Vue d'ensemble plateforme"
+                title={t('profile.adminDashboardMenu')}
+                subtitle={t('profile.adminDashboardSubtitle')}
                 onPress={() => navigation.navigate('AdminDashboard')}
               />
               <MenuItem
                 icon="people-outline"
-                title="Utilisateurs"
-                subtitle="Gestion des comptes"
+                title={t('profile.userManagementMenu')}
+                subtitle={t('profile.userManagementSubtitle')}
                 onPress={() => navigation.navigate('UserManagement')}
               />
               <MenuItem
                 icon="diamond-outline"
-                title="Abonnements"
-                subtitle="Plans et tarifs"
+                title={t('profile.subscriptionsMenu')}
+                subtitle={t('profile.subscriptionsSubtitle')}
                 onPress={() => navigation.navigate('SubscriptionManagement')}
               />
               <MenuItem
                 icon="shield-outline"
-                title="Logs d'audit"
-                subtitle="Journalisation"
+                title={t('profile.auditLogsMenu')}
+                subtitle={t('profile.auditLogsSubtitle')}
                 onPress={() => navigation.navigate('AuditLogs')}
               />
               <MenuItem
                 icon="settings-outline"
-                title="Parametres plateforme"
+                title={t('profile.platformSettingsMenu')}
                 onPress={() => navigation.navigate('PlatformSettings')}
               />
               <MenuItem
                 icon="cash-outline"
-                title="Tresorerie"
-                subtitle="Finances et paie"
+                title={t('profile.treasuryMenu')}
+                subtitle={t('profile.treasurySubtitle')}
                 onPress={() => navigation.navigate('TreasuryOverview')}
                 isLast
               />
@@ -510,30 +512,30 @@ export default function ProfileScreen() {
         )}
 
         <View style={styles.menuSection}>
-          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>Support</Text>
+          <Text style={[styles.menuSectionTitle, { color: colors.accent }]}>{t('profile.supportSection')}</Text>
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="help-circle-outline"
-              title="Centre d'aide"
+              title={t('profile.helpCenterMenu')}
               onPress={() => navigation.navigate('Help')}
             />
             <MenuItem
               icon="compass-outline"
-              title="Revoir le guide"
-              subtitle="Présentation des onglets principaux"
+              title={t('profile.tutorialMenu')}
+              subtitle={t('profile.tutorialSubtitle')}
               onPress={() => {
-                tour.start(MAIN_TABS_TOUR_STEPS, { force: true });
+                tour.start(getMainTabsTourSteps(t), { force: true });
               }}
             />
             <MenuItem
               icon="pulse-outline"
-              title="Etat du systeme"
-              subtitle="Incidents & maintenance"
+              title={t('profile.systemStatusMenu')}
+              subtitle={t('profile.systemStatusSubtitle')}
               onPress={() => navigation.navigate('SystemStatus')}
             />
             <MenuItem
               icon="document-text-outline"
-              title="Conditions d'utilisation"
+              title={t('profile.termsMenu')}
               onPress={() => navigation.navigate('Terms')}
               isLast
             />
@@ -545,7 +547,7 @@ export default function ProfileScreen() {
           <View style={[styles.menuCard, { backgroundColor: colors.surface, borderColor: colors.gray100 }]}>
             <MenuItem
               icon="log-out-outline"
-              title={authLoading ? 'Déconnexion en cours...' : 'Déconnexion'}
+              title={authLoading ? t('profile.logoutInProgress') : t('profile.logoutLabel')}
               onPress={handleLogout}
               showArrow={false}
               danger
@@ -555,7 +557,7 @@ export default function ProfileScreen() {
         </View>
 
         {/* App Version */}
-        <Text style={[styles.version, { color: colors.gray400 }]}>EventEz v1.0.0</Text>
+        <Text style={[styles.version, { color: colors.gray400 }]}>{t('profile.appVersion')}</Text>
 
         <View style={{ height: 130 }} />
       </ScrollView>
@@ -566,7 +568,7 @@ export default function ProfileScreen() {
           visible={showMyQR}
           onClose={() => setShowMyQR(false)}
           data={`EVENTEZ-USER-${user.id}`}
-          title="Mon QR Code"
+          title={t('profile.myQRTitle')}
           subtitle="Faites scanner ce code pour partager votre profil"
         />
       )}
@@ -780,7 +782,6 @@ const styles = StyleSheet.create({
   menuCard: {
     borderRadius: BorderRadius['3xl'],
     borderWidth: 1,
-    ...Shadows.xs,
   },
   menuItem: {
     flexDirection: 'row',

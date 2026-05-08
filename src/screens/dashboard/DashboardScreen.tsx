@@ -18,6 +18,7 @@ import VerificationBanner from '../../components/auth/VerificationBanner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useUnreadCounts } from '../../contexts/NotificationContext';
+import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { eventsAPI, ticketPurchasesAPI, walletAPI } from '../../api';
 import CacheService from '../../services/CacheService';
@@ -82,6 +83,7 @@ export default function DashboardScreen() {
   const { unreadNotificationCount } = useUnreadCounts();
   const { colors } = useTheme();
   const { currency: platformCurrency } = useCommissionConfig();
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({
     events: 0,
@@ -171,9 +173,9 @@ export default function DashboardScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Bonjour';
-    if (hour < 18) return 'Bon après-midi';
-    return 'Bonsoir';
+    if (hour < 12) return t('dashboard.greetingHi');
+    if (hour < 18) return t('dashboard.greetingGoodAfternoon');
+    return t('dashboard.greetingGoodEvening');
   };
 
   return (
@@ -200,20 +202,20 @@ export default function DashboardScreen() {
               style={[styles.backButton, { backgroundColor: colors.gray50 }]}
               onPress={() => navigation.goBack()}
               accessibilityRole="button"
-              accessibilityLabel="Retour"
+              accessibilityLabel={t('common.back')}
             >
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
             <View>
               <Text style={[styles.eyebrow, { color: colors.accent }]}>{getGreeting()}</Text>
-              <Text style={[styles.userName, { color: colors.text }]}>{user?.first_name || 'Utilisateur'}</Text>
+              <Text style={[styles.userName, { color: colors.text }]}>{user?.first_name || t('dashboard.userPlaceholder')}</Text>
             </View>
           </View>
           <TouchableOpacity
             style={[styles.notificationButton, { backgroundColor: colors.gray50 }]}
             onPress={() => navigation.navigate('Notifications')}
             accessibilityRole="button"
-            accessibilityLabel="Notifications"
+            accessibilityLabel={t('notifications.title')}
           >
             <Ionicons name="notifications-outline" size={24} color={colors.gray700} />
             {unreadNotificationCount > 0 && (
@@ -233,10 +235,10 @@ export default function DashboardScreen() {
             onPress={() => navigation.navigate('Wallet')}
             activeOpacity={0.8}
             accessibilityRole="button"
-            accessibilityLabel="Portefeuille - Solde disponible"
+            accessibilityLabel={`${t('dashboard.walletTitle')} - ${t('dashboard.balanceLabel')}`}
           >
             <View>
-              <Text style={[styles.balanceLabel, { color: colors.gray500 }]}>Solde disponible</Text>
+              <Text style={[styles.balanceLabel, { color: colors.gray500 }]}>{t('dashboard.balanceLabel')}</Text>
               <Text style={[styles.balanceValue, { color: colors.text }]}>
                 {stats.balance.toLocaleString()} {platformCurrency}
               </Text>
@@ -257,7 +259,7 @@ export default function DashboardScreen() {
             accessibilityLabel={`${stats.tickets} Billets`}
           >
             <Text style={[styles.statValue, { color: colors.text }]}>{stats.tickets}</Text>
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Billets</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('dashboard.statTickets')}</Text>
           </TouchableOpacity>
 
           {isOrganizer && (
@@ -269,7 +271,7 @@ export default function DashboardScreen() {
               accessibilityLabel={`${stats.events} Evenements`}
             >
               <Text style={[styles.statValue, { color: colors.text }]}>{stats.events}</Text>
-              <Text style={[styles.statLabel, { color: colors.gray500 }]}>Événements</Text>
+              <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('dashboard.statEvents')}</Text>
             </TouchableOpacity>
           )}
 
@@ -278,41 +280,41 @@ export default function DashboardScreen() {
             onPress={goToDiscover}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Explorer les evenements"
+            accessibilityLabel={t('dashboard.exploreEvents')}
           >
             <Ionicons name="compass-outline" size={24} color={colors.primary} />
-            <Text style={[styles.statLabel, { color: colors.gray500 }]}>Explorer</Text>
+            <Text style={[styles.statLabel, { color: colors.gray500 }]}>{t('dashboard.statExplore')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Accès rapide</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('dashboard.quickAccessTitle')}</Text>
           <View style={styles.quickActionsGrid}>
             <StaggeredItem index={0} style={styles.quickActionWrapper}>
-              <QuickAction icon="ticket-outline" title="Mes billets" onPress={goToMyTickets} />
+              <QuickAction icon="ticket-outline" title={t('tickets.myTickets')} onPress={goToMyTickets} />
             </StaggeredItem>
             <StaggeredItem index={1} style={styles.quickActionWrapper}>
-              <QuickAction icon="heart-outline" title="Favoris" onPress={goToSaved} />
+              <QuickAction icon="heart-outline" title={t('tabs.saved')} onPress={goToSaved} />
             </StaggeredItem>
             <StaggeredItem index={2} style={styles.quickActionWrapper}>
-              <QuickAction icon="notifications-outline" title="Notifications" badge={unreadNotificationCount} onPress={goToNotifications} />
+              <QuickAction icon="notifications-outline" title={t('notifications.title')} badge={unreadNotificationCount} onPress={goToNotifications} />
             </StaggeredItem>
             <StaggeredItem index={3} style={styles.quickActionWrapper}>
-              <QuickAction icon="chatbubbles-outline" title="Messages" onPress={goToMessages} />
+              <QuickAction icon="chatbubbles-outline" title={t('messages.title')} onPress={goToMessages} />
             </StaggeredItem>
             <StaggeredItem index={4} style={styles.quickActionWrapper}>
-              <QuickAction icon="mail-outline" title="Invitations" onPress={goToInvitations} />
+              <QuickAction icon="mail-outline" title={t('invitations.title')} onPress={goToInvitations} />
             </StaggeredItem>
             <StaggeredItem index={5} style={styles.quickActionWrapper}>
-              <QuickAction icon="gift-outline" title="Parrainage" onPress={goToReferrals} />
+              <QuickAction icon="gift-outline" title={t('referral.title')} onPress={goToReferrals} />
             </StaggeredItem>
             <StaggeredItem index={6} style={styles.quickActionWrapper}>
-              <QuickAction icon="trophy-outline" title="Badges" onPress={goToGamification} />
+              <QuickAction icon="trophy-outline" title={t('profile.badgesPointsMenu')} onPress={goToGamification} />
             </StaggeredItem>
             {isOrganizer && (
               <StaggeredItem index={7} style={styles.quickActionWrapper}>
-                <QuickAction icon="analytics-outline" title="Analytics" onPress={goToAnalytics} />
+                <QuickAction icon="analytics-outline" title={t('dashboard.analyticsTitle')} onPress={goToAnalytics} />
               </StaggeredItem>
             )}
           </View>
@@ -321,20 +323,20 @@ export default function DashboardScreen() {
         {/* Organizer Actions */}
         {isOrganizer && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Organisateur</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('dashboard.organizerTitle')}</Text>
             <View style={styles.organizerActions}>
               <TouchableOpacity
                 style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}
                 onPress={() => navigation.navigate('EventCreate')}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Creer un evenement"
+                accessibilityLabel={t('dashboard.createEventTitle')}
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
                   <Ionicons name="add" size={24} color={colors.primary} />
                 </View>
-                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Créer un événement</Text>
-                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Nouveau</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>{t('dashboard.createEventTitle')}</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>{t('dashboard.createEventSubtitle')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -342,12 +344,12 @@ export default function DashboardScreen() {
                 onPress={() => navigation.navigate('MyEvents')}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Mes evenements"
+                accessibilityLabel={t('dashboard.myEventsTitle')}
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
                   <Ionicons name="calendar-outline" size={24} color={colors.primary} />
                 </View>
-                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Mes événements</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>{t('dashboard.myEventsTitle')}</Text>
                 <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>{stats.events} actifs</Text>
               </TouchableOpacity>
             </View>
@@ -359,12 +361,12 @@ export default function DashboardScreen() {
                 onPress={() => navigation.navigate('Wallet')}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Portefeuille"
+                accessibilityLabel={t('dashboard.walletTitle')}
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.successLight }]}>
                   <Ionicons name="wallet-outline" size={24} color={colors.success} />
                 </View>
-                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Portefeuille</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>{t('dashboard.walletTitle')}</Text>
                 <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Revenus & paiements</Text>
               </TouchableOpacity>
 
@@ -373,13 +375,13 @@ export default function DashboardScreen() {
                 onPress={() => navigation.navigate('MyEvents')}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Analytiques"
+                accessibilityLabel={t('dashboard.analyticsTitle')}
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.warningLight }]}>
                   <Ionicons name="stats-chart-outline" size={24} color={colors.warning} />
                 </View>
-                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Analytiques</Text>
-                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Voir les stats</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>{t('dashboard.analyticsTitle')}</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>{t('dashboard.analyticsSubtitle')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -390,21 +392,21 @@ export default function DashboardScreen() {
                 onPress={() => navigation.navigate('Subscription')}
                 activeOpacity={0.7}
                 accessibilityRole="button"
-                accessibilityLabel="Abonnement"
+                accessibilityLabel={t('dashboard.subscriptionTitle')}
               >
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.primaryBg }]}>
                   <Ionicons name="diamond-outline" size={24} color={colors.primary} />
                 </View>
-                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Abonnement</Text>
-                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Gerer mon plan</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>{t('dashboard.subscriptionTitle')}</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>{t('dashboard.subscriptionSubtitle')}</Text>
               </TouchableOpacity>
 
               <View style={[styles.organizerActionCard, { backgroundColor: colors.card, borderColor: colors.gray100 }]}>
                 <View style={[styles.organizerActionIcon, { backgroundColor: colors.infoBg }]}>
                   <Ionicons name="download-outline" size={24} color={colors.infoDark} />
                 </View>
-                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>Exporter</Text>
-                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>Vos donnees</Text>
+                <Text style={[styles.organizerActionTitle, { color: colors.text }]}>{t('dashboard.exportTitle')}</Text>
+                <Text style={[styles.organizerActionSubtitle, { color: colors.gray500 }]}>{t('dashboard.exportSubtitle')}</Text>
                 <ExportButton
                   endpoint="/events/export/"
                   filename="evenements"
@@ -419,11 +421,11 @@ export default function DashboardScreen() {
           style={[styles.settingsLink, { borderTopColor: colors.gray100 }]}
           onPress={() => navigation.navigate('Settings')}
           accessibilityRole="link"
-          accessibilityLabel="Parametres"
+          accessibilityLabel={t('profile.settings')}
         >
           <View style={styles.settingsLinkLeft}>
             <Ionicons name="settings-outline" size={20} color={colors.gray600} />
-            <Text style={[styles.settingsLinkText, { color: colors.gray600 }]}>Paramètres</Text>
+            <Text style={[styles.settingsLinkText, { color: colors.gray600 }]}>{t('dashboard.settingsLink')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
         </TouchableOpacity>

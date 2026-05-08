@@ -31,6 +31,7 @@ import Animated, {
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { eventsAPI, categoriesAPI } from '../../api';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { useSearchHistory } from '../../hooks/useSearchHistory';
 import { useTabletLayout } from '../../hooks/useTabletLayout';
@@ -263,6 +264,7 @@ export default function EventSearchScreen() {
   const initialQuery = route.params?.query ?? '';
 
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const { currency: platformCurrency } = useCommissionConfig();
@@ -338,6 +340,59 @@ export default function EventSearchScreen() {
     maxHeight: interpolate(progress.value, [0, 1], [44, 0], Extrapolation.CLAMP),
     overflow: 'hidden',
   }));
+
+  // === Localized labels ===
+  const sortLabel = (key: SortOption): string => {
+    switch (key) {
+      case 'popularity': return t('eventSearch.sortPopularity');
+      case 'price_asc': return t('eventSearch.sortPriceAsc');
+      case 'price_desc': return t('eventSearch.sortPriceDesc');
+      default: return t('eventSearch.sortDate');
+    }
+  };
+  const sortEyebrow = (key: SortOption): string => {
+    switch (key) {
+      case 'popularity': return t('eventSearch.sortPopularityEyebrow');
+      case 'price_asc': return t('eventSearch.sortPriceAscEyebrow');
+      case 'price_desc': return t('eventSearch.sortPriceDescEyebrow');
+      default: return t('eventSearch.sortDateEyebrow');
+    }
+  };
+  const dateLabel = (key: DatePreset): string => {
+    switch (key) {
+      case 'today': return t('eventSearch.dateToday');
+      case 'tomorrow': return t('eventSearch.dateTomorrow');
+      case 'weekend': return t('eventSearch.dateWeekend');
+      case 'week': return t('eventSearch.dateWeek');
+      case 'month': return t('eventSearch.dateMonth');
+      default: return t('eventSearch.dateAny');
+    }
+  };
+  const dateEyebrow = (key: DatePreset): string => {
+    switch (key) {
+      case 'today': return t('eventSearch.dateTodayEyebrow');
+      case 'tomorrow': return t('eventSearch.dateTomorrowEyebrow');
+      case 'weekend': return t('eventSearch.dateWeekendEyebrow');
+      case 'week': return t('eventSearch.dateWeekEyebrow');
+      case 'month': return t('eventSearch.dateMonthEyebrow');
+      default: return t('eventSearch.dateAnyEyebrow');
+    }
+  };
+  const locLabel = (key: LocationType): string => {
+    switch (key) {
+      case 'in_person': return t('eventSearch.locInPerson');
+      case 'online': return t('eventSearch.locOnline');
+      case 'hybrid': return t('eventSearch.locHybrid');
+      default: return t('eventSearch.locAny');
+    }
+  };
+  const priceLabel = (key: PriceFilter): string => {
+    switch (key) {
+      case 'free': return t('eventSearch.priceFree');
+      case 'paid': return t('eventSearch.pricePaid');
+      default: return t('eventSearch.priceAny');
+    }
+  };
 
   // Active filters count (excluding query/sort)
   const activeFiltersCount = useMemo(() => {
@@ -521,7 +576,7 @@ export default function EventSearchScreen() {
             title={item.title}
             date={item.start_date}
             time={(item as any).start_time}
-            location={item.location_city || item.location_address || 'Lieu à confirmer'}
+            location={item.location_city || item.location_address || t('discover.placeIfPlaceMissing')}
             imageUrl={item.banner_image || item.category?.default_event_image || item.display_image}
             imagePlaceholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder}
             category={item.category?.name}
@@ -553,19 +608,16 @@ export default function EventSearchScreen() {
       if (cat) chips.push({ label: cat.name, onRemove: () => dispatch({ type: 'SET_CATEGORY', id: null }) });
     }
     if (state.datePreset !== 'any') {
-      const p = DATE_PRESETS.find(d => d.key === state.datePreset);
-      if (p) chips.push({ label: p.label, onRemove: () => dispatch({ type: 'SET_DATE_PRESET', preset: 'any' }) });
+      chips.push({ label: dateLabel(state.datePreset), onRemove: () => dispatch({ type: 'SET_DATE_PRESET', preset: 'any' }) });
     }
     if (state.locationType !== 'any') {
-      const l = LOCATION_TYPES.find(t => t.key === state.locationType);
-      if (l) chips.push({ label: l.label, onRemove: () => dispatch({ type: 'SET_LOCATION_TYPE', loc: 'any' }) });
+      chips.push({ label: locLabel(state.locationType), onRemove: () => dispatch({ type: 'SET_LOCATION_TYPE', loc: 'any' }) });
     }
     if (state.priceFilter !== 'any') {
-      const p = PRICE_FILTERS.find(t => t.key === state.priceFilter);
-      if (p) chips.push({ label: p.label, onRemove: () => dispatch({ type: 'SET_PRICE_FILTER', price: 'any' }) });
+      chips.push({ label: priceLabel(state.priceFilter), onRemove: () => dispatch({ type: 'SET_PRICE_FILTER', price: 'any' }) });
     }
-    if (state.nearMe) chips.push({ label: 'Près de moi', onRemove: () => dispatch({ type: 'TOGGLE_NEAR_ME' }) });
-    if (state.hasTickets) chips.push({ label: 'Billets dispo', onRemove: () => dispatch({ type: 'TOGGLE_HAS_TICKETS' }) });
+    if (state.nearMe) chips.push({ label: t('eventSearch.near_me_chip'), onRemove: () => dispatch({ type: 'TOGGLE_NEAR_ME' }) });
+    if (state.hasTickets) chips.push({ label: t('eventSearch.tickets_chip'), onRemove: () => dispatch({ type: 'TOGGLE_HAS_TICKETS' }) });
 
     return (
       <ScrollView
@@ -580,7 +632,7 @@ export default function EventSearchScreen() {
           activeOpacity={0.7}
         >
           <Ionicons name="close" size={11} color="#DC2626" />
-          <Text style={styles.clearAllChipText}>Tout effacer</Text>
+          <Text style={styles.clearAllChipText}>{t('eventSearch.clearAll')}</Text>
         </TouchableOpacity>
         {chips.map((chip, idx) => (
           <TouchableOpacity
@@ -601,11 +653,11 @@ export default function EventSearchScreen() {
 
   // === QUICK FILTER CHIPS (shortcuts row) ===
   const QUICK_FILTERS = [
-    { label: 'Aujourd\'hui', icon: 'today-outline' as const, active: state.datePreset === 'today', onPress: () => dispatch({ type: 'SET_DATE_PRESET', preset: state.datePreset === 'today' ? 'any' : 'today' }) },
-    { label: 'Ce week-end', icon: 'sparkles-outline' as const, active: state.datePreset === 'weekend', onPress: () => dispatch({ type: 'SET_DATE_PRESET', preset: state.datePreset === 'weekend' ? 'any' : 'weekend' }) },
-    { label: 'Gratuit', icon: 'gift-outline' as const, active: state.priceFilter === 'free', onPress: () => dispatch({ type: 'SET_PRICE_FILTER', price: state.priceFilter === 'free' ? 'any' : 'free' }) },
-    { label: 'En ligne', icon: 'videocam-outline' as const, active: state.locationType === 'online', onPress: () => dispatch({ type: 'SET_LOCATION_TYPE', loc: state.locationType === 'online' ? 'any' : 'online' }) },
-    { label: 'Près de moi', icon: 'location-outline' as const, active: state.nearMe, onPress: () => dispatch({ type: 'TOGGLE_NEAR_ME' }) },
+    { label: t('eventSearch.quickToday'), icon: 'today-outline' as const, active: state.datePreset === 'today', onPress: () => dispatch({ type: 'SET_DATE_PRESET', preset: state.datePreset === 'today' ? 'any' : 'today' }) },
+    { label: t('eventSearch.quickWeekend'), icon: 'sparkles-outline' as const, active: state.datePreset === 'weekend', onPress: () => dispatch({ type: 'SET_DATE_PRESET', preset: state.datePreset === 'weekend' ? 'any' : 'weekend' }) },
+    { label: t('eventSearch.quickFree'), icon: 'gift-outline' as const, active: state.priceFilter === 'free', onPress: () => dispatch({ type: 'SET_PRICE_FILTER', price: state.priceFilter === 'free' ? 'any' : 'free' }) },
+    { label: t('eventSearch.quickOnline'), icon: 'videocam-outline' as const, active: state.locationType === 'online', onPress: () => dispatch({ type: 'SET_LOCATION_TYPE', loc: state.locationType === 'online' ? 'any' : 'online' }) },
+    { label: t('eventSearch.quickNearMe'), icon: 'location-outline' as const, active: state.nearMe, onPress: () => dispatch({ type: 'TOGGLE_NEAR_ME' }) },
   ];
 
   return (
@@ -635,8 +687,8 @@ export default function EventSearchScreen() {
           >
             {/* Title row (eyebrow + h1) — fully collapsible */}
             <Animated.View style={[styles.titleColWrap, titleColStyle]}>
-              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>EXPLORATION • SEARCH</Text>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Trouve ton event</Text>
+              <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('eventSearch.eyebrow')}</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('eventSearch.title')}</Text>
             </Animated.View>
 
             {/* Search row — ALWAYS visible (back + input + filter) */}
@@ -654,7 +706,7 @@ export default function EventSearchScreen() {
               <TextInput
                 ref={inputRef}
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Concert, atelier, conférence..."
+                placeholder={t('eventSearch.placeholder')}
                 placeholderTextColor={colors.gray400}
                 value={state.query}
                 onChangeText={(text) => dispatch({ type: 'SET_QUERY', query: text })}
@@ -738,9 +790,8 @@ export default function EventSearchScreen() {
           {/* Result count + sort — collapsible */}
           {hasActiveSearch && !state.loading && (
             <Animated.View style={[styles.resultBar, resultBarAnimStyle]}>
-              <Text style={[styles.resultCount, { color: colors.gray600 }]}>
-                <Text style={[styles.resultCountBold, { color: colors.text }]}>{state.total}</Text>
-                {' '}résultat{state.total > 1 ? 's' : ''}
+              <Text style={[styles.resultCount, { color: colors.text }]}>
+                {t('eventSearch.results', { count: state.total })}
               </Text>
               <View style={styles.sortRow}>
                 {SORT_OPTIONS.map((opt) => {
@@ -802,20 +853,20 @@ export default function EventSearchScreen() {
                 ListHeaderComponent={
                   <View style={styles.historyHeader}>
                     <View>
-                      <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>HISTORIQUE</Text>
-                      <Text style={[styles.sectionTitle, { color: colors.text }]}>Recherches récentes</Text>
+                      <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('eventSearch.historyEyebrow')}</Text>
+                      <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('eventSearch.historyTitle')}</Text>
                     </View>
                     <TouchableOpacity onPress={clearSearchHistory}>
                       <Text style={[styles.historyClear, { color: colors.primary }]}>
-                        Tout effacer
+                        {t('eventSearch.clearAll')}
                       </Text>
                     </TouchableOpacity>
                   </View>
                 }
                 ListFooterComponent={
                   <View style={styles.suggestionsBlock}>
-                    <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>SUGGESTIONS</Text>
-                    <Text style={[styles.sectionTitle, { color: colors.text }]}>Catégories tendance</Text>
+                    <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('eventSearch.suggestionsEyebrow')}</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('eventSearch.suggestionsTitle')}</Text>
                     <View style={styles.suggestionGrid}>
                       {state.categories.slice(0, 6).map((cat) => (
                         <TouchableOpacity
@@ -842,8 +893,8 @@ export default function EventSearchScreen() {
                 scrollEventThrottle={16}
                 contentContainerStyle={{ paddingHorizontal: Spacing.lg, paddingTop: headerH + Spacing.xl }}
               >
-                <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>SUGGESTIONS</Text>
-                <Text style={[styles.sectionTitle, { color: colors.text }]}>Catégories tendance</Text>
+                <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('eventSearch.suggestionsEyebrow')}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('eventSearch.suggestionsTitle')}</Text>
                 <View style={styles.suggestionGrid}>
                   {state.categories.slice(0, 8).map((cat) => (
                     <TouchableOpacity
@@ -872,8 +923,8 @@ export default function EventSearchScreen() {
           <View style={{ flex: 1, paddingTop: headerH }}>
             <EmptyState
               icon="search-outline"
-              title="Aucun résultat"
-              description="Essaie d'autres mots-clés ou ajuste tes filtres."
+              title={t('eventSearch.emptyTitle')}
+              description={t('eventSearch.emptyDescription')}
             />
           </View>
         ) : (
@@ -938,8 +989,8 @@ export default function EventSearchScreen() {
               {/* Header */}
               <View style={styles.sheetHeader}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.sheetEyebrow, { color: colors.accent }]}>FILTRES • REFINE</Text>
-                  <Text style={[styles.sheetTitle, { color: colors.text }]}>Affine ta recherche</Text>
+                  <Text style={[styles.sheetEyebrow, { color: colors.accent }]}>{t('eventSearch.sheetEyebrow')}</Text>
+                  <Text style={[styles.sheetTitle, { color: colors.text }]}>{t('eventSearch.sheetTitle')}</Text>
                 </View>
                 <TouchableOpacity
                   style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
@@ -953,8 +1004,8 @@ export default function EventSearchScreen() {
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: Spacing.xl }}>
                 {/* DATE */}
                 <View style={styles.filterSection}>
-                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>QUAND</Text>
-                  <Text style={[styles.filterTitle, { color: colors.text }]}>Date</Text>
+                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>{t('eventSearch.filterDateEyebrow')}</Text>
+                  <Text style={[styles.filterTitle, { color: colors.text }]}>{t('eventSearch.filterDateTitle')}</Text>
                   <View style={styles.filterChipGrid}>
                     {DATE_PRESETS.map((p) => {
                       const active = state.datePreset === p.key;
@@ -972,8 +1023,8 @@ export default function EventSearchScreen() {
                           onPress={() => dispatch({ type: 'SET_DATE_PRESET', preset: p.key })}
                           activeOpacity={0.85}
                         >
-                          <Text style={[styles.filterChipEyebrow, { color: colors.accent }]}>{p.eyebrow}</Text>
-                          <Text style={[styles.filterChipLabel, { color: colors.text }]}>{p.label}</Text>
+                          <Text style={[styles.filterChipEyebrow, { color: colors.accent }]}>{dateEyebrow(p.key)}</Text>
+                          <Text style={[styles.filterChipLabel, { color: colors.text }]}>{dateLabel(p.key)}</Text>
                           {active && (
                             <View style={[styles.filterChipCheck, { backgroundColor: colors.primary }]}>
                               <Ionicons name="checkmark" size={10} color={Colors.white} />
@@ -987,8 +1038,8 @@ export default function EventSearchScreen() {
 
                 {/* TYPE D'ÉVÉNEMENT */}
                 <View style={styles.filterSection}>
-                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>OÙ</Text>
-                  <Text style={[styles.filterTitle, { color: colors.text }]}>Type d'événement</Text>
+                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>{t('eventSearch.filterLocationEyebrow')}</Text>
+                  <Text style={[styles.filterTitle, { color: colors.text }]}>{t('eventSearch.filterLocationTitle')}</Text>
                   <View style={styles.filterRow}>
                     {LOCATION_TYPES.map((l) => {
                       const active = state.locationType === l.key;
@@ -1008,7 +1059,7 @@ export default function EventSearchScreen() {
                         >
                           <Ionicons name={l.icon} size={20} color={active ? colors.primary : colors.gray600} />
                           <Text style={[styles.filterIconCardLabel, { color: colors.text }]} numberOfLines={1}>
-                            {l.label}
+                            {locLabel(l.key)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -1018,8 +1069,8 @@ export default function EventSearchScreen() {
 
                 {/* PRIX */}
                 <View style={styles.filterSection}>
-                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>COMBIEN</Text>
-                  <Text style={[styles.filterTitle, { color: colors.text }]}>Prix</Text>
+                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>{t('eventSearch.filterPriceEyebrow')}</Text>
+                  <Text style={[styles.filterTitle, { color: colors.text }]}>{t('eventSearch.filterPriceTitle')}</Text>
                   <View style={styles.filterRow}>
                     {PRICE_FILTERS.map((p) => {
                       const active = state.priceFilter === p.key;
@@ -1039,7 +1090,7 @@ export default function EventSearchScreen() {
                         >
                           <Ionicons name={p.icon} size={20} color={active ? colors.primary : colors.gray600} />
                           <Text style={[styles.filterIconCardLabel, { color: colors.text }]}>
-                            {p.label}
+                            {priceLabel(p.key)}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -1050,8 +1101,8 @@ export default function EventSearchScreen() {
                 {/* CATÉGORIE */}
                 {state.categories.length > 0 && (
                   <View style={styles.filterSection}>
-                    <Text style={[styles.filterEyebrow, { color: colors.accent }]}>CATÉGORIE</Text>
-                    <Text style={[styles.filterTitle, { color: colors.text }]}>Genre d'event</Text>
+                    <Text style={[styles.filterEyebrow, { color: colors.accent }]}>{t('eventSearch.filterCategoryEyebrow')}</Text>
+                    <Text style={[styles.filterTitle, { color: colors.text }]}>{t('eventSearch.filterCategoryTitle')}</Text>
                     <View style={styles.filterChipGrid}>
                       <TouchableOpacity
                         style={[
@@ -1070,7 +1121,7 @@ export default function EventSearchScreen() {
                             { color: state.categoryId === null ? Colors.white : colors.gray700 },
                           ]}
                         >
-                          Toutes
+                          {t('eventSearch.filterAllCategories')}
                         </Text>
                       </TouchableOpacity>
                       {state.categories.map((cat) => {
@@ -1105,8 +1156,8 @@ export default function EventSearchScreen() {
 
                 {/* AUTRES OPTIONS */}
                 <View style={styles.filterSection}>
-                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>OPTIONS</Text>
-                  <Text style={[styles.filterTitle, { color: colors.text }]}>Affiner encore</Text>
+                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>{t('eventSearch.filterOptionsEyebrow')}</Text>
+                  <Text style={[styles.filterTitle, { color: colors.text }]}>{t('eventSearch.filterOptionsTitle')}</Text>
                   <View style={[styles.toggleCard, { backgroundColor: colors.card, borderColor: hairline }]}>
                     <TouchableOpacity
                       style={styles.toggleRow}
@@ -1117,8 +1168,8 @@ export default function EventSearchScreen() {
                         <Ionicons name="location" size={14} color="#3B82F6" />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.toggleTitle, { color: colors.text }]}>Près de moi</Text>
-                        <Text style={[styles.toggleSub, { color: colors.gray500 }]}>Dans un rayon de 50 km</Text>
+                        <Text style={[styles.toggleTitle, { color: colors.text }]}>{t('eventSearch.nearMeTitle')}</Text>
+                        <Text style={[styles.toggleSub, { color: colors.gray500 }]}>{t('eventSearch.nearMeSub')}</Text>
                       </View>
                       <View
                         style={[
@@ -1144,8 +1195,8 @@ export default function EventSearchScreen() {
                         <Ionicons name="ticket" size={14} color="#10B981" />
                       </View>
                       <View style={{ flex: 1 }}>
-                        <Text style={[styles.toggleTitle, { color: colors.text }]}>Billets disponibles</Text>
-                        <Text style={[styles.toggleSub, { color: colors.gray500 }]}>Masquer les events épuisés</Text>
+                        <Text style={[styles.toggleTitle, { color: colors.text }]}>{t('eventSearch.hasTicketsTitle')}</Text>
+                        <Text style={[styles.toggleSub, { color: colors.gray500 }]}>{t('eventSearch.hasTicketsSub')}</Text>
                       </View>
                       <View
                         style={[
@@ -1166,8 +1217,8 @@ export default function EventSearchScreen() {
 
                 {/* TRI */}
                 <View style={styles.filterSection}>
-                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>TRI</Text>
-                  <Text style={[styles.filterTitle, { color: colors.text }]}>Trier les résultats</Text>
+                  <Text style={[styles.filterEyebrow, { color: colors.accent }]}>{t('eventSearch.filterSortEyebrow')}</Text>
+                  <Text style={[styles.filterTitle, { color: colors.text }]}>{t('eventSearch.filterSortTitle')}</Text>
                   <View style={styles.filterChipGrid}>
                     {SORT_OPTIONS.map((opt) => {
                       const active = state.sortBy === opt.key;
@@ -1188,9 +1239,9 @@ export default function EventSearchScreen() {
                         >
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <Ionicons name={opt.icon} size={13} color={active ? colors.primary : colors.gray500} />
-                            <Text style={[styles.filterChipEyebrow, { color: colors.accent }]}>{opt.eyebrow}</Text>
+                            <Text style={[styles.filterChipEyebrow, { color: colors.accent }]}>{sortEyebrow(opt.key)}</Text>
                           </View>
-                          <Text style={[styles.filterChipLabel, { color: colors.text }]}>{opt.label}</Text>
+                          <Text style={[styles.filterChipLabel, { color: colors.text }]}>{sortLabel(opt.key)}</Text>
                           {active && (
                             <View style={[styles.filterChipCheck, { backgroundColor: colors.primary }]}>
                               <Ionicons name="checkmark" size={10} color={Colors.white} />
@@ -1210,7 +1261,7 @@ export default function EventSearchScreen() {
                   onPress={() => dispatch({ type: 'RESET_FILTERS' })}
                   activeOpacity={0.85}
                 >
-                  <Text style={[styles.sheetResetText, { color: colors.text }]}>Réinitialiser</Text>
+                  <Text style={[styles.sheetResetText, { color: colors.text }]}>{t('eventSearch.reset')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.sheetApplyBtn, Shadows.buttonPrimary]}
@@ -1224,8 +1275,9 @@ export default function EventSearchScreen() {
                     style={StyleSheet.absoluteFill}
                   />
                   <Text style={styles.sheetApplyText}>
-                    Voir les résultats
-                    {state.total > 0 && hasActiveSearch ? ` (${state.total})` : ''}
+                    {state.total > 0 && hasActiveSearch
+                      ? t('eventSearch.viewResultsCount', { count: state.total })
+                      : t('eventSearch.viewResults')}
                   </Text>
                   <View style={styles.sheetApplyArrow}>
                     <Ionicons name="arrow-forward" size={14} color={Colors.white} />

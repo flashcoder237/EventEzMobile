@@ -19,6 +19,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { messagesAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -41,6 +42,7 @@ export default function BlockedUsersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError, showSuccess, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,16 +73,16 @@ export default function BlockedUsersScreen() {
 
   const handleUnblock = (target: User) => {
     showConfirm(
-      'Débloquer',
-      `Débloquer ${getDisplayName(target)} ? Vous pourrez à nouveau échanger des messages.`,
+      t('profile.unblockAction'),
+      t('profile.unblockConfirm', { name: getDisplayName(target) }),
       async () => {
         setUnblockingId(target.id);
         try {
           await messagesAPI.unblockUser(String(target.id));
           setUsers(prev => prev.filter(u => u.id !== target.id));
-          showSuccess('Utilisateur débloqué', '');
+          showSuccess(t('profile.unblockedSuccess'), '');
         } catch (error) {
-          showError('Erreur', 'Impossible de débloquer cet utilisateur');
+          showError(t('common.error'), t('profile.unblockError'));
         } finally {
           setUnblockingId(null);
         }
@@ -147,12 +149,12 @@ export default function BlockedUsersScreen() {
             },
           ]}
           accessibilityRole="button"
-          accessibilityLabel={`Débloquer ${name}`}
+          accessibilityLabel={t('profile.unblockedAccessibility', { name })}
         >
           {isUnblocking ? (
             <ActivityIndicator size="small" color={colors.accent} />
           ) : (
-            <Text style={[styles.unblockText, { color: colors.accent }]}>Débloquer</Text>
+            <Text style={[styles.unblockText, { color: colors.accent }]}>{t('profile.unblockAction')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -164,10 +166,10 @@ export default function BlockedUsersScreen() {
       <View style={[styles.emptyIcon, { backgroundColor: `${colors.primary}15` }]}>
         <Ionicons name="shield-checkmark-outline" size={28} color={colors.primary} />
       </View>
-      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>RIEN À VOIR</Text>
-      <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun blocage</Text>
+      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{t('profile.blockedEmptyEyebrow')}</Text>
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('profile.blockedEmptyTitle')}</Text>
       <Text style={[styles.emptyDesc, { color: colors.gray500 }]}>
-        Personne n'est bloqué pour l'instant. Tu peux bloquer un utilisateur depuis une conversation.
+        {t('profile.blockedEmptyDesc')}
       </Text>
     </View>
   );
@@ -196,17 +198,17 @@ export default function BlockedUsersScreen() {
             ]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.text} />
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: Spacing.md }}>
-            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>CONFIDENTIALITÉ</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Bloqués</Text>
+            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>{t('profile.blockedHeaderEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('profile.blockedHeaderTitle')}</Text>
           </View>
         </View>
         <Text style={[styles.headerLead, { color: colors.gray500 }]}>
-          Les comptes bloqués ne peuvent plus t'envoyer de messages. Tu peux débloquer à tout moment.
+          {t('profile.blockedHeaderLead')}
         </Text>
       </View>
 

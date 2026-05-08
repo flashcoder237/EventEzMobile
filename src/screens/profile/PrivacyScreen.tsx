@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import {
   Colors,
@@ -195,6 +196,7 @@ Vous avez également le droit d'introduire une réclamation auprès de l'autorit
 export default function PrivacyScreen() {
   const navigation = useNavigation();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const scrollRef = useRef<ScrollView>(null);
   const sectionPositionsRef = useRef<Record<string, number>>({});
@@ -237,8 +239,8 @@ export default function PrivacyScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>VIE PRIVÉE • PRIVACY</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Politique de confidentialité</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('privacyLegal.headerEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('privacyLegal.headerTitle')}</Text>
           </View>
         </View>
         <View style={[styles.progressBar, { backgroundColor: colors.gray100 }]}>
@@ -273,39 +275,39 @@ export default function PrivacyScreen() {
           <View style={styles.heroBadgeRow}>
             <View style={styles.heroBadge}>
               <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
-              <Text style={styles.heroBadgeText}>RGPD COMPLIANT</Text>
+              <Text style={styles.heroBadgeText}>{t('privacyLegal.heroBadge')}</Text>
             </View>
           </View>
-          <Text style={styles.heroEyebrow}>VIE PRIVÉE · PROTÉGÉE</Text>
+          <Text style={styles.heroEyebrow}>{t('privacyLegal.heroEyebrow')}</Text>
           <Text style={styles.heroTitle} numberOfLines={3}>
-            Tes données{'\n'}sont en sécurité
+            {t('privacyLegal.heroTitle')}
           </Text>
           <View style={styles.heroMeta}>
             <View style={styles.heroMetaItem}>
               <View style={styles.heroMetaDot} />
-              <Text style={styles.heroMetaText}>{SECTIONS.length} articles</Text>
+              <Text style={styles.heroMetaText}>{t('privacyLegal.heroArticles', { count: SECTIONS.length })}</Text>
             </View>
             <View style={styles.heroMetaItem}>
               <Ionicons name="lock-closed" size={11} color="rgba(255,255,255,0.85)" />
-              <Text style={styles.heroMetaText}>Chiffrement end-to-end</Text>
+              <Text style={styles.heroMetaText}>{t('privacyLegal.heroEncryption')}</Text>
             </View>
           </View>
           <View style={styles.heroDateBlock}>
-            <Text style={styles.heroDateLabel}>DERNIÈRE MISE À JOUR</Text>
-            <Text style={styles.heroDateValue}>25 AVRIL 2026</Text>
+            <Text style={styles.heroDateLabel}>{t('privacyLegal.heroDateLabel')}</Text>
+            <Text style={styles.heroDateValue}>{t('privacyLegal.heroDateValue')}</Text>
           </View>
         </View>
 
         {/* === KEY GUARANTEES === */}
         <View style={styles.guaranteesSection}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>NOS ENGAGEMENTS</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>4 garanties clés</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('privacyLegal.guaranteesEyebrow')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('privacyLegal.guaranteesTitle')}</Text>
           <View style={styles.guaranteesGrid}>
             {[
-              { icon: 'shield-checkmark-outline' as const, label: 'Aucune vente', sub: 'On ne vend pas tes données', color: '#10B981' },
-              { icon: 'lock-closed-outline' as const, label: 'Chiffrement', sub: 'TLS/HTTPS partout', color: '#3B82F6' },
-              { icon: 'eye-off-outline' as const, label: 'Anonymat', sub: 'Tu peux supprimer ton compte', color: '#A855F7' },
-              { icon: 'cloud-done-outline' as const, label: 'RGPD', sub: 'Conformité européenne', color: '#F59E0B' },
+              { icon: 'shield-checkmark-outline' as const, label: t('privacyLegal.guarantee1Label'), sub: t('privacyLegal.guarantee1Sub'), color: '#10B981' },
+              { icon: 'lock-closed-outline' as const, label: t('privacyLegal.guarantee2Label'), sub: t('privacyLegal.guarantee2Sub'), color: '#3B82F6' },
+              { icon: 'eye-off-outline' as const, label: t('privacyLegal.guarantee3Label'), sub: t('privacyLegal.guarantee3Sub'), color: '#A855F7' },
+              { icon: 'cloud-done-outline' as const, label: t('privacyLegal.guarantee4Label'), sub: t('privacyLegal.guarantee4Sub'), color: '#F59E0B' },
             ].map((g, idx) => (
               <View
                 key={idx}
@@ -327,8 +329,8 @@ export default function PrivacyScreen() {
 
         {/* === TOC === */}
         <View style={styles.tocSection}>
-          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>NAVIGATION • TOC</Text>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Table des matières</Text>
+          <Text style={[styles.sectionEyebrow, { color: colors.accent }]}>{t('privacyLegal.tocEyebrow')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('privacyLegal.tocTitle')}</Text>
           <View style={styles.tocGrid}>
             {SECTIONS.map((section) => (
               <TouchableOpacity
@@ -365,7 +367,7 @@ export default function PrivacyScreen() {
                   <View style={styles.sectionIconRow}>
                     <Ionicons name={section.icon} size={14} color={colors.gray500} />
                     <Text style={[styles.sectionIconLabel, { color: colors.gray500 }]}>
-                      ARTICLE {section.num}
+                      {t('privacyLegal.articleLabel', { num: section.num })}
                     </Text>
                   </View>
                   <Text style={[styles.sectionBlockTitle, { color: colors.text }]}>
@@ -389,9 +391,9 @@ export default function PrivacyScreen() {
             <Ionicons name="lock-closed" size={16} color="#FFFFFF" />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.finalEyebrow}>ENGAGEMENT EVENTEZ</Text>
+            <Text style={styles.finalEyebrow}>{t('privacyLegal.finalEyebrow')}</Text>
             <Text style={styles.finalText}>
-              Tes données sont protégées. On prend ta vie privée au sérieux.
+              {t('privacyLegal.finalText')}
             </Text>
           </View>
         </View>

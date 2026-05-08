@@ -18,6 +18,7 @@ import { DetailScreenSkeleton } from '../../components/ui/Skeleton';
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList, Session, Speaker, SessionResource } from '../../types';
 import {
   Colors,
@@ -58,7 +59,26 @@ export default function SessionDetailsScreen() {
   const { showError, showSuccess } = useAlert();
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { sessionId } = route.params;
+
+  const SESSION_TYPE_LABELS: Record<string, string> = {
+    keynote: t('sessionDetails.typeKeynote'),
+    talk: t('sessionDetails.typeTalk'),
+    panel: t('sessionDetails.typePanel'),
+    workshop: t('sessionDetails.typeWorkshop'),
+    networking: t('sessionDetails.typeNetworking'),
+    break: t('sessionDetails.typeBreak'),
+    lunch: t('sessionDetails.typeLunch'),
+    other: t('sessionDetails.typeOther'),
+  };
+
+  const LEVEL_LABELS_LOCALIZED: Record<string, string> = {
+    beginner: t('sessionDetails.levelBeginner'),
+    intermediate: t('sessionDetails.levelIntermediate'),
+    advanced: t('sessionDetails.levelAdvanced'),
+    all: t('sessionDetails.levelAll'),
+  };
 
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,7 +118,7 @@ export default function SessionDetailsScreen() {
       }
     } catch (err: any) {
       if (__DEV__) console.error('[SessionDetails] Error fetching session:', err);
-      showError('Erreur', 'Impossible de charger les details de la session.');
+      showError(t('common.error'), t('sessionDetails.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -111,16 +131,16 @@ export default function SessionDetailsScreen() {
       if (session.is_registered) {
         await sessionsAPI.unregisterFromSession(sessionId);
         setSession((prev) => prev ? { ...prev, is_registered: false, registration_count: (prev.registration_count || 1) - 1 } : prev);
-        showSuccess('Desinscription reussie');
+        showSuccess(t('sessionDetails.unregisterSuccess'));
       } else {
         await sessionsAPI.registerToSession(sessionId);
         setSession((prev) => prev ? { ...prev, is_registered: true, registration_count: (prev.registration_count || 0) + 1 } : prev);
-        showSuccess('Inscription reussie !');
+        showSuccess(t('sessionDetails.registerSuccess'));
       }
     } catch (err: any) {
       const errorData = err.response?.data;
-      const message = errorData?.detail || errorData?.message || 'Une erreur est survenue.';
-      showError('Erreur', message);
+      const message = errorData?.detail || errorData?.message || t('sessionDetails.actionError');
+      showError(t('common.error'), message);
     } finally {
       setIsRegistering(false);
     }
@@ -133,17 +153,17 @@ export default function SessionDetailsScreen() {
       if (session.is_in_waitlist) {
         await sessionsAPI.leaveWaitlist(sessionId);
         setSession((prev) => prev ? { ...prev, is_in_waitlist: false, waitlist_position: null } : prev);
-        showSuccess('Liste d\'attente quittée');
+        showSuccess(t('sessionDetails.waitlistLeft'));
       } else {
         const res = await sessionsAPI.joinWaitlist(sessionId);
         const position = res?.data?.position ?? null;
         setSession((prev) => prev ? { ...prev, is_in_waitlist: true, waitlist_position: position } : prev);
-        showSuccess('Ajouté à la liste d\'attente', position ? `Position : ${position}` : undefined);
+        showSuccess(t('sessionDetails.waitlistJoined'), position ? t('sessionDetails.waitlistPosition', { position }) : undefined);
       }
     } catch (err: any) {
       const errorData = err.response?.data;
-      const message = errorData?.detail || errorData?.message || 'Une erreur est survenue.';
-      showError('Erreur', message);
+      const message = errorData?.detail || errorData?.message || t('sessionDetails.actionError');
+      showError(t('common.error'), message);
     } finally {
       setIsRegistering(false);
     }
@@ -198,7 +218,7 @@ export default function SessionDetailsScreen() {
             <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('sessionDetails.title')}</Text>
             <View style={styles.headerRight} />
           </View>
           <DetailScreenSkeleton />
@@ -216,12 +236,12 @@ export default function SessionDetailsScreen() {
             <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
               <Ionicons name="arrow-back" size={24} color={colors.gray700} />
             </TouchableOpacity>
-            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Session</Text>
+            <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('sessionDetails.title')}</Text>
             <View style={styles.headerRight} />
           </View>
           <View style={styles.loadingContainer}>
             <Ionicons name="alert-circle-outline" size={48} color={colors.gray400} />
-            <Text style={[styles.errorText, { color: colors.gray500 }]}>Session introuvable</Text>
+            <Text style={[styles.errorText, { color: colors.gray500 }]}>{t('sessionDetails.notFound')}</Text>
           </View>
         </View>
       </EditorialCanvas>
@@ -243,7 +263,7 @@ export default function SessionDetailsScreen() {
         <TouchableOpacity style={[styles.backButton, { backgroundColor: colors.gray50 }]} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.gray700} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]} numberOfLines={1}>Session</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]} numberOfLines={1}>{t('sessionDetails.title')}</Text>
         <View style={styles.headerRight} />
       </View>
 
@@ -256,18 +276,18 @@ export default function SessionDetailsScreen() {
         <View style={styles.badgeRow}>
           <View style={[styles.typeBadge, { backgroundColor: typeConfig.bgColor }]}>
             <Ionicons name={typeConfig.icon as any} size={14} color={typeConfig.color} />
-            <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>{typeConfig.label}</Text>
+            <Text style={[styles.typeBadgeText, { color: typeConfig.color }]}>{SESSION_TYPE_LABELS[session.session_type] || typeConfig.label}</Text>
           </View>
           {session.level && (
             <View style={[styles.levelBadge, { backgroundColor: colors.gray100 }]}>
               <Ionicons name="bar-chart-outline" size={14} color={colors.gray600} />
-              <Text style={[styles.levelBadgeText, { color: colors.gray600 }]}>{LEVEL_LABELS[session.level] || session.level}</Text>
+              <Text style={[styles.levelBadgeText, { color: colors.gray600 }]}>{LEVEL_LABELS_LOCALIZED[session.level] || session.level}</Text>
             </View>
           )}
           {session.is_featured && (
             <View style={[styles.featuredBadge, { backgroundColor: colors.warningLight }]}>
               <Ionicons name="star" size={14} color={colors.warning} />
-              <Text style={[styles.featuredBadgeText, { color: colors.warningDark }]}>En vedette</Text>
+              <Text style={[styles.featuredBadgeText, { color: colors.warningDark }]}>{t('sessionDetails.featured')}</Text>
             </View>
           )}
         </View>
@@ -295,7 +315,7 @@ export default function SessionDetailsScreen() {
               <Ionicons name="calendar-outline" size={20} color={colors.primary} />
             </View>
             <View style={styles.infoTextContainer}>
-              <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Date</Text>
+              <Text style={[styles.infoLabel, { color: colors.gray500 }]}>{t('sessionDetails.labelDate')}</Text>
               <Text style={[styles.infoValue, { color: colors.gray900 }]}>{formatDate(session.start_time)}</Text>
             </View>
           </View>
@@ -305,10 +325,10 @@ export default function SessionDetailsScreen() {
               <Ionicons name="time-outline" size={20} color={colors.primary} />
             </View>
             <View style={styles.infoTextContainer}>
-              <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Horaire</Text>
+              <Text style={[styles.infoLabel, { color: colors.gray500 }]}>{t('sessionDetails.labelTime')}</Text>
               <Text style={[styles.infoValue, { color: colors.gray900 }]}>
                 {formatTime(session.start_time)} - {formatTime(session.end_time)}
-                {session.duration_minutes ? ` (${session.duration_minutes} min)` : ''}
+                {session.duration_minutes ? t('sessionDetails.durationSuffix', { minutes: session.duration_minutes }) : ''}
               </Text>
             </View>
           </View>
@@ -320,7 +340,7 @@ export default function SessionDetailsScreen() {
                   <Ionicons name="location-outline" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Lieu</Text>
+                  <Text style={[styles.infoLabel, { color: colors.gray500 }]}>{t('sessionDetails.labelLocation')}</Text>
                   <Text style={[styles.infoValue, { color: colors.gray900 }]}>
                     {[session.room, session.location].filter(Boolean).join(' - ')}
                   </Text>
@@ -336,9 +356,9 @@ export default function SessionDetailsScreen() {
                   <Ionicons name="people-outline" size={20} color={colors.primary} />
                 </View>
                 <View style={styles.infoTextContainer}>
-                  <Text style={[styles.infoLabel, { color: colors.gray500 }]}>Capacite</Text>
+                  <Text style={[styles.infoLabel, { color: colors.gray500 }]}>{t('sessionDetails.labelCapacity')}</Text>
                   <Text style={[styles.infoValue, { color: colors.gray900 }]}>
-                    {session.registration_count || 0} / {session.max_capacity} places
+                    {t('sessionDetails.capacityValue', { count: session.registration_count || 0, max: session.max_capacity })}
                   </Text>
                 </View>
               </View>
@@ -357,7 +377,7 @@ export default function SessionDetailsScreen() {
               <Ionicons name="videocam" size={24} color={colors.info} />
             </View>
             <View style={styles.virtualTextContainer}>
-              <Text style={[styles.virtualTitle, { color: colors.infoDark }]}>Session en ligne</Text>
+              <Text style={[styles.virtualTitle, { color: colors.infoDark }]}>{t('sessionDetails.onlineSession')}</Text>
               <Text style={[styles.virtualLink, { color: colors.info }]} numberOfLines={1}>
                 {session.virtual_link}
               </Text>
@@ -369,7 +389,7 @@ export default function SessionDetailsScreen() {
         {/* Description */}
         {session.description && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Description</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('sessionDetails.description')}</Text>
             <Text style={[styles.descriptionText, { color: colors.gray600 }]}>{session.description}</Text>
           </View>
         )}
@@ -378,7 +398,7 @@ export default function SessionDetailsScreen() {
         {speakers.length > 0 && (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>
-              {speakers.length === 1 ? 'Intervenant' : 'Intervenants'}
+              {t('sessionDetails.speaker', { count: speakers.length })}
             </Text>
             {speakers.map((speaker: any) => {
               const speakerId = speaker.id;
@@ -419,7 +439,7 @@ export default function SessionDetailsScreen() {
         {/* Moderator */}
         {session.moderator_detail && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Moderateur</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('sessionDetails.moderator')}</Text>
             <TouchableOpacity
               style={[styles.speakerCard, { backgroundColor: colors.gray50 }]}
               onPress={() => navigateToSpeaker(session.moderator_detail!.id)}
@@ -448,7 +468,7 @@ export default function SessionDetailsScreen() {
         {/* Resources */}
         {resources.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Ressources</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('sessionDetails.resources')}</Text>
             {resources.map((resource: SessionResource) => {
               const resourceIcon = getResourceIcon(resource.resource_type);
               return (
@@ -479,7 +499,7 @@ export default function SessionDetailsScreen() {
         {/* Tags */}
         {session.tags && session.tags.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>Tags</Text>
+            <Text style={[styles.sectionTitle, { color: colors.gray900 }]}>{t('sessionDetails.tags')}</Text>
             <View style={styles.tagsRow}>
               {session.tags.map((tag, index) => (
                 <View key={index} style={[styles.tagBadge, { backgroundColor: colors.gray100 }]}>
@@ -505,7 +525,7 @@ export default function SessionDetailsScreen() {
             <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
               <View style={[styles.registerButton, { backgroundColor: colors.gray300 }]}>
                 <Ionicons name="time-outline" size={20} color={Colors.white} />
-                <Text style={styles.registerButtonText}>Cette session est terminée</Text>
+                <Text style={styles.registerButtonText}>{t('sessionDetails.ended')}</Text>
               </View>
             </View>
           );
@@ -524,7 +544,7 @@ export default function SessionDetailsScreen() {
                 {isRegistering ? <ActivityIndicator size="small" color={Colors.white} /> : (
                   <>
                     <Ionicons name="close-circle-outline" size={20} color={Colors.white} />
-                    <Text style={styles.registerButtonText}>Se désinscrire</Text>
+                    <Text style={styles.registerButtonText}>{t('sessionDetails.unregister')}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -547,8 +567,10 @@ export default function SessionDetailsScreen() {
                     <Ionicons name={isInWaitlist ? 'exit-outline' : 'hourglass-outline'} size={20} color={Colors.white} />
                     <Text style={styles.registerButtonText}>
                       {isInWaitlist
-                        ? `Position ${waitlistPosition ?? '?'} · Quitter la liste`
-                        : 'Rejoindre la liste d\'attente'}
+                        ? (waitlistPosition != null
+                            ? t('sessionDetails.leaveWaitlist', { position: waitlistPosition })
+                            : t('sessionDetails.leaveWaitlistUnknown'))
+                        : t('sessionDetails.joinWaitlist')}
                     </Text>
                   </>
                 )}
@@ -562,8 +584,8 @@ export default function SessionDetailsScreen() {
         if (hasEventRegistration === false && session.event) {
           const eventType = (session as any).event_type || (session as any).event_detail?.event_type;
           const ctaLabel = eventType === 'billetterie'
-            ? 'Achète un billet pour cet événement'
-            : 'Inscris-toi à l\'événement';
+            ? t('sessionDetails.buyTicketCta')
+            : t('sessionDetails.registerEventCta');
           return (
             <View style={[styles.bottomBar, { borderTopColor: colors.gray100, backgroundColor: colors.card, paddingBottom: Math.max(insets.bottom, Spacing.md) + Spacing.sm }]}>
               <TouchableOpacity
@@ -590,7 +612,7 @@ export default function SessionDetailsScreen() {
               {isRegistering ? <ActivityIndicator size="small" color={Colors.white} /> : (
                 <>
                   <Ionicons name="checkmark-circle-outline" size={20} color={Colors.white} />
-                  <Text style={styles.registerButtonText}>S'inscrire à cette session</Text>
+                  <Text style={styles.registerButtonText}>{t('sessionDetails.registerSession')}</Text>
                 </>
               )}
             </TouchableOpacity>

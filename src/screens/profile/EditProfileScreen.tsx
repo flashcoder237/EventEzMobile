@@ -18,6 +18,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
 import { usersAPI } from '../../api';
@@ -81,6 +82,7 @@ export default function EditProfileScreen() {
   const { user, syncUser } = useAuth();
   const { showSuccess, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const biometric = useBiometricConfirm();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const inputBg = isDark ? colors.gray100 : colors.gray50;
@@ -130,7 +132,7 @@ export default function EditProfileScreen() {
 
       if (!permissionResult.granted) {
         showError(
-          'Permission requise',
+          t('editProfile.permissionRequired'),
           "Veuillez autoriser l'accès à vos photos pour changer votre image de profil."
         );
         return;
@@ -149,7 +151,7 @@ export default function EditProfileScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur sélection image:', error);
-      showError('Erreur', "Impossible de sélectionner l'image");
+      showError(t('common.error'), t('editProfile.imagePickError'));
     }
   };
 
@@ -200,12 +202,12 @@ export default function EditProfileScreen() {
         // succéder), on sync juste l'état local du contexte.
         syncUser(response.data);
       }
-      showSuccess('Succès', 'Photo de profil mise à jour');
+      showSuccess(t('editProfile.successLabel'), t('editProfile.photoUpdated'));
     } catch (error: any) {
       if (__DEV__) console.error('Erreur upload image:', error);
       setProfileImage(user?.profile_picture || user?.image || null);
       const detail = error.response?.data?.detail || error.message || '';
-      showError('Erreur', `Impossible de mettre à jour la photo de profil. ${detail}`);
+      showError(t('common.error'), `${t('editProfile.photoUpdateError')} ${detail}`);
     }
   };
 
@@ -234,10 +236,10 @@ export default function EditProfileScreen() {
       // pour sync l'état du contexte sans re-PATCH.
       syncUser(response.data);
 
-      showSuccess('Succès', 'Votre profil a été mis à jour');
+      showSuccess(t('editProfile.successLabel'), t('editProfile.profileUpdated'));
     } catch (error: any) {
       if (__DEV__) console.error('Erreur mise à jour profil:', error);
-      showError('Erreur', error.response?.data?.detail || 'Impossible de mettre à jour le profil');
+      showError(t('common.error'), error.response?.data?.detail || t('editProfile.profileUpdateError'));
     } finally {
       setSaving(false);
     }
@@ -245,23 +247,23 @@ export default function EditProfileScreen() {
 
   const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      showError('Erreur', 'Veuillez remplir tous les champs');
+      showError(t('common.error'), t('editProfile.fillAllFields'));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      showError('Erreur', 'Les mots de passe ne correspondent pas');
+      showError(t('common.error'), t('editProfile.passwordsNotMatching'));
       return;
     }
 
     if (newPassword.length < 8) {
-      showError('Erreur', 'Le mot de passe doit contenir au moins 8 caractères');
+      showError(t('common.error'), t('editProfile.passwordMinLength'));
       return;
     }
 
     // Confirmation biométrique catégorie 'account' avant change password.
     const confirmed = await biometric.confirm({
-      promptMessage: 'Confirmer le changement de mot de passe',
+      promptMessage: t('editProfile.biometricPasswordChange'),
       category: 'account',
     });
     if (!confirmed) return;
@@ -273,15 +275,15 @@ export default function EditProfileScreen() {
         new_password: newPassword,
       });
 
-      showSuccess('Succès', 'Votre mot de passe a été modifié');
+      showSuccess(t('editProfile.successLabel'), t('editProfile.passwordChangedDetail'));
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {
       if (__DEV__) console.error('Erreur changement mot de passe:', error);
       showError(
-        'Erreur',
-        error.response?.data?.detail || 'Impossible de changer le mot de passe'
+        t('common.error'),
+        error.response?.data?.detail || t('editProfile.passwordChangeError')
       );
     } finally {
       setSaving(false);
@@ -325,7 +327,7 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={[styles.headerEyebrow, { color: colors.accent }]}>TON IDENTITÉ • PROFIL</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Modifier profil</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('editProfile.editProfileTitle')}</Text>
           </View>
         </View>
       </View>
@@ -366,20 +368,20 @@ export default function EditProfileScreen() {
               <Ionicons name="camera" size={14} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
-          <Text style={[styles.changePhotoText, { color: colors.primary }]}>Changer la photo</Text>
+          <Text style={[styles.changePhotoText, { color: colors.primary }]}>{t('editProfile.changePhoto')}</Text>
           <Text style={[styles.emailText, { color: colors.gray500 }]}>{user?.email}</Text>
         </View>
 
         {/* Informations personnelles */}
-        <Section title="Informations personnelles" icon="person-outline" defaultExpanded={true}>
+        <Section title={t('editProfile.sectionPersonalInfo')} icon="person-outline" defaultExpanded={true}>
           <View style={styles.inputRow}>
             <View style={[styles.inputGroup, styles.inputHalf]}>
-              <Text style={[styles.label, { color: colors.gray500 }]}>Prénom</Text>
+              <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.firstNameLabel')}</Text>
               <TextInput
                 style={inputStyle}
                 value={firstName}
                 onChangeText={setFirstName}
-                placeholder="Prénom"
+                placeholder={t('editProfile.firstNameLabel')}
                 placeholderTextColor={colors.gray400}
                 autoCapitalize="words"
               />
@@ -390,7 +392,7 @@ export default function EditProfileScreen() {
                 style={inputStyle}
                 value={lastName}
                 onChangeText={setLastName}
-                placeholder="Nom"
+                placeholder={t('editProfile.lastNameLabel')}
                 placeholderTextColor={colors.gray400}
                 autoCapitalize="words"
               />
@@ -398,7 +400,7 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>Téléphone</Text>
+            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.phoneLabel')}</Text>
             <View style={styles.inputWithIcon}>
               <Ionicons name="call-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
               <TextInput
@@ -413,14 +415,14 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>Date de naissance</Text>
+            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.dobLabel')}</Text>
             <View style={styles.inputWithIcon}>
               <Ionicons name="calendar-outline" size={18} color={colors.gray400} style={styles.inputIcon} />
               <TextInput
                 style={[inputStyle, styles.inputWithIconPadding]}
                 value={dateOfBirth}
                 onChangeText={setDateOfBirth}
-                placeholder="AAAA-MM-JJ"
+                placeholder={t('editProfile.dobPlaceholder')}
                 placeholderTextColor={colors.gray400}
               />
             </View>
@@ -428,26 +430,26 @@ export default function EditProfileScreen() {
         </Section>
 
         {/* Adresse */}
-        <Section title="Adresse" icon="location-outline">
+        <Section title={t('editProfile.sectionAddress')} icon="location-outline">
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>Adresse</Text>
+            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.addressLabel')}</Text>
             <TextInput
               style={inputStyle}
               value={address}
               onChangeText={setAddress}
-              placeholder="Votre adresse"
+              placeholder={t('editProfile.addressPlaceholder')}
               placeholderTextColor={colors.gray400}
             />
           </View>
 
           <View style={styles.inputRow}>
             <View style={[styles.inputGroup, styles.inputHalf]}>
-              <Text style={[styles.label, { color: colors.gray500 }]}>Ville</Text>
+              <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.cityLabel')}</Text>
               <TextInput
                 style={inputStyle}
                 value={city}
                 onChangeText={setCity}
-                placeholder="Ville"
+                placeholder={t('editProfile.cityLabel')}
                 placeholderTextColor={colors.gray400}
               />
             </View>
@@ -457,19 +459,19 @@ export default function EditProfileScreen() {
                 style={inputStyle}
                 value={country}
                 onChangeText={setCountry}
-                placeholder="Pays"
+                placeholder={t('editProfile.countryLabel')}
                 placeholderTextColor={colors.gray400}
               />
             </View>
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>Biographie</Text>
+            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.bioLabel')}</Text>
             <TextInput
               style={[inputStyle, styles.textArea]}
               value={bio}
               onChangeText={setBio}
-              placeholder="Parlez-nous un peu de vous..."
+              placeholder={t('editProfile.bioPlaceholderLong')}
               placeholderTextColor={colors.gray400}
               multiline
               numberOfLines={4}
@@ -480,14 +482,14 @@ export default function EditProfileScreen() {
 
         {/* Organisation */}
         {user?.role === 'organizer' && (
-          <Section title="Organisation" icon="business-outline">
+          <Section title={t('editProfile.sectionOrganization')} icon="business-outline">
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.gray500 }]}>Nom de l'entreprise</Text>
+              <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.companyNameLabel')}</Text>
               <TextInput
                 style={inputStyle}
                 value={companyName}
                 onChangeText={setCompanyName}
-                placeholder="Nom de votre entreprise"
+                placeholder={t('editProfile.companyNamePlaceholder')}
                 placeholderTextColor={colors.gray400}
               />
             </View>
@@ -495,7 +497,7 @@ export default function EditProfileScreen() {
         )}
 
         {/* Sécurité */}
-        <Section title="Sécurité" icon="lock-closed-outline">
+        <Section title={t('editProfile.sectionSecurity')} icon="lock-closed-outline">
           <View style={[styles.passwordNotice, { backgroundColor: `${colors.primary}10` }]}>
             <Ionicons name="information-circle" size={16} color={colors.primary} />
             <Text style={[styles.passwordNoticeText, { color: colors.primary }]}>
@@ -504,7 +506,7 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>Mot de passe actuel</Text>
+            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.currentPasswordLabel')}</Text>
             <View style={styles.passwordInput}>
               <TextInput
                 style={[inputStyle, styles.passwordInputField]}
@@ -528,7 +530,7 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>Nouveau mot de passe</Text>
+            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.newPasswordLabel')}</Text>
             <View style={styles.passwordInput}>
               <TextInput
                 style={[inputStyle, styles.passwordInputField]}
@@ -555,7 +557,7 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.gray500 }]}>Confirmer le mot de passe</Text>
+            <Text style={[styles.label, { color: colors.gray500 }]}>{t('editProfile.confirmPasswordLabel')}</Text>
             <View style={styles.passwordInput}>
               <TextInput
                 style={[inputStyle, styles.passwordInputField]}
@@ -613,9 +615,9 @@ export default function EditProfileScreen() {
               style={StyleSheet.absoluteFill}
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.savePillEyebrow}>SAUVEGARDE</Text>
+              <Text style={styles.savePillEyebrow}>{t('editProfile.saveEyebrow')}</Text>
               <Text style={styles.savePillLabel}>
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
+                {saving ? t('editProfile.saving') : t('editProfile.saveButton')}
               </Text>
             </View>
             <View style={styles.savePillArrow}>

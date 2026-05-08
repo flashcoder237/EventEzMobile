@@ -21,6 +21,7 @@ import {
   Shadows,
 } from '../../constants/theme';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { Alert as AlertIllustration, AnimatedIllustration } from '../../components/illustrations';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -31,11 +32,12 @@ export default function PaymentFailedScreen() {
   const route = useRoute<PaymentFailedRouteProp>();
   const { error } = route.params || {};
   const { colors } = useTheme();
+  const { t } = useTranslation();
 
   const reasons = [
-    { icon: 'card-outline' as const, eyebrow: 'CAUSE 01', title: 'Carte refusée', description: 'Vérifie ton solde ou les infos de ta carte' },
-    { icon: 'wifi-outline' as const, eyebrow: 'CAUSE 02', title: 'Réseau instable', description: 'Vérifie ta connexion et réessaie' },
-    { icon: 'shield-outline' as const, eyebrow: 'CAUSE 03', title: 'Sécurité', description: 'Le paiement a été bloqué par ta banque' },
+    { icon: 'card-outline' as const, eyebrow: t('payment.failedReason1Eyebrow'), title: t('payment.failedReason1Title'), description: t('payment.failedReason1Desc') },
+    { icon: 'wifi-outline' as const, eyebrow: t('payment.failedReason2Eyebrow'), title: t('payment.failedReason2Title'), description: t('payment.failedReason2Desc') },
+    { icon: 'shield-outline' as const, eyebrow: t('payment.failedReason3Eyebrow'), title: t('payment.failedReason3Title'), description: t('payment.failedReason3Desc') },
   ];
 
   return (
@@ -57,17 +59,17 @@ export default function PaymentFailedScreen() {
 
           {/* === EYEBROW + TITLE === */}
           <View style={styles.textContainer} accessibilityRole="alert">
-            <Text style={styles.eyebrow}>ERREUR DE PAIEMENT</Text>
-            <Text style={[styles.title, { color: colors.text }]}>Oups, ça a coincé</Text>
+            <Text style={styles.eyebrow}>{t('payment.failedEyebrowError')}</Text>
+            <Text style={[styles.title, { color: colors.text }]}>{t('payment.failedHookTitle')}</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-              {error || 'Une erreur est survenue lors du paiement.\nNe t\'inquiète pas, rien n\'a été débité.'}
+              {error || t('payment.failedDefaultMessage')}
             </Text>
           </View>
 
           {/* === REASON CARDS === */}
           <View style={styles.reasonsCol}>
             <Text style={[styles.reasonsHeader, { color: colors.gray500 }]}>
-              CAUSES POSSIBLES
+              {t('payment.failedReasonsHeader')}
             </Text>
             {reasons.map((r, idx) => (
               <View
@@ -99,9 +101,9 @@ export default function PaymentFailedScreen() {
               <Ionicons name="help-circle" size={14} color="#FFFFFF" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.helpEyebrow}>BESOIN D'AIDE ?</Text>
+              <Text style={styles.helpEyebrow}>{t('payment.failedHelpEyebrow')}</Text>
               <Text style={styles.helpText}>
-                Si le problème persiste, contactez notre support ou essayez un autre mode de paiement.
+                {t('payment.failedHelpText')}
               </Text>
             </View>
           </View>
@@ -113,7 +115,7 @@ export default function PaymentFailedScreen() {
             style={[styles.primaryPill, Shadows.buttonPrimary]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.9}
-            accessibilityLabel="Réessayer le paiement"
+            accessibilityLabel={t('payment.failedRetryAccessibility')}
           >
             <LinearGradient
               colors={[colors.primary, colors.primaryDark]}
@@ -122,8 +124,8 @@ export default function PaymentFailedScreen() {
               style={StyleSheet.absoluteFill}
             />
             <View style={{ flex: 1 }}>
-              <Text style={styles.primaryPillEyebrow}>NOUVELLE TENTATIVE</Text>
-              <Text style={styles.primaryPillLabel}>Réessayer le paiement</Text>
+              <Text style={styles.primaryPillEyebrow}>{t('payment.failedRetryEyebrow')}</Text>
+              <Text style={styles.primaryPillLabel}>{t('payment.retry')}</Text>
             </View>
             <View style={styles.primaryPillArrow}>
               <Ionicons name="refresh" size={18} color={Colors.white} />
@@ -134,11 +136,11 @@ export default function PaymentFailedScreen() {
             style={[styles.secondaryPill, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.replace('Main', { screen: 'Discover' } as any)}
             activeOpacity={0.85}
-            accessibilityLabel="Retour à l'accueil"
+            accessibilityLabel={t('payment.failedHomeAccessibility')}
           >
             <Ionicons name="home-outline" size={14} color={colors.gray700} />
             <Text style={[styles.secondaryPillText, { color: colors.gray700 }]}>
-              Retour à l'accueil
+              {t('payment.backHome')}
             </Text>
           </TouchableOpacity>
         </View>

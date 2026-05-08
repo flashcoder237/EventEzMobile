@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Dimensions,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -124,14 +125,14 @@ function formatTime(dateString?: string) {
   return d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
 
-function proximityPill(days: number | null): string {
+function proximityPill(days: number | null, t: (k: string, opts?: any) => string): string {
   if (days === null) return '';
-  if (days <= 0) return "Aujourd'hui";
-  if (days === 1) return 'Demain';
-  if (days < 7) return `J-${days}`;
-  if (days < 30) return `Dans ${Math.ceil(days / 7)} sem.`;
-  if (days < 60) return 'Dans 1 mois';
-  return `Dans ${Math.ceil(days / 30)} mois`;
+  if (days <= 0) return t('followingEvents.today');
+  if (days === 1) return t('followingEvents.tomorrow');
+  if (days < 7) return t('followingEvents.jMinus', { count: days });
+  if (days < 30) return t('followingEvents.inWeeks', { count: Math.ceil(days / 7) });
+  if (days < 60) return t('followingEvents.inOneMonth');
+  return t('followingEvents.inMonths', { count: Math.ceil(days / 30) });
 }
 
 // ============================================================
@@ -174,6 +175,7 @@ interface HeroCardProps {
   colors: ThemeColorsType;
   onPress: (event: Event) => void;
   onToggleNotification: (follow: FollowData) => void;
+  t: (k: string, opts?: any) => string;
 }
 
 function HeroCardComponent({
@@ -183,6 +185,7 @@ function HeroCardComponent({
   colors,
   onPress,
   onToggleNotification,
+  t,
 }: HeroCardProps) {
   const dm = formatDayMonth(event.start_date);
   const weekday = formatWeekday(event.start_date);
@@ -221,7 +224,7 @@ function HeroCardComponent({
         <View style={[styles.heroCountdownPill, { backgroundColor: colors.accent }]}>
           <Ionicons name="hourglass" size={13} color={Colors.white} />
           <Text style={styles.heroCountdownText}>
-            {days <= 0 ? 'AUJ.' : `J-${days}`}
+            {days <= 0 ? t('followingEvents.todayAcronym') : t('followingEvents.jMinus', { count: days })}
           </Text>
         </View>
       )}
@@ -253,7 +256,7 @@ function HeroCardComponent({
           onPress={() => onToggleNotification(follow)}
           activeOpacity={0.8}
           accessibilityRole="button"
-          accessibilityLabel={isNotified ? 'Notifications activées' : 'Notifications désactivées'}
+          accessibilityLabel={isNotified ? t('followingEvents.notificationsOn') : t('followingEvents.notificationsOff')}
         >
           <PulsingHeart color={Colors.accent} size={22} />
         </TouchableOpacity>
@@ -271,7 +274,8 @@ const HeroCard = memo(
     prev.follow.notification_preference === next.follow.notification_preference &&
     prev.colors === next.colors &&
     prev.onPress === next.onPress &&
-    prev.onToggleNotification === next.onToggleNotification,
+    prev.onToggleNotification === next.onToggleNotification &&
+    prev.t === next.t,
 );
 
 interface MasonryCardProps {
@@ -436,6 +440,7 @@ interface CarouselCardProps {
   colors: ThemeColorsType;
   canvasBg: string;
   onPress: (event: Event) => void;
+  t: (k: string, opts?: any) => string;
 }
 
 function CarouselCardComponent({
@@ -445,6 +450,7 @@ function CarouselCardComponent({
   colors,
   canvasBg,
   onPress,
+  t,
 }: CarouselCardProps) {
   const dm = formatDayMonth(event.start_date);
   return (
@@ -484,7 +490,7 @@ function CarouselCardComponent({
               { color: accent ? Colors.accent : colors.gray500 },
             ]}
           >
-            {proximityPill(days)}
+            {proximityPill(days, t)}
           </Text>
         </View>
         <Text style={[styles.carouselTitle, { color: colors.text }]} numberOfLines={2}>
@@ -517,7 +523,8 @@ const CarouselCard = memo(
     prev.accent === next.accent &&
     prev.colors === next.colors &&
     prev.canvasBg === next.canvasBg &&
-    prev.onPress === next.onPress,
+    prev.onPress === next.onPress &&
+    prev.t === next.t,
 );
 
 interface ArchivedCardProps {
@@ -590,6 +597,7 @@ export default function FollowingEventsScreen() {
   const { user } = useAuth();
   const { showError, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const [follows, setFollows] = useState<FollowData[]>([]);
   const [organizers, setOrganizers] = useState<OrganizerFollow[]>([]);
@@ -640,8 +648,8 @@ export default function FollowingEventsScreen() {
 
   const handleUnfollowOrganizer = useCallback((organizerId: number, organizerName: string) => {
     showConfirm(
-      'Ne plus suivre',
-      `Voulez-vous vraiment ne plus suivre ${organizerName} ?`,
+      t('followingEvents.unfollowConfirmTitle'),
+      t('followingEvents.unfollowOrganizerConfirm', { name: organizerName }),
       async () => {
         try {
           await usersAPI.unfollowUser(organizerId);
@@ -649,11 +657,11 @@ export default function FollowingEventsScreen() {
           // Invalide le cache pour rester cohérent au prochain mount
           CacheService.invalidate(`following:organizers:${user?.id}`);
         } catch {
-          showError('Erreur', 'Impossible de retirer le suivi pour le moment.');
+          showError(t('common.error'), t('followingEvents.unfollowOrganizerError'));
         }
       },
     );
-  }, [user?.id, showConfirm, showError]);
+  }, [user?.id, showConfirm, showError, t]);
 
   const loadFollowedEvents = async (bypassCache = false) => {
     const cacheKey = `following:${user?.id}`;
@@ -684,7 +692,7 @@ export default function FollowingEventsScreen() {
   };
 
   const handleUnfollow = useCallback((eventId: string) => {
-    showConfirm('Ne plus suivre', 'Voulez-vous vraiment ne plus suivre cet événement ?', async () => {
+    showConfirm(t('followingEvents.unfollowConfirmTitle'), t('followingEvents.unfollowEventConfirm'), async () => {
       try {
         await eventsAPI.unfollowEvent(eventId);
         setFollows((prev) =>
@@ -693,10 +701,10 @@ export default function FollowingEventsScreen() {
         CacheService.invalidate(`following:${user?.id}`);
       } catch (error) {
         if (__DEV__) console.error('Error unfollowing:', error);
-        showError('Erreur', 'Impossible de ne plus suivre cet événement');
+        showError(t('common.error'), t('followingEvents.unfollowError'));
       }
     });
-  }, [user?.id, showConfirm, showError]);
+  }, [user?.id, showConfirm, showError, t]);
 
   const toggleNotification = useCallback(async (follow: FollowData) => {
     const eventId = follow.event_details?.id || follow.event;
@@ -713,9 +721,9 @@ export default function FollowingEventsScreen() {
       );
     } catch (error) {
       if (__DEV__) console.error('Error updating preferences:', error);
-      showError('Erreur', 'Impossible de mettre à jour les préférences');
+      showError(t('common.error'), t('followingEvents.updatePrefsError'));
     }
-  }, [showError]);
+  }, [showError, t]);
 
   // Stable navigation callback for cards (event.banner_image / category fields
   // don't change between renders for a given event, so memoization is safe).
@@ -800,13 +808,13 @@ export default function FollowingEventsScreen() {
     const counts = new Map<string, { name: string; count: number }>();
     for (const f of follows) {
       const cat = f.event_details?.category;
-      const key = cat?.name || 'Autres';
+      const key = cat?.name || t('followingEvents.categoryOther');
       const existing = counts.get(key);
       if (existing) existing.count += 1;
       else counts.set(key, { name: key, count: 1 });
     }
     return Array.from(counts.values()).sort((a, b) => b.count - a.count);
-  }, [follows]);
+  }, [follows, t]);
 
   const totalVisible =
     visibleSections.thisWeek.length +
@@ -921,15 +929,15 @@ export default function FollowingEventsScreen() {
       <AnimatedIllustration entry="scaleIn" idle="float">
         <Authentication color={colors.primary} size={160} />
       </AnimatedIllustration>
-      <Text style={[styles.authTitle, { color: colors.text }]}>Connectez-vous</Text>
+      <Text style={[styles.authTitle, { color: colors.text }]}>{t('followingEvents.authTitle')}</Text>
       <Text style={[styles.authSubtitle, { color: colors.gray500 }]}>
-        Vous devez être connecté pour voir vos événements sauvegardés
+        {t('followingEvents.authSubtitle')}
       </Text>
       <TouchableOpacity
         style={[styles.loginButton, { backgroundColor: colors.primary }]}
         onPress={() => navigation.navigate('Login' as never)}
       >
-        <Text style={styles.loginButtonText}>Se connecter</Text>
+        <Text style={styles.loginButtonText}>{t('followingEvents.authCTA')}</Text>
       </TouchableOpacity>
     </View>
   );
@@ -940,12 +948,12 @@ export default function FollowingEventsScreen() {
         <SaveToBookmarks color={colors.primary} size={160} />
       </AnimatedIllustration>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        {follows.length === 0 ? 'Ta collection est vide' : 'Aucun résultat'}
+        {follows.length === 0 ? t('followingEvents.emptyTitleNone') : t('followingEvents.emptyTitleNoResult')}
       </Text>
       <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
         {follows.length === 0
-          ? 'Commence à sauvegarder des événements pour les retrouver ici.'
-          : 'Essaie un autre filtre ou une autre recherche.'}
+          ? t('followingEvents.emptyMessageNone')
+          : t('followingEvents.emptyMessageNoResult')}
       </Text>
       {follows.length === 0 && (
         <TouchableOpacity
@@ -953,7 +961,7 @@ export default function FollowingEventsScreen() {
           onPress={() => navigation.navigate('Main', { screen: 'Discover' } as any)}
         >
           <Ionicons name="compass-outline" size={18} color={Colors.white} />
-          <Text style={styles.discoverButtonText}>Découvrir des événements</Text>
+          <Text style={styles.discoverButtonText}>{t('followingEvents.discoverCTA')}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -979,9 +987,9 @@ export default function FollowingEventsScreen() {
           <AnimatedIllustration entry="fadeIn" idle="sway">
             <SaveToBookmarks color={colors.primary} size={160} />
           </AnimatedIllustration>
-          <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun organisateur suivi</Text>
+          <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('followingEvents.organizersEmptyTitle')}</Text>
           <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
-            Suis tes organisateurs préférés pour ne rien rater de leurs événements.
+            {t('followingEvents.organizersEmptyMessage')}
           </Text>
         </ScrollView>
       );
@@ -1013,7 +1021,7 @@ export default function FollowingEventsScreen() {
             || target.name
             || `${target.first_name || ''} ${target.last_name || ''}`.trim()
             || target.email
-            || 'Organisateur';
+            || t('followingEvents.organizerFallback');
           const avatar = target.profile_picture || target.organizer_profile?.logo || null;
           const isVerified = !!target.is_verified;
           const eventCount = target.organizer_profile?.event_count || 0;
@@ -1025,7 +1033,7 @@ export default function FollowingEventsScreen() {
               onPress={() => navigation.navigate('OrganizerProfile', { organizerId: String(target.id) })}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={`Voir le profil de ${fullName}`}
+              accessibilityLabel={t('followingEvents.viewProfileA11y', { name: fullName })}
             >
               {avatar ? (
                 <Image
@@ -1052,7 +1060,7 @@ export default function FollowingEventsScreen() {
                   )}
                 </View>
                 <Text style={[styles.organizerRowMeta, { color: colors.gray500 }]} numberOfLines={1}>
-                  {eventCount} événement{eventCount > 1 ? 's' : ''}
+                  {eventCount > 1 ? t('followingEvents.eventsCountPlural', { count: eventCount }) : t('followingEvents.eventsCountSingular', { count: eventCount })}
                 </Text>
               </View>
               <TouchableOpacity
@@ -1062,7 +1070,7 @@ export default function FollowingEventsScreen() {
                 }}
                 style={[styles.organizerRowUnfollow, { borderColor: colors.border, backgroundColor: colors.gray50 }]}
                 accessibilityRole="button"
-                accessibilityLabel={`Ne plus suivre ${fullName}`}
+                accessibilityLabel={t('followingEvents.unfollowOrganizerA11y', { name: fullName })}
               >
                 <Ionicons name="person-remove-outline" size={16} color={colors.gray600} />
               </TouchableOpacity>
@@ -1086,10 +1094,10 @@ export default function FollowingEventsScreen() {
   }
 
   const tabs: { key: TabFilter; label: string }[] = [
-    { key: 'all', label: 'Tous' },
-    { key: 'upcoming', label: 'À venir' },
-    { key: 'weekend', label: 'Ce week-end' },
-    { key: 'past', label: 'Passés' },
+    { key: 'all', label: t('followingEvents.tabAll') },
+    { key: 'upcoming', label: t('followingEvents.tabUpcoming') },
+    { key: 'weekend', label: t('followingEvents.tabWeekend') },
+    { key: 'past', label: t('followingEvents.tabPast') },
   ];
 
   return (
@@ -1108,15 +1116,15 @@ export default function FollowingEventsScreen() {
         >
           <View style={styles.headerTopRow}>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.headerEyebrow, { color: colors.gray400 }]}>COLLECTION</Text>
-              <Text style={[styles.headerTitle, { color: colors.text }]}>Tes Sauvegardes</Text>
+              <Text style={[styles.headerEyebrow, { color: colors.gray400 }]}>{t('followingEvents.eyebrow')}</Text>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('followingEvents.title')}</Text>
             </View>
             <View style={styles.headerActions}>
               <TouchableOpacity
                 onPress={() => setSearchOpen((v) => !v)}
                 style={[styles.headerBtn, { backgroundColor: colors.gray100 }]}
                 accessibilityRole="button"
-                accessibilityLabel="Rechercher"
+                accessibilityLabel={t('followingEvents.searchA11y')}
               >
                 <Ionicons
                   name={searchOpen ? 'close' : 'search'}
@@ -1127,8 +1135,10 @@ export default function FollowingEventsScreen() {
               <View style={[styles.countPill, { backgroundColor: colors.primaryBg }]}>
                 <Text style={[styles.countPillText, { color: colors.primary }]}>
                   {activeSection === 'events'
-                    ? `${follows.length} sauv.`
-                    : `${organizers.length} suivi${organizers.length > 1 ? 's' : ''}`}
+                    ? t('followingEvents.savedCount', { count: follows.length })
+                    : (organizers.length > 1
+                      ? t('followingEvents.followedPlural', { count: organizers.length })
+                      : t('followingEvents.followedSingular', { count: organizers.length }))}
                 </Text>
               </View>
             </View>
@@ -1139,7 +1149,7 @@ export default function FollowingEventsScreen() {
           <View style={[styles.editorialTabsRow, { borderBottomColor: colors.border }]}>
             {(['events', 'organizers'] as SectionKind[]).map((section) => {
               const isActive = activeSection === section;
-              const label = section === 'events' ? 'ÉVÉNEMENTS' : 'ORGANISATEURS';
+              const label = section === 'events' ? t('followingEvents.sectionEvents') : t('followingEvents.sectionOrganizers');
               const count = section === 'events' ? follows.length : organizers.length;
               return (
                 <TouchableOpacity
@@ -1235,7 +1245,7 @@ export default function FollowingEventsScreen() {
               <Ionicons name="search" size={16} color={colors.gray400} />
               <TextInput
                 style={[styles.searchInput, { color: colors.text }]}
-                placeholder="Rechercher dans tes sauvegardes..."
+                placeholder={t('followingEvents.searchPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -1284,7 +1294,7 @@ export default function FollowingEventsScreen() {
                 {/* Cette Semaine — HERO */}
                 {visibleSections.thisWeek.length > 0 && (
                   <View style={styles.section}>
-                    <SectionHeader label="Cette Semaine" />
+                    <SectionHeader label={t('followingEvents.sectionThisWeek')} />
                     <StaggeredItem index={0} staggerDelay={80}>
                       <HeroCard
                         follow={visibleSections.thisWeek[0].follow}
@@ -1293,6 +1303,7 @@ export default function FollowingEventsScreen() {
                         colors={colors}
                         onPress={handleEventPress}
                         onToggleNotification={toggleNotification}
+                        t={t}
                       />
                     </StaggeredItem>
                     {/* Remaining this-week events go into compact list */}
@@ -1308,6 +1319,7 @@ export default function FollowingEventsScreen() {
                               colors={colors}
                               canvasBg={canvasBg}
                               onPress={handleEventPress}
+                              t={t}
                             />
                           </StaggeredItem>
                         ))}
@@ -1319,7 +1331,7 @@ export default function FollowingEventsScreen() {
                 {/* Ce Mois-ci — MASONRY */}
                 {visibleSections.thisMonth.length > 0 && (
                   <View style={styles.section}>
-                    <SectionHeader label="Ce Mois-ci" />
+                    <SectionHeader label={t('followingEvents.sectionThisMonth')} />
                     {renderMasonry(visibleSections.thisMonth)}
                   </View>
                 )}
@@ -1328,7 +1340,7 @@ export default function FollowingEventsScreen() {
                 {visibleSections.later.length > 0 && (
                   <View style={[styles.section, { paddingLeft: 0, paddingRight: 0 }]}>
                     <View style={{ paddingHorizontal: Spacing.lg }}>
-                      <SectionHeader label="Plus Tard" />
+                      <SectionHeader label={t('followingEvents.sectionLater')} />
                     </View>
                     <ScrollView
                       horizontal
@@ -1349,6 +1361,7 @@ export default function FollowingEventsScreen() {
                           colors={colors}
                           canvasBg={canvasBg}
                           onPress={handleEventPress}
+                          t={t}
                         />
                       ))}
                     </ScrollView>
@@ -1358,7 +1371,7 @@ export default function FollowingEventsScreen() {
                 {/* Archives (Passés) */}
                 {visibleSections.past.length > 0 && (
                   <View style={styles.section}>
-                    <SectionHeader label="Archives" muted />
+                    <SectionHeader label={t('followingEvents.sectionArchives')} muted />
                     <View style={{ gap: Spacing.sm }}>
                       {visibleSections.past.map((x, idx) => (
                         <StaggeredItem key={x.follow.id} index={idx} staggerDelay={60}>
@@ -1378,7 +1391,7 @@ export default function FollowingEventsScreen() {
                 {/* Suivis d'intérêt */}
                 {categoryGroups.length > 0 && activeTab !== 'past' && (
                   <View style={styles.section}>
-                    <SectionHeader label="Suivis d'intérêt" muted />
+                    <SectionHeader label={t('followingEvents.sectionInterests')} muted />
                     <CategoryChips />
                   </View>
                 )}

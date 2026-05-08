@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { useTranslation } from 'react-i18next';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -31,6 +32,7 @@ import { RootStackParamList } from '../../types';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export default function OfflineTicketsScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
@@ -66,23 +68,23 @@ export default function OfflineTicketsScreen() {
 
   const handleClearAll = () => {
     showConfirm(
-      'Vider le cache',
-      'Voulez-vous vraiment supprimer tous les billets hors-ligne? Ils devront être re-téléchargés.',
+      t('offlineTickets.clearTitle'),
+      t('offlineTickets.clearMessage'),
       async () => {
         await clearCache();
         setTickets([]);
-        showSuccess('Cache vidé', 'Tous les billets hors-ligne ont été supprimés');
+        showSuccess(t('offlineTickets.clearedTitle'), t('offlineTickets.clearedMessage'));
       }
     );
   };
 
   const handleRemoveTicket = (ticketId: string) => {
     showConfirm(
-      'Supprimer du cache',
-      'Voulez-vous supprimer ce billet du cache hors-ligne?',
+      t('offlineTickets.removeTitle'),
+      t('offlineTickets.removeMessage'),
       async () => {
         await removeCachedTicket(ticketId);
-        setTickets(tickets.filter(t => t.ticketId !== ticketId));
+        setTickets(tickets.filter(item => item.ticketId !== ticketId));
       }
     );
   };
@@ -128,12 +130,12 @@ export default function OfflineTicketsScreen() {
                 color={isOnline ? colors.success : colors.warning}
               />
               <Text style={[styles.offlineBadgeText, { color: isOnline ? colors.success : colors.warning }]}>
-                {isOnline ? 'En ligne' : 'Hors-ligne'}
+                {isOnline ? t('offlineTickets.online') : t('offlineTickets.offline')}
               </Text>
             </View>
             {item.cachedAt && (
               <Text style={[styles.cachedAtText, { color: colors.gray400 }]}>
-                Synchro {formatTimeAgo(new Date(item.cachedAt).toISOString())}
+                {t('offlineTickets.syncedAt', { when: formatTimeAgo(new Date(item.cachedAt).toISOString()) })}
               </Text>
             )}
             <TouchableOpacity
@@ -156,11 +158,11 @@ export default function OfflineTicketsScreen() {
               />
             </View>
             <View style={styles.referenceContainer}>
-              <Text style={[styles.referenceLabel, { color: colors.gray500 }]}>Référence</Text>
+              <Text style={[styles.referenceLabel, { color: colors.gray500 }]}>{t('offlineTickets.referenceLabel')}</Text>
               <Text style={[styles.referenceCode, { color: colors.gray900 }]}>{item.referenceCode}</Text>
             </View>
             <Text style={[styles.qrHint, { color: colors.gray500 }]}>
-              Présentez ce QR code à l'entrée de l'événement
+              {t('offlineTickets.qrHint')}
             </Text>
           </View>
         )}
@@ -181,10 +183,9 @@ export default function OfflineTicketsScreen() {
       <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="cloud-download-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun billet en cache</Text>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>{t('offlineTickets.emptyTitle')}</Text>
       <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
-        Vos billets sont automatiquement mis en cache lorsque vous les consultez.
-        Ils seront disponibles même sans connexion.
+        {t('offlineTickets.emptySubtitle')}
       </Text>
     </View>
   );
@@ -198,7 +199,7 @@ export default function OfflineTicketsScreen() {
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Billets hors-ligne</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('offlineTickets.headerTitle')}</Text>
         {tickets.length > 0 ? (
           <TouchableOpacity style={styles.clearButton} onPress={handleClearAll}>
             <Ionicons name="trash-outline" size={22} color={colors.error} />
@@ -218,15 +219,15 @@ export default function OfflineTicketsScreen() {
         <View style={{ flex: 1 }}>
           <Text style={[styles.connectionText, { color: isOnline ? colors.success : colors.warning }]}>
             {isOnline
-              ? 'Connecté - Vos billets sont synchronisés'
-              : 'Hors-ligne - Utilisation du cache local'
+              ? t('offlineTickets.connectedSync')
+              : t('offlineTickets.offlineUsingCache')
             }
           </Text>
           {tickets.length > 0 && (
             <Text style={[styles.connectionSubtext, { color: isOnline ? colors.success : colors.warning, opacity: 0.7 }]}>
-              Dernière synchro {formatTimeAgo(
-                new Date(Math.max(...tickets.map(t => t.cachedAt))).toISOString()
-              )}
+              {t('offlineTickets.lastSyncAt', { when: formatTimeAgo(
+                new Date(Math.max(...tickets.map(item => item.cachedAt))).toISOString()
+              ) })}
             </Text>
           )}
         </View>
@@ -257,8 +258,7 @@ export default function OfflineTicketsScreen() {
         <View style={[styles.infoCard, { backgroundColor: colors.infoLight }]}>
           <Ionicons name="information-circle-outline" size={20} color={colors.info} />
           <Text style={[styles.infoText, { color: colors.info }]}>
-            {tickets.length} billet{tickets.length > 1 ? 's' : ''} disponible{tickets.length > 1 ? 's' : ''} hors-ligne.
-            Les données sont conservées pendant 7 jours.
+            {t('offlineTickets.infoCount', { count: tickets.length })}
           </Text>
         </View>
       )}

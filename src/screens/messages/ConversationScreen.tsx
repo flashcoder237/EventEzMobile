@@ -22,6 +22,7 @@ import {
   Clipboard,
   TextInput,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Image } from 'expo-image';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -98,6 +99,8 @@ export default function ConversationScreen() {
   const { user } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'fr-FR';
 
   // State centralisé
   const { state, actions } = useMessageState(initialConversationId, userName);
@@ -200,13 +203,13 @@ export default function ConversationScreen() {
     },
     onServerError: (code, message) => {
       if (code === 'rate_limited') {
-        showError('Trop de messages', 'Vous envoyez des messages trop rapidement.');
+        showError(t('conversation.rateLimitedTitle'), t('conversation.rateLimitedMessage'));
       } else if (code === 'blocked') {
-        showError('Message bloqué', 'Vous avez été bloqué par cet utilisateur.');
+        showError(t('conversation.blockedMsgTitle'), t('conversation.blockedMsgMessage'));
       } else if (code === 'quota_exceeded') {
-        showError('Espace insuffisant', 'La conversation a atteint sa limite de stockage.');
+        showError(t('conversation.quotaExceededTitle'), t('conversation.quotaExceededMessage'));
       } else if (code === 'posting_mode_restricted') {
-        showError('Écriture restreinte', "Seul l'organisateur peut écrire dans cette discussion.");
+        showError(t('conversation.postingRestrictedTitle'), t('conversation.postingRestrictedMessage'));
       }
     },
   });
@@ -244,10 +247,10 @@ export default function ConversationScreen() {
     }, [state.conversationId, actions]),
     onMessageFailed: useCallback((queued: QueuedMessage) => {
       showError(
-        'Message non envoyé',
-        'Un message en attente n\'a pas pu être envoyé après plusieurs tentatives.',
+        t('conversation.notSentTitle'),
+        t('conversation.notSentMessage'),
       );
-    }, [showError]),
+    }, [showError, t]),
   });
 
   // ============================================
@@ -391,7 +394,7 @@ export default function ConversationScreen() {
         conversation.name ||
         (otherParticipant?.first_name && otherParticipant?.last_name
           ? `${otherParticipant.first_name} ${otherParticipant.last_name}`
-          : otherParticipant?.email?.split('@')[0] || 'Conversation');
+          : otherParticipant?.email?.split('@')[0] || t('conversation.conversationFallback'));
 
       // getMediaUrl() résout les paths relatifs (`/media/...`) en URLs
       // absolues. Le backend renvoie maintenant des URLs absolues quand le
@@ -480,42 +483,42 @@ export default function ConversationScreen() {
 
     if (isGroup && isAdmin) {
       buttons.push({
-        text: 'Gérer le groupe',
+        text: t('conversation.manageGroup'),
         onPress: () => setShowGroupAdminPanel(true),
       });
     }
 
     if (!isGroup) {
       buttons.push({
-        text: 'Bloquer cet utilisateur',
+        text: t('conversation.blockUserOption'),
         style: 'destructive' as const,
         onPress: handleBlockUser,
       });
     }
 
-    buttons.push({ text: 'Annuler', style: 'cancel' as const });
+    buttons.push({ text: t('conversation.cancelOption'), style: 'cancel' as const });
 
-    Alert.alert('Options', undefined, buttons);
+    Alert.alert(t('conversation.optionsTitle'), undefined, buttons);
   };
 
   const handleBlockUser = async () => {
     if (!state.otherUserId) return;
 
     Alert.alert(
-      'Bloquer utilisateur',
-      `Voulez-vous vraiment bloquer ${state.conversationTitle} ?`,
+      t('conversation.blockUserTitle'),
+      t('conversation.blockUserConfirm', { name: state.conversationTitle }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('conversation.cancelOption'), style: 'cancel' },
         {
-          text: 'Bloquer',
+          text: t('conversation.blockButton'),
           style: 'destructive',
           onPress: async () => {
             try {
               await messagesAPI.blockUser(state.otherUserId!);
-              showSuccess('Utilisateur bloqué', '');
+              showSuccess(t('conversation.userBlocked'), '');
               navigation.goBack();
             } catch (error) {
-              showError('Erreur', 'Impossible de bloquer cet utilisateur');
+              showError(t('common.error'), t('conversation.blockError'));
             }
           },
         },
@@ -609,13 +612,13 @@ export default function ConversationScreen() {
     try {
       // Garde-fou : on ne propose pas de joindre si la conversation est en lecture seule.
       if (quotaState?.is_read_only) {
-        showError('Lecture seule', 'Vous ne pouvez plus envoyer de fichiers dans cette conversation.');
+        showError(t('conversation.readOnlyTitle'), t('conversation.readOnlyAttachMessage'));
         return;
       }
 
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permissionResult.granted) {
-        showError('Permission requise', 'Autorisez l\'accès aux photos.');
+        showError(t('conversation.permissionPhotoTitle'), t('conversation.permissionPhotoMessage'));
         return;
       }
 
@@ -656,15 +659,15 @@ export default function ConversationScreen() {
         const { validateAttachmentSize, MESSAGE_LIMITS, formatBytes } = await import('../../constants/messaging');
         const sizeError = validateAttachmentSize(sizeBytes, 'image');
         if (sizeError && sizeBytes > 0) {
-          showError('Image trop volumineuse', sizeError);
+          showError(t('conversation.imageTooLargeTitle'), sizeError);
           return;
         }
         if (quotaState && quotaState.max_bytes != null && sizeBytes > 0) {
           const remaining = Math.max(0, quotaState.max_bytes - quotaState.total_bytes);
           if (sizeBytes > remaining) {
             showError(
-              'Plus de place dans ce groupe',
-              `${formatBytes(remaining)} restants sur ${formatBytes(quotaState.max_bytes)}. Demandez à l'organisateur de faire le ménage ou utilisez un lien externe.`,
+              t('conversation.groupFullTitle'),
+              t('conversation.groupFullMessage', { remaining: formatBytes(remaining), max: formatBytes(quotaState.max_bytes) }),
             );
             return;
           }
@@ -677,7 +680,7 @@ export default function ConversationScreen() {
         }]);
       }
     } catch (error) {
-      showError('Erreur', 'Impossible de sélectionner l\'image');
+      showError(t('common.error'), t('conversation.pickImageError'));
     }
   };
 
@@ -693,7 +696,7 @@ export default function ConversationScreen() {
     try {
       const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) {
-        showError('Permission requise', 'Autorisez l\'accès au microphone.');
+        showError(t('conversation.permissionMicTitle'), t('conversation.permissionMicMessage'));
         return;
       }
 
@@ -712,7 +715,7 @@ export default function ConversationScreen() {
         actions.incrementRecordingDuration();
       }, 1000);
     } catch (error) {
-      showError('Erreur', 'Impossible de démarrer l\'enregistrement');
+      showError(t('common.error'), t('conversation.recordingError'));
     }
   };
 
@@ -740,8 +743,8 @@ export default function ConversationScreen() {
         const { MESSAGE_LIMITS, formatBytes } = await import('../../constants/messaging');
         if (estimatedBytes > MESSAGE_LIMITS.VOICE_MAX_BYTES) {
           showError(
-            'Message vocal trop long',
-            `Limite : ${formatBytes(MESSAGE_LIMITS.VOICE_MAX_BYTES)}. Réduis la durée de ton enregistrement.`,
+            t('conversation.voiceTooLongTitle'),
+            t('conversation.voiceTooLongMessage', { limit: formatBytes(MESSAGE_LIMITS.VOICE_MAX_BYTES) }),
           );
           return;
         }
@@ -897,7 +900,7 @@ export default function ConversationScreen() {
       actions.setPlayingVoice(null);
       setVoicePlayback(null);
       currentPlayerMsgIdRef.current = null;
-      showError('Erreur', 'Impossible de lire le message vocal');
+      showError(t('common.error'), t('conversation.voicePlayError'));
     }
   };
 
@@ -929,8 +932,8 @@ export default function ConversationScreen() {
           const sentAt = message.created_at ? new Date(message.created_at).getTime() : 0;
           if (sentAt && Date.now() - sentAt > EDIT_WINDOW_MS) {
             showError(
-              'Édition non disponible',
-              'Tu peux éditer un message uniquement dans les 15 minutes après son envoi.',
+              t('conversation.editUnavailableTitle'),
+              t('conversation.editUnavailableMessage'),
             );
             return;
           }
@@ -953,7 +956,7 @@ export default function ConversationScreen() {
       case 'copy':
         if (message.content) {
           Clipboard.setString(message.content);
-          showSuccess('Copié', 'Message copié dans le presse-papiers');
+          showSuccess(t('conversation.copiedTitle'), t('conversation.copiedMessage'));
         }
         break;
 
@@ -972,7 +975,7 @@ export default function ConversationScreen() {
           return String(s);
         })();
         if (senderId) {
-          handleBlockUserById(senderId, message.sender_name || 'cet utilisateur');
+          handleBlockUserById(senderId, message.sender_name || t('conversation.defaultUserName'));
         }
         break;
       }
@@ -981,24 +984,24 @@ export default function ConversationScreen() {
 
   const handleBlockUserById = (targetUserId: string, targetName: string) => {
     Alert.alert(
-      'Bloquer utilisateur',
-      `Bloquer ${targetName} ? Vous ne recevrez plus ses messages.`,
+      t('conversation.blockUserTitle'),
+      t('conversation.blockUserConfirmCustom', { name: targetName }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('conversation.cancelOption'), style: 'cancel' },
         {
-          text: 'Bloquer',
+          text: t('conversation.blockButton'),
           style: 'destructive',
           onPress: async () => {
             try {
               await messagesAPI.blockUser(targetUserId);
-              showSuccess('Utilisateur bloqué', '');
+              showSuccess(t('conversation.userBlocked'), '');
               // Pour une conversation directe, on remonte. Pour un groupe, on
               // reste sur place mais l'user n'aura plus ses futurs messages.
               if (conversationType === 'direct') {
                 navigation.goBack();
               }
             } catch (error) {
-              showError('Erreur', 'Impossible de bloquer cet utilisateur');
+              showError(t('common.error'), t('conversation.blockError'));
             }
           },
         },
@@ -1014,15 +1017,15 @@ export default function ConversationScreen() {
       setShowReportModal(false);
       setReportTargetMessage(null);
       showSuccess(
-        'Signalement envoyé',
-        'Notre équipe de modération examinera ce message sous 24h.',
+        t('conversation.reportSentTitle'),
+        t('conversation.reportSentMessage'),
       );
     } catch (error: any) {
       const msg =
         error?.response?.data?.detail ||
         error?.response?.data?.error ||
-        'Impossible d\'envoyer le signalement';
-      showError('Erreur', msg);
+        t('conversation.reportError');
+      showError(t('common.error'), msg);
     } finally {
       setSubmittingReport(false);
     }
@@ -1030,12 +1033,12 @@ export default function ConversationScreen() {
 
   const handleDeleteMessage = (messageId: string) => {
     Alert.alert(
-      'Supprimer le message',
-      'Voulez-vous vraiment supprimer ce message ?',
+      t('conversation.deleteMessageTitle'),
+      t('conversation.deleteMessageConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('conversation.cancelOption'), style: 'cancel' },
         {
-          text: 'Supprimer',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -1051,7 +1054,7 @@ export default function ConversationScreen() {
                 attachments: [],
               });
             } catch (error) {
-              showError('Erreur', 'Impossible de supprimer le message');
+              showError(t('common.error'), t('conversation.deleteMessageError'));
             }
           },
         },
@@ -1078,7 +1081,7 @@ export default function ConversationScreen() {
 
       actions.setForwardTargets(targets);
     } catch (error) {
-      showError('Erreur', 'Impossible de charger les contacts');
+      showError(t('common.error'), t('conversation.forwardTargetsError'));
     } finally {
       actions.setLoadingForwardTargets(false);
     }
@@ -1092,10 +1095,10 @@ export default function ConversationScreen() {
         message_id: String(state.selectedMessage.id),
         target_user_id: targetUserId,
       });
-      showSuccess('Message transféré', '');
+      showSuccess(t('conversation.messageForwarded'), '');
       actions.hideForwardModal();
     } catch (error) {
-      showError('Erreur', 'Impossible de transférer le message');
+      showError(t('common.error'), t('conversation.forwardError'));
     }
   };
 
@@ -1133,20 +1136,20 @@ export default function ConversationScreen() {
     // visuellement le toolbar).
     if (quotaState?.is_read_only) {
       showError(
-        'Discussion en lecture seule',
-        'Sauvegardez vos messages — la conversation sera bientôt supprimée.',
+        t('conversation.readOnlyDiscussionTitle'),
+        t('conversation.readOnlyDiscussionMessage'),
       );
       return;
     }
     // Permissions d'écriture : muté ou mode restreint
     if ((quotaState as any)?.is_muted) {
-      showError('Vous êtes muté', "L'organisateur a restreint votre droit d'écriture dans cette discussion.");
+      showError(t('conversation.mutedTitle'), t('conversation.mutedMessage'));
       return;
     }
     if (quotaState && (quotaState as any).can_post === false) {
       showError(
-        'Lecture seule',
-        "Seul l'organisateur peut écrire dans cette discussion.",
+        t('conversation.postingLockedTitle'),
+        t('conversation.postingLockedMessage'),
       );
       return;
     }
@@ -1278,13 +1281,13 @@ export default function ConversationScreen() {
               : await messagesAPI.uploadAttachment(formData);
             const id = uploadResponse.data?.id ? String(uploadResponse.data.id) : '';
             if (!id) {
-              return { ok: false, error: 'Réponse serveur invalide', tmpIdx: idx, fileType: att.type, fileName: att.name };
+              return { ok: false, error: t('conversation.errorInvalidResponse'), tmpIdx: idx, fileType: att.type, fileName: att.name };
             }
             return { ok: true, id, tmpIdx: idx, fileType: att.type, fileName: att.name };
           } catch (uploadError: any) {
             if (__DEV__) console.error('Erreur upload attachment:', uploadError);
             const data = uploadError?.response?.data || {};
-            const errorMsg: string = data.error || uploadError?.message || 'Échec de l\'upload';
+            const errorMsg: string = data.error || uploadError?.message || t('conversation.errorFallback');
             return {
               ok: false,
               error: errorMsg,
@@ -1315,13 +1318,13 @@ export default function ConversationScreen() {
       //   - Au moins un réussit OU il y a du texte : envoi du reste, on alerte
       //     juste sur les fichiers rejetés
       if (failedUploads.length > 0) {
-        const labelOf = (t: string) => t === 'image' ? 'image' : t === 'voice' ? 'message vocal' : 'fichier';
+        const labelOf = (ft: string) => ft === 'image' ? t('conversation.fileLabelImage') : ft === 'voice' ? t('conversation.fileLabelVoice') : t('conversation.fileLabelDocument');
         const codeMap: Record<string, string> = {
-          file_too_large: 'trop volumineux(e)',
-          conversation_quota_exceeded: 'plus de place dans le groupe',
-          conversation_read_only: 'discussion en lecture seule',
-          user_muted: 'vous êtes muté',
-          posting_mode_restricted: 'écriture restreinte',
+          file_too_large: t('conversation.errorTooLarge'),
+          conversation_quota_exceeded: t('conversation.errorQuotaExceeded'),
+          conversation_read_only: t('conversation.errorReadOnly'),
+          user_muted: t('conversation.errorMuted'),
+          posting_mode_restricted: t('conversation.errorPostingMode'),
         };
         const summary = failedUploads
           .map(f => {
@@ -1334,7 +1337,7 @@ export default function ConversationScreen() {
         if (attachmentIds.length === 0 && messageContent.length === 0) {
           actions.removeTempMessages();
           showError(
-            failedUploads.length > 1 ? 'Fichiers refusés' : 'Fichier refusé',
+            failedUploads.length > 1 ? t('conversation.filesRejectedPlural') : t('conversation.filesRejectedSingular'),
             summary,
           );
           return; // sort du try, le finally remet sending=false
@@ -1353,7 +1356,7 @@ export default function ConversationScreen() {
         actions.updateMessage(tempMessageId, { attachments: remainingAttachments });
 
         showError(
-          failedUploads.length > 1 ? 'Certains fichiers refusés' : 'Fichier refusé',
+          failedUploads.length > 1 ? t('conversation.someFilesRejectedPlural') : t('conversation.someFilesRejectedSingular'),
           summary,
         );
       }
@@ -1402,16 +1405,16 @@ export default function ConversationScreen() {
             [],
           );
           showSuccess(
-            'Message en attente',
-            'Il sera envoyé dès le retour de la connexion.',
+            t('conversation.pendingMessageTitle'),
+            t('conversation.pendingMessageMessage'),
           );
         } catch {
           actions.setNewMessage(messageContent);
-          showError('Erreur', "Impossible d'envoyer le message");
+          showError(t('common.error'), t('conversation.sendError'));
         }
       } else {
         actions.setNewMessage(messageContent);
-        showError('Erreur', "Impossible d'envoyer le message");
+        showError(t('common.error'), t('conversation.sendError'));
       }
     } finally {
       actions.setSending(false);
@@ -1506,7 +1509,7 @@ export default function ConversationScreen() {
         {item.content}
       </Text>
       <Text style={[styles.searchResultTime, { color: colors.gray400 }]}>
-        {new Date(item.created_at).toLocaleDateString('fr-FR')}
+        {new Date(item.created_at).toLocaleDateString(dateLocale)}
       </Text>
     </TouchableOpacity>
   ), [colors.gray100, colors.primary, colors.text, colors.gray400, closeSearch]);
@@ -1517,12 +1520,12 @@ export default function ConversationScreen() {
         <Ionicons name="chatbubble-ellipses-outline" size={48} color={colors.gray300} />
       </View>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-        {state.isNewConversation ? 'Nouvelle conversation' : 'Aucun message'}
+        {state.isNewConversation ? t('conversation.newConversation') : t('conversation.noMessages')}
       </Text>
       <Text style={[styles.emptySubtext, { color: colors.gray400 }]}>
         {state.isNewConversation
-          ? `Envoyez un message à ${state.conversationTitle}`
-          : 'Commencez la conversation !'}
+          ? t('conversation.newConversationHint', { name: state.conversationTitle })
+          : t('conversation.startConversationHint')}
       </Text>
     </View>
   );
@@ -1613,7 +1616,7 @@ export default function ConversationScreen() {
   if (state.loading) {
     return (
       <EditorialCanvas edges={['top']}>
-        <WatermarkNumeral>CHAT</WatermarkNumeral>
+        <WatermarkNumeral>{t('conversation.watermark')}</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           {renderCustomHeader()}
           <View style={styles.loadingContainer}>
@@ -1626,7 +1629,7 @@ export default function ConversationScreen() {
 
   return (
     <EditorialCanvas edges={['top']}>
-      <WatermarkNumeral>CHAT</WatermarkNumeral>
+      <WatermarkNumeral>{t('conversation.watermark')}</WatermarkNumeral>
       <View style={{ flex: 1, zIndex: 1 }}>
       {renderCustomHeader()}
 
@@ -1636,7 +1639,7 @@ export default function ConversationScreen() {
           <Ionicons name="search" size={16} color={colors.gray400} style={{ marginLeft: 12 }} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
-            placeholder="Rechercher dans la conversation…"
+            placeholder={t('conversation.searchPlaceholder')}
             placeholderTextColor={colors.gray400}
             value={searchQuery}
             onChangeText={handleMessageSearch}
@@ -1661,7 +1664,7 @@ export default function ConversationScreen() {
       {searchOpen && searchQuery.trim().length > 0 && !searchLoading && searchResults.length === 0 && (
         <View style={[styles.searchNoResults, { backgroundColor: colors.background }]}>
           <Text style={[styles.searchNoResultsText, { color: colors.gray400 }]}>
-            Aucun résultat pour « {searchQuery} »
+            {t('conversation.noSearchResults', { query: searchQuery })}
           </Text>
         </View>
       )}
@@ -1689,13 +1692,13 @@ export default function ConversationScreen() {
               <Ionicons name="warning-outline" size={16} color={colors.white} />
             )}
             <Text style={[styles.connectionStatusText, { color: colors.white, flex: 1 }]}>
-              {wsConnectionError ? wsConnectionError : 'Reconnexion…'}
+              {wsConnectionError ? wsConnectionError : t('conversation.reconnecting')}
             </Text>
           </View>
           <TouchableOpacity
             onPress={() => wsReconnect()}
             accessibilityRole="button"
-            accessibilityLabel="Réessayer la connexion au serveur de messagerie"
+            accessibilityLabel={t('conversation.retryA11y')}
             style={{
               paddingHorizontal: 10,
               paddingVertical: 4,
@@ -1705,7 +1708,7 @@ export default function ConversationScreen() {
             }}
           >
             <Text style={[styles.connectionStatusText, { color: colors.white }]}>
-              Réessayer
+              {t('conversation.retry')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -1782,10 +1785,10 @@ export default function ConversationScreen() {
             <Ionicons name="lock-closed" size={18} color={colors.gray500} />
             <Text style={{ color: colors.gray600, fontSize: 12, marginTop: 4, textAlign: 'center' }}>
               {quotaState?.is_read_only
-                ? 'Discussion en lecture seule. Pensez à sauvegarder.'
+                ? t('conversation.readOnlyLockMessage')
                 : (quotaState as any)?.is_muted
-                  ? "Vous avez été muté dans cette discussion par l'organisateur."
-                  : "Seul l'organisateur peut écrire dans cette discussion."}
+                  ? t('conversation.mutedLockMessage')
+                  : t('conversation.postingLockMessage')}
             </Text>
           </View>
         ) : (
@@ -1796,25 +1799,25 @@ export default function ConversationScreen() {
                 <TouchableOpacity
                   onPress={toggleVoicePreview}
                   style={[styles.voicePreviewPlayBtn, { backgroundColor: colors.primary }]}
-                  accessibilityLabel={voicePreviewPlaying ? 'Arrêter la lecture' : 'Écouter le message vocal'}
+                  accessibilityLabel={voicePreviewPlaying ? t('conversation.voicePreviewStopA11y') : t('conversation.voicePreviewPlayA11y')}
                 >
                   <Ionicons name={voicePreviewPlaying ? 'stop' : 'play'} size={18} color="#fff" />
                 </TouchableOpacity>
                 <Text style={[styles.voicePreviewLabel, { color: colors.gray700 }]}>
-                  {`Écouter avant d'envoyer (${pendingVoiceDuration}s)`}
+                  {t('conversation.voicePreviewLabel', { duration: pendingVoiceDuration })}
                 </Text>
                 <View style={styles.voicePreviewActions}>
                   <TouchableOpacity
                     onPress={discardPendingVoice}
                     style={[styles.voicePreviewBtn, { backgroundColor: colors.gray100 }]}
-                    accessibilityLabel="Supprimer l'enregistrement"
+                    accessibilityLabel={t('conversation.voicePreviewDeleteA11y')}
                   >
                     <Ionicons name="trash-outline" size={18} color={colors.gray500} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={sendPendingVoice}
                     style={[styles.voicePreviewBtn, { backgroundColor: colors.primary }]}
-                    accessibilityLabel="Envoyer le message vocal"
+                    accessibilityLabel={t('conversation.voicePreviewSendA11y')}
                   >
                     <Ionicons name="send" size={18} color="#fff" />
                   </TouchableOpacity>
@@ -1828,9 +1831,9 @@ export default function ConversationScreen() {
                 <Ionicons name="time-outline" size={14} color="#92400E" />
                 <Text style={styles.offlineQueueBannerText}>
                   {offlineQueue.queueLength === 1
-                    ? '1 message en attente d\'envoi'
-                    : `${offlineQueue.queueLength} messages en attente d'envoi`}
-                  {offlineQueue.isSyncing ? ' — envoi en cours…' : ''}
+                    ? t('conversation.pendingQueueSingular')
+                    : t('conversation.pendingQueuePlural', { count: offlineQueue.queueLength })}
+                  {offlineQueue.isSyncing ? t('conversation.pendingQueueSyncing') : ''}
                 </Text>
               </View>
             )}

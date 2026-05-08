@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 import { invitationsAPI } from '../../api';
 import { RootStackParamList } from '../../types';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
@@ -41,6 +42,7 @@ interface Invitation {
 export default function InvitationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [received, setReceived] = useState<Invitation[]>([]);
   const [sent, setSent] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,11 +53,11 @@ export default function InvitationsScreen() {
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const STATUS_CONFIG: Record<string, { label: string; eyebrow: string; color: string }> = {
-    pending: { label: 'En attente', eyebrow: 'WAIT', color: '#F59E0B' },
-    accepted: { label: 'Acceptée', eyebrow: 'OK', color: '#10B981' },
-    declined: { label: 'Refusée', eyebrow: 'NO', color: '#EF4444' },
-    cancelled: { label: 'Annulée', eyebrow: 'CXL', color: colors.gray500 },
-    expired: { label: 'Expirée', eyebrow: 'EXP', color: colors.gray500 },
+    pending: { label: t('invitations.statusPendingLong'), eyebrow: 'WAIT', color: '#F59E0B' },
+    accepted: { label: t('invitations.statusAcceptedLong'), eyebrow: 'OK', color: '#10B981' },
+    declined: { label: t('invitations.statusDeclinedLong'), eyebrow: 'NO', color: '#EF4444' },
+    cancelled: { label: t('invitations.statusCancelledLong'), eyebrow: 'CXL', color: colors.gray500 },
+    expired: { label: t('invitations.statusExpiredLong'), eyebrow: 'EXP', color: colors.gray500 },
   };
 
   useEffect(() => {
@@ -87,11 +89,11 @@ export default function InvitationsScreen() {
     setActionLoading(id);
     try {
       await invitationsAPI.accept(id);
-      Alert.alert('Succès', 'Invitation acceptée !');
+      Alert.alert(t('invitations.successLabel'), t('invitations.acceptedSuccess'));
       fetchData();
     } catch (error) {
       if (__DEV__) console.error('Erreur accept invitation:', error);
-      Alert.alert('Erreur', 'Impossible d\'accepter l\'invitation.');
+      Alert.alert(t('common.error'), t('invitations.acceptError'));
     } finally {
       setActionLoading(null);
     }
@@ -102,19 +104,19 @@ export default function InvitationsScreen() {
       'Refuser l\'invitation',
       'Êtes-vous sûr de vouloir refuser cette invitation ?',
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Refuser',
+          text: t('invitations.declineButton'),
           style: 'destructive',
           onPress: async () => {
             setActionLoading(id);
             try {
               await invitationsAPI.decline(id);
-              Alert.alert('Succès', 'Invitation refusée.');
+              Alert.alert(t('invitations.successLabel'), t('invitations.declinedSuccess'));
               fetchData();
             } catch (error) {
               if (__DEV__) console.error('Erreur decline invitation:', error);
-              Alert.alert('Erreur', 'Impossible de refuser l\'invitation.');
+              Alert.alert(t('common.error'), t('invitations.declineError'));
             } finally {
               setActionLoading(null);
             }
@@ -183,7 +185,7 @@ export default function InvitationsScreen() {
                 </Text>
               </View>
               <Text style={[styles.eventName, { color: colors.text }]} numberOfLines={2}>
-                {item.event_title || item.event_name || 'Événement'}
+                {item.event_title || item.event_name || t('invitations.eventFallback')}
               </Text>
             </View>
 
@@ -199,12 +201,12 @@ export default function InvitationsScreen() {
           {/* Inviter/Invitee row */}
           <View style={[styles.partyRow, { borderTopColor: hairline }]}>
             <Text style={[styles.partyEyebrow, { color: colors.gray500 }]}>
-              {isReceived ? 'DE LA PART DE' : 'DESTINATAIRE'}
+              {isReceived ? t('invitations.fromLabel') : t('invitations.toLabel')}
             </Text>
             <Text style={[styles.partyName, { color: colors.text }]} numberOfLines={1}>
               {isReceived
-                ? (item.inviter_name || 'Organisateur')
-                : (item.invitee_name || item.invitee_email || 'Invité')}
+                ? (item.inviter_name || t('invitations.organizerFallback'))
+                : (item.invitee_name || item.invitee_email || t('invitations.guestFallback'))}
             </Text>
           </View>
 
@@ -238,7 +240,7 @@ export default function InvitationsScreen() {
                   ) : (
                     <>
                       <Ionicons name="close" size={13} color="#DC2626" />
-                      <Text style={styles.declineText}>Refuser</Text>
+                      <Text style={styles.declineText}>{t('invitations.declineButton')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -259,7 +261,7 @@ export default function InvitationsScreen() {
                   ) : (
                     <>
                       <Ionicons name="checkmark" size={13} color={Colors.white} />
-                      <Text style={styles.acceptText}>Accepter</Text>
+                      <Text style={styles.acceptText}>{t('invitations.acceptButton')}</Text>
                     </>
                   )}
                 </TouchableOpacity>
@@ -302,7 +304,7 @@ export default function InvitationsScreen() {
             style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
             activeOpacity={0.7}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>

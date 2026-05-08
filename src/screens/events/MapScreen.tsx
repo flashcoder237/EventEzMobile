@@ -20,6 +20,7 @@ import { MapMarker, RootStackParamList, Category } from '../../types';
 import WebViewMap from '../../components/maps/WebViewMap';
 import MapEventCard from '../../components/maps/MapEventCard';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 import { usePersistedFilters } from '../../hooks/usePersistedFilters';
 import {
   Colors,
@@ -53,6 +54,7 @@ export default function MapScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<RouteProps>();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
 
   const [allMarkers, setAllMarkers] = useState<MapMarker[]>([]);
   const [loading, setLoading] = useState(true);
@@ -299,7 +301,7 @@ export default function MapScreen() {
             onPress={() => setShowRadiusSelector(true)}
           >
             <Ionicons name="radio-button-on" size={18} color={colors.primary} />
-            <Text style={[styles.radiusButtonText, { color: colors.gray700 }]}>{radius} km</Text>
+            <Text style={[styles.radiusButtonText, { color: colors.gray700 }]}>{t('map.radiusUnit', { value: radius })}</Text>
             <Ionicons name="chevron-down" size={16} color={colors.gray500} />
           </TouchableOpacity>
 
@@ -340,8 +342,8 @@ export default function MapScreen() {
       <View style={[styles.countBadge, { backgroundColor: colors.card }]}>
         <Ionicons name="location" size={14} color={colors.primary} />
         <Text style={[styles.countText, { color: colors.gray700 }]}>
-          {filteredMarkers.length} événement{filteredMarkers.length > 1 ? 's' : ''}
-          {radius > 0 && ` dans ${radius} km`}
+          {t('map.eventsCount', { count: filteredMarkers.length })}
+          {radius > 0 && t('map.eventsInRadius', { radius })}
         </Text>
       </View>
 
@@ -368,7 +370,7 @@ export default function MapScreen() {
           onPress={() => setShowRadiusSelector(false)}
         >
           <View style={[styles.radiusSelectorModal, { backgroundColor: colors.card }]}>
-            <Text style={[styles.radiusSelectorTitle, { color: colors.gray900 }]}>Rayon de recherche</Text>
+            <Text style={[styles.radiusSelectorTitle, { color: colors.gray900 }]}>{t('map.radiusTitle')}</Text>
             <View style={styles.radiusOptions}>
               {RADIUS_OPTIONS.map((r) => (
                 <TouchableOpacity
@@ -390,7 +392,7 @@ export default function MapScreen() {
                       radius === r && styles.radiusOptionTextActive,
                     ]}
                   >
-                    {r} km
+                    {t('map.radiusUnit', { value: r })}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -412,29 +414,29 @@ export default function MapScreen() {
             <TouchableOpacity onPress={() => setShowFilters(false)}>
               <Ionicons name="close" size={24} color={colors.gray700} />
             </TouchableOpacity>
-            <Text style={[styles.filtersTitle, { color: colors.gray900 }]}>Filtres</Text>
+            <Text style={[styles.filtersTitle, { color: colors.gray900 }]}>{t('map.filtersTitle')}</Text>
             <TouchableOpacity onPress={resetFilters}>
-              <Text style={[styles.resetText, { color: colors.primary }]}>Réinitialiser</Text>
+              <Text style={[styles.resetText, { color: colors.primary }]}>{t('map.reset')}</Text>
             </TouchableOpacity>
           </View>
 
           <ScrollView style={styles.filtersContent}>
             {/* Type d'événement */}
             <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
-              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Type d'événement</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>{t('map.eventTypeLabel')}</Text>
               <View style={styles.filterOptions}>
                 <FilterButton
-                  label="Tous"
+                  label={t('map.eventTypeAll')}
                   isActive={tempFilters.eventType === 'all'}
                   onPress={() => setTempFilters({ ...tempFilters, eventType: 'all' })}
                 />
                 <FilterButton
-                  label="Billetterie"
+                  label={t('map.eventTypeBilletterie')}
                   isActive={tempFilters.eventType === 'billetterie'}
                   onPress={() => setTempFilters({ ...tempFilters, eventType: 'billetterie' })}
                 />
                 <FilterButton
-                  label="Inscription"
+                  label={t('map.eventTypeInscription')}
                   isActive={tempFilters.eventType === 'inscription'}
                   onPress={() => setTempFilters({ ...tempFilters, eventType: 'inscription' })}
                 />
@@ -443,20 +445,20 @@ export default function MapScreen() {
 
             {/* Prix */}
             <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
-              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Prix</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>{t('map.priceLabel')}</Text>
               <View style={styles.filterOptions}>
                 <FilterButton
-                  label="Tous"
+                  label={t('map.priceAll')}
                   isActive={tempFilters.price === 'all'}
                   onPress={() => setTempFilters({ ...tempFilters, price: 'all' })}
                 />
                 <FilterButton
-                  label="Gratuit"
+                  label={t('map.priceFree')}
                   isActive={tempFilters.price === 'free'}
                   onPress={() => setTempFilters({ ...tempFilters, price: 'free' })}
                 />
                 <FilterButton
-                  label="Payant"
+                  label={t('map.pricePaid')}
                   isActive={tempFilters.price === 'paid'}
                   onPress={() => setTempFilters({ ...tempFilters, price: 'paid' })}
                 />
@@ -465,30 +467,30 @@ export default function MapScreen() {
 
             {/* Date */}
             <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
-              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Date</Text>
+              <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>{t('map.dateLabel')}</Text>
               <View style={styles.filterOptions}>
                 <FilterButton
-                  label="Toutes"
+                  label={t('map.dateAll')}
                   isActive={tempFilters.date === 'all'}
                   onPress={() => setTempFilters({ ...tempFilters, date: 'all' })}
                 />
                 <FilterButton
-                  label="Aujourd'hui"
+                  label={t('map.dateToday')}
                   isActive={tempFilters.date === 'today'}
                   onPress={() => setTempFilters({ ...tempFilters, date: 'today' })}
                 />
                 <FilterButton
-                  label="Ce week-end"
+                  label={t('map.dateWeekend')}
                   isActive={tempFilters.date === 'weekend'}
                   onPress={() => setTempFilters({ ...tempFilters, date: 'weekend' })}
                 />
                 <FilterButton
-                  label="Cette semaine"
+                  label={t('map.dateWeek')}
                   isActive={tempFilters.date === 'week'}
                   onPress={() => setTempFilters({ ...tempFilters, date: 'week' })}
                 />
                 <FilterButton
-                  label="Ce mois"
+                  label={t('map.dateMonth')}
                   isActive={tempFilters.date === 'month'}
                   onPress={() => setTempFilters({ ...tempFilters, date: 'month' })}
                 />
@@ -498,10 +500,10 @@ export default function MapScreen() {
             {/* Catégories */}
             {categories.length > 0 && (
               <View style={[styles.filterSection, { borderBottomColor: colors.gray100 }]}>
-                <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>Catégorie</Text>
+                <Text style={[styles.filterSectionTitle, { color: colors.gray900 }]}>{t('map.categoryLabel')}</Text>
                 <View style={styles.filterOptions}>
                   <FilterButton
-                    label="Toutes"
+                    label={t('map.categoryAll')}
                     isActive={tempFilters.category === null}
                     onPress={() => setTempFilters({ ...tempFilters, category: null })}
                   />
@@ -525,7 +527,7 @@ export default function MapScreen() {
               onPress={applyFilters}
             >
               <Text style={styles.applyButtonText}>
-                Appliquer les filtres
+                {t('map.applyFilters')}
               </Text>
             </TouchableOpacity>
           </View>

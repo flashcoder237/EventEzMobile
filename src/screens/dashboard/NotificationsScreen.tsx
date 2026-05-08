@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import { notificationsAPI } from '../../api';
 import CacheService from '../../services/CacheService';
 import { Notification, RootStackParamList } from '../../types';
@@ -146,28 +147,31 @@ interface NotificationTypeConfig {
   eyebrow: string;
 }
 
-const typeConfig: Record<string, NotificationTypeConfig> = {
-  event_update: { icon: 'calendar', color: '#3B82F6', label: 'Événement', eyebrow: 'EVT' },
-  registration_confirmation: { icon: 'person-add', color: '#10B981', label: 'Inscription', eyebrow: 'REG' },
-  payment_confirmation: { icon: 'card', color: '#6366F1', label: 'Paiement', eyebrow: 'PAY' },
-  event_reminder: { icon: 'alarm', color: '#E0A800', label: 'Rappel', eyebrow: 'RAPPEL' },
-  system_message: { icon: 'information-circle', color: '#6B7280', label: 'Système', eyebrow: 'SYS' },
-  custom_message: { icon: 'chatbubble', color: '#6366F1', label: 'Message', eyebrow: 'MSG' },
-  ticket_purchase: { icon: 'ticket', color: '#A855F7', label: 'Billet', eyebrow: 'TIX' },
-  default: { icon: 'notifications', color: '#6B7280', label: 'Notification', eyebrow: 'INFO' },
-};
-
-const filters: { key: FilterType; label: string }[] = [
-  { key: 'all', label: 'Toutes' },
-  { key: 'unread', label: 'Non lues' },
-  { key: 'read', label: 'Lues' },
-];
+// typeConfig and filters are computed inside the component to access t()
 
 export default function NotificationsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showConfirm } = useAlert();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
+
+  const typeConfig: Record<string, NotificationTypeConfig> = {
+    event_update: { icon: 'calendar', color: '#3B82F6', label: t('notifications.typeEventUpdate'), eyebrow: 'EVT' },
+    registration_confirmation: { icon: 'person-add', color: '#10B981', label: t('notifications.typeRegistration'), eyebrow: 'REG' },
+    payment_confirmation: { icon: 'card', color: '#6366F1', label: t('notifications.typePayment'), eyebrow: 'PAY' },
+    event_reminder: { icon: 'alarm', color: '#E0A800', label: t('notifications.typeReminder'), eyebrow: 'RAPPEL' },
+    system_message: { icon: 'information-circle', color: '#6B7280', label: t('notifications.typeSystem'), eyebrow: 'SYS' },
+    custom_message: { icon: 'chatbubble', color: '#6366F1', label: t('notifications.typeMessage'), eyebrow: 'MSG' },
+    ticket_purchase: { icon: 'ticket', color: '#A855F7', label: t('notifications.typeTicket'), eyebrow: 'TIX' },
+    default: { icon: 'notifications', color: '#6B7280', label: t('notifications.typeDefault'), eyebrow: 'INFO' },
+  };
+
+  const filters: { key: FilterType; label: string }[] = [
+    { key: 'all', label: t('notifications.filterAllTab') },
+    { key: 'unread', label: t('notifications.filterUnreadTab') },
+    { key: 'read', label: 'Lues' },
+  ];
   const { markAllNotificationsAsRead, markNotificationAsRead: markOneReadGlobal } = useNotifications();
   const insets = useSafeAreaInsets();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
@@ -285,7 +289,7 @@ export default function NotificationsScreen() {
 
     if (todayItems.length > 0) groups.push({ title: "AUJOURD'HUI", data: todayItems });
     if (yesterdayItems.length > 0) groups.push({ title: 'HIER', data: yesterdayItems });
-    if (olderItems.length > 0) groups.push({ title: 'PLUS ANCIEN', data: olderItems });
+    if (olderItems.length > 0) groups.push({ title: t('notifications.groupOlder'), data: olderItems });
 
     return groups;
   }, [filteredNotifications]);
@@ -328,7 +332,7 @@ export default function NotificationsScreen() {
   };
 
   const handleDelete = async (id: string) => {
-    showConfirm('Supprimer', 'Supprimer cette notification ?', async () => {
+    showConfirm(t('notifications.deleteConfirm'), t('notifications.deleteConfirmDetail'), async () => {
       try {
         await notificationsAPI.deleteNotification(id);
         dispatch({ type: 'DELETE_NOTIFICATION', payload: id });
@@ -424,7 +428,6 @@ export default function NotificationsScreen() {
               backgroundColor: colors.card,
               borderColor: unread ? `${config.color}55` : hairline,
             },
-            unread ? Shadows.sm : Shadows.xs,
           ]}
           onPress={() => handleNotificationPress(item)}
           onLongPress={() => handleDelete(item.id)}
@@ -489,9 +492,9 @@ export default function NotificationsScreen() {
       <AnimatedIllustration entry="fadeIn" idle="sway">
         <MyNotifications color={colors.primary} size={160} />
       </AnimatedIllustration>
-      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>SILENCE RADIO</Text>
+      <Text style={[styles.emptyEyebrow, { color: colors.accent }]}>{t('notifications.emptyEyebrow')}</Text>
       <Text style={[styles.emptyTitle, { color: colors.text }]}>
-        {filter === 'unread' ? 'Tout est à jour' : 'Aucune notification'}
+        {filter === 'unread' ? t('notifications.emptyAllRead') : t('notifications.emptyNoNotif')}
       </Text>
       <Text style={[styles.emptyText, { color: colors.gray500 }]}>
         {filter === 'unread'
@@ -530,7 +533,7 @@ export default function NotificationsScreen() {
               style={[styles.iconDisc, { backgroundColor: colors.gray100 }]}
               activeOpacity={0.7}
               accessibilityRole="button"
-              accessibilityLabel="Retour"
+              accessibilityLabel={t('common.back')}
             >
               <Ionicons name="chevron-back" size={18} color={colors.gray600} />
             </TouchableOpacity>
@@ -550,7 +553,7 @@ export default function NotificationsScreen() {
                 style={[styles.markAllBtn, Shadows.buttonPrimary]}
                 activeOpacity={0.85}
                 accessibilityRole="button"
-                accessibilityLabel="Tout marquer comme lu"
+                accessibilityLabel={t('notifications.markAllRead')}
               >
                 <LinearGradient
                   colors={[colors.primary, colors.primaryDark]}
@@ -559,7 +562,7 @@ export default function NotificationsScreen() {
                   style={StyleSheet.absoluteFill}
                 />
                 <Ionicons name="checkmark-done" size={16} color={Colors.white} />
-                <Text style={styles.markAllText}>Tout lu</Text>
+                <Text style={styles.markAllText}>{t('notifications.markAllShort')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -573,7 +576,7 @@ export default function NotificationsScreen() {
           >
             <View style={[styles.statCell, { borderRightColor: hairline }]}>
               <Text style={[styles.statNumber, { color: colors.text }]}>{stats.total}</Text>
-              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>TOTAL</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>{t('notifications.statTotal')}</Text>
             </View>
             <View style={[styles.statCell, { borderRightColor: hairline }]}>
               <View style={styles.statValueRow}>
@@ -582,11 +585,11 @@ export default function NotificationsScreen() {
                   <View style={[styles.statDot, { backgroundColor: colors.accent }]} />
                 )}
               </View>
-              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>NON LUES</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>{t('notifications.statUnread')}</Text>
             </View>
             <View style={styles.statCell}>
               <Text style={[styles.statNumber, { color: colors.text }]}>{stats.today}</Text>
-              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>AUJOURD'HUI</Text>
+              <Text style={[styles.statEyebrow, { color: colors.gray500 }]}>{t('notifications.statToday')}</Text>
             </View>
           </View>
 
@@ -718,7 +721,7 @@ export default function NotificationsScreen() {
                       onPress={() => dispatch({ type: 'CLOSE_DETAIL' })}
                       activeOpacity={0.7}
                       accessibilityRole="button"
-                      accessibilityLabel="Fermer"
+                      accessibilityLabel={t('common.close')}
                     >
                       <Ionicons name="close" size={18} color={colors.gray600} />
                     </TouchableOpacity>
@@ -794,7 +797,7 @@ export default function NotificationsScreen() {
                           end={{ x: 1, y: 1 }}
                           style={StyleSheet.absoluteFill}
                         />
-                        <Text style={styles.modalPrimaryBtnText}>Voir détails</Text>
+                        <Text style={styles.modalPrimaryBtnText}>{t('notifications.viewDetails')}</Text>
                         <View style={styles.modalArrowDisc}>
                           <Ionicons name="arrow-forward" size={14} color={Colors.white} />
                         </View>

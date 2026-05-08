@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import { useTranslation } from 'react-i18next';
 
 import { verificationAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,15 +35,15 @@ interface DocItem {
   file: { uri: string; name: string; type: string } | null;
 }
 
-const INDIVIDUAL_DOCS = [
-  { key: 'cni', label: "Carte Nationale d'Identité", description: 'Photo recto-verso de votre CNI', icon: 'card-outline', eyebrow: 'DOC 01' },
-  { key: 'selfie_with_cni', label: 'Selfie avec CNI', description: 'Photo de vous tenant votre CNI', icon: 'camera-outline', eyebrow: 'DOC 02' },
+const INDIVIDUAL_DOC_KEYS = [
+  { key: 'cni', icon: 'card-outline', eyebrow: 'DOC 01', labelKey: 'individualDoc1Label', descKey: 'individualDoc1Description' },
+  { key: 'selfie_with_cni', icon: 'camera-outline', eyebrow: 'DOC 02', labelKey: 'individualDoc2Label', descKey: 'individualDoc2Description' },
 ];
 
-const ORGANIZATION_DOCS = [
-  { key: 'business_registration', label: 'Registre de Commerce', description: 'Copie de votre RCCM', icon: 'business-outline', eyebrow: 'DOC 01' },
-  { key: 'company_statutes', label: "Statuts de l'entreprise", description: 'Copie des statuts enregistrés', icon: 'document-text-outline', eyebrow: 'DOC 02' },
-  { key: 'representative_cni', label: 'CNI du Représentant', description: 'CNI du représentant légal', icon: 'card-outline', eyebrow: 'DOC 03' },
+const ORGANIZATION_DOC_KEYS = [
+  { key: 'business_registration', icon: 'business-outline', eyebrow: 'DOC 01', labelKey: 'orgDoc1Label', descKey: 'orgDoc1Description' },
+  { key: 'company_statutes', icon: 'document-text-outline', eyebrow: 'DOC 02', labelKey: 'orgDoc2Label', descKey: 'orgDoc2Description' },
+  { key: 'representative_cni', icon: 'card-outline', eyebrow: 'DOC 03', labelKey: 'orgDoc3Label', descKey: 'orgDoc3Description' },
 ];
 
 export default function VerificationScreen() {
@@ -50,6 +51,7 @@ export default function VerificationScreen() {
   const { user } = useAuth();
   const { showAlert, showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
   const [status, setStatus] = useState<VerificationStatus>('none');
   const [rejectionReason, setRejectionReason] = useState('');
@@ -64,8 +66,15 @@ export default function VerificationScreen() {
   const loadData = async () => {
     try {
       const orgType = user?.organizer_type || 'individual';
-      const templates = orgType === 'organization' ? ORGANIZATION_DOCS : INDIVIDUAL_DOCS;
-      setDocuments(templates.map(d => ({ ...d, file: null })));
+      const templates = orgType === 'organization' ? ORGANIZATION_DOC_KEYS : INDIVIDUAL_DOC_KEYS;
+      setDocuments(templates.map(d => ({
+        key: d.key,
+        icon: d.icon,
+        eyebrow: d.eyebrow,
+        label: t(`verificationForm.${d.labelKey}`),
+        description: t(`verificationForm.${d.descKey}`),
+        file: null,
+      })));
 
       try {
         const res = await verificationAPI.getMyRequest();
@@ -85,11 +94,11 @@ export default function VerificationScreen() {
 
   const pickDocument = async (docKey: string) => {
     showAlert(
-      'Choisir un fichier',
-      'Comment souhaitez-vous ajouter le document ?',
+      t('verificationForm.pickerTitle'),
+      t('verificationForm.pickerMessage'),
       [
         {
-          text: 'Prendre une photo',
+          text: t('verificationForm.pickerCamera'),
           onPress: async () => {
             const result = await ImagePicker.launchCameraAsync({
               mediaTypes: ['images'],
@@ -108,7 +117,7 @@ export default function VerificationScreen() {
           },
         },
         {
-          text: 'Galerie',
+          text: t('verificationForm.pickerGallery'),
           onPress: async () => {
             const result = await ImagePicker.launchImageLibraryAsync({
               mediaTypes: ['images'],
@@ -127,7 +136,7 @@ export default function VerificationScreen() {
           },
         },
         {
-          text: 'Document PDF',
+          text: t('verificationForm.pickerPdf'),
           onPress: async () => {
             const result = await DocumentPicker.getDocumentAsync({
               type: 'application/pdf',
@@ -150,7 +159,7 @@ export default function VerificationScreen() {
   const handleSubmit = async () => {
     const missing = documents.filter(d => !d.file);
     if (missing.length > 0) {
-      showError('Documents manquants', 'Veuillez télécharger tous les documents requis.');
+      showError(t('verificationForm.missingDocsTitle'), t('verificationForm.missingDocsMessage'));
       return;
     }
 
@@ -169,12 +178,12 @@ export default function VerificationScreen() {
 
       await verificationAPI.submit(formData);
       setStatus('pending');
-      showAlert('Succès', 'Votre demande de vérification a été soumise.', undefined, 'success');
+      showAlert(t('verificationForm.submitSuccessTitle'), t('verificationForm.submitSuccessMessage'), undefined, 'success');
     } catch (error: any) {
       const message = error.response?.data?.detail
         || error.response?.data?.non_field_errors?.[0]
-        || 'Erreur lors de la soumission';
-      showError('Erreur', message);
+        || t('verificationForm.submitErrorGeneric');
+      showError(t('verificationForm.submitErrorTitle'), message);
     } finally {
       setIsSubmitting(false);
     }
@@ -236,13 +245,13 @@ export default function VerificationScreen() {
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>CONFIANCE • KYC</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Vérification</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('verificationForm.headerEyebrow')}</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('verificationForm.headerTitle')}</Text>
           </View>
           {status === 'approved' && (
             <View style={[styles.verifiedBadge, { backgroundColor: '#10B981' }]}>
               <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" />
-              <Text style={styles.verifiedBadgeText}>VÉRIFIÉ</Text>
+              <Text style={styles.verifiedBadgeText}>{t('verificationForm.verifiedBadge')}</Text>
             </View>
           )}
         </View>
@@ -251,15 +260,14 @@ export default function VerificationScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {/* === LEAD === */}
         <Text style={[styles.lead, { color: colors.gray600 }]}>
-          Vérifiez votre identité pour renforcer la confiance des participants et débloquer toutes les fonctionnalités.
+          {t('verificationForm.lead')}
         </Text>
 
         {/* === DISAMBIGUATION HINT === */}
         <View style={[styles.hintCard, { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}30` }]}>
           <Ionicons name="information-circle" size={18} color={colors.primary} />
           <Text style={[styles.hintText, { color: colors.gray700 }]}>
-            Cette page concerne la <Text style={{ fontFamily: FontFamily.bold, color: colors.primary }}>vérification d'identité</Text> (pièces officielles).
-            Pour modifier ta photo de profil, va dans <Text style={{ fontFamily: FontFamily.bold, color: colors.primary }}>Modifier le profil</Text>.
+            {t('verificationForm.hintBefore')}<Text style={{ fontFamily: FontFamily.bold, color: colors.primary }}>{t('verificationForm.hintHighlight1')}</Text>{t('verificationForm.hintMiddle')}<Text style={{ fontFamily: FontFamily.bold, color: colors.primary }}>{t('verificationForm.hintHighlight2')}</Text>{t('verificationForm.hintAfter')}
           </Text>
         </View>
 
@@ -268,9 +276,9 @@ export default function VerificationScreen() {
           renderStatusCallout(
             'checkmark-circle',
             '#10B981',
-            'COMPTE VÉRIFIÉ',
-            'Identité confirmée',
-            'Votre identité a été vérifiée avec succès. Vous pouvez créer des événements en toute confiance.',
+            t('verificationForm.statusApprovedEyebrow'),
+            t('verificationForm.statusApprovedTitle'),
+            t('verificationForm.statusApprovedDesc'),
             '#ECFDF5',
             '#A7F3D0',
           )}
@@ -279,9 +287,9 @@ export default function VerificationScreen() {
           renderStatusCallout(
             'time',
             '#F59E0B',
-            'EN COURS DE REVUE',
-            status === 'pending' ? 'Demande soumise' : 'Vérification en cours',
-            'Vous recevrez une notification une fois la revue terminée. Délai habituel: 24-48h.',
+            t('verificationForm.statusReviewEyebrow'),
+            status === 'pending' ? t('verificationForm.statusPendingTitle') : t('verificationForm.statusUnderReviewTitle'),
+            t('verificationForm.statusReviewDesc'),
             '#FEF3C7',
             '#FDE68A',
           )}
@@ -290,11 +298,11 @@ export default function VerificationScreen() {
           renderStatusCallout(
             'close-circle',
             '#EF4444',
-            'DEMANDE REJETÉE',
-            'Documents non validés',
+            t('verificationForm.statusRejectedEyebrow'),
+            t('verificationForm.statusRejectedTitle'),
             rejectionReason
-              ? `Raison: ${rejectionReason}. Vous pouvez soumettre une nouvelle demande.`
-              : 'Vous pouvez soumettre une nouvelle demande avec des documents corrigés.',
+              ? t('verificationForm.statusRejectedDescWithReason', { reason: rejectionReason })
+              : t('verificationForm.statusRejectedDesc'),
             '#FEF2F2',
             '#FECACA',
           )}
@@ -305,9 +313,9 @@ export default function VerificationScreen() {
             <View style={styles.progressSection}>
               <View style={styles.progressHeader}>
                 <View>
-                  <Text style={[styles.progressEyebrow, { color: colors.accent }]}>PROGRESSION</Text>
+                  <Text style={[styles.progressEyebrow, { color: colors.accent }]}>{t('verificationForm.progressEyebrow')}</Text>
                   <Text style={[styles.progressTitle, { color: colors.text }]}>
-                    {filledCount} / {documents.length} documents
+                    {t('verificationForm.progressDocs', { filled: filledCount, total: documents.length })}
                   </Text>
                 </View>
                 <Text style={[styles.progressPercent, { color: colors.text }]}>
@@ -326,9 +334,9 @@ export default function VerificationScreen() {
 
             {/* === DOCUMENTS === */}
             <View style={styles.docSection}>
-              <Text style={[styles.docSectionEyebrow, { color: colors.accent }]}>DOCUMENTS REQUIS</Text>
+              <Text style={[styles.docSectionEyebrow, { color: colors.accent }]}>{t('verificationForm.docSectionEyebrow')}</Text>
               <Text style={[styles.docSectionTitle, { color: colors.text }]}>
-                Téléverse tes pièces
+                {t('verificationForm.docSectionTitle')}
               </Text>
             </View>
 
@@ -392,7 +400,7 @@ export default function VerificationScreen() {
                     <View style={[styles.uploadDropzone, { borderColor: colors.primary, backgroundColor: `${colors.primary}08` }]}>
                       <Ionicons name="cloud-upload-outline" size={20} color={colors.primary} />
                       <Text style={[styles.uploadDropzoneText, { color: colors.primary }]}>
-                        Téléverser un fichier
+                        {t('verificationForm.uploadButton')}
                       </Text>
                     </View>
                   )}
@@ -422,8 +430,8 @@ export default function VerificationScreen() {
               ) : (
                 <>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.submitEyebrow}>VÉRIFICATION</Text>
-                    <Text style={styles.submitLabel}>Soumettre la demande</Text>
+                    <Text style={styles.submitEyebrow}>{t('verificationForm.submitEyebrow')}</Text>
+                    <Text style={styles.submitLabel}>{t('verificationForm.submitLabel')}</Text>
                   </View>
                   <View style={styles.submitArrow}>
                     <Ionicons name="shield-checkmark" size={18} color="#FFFFFF" />

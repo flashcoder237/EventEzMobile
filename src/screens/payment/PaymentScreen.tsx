@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { registrationsAPI, paymentsAPI } from '../../api';
 import { Registration, RootStackParamList, CountryPaymentConfig, PaymentMethodOption as APIPaymentMethodOption } from '../../types';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTranslation } from 'react-i18next';
 import { useCommissionConfig } from '../../hooks/useCommissionConfig';
 import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import { calculateServiceFee, getServiceFeeLabel } from '../../constants/payment';
@@ -223,6 +224,7 @@ export default function PaymentScreen() {
   const { showAlert, showSuccess, showError, showConfirm } = useAlert();
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { isSlowCellular, isOffline } = useNetworkSpeed();
   const biometric = useBiometricConfirm();
@@ -506,7 +508,7 @@ export default function PaymentScreen() {
       setRegistration(response.data);
     } catch (error) {
       if (__DEV__) console.error('Error fetching registration:', error);
-      showError('Erreur', 'Impossible de charger les détails de la commande');
+      showError(t('common.error'), t('payment.paymentLoadingDetailsError'));
     } finally {
       setLoading(false);
     }
@@ -580,7 +582,7 @@ export default function PaymentScreen() {
       : cleanNumber;
 
     if (numberWithoutPrefix.length !== expectedDigits) {
-      showError('Numéro invalide', `Le numéro doit contenir ${expectedDigits} chiffres`);
+      showError(t('payment.paymentInvalidPhone'), t('payment.paymentInvalidPhoneDetail', { count: expectedDigits }));
       return { valid: false };
     }
 
@@ -589,7 +591,7 @@ export default function PaymentScreen() {
       if (method === 'mtn_money') {
         if (!numberWithoutPrefix.match(/^(6[78]\d|7[78]\d|65[0-4])\d{6}$/)) {
           showError(
-            'Numéro MTN invalide',
+            t('payment.paymentInvalidMTN'),
             'Les numéros MTN commencent par 67, 68, 77, 78 ou 650-654.\nExemple: 670 123 456'
           );
           return { valid: false };
@@ -598,7 +600,7 @@ export default function PaymentScreen() {
       if (method === 'orange_money') {
         if (!numberWithoutPrefix.match(/^(65[5-9]|69\d|5[59]\d)\d{6}$/)) {
           showError(
-            'Numéro Orange invalide',
+            t('payment.paymentInvalidOrange'),
             'Les numéros Orange commencent par 655-659, 69, 55 ou 59.\nExemple: 655 123 456'
           );
           return { valid: false };
@@ -618,7 +620,7 @@ export default function PaymentScreen() {
     }
 
     if (!selectedMethod) {
-      showError('Erreur', 'Veuillez sélectionner un mode de paiement');
+      showError(t('common.error'), t('payment.paymentSelectMethodError'));
       return;
     }
 
@@ -679,7 +681,7 @@ export default function PaymentScreen() {
 
       // Validation stricte de l'ID
       if (!newPaymentId || typeof newPaymentId !== 'string' || newPaymentId === 'undefined') {
-        throw new Error('ID de paiement non reçu du serveur');
+        throw new Error(t('payment.paymentNoPaymentId'));
       }
 
       // ⚠️ NE PAS clear l'idempotency key ici : le paiement est créé mais pas
@@ -753,10 +755,10 @@ export default function PaymentScreen() {
       // Extraire le message d'erreur via utility partagée
       const errorMessage = extractErrorMessage(
         error.response?.data,
-        'Une erreur est survenue lors du paiement'
+        t('payment.paymentGenericError')
       );
 
-      showError('Erreur de paiement', errorMessage);
+      showError(t('payment.paymentErrorTitle'), errorMessage);
     }
   };
 
@@ -795,7 +797,7 @@ export default function PaymentScreen() {
       setProcessing(false);
 
       const errorMessage = extractErrorMessage(error.response?.data, 'Impossible d\'annuler le paiement');
-      showError('Erreur', errorMessage);
+      showError(t('common.error'), errorMessage);
     }
   };
 
@@ -805,7 +807,7 @@ export default function PaymentScreen() {
    */
   const handleAlreadyPaid = async () => {
     if (!paymentId) {
-      showError('Erreur', 'Aucun paiement en cours à vérifier');
+      showError(t('common.error'), t('payment.paymentNoPaymentInProgress'));
       return;
     }
 
@@ -916,7 +918,7 @@ export default function PaymentScreen() {
               ÉTAPE 3 / 3 • CHECKOUT
             </Text>
             <Text style={[styles.headerTitleE, { color: colors.text }]}>
-              {processing ? 'Traitement' : 'Paiement'}
+              {processing ? t('payment.paymentProcessing') : t('payment.paymentTitle')}
             </Text>
           </View>
           {!processing && (
@@ -936,8 +938,8 @@ export default function PaymentScreen() {
               <View style={[styles.stepBar, { backgroundColor: colors.primary }]} />
             </View>
             <View style={styles.stepLabelsRow}>
-              <Text style={[styles.stepLabel, { color: colors.gray400 }]}>Sélection</Text>
-              <Text style={[styles.stepLabel, { color: colors.gray400 }]}>Récap</Text>
+              <Text style={[styles.stepLabel, { color: colors.gray400 }]}>{t('payment.paymentStepSelection')}</Text>
+              <Text style={[styles.stepLabel, { color: colors.gray400 }]}>{t('payment.paymentStepRecap')}</Text>
               <Text style={[styles.stepLabel, { color: colors.primary, fontFamily: FontFamily.bold }]}>
                 Paiement
               </Text>
@@ -982,7 +984,7 @@ export default function PaymentScreen() {
           <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: Spacing.md }} />
 
           <Text style={[styles.processingTitle, { color: colors.gray900 }]}>
-            {selectedMethod ? (dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Paiement') : 'Paiement par carte'}
+            {selectedMethod ? (dynamicMethods.find(m => m.id === selectedMethod)?.name || t('payment.paymentMethodFallback')) : t('payment.paymentByCard')}
           </Text>
 
           <Text style={[styles.processingSubtitle, { color: colors.primary }]}>Traitement en cours...</Text>
@@ -1021,7 +1023,7 @@ export default function PaymentScreen() {
                   <Text style={styles.stepNumberText}>2</Text>
                 </View>
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
-                  Entre ton code PIN {dynamicMethods.find(m => m.id === selectedMethod)?.name || 'Mobile Money'}
+                  {t('payment.paymentEnterPIN', { method: dynamicMethods.find(m => m.id === selectedMethod)?.name || t('payment.paymentMobileMoneyFallback') })}
                 </Text>
               </View>
 
@@ -1064,7 +1066,7 @@ export default function PaymentScreen() {
                 <Text style={[styles.stepText, { color: colors.gray700 }]}>
                   {selectedMethod === 'paypal'
                     ? 'Connecte-toi à ton compte PayPal'
-                    : 'Entre les infos de ta carte bancaire'}
+                    : t('payment.paymentEnterCardInfo')}
                 </Text>
               </View>
 
@@ -1090,7 +1092,7 @@ export default function PaymentScreen() {
           <View style={{ marginBottom: Spacing.sm }}>
             <EditorialButton
               label={verifyingManually ? 'Vérification en cours…' : "J'ai déjà payé"}
-              eyebrow={verifyingManually ? 'Patientez' : 'Confirmer'}
+              eyebrow={verifyingManually ? t('payment.paymentVerifyEyebrowWaiting') : t('payment.paymentVerifyEyebrowConfirm')}
               icon="checkmark-circle"
               onPress={handleAlreadyPaid}
               loading={verifyingManually}
@@ -1102,7 +1104,7 @@ export default function PaymentScreen() {
 
           {/* Bouton Annuler — danger outline */}
           <EditorialButton
-            label={cancelling ? 'Annulation…' : 'Annuler le paiement'}
+            label={cancelling ? t('payment.paymentCancelling') : t('payment.paymentCancelLabel')}
             onPress={cancelPayment}
             loading={cancelling}
             disabled={cancelling || verifyingManually}
@@ -1159,17 +1161,17 @@ export default function PaymentScreen() {
             {/* === ORDER SUMMARY (receipt) === */}
             <View style={styles.sectionE}>
               <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>
-                {isAdditionalTicketsMode ? 'BILLETS EN PLUS' : 'FACTURE • RECAP'}
+                {isAdditionalTicketsMode ? t('payment.paymentEyebrowAdditional') : t('payment.paymentEyebrowInvoice')}
               </Text>
               <Text style={[styles.sectionTitleE, { color: colors.text }]}>
-                {isAdditionalTicketsMode ? 'Billets supplémentaires' : 'Ta commande'}
+                {isAdditionalTicketsMode ? t('payment.paymentTitleAdditional') : t('payment.paymentTitleOrder')}
               </Text>
               <View style={[styles.receiptCardE, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }, Shadows.sm]}>
                 <View style={styles.receiptHeaderE}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.receiptHeaderEyebrowE}>EVENT • {new Date().getFullYear()}</Text>
                     <Text style={[styles.receiptEventTitle, { color: colors.text }]} numberOfLines={2}>
-                      {(registration?.event as any)?.title || registration?.event_detail?.title || 'Événement'}
+                      {(registration?.event as any)?.title || registration?.event_detail?.title || t('payment.paymentEventFallback')}
                     </Text>
                   </View>
                   {isAdditionalTicketsMode && (
@@ -1241,7 +1243,7 @@ export default function PaymentScreen() {
             {/* === PAYMENT METHODS === */}
             <View style={styles.sectionE}>
               <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>MÉTHODES • PAY</Text>
-              <Text style={[styles.sectionTitleE, { color: colors.text }]}>Mode de paiement</Text>
+              <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('payment.paymentMethodSection')}</Text>
 
               <CountryBadgeSelector
                 countryCode={payerCountry}
@@ -1346,12 +1348,12 @@ export default function PaymentScreen() {
             {selectedMethod && MOBILE_MONEY_METHODS.has(selectedMethod) && (
               <View style={styles.sectionE}>
                 <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>MOBILE MONEY • TEL</Text>
-                <Text style={[styles.sectionTitleE, { color: colors.text }]}>Numéro de téléphone</Text>
+                <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('payment.paymentPhoneSection')}</Text>
 
                 {/* Saved Payment Methods */}
                 {getMethodsByType(selectedMethod as PaymentMethodType).length > 0 && (
                   <View style={styles.savedMethodsContainer}>
-                    <Text style={[styles.savedMethodsLabel, { color: colors.gray600 }]}>Numéros enregistrés</Text>
+                    <Text style={[styles.savedMethodsLabel, { color: colors.gray600 }]}>{t('payment.paymentSavedNumbers')}</Text>
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
@@ -1498,7 +1500,7 @@ export default function PaymentScreen() {
                 style={StyleSheet.absoluteFill}
               />
               <Ionicons name="lock-closed" size={14} color={Colors.white} />
-              <Text style={styles.bottomCtaTextE}>Payer</Text>
+              <Text style={styles.bottomCtaTextE}>{t('payment.paymentPayCTA')}</Text>
               <View style={styles.bottomCtaArrowE}>
                 <Ionicons name="arrow-forward" size={14} color={Colors.white} />
               </View>

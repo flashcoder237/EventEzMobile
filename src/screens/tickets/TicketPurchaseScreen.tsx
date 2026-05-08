@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -94,6 +95,7 @@ function autoPrefillFormData(fields: FormField[], user: any): Record<string, any
 }
 
 export default function TicketPurchaseScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<TicketPurchaseRouteProp>();
   const { eventId, ticketTypeId, registrationId, additionalTickets } = route.params;
@@ -198,7 +200,7 @@ export default function TicketPurchaseScreen() {
       }
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement données:', error);
-      showError('Erreur', 'Impossible de charger les informations');
+      showError(t('common.error'), t('ticketPurchase.loadError'));
     } finally {
       setLoading(false);
     }
@@ -221,7 +223,7 @@ export default function TicketPurchaseScreen() {
 
     formFields.forEach(field => {
       if (field.required && !formData[field.label]) {
-        errors[field.label] = 'Ce champ est requis';
+        errors[field.label] = t('ticketPurchase.fieldRequired');
       }
     });
 
@@ -236,14 +238,14 @@ export default function TicketPurchaseScreen() {
     const organizer = event?.organizer;
     if (!organizer || !(organizer as any).id) {
       showAlert(
-        'Indisponible',
-        "Impossible d'ouvrir le chat avec l'organisateur. Contacte le support à la place.",
+        t('ticketPurchase.unavailableTitle'),
+        t('ticketPurchase.unavailableMessage'),
         undefined,
         'warning',
       );
       return;
     }
-    const organizerName = `${organizer.first_name || ''} ${organizer.last_name || ''}`.trim() || organizer.email || 'Organisateur';
+    const organizerName = `${organizer.first_name || ''} ${organizer.last_name || ''}`.trim() || organizer.email || t('ticketPurchase.organizerFallback');
     navigation.navigate('Conversation', {
       userId: String((organizer as any).id),
       userName: organizerName,
@@ -256,11 +258,11 @@ export default function TicketPurchaseScreen() {
     // Surface a clear message if the user tries to exceed the per-order cap
     if (intended > MAX_TICKETS_PER_TYPE) {
       showAlert(
-        'Limite atteinte',
-        `Maximum ${MAX_TICKETS_PER_TYPE} billets par type et par commande. Pour un groupe plus large, contacte l'organisateur — il pourra te proposer un tarif dédié.`,
+        t('ticketPurchase.limitReachedTitle'),
+        t('ticketPurchase.limitReachedMessage', { max: MAX_TICKETS_PER_TYPE }),
         [
-          { text: 'OK', style: 'cancel' },
-          { text: 'Contacter l\'organisateur', onPress: handleGroupInquiry },
+          { text: t('common.ok'), style: 'cancel' },
+          { text: t('ticketPurchase.contactOrganizer'), onPress: handleGroupInquiry },
         ],
         'warning',
       );
@@ -284,8 +286,8 @@ export default function TicketPurchaseScreen() {
     if (Number.isNaN(parsed) || parsed < 0) return;
     if (parsed > MAX_TICKETS_PER_TYPE) {
       showAlert(
-        'Limite atteinte',
-        `Maximum ${MAX_TICKETS_PER_TYPE} billets par type et par commande. Pour un groupe plus large, contacte l'organisateur directement.`,
+        t('ticketPurchase.limitReachedTitle'),
+        t('ticketPurchase.limitReachedMessageShort', { max: MAX_TICKETS_PER_TYPE }),
         undefined,
         'warning',
       );
@@ -355,7 +357,7 @@ export default function TicketPurchaseScreen() {
 
   const handleApplyDiscount = async () => {
     if (!discountCode.trim()) {
-      setDiscountError('Entre un code promo');
+      setDiscountError(t('ticketPurchase.discountEnterCode'));
       return;
     }
 
@@ -388,12 +390,12 @@ export default function TicketPurchaseScreen() {
         }
         setAppliedDiscount(discount);
         setDiscountError(null);
-        showSuccess('Succès', `Code promo "${discountCode}" appliqué !`);
+        showSuccess(t('common.success'), t('ticketPurchase.discountAppliedToast', { code: discountCode }));
       } else {
-        setDiscountError(data.message || 'Ce code promo n\'est pas valide');
+        setDiscountError(data.message || t('ticketPurchase.discountInvalid'));
       }
     } catch (error: any) {
-      const message = error.response?.data?.detail || error.response?.data?.message || 'Code promo invalide ou expiré';
+      const message = error.response?.data?.detail || error.response?.data?.message || t('ticketPurchase.discountInvalidOrExpired');
       setDiscountError(message);
       setAppliedDiscount(null);
     } finally {
@@ -429,7 +431,7 @@ export default function TicketPurchaseScreen() {
     if (event?.registration_deadline) {
       const deadline = new Date(event.registration_deadline);
       if (deadline < new Date()) {
-        showError('Inscription fermée', 'La date limite d\'inscription est dépassée');
+        showError(t('ticketPurchase.registrationClosedTitle'), t('ticketPurchase.registrationClosedMessage'));
         return;
       }
     }
@@ -438,20 +440,20 @@ export default function TicketPurchaseScreen() {
     if (event?.end_date) {
       const endDate = new Date(event.end_date);
       if (endDate < new Date()) {
-        showError('Événement terminé', 'Cet événement est déjà terminé');
+        showError(t('ticketPurchase.eventEndedTitle'), t('ticketPurchase.eventEndedMessage'));
         return;
       }
     }
 
     // Validate tickets for billetterie
     if (isBilletterie && getTotalQuantity() === 0) {
-      showAlert('Attention', 'Sélectionne au moins un billet', undefined, 'warning');
+      showAlert(t('ticketPurchase.warningTitle'), t('ticketPurchase.selectAtLeastOne'), undefined, 'warning');
       return;
     }
 
     // Validate form fields if present
     if (formFields.length > 0 && !validateForm()) {
-      showAlert('Attention', 'Remplis tous les champs obligatoires', undefined, 'warning');
+      showAlert(t('ticketPurchase.warningTitle'), t('ticketPurchase.fillRequiredFields'), undefined, 'warning');
       return;
     }
 
@@ -477,14 +479,14 @@ export default function TicketPurchaseScreen() {
         const response = await registrationsAPI.updateTickets(registrationId, tickets);
         finalRegistrationId = registrationId;
         paymentRequired = response.data.registration?.payment_required || getTotalPrice() > 0;
-        showSuccess('Succès', 'Tes billets ont été mis à jour');
+        showSuccess(t('common.success'), t('ticketPurchase.ticketsUpdated'));
       } else if (isAdditionalMode && !existingRegistration) {
         // On est venu en mode "achat supplémentaire" mais aucune inscription
         // active n'a été trouvée -> ne PAS créer silencieusement une nouvelle
         // inscription, sinon on duplique. On stoppe avec un message clair.
         showError(
-          'Inscription introuvable',
-          'Impossible d\'ajouter des billets : aucune inscription active n\'a été trouvée pour cet événement.'
+          t('ticketPurchase.registrationNotFoundTitle'),
+          t('ticketPurchase.registrationNotFoundMessage')
         );
         return;
       } else if (isAdditionalMode && existingRegistration) {
@@ -513,7 +515,7 @@ export default function TicketPurchaseScreen() {
           return;
         }
 
-        showSuccess('Succès', `${response.data.message || 'Billets ajoutés avec succès'}`);
+        showSuccess(t('common.success'), `${response.data.message || t('ticketPurchase.ticketsAddedSuccess')}`);
       } else {
         // Mode création: créer une nouvelle inscription
         const registrationData: any = {
@@ -572,8 +574,8 @@ export default function TicketPurchaseScreen() {
       if (errorData && errorData.existing_registration) {
         // L'utilisateur a déjà une inscription confirmée
         showConfirm(
-          'Déjà inscrit',
-          errorData.message || 'Tu es déjà inscrit·e à cet événement.',
+          t('ticketPurchase.alreadyRegisteredConfirmTitle'),
+          errorData.message || t('ticketPurchase.alreadyRegisteredConfirmMessage'),
           () => {
             // Rediriger vers les détails de l'inscription ou acheter plus de billets
             navigation.navigate('TicketPurchase', {
@@ -584,8 +586,8 @@ export default function TicketPurchaseScreen() {
         );
       } else {
         showError(
-          'Erreur',
-          errorData?.detail || errorData?.message || 'Impossible de créer l\'inscription'
+          t('common.error'),
+          errorData?.detail || errorData?.message || t('ticketPurchase.createRegistrationError')
         );
       }
     } finally {
@@ -627,23 +629,23 @@ export default function TicketPurchaseScreen() {
             style={[styles.iconDiscE, { backgroundColor: colors.gray100 }]}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('ticketPurchase.back')}
             accessibilityRole="button"
           >
             <Ionicons name="chevron-back" size={18} color={colors.gray600} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
             <Text style={[styles.headerEyebrowE, { color: colors.accent }]}>
-              {isEditMode ? 'MODIFIER' : isAdditionalMode ? 'AJOUTER' : event?.event_type === 'inscription' ? 'INSCRIPTION • RSVP' : 'BILLETTERIE • TIX'}
+              {isEditMode ? t('ticketPurchase.headerEyebrowEdit') : isAdditionalMode ? t('ticketPurchase.headerEyebrowAdd') : event?.event_type === 'inscription' ? t('ticketPurchase.headerEyebrowInscription') : t('ticketPurchase.headerEyebrowBilletterie')}
             </Text>
             <Text style={[styles.headerTitleE, { color: colors.text }]}>
               {isEditMode
-                ? event?.event_type === 'inscription' ? 'Modifier inscr.' : 'Modifier billets'
+                ? event?.event_type === 'inscription' ? t('ticketPurchase.headerTitleEditInscription') : t('ticketPurchase.headerTitleEditBilletterie')
                 : isAdditionalMode
-                  ? event?.event_type === 'inscription' ? 'Inscr. en plus' : 'Billets en plus'
+                  ? event?.event_type === 'inscription' ? t('ticketPurchase.headerTitleAddInscription') : t('ticketPurchase.headerTitleAddBilletterie')
                   : event?.event_type === 'inscription'
-                    ? 'S\'inscrire'
-                    : 'Choisir tes billets'}
+                    ? t('ticketPurchase.headerTitleInscription')
+                    : t('ticketPurchase.headerTitleBilletterie')}
             </Text>
           </View>
         </View>
@@ -671,7 +673,7 @@ export default function TicketPurchaseScreen() {
           })()}
           <View style={{ flex: 1 }}>
             <Text style={[styles.eventCategoryEyebrow, { color: colors.accent }]} numberOfLines={1}>
-              {(event?.category as any)?.name?.toUpperCase() || 'ÉVÉNEMENT'}
+              {(event?.category as any)?.name?.toUpperCase() || t('ticketPurchase.eventFallbackCategory')}
             </Text>
             <Text style={[styles.eventTitleE, { color: colors.text }]} numberOfLines={2}>
               {event?.title}
@@ -684,7 +686,7 @@ export default function TicketPurchaseScreen() {
               <View style={[styles.metaDotE, { backgroundColor: colors.gray300 }]} />
               <Ionicons name="location-outline" size={11} color={colors.gray500} />
               <Text style={[styles.eventMetaTextE, { color: colors.gray600 }]} numberOfLines={1}>
-                {event?.location_city || 'En ligne'}
+                {event?.location_city || t('ticketPurchase.eventOnline')}
               </Text>
             </View>
           </View>
@@ -699,18 +701,18 @@ export default function TicketPurchaseScreen() {
                 <Ionicons name="information" size={14} color="#FFFFFF" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.existingEyebrowE}>DÉJÀ INSCRIT.E</Text>
-                <Text style={styles.existingTitleE}>Tu participes déjà</Text>
+                <Text style={styles.existingEyebrowE}>{t('ticketPurchase.alreadyRegisteredEyebrow')}</Text>
+                <Text style={styles.existingTitleE}>{t('ticketPurchase.alreadyRegisteredTitle')}</Text>
               </View>
             </View>
             <Text style={styles.existingTextE}>
               {existingRegistration.registration_type === 'inscription'
-                ? 'Ton inscription est '
-                : 'Ta réservation est '}
+                ? t('ticketPurchase.yourInscriptionIs')
+                : t('ticketPurchase.yourReservationIs')}
               <Text style={{ fontFamily: FontFamily.bold }}>
-                {existingRegistration.status === 'confirmed' ? 'confirmée' :
-                 existingRegistration.status === 'pending' ? 'en attente de paiement' :
-                 existingRegistration.approval_status === 'pending' ? 'en attente de validation' :
+                {existingRegistration.status === 'confirmed' ? t('ticketPurchase.statusConfirmed') :
+                 existingRegistration.status === 'pending' ? t('ticketPurchase.statusPendingPayment') :
+                 existingRegistration.approval_status === 'pending' ? t('ticketPurchase.statusPendingApproval') :
                  existingRegistration.status}
               </Text>
             </Text>
@@ -727,7 +729,7 @@ export default function TicketPurchaseScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="eye-outline" size={13} color="#92400E" />
-                <Text style={styles.regActionPillTextE}>Voir</Text>
+                <Text style={styles.regActionPillTextE}>{t('ticketPurchase.actionView')}</Text>
               </TouchableOpacity>
 
               {existingRegistration.status === 'pending' ? (
@@ -737,7 +739,7 @@ export default function TicketPurchaseScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="create-outline" size={13} color="#92400E" />
-                  <Text style={styles.regActionPillTextE}>Modifier</Text>
+                  <Text style={styles.regActionPillTextE}>{t('ticketPurchase.actionEdit')}</Text>
                 </TouchableOpacity>
               ) : existingRegistration.status === 'confirmed' || existingRegistration.status === 'completed' ? (
                 <TouchableOpacity
@@ -746,7 +748,7 @@ export default function TicketPurchaseScreen() {
                   activeOpacity={0.85}
                 >
                   <Ionicons name="add" size={13} color="#92400E" />
-                  <Text style={styles.regActionPillTextE}>+ Billets</Text>
+                  <Text style={styles.regActionPillTextE}>{t('ticketPurchase.actionAddTickets')}</Text>
                 </TouchableOpacity>
               ) : null}
 
@@ -754,15 +756,15 @@ export default function TicketPurchaseScreen() {
                 style={[styles.regActionPillE, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}
                 onPress={() => {
                   showConfirm(
-                    'Annuler l\'inscription',
-                    'Veux-tu vraiment annuler ton inscription à cet événement ?',
+                    t('ticketPurchase.cancelTitle'),
+                    t('ticketPurchase.cancelConfirm'),
                     async () => {
                       try {
                         await registrationsAPI.cancelRegistration(existingRegistration.id);
                         setExistingRegistration(null);
-                        showSuccess('Succès', 'Ton inscription a été annulée');
+                        showSuccess(t('common.success'), t('ticketPurchase.cancelSuccess'));
                       } catch (error) {
-                        showError('Erreur', 'Impossible d\'annuler l\'inscription');
+                        showError(t('common.error'), t('ticketPurchase.cancelError'));
                       }
                     }
                   );
@@ -770,7 +772,7 @@ export default function TicketPurchaseScreen() {
                 activeOpacity={0.85}
               >
                 <Ionicons name="close" size={13} color="#DC2626" />
-                <Text style={[styles.regActionPillTextE, { color: '#DC2626' }]}>Annuler</Text>
+                <Text style={[styles.regActionPillTextE, { color: '#DC2626' }]}>{t('ticketPurchase.actionCancel')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -779,14 +781,14 @@ export default function TicketPurchaseScreen() {
         {/* === TICKET TYPES (boarding-pass style) === */}
         {event?.event_type === 'billetterie' && (
         <View style={styles.ticketsSectionE}>
-          <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>CHOIX • TIX</Text>
-          <Text style={[styles.sectionTitleE, { color: colors.text }]}>Types de billets</Text>
+          <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>{t('ticketPurchase.ticketsSectionEyebrow')}</Text>
+          <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('ticketPurchase.ticketsSectionTitle')}</Text>
           {ticketTypes.length === 0 ? (
             <View style={[styles.noTicketsE, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
               <Ionicons name="ticket-outline" size={36} color={colors.gray300} />
-              <Text style={[styles.noTicketsTitleE, { color: colors.text }]}>Aucun billet disponible</Text>
+              <Text style={[styles.noTicketsTitleE, { color: colors.text }]}>{t('ticketPurchase.noTicketsTitle')}</Text>
               <Text style={[styles.noTicketsTextE, { color: colors.gray500 }]}>
-                L'organisateur n'a pas encore créé de types de billets
+                {t('ticketPurchase.noTicketsText')}
               </Text>
             </View>
           ) : (
@@ -820,7 +822,7 @@ export default function TicketPurchaseScreen() {
                       <View style={[styles.bpEyebrowPill, { backgroundColor: isFree ? '#10B98115' : `${colors.primary}15` }]}>
                         <View style={[styles.bpEyebrowDot, { backgroundColor: isFree ? '#10B981' : colors.primary }]} />
                         <Text style={[styles.bpEyebrowText, { color: isFree ? '#10B981' : colors.primary }]}>
-                          {isFree ? 'GRATUIT' : `CAT · 0${idx + 1}`}
+                          {isFree ? t('ticketPurchase.freeBadge') : t('ticketPurchase.categoryBadge', { num: `0${idx + 1}` })}
                         </Text>
                       </View>
                     </View>
@@ -834,7 +836,7 @@ export default function TicketPurchaseScreen() {
                     )}
                     <View style={styles.bpMetaRow}>
                       <Text style={[styles.bpPrice, { color: colors.text }]}>
-                        {isFree ? 'GRATUIT' : `${ticketType.price.toLocaleString()}`}
+                        {isFree ? t('ticketPurchase.freeBadge') : `${ticketType.price.toLocaleString()}`}
                       </Text>
                       {!isFree && (
                         <Text style={[styles.bpCurrency, { color: colors.gray500 }]}>{commissionCurrency}</Text>
@@ -844,7 +846,7 @@ export default function TicketPurchaseScreen() {
                           <View style={[styles.bpDot, { backgroundColor: colors.gray300 }]} />
                           <Ionicons name="people-outline" size={11} color={colors.gray500} />
                           <Text style={[styles.bpAvailability, { color: colors.gray500 }]}>
-                            {availableQty} dispo
+                            {t('ticketPurchase.ticketAvailable', { count: availableQty })}
                           </Text>
                         </>
                       )}
@@ -862,7 +864,7 @@ export default function TicketPurchaseScreen() {
                   <View style={styles.bpRight}>
                     {isAvailable ? (
                       <>
-                        <Text style={[styles.bpQtyEyebrow, { color: colors.gray400 }]}>QUANTITÉ</Text>
+                        <Text style={[styles.bpQtyEyebrow, { color: colors.gray400 }]}>{t('ticketPurchase.ticketQty')}</Text>
                         <View style={styles.bpQtyRow}>
                           <TouchableOpacity
                             style={[
@@ -873,7 +875,7 @@ export default function TicketPurchaseScreen() {
                             ]}
                             onPress={() => updateQuantity(String(ticketType.id), -1)}
                             disabled={quantity === 0}
-                            accessibilityLabel="Retirer un billet"
+                            accessibilityLabel={t('ticketPurchase.removeTicketA11y')}
                             accessibilityRole="button"
                           >
                             <Ionicons
@@ -886,14 +888,14 @@ export default function TicketPurchaseScreen() {
                             onLongPress={() => openQtyModal(String(ticketType.id), ticketType.name)}
                             delayLongPress={400}
                             accessibilityRole="adjustable"
-                            accessibilityLabel={`Quantité ${quantity}, appui long pour saisie directe`}
+                            accessibilityLabel={t('ticketPurchase.qtyA11y', { count: quantity })}
                           >
                             <Text style={[styles.bpQtyValue, { color: colors.text }]}>{quantity}</Text>
                           </Pressable>
                           <TouchableOpacity
                             style={[styles.bpQtyBtn, { backgroundColor: colors.primary }]}
                             onPress={() => updateQuantity(String(ticketType.id), 1)}
-                            accessibilityLabel="Ajouter un billet"
+                            accessibilityLabel={t('ticketPurchase.addTicketA11y')}
                             accessibilityRole="button"
                           >
                             <Ionicons name="add" size={16} color={Colors.white} />
@@ -902,7 +904,7 @@ export default function TicketPurchaseScreen() {
                       </>
                     ) : (
                       <View style={[styles.bpSoldOut, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
-                        <Text style={styles.bpSoldOutText}>ÉPUISÉ</Text>
+                        <Text style={styles.bpSoldOutText}>{t('ticketPurchase.soldOut')}</Text>
                       </View>
                     )}
                   </View>
@@ -916,15 +918,15 @@ export default function TicketPurchaseScreen() {
         {/* === DISCOUNT CODE === */}
         {event?.event_type === 'billetterie' && getTotalQuantity() > 0 && (
           <View style={styles.discountSectionE}>
-            <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>RÉDUCTION • DEAL</Text>
-            <Text style={[styles.sectionTitleE, { color: colors.text }]}>Code promo</Text>
+            <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>{t('ticketPurchase.discountSectionEyebrow')}</Text>
+            <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('ticketPurchase.discountSectionTitle')}</Text>
             {appliedDiscount ? (
               <View style={[styles.appliedDiscountE, { backgroundColor: colors.card, borderColor: '#10B981' }]}>
                 <View style={[styles.appliedDiscountIcon, { backgroundColor: '#10B981' }]}>
                   <Ionicons name="pricetag" size={16} color={Colors.white} />
                 </View>
                 <View style={styles.appliedDiscountText}>
-                  <Text style={styles.appliedDiscountEyebrow}>CODE APPLIQUÉ</Text>
+                  <Text style={styles.appliedDiscountEyebrow}>{t('ticketPurchase.discountAppliedEyebrow')}</Text>
                   <Text style={[styles.appliedDiscountCode, { color: colors.text }]}>{appliedDiscount.code}</Text>
                   <Text style={styles.appliedDiscountValue}>
                     {appliedDiscount.discount_type === 'percentage'
@@ -951,9 +953,9 @@ export default function TicketPurchaseScreen() {
                       color: colors.text,
                     },
                   ]}
-                  placeholder="EX: WELCOME10"
+                  placeholder={t('ticketPurchase.discountPlaceholder')}
                   placeholderTextColor={colors.gray400}
-                  accessibilityLabel="Code promo"
+                  accessibilityLabel={t('ticketPurchase.discountFieldA11y')}
                   value={discountCode}
                   onChangeText={(text) => {
                     setDiscountCode(text.toUpperCase());
@@ -967,13 +969,13 @@ export default function TicketPurchaseScreen() {
                   onPress={handleApplyDiscount}
                   disabled={validatingDiscount}
                   activeOpacity={0.85}
-                  accessibilityLabel="Appliquer le code promo"
+                  accessibilityLabel={t('ticketPurchase.applyDiscountA11y')}
                   accessibilityRole="button"
                 >
                   {validatingDiscount ? (
                     <ActivityIndicator size="small" color={Colors.white} />
                   ) : (
-                    <Text style={styles.applyDiscountTextE}>OK</Text>
+                    <Text style={styles.applyDiscountTextE}>{t('ticketPurchase.applyOk')}</Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -1002,8 +1004,8 @@ export default function TicketPurchaseScreen() {
         {/* === ORDER SUMMARY (receipt style) === */}
         {getTotalQuantity() > 0 && (
           <View style={styles.orderSummaryE}>
-            <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>FACTURE • RECAP</Text>
-            <Text style={[styles.sectionTitleE, { color: colors.text }]}>Récapitulatif</Text>
+            <Text style={[styles.sectionEyebrowE, { color: colors.accent }]}>{t('ticketPurchase.summaryEyebrow')}</Text>
+            <Text style={[styles.sectionTitleE, { color: colors.text }]}>{t('ticketPurchase.summaryTitle')}</Text>
             <View style={[styles.receiptCard, { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.06)' }]}>
               {/* Receipt header strip — la vraie ref de commande sera générée par le backend à la finalisation */}
               <View style={styles.receiptHeader}>
@@ -1033,7 +1035,7 @@ export default function TicketPurchaseScreen() {
                 <>
                   <View style={[styles.receiptDashed, { borderTopColor: 'rgba(0,0,0,0.08)' }]} />
                   <View style={styles.receiptRow}>
-                    <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>Sous-total</Text>
+                    <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>{t('ticketPurchase.subtotal')}</Text>
                     <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
                       {getSubtotal().toLocaleString()} {commissionCurrency}
                     </Text>
@@ -1056,7 +1058,7 @@ export default function TicketPurchaseScreen() {
                 <>
                   <View style={[styles.receiptDashed, { borderTopColor: 'rgba(0,0,0,0.08)' }]} />
                   <View style={styles.receiptRow}>
-                    <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>Sous-total</Text>
+                    <Text style={[styles.receiptLabel, { color: colors.gray500 }]}>{t('ticketPurchase.subtotal')}</Text>
                     <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
                       {getTotalPrice().toLocaleString()} {commissionCurrency}
                     </Text>
@@ -1064,7 +1066,7 @@ export default function TicketPurchaseScreen() {
                   {getServiceFee() > 0 && (
                     <View style={styles.receiptRow}>
                       <Text style={[styles.receiptLabel, { color: colors.gray500 }]} numberOfLines={1}>
-                        Frais service ({getServiceFeeLabel(commissionConfig)})
+                        {t('ticketPurchase.serviceFees')} ({getServiceFeeLabel(commissionConfig)})
                       </Text>
                       <Text style={[styles.receiptValue, { color: colors.gray500 }]}>
                         {getServiceFee().toLocaleString()} {commissionCurrency}
@@ -1077,7 +1079,7 @@ export default function TicketPurchaseScreen() {
               <View style={[styles.receiptDashedThick, { borderTopColor: 'rgba(0,0,0,0.18)' }]} />
 
               <View style={styles.receiptTotalRow} accessibilityRole="text" accessibilityLabel={`Total: ${getGrandTotal().toLocaleString()} ${commissionCurrency}`}>
-                <Text style={[styles.receiptTotalLabel, { color: colors.text }]}>TOTAL À PAYER</Text>
+                <Text style={[styles.receiptTotalLabel, { color: colors.text }]}>{t('ticketPurchase.totalToPay')}</Text>
                 <View style={styles.receiptTotalValueRow}>
                   <Text style={[styles.receiptTotalValue, { color: colors.text }]}>
                     {getGrandTotal().toLocaleString()}
@@ -1122,9 +1124,9 @@ export default function TicketPurchaseScreen() {
             </>
           ) : (
             <>
-              <Text style={[styles.bottomTotalEyebrow, { color: colors.gray500 }]}>INSCRIPTION</Text>
+              <Text style={[styles.bottomTotalEyebrow, { color: colors.gray500 }]}>{t('ticketPurchase.bottomInscription')}</Text>
               <Text style={[styles.bottomTotalValue, { color: colors.text }]}>
-                {event?.is_free || !event?.base_price ? 'Gratuit' : `${(event?.base_price || 0).toLocaleString()} ${commissionCurrency}`}
+                {event?.is_free || !event?.base_price ? t('common.free') : `${(event?.base_price || 0).toLocaleString()} ${commissionCurrency}`}
               </Text>
             </>
           )}
@@ -1138,7 +1140,7 @@ export default function TicketPurchaseScreen() {
             Shadows.buttonPrimary,
           ]}
           activeOpacity={0.9}
-          accessibilityLabel="Continuer vers le paiement"
+          accessibilityLabel={t('ticketPurchase.ctaContinueA11y')}
         >
           <LinearGradient
             colors={[colors.primary, colors.primaryDark]}
@@ -1148,14 +1150,14 @@ export default function TicketPurchaseScreen() {
           />
           <Text style={styles.bottomCtaText}>
             {submitting
-              ? 'Traitement...'
+              ? t('ticketPurchase.ctaProcessing')
               : isEditMode
-              ? 'Mettre à jour'
+              ? t('ticketPurchase.ctaUpdate')
               : isAdditionalMode
-              ? 'Ajouter ces billets'
+              ? t('ticketPurchase.ctaAddTickets')
               : event?.event_type === 'inscription'
-              ? "S'inscrire"
-              : 'Continuer'}
+              ? t('ticketPurchase.ctaRegister')
+              : t('ticketPurchase.ctaContinue')}
           </Text>
           <View style={styles.bottomCtaArrow}>
             {submitting ? (
@@ -1179,7 +1181,7 @@ export default function TicketPurchaseScreen() {
             style={[styles.qtyModalCard, { backgroundColor: colors.card }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <Text style={[styles.qtyModalEyebrow, { color: colors.accent }]}>QUANTITÉ DIRECTE</Text>
+            <Text style={[styles.qtyModalEyebrow, { color: colors.accent }]}>{t('ticketPurchase.qtyModalEyebrow')}</Text>
             <Text style={[styles.qtyModalTitle, { color: colors.text }]} numberOfLines={2}>
               {qtyModal?.ticketName}
             </Text>
@@ -1193,10 +1195,10 @@ export default function TicketPurchaseScreen() {
               keyboardType="number-pad"
               autoFocus
               maxLength={2}
-              accessibilityLabel="Saisir la quantité"
+              accessibilityLabel={t('ticketPurchase.qtyModalInputA11y')}
             />
             <Text style={[styles.qtyModalHint, { color: colors.gray500 }]}>
-              Maximum {MAX_TICKETS_PER_TYPE} billets par type
+              {t('ticketPurchase.qtyModalHint', { max: MAX_TICKETS_PER_TYPE })}
             </Text>
             <View style={styles.qtyModalActions}>
               <TouchableOpacity
@@ -1204,7 +1206,7 @@ export default function TicketPurchaseScreen() {
                 onPress={() => setQtyModal(null)}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.qtyModalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.qtyModalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.qtyModalBtn, { backgroundColor: colors.primary }]}

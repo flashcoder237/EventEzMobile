@@ -12,6 +12,7 @@ import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { ticketTransfersAPI } from '../../api';
 import { LoadingSpinner } from '../../components/ui/LoadingOverlay';
 import { useAlert } from '../../contexts/AlertContext';
@@ -56,6 +57,7 @@ interface Transfer {
 }
 
 export default function PendingTransfersScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const { showSuccess, showError, showConfirm } = useAlert();
   const { colors, isDark } = useTheme();
@@ -79,7 +81,7 @@ export default function PendingTransfersScreen() {
       setSentTransfers(sentRes.data?.results || sentRes.data || []);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement transferts:', error);
-      showError('Erreur', "Impossible de charger les transferts. Vérifie ta connexion.");
+      showError(t('common.error'), t('pendingTransfers.loadError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -103,16 +105,20 @@ export default function PendingTransfersScreen() {
 
   const handleAccept = (transfer: Transfer) => {
     showConfirm(
-      'Accepter le transfert',
-      `Voulez-vous accepter ${transfer.ticket_info.transfer_quantity} billet(s) "${transfer.ticket_info.ticket_type_name}" de ${transfer.sender_name}?`,
+      t('pendingTransfers.acceptTitle'),
+      t('pendingTransfers.acceptConfirm', {
+        quantity: transfer.ticket_info.transfer_quantity,
+        name: transfer.ticket_info.ticket_type_name,
+        sender: transfer.sender_name,
+      }),
       async () => {
         setActionLoading(transfer.id);
         try {
           await ticketTransfersAPI.acceptTransfer(transfer.id);
-          showSuccess('Transfert accepté', 'Le billet a été ajouté à votre compte!');
+          showSuccess(t('pendingTransfers.acceptSuccessTitle'), t('pendingTransfers.acceptSuccessMsg'));
           fetchTransfers();
         } catch (error: any) {
-          showError('Erreur', error.response?.data?.detail || 'Impossible d\'accepter le transfert');
+          showError(t('common.error'), error.response?.data?.detail || t('pendingTransfers.acceptError'));
         } finally {
           setActionLoading(null);
         }
@@ -122,16 +128,16 @@ export default function PendingTransfersScreen() {
 
   const handleDecline = (transfer: Transfer) => {
     showConfirm(
-      'Refuser le transfert',
-      `Voulez-vous vraiment refuser ce transfert de ${transfer.sender_name}?`,
+      t('pendingTransfers.declineTitle'),
+      t('pendingTransfers.declineConfirm', { sender: transfer.sender_name }),
       async () => {
         setActionLoading(transfer.id);
         try {
           await ticketTransfersAPI.declineTransfer(transfer.id);
-          showSuccess('Transfert refusé', 'L\'expéditeur a été notifié.');
+          showSuccess(t('pendingTransfers.declineSuccessTitle'), t('pendingTransfers.declineSuccessMsg'));
           fetchTransfers();
         } catch (error: any) {
-          showError('Erreur', error.response?.data?.detail || 'Impossible de refuser le transfert');
+          showError(t('common.error'), error.response?.data?.detail || t('pendingTransfers.declineError'));
         } finally {
           setActionLoading(null);
         }
@@ -141,16 +147,16 @@ export default function PendingTransfersScreen() {
 
   const handleCancelTransfer = (transfer: Transfer) => {
     showConfirm(
-      'Annuler le transfert',
-      `Voulez-vous annuler le transfert vers ${transfer.recipient_name || transfer.recipient_email}?`,
+      t('pendingTransfers.cancelTitle'),
+      t('pendingTransfers.cancelConfirm', { recipient: transfer.recipient_name || transfer.recipient_email }),
       async () => {
         setActionLoading(transfer.id);
         try {
           await ticketTransfersAPI.cancelTransfer(transfer.id);
-          showSuccess('Transfert annulé', 'Le transfert a été annulé.');
+          showSuccess(t('pendingTransfers.cancelSuccessTitle'), t('pendingTransfers.cancelSuccessMsg'));
           fetchTransfers();
         } catch (error: any) {
-          showError('Erreur', error.response?.data?.detail || 'Impossible d\'annuler le transfert');
+          showError(t('common.error'), error.response?.data?.detail || t('pendingTransfers.cancelError'));
         } finally {
           setActionLoading(null);
         }
@@ -182,25 +188,25 @@ export default function PendingTransfersScreen() {
     const expires = new Date(expiresAt);
     const diff = expires.getTime() - now.getTime();
 
-    if (diff <= 0) return 'Expiré';
+    if (diff <= 0) return t('pendingTransfers.expired');
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours > 24) {
       const days = Math.floor(hours / 24);
-      return `${days}j ${hours % 24}h restant`;
+      return t('pendingTransfers.daysRemaining', { days, hours: hours % 24 });
     }
-    return `${hours}h ${minutes}min restant`;
+    return t('pendingTransfers.timeRemaining', { hours, minutes });
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'pending': return 'En attente';
-      case 'accepted': return 'Accepté';
-      case 'declined': return 'Refusé';
-      case 'cancelled': return 'Annulé';
-      case 'expired': return 'Expiré';
+      case 'pending': return t('pendingTransfers.statusPending');
+      case 'accepted': return t('pendingTransfers.statusAccepted');
+      case 'declined': return t('pendingTransfers.statusDeclined');
+      case 'cancelled': return t('pendingTransfers.statusCancelled');
+      case 'expired': return t('pendingTransfers.statusExpired');
       default: return status;
     }
   };
@@ -238,7 +244,7 @@ export default function PendingTransfersScreen() {
           </View>
           <View style={[styles.statusBadge, { backgroundColor: item.is_expired ? colors.errorLight : colors.warningLight }]}>
             <Text style={[styles.statusText, { color: item.is_expired ? colors.error : colors.warning }]}>
-              {item.is_expired ? 'Expiré' : getTimeRemaining(item.expires_at)}
+              {item.is_expired ? t('pendingTransfers.expired') : getTimeRemaining(item.expires_at)}
             </Text>
           </View>
         </View>
@@ -252,7 +258,7 @@ export default function PendingTransfersScreen() {
             </Text>
             <Text style={[styles.eventTitle, { color: colors.gray700 }]}>{item.event_info.title}</Text>
             <Text style={[styles.eventDate, { color: colors.gray500 }]}>
-              {formatDate(item.event_info.start_date)} - {item.event_info.location_city || 'En ligne'}
+              {formatDate(item.event_info.start_date)} - {item.event_info.location_city || t('pendingTransfers.online')}
             </Text>
           </View>
         </View>
@@ -278,7 +284,7 @@ export default function PendingTransfersScreen() {
               ) : (
                 <>
                   <Ionicons name="close" size={18} color={colors.error} />
-                  <Text style={[styles.declineText, { color: colors.error }]}>Refuser</Text>
+                  <Text style={[styles.declineText, { color: colors.error }]}>{t('pendingTransfers.decline')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -292,7 +298,7 @@ export default function PendingTransfersScreen() {
               ) : (
                 <>
                   <Ionicons name="checkmark" size={18} color={Colors.white} />
-                  <Text style={styles.acceptText}>Accepter</Text>
+                  <Text style={styles.acceptText}>{t('pendingTransfers.accept')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -321,14 +327,14 @@ export default function PendingTransfersScreen() {
             </View>
             <View>
               <Text style={[styles.senderName, { color: colors.gray900 }]}>
-                {item.recipient_name || 'Destinataire'}
+                {item.recipient_name || t('pendingTransfers.recipientFallback')}
               </Text>
               <Text style={[styles.senderEmail, { color: colors.gray500 }]}>{item.recipient_email}</Text>
             </View>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}>
             <Text style={[styles.statusText, { color: statusColor }]}>
-              {item.is_expired ? 'Expiré' : getStatusLabel(item.status)}
+              {item.is_expired ? t('pendingTransfers.expired') : getStatusLabel(item.status)}
             </Text>
           </View>
         </View>
@@ -342,7 +348,7 @@ export default function PendingTransfersScreen() {
             </Text>
             <Text style={[styles.eventTitle, { color: colors.gray700 }]}>{item.event_info.title}</Text>
             <Text style={[styles.eventDate, { color: colors.gray500 }]}>
-              {formatDate(item.event_info.start_date)} - {item.event_info.location_city || 'En ligne'}
+              {formatDate(item.event_info.start_date)} - {item.event_info.location_city || t('pendingTransfers.online')}
             </Text>
           </View>
         </View>
@@ -364,7 +370,7 @@ export default function PendingTransfersScreen() {
                 onPress={() => handleShowQR(item)}
               >
                 <Ionicons name="qr-code-outline" size={18} color={colors.primary} />
-                <Text style={[styles.qrButtonText, { color: colors.primary }]}>Afficher QR</Text>
+                <Text style={[styles.qrButtonText, { color: colors.primary }]}>{t('pendingTransfers.showQR')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -377,7 +383,7 @@ export default function PendingTransfersScreen() {
               ) : (
                 <>
                   <Ionicons name="close-circle-outline" size={18} color={colors.error} />
-                  <Text style={[styles.cancelText, { color: colors.error }]}>Annuler</Text>
+                  <Text style={[styles.cancelText, { color: colors.error }]}>{t('pendingTransfers.cancel')}</Text>
                 </>
               )}
             </TouchableOpacity>
@@ -392,9 +398,9 @@ export default function PendingTransfersScreen() {
       <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="gift-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun transfert reçu</Text>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>{t('pendingTransfers.emptyReceivedTitle')}</Text>
       <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
-        Lorsque quelqu'un vous transfère un billet, il apparaitra ici.
+        {t('pendingTransfers.emptyReceivedSubtitle')}
       </Text>
     </View>
   );
@@ -404,9 +410,9 @@ export default function PendingTransfersScreen() {
       <View style={[styles.emptyIconContainer, { backgroundColor: colors.gray100 }]}>
         <Ionicons name="send-outline" size={48} color={colors.gray400} />
       </View>
-      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>Aucun transfert envoyé</Text>
+      <Text style={[styles.emptyTitle, { color: colors.gray900 }]}>{t('pendingTransfers.emptySentTitle')}</Text>
       <Text style={[styles.emptySubtitle, { color: colors.gray500 }]}>
-        Vos transferts de billets envoyés apparaîtront ici.
+        {t('pendingTransfers.emptySentSubtitle')}
       </Text>
     </View>
   );
@@ -430,7 +436,7 @@ export default function PendingTransfersScreen() {
         >
           <Ionicons name="arrow-back" size={24} color={colors.gray900} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>Transferts</Text>
+        <Text style={[styles.headerTitle, { color: colors.gray900 }]}>{t('pendingTransfers.headerTitle')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -446,7 +452,7 @@ export default function PendingTransfersScreen() {
             color={activeTab === 'received' ? colors.primary : colors.gray500}
           />
           <Text style={[styles.tabText, { color: colors.gray500 }, activeTab === 'received' && { color: colors.primary, fontFamily: FontFamily.semiBold }]}>
-            Reçus
+            {t('pendingTransfers.tabReceived')}
           </Text>
           {transfers.length > 0 && (
             <View style={[styles.tabBadge, { backgroundColor: colors.gray200 }, activeTab === 'received' && { backgroundColor: colors.primary }]}>
@@ -466,7 +472,7 @@ export default function PendingTransfersScreen() {
             color={activeTab === 'sent' ? colors.primary : colors.gray500}
           />
           <Text style={[styles.tabText, { color: colors.gray500 }, activeTab === 'sent' && { color: colors.primary, fontFamily: FontFamily.semiBold }]}>
-            Envoyés
+            {t('pendingTransfers.tabSent')}
           </Text>
           {sentTransfers.length > 0 && (
             <View style={[styles.tabBadge, { backgroundColor: colors.gray200 }, activeTab === 'sent' && { backgroundColor: colors.primary }]}>
@@ -507,7 +513,7 @@ export default function PendingTransfersScreen() {
             setSelectedTransferToken(null);
           }}
           data={`EVENTEZ-TRANSFER-${selectedTransferToken}`}
-          title="QR du transfert"
+          title={t('pendingTransfers.qrTitle')}
           subtitle={selectedTransferTitle}
         />
       )}

@@ -26,6 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAlert } from '../../contexts/AlertContext';
+import { useTranslation } from 'react-i18next';
 import { usersAPI, getMediaUrl } from '../../api';
 import { RootStackParamList } from '../../types';
 import {
@@ -70,6 +71,7 @@ export default function FollowingUsersScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { colors, isDark } = useTheme();
   const { showError } = useAlert();
+  const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const [follows, setFollows] = useState<UserFollow[]>([]);
@@ -85,7 +87,7 @@ export default function FollowingUsersScreen() {
       const data: UserFollow[] = res.data?.results || res.data || [];
       setFollows(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      showError('Erreur', error.response?.data?.detail || 'Impossible de charger les abonnements.');
+      showError(t('common.error'), error.response?.data?.detail || t('profile.loadFollowsError'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -111,7 +113,7 @@ export default function FollowingUsersScreen() {
       await usersAPI.unfollowUser(userId);
     } catch (error: any) {
       setFollows(prev);
-      showError('Erreur', error.response?.data?.detail || 'Impossible de se désabonner.');
+      showError(t('common.error'), error.response?.data?.detail || t('profile.unfollowError'));
     } finally {
       setUnfollowingId(null);
     }
@@ -122,8 +124,8 @@ export default function FollowingUsersScreen() {
     const name = getDisplayName(u);
     const avatar = getMediaUrl(u.profile_picture || u.image);
     const subtitle = u.organizer_profile
-      ? (u.organizer_profile.verified_status ? 'Organisateur vérifié' : 'Organisateur')
-      : (u.role === 'organizer' ? 'Organisateur' : 'Utilisateur');
+      ? (u.organizer_profile.verified_status ? t('profile.verifiedOrganizer') : t('profile.organizerLabel'))
+      : (u.role === 'organizer' ? t('profile.organizerLabel') : t('profile.userLabel'));
     const isUnfollowing = unfollowingId === u.id;
 
     return (
@@ -153,12 +155,12 @@ export default function FollowingUsersScreen() {
           disabled={isUnfollowing}
           activeOpacity={0.85}
           accessibilityRole="button"
-          accessibilityLabel={`Se désabonner de ${name}`}
+          accessibilityLabel={t('profile.unfollowAccessibility', { name })}
         >
           {isUnfollowing ? (
             <ActivityIndicator size="small" color={colors.gray500} />
           ) : (
-            <Text style={[styles.unfollowText, { color: colors.gray700 }]}>Désabonner</Text>
+            <Text style={[styles.unfollowText, { color: colors.gray700 }]}>{t('profile.unfollowButton')}</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -173,13 +175,13 @@ export default function FollowingUsersScreen() {
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('common.back')}
         >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: Spacing.md }}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>VOS ABONNEMENTS</Text>
-          <Text style={[styles.title, { color: colors.text }]}>Organisateurs suivis</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('profile.subscriptionsEyebrow')}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{t('profile.subscriptionsTitle')}</Text>
         </View>
       </View>
 
@@ -197,9 +199,9 @@ export default function FollowingUsersScreen() {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Ionicons name="people-outline" size={48} color={colors.gray300} />
-              <Text style={[styles.emptyTitle, { color: colors.text }]}>Aucun abonnement</Text>
+              <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('profile.noSubscriptionsTitle')}</Text>
               <Text style={[styles.emptyText, { color: colors.gray500 }]}>
-                Suivre un organisateur te tient au courant de ses prochains événements.
+                {t('profile.noSubscriptionsText')}
               </Text>
             </View>
           }
