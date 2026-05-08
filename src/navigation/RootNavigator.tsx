@@ -6,6 +6,7 @@ import { RootStackParamList } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
 import { LoadingSpinner } from '../components/ui/LoadingOverlay';
 import { ONBOARDING_COMPLETE_KEY } from '../screens/auth/OnboardingScreen';
+import { LANGUAGE_STORAGE_KEY } from '../i18n';
 import { navigate } from './navigationRef';
 
 // Helper : wrap un composant lazy dans un Suspense pour qu'il soit utilisable
@@ -34,6 +35,7 @@ import ResetPasswordScreen from '../screens/auth/ResetPasswordScreen';
 import VerifyEmailScreen from '../screens/auth/VerifyEmailScreen';
 import VerifyEmailTokenScreen from '../screens/auth/VerifyEmailTokenScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
+import LanguagePickerScreen from '../screens/auth/LanguagePickerScreen';
 
 // Event Screens
 import EventDetailsScreen from '../screens/events/EventDetailsScreen';
@@ -154,9 +156,27 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 export default function RootNavigator() {
   const { isInitializing } = useAuth();
   const { colors } = useTheme();
+  const [languagePicked, setLanguagePicked] = useState<boolean | null>(null);
   const [showOnboarding, setShowOnboarding] = useState<boolean | null>(null);
   const [checkingOnboarding, setCheckingOnboarding] = useState(true);
   const pendingLoginRef = useRef(false);
+
+  // Check if the user has already picked a language (gate AVANT onboarding)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem(LANGUAGE_STORAGE_KEY);
+        if (!cancelled) setLanguagePicked(stored === 'fr' || stored === 'en');
+      } catch (error) {
+        if (__DEV__) console.error('[RootNavigator] Error checking language pref:', error);
+        // En cas d'erreur AsyncStorage, on suppose qu'aucun choix n'a été fait
+        // pour ne pas bloquer l'utilisateur dans l'onboarding sans avoir choisi.
+        if (!cancelled) setLanguagePicked(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -174,6 +194,10 @@ export default function RootNavigator() {
     return () => { cancelled = true; };
   }, []);
 
+  const handleLanguagePicked = useCallback((_lang: 'fr' | 'en') => {
+    setLanguagePicked(true);
+  }, []);
+
   const handleOnboardingComplete = useCallback((goToLogin?: boolean) => {
     pendingLoginRef.current = !!goToLogin;
     setShowOnboarding(false);
@@ -188,8 +212,15 @@ export default function RootNavigator() {
     }
   }, [showOnboarding]);
 
-  if (isInitializing || checkingOnboarding) {
+  if (isInitializing || checkingOnboarding || languagePicked === null) {
     return <LoadingSpinner />;
+  }
+
+  // First-launch language picker — shown ONCE before onboarding.
+  // Gate volontairement avant l'onboarding pour que tous les écrans suivants
+  // (incl. onboarding) s'affichent dans la langue choisie par l'utilisateur.
+  if (!languagePicked) {
+    return <LanguagePickerScreen onComplete={handleLanguagePicked} />;
   }
 
   // First-launch welcome — shown to ALL users (guest & authenticated) until completed

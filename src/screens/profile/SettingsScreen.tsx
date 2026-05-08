@@ -16,9 +16,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
+import { changeLanguage, LANGUAGE_STORAGE_KEY } from '../../i18n';
 import { useSoundEffect } from '../../hooks/useSoundEffect';
 import { useAppLock } from '../../hooks/useAppLock';
 import { useBiometricConfirm } from '../../hooks/useBiometricConfirm';
@@ -304,8 +308,9 @@ const shortcutStyles = StyleSheet.create({
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { logout, user } = useAuth();
-  const { showAlert, showError, showConfirm } = useAlert();
+  const { showAlert, showError, showConfirm, showSuccess } = useAlert();
   const { colors, isDark, mode: themeMode, setMode: setThemeMode } = useTheme();
+  const { t, i18n } = useTranslation();
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -469,15 +474,15 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     showConfirm(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      t('profile.logoutConfirmTitle'),
+      t('profile.logoutConfirmDetail'),
       logout
     );
   };
 
   const handleDeleteAccount = async () => {
     if (!deletePassword) {
-      showError('Erreur', 'Veuillez entrer votre mot de passe');
+      showError(t('common.error'), t('settings.passwordRequired'));
       return;
     }
 
@@ -485,7 +490,7 @@ export default function SettingsScreen() {
     // une action irréversible. Catégorie 'account' — l'user peut désactiver
     // dans Settings s'il préfère ne se reposer que sur le password.
     const confirmed = await biometric.confirm({
-      promptMessage: 'Confirmer la suppression définitive de votre compte',
+      promptMessage: t('settings.biometricPrompt'),
       category: 'account',
     });
     if (!confirmed) return;
@@ -501,8 +506,8 @@ export default function SettingsScreen() {
     } catch (error: any) {
       if (__DEV__) console.error('Erreur suppression compte:', error);
       showError(
-        'Erreur',
-        error.response?.data?.detail || 'Impossible de supprimer le compte'
+        t('common.error'),
+        error.response?.data?.detail || t('settings.deleteAccountError')
       );
     } finally {
       setSaving(false);
@@ -510,19 +515,22 @@ export default function SettingsScreen() {
   };
 
   const getLanguageLabel = () => {
-    switch (language) {
-      case 'fr': return 'Français';
-      case 'en': return 'English';
-      default: return 'Français';
+    // Prioriser la langue i18n active (source de vérité côté UI), fallback sur
+    // la pref stockée en BDD si i18n n'est pas encore initialisé.
+    const active = (i18n.language || language || 'en').slice(0, 2);
+    switch (active) {
+      case 'fr': return `🇫🇷 ${t('settings.french')}`;
+      case 'en': return `🇬🇧 ${t('settings.english')}`;
+      default: return `🇬🇧 ${t('settings.english')}`;
     }
   };
 
   const getThemeLabel = () => {
     switch (themeMode) {
-      case 'light': return 'Clair';
-      case 'dark': return 'Sombre';
-      case 'system': return 'Système';
-      default: return 'Clair';
+      case 'light': return t('settings.themeLightLabel');
+      case 'dark': return t('settings.themeDarkLabel');
+      case 'system': return t('settings.themeSystemLabel');
+      default: return t('settings.themeLightLabel');
     }
   };
 
@@ -536,41 +544,54 @@ export default function SettingsScreen() {
     }
   };
 
+  const persistAndApplyLanguage = async (lang: 'fr' | 'en') => {
+    setLanguage(lang);
+    try {
+      await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, lang);
+      await changeLanguage(lang);
+    } catch (error) {
+      if (__DEV__) console.error('[Settings] failed to persist language', error);
+    }
+    // Sync server-side preference (best-effort, non-bloquant)
+    handleUpdateSetting('language', lang);
+    showSuccess(t('settings.languageActivated'));
+  };
+
   const showLanguagePicker = () => {
     showAlert(
-      'Langue',
-      'Choisissez votre langue',
+      t('settings.languageDialogTitle'),
+      t('settings.languageDialogSubtitle'),
       [
-        { text: 'Français', onPress: () => { setLanguage('fr'); handleUpdateSetting('language', 'fr'); } },
-        { text: 'English', onPress: () => { setLanguage('en'); handleUpdateSetting('language', 'en'); } },
-        { text: 'Annuler', style: 'cancel' },
+        { text: `🇬🇧 ${t('settings.english')}`, onPress: () => { persistAndApplyLanguage('en'); } },
+        { text: `🇫🇷 ${t('settings.french')}`, onPress: () => { persistAndApplyLanguage('fr'); } },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
 
   const showThemePicker = () => {
     showAlert(
-      'Thème',
-      'Choisissez votre thème',
+      t('settings.themeDialogTitle'),
+      t('settings.themeDialogSubtitle'),
       [
-        { text: 'Clair', onPress: () => { setThemeMode('light'); handleUpdateSetting('theme', 'light'); } },
-        { text: 'Sombre', onPress: () => { setThemeMode('dark'); handleUpdateSetting('theme', 'dark'); } },
-        { text: 'Système', onPress: () => { setThemeMode('system'); handleUpdateSetting('theme', 'system'); } },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('settings.themeLightLabel'), onPress: () => { setThemeMode('light'); handleUpdateSetting('theme', 'light'); } },
+        { text: t('settings.themeDarkLabel'), onPress: () => { setThemeMode('dark'); handleUpdateSetting('theme', 'dark'); } },
+        { text: t('settings.themeSystemLabel'), onPress: () => { setThemeMode('system'); handleUpdateSetting('theme', 'system'); } },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
 
   const showTimezonePicker = () => {
     showAlert(
-      'Fuseau horaire',
-      'Choisissez votre fuseau horaire',
+      t('settings.timezoneDialogTitle'),
+      t('settings.timezoneDialogSubtitle'),
       [
         { text: 'Douala (GMT+1)', onPress: () => { setTimezone('Africa/Douala'); handleUpdateSetting('timezone', 'Africa/Douala'); } },
         { text: 'Paris (GMT+1)', onPress: () => { setTimezone('Europe/Paris'); handleUpdateSetting('timezone', 'Europe/Paris'); } },
         { text: 'UTC', onPress: () => { setTimezone('UTC'); handleUpdateSetting('timezone', 'UTC'); } },
         { text: 'New York (GMT-5)', onPress: () => { setTimezone('America/New_York'); handleUpdateSetting('timezone', 'America/New_York'); } },
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
       ]
     );
   };
@@ -617,7 +638,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: Spacing.md }}>
             <Text style={[styles.headerEyebrow, { color: colors.accent }]}>RÉGLAGES</Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>Préférences</Text>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('settings.preferencesTitle')}</Text>
           </View>
         </View>
         <Text style={[styles.headerLead, { color: colors.gray500 }]}>
@@ -633,7 +654,7 @@ export default function SettingsScreen() {
         {/* Shortcuts */}
         <View style={styles.shortcutsBlock}>
           <View style={styles.shortcutsHeader}>
-            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>RACCOURCIS</Text>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.shortcutsSection')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
           <View style={styles.shortcutsRow}>
@@ -666,7 +687,7 @@ export default function SettingsScreen() {
         {/* Section: Notifications */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>NOTIFICATIONS</Text>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.notificationsSectionEyebrow')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
 
@@ -753,10 +774,10 @@ export default function SettingsScreen() {
           </View>
           <OptionCard
             icon="language-outline"
-            eyebrow="LANGUE · BIENTÔT"
+            eyebrow={t('settings.languageEyebrow')}
             title={getLanguageLabel()}
             onPress={showLanguagePicker}
-            disabled
+            tone="primary"
             right={<Ionicons name="chevron-forward" size={18} color={colors.gray400} />}
           />
           <OptionCard
@@ -822,12 +843,12 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="finger-print"
-            eyebrow={appLockSupported ? 'BIOMÉTRIE' : 'INDISPONIBLE'}
+            eyebrow={appLockSupported ? t('settings.biometricEyebrow') : t('settings.biometricUnavailable')}
             title="Verrouiller l'app"
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte requise au lancement et après 1 min en arrière-plan'
-                : 'Aucune biométrie enrôlée sur ce téléphone'
+                : t('settings.biometricNoEnrolled')
             }
             disabled={!appLockSupported}
             right={
@@ -842,12 +863,12 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="qr-code-outline"
-            eyebrow={appLockSupported ? 'BIOMÉTRIE · BILLETS' : 'INDISPONIBLE'}
+            eyebrow={appLockSupported ? t('settings.biometricTicketsEyebrow') : t('settings.biometricUnavailable')}
             title="Verrouiller mes billets"
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte requise pour révéler le QR code à l\'entrée'
-                : 'Aucune biométrie enrôlée sur ce téléphone'
+                : t('settings.biometricNoEnrolled')
             }
             disabled={!appLockSupported}
             right={
@@ -862,12 +883,12 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="card-outline"
-            eyebrow={appLockSupported ? 'BIOMÉTRIE · PAIEMENTS' : 'INDISPONIBLE'}
+            eyebrow={appLockSupported ? t('settings.biometricPaymentsEyebrow') : t('settings.biometricUnavailable')}
             title="Confirmer mes paiements"
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte avant retrait, paiement, modif IBAN, remboursement'
-                : 'Aucune biométrie enrôlée sur ce téléphone'
+                : t('settings.biometricNoEnrolled')
             }
             disabled={!appLockSupported}
             right={
@@ -880,12 +901,12 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="person-outline"
-            eyebrow={appLockSupported ? 'BIOMÉTRIE · COMPTE' : 'INDISPONIBLE'}
+            eyebrow={appLockSupported ? t('settings.biometricAccountEyebrow') : t('settings.biometricUnavailable')}
             title="Confirmer les changements de compte"
             subtitle={
               appLockSupported
                 ? 'FaceID / Empreinte pour suppression de compte ou changement de mot de passe'
-                : 'Aucune biométrie enrôlée sur ce téléphone'
+                : t('settings.biometricNoEnrolled')
             }
             disabled={!appLockSupported}
             right={
@@ -899,12 +920,12 @@ export default function SettingsScreen() {
           {(user?.role === 'admin' || user?.role === 'moderator' || (user as any)?.is_staff) && (
             <OptionCard
               icon="shield-checkmark-outline"
-              eyebrow={appLockSupported ? 'BIOMÉTRIE · ADMIN' : 'INDISPONIBLE'}
+              eyebrow={appLockSupported ? t('settings.biometricAdminEyebrow') : t('settings.biometricUnavailable')}
               title="Confirmer les actions admin"
               subtitle={
                 appLockSupported
-                  ? 'FaceID / Empreinte pour validation/rejet d\'événements et actions sur utilisateurs'
-                  : 'Aucune biométrie enrôlée sur ce téléphone'
+                  ? t('settings.biometricAdminDescription')
+                  : t('settings.biometricNoEnrolled')
               }
               disabled={!appLockSupported}
               right={
@@ -1016,7 +1037,7 @@ export default function SettingsScreen() {
           />
           <OptionCard
             icon="ban-outline"
-            eyebrow={blockedCount > 0 ? `${blockedCount} BLOQUÉ${blockedCount > 1 ? 'S' : ''}` : 'AUCUN'}
+            eyebrow={blockedCount > 0 ? t('settings.blockedSection', { count: blockedCount, plural: blockedCount > 1 ? 'S' : '' }) : t('settings.blockedSectionNone')}
             title="Utilisateurs bloqués"
             subtitle="Gère la liste des comptes que tu as bloqués"
             tone="accent"
@@ -1028,7 +1049,7 @@ export default function SettingsScreen() {
         {/* Section: À propos */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>À PROPOS</Text>
+            <Text style={[styles.eyebrowSection, { color: eyebrowColor }]}>{t('settings.aboutSection')}</Text>
             <View style={[styles.dashLine, { backgroundColor: sectionHairline }]} />
           </View>
           <OptionCard
@@ -1067,7 +1088,7 @@ export default function SettingsScreen() {
         {/* Zone sensible — Déconnexion + Suppression */}
         <View style={styles.sectionBlock}>
           <View style={styles.sectionHeaderRow}>
-            <Text style={[styles.eyebrowSection, { color: colors.accent }]}>ZONE SENSIBLE</Text>
+            <Text style={[styles.eyebrowSection, { color: colors.accent }]}>{t('settings.dangerZone')}</Text>
             <View style={[styles.dashLine, { backgroundColor: `${colors.accent}40` }]} />
           </View>
           <OptionCard
@@ -1128,7 +1149,7 @@ export default function SettingsScreen() {
                 <Text style={[styles.modalEyebrow, { color: colors.accent }]}>
                   IRRÉVERSIBLE
                 </Text>
-                <Text style={[styles.modalTitle, { color: colors.text }]}>Supprimer</Text>
+                <Text style={[styles.modalTitle, { color: colors.text }]}>{t('settings.deleteModalTitle')}</Text>
                 <Text style={[styles.modalSubtitle, { color: colors.gray500 }]}>
                   Cette action supprime définitivement ton compte et toutes tes données.
                 </Text>
@@ -1148,14 +1169,14 @@ export default function SettingsScreen() {
                   ]}
                   value={deleteReason}
                   onChangeText={setDeleteReason}
-                  placeholder="Pourquoi supprimes-tu ton compte ?"
+                  placeholder={t('settings.deleteReasonPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
                 />
 
-                <Text style={[styles.inputLabel, { color: eyebrowColor }]}>MOT DE PASSE</Text>
+                <Text style={[styles.inputLabel, { color: eyebrowColor }]}>{t('settings.passwordLabel')}</Text>
                 <TextInput
                   style={[
                     styles.modalInput,
@@ -1167,7 +1188,7 @@ export default function SettingsScreen() {
                   ]}
                   value={deletePassword}
                   onChangeText={setDeletePassword}
-                  placeholder="Ton mot de passe"
+                  placeholder={t('settings.passwordPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   secureTextEntry
                 />
@@ -1188,7 +1209,7 @@ export default function SettingsScreen() {
                     setDeleteReason('');
                   }}
                 >
-                  <Text style={[styles.cancelButtonText, { color: colors.text }]}>Annuler</Text>
+                  <Text style={[styles.cancelButtonText, { color: colors.text }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.deleteButton, { backgroundColor: colors.accent }]}
@@ -1198,7 +1219,7 @@ export default function SettingsScreen() {
                   {saving ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text style={styles.deleteButtonText}>Supprimer</Text>
+                    <Text style={styles.deleteButtonText}>{t('settings.deleteButton')}</Text>
                   )}
                 </TouchableOpacity>
               </View>
