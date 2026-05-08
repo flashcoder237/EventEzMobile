@@ -11,6 +11,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -90,6 +91,7 @@ export default function RegisterScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { showError } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
@@ -121,9 +123,9 @@ export default function RegisterScreen() {
 
   const validate = () => {
     const newErrors: FormErrors = {};
-    const firstNameError = validators.required(formData.first_name, 'Le prenom');
+    const firstNameError = validators.required(formData.first_name, t('auth.firstName'));
     if (firstNameError) newErrors.first_name = firstNameError;
-    const lastNameError = validators.required(formData.last_name, 'Le nom');
+    const lastNameError = validators.required(formData.last_name, t('auth.lastName'));
     if (lastNameError) newErrors.last_name = lastNameError;
     const usernameError = validators.username(formData.username, 3);
     if (usernameError) newErrors.username = usernameError;
@@ -165,7 +167,7 @@ export default function RegisterScreen() {
     } catch (error: any) {
       setIsSubmitting(false);
       const message = extractErrorMessage(error);
-      showError("Erreur d'inscription", message);
+      showError(t('auth.registerError'), message);
     }
   };
 
@@ -229,7 +231,7 @@ export default function RegisterScreen() {
           animationType="scale"
           scaleValue={0.9}
           accessibilityRole="button"
-          accessibilityLabel={options.showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+          accessibilityLabel={options.showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
         >
           <Ionicons
             name={options.showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -259,7 +261,7 @@ export default function RegisterScreen() {
             animationType="scale"
             scaleValue={0.9}
             accessibilityRole="button"
-            accessibilityLabel="Retour"
+            accessibilityLabel={t('common.back')}
           >
             <Ionicons name="arrow-back" size={24} color={colors.gray800} />
           </AnimatedPressable>
@@ -275,10 +277,10 @@ export default function RegisterScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>Inscription / 02</Text>
-            <Text style={[styles.title, { color: colors.gray900 }]}>Créer un compte</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.registerEyebrow')}</Text>
+            <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.registerButton')}</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-              Rejoins EventEz et découvre les meilleurs événements
+              {t('auth.registerSubtitle')}
             </Text>
           </View>
 
@@ -287,7 +289,7 @@ export default function RegisterScreen() {
             {/* Name Row */}
             <View style={styles.row}>
               <View style={styles.halfInput}>
-                {renderInput('first_name', 'Prénom', 'person-outline', {
+                {renderInput('first_name', t('auth.firstName'), 'person-outline', {
                   autoCapitalize: 'words',
                 })}
                 {errors.first_name && (
@@ -295,7 +297,7 @@ export default function RegisterScreen() {
                 )}
               </View>
               <View style={styles.halfInput}>
-                {renderInput('last_name', 'Nom', 'person-outline', {
+                {renderInput('last_name', t('auth.lastName'), 'person-outline', {
                   autoCapitalize: 'words',
                 })}
                 {errors.last_name && (
@@ -306,7 +308,7 @@ export default function RegisterScreen() {
 
             {/* Username */}
             <View style={styles.inputContainer}>
-              {renderInput('username', "Nom d'utilisateur", 'at-outline')}
+              {renderInput('username', t('auth.username'), 'at-outline')}
               {errors.username && (
                 <Text style={[styles.fieldError, { color: colors.error }]}>{errors.username}</Text>
               )}
@@ -314,7 +316,7 @@ export default function RegisterScreen() {
 
             {/* Email */}
             <View style={styles.inputContainer}>
-              {renderInput('email', 'votre@email.com', 'mail-outline', {
+              {renderInput('email', t('auth.emailPlaceholder'), 'mail-outline', {
                 keyboardType: 'email-address',
                 onChangeText: handleEmailChange,
               })}
@@ -325,14 +327,14 @@ export default function RegisterScreen() {
 
             {/* Phone */}
             <View style={styles.inputContainer}>
-              {renderInput('phone_number', 'Téléphone (optionnel)', 'call-outline', {
+              {renderInput('phone_number', t('auth.phoneOptional'), 'call-outline', {
                 keyboardType: 'phone-pad',
               })}
             </View>
 
             {/* Password */}
             <View style={styles.inputContainer}>
-              {renderInput('password', 'Mot de passe', 'lock-closed-outline', {
+              {renderInput('password', t('auth.password'), 'lock-closed-outline', {
                 secureTextEntry: !showPassword,
                 showPasswordToggle: true,
                 showPassword,
@@ -345,7 +347,7 @@ export default function RegisterScreen() {
 
             {/* Confirm Password */}
             <View style={styles.inputContainer}>
-              {renderInput('confirm_password', 'Confirmer le mot de passe', 'lock-closed-outline', {
+              {renderInput('confirm_password', t('auth.confirmPassword'), 'lock-closed-outline', {
                 secureTextEntry: !showConfirmPassword,
                 showPasswordToggle: true,
                 showPassword: showConfirmPassword,
@@ -358,16 +360,16 @@ export default function RegisterScreen() {
 
             {/* Terms */}
             <Text style={[styles.termsText, { color: colors.gray500 }]}>
-              En vous inscrivant, vous acceptez nos{' '}
-              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>Conditions d'utilisation</Text> et notre{' '}
-              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>Politique de confidentialité</Text>
+              {t('auth.termsAcceptRegister')}{' '}
+              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>{t('auth.termsLink')}</Text> {t('auth.termsAnd')}{' '}
+              <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>{t('auth.privacyLink')}</Text>
             </Text>
 
             {/* Register Button — editorial pill CTA */}
             <View style={styles.registerButtonWrap}>
               <EditorialPillCTA
-                eyebrow="Rejoindre"
-                label="Créer mon compte"
+                eyebrow={t('auth.registerEntryAction')}
+                label={t('auth.createAccount')}
                 onPress={handleRegister}
                 loading={isSubmitting}
               />
@@ -382,14 +384,14 @@ export default function RegisterScreen() {
               animationType="lift"
               scaleValue={0.98}
               accessibilityRole="link"
-              accessibilityLabel="Inscription organisateur"
+              accessibilityLabel={t('auth.registerOrganizerLink')}
             >
               <View style={[styles.organizerIconContainer, { backgroundColor: colors.background }]}>
                 <Ionicons name="megaphone" size={24} color={Colors.secondary} />
               </View>
               <View style={styles.organizerTextContainer}>
-                <Text style={[styles.organizerTitle, { color: colors.gray800 }]}>Vous êtes organisateur ?</Text>
-                <Text style={[styles.organizerSubtitle, { color: colors.gray500 }]}>Créez et gérez vos événements</Text>
+                <Text style={[styles.organizerTitle, { color: colors.gray800 }]}>{t('auth.becomeOrganizerTitle')}</Text>
+                <Text style={[styles.organizerSubtitle, { color: colors.gray500 }]}>{t('auth.becomeOrganizerSubtitle')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
             </AnimatedPressable>
@@ -397,15 +399,15 @@ export default function RegisterScreen() {
 
           {/* Login Link */}
           <View style={styles.loginContainer}>
-            <Text style={[styles.loginText, { color: colors.gray500 }]}>Déjà un compte ?</Text>
+            <Text style={[styles.loginText, { color: colors.gray500 }]}>{t('auth.hasAccount')}</Text>
             <AnimatedPressable
               onPress={() => navigation.replace('Login', { returnScreen: (returnScreen as keyof RootStackParamList | undefined) ?? undefined, returnParams })}
               animationType="scale"
               scaleValue={0.95}
               accessibilityRole="link"
-              accessibilityLabel="Se connecter"
+              accessibilityLabel={t('auth.loginButton')}
             >
-              <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
+              <Text style={[styles.loginLink, { color: colors.primary }]}> {t('auth.loginButton')}</Text>
             </AnimatedPressable>
           </View>
       </KeyboardAwareScrollView>

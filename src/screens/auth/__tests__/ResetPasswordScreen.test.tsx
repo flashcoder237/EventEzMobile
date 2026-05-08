@@ -101,7 +101,7 @@ describe('ResetPasswordScreen', () => {
     fireEvent.changeText(getByPlaceholderText('Retapez le mot de passe'), 'short');
     fireEvent.press(getByText('Réinitialiser'));
 
-    expect(await findByText(/au moins 8 caracteres/i)).toBeTruthy();
+    expect(await findByText(/le mot de passe doit contenir au moins 8 caract[èe]res/i)).toBeTruthy();
     expect(mockResetPassword).not.toHaveBeenCalled();
   });
 

@@ -1,0 +1,2519 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EventCard snapshots renders compact variant 1`] = `
+<View
+  accessibilityHint="Appuyez pour voir les détails de l'événement"
+  accessibilityLabel="Forum Tech 2026, 15 JUI, Douala, Cameroun"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "backgroundColor": "#FFFFFF",
+      "borderColor": "rgba(0,0,0,0.06)",
+      "borderRadius": 18,
+      "borderWidth": 1,
+      "elevation": 1,
+      "opacity": 1,
+      "overflow": "hidden",
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 1,
+        "width": 0,
+      },
+      "shadowOpacity": 0.03,
+      "shadowRadius": 5,
+      "width": 349.75,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "height": 110,
+        "position": "relative",
+      }
+    }
+  >
+    <Image
+      cachePolicy="memory-disk"
+      contentFit="cover"
+      placeholder="data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw=="
+      placeholderContentFit="cover"
+      source={
+        {
+          "uri": "https://test.local/media/events/forum.jpg",
+        }
+      }
+      style={
+        [
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+      transition={300}
+    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 8,
+            "left": 10,
+            "minWidth": 42,
+            "paddingHorizontal": 7,
+            "paddingVertical": 5,
+            "position": "absolute",
+            "top": 10,
+          },
+          {
+            "backgroundColor": "rgba(255,255,255,0.95)",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 14,
+              "letterSpacing": -0.5,
+              "lineHeight": 16,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        15
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 8,
+              "letterSpacing": 1.2,
+              "marginTop": 1,
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        JUI
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "gap": 4,
+        "padding": 8.5,
+      }
+    }
+  >
+    <Text
+      numberOfLines={1}
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 9,
+            "letterSpacing": 1.2,
+          },
+          {
+            "color": "#FF6B6B",
+          },
+        ]
+      }
+    >
+      CONFERENCE
+    </Text>
+    <Text
+      numberOfLines={2}
+      style={
+        [
+          {
+            "fontFamily": "FunnelDisplay_800ExtraBold",
+            "fontSize": 14,
+            "letterSpacing": -0.3,
+            "lineHeight": 17,
+          },
+          {
+            "color": "#111827",
+          },
+        ]
+      }
+    >
+      Forum Tech 2026
+    </Text>
+    <View
+      style={
+        {
+          "marginTop": 2,
+        }
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 13,
+              "letterSpacing": -0.3,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Des 5 000 FCFA
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`EventCard snapshots renders default variant 1`] = `
+<View
+  accessibilityHint="Appuyez pour voir les détails de l'événement"
+  accessibilityLabel="Forum Tech 2026, 15 JUI, Douala, Cameroun"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="both"
+  collapsable={false}
+  focusable={true}
+  haptic="light"
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.97}
+  style={
+    [
+      {
+        "borderRadius": 24,
+        "borderWidth": 1,
+        "overflow": "hidden",
+        "width": 615,
+      },
+      false,
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "rgba(0,0,0,0.06)",
+      },
+      {
+        "elevation": 4,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 4,
+          "width": 0,
+        },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 12,
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "height": 220,
+        "position": "relative",
+      }
+    }
+  >
+    <Image
+      cachePolicy="memory-disk"
+      contentFit="cover"
+      placeholder="data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw=="
+      placeholderContentFit="cover"
+      source={
+        {
+          "uri": "https://test.local/media/events/forum.jpg",
+        }
+      }
+      style={
+        [
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+      transition={300}
+    />
+    <View
+      colors={
+        [
+          "transparent",
+          "rgba(0,0,0,0.45)",
+        ]
+      }
+      pointerEvents="none"
+      style={
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 9999,
+            "flexDirection": "row",
+            "gap": 4,
+            "left": 12,
+            "paddingHorizontal": 9,
+            "paddingVertical": 4,
+            "position": "absolute",
+            "top": 12,
+          },
+          {
+            "backgroundColor": "rgba(255,255,255,0.95)",
+          },
+        ]
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.2,
+              "maxWidth": 140,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        CONFERENCE
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={false}
+      hitSlop={
+        {
+          "bottom": 10,
+          "left": 10,
+          "right": 10,
+          "top": 10,
+        }
+      }
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "rgba(255,255,255,0.95)",
+          "borderRadius": 17,
+          "height": 34,
+          "justifyContent": "center",
+          "opacity": 1,
+          "position": "absolute",
+          "right": 12,
+          "top": 12,
+          "width": 34,
+        }
+      }
+    >
+      <View>
+        <Text
+          color="#111827"
+          name="bookmark-outline"
+          size={16}
+        >
+          bookmark-outline
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "bottom": 14,
+          "left": 14,
+          "position": "absolute",
+          "right": 14,
+        }
+      }
+    >
+      <Text
+        numberOfLines={2}
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "FunnelDisplay_800ExtraBold",
+            "fontSize": 22,
+            "letterSpacing": -0.7,
+            "lineHeight": 26,
+          }
+        }
+      >
+        Forum Tech 2026
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 0,
+        "padding": 12.5,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "minWidth": 54,
+            "paddingHorizontal": 10,
+            "paddingVertical": 7,
+          },
+          {
+            "backgroundColor": "#FF6B6B15",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 20,
+              "letterSpacing": -0.7,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        15
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.5,
+              "marginTop": 2,
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        JUI
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "marginLeft": 12,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Text
+          color="#6B7280"
+          name="location-outline"
+          size={11}
+        >
+          location-outline
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "flex": 1,
+                "fontFamily": "Montserrat_600SemiBold",
+                "fontSize": 11,
+                "letterSpacing": -0.1,
+              },
+              {
+                "color": "#6B7280",
+              },
+            ]
+          }
+        >
+          Douala, Cameroun
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "borderRadius": 9999,
+            "maxWidth": 110,
+            "paddingHorizontal": 12,
+            "paddingVertical": 7,
+          },
+          {
+            "backgroundColor": "#111827",
+          },
+        ]
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": -0.1,
+          }
+        }
+      >
+        Des 5 000 FCFA
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`EventCard snapshots renders default variant with free event + soon (J-2) 1`] = `
+<View
+  accessibilityHint="Appuyez pour voir les détails de l'événement"
+  accessibilityLabel="Forum Tech 2026, 06 MAI, Douala, Cameroun"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="both"
+  collapsable={false}
+  focusable={true}
+  haptic="light"
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.97}
+  style={
+    [
+      {
+        "borderRadius": 24,
+        "borderWidth": 1,
+        "overflow": "hidden",
+        "width": 615,
+      },
+      false,
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "rgba(0,0,0,0.06)",
+      },
+      {
+        "elevation": 4,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 4,
+          "width": 0,
+        },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 12,
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "height": 220,
+        "position": "relative",
+      }
+    }
+  >
+    <Image
+      cachePolicy="memory-disk"
+      contentFit="cover"
+      placeholder="data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw=="
+      placeholderContentFit="cover"
+      source={
+        {
+          "uri": "https://test.local/media/events/forum.jpg",
+        }
+      }
+      style={
+        [
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+      transition={300}
+    />
+    <View
+      colors={
+        [
+          "transparent",
+          "rgba(0,0,0,0.45)",
+        ]
+      }
+      pointerEvents="none"
+      style={
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 9999,
+            "flexDirection": "row",
+            "gap": 4,
+            "left": 12,
+            "paddingHorizontal": 9,
+            "paddingVertical": 4,
+            "position": "absolute",
+            "top": 12,
+          },
+          {
+            "backgroundColor": "rgba(255,255,255,0.95)",
+          },
+        ]
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.2,
+              "maxWidth": 140,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        CONFERENCE
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={false}
+      hitSlop={
+        {
+          "bottom": 10,
+          "left": 10,
+          "right": 10,
+          "top": 10,
+        }
+      }
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "rgba(255,255,255,0.95)",
+          "borderRadius": 17,
+          "height": 34,
+          "justifyContent": "center",
+          "opacity": 1,
+          "position": "absolute",
+          "right": 12,
+          "top": 12,
+          "width": 34,
+        }
+      }
+    >
+      <View>
+        <Text
+          color="#111827"
+          name="bookmark-outline"
+          size={16}
+        >
+          bookmark-outline
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "bottom": 14,
+          "left": 14,
+          "position": "absolute",
+          "right": 14,
+        }
+      }
+    >
+      <Text
+        numberOfLines={2}
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "FunnelDisplay_800ExtraBold",
+            "fontSize": 22,
+            "letterSpacing": -0.7,
+            "lineHeight": 26,
+          }
+        }
+      >
+        Forum Tech 2026
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 0,
+        "padding": 12.5,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "minWidth": 54,
+            "paddingHorizontal": 10,
+            "paddingVertical": 7,
+          },
+          {
+            "backgroundColor": "#FF6B6B15",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 20,
+              "letterSpacing": -0.7,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        06
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.5,
+              "marginTop": 2,
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        MAI
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "marginLeft": 12,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Text
+          color="#6B7280"
+          name="location-outline"
+          size={11}
+        >
+          location-outline
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "flex": 1,
+                "fontFamily": "Montserrat_600SemiBold",
+                "fontSize": 11,
+                "letterSpacing": -0.1,
+              },
+              {
+                "color": "#6B7280",
+              },
+            ]
+          }
+        >
+          Douala, Cameroun
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 5,
+            },
+            {
+              "marginTop": 4,
+            },
+          ]
+        }
+      >
+        <View
+          style={
+            [
+              {
+                "borderRadius": 2.5,
+                "height": 5,
+                "width": 5,
+              },
+              {
+                "backgroundColor": "#FF6B6B",
+              },
+            ]
+          }
+        />
+        <Text
+          style={
+            [
+              {
+                "fontFamily": "Montserrat_700Bold",
+                "fontSize": 9,
+                "letterSpacing": 1.2,
+              },
+              {
+                "color": "#FF6B6B",
+              },
+            ]
+          }
+        >
+          J−3
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "borderRadius": 6,
+            "paddingHorizontal": 10,
+            "paddingVertical": 5,
+          },
+          {
+            "backgroundColor": "#10B98115",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#059669",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 10,
+            "letterSpacing": 1,
+          }
+        }
+      >
+        GRATUIT
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`EventCard snapshots renders default variant with isFeatured + isLiked 1`] = `
+<View
+  accessibilityHint="Appuyez pour voir les détails de l'événement"
+  accessibilityLabel="Forum Tech 2026, 15 JUI, Douala, Cameroun"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="both"
+  collapsable={false}
+  focusable={true}
+  haptic="light"
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.97}
+  style={
+    [
+      {
+        "borderRadius": 24,
+        "borderWidth": 1,
+        "overflow": "hidden",
+        "width": 615,
+      },
+      false,
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "rgba(0,0,0,0.06)",
+      },
+      {
+        "elevation": 4,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 4,
+          "width": 0,
+        },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 12,
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "height": 220,
+        "position": "relative",
+      }
+    }
+  >
+    <Image
+      cachePolicy="memory-disk"
+      contentFit="cover"
+      placeholder="data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw=="
+      placeholderContentFit="cover"
+      source={
+        {
+          "uri": "https://test.local/media/events/forum.jpg",
+        }
+      }
+      style={
+        [
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+      transition={300}
+    />
+    <View
+      colors={
+        [
+          "transparent",
+          "rgba(0,0,0,0.45)",
+        ]
+      }
+      pointerEvents="none"
+      style={
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 9999,
+            "flexDirection": "row",
+            "gap": 4,
+            "left": 12,
+            "paddingHorizontal": 9,
+            "paddingVertical": 4,
+            "position": "absolute",
+            "top": 12,
+          },
+          {
+            "backgroundColor": "rgba(255,255,255,0.95)",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#FF6B6B"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.2,
+              "maxWidth": 140,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        EN VEDETTE
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={false}
+      hitSlop={
+        {
+          "bottom": 10,
+          "left": 10,
+          "right": 10,
+          "top": 10,
+        }
+      }
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "rgba(255,255,255,0.95)",
+          "borderRadius": 17,
+          "height": 34,
+          "justifyContent": "center",
+          "opacity": 1,
+          "position": "absolute",
+          "right": 12,
+          "top": 12,
+          "width": 34,
+        }
+      }
+    >
+      <View>
+        <Text
+          color="#FF6B6B"
+          name="bookmark"
+          size={16}
+        >
+          bookmark
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "bottom": 14,
+          "left": 14,
+          "position": "absolute",
+          "right": 14,
+        }
+      }
+    >
+      <Text
+        numberOfLines={2}
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "FunnelDisplay_800ExtraBold",
+            "fontSize": 22,
+            "letterSpacing": -0.7,
+            "lineHeight": 26,
+          }
+        }
+      >
+        Forum Tech 2026
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "gap": 0,
+        "padding": 12.5,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "minWidth": 54,
+            "paddingHorizontal": 10,
+            "paddingVertical": 7,
+          },
+          {
+            "backgroundColor": "#FF6B6B15",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 20,
+              "letterSpacing": -0.7,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        15
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.5,
+              "marginTop": 2,
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        JUI
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "marginLeft": 12,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Text
+          color="#6B7280"
+          name="location-outline"
+          size={11}
+        >
+          location-outline
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "flex": 1,
+                "fontFamily": "Montserrat_600SemiBold",
+                "fontSize": 11,
+                "letterSpacing": -0.1,
+              },
+              {
+                "color": "#6B7280",
+              },
+            ]
+          }
+        >
+          Douala, Cameroun
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "borderRadius": 9999,
+            "maxWidth": 110,
+            "paddingHorizontal": 12,
+            "paddingVertical": 7,
+          },
+          {
+            "backgroundColor": "#111827",
+          },
+        ]
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": -0.1,
+          }
+        }
+      >
+        Des 5 000 FCFA
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`EventCard snapshots renders featured variant 1`] = `
+<View
+  accessibilityHint="Appuyez pour voir les détails de l'événement"
+  accessibilityLabel="Forum Tech 2026, 15 JUI, Douala, Cameroun"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="editorial"
+  collapsable={false}
+  focusable={true}
+  haptic="light"
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    [
+      {
+        "borderRadius": 28,
+        "borderWidth": 1,
+        "overflow": "hidden",
+        "width": 660,
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "rgba(0,0,0,0.06)",
+      },
+      {
+        "elevation": 4,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 4,
+          "width": 0,
+        },
+        "shadowOpacity": 0.05,
+        "shadowRadius": 12,
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "height": 280,
+        "position": "relative",
+      }
+    }
+  >
+    <Image
+      cachePolicy="memory-disk"
+      contentFit="cover"
+      placeholder="data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw=="
+      placeholderContentFit="cover"
+      source={
+        {
+          "uri": "https://test.local/media/events/forum.jpg",
+        }
+      }
+      style={
+        [
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+      transition={300}
+    />
+    <View
+      colors={
+        [
+          "transparent",
+          "rgba(0,0,0,0.55)",
+        ]
+      }
+      pointerEvents="none"
+      style={
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 9999,
+            "flexDirection": "row",
+            "gap": 5,
+            "left": 14,
+            "paddingHorizontal": 10,
+            "paddingVertical": 5,
+            "position": "absolute",
+            "top": 14,
+          },
+          {
+            "backgroundColor": "rgba(255,255,255,0.95)",
+          },
+        ]
+      }
+    >
+      <Text
+        color="#FF6B6B"
+        name="star"
+        size={10}
+      >
+        star
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 10,
+              "letterSpacing": 1.2,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        EN VEDETTE
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={false}
+      hitSlop={
+        {
+          "bottom": 10,
+          "left": 10,
+          "right": 10,
+          "top": 10,
+        }
+      }
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "rgba(255,255,255,0.95)",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "opacity": 1,
+          "position": "absolute",
+          "right": 14,
+          "top": 14,
+          "width": 36,
+        }
+      }
+    >
+      <View>
+        <Text
+          color="#111827"
+          name="bookmark-outline"
+          size={16}
+        >
+          bookmark-outline
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        {
+          "bottom": 14,
+          "left": 14,
+          "position": "absolute",
+          "right": 14,
+        }
+      }
+    >
+      <Text
+        numberOfLines={2}
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "FunnelDisplay_800ExtraBold",
+            "fontSize": 26,
+            "letterSpacing": -0.8,
+            "lineHeight": 30,
+            "marginBottom": 4,
+          }
+        }
+      >
+        Forum Tech 2026
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={
+          {
+            "color": "rgba(255,255,255,0.85)",
+            "fontFamily": "Montserrat_600SemiBold",
+            "fontSize": 12,
+            "letterSpacing": 0.2,
+          }
+        }
+      >
+        Conference
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "alignItems": "center",
+        "flexDirection": "row",
+        "padding": 17,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "minWidth": 54,
+            "paddingHorizontal": 10,
+            "paddingVertical": 7,
+          },
+          {
+            "backgroundColor": "#FF6B6B15",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 20,
+              "letterSpacing": -0.7,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        15
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.5,
+              "marginTop": 2,
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        JUI
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "flex": 1,
+          "marginLeft": 12,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 4,
+          }
+        }
+      >
+        <Text
+          color="#6B7280"
+          name="location-outline"
+          size={11}
+        >
+          location-outline
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "flex": 1,
+                "fontFamily": "Montserrat_600SemiBold",
+                "fontSize": 11,
+                "letterSpacing": -0.1,
+              },
+              {
+                "color": "#6B7280",
+              },
+            ]
+          }
+        >
+          Douala, Cameroun
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "gap": 4,
+            },
+            {
+              "marginTop": 4,
+            },
+          ]
+        }
+      >
+        <Text
+          color="#6B7280"
+          name="people-outline"
+          size={11}
+        >
+          people-outline
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "flex": 1,
+                "fontFamily": "Montserrat_600SemiBold",
+                "fontSize": 11,
+                "letterSpacing": -0.1,
+              },
+              {
+                "color": "#6B7280",
+              },
+            ]
+          }
+        >
+          120 inscrits
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "borderRadius": 9999,
+            "maxWidth": 110,
+            "paddingHorizontal": 12,
+            "paddingVertical": 7,
+          },
+          {
+            "backgroundColor": "#111827",
+          },
+        ]
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "color": "#FFFFFF",
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 11,
+              "letterSpacing": -0.1,
+            },
+            {
+              "color": "#F4F3F0",
+            },
+          ]
+        }
+      >
+        Des 5 000 FCFA
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`EventCard snapshots renders grid variant with online location 1`] = `
+<View
+  accessibilityHint="Appuyez pour voir les détails de l'événement"
+  accessibilityLabel="Forum Tech 2026, 15 JUI, Douala, Cameroun"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="both"
+  collapsable={false}
+  focusable={true}
+  haptic="light"
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.98}
+  style={
+    [
+      {
+        "borderRadius": 20,
+        "borderWidth": 1,
+        "marginBottom": 17,
+        "overflow": "hidden",
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "rgba(0,0,0,0.06)",
+      },
+      {
+        "elevation": 1,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.03,
+        "shadowRadius": 5,
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "height": 150,
+        "position": "relative",
+      }
+    }
+  >
+    <Image
+      cachePolicy="memory-disk"
+      contentFit="cover"
+      placeholder="data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw=="
+      placeholderContentFit="cover"
+      source={
+        {
+          "uri": "https://test.local/media/events/forum.jpg",
+        }
+      }
+      style={
+        [
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+      transition={300}
+    />
+    <View
+      colors={
+        [
+          "transparent",
+          "rgba(0,0,0,0.35)",
+        ]
+      }
+      style={
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 8,
+            "left": 10,
+            "minWidth": 42,
+            "paddingHorizontal": 7,
+            "paddingVertical": 5,
+            "position": "absolute",
+            "top": 10,
+          },
+          {
+            "backgroundColor": "rgba(255,255,255,0.95)",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 14,
+              "letterSpacing": -0.5,
+              "lineHeight": 16,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        15
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 8,
+              "letterSpacing": 1.2,
+              "marginTop": 1,
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        JUI
+      </Text>
+    </View>
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={false}
+      hitSlop={
+        {
+          "bottom": 8,
+          "left": 8,
+          "right": 8,
+          "top": 8,
+        }
+      }
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "rgba(255,255,255,0.95)",
+          "borderRadius": 14,
+          "height": 28,
+          "justifyContent": "center",
+          "opacity": 1,
+          "position": "absolute",
+          "right": 10,
+          "top": 10,
+          "width": 28,
+        }
+      }
+    >
+      <View>
+        <Text
+          color="#FF6B6B"
+          name="bookmark"
+          size={14}
+        >
+          bookmark
+        </Text>
+      </View>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "gap": 4,
+        "padding": 10.5,
+      }
+    }
+  >
+    <Text
+      numberOfLines={1}
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 9,
+            "letterSpacing": 1.2,
+          },
+          {
+            "color": "#FF6B6B",
+          },
+        ]
+      }
+    >
+      CONFERENCE
+    </Text>
+    <Text
+      numberOfLines={2}
+      style={
+        [
+          {
+            "fontFamily": "FunnelDisplay_800ExtraBold",
+            "fontSize": 15,
+            "letterSpacing": -0.4,
+            "lineHeight": 18,
+            "marginTop": 2,
+          },
+          {
+            "color": "#111827",
+          },
+        ]
+      }
+    >
+      Forum Tech 2026
+    </Text>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 4,
+        }
+      }
+    >
+      <Text
+        color="#6B7280"
+        name="videocam-outline"
+        size={10}
+      >
+        videocam-outline
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "flex": 1,
+              "fontFamily": "Montserrat_600SemiBold",
+              "fontSize": 11,
+              "letterSpacing": -0.1,
+            },
+            {
+              "color": "#6B7280",
+            },
+          ]
+        }
+      >
+        Douala, Cameroun
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "space-between",
+          "marginTop": 4,
+        }
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 14,
+              "letterSpacing": -0.4,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Des 5 000 FCFA
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`EventCard snapshots renders horizontal variant 1`] = `
+<View
+  accessibilityHint="Appuyez pour voir les détails de l'événement"
+  accessibilityLabel="Forum Tech 2026, 15 JUI, Douala, Cameroun"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="both"
+  collapsable={false}
+  focusable={true}
+  haptic="light"
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.98}
+  style={
+    [
+      {
+        "borderRadius": 18,
+        "borderWidth": 1,
+        "flexDirection": "row",
+        "minHeight": 140,
+        "overflow": "hidden",
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "rgba(0,0,0,0.06)",
+      },
+      {
+        "elevation": 1,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.03,
+        "shadowRadius": 5,
+      },
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "position": "relative",
+        "width": 130,
+      }
+    }
+  >
+    <Image
+      cachePolicy="memory-disk"
+      contentFit="cover"
+      placeholder="data:image/gif;base64,R0lGODlhCgAKAIAAAO/v7wAAACH5BAAAAAAALAAAAAAKAAoAAAIIhI+py+0PYysAOw=="
+      placeholderContentFit="cover"
+      source={
+        {
+          "uri": "https://test.local/media/events/forum.jpg",
+        }
+      }
+      style={
+        [
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+      transition={300}
+    />
+    <View
+      colors={
+        [
+          "transparent",
+          "rgba(0,0,0,0.35)",
+        ]
+      }
+      style={
+        {
+          "bottom": 0,
+          "left": 0,
+          "position": "absolute",
+          "right": 0,
+          "top": 0,
+        }
+      }
+    />
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "borderRadius": 12,
+            "left": 12,
+            "minWidth": 48,
+            "paddingHorizontal": 8,
+            "paddingVertical": 6,
+            "position": "absolute",
+            "top": 12,
+          },
+          {
+            "backgroundColor": "rgba(255,255,255,0.95)",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 20,
+              "letterSpacing": -0.7,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        15
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.5,
+              "marginTop": 2,
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        JUI
+      </Text>
+    </View>
+  </View>
+  <View
+    style={
+      {
+        "flex": 1,
+        "gap": 4,
+        "justifyContent": "center",
+        "padding": 10.5,
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "alignSelf": "flex-start",
+            "borderRadius": 6,
+            "marginBottom": 4,
+            "paddingHorizontal": 8,
+            "paddingVertical": 3,
+          },
+          {
+            "backgroundColor": "#FF6B6B15",
+          },
+        ]
+      }
+    >
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "fontFamily": "Montserrat_700Bold",
+              "fontSize": 9,
+              "letterSpacing": 1.2,
+              "textTransform": "uppercase",
+            },
+            {
+              "color": "#FF6B6B",
+            },
+          ]
+        }
+      >
+        CONFERENCE
+      </Text>
+    </View>
+    <Text
+      numberOfLines={2}
+      style={
+        [
+          {
+            "fontFamily": "FunnelDisplay_800ExtraBold",
+            "fontSize": 15,
+            "letterSpacing": -0.4,
+            "lineHeight": 18,
+            "marginTop": 2,
+          },
+          {
+            "color": "#111827",
+          },
+        ]
+      }
+    >
+      Forum Tech 2026
+    </Text>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "gap": 4,
+        }
+      }
+    >
+      <Text
+        color="#6B7280"
+        name="location-outline"
+        size={11}
+      >
+        location-outline
+      </Text>
+      <Text
+        numberOfLines={1}
+        style={
+          [
+            {
+              "flex": 1,
+              "fontFamily": "Montserrat_600SemiBold",
+              "fontSize": 11,
+              "letterSpacing": -0.1,
+            },
+            {
+              "color": "#6B7280",
+            },
+          ]
+        }
+      >
+        Douala, Cameroun
+      </Text>
+    </View>
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 6,
+          "marginTop": 4,
+        }
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "fontFamily": "FunnelDisplay_800ExtraBold",
+              "fontSize": 16,
+              "letterSpacing": -0.5,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Des 5 000 FCFA
+      </Text>
+    </View>
+  </View>
+  <View
+    accessibilityState={
+      {
+        "busy": undefined,
+        "checked": undefined,
+        "disabled": undefined,
+        "expanded": undefined,
+        "selected": undefined,
+      }
+    }
+    accessibilityValue={
+      {
+        "max": undefined,
+        "min": undefined,
+        "now": undefined,
+        "text": undefined,
+      }
+    }
+    accessible={true}
+    collapsable={false}
+    focusable={false}
+    hitSlop={
+      {
+        "bottom": 10,
+        "left": 10,
+        "right": 10,
+        "top": 10,
+      }
+    }
+    onClick={[Function]}
+    onResponderGrant={[Function]}
+    onResponderMove={[Function]}
+    onResponderRelease={[Function]}
+    onResponderTerminate={[Function]}
+    onResponderTerminationRequest={[Function]}
+    onStartShouldSetResponder={[Function]}
+    style={
+      {
+        "alignItems": "center",
+        "alignSelf": "center",
+        "backgroundColor": "#F3F4F6",
+        "borderRadius": 16,
+        "height": 32,
+        "justifyContent": "center",
+        "marginRight": 8.5,
+        "opacity": 1,
+        "width": 32,
+      }
+    }
+  >
+    <View>
+      <Text
+        color="#6B7280"
+        name="bookmark-outline"
+        size={16}
+      >
+        bookmark-outline
+      </Text>
+    </View>
+  </View>
+</View>
+`;

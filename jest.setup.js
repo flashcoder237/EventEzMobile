@@ -10,6 +10,55 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
+// react-i18next : mock qui résout les clés depuis le fichier de traduction FR.
+// Permet aux tests de chercher les vraies strings affichées (ex: 'Se connecter')
+// sans avoir à initialiser i18next ni patcher chaque test individuellement.
+jest.mock('react-i18next', () => {
+  const fr = require('./src/i18n/locales/fr.json');
+  const resolveKey = (key, options) => {
+    if (typeof key !== 'string') return key;
+    const parts = key.split('.');
+    let value = fr;
+    for (const part of parts) {
+      if (value && typeof value === 'object' && part in value) {
+        value = value[part];
+      } else {
+        // Fallback : si options.defaultValue présent, l'utiliser; sinon retourner la clé
+        return options && typeof options === 'object' && options.defaultValue
+          ? options.defaultValue
+          : key;
+      }
+    }
+    if (typeof value !== 'string') return key;
+    // Interpolation simple {{var}}
+    if (options && typeof options === 'object') {
+      return value.replace(/\{\{(\w+)\}\}/g, (_, k) =>
+        options[k] !== undefined ? String(options[k]) : `{{${k}}}`,
+      );
+    }
+    return value;
+  };
+  return {
+    useTranslation: () => ({
+      t: resolveKey,
+      i18n: {
+        changeLanguage: jest.fn(() => Promise.resolve()),
+        language: 'fr',
+        hasResourceBundle: jest.fn(() => true),
+        addResourceBundle: jest.fn(),
+      },
+    }),
+    Trans: ({ children, i18nKey, values }) => {
+      const React = require('react');
+      const RN = require('react-native');
+      const text = i18nKey ? resolveKey(i18nKey, values) : children;
+      return React.createElement(RN.Text, null, text);
+    },
+    initReactI18next: { type: '3rdParty', init: () => {} },
+    I18nextProvider: ({ children }) => children,
+  };
+});
+
 // Reanimated : mock minimal (l'official mock TS de v4 n'est pas transpilé par Jest).
 // Les composants réels en runtime utilisent useAnimatedStyle/withTiming etc.
 // — on stub juste ce dont les écrans ont besoin pour rendre.

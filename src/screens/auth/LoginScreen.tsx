@@ -16,6 +16,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import { useTranslation } from 'react-i18next';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -53,6 +54,7 @@ export default function LoginScreen() {
   const { login, isLoading, setUser, guestRegister, user } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { flags: featureFlags } = useFeatureFlags();
   const phoneOtpAvailable = featureFlags.phone_otp_enabled;
   // Si returnScreen est un ecran auth (login/register/verify/forgot), on l'ignore
@@ -113,11 +115,11 @@ export default function LoginScreen() {
     const email = guestEmail.trim().toLowerCase();
     const firstName = guestFirstName.trim();
     if (!email.includes('@') || !email.includes('.')) {
-      showError('Email invalide', 'Entre une adresse email valide');
+      showError(t('auth.guestEmailInvalid'), t('auth.guestEmailInvalidDetail'));
       return;
     }
     if (firstName.length < 2) {
-      showError('Prénom requis', 'Entre au moins 2 caractères pour ton prénom');
+      showError(t('auth.guestFirstNameRequired'), t('auth.guestFirstNameRequiredDetail'));
       return;
     }
     setGuestLoading(true);
@@ -132,12 +134,12 @@ export default function LoginScreen() {
         setGuestModal(false);
         setEmail(email);
         showError(
-          'Compte existant',
-          'Un compte existe déjà avec cet email. Connecte-toi avec ton mot de passe.',
+          t('auth.guestExistingAccount'),
+          t('auth.guestExistingAccountDetail'),
         );
       } else {
         const msg = extractErrorMessage(error);
-        showError('Erreur', msg);
+        showError(t('common.error'), msg);
       }
     } finally {
       setGuestLoading(false);
@@ -193,7 +195,7 @@ export default function LoginScreen() {
       await setUser(result.user);
       dismissAfterLogin(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
-      showError('Erreur Google', result.error);
+      showError(t('auth.googleError'), result.error);
     }
   };
 
@@ -203,13 +205,13 @@ export default function LoginScreen() {
       await setUser(result.user);
       dismissAfterLogin(result.user);
     } else if (result.error && result.error !== 'Connexion annulée') {
-      showError('Erreur Apple', result.error);
+      showError(t('auth.appleError'), result.error);
     }
   };
 
   const handleSendOTP = async () => {
     const raw = phoneNumber.trim();
-    if (!raw) { showError('Numéro manquant', 'Entrez votre numéro de téléphone'); return; }
+    if (!raw) { showError(t('auth.phoneMissing'), t('auth.phoneMissingDetail')); return; }
     const formatted = raw.startsWith('+') ? raw : `+${raw}`;
     const result = await sendOTP(formatted);
     if (result.success) {
@@ -219,13 +221,13 @@ export default function LoginScreen() {
       setResendCooldown(60);
       setTimeout(() => otpInputRef.current?.focus(), 300);
     } else {
-      showError('Erreur SMS', result.error || 'Impossible d\'envoyer le SMS');
+      showError(t('auth.smsError'), result.error || t('auth.smsErrorDetail'));
     }
   };
 
   const handleVerifyOTP = async () => {
     if (otpCode.replace(/\D/g, '').length < 6) {
-      showError('Code incomplet', 'Entrez le code à 6 chiffres');
+      showError(t('auth.incompleteCode'), t('auth.incompleteCodeDetail'));
       return;
     }
     const result = await verifyOTP(otpPhone, otpCode);
@@ -233,7 +235,7 @@ export default function LoginScreen() {
       await setUser(result.user);
       dismissAfterLogin(result.user);
     } else {
-      showError('Code invalide', result.error || 'Code incorrect ou expiré');
+      showError(t('auth.invalidCode'), result.error || t('auth.invalidCodeDetail'));
     }
   };
 
@@ -243,9 +245,9 @@ export default function LoginScreen() {
     if (result.success) {
       setOtpCode('');
       setResendCooldown(60);
-      showSuccess('Code renvoyé', 'Un nouveau code a été envoyé');
+      showSuccess(t('auth.codeResent'), t('auth.newCodeSent'));
     } else {
-      showError('Erreur', result.error || 'Impossible de renvoyer le code');
+      showError(t('common.error'), result.error || t('auth.smsErrorDetail'));
     }
   };
 
@@ -274,7 +276,7 @@ export default function LoginScreen() {
     } catch (error: any) {
       setRetryInfo(null);
       const message = extractErrorMessage(error);
-      showError('Erreur de connexion', message);
+      showError(t('auth.loginError'), message);
     } finally {
       setLoginInProgress(false);
     }
@@ -312,14 +314,14 @@ export default function LoginScreen() {
 
           {/* Header */}
           <View style={styles.headerContainer}>
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>Connexion / 01</Text>
-            <Text style={[styles.title, { color: colors.gray900 }]}>Bon retour !</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.loginEyebrow')}</Text>
+            <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.welcomeBack')}</Text>
             <Text style={[styles.subtitle, { color: colors.gray500 }]}>
               {eventTitle
-                ? `Encore une étape avant ton billet pour « ${eventTitle} »`
+                ? t('auth.welcomeEventContext', { title: eventTitle })
                 : returnScreen
-                ? 'Connecte-toi pour continuer'
-                : 'Connecte-toi pour découvrir les meilleurs événements'}
+                ? t('auth.welcomeReturnContext')
+                : t('auth.welcomeSubtitle')}
             </Text>
           </View>
 
@@ -331,8 +333,8 @@ export default function LoginScreen() {
               </View>
               <Text style={[styles.contextBannerText, { color: colors.gray700 }]} numberOfLines={2}>
                 {eventTitle
-                  ? `🎫 Connecte-toi pour réserver « ${eventTitle} »`
-                  : 'Connecte-toi pour finaliser ton action'}
+                  ? t('auth.lockedActionEvent', { title: eventTitle })
+                  : t('auth.lockedActionGeneric')}
               </Text>
             </View>
           )}
@@ -348,7 +350,7 @@ export default function LoginScreen() {
                 accessibilityState={{ selected: activeTab === 'email' }}
               >
                 <Ionicons name="mail-outline" size={14} color={activeTab === 'email' ? '#fff' : colors.gray500} />
-                <Text style={[styles.tabBtnText, { color: activeTab === 'email' ? '#fff' : colors.gray500 }]}>Email</Text>
+                <Text style={[styles.tabBtnText, { color: activeTab === 'email' ? '#fff' : colors.gray500 }]}>{t('auth.tabEmail')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => setActiveTab('phone')}
@@ -358,7 +360,7 @@ export default function LoginScreen() {
                 accessibilityState={{ selected: activeTab === 'phone' }}
               >
                 <Ionicons name="phone-portrait-outline" size={14} color={activeTab === 'phone' ? '#fff' : colors.gray500} />
-                <Text style={[styles.tabBtnText, { color: activeTab === 'phone' ? '#fff' : colors.gray500 }]}>Téléphone</Text>
+                <Text style={[styles.tabBtnText, { color: activeTab === 'phone' ? '#fff' : colors.gray500 }]}>{t('auth.tabPhone')}</Text>
               </TouchableOpacity>
             </View>
           ) : null}
@@ -368,14 +370,14 @@ export default function LoginScreen() {
             {/* ── Phone tab content ── */}
             {activeTab === 'phone' && phoneStep === 'phone' && (
               <View style={styles.inputContainer}>
-                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Numéro de téléphone</Text>
+                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.phoneNumber')}</Text>
                 <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, focusedField === 'phone' && { backgroundColor: colors.surface, borderColor: colors.primary, ...Shadows.sm }]}>
                   <View style={styles.inputIconContainer}>
                     <Ionicons name="phone-portrait-outline" size={20} color={focusedField === 'phone' ? colors.primary : colors.gray400} />
                   </View>
                   <TextInput
                     style={[styles.input, { color: colors.gray900 }]}
-                    placeholder="+237 6 12 34 56 78"
+                    placeholder={t('auth.phonePlaceholder')}
                     placeholderTextColor={colors.gray400}
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
@@ -383,11 +385,11 @@ export default function LoginScreen() {
                     onBlur={() => setFocusedField(null)}
                     keyboardType="phone-pad"
                     autoComplete="tel"
-                    accessibilityLabel="Numéro de téléphone avec indicatif pays"
+                    accessibilityLabel={t('auth.phoneNumber')}
                   />
                 </View>
                 <Text style={[styles.fieldHint, { color: colors.gray400 }]}>
-                  Inclure l'indicatif pays : +33, +237, +1…
+                  {t('auth.phoneHint')}
                 </Text>
                 <AnimatedPressable
                   style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: Spacing.sm }]}
@@ -396,11 +398,11 @@ export default function LoginScreen() {
                   animationType="scale"
                   haptic="medium"
                   accessibilityRole="button"
-                  accessibilityLabel="Recevoir le code SMS"
+                  accessibilityLabel={t('auth.sendOTP')}
                 >
                   {phoneLoading
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.primaryButtonText}>Recevoir le code SMS</Text>}
+                    : <Text style={styles.primaryButtonText}>{t('auth.sendOTP')}</Text>}
                 </AnimatedPressable>
 
               </View>
@@ -409,19 +411,19 @@ export default function LoginScreen() {
             {activeTab === 'phone' && phoneStep === 'otp' && (
               <View style={styles.inputContainer}>
                 <Text style={[styles.inputLabel, { color: colors.gray700, textAlign: 'center' }]}>
-                  Code envoyé au {otpPhone}
+                  {t('auth.otpSent', { phone: otpPhone })}
                 </Text>
                 <TextInput
                   ref={otpInputRef}
                   style={[styles.otpInput, { color: colors.gray900, borderColor: colors.gray200, backgroundColor: colors.gray50 }]}
-                  placeholder="123456"
+                  placeholder={t('auth.otpPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={otpCode}
                   onChangeText={(t) => setOtpCode(t.replace(/\D/g, '').slice(0, 6))}
                   keyboardType="number-pad"
                   maxLength={6}
                   autoFocus
-                  accessibilityLabel="Code OTP à 6 chiffres"
+                  accessibilityLabel={t('auth.otpPlaceholder')}
                 />
                 <AnimatedPressable
                   style={[styles.primaryButton, { backgroundColor: colors.primary, marginTop: Spacing.sm }, (otpCode.length < 6 || phoneLoading) && { opacity: 0.6 }]}
@@ -430,19 +432,19 @@ export default function LoginScreen() {
                   animationType="scale"
                   haptic="medium"
                   accessibilityRole="button"
-                  accessibilityLabel="Vérifier le code"
+                  accessibilityLabel={t('auth.verifyOTP')}
                 >
                   {phoneLoading
                     ? <ActivityIndicator size="small" color="#fff" />
-                    : <Text style={styles.primaryButtonText}>Vérifier le code</Text>}
+                    : <Text style={styles.primaryButtonText}>{t('auth.verifyOTP')}</Text>}
                 </AnimatedPressable>
                 <View style={styles.otpActions}>
                   <TouchableOpacity onPress={() => { setPhoneStep('phone'); setOtpCode(''); }}>
-                    <Text style={[styles.otpLink, { color: colors.gray500 }]}>← Changer de numéro</Text>
+                    <Text style={[styles.otpLink, { color: colors.gray500 }]}>{t('auth.changePhone')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity onPress={handleResendOTP} disabled={resendCooldown > 0}>
                     <Text style={[styles.otpLink, { color: resendCooldown > 0 ? colors.gray400 : colors.primary }]}>
-                      {resendCooldown > 0 ? `Renvoyer (${resendCooldown}s)` : 'Renvoyer le code'}
+                      {resendCooldown > 0 ? t('auth.resendIn', { seconds: resendCooldown }) : t('auth.resendCode')}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -452,7 +454,7 @@ export default function LoginScreen() {
             {/* ── Email tab content ── */}
             {activeTab === 'email' && <>
             <View style={styles.inputContainer}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.email')}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('email', !!errors.email)]}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons
@@ -464,7 +466,7 @@ export default function LoginScreen() {
                 <TextInput
                   ref={emailInputRef}
                   style={[styles.input, { color: colors.gray900 }]}
-                  placeholder="votre@email.com"
+                  placeholder={t('auth.emailPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={email}
                   onChangeText={(text) => {
@@ -482,7 +484,7 @@ export default function LoginScreen() {
                   returnKeyType="next"
                   onSubmitEditing={() => passwordInputRef.current?.focus()}
                   blurOnSubmit={false}
-                  accessibilityLabel="Adresse email"
+                  accessibilityLabel={t('auth.email')}
                 />
               </View>
               {errors.email && (
@@ -496,15 +498,15 @@ export default function LoginScreen() {
             {/* Password */}
             <View style={styles.inputContainer}>
               <View style={styles.labelRow}>
-                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Mot de passe</Text>
+                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.password')}</Text>
                 <AnimatedPressable
                   onPress={() => navigation.navigate('ForgotPassword')}
                   animationType="scale"
                   scaleValue={0.95}
                   accessibilityRole="link"
-                  accessibilityLabel="Mot de passe oublie"
+                  accessibilityLabel={t('auth.forgotPasswordTitle')}
                 >
-                  <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>Oublié ?</Text>
+                  <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>{t('auth.forgotPassword')}</Text>
                 </AnimatedPressable>
               </View>
               <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, getInputStyle('password', !!errors.password)]}>
@@ -518,7 +520,7 @@ export default function LoginScreen() {
                 <TextInput
                   ref={passwordInputRef}
                   style={[styles.input, { color: colors.gray900 }]}
-                  placeholder="••••••••"
+                  placeholder={t('auth.passwordPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={password}
                   onChangeText={(text) => {
@@ -533,7 +535,7 @@ export default function LoginScreen() {
                   importantForAutofill="yes"
                   returnKeyType="go"
                   onSubmitEditing={handleLogin}
-                  accessibilityLabel="Mot de passe"
+                  accessibilityLabel={t('auth.password')}
                 />
                 <AnimatedPressable
                   onPress={() => setShowPassword(!showPassword)}
@@ -541,7 +543,7 @@ export default function LoginScreen() {
                   animationType="scale"
                   scaleValue={0.9}
                   accessibilityRole="button"
-                  accessibilityLabel={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  accessibilityLabel={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                 >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -566,21 +568,21 @@ export default function LoginScreen() {
               scaleValue={0.98}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: rememberMe }}
-              accessibilityLabel="Se souvenir de moi"
+              accessibilityLabel={t('auth.rememberMe')}
             >
               <View style={[styles.checkbox, { borderColor: colors.gray300, backgroundColor: isDark ? colors.gray100 : colors.white }, rememberMe && { backgroundColor: colors.primary, borderColor: colors.primary }]}>
                 {rememberMe && (
                   <Ionicons name="checkmark" size={14} color={colors.white} />
                 )}
               </View>
-              <Text style={[styles.rememberMeText, { color: colors.gray600 }]}>Rester connecté pendant 30 jours</Text>
+              <Text style={[styles.rememberMeText, { color: colors.gray600 }]}>{t('auth.rememberMe')}</Text>
             </AnimatedPressable>
 
             {/* Login Button — editorial pill CTA */}
             <View style={styles.loginButtonWrap}>
               <EditorialPillCTA
-                eyebrow="Entrer"
-                label="Se connecter"
+                eyebrow={t('auth.loginEntryAction')}
+                label={t('auth.loginButton')}
                 onPress={handleLogin}
                 loading={loginInProgress || isLoading}
                 disabled={loginInProgress || isLoading}
@@ -592,7 +594,7 @@ export default function LoginScreen() {
               <View style={[styles.retryBanner, { backgroundColor: colors.warningBg }]}>
                 <ActivityIndicator size="small" color={colors.warning} />
                 <Text style={[styles.retryText, { color: colors.warningDark }]}>
-                  Tentative de connexion {retryInfo.attempt}/{retryInfo.maxRetries}...
+                  {t('auth.retryAttempt', { current: retryInfo.attempt, max: retryInfo.maxRetries })}
                 </Text>
               </View>
             )}
@@ -603,7 +605,7 @@ export default function LoginScreen() {
           {/* Divider */}
           <View style={styles.divider}>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
-            <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou continuer avec</Text>
+            <Text style={[styles.dividerText, { color: colors.gray400 }]}>{t('auth.orContinueWith')}</Text>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
           </View>
 
@@ -621,7 +623,7 @@ export default function LoginScreen() {
               scaleValue={0.98}
               haptic="light"
               accessibilityRole="button"
-              accessibilityLabel="Connexion avec Google"
+              accessibilityLabel={t('auth.googleAuth')}
             >
               {googleLoading ? (
                 <ActivityIndicator size="small" color="#DB4437" />
@@ -646,7 +648,7 @@ export default function LoginScreen() {
                 scaleValue={0.98}
                 haptic="light"
                 accessibilityRole="button"
-                accessibilityLabel="Connexion avec Apple"
+                accessibilityLabel={t('auth.appleAuth')}
               >
                 {appleLoading ? (
                   <ActivityIndicator size="small" color={Colors.gray900} />
@@ -662,22 +664,22 @@ export default function LoginScreen() {
 
           {/* Terms & Privacy */}
           <Text style={[styles.termsText, { color: colors.gray500 }]}>
-            En te connectant, tu acceptes nos{' '}
-            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>Conditions d'utilisation</Text> et notre{' '}
-            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>Politique de confidentialité</Text>
+            {t('auth.termsAcceptLogin')}{' '}
+            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>{t('auth.termsLink')}</Text> {t('auth.termsAnd')}{' '}
+            <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>{t('auth.privacyLink')}</Text>
           </Text>
 
           {/* Register Link */}
           <View style={styles.registerContainer}>
-            <Text style={[styles.registerText, { color: colors.gray500 }]}>Pas encore de compte ?</Text>
+            <Text style={[styles.registerText, { color: colors.gray500 }]}>{t('auth.noAccount')}</Text>
             <AnimatedPressable
               onPress={() => navigation.replace('Register', { returnScreen: safeReturnScreen, returnParams })}
               animationType="scale"
               scaleValue={0.95}
               accessibilityRole="link"
-              accessibilityLabel="Creer un compte"
+              accessibilityLabel={t('auth.registerButton')}
             >
-              <Text style={[styles.registerLink, { color: colors.primary }]}> Créer un compte</Text>
+              <Text style={[styles.registerLink, { color: colors.primary }]}> {t('auth.registerButton')}</Text>
             </AnimatedPressable>
           </View>
 
@@ -686,7 +688,7 @@ export default function LoginScreen() {
           <View style={styles.guestSection}>
             <View style={styles.guestDivider}>
               <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
-              <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou</Text>
+              <Text style={[styles.dividerText, { color: colors.gray400 }]}>{t('auth.or')}</Text>
               <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
             </View>
             <TouchableOpacity
@@ -694,17 +696,17 @@ export default function LoginScreen() {
               onPress={() => setGuestModal(true)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Continuer en invité (sans créer de compte)"
+              accessibilityLabel={t('auth.guestContinueAccessibility')}
             >
               <Ionicons name="flash-outline" size={16} color={colors.gray700} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.guestButtonText, { color: colors.gray900 }]}>
-                  Continuer en invité
+                  {t('auth.guestContinue')}
                 </Text>
                 <Text style={[styles.guestButtonHint, { color: colors.gray500 }]}>
                   {eventIsFree
-                    ? 'Juste prénom + email · pas de mot de passe'
-                    : 'Juste prénom + email · idéal pour les events gratuits'}
+                    ? t('auth.guestHintFree')
+                    : t('auth.guestHintGeneric')}
                 </Text>
               </View>
               <Ionicons name="arrow-forward" size={16} color={colors.gray400} />
@@ -726,19 +728,19 @@ export default function LoginScreen() {
             onPress={(e) => e.stopPropagation()}
           >
             <Text style={[styles.guestModalEyebrow, { color: colors.accent }]}>
-              SANS COMPTE
+              {t('auth.guestModalEyebrow')}
             </Text>
             <Text style={[styles.guestModalTitle, { color: colors.gray900 }]}>
-              Récupère ton billet en 2 secondes
+              {t('auth.guestModalTitle')}
             </Text>
             <Text style={[styles.guestModalSubtitle, { color: colors.gray500 }]}>
               {eventTitle
-                ? `Pour « ${eventTitle} ». Tu pourras créer ton compte plus tard.`
-                : 'Tu pourras créer ton compte plus tard.'}
+                ? t('auth.guestModalSubtitleEvent', { title: eventTitle })
+                : t('auth.guestModalSubtitle')}
             </Text>
 
             <View style={styles.guestModalField}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Prénom</Text>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.firstName')}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons name="person-outline" size={18} color={colors.gray400} />
@@ -751,13 +753,13 @@ export default function LoginScreen() {
                   onChangeText={setGuestFirstName}
                   autoCapitalize="words"
                   autoCorrect={false}
-                  accessibilityLabel="Prénom"
+                  accessibilityLabel={t('auth.firstName')}
                 />
               </View>
             </View>
 
             <View style={styles.guestModalField}>
-              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
+              <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.email')}</Text>
               <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }]}>
                 <View style={styles.inputIconContainer}>
                   <Ionicons name="mail-outline" size={18} color={colors.gray400} />
@@ -771,15 +773,15 @@ export default function LoginScreen() {
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  accessibilityLabel="Email"
+                  accessibilityLabel={t('auth.email')}
                 />
               </View>
             </View>
 
             <Text style={[styles.guestModalLegal, { color: colors.gray400 }]}>
-              En continuant tu acceptes nos{' '}
+              {t('auth.termsAcceptGuest')}{' '}
               <Text style={{ color: colors.primary }} onPress={() => navigation.navigate('Terms')}>
-                Conditions d'utilisation
+                {t('auth.termsLink')}
               </Text>
               .
             </Text>
@@ -791,7 +793,7 @@ export default function LoginScreen() {
                 disabled={guestLoading}
                 activeOpacity={0.85}
               >
-                <Text style={[styles.guestModalBtnText, { color: colors.gray700 }]}>Annuler</Text>
+                <Text style={[styles.guestModalBtnText, { color: colors.gray700 }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.guestModalBtn, { backgroundColor: colors.primary }, guestLoading && { opacity: 0.6 }]}
@@ -802,7 +804,7 @@ export default function LoginScreen() {
                 {guestLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={[styles.guestModalBtnText, { color: '#fff' }]}>Continuer</Text>
+                  <Text style={[styles.guestModalBtnText, { color: '#fff' }]}>{t('common.continue')}</Text>
                 )}
               </TouchableOpacity>
             </View>

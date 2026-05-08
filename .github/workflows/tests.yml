@@ -113,12 +113,12 @@ jobs:
             echo "OpenAPI schema fetch failed — fallback to static parsing"
         continue-on-error: true
 
-      - name: Run contract tests (soft-warn)
-        run: npx jest src/__tests__/contracts/openapi.test.ts --silent
-
-      # Mode strict : décommente pour bloquer le build si mismatches.
-      # - name: Run contract tests (strict)
-      #   run: CONTRACT_STRICT=1 npx jest src/__tests__/contracts/openapi.test.ts
+      # Mode strict : bloque le build si mismatches.
+      # On a fixé les 21 mismatches connus → on garde la barre haute pour
+      # éviter les régressions silencieuses (URL renommée backend, action
+      # supprimée, etc.).
+      - name: Run contract tests (strict)
+        run: CONTRACT_STRICT=1 npx jest src/__tests__/contracts/openapi.test.ts --silent
 
   # ============================================================
   # Mutation testing (informatif — pas bloquant)

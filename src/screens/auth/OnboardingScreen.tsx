@@ -20,6 +20,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -50,11 +51,7 @@ export const ONBOARDING_COMPLETE_KEY = 'eventez_onboarding_complete';
 type FeatureSlide = {
   id: string;
   numeral: string;       // big watermark per slide (e.g. "01", "02")
-  eyebrow: string;       // small uppercase tag
-  titleStart: string;    // text before the accent word
-  titleAccent: string;   // accent word (rendered in coral)
-  titleEnd: string;      // text after the accent word
-  body: string;
+  i18nKey: string;       // i18n key prefix (e.g. "onboardingSlide1")
   Illustration: React.ComponentType<{ color?: string; size?: number }>;
   illustrationEntry: EntryPreset;
   illustrationIdle: IdlePreset;
@@ -64,11 +61,7 @@ const SLIDES: FeatureSlide[] = [
   {
     id: '1',
     numeral: '01',
-    eyebrow: '01 · EXPLORATION',
-    titleStart: 'Découvre ce qui ',
-    titleAccent: 'bouge',
-    titleEnd: ' près de toi.',
-    body: 'De Bonanjo à Yaoundé, trouve concerts, ateliers, soirées.',
+    i18nKey: 'onboardingSlide1',
     Illustration: PeopleSearch,
     illustrationEntry: 'scaleIn',
     illustrationIdle: 'float',
@@ -76,11 +69,7 @@ const SLIDES: FeatureSlide[] = [
   {
     id: '2',
     numeral: '02',
-    eyebrow: '02 · BILLETTERIE',
-    titleStart: 'Réserve en ',
-    titleAccent: 'deux taps',
-    titleEnd: '.',
-    body: 'Mobile Money, carte, PayPal — paiement sécurisé intégré.',
+    i18nKey: 'onboardingSlide2',
     Illustration: OnlinePayments,
     illustrationEntry: 'slideUp',
     illustrationIdle: 'breathe',
@@ -88,11 +77,7 @@ const SLIDES: FeatureSlide[] = [
   {
     id: '3',
     numeral: '03',
-    eyebrow: '03 · SOCIAL',
-    titleStart: 'Garde l\'œil sur ',
-    titleAccent: 'tes favoris',
-    titleEnd: '.',
-    body: 'Sauvegarde, suis tes organisateurs, ne rate plus rien.',
+    i18nKey: 'onboardingSlide3',
     Illustration: SaveToBookmarks,
     illustrationEntry: 'fadeIn',
     illustrationIdle: 'sway',
@@ -100,11 +85,7 @@ const SLIDES: FeatureSlide[] = [
   {
     id: '4',
     numeral: '04',
-    eyebrow: '04 · ACCÈS',
-    titleStart: 'Ton ',
-    titleAccent: 'QR',
-    titleEnd: ' dans la poche.',
-    body: 'Hors-ligne, scanné en 1 seconde à l\'entrée.',
+    i18nKey: 'onboardingSlide4',
     Illustration: WellDone,
     illustrationEntry: 'bounce',
     illustrationIdle: 'breathe',
@@ -118,6 +99,7 @@ interface Props {
 export default function OnboardingScreen({ onComplete }: Props) {
   const { colors, isDark } = useTheme();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -214,19 +196,19 @@ export default function OnboardingScreen({ onComplete }: Props) {
             ]}
           >
             <Text style={[styles.eyebrowText, { color: colors.primaryDark || colors.primary }]}>
-              {item.eyebrow}
+              {t(`auth.${item.i18nKey}Eyebrow`)}
             </Text>
           </View>
 
           {/* Title with coral accent word */}
           <Text style={[styles.title, { color: colors.text }]}>
-            {item.titleStart}
-            <Text style={{ color: colors.accent }}>{item.titleAccent}</Text>
-            {item.titleEnd}
+            {t(`auth.${item.i18nKey}TitleStart`)}
+            <Text style={{ color: colors.accent }}>{t(`auth.${item.i18nKey}TitleAccent`)}</Text>
+            {t(`auth.${item.i18nKey}TitleEnd`)}
           </Text>
 
           {/* Caption */}
-          <Text style={[styles.caption, { color: colors.gray500 }]}>{item.body}</Text>
+          <Text style={[styles.caption, { color: colors.gray500 }]}>{t(`auth.${item.i18nKey}Body`)}</Text>
         </View>
       </View>
     );
@@ -300,10 +282,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
             onPress={isLastSlide ? () => completeAndExit(false) : goToNext}
             activeOpacity={0.9}
             accessibilityRole="button"
-            accessibilityLabel={isLastSlide ? 'Commencer' : 'Suivant'}
+            accessibilityLabel={isLastSlide ? t('auth.onboardingStart') : t('auth.onboardingNext')}
           >
             <Text style={styles.primaryCTAText}>
-              {isLastSlide ? 'Commencer' : 'Suivant'}
+              {isLastSlide ? t('auth.onboardingStart') : t('auth.onboardingNext')}
             </Text>
             <Ionicons
               name={isLastSlide ? 'checkmark-circle' : 'arrow-forward'}
@@ -318,10 +300,10 @@ export default function OnboardingScreen({ onComplete }: Props) {
             hitSlop={12}
             style={styles.secondaryCTA}
             accessibilityRole="link"
-            accessibilityLabel="J'ai déjà un compte"
+            accessibilityLabel={t('auth.onboardingHasAccount')}
           >
             <Text style={[styles.secondaryCTAText, { color: colors.primary }]}>
-              J&apos;ai déjà un compte
+              {t('auth.onboardingHasAccount')}
             </Text>
           </Pressable>
         </View>

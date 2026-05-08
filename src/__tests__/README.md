@@ -22,6 +22,11 @@ Suite de tests **multi-niveaux** pour détecter les bugs à différentes profond
 # Smoke tests Jest (~10s, 904 tests)
 yarn test
 
+# Mettre a jour les snapshots (apres refactor visuel intentionnel)
+yarn test -u
+# ou pour un fichier precis :
+npx jest src/components/events/__tests__/EventCard.snap.test.tsx -u
+
 # Integration MSW (~5s, vrais flows)
 yarn test:integration
 
@@ -182,6 +187,27 @@ Workflow `.github/workflows/tests.yml` exécute automatiquement à chaque push :
 2. Créer `src/__tests__/integration/<flow>.flow.test.ts`
 3. Setup handlers MSW dans le `it()` (pas global pour éviter contamination)
 4. Vérifier le flow complet (auth + headers + retries + errors)
+
+### Ajouter un test snapshot composant
+
+1. Composant atomique critique (rendu en boucle, ou UI primitive) ?
+2. Creer `src/components/<group>/__tests__/<Component>.snap.test.tsx`
+3. Mock minimal : `useTheme` (objet `colors` literal), `expo-image`, `expo-linear-gradient`, `getMediaUrl`, `AnimatedPressable` -> Pressable
+4. Couvrir 3-7 variantes/etats importants par composant
+5. Pour les composants qui dependent de `Date.now()` ou `toLocaleTimeString` : `jest.setSystemTime()` ou mocker la fonction de formatage
+6. Apres refactor visuel intentionnel : `npx jest <fichier> -u` pour regenerer
+
+Composants couverts par snapshot (69 snapshots) :
+- `EventCard` (5 variants) — 7 snapshots
+- `Badge` (7 variants + size) — 8 snapshots
+- `GradientButton` (4 variants + states) — 7 snapshots
+- `Input` (label/icon/error/success/disabled/secure/title) — 7 snapshots
+- `EmptyState` / `ErrorState` — 4+4 snapshots
+- `CategoryCard` (3 variants) — 5 snapshots
+- `MapEventCard` (free/paid/distance/no-category) — 4 snapshots
+- `MenuItem` (subtitle/stat/badge/alert/danger/loading) — 8 snapshots
+- `MessageBubble` (own/peer/edited/deleted/attachment/reactions/reply/grouped) — 8 snapshots
+- `InAppToast` (5 icon types + avatar) — 7 snapshots
 
 ### Ajouter un flow Maestro
 1. `.maestro/<NN>_<nom>.yaml`

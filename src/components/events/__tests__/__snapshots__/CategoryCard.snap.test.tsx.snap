@@ -1,0 +1,595 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`CategoryCard snapshots renders compact variant 1`] = `
+<View
+  accessibilityLabel="Catégorie Art"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="scale"
+  collapsable={false}
+  focusable={true}
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.95}
+  style={
+    [
+      {
+        "alignItems": "center",
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 9999,
+        "elevation": 1,
+        "flexDirection": "row",
+        "gap": 8.5,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 8.5,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 1,
+          "width": 0,
+        },
+        "shadowOpacity": 0.03,
+        "shadowRadius": 5,
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 9999,
+          "height": 32,
+          "justifyContent": "center",
+          "width": 32,
+        },
+        {
+          "backgroundColor": "#F59E0B15",
+        },
+      ]
+    }
+  >
+    <View
+      data-color="#F59E0B"
+      data-icon="Art"
+      data-size={18}
+    />
+  </View>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "color": "#374151",
+          "fontFamily": "Montserrat_500Medium",
+          "fontSize": 14,
+        },
+        {
+          "color": "#374151",
+        },
+      ]
+    }
+  >
+    Art
+  </Text>
+</View>
+`;
+
+exports[`CategoryCard snapshots renders default variant 1`] = `
+<View
+  accessibilityLabel="Catégorie Musique"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="lift"
+  collapsable={false}
+  focusable={true}
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.95}
+  style={
+    {
+      "alignItems": "center",
+      "width": 85,
+    }
+  }
+>
+  <View
+    colors={
+      [
+        "#4F46E5",
+        "#A855F7",
+      ]
+    }
+    end={
+      {
+        "x": 1,
+        "y": 1,
+      }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      {
+        "alignItems": "center",
+        "borderRadius": 14,
+        "elevation": 4,
+        "height": 65,
+        "justifyContent": "center",
+        "marginBottom": 8.5,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 4,
+          "width": 0,
+        },
+        "shadowOpacity": 0.04,
+        "shadowRadius": 28,
+        "width": 65,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "height": "100%",
+          "justifyContent": "center",
+          "width": "100%",
+        }
+      }
+    >
+      <View
+        data-color="#FFFFFF"
+        data-icon="Musique"
+        data-size={26}
+      />
+    </View>
+  </View>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "color": "#374151",
+          "fontFamily": "Montserrat_500Medium",
+          "fontSize": 14,
+          "textAlign": "center",
+        },
+        {
+          "color": "#374151",
+        },
+      ]
+    }
+  >
+    Musique
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "color": "#9CA3AF",
+          "fontSize": 11.5,
+          "marginTop": 2,
+        },
+        {
+          "color": "#9CA3AF",
+        },
+      ]
+    }
+  >
+    42
+  </Text>
+</View>
+`;
+
+exports[`CategoryCard snapshots renders default variant without eventCount 1`] = `
+<View
+  accessibilityLabel="Catégorie Technologie"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="lift"
+  collapsable={false}
+  focusable={true}
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.95}
+  style={
+    {
+      "alignItems": "center",
+      "width": 85,
+    }
+  }
+>
+  <View
+    colors={
+      [
+        "#3B82F6",
+        "#60A5FA",
+      ]
+    }
+    end={
+      {
+        "x": 1,
+        "y": 1,
+      }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      {
+        "alignItems": "center",
+        "borderRadius": 14,
+        "elevation": 4,
+        "height": 65,
+        "justifyContent": "center",
+        "marginBottom": 8.5,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 4,
+          "width": 0,
+        },
+        "shadowOpacity": 0.04,
+        "shadowRadius": 28,
+        "width": 65,
+      }
+    }
+  >
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "height": "100%",
+          "justifyContent": "center",
+          "width": "100%",
+        }
+      }
+    >
+      <View
+        data-color="#FFFFFF"
+        data-icon="Technologie"
+        data-size={26}
+      />
+    </View>
+  </View>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "color": "#374151",
+          "fontFamily": "Montserrat_500Medium",
+          "fontSize": 14,
+          "textAlign": "center",
+        },
+        {
+          "color": "#374151",
+        },
+      ]
+    }
+  >
+    Technologie
+  </Text>
+</View>
+`;
+
+exports[`CategoryCard snapshots renders large variant with image 1`] = `
+<View
+  accessibilityLabel="Catégorie Business"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="lift"
+  collapsable={false}
+  focusable={true}
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.96}
+  style={
+    {
+      "borderRadius": 24,
+      "elevation": 4,
+      "height": 200,
+      "overflow": "hidden",
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.05,
+      "shadowRadius": 12,
+      "width": 160,
+    }
+  }
+>
+  <View
+    accessibilityIgnoresInvertColors={true}
+    style={
+      {
+        "flex": 1,
+        "height": "100%",
+        "width": "100%",
+      }
+    }
+  >
+    <Image
+      source={
+        {
+          "uri": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=400",
+        }
+      }
+      style={
+        [
+          {
+            "bottom": 0,
+            "left": 0,
+            "position": "absolute",
+            "right": 0,
+            "top": 0,
+          },
+          {
+            "height": "100%",
+            "width": "100%",
+          },
+          {
+            "borderRadius": 24,
+          },
+        ]
+      }
+    />
+    <View
+      colors={
+        [
+          "transparent",
+          "rgba(0,0,0,0.45)",
+          "rgba(0,0,0,0.85)",
+        ]
+      }
+      style={
+        {
+          "flex": 1,
+          "justifyContent": "flex-end",
+          "padding": 12.5,
+        }
+      }
+    >
+      <Text
+        style={
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "FunnelDisplay_700Bold",
+            "fontSize": 21,
+            "letterSpacing": -0.5,
+            "marginBottom": 4,
+          }
+        }
+      >
+        Business
+      </Text>
+      <Text
+        style={
+          {
+            "color": "rgba(255, 255, 255, 0.8)",
+            "fontSize": 14,
+          }
+        }
+      >
+        12
+         evenement
+        s
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`CategoryCard snapshots renders large variant without image (gradient fallback) 1`] = `
+<View
+  accessibilityLabel="Catégorie Categorie inconnue"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  animationType="lift"
+  collapsable={false}
+  focusable={true}
+  onBlur={[Function]}
+  onClick={[Function]}
+  onFocus={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  scaleValue={0.96}
+  style={
+    {
+      "borderRadius": 24,
+      "elevation": 4,
+      "height": 200,
+      "overflow": "hidden",
+      "shadowColor": "#000",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.05,
+      "shadowRadius": 12,
+      "width": 160,
+    }
+  }
+>
+  <View
+    colors={
+      [
+        "#4F46E5",
+        "#D946EF",
+      ]
+    }
+    end={
+      {
+        "x": 1,
+        "y": 1,
+      }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      {
+        "flex": 1,
+        "justifyContent": "flex-end",
+        "padding": 12.5,
+      }
+    }
+  >
+    <Text
+      style={
+        {
+          "color": "#FFFFFF",
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 21,
+          "letterSpacing": -0.5,
+          "marginBottom": 4,
+        }
+      }
+    >
+      Categorie inconnue
+    </Text>
+    <Text
+      style={
+        {
+          "color": "rgba(255, 255, 255, 0.8)",
+          "fontSize": 14,
+        }
+      }
+    >
+      1
+       evenement
+    </Text>
+  </View>
+</View>
+`;

@@ -10,6 +10,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -32,6 +33,7 @@ export default function ResetPasswordScreen() {
   const route = useRoute<RouteProps>();
   const { showError, showSuccess } = useAlert();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const { token } = route.params;
 
   const [password, setPassword] = useState('');
@@ -56,8 +58,8 @@ export default function ResetPasswordScreen() {
     } catch (err: any) {
       setIsTokenValid(false);
       showError(
-        'Lien invalide',
-        'Ce lien de reinitialisation est invalide ou a expire. Veuillez faire une nouvelle demande.'
+        t('auth.resetPasswordExpiredTitle2'),
+        t('auth.resetPasswordExpiredHelp')
       );
     } finally {
       setIsValidating(false);
@@ -68,17 +70,17 @@ export default function ResetPasswordScreen() {
     const newErrors: { password?: string; confirmPassword?: string } = {};
 
     if (!password.trim()) {
-      newErrors.password = 'Le mot de passe est requis';
+      newErrors.password = t('auth.resetPasswordRequiredField');
     } else if (password.length < 8) {
-      newErrors.password = 'Le mot de passe doit contenir au moins 8 caracteres';
+      newErrors.password = t('auth.resetPasswordTooShort');
     } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
-      newErrors.password = 'Le mot de passe doit contenir une majuscule, une minuscule et un chiffre';
+      newErrors.password = t('auth.resetPasswordRule');
     }
 
     if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = 'La confirmation est requise';
+      newErrors.confirmPassword = t('auth.resetPasswordConfirmRequired');
     } else if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+      newErrors.confirmPassword = t('auth.passwordsDontMatch');
     }
 
     setErrors(newErrors);
@@ -92,18 +94,18 @@ export default function ResetPasswordScreen() {
     try {
       await authAPI.resetPassword(token, password);
       setIsSuccess(true);
-      showSuccess('Mot de passe modifie avec succes !');
+      showSuccess(t('auth.resetPasswordSuccessShort'));
     } catch (err: any) {
       const errorData = err.response?.data;
       if (errorData?.password) {
         const msg = Array.isArray(errorData.password) ? errorData.password[0] : errorData.password;
         setErrors({ password: msg });
       } else if (errorData?.token) {
-        showError('Erreur', 'Le lien a expire. Veuillez faire une nouvelle demande.');
+        showError(t('common.error'), t('auth.resetPasswordTokenExpiredError'));
       } else if (errorData?.detail) {
-        showError('Erreur', errorData.detail);
+        showError(t('common.error'), errorData.detail);
       } else {
-        showError('Erreur', 'Une erreur est survenue. Veuillez reessayer.');
+        showError(t('common.error'), t('errors.generic'));
       }
     } finally {
       setIsLoading(false);
@@ -121,8 +123,8 @@ export default function ResetPasswordScreen() {
         <WatermarkNumeral>04</WatermarkNumeral>
         <View style={styles.centerContainer}>
           <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.eyebrow, { color: colors.accent, marginTop: Spacing.lg }]}>Vérification</Text>
-          <Text style={[styles.loadingText, { color: colors.gray500 }]}>Validation de votre lien…</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent, marginTop: Spacing.lg }]}>{t('auth.resetPasswordValidatingEyebrow')}</Text>
+          <Text style={[styles.loadingText, { color: colors.gray500 }]}>{t('auth.resetPasswordValidating')}</Text>
         </View>
       </EditorialCanvas>
     );
@@ -137,15 +139,15 @@ export default function ResetPasswordScreen() {
           <View style={[styles.iconCircle, { backgroundColor: colors.gray50 }]}>
             <Ionicons name="close-circle-outline" size={48} color={colors.error} />
           </View>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>Lien expiré</Text>
-          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Lien invalide</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.resetPasswordExpiredEyebrow')}</Text>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>{t('auth.resetPasswordExpiredTitle')}</Text>
           <Text style={[styles.successText, { color: colors.gray600 }]}>
-            Ce lien de réinitialisation est invalide ou a expiré. Demandez un nouveau lien pour continuer.
+            {t('auth.resetPasswordExpiredText')}
           </Text>
           <View style={styles.successButtonWrap}>
             <EditorialPillCTA
-              eyebrow="Recommencer"
-              label="Nouvelle demande"
+              eyebrow={t('auth.resetPasswordExpiredAction')}
+              label={t('auth.resetPasswordExpiredCTA')}
               onPress={() => navigation.navigate('ForgotPassword')}
               icon="refresh"
             />
@@ -156,7 +158,7 @@ export default function ResetPasswordScreen() {
             scaleValue={0.95}
             style={styles.linkContainer}
           >
-            <Text style={[styles.linkText, { color: colors.primary }]}>Retour à la connexion</Text>
+            <Text style={[styles.linkText, { color: colors.primary }]}>{t('auth.resetBack')}</Text>
           </AnimatedPressable>
         </View>
       </EditorialCanvas>
@@ -172,15 +174,15 @@ export default function ResetPasswordScreen() {
           <View style={styles.successIconCircle}>
             <Ionicons name="checkmark-circle-outline" size={48} color={Colors.success} />
           </View>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>Réussite</Text>
-          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Mot de passe mis à jour</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.resetPasswordSuccessEyebrow')}</Text>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>{t('auth.resetPasswordSuccessTitle')}</Text>
           <Text style={[styles.successText, { color: colors.gray600 }]}>
-            Votre mot de passe a été réinitialisé avec succès. Connectez-vous avec votre nouveau mot de passe.
+            {t('auth.resetPasswordSuccessText')}
           </Text>
           <View style={styles.successButtonWrap}>
             <EditorialPillCTA
-              eyebrow="Continuer"
-              label="Se connecter"
+              eyebrow={t('auth.resetPasswordSuccessAction')}
+              label={t('auth.resetPasswordSuccessCTA')}
               onPress={() => navigation.navigate('Login')}
               icon="log-in"
             />
@@ -221,10 +223,10 @@ export default function ResetPasswordScreen() {
 
         {/* Header */}
         <View style={styles.headerContainer}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>Réinitialisation</Text>
-          <Text style={[styles.title, { color: colors.gray900 }]}>Nouveau mot de passe</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.resetPasswordEyebrow')}</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.resetPasswordTitle')}</Text>
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-            Choisissez un mot de passe sécurisé pour votre compte.
+            {t('auth.resetPasswordSubtitle')}
           </Text>
         </View>
 
@@ -232,14 +234,14 @@ export default function ResetPasswordScreen() {
         <View style={styles.form}>
           {/* Password Field */}
           <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Nouveau mot de passe</Text>
+            <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.newPassword')}</Text>
             <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.password && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
               <View style={styles.inputIconContainer}>
                 <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
               </View>
               <TextInput
                 style={[styles.input, { color: colors.gray900 }]}
-                placeholder="Minimum 8 caractères"
+                placeholder={t('auth.resetPasswordPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={password}
                 onChangeText={(text) => {
@@ -274,14 +276,14 @@ export default function ResetPasswordScreen() {
 
           {/* Confirm Password Field */}
           <View style={styles.inputContainer}>
-            <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Confirmer le mot de passe</Text>
+            <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.confirmPassword')}</Text>
             <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, errors.confirmPassword && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
               <View style={styles.inputIconContainer}>
                 <Ionicons name="lock-closed-outline" size={20} color={colors.gray400} />
               </View>
               <TextInput
                 style={[styles.input, { color: colors.gray900 }]}
-                placeholder="Retapez le mot de passe"
+                placeholder={t('auth.resetPasswordConfirmPlaceholder')}
                 placeholderTextColor={colors.gray400}
                 value={confirmPassword}
                 onChangeText={(text) => {
@@ -316,29 +318,29 @@ export default function ResetPasswordScreen() {
 
           {/* Password requirements */}
           <View style={[styles.requirementsContainer, { backgroundColor: colors.gray50 }]}>
-            <Text style={[styles.requirementsTitle, { color: colors.gray700 }]}>Le mot de passe doit contenir :</Text>
+            <Text style={[styles.requirementsTitle, { color: colors.gray700 }]}>{t('auth.resetPasswordRequirementsTitle')}</Text>
             <PasswordRequirement
               met={password.length >= 8}
-              text="Au moins 8 caractères"
+              text={t('auth.resetPasswordReq1')}
             />
             <PasswordRequirement
               met={/[A-Z]/.test(password)}
-              text="Une lettre majuscule"
+              text={t('auth.resetPasswordReq2')}
             />
             <PasswordRequirement
               met={/[a-z]/.test(password)}
-              text="Une lettre minuscule"
+              text={t('auth.resetPasswordReq3')}
             />
             <PasswordRequirement
               met={/\d/.test(password)}
-              text="Un chiffre"
+              text={t('auth.resetPasswordReq4')}
             />
           </View>
 
           <View style={styles.submitButtonWrap}>
             <EditorialPillCTA
-              eyebrow="Valider"
-              label="Réinitialiser"
+              eyebrow={t('auth.resetPasswordAction')}
+              label={t('auth.resetPasswordSubmit')}
               onPress={handleSubmit}
               loading={isLoading}
               icon="checkmark"
@@ -348,13 +350,13 @@ export default function ResetPasswordScreen() {
 
         {/* Login Link */}
         <View style={styles.loginContainer}>
-          <Text style={[styles.loginText, { color: colors.gray500 }]}>Vous vous souvenez ?</Text>
+          <Text style={[styles.loginText, { color: colors.gray500 }]}>{t('auth.rememberQuestion')}</Text>
           <AnimatedPressable
             onPress={() => navigation.navigate('Login')}
             animationType="scale"
             scaleValue={0.95}
           >
-            <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
+            <Text style={[styles.loginLink, { color: colors.primary }]}> {t('auth.loginButton')}</Text>
           </AnimatedPressable>
         </View>
       </KeyboardAwareScrollView>

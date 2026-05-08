@@ -1,0 +1,611 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`GradientButton snapshots renders disabled primary 1`] = `
+<View
+  accessibilityLabel="Envoyer"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": true,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "borderRadius": 12,
+      "elevation": 3,
+      "opacity": 0.5,
+      "shadowColor": "#4F46E5",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.15,
+      "shadowRadius": 16,
+    }
+  }
+>
+  <View
+    colors={
+      [
+        "#4F46E5",
+        "#7C3AED",
+      ]
+    }
+    end={
+      {
+        "x": 1,
+        "y": 0,
+      }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      [
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+          "overflow": "hidden",
+        },
+        {
+          "paddingHorizontal": 25.5,
+          "paddingVertical": 12.5,
+        },
+        {
+          "borderRadius": 12,
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "Montserrat_600SemiBold",
+            "letterSpacing": 0.3,
+          },
+          {
+            "fontSize": 15,
+          },
+          undefined,
+        ]
+      }
+    >
+      Envoyer
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`GradientButton snapshots renders fullWidth lg 1`] = `
+<View
+  accessibilityLabel="Confirmer"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": false,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "borderRadius": 14,
+      "elevation": 3,
+      "opacity": 1,
+      "shadowColor": "#4F46E5",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.15,
+      "shadowRadius": 16,
+      "width": "100%",
+    }
+  }
+>
+  <View
+    colors={
+      [
+        "#4F46E5",
+        "#7C3AED",
+      ]
+    }
+    end={
+      {
+        "x": 1,
+        "y": 0,
+      }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      [
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+          "overflow": "hidden",
+        },
+        {
+          "paddingHorizontal": 25.5,
+          "paddingVertical": 14.5,
+        },
+        {
+          "borderRadius": 14,
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "Montserrat_600SemiBold",
+            "letterSpacing": 0.3,
+          },
+          {
+            "fontSize": 16,
+          },
+          undefined,
+        ]
+      }
+    >
+      Confirmer
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`GradientButton snapshots renders ghost variant 1`] = `
+<View
+  accessibilityLabel="Voir plus"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": false,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "transparent",
+      "borderRadius": 12,
+      "flexDirection": "row",
+      "justifyContent": "center",
+      "opacity": 1,
+      "paddingHorizontal": 25.5,
+      "paddingVertical": 12.5,
+    }
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "color": "#4F46E5",
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.3,
+        },
+        {
+          "fontSize": 15,
+        },
+        undefined,
+      ]
+    }
+  >
+    Voir plus
+  </Text>
+</View>
+`;
+
+exports[`GradientButton snapshots renders loading primary 1`] = `
+<View
+  accessibilityLabel="Envoyer"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": true,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "borderRadius": 12,
+      "elevation": 3,
+      "opacity": 0.5,
+      "shadowColor": "#4F46E5",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.15,
+      "shadowRadius": 16,
+    }
+  }
+>
+  <View
+    colors={
+      [
+        "#4F46E5",
+        "#7C3AED",
+      ]
+    }
+    end={
+      {
+        "x": 1,
+        "y": 0,
+      }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      [
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+          "overflow": "hidden",
+        },
+        {
+          "paddingHorizontal": 25.5,
+          "paddingVertical": 12.5,
+        },
+        {
+          "borderRadius": 12,
+        },
+      ]
+    }
+  >
+    <ActivityIndicator
+      color="#FFFFFF"
+      size="small"
+    />
+  </View>
+</View>
+`;
+
+exports[`GradientButton snapshots renders outline variant with iconLeft 1`] = `
+<View
+  accessibilityLabel="Reessayer"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": false,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "transparent",
+      "borderColor": "#E5E7EB",
+      "borderRadius": 12,
+      "borderWidth": 1.5,
+      "flexDirection": "row",
+      "justifyContent": "center",
+      "opacity": 1,
+      "paddingHorizontal": 25.5,
+      "paddingVertical": 12.5,
+    }
+  }
+>
+  <Text
+    color="#4F46E5"
+    name="refresh-outline"
+    size={18}
+    style={
+      {
+        "marginRight": 4,
+      }
+    }
+  >
+    refresh-outline
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "color": "#4F46E5",
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.3,
+        },
+        {
+          "fontSize": 15,
+        },
+        undefined,
+      ]
+    }
+  >
+    Reessayer
+  </Text>
+</View>
+`;
+
+exports[`GradientButton snapshots renders primary md (default) 1`] = `
+<View
+  accessibilityLabel="Continuer"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": false,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "borderRadius": 12,
+      "elevation": 3,
+      "opacity": 1,
+      "shadowColor": "#4F46E5",
+      "shadowOffset": {
+        "height": 4,
+        "width": 0,
+      },
+      "shadowOpacity": 0.15,
+      "shadowRadius": 16,
+    }
+  }
+>
+  <View
+    colors={
+      [
+        "#4F46E5",
+        "#7C3AED",
+      ]
+    }
+    end={
+      {
+        "x": 1,
+        "y": 0,
+      }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      [
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "justifyContent": "center",
+          "overflow": "hidden",
+        },
+        {
+          "paddingHorizontal": 25.5,
+          "paddingVertical": 12.5,
+        },
+        {
+          "borderRadius": 12,
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#FFFFFF",
+            "fontFamily": "Montserrat_600SemiBold",
+            "letterSpacing": 0.3,
+          },
+          {
+            "fontSize": 15,
+          },
+          undefined,
+        ]
+      }
+    >
+      Continuer
+    </Text>
+  </View>
+</View>
+`;
+
+exports[`GradientButton snapshots renders secondary variant sm 1`] = `
+<View
+  accessibilityLabel="Annuler"
+  accessibilityRole="button"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": false,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={true}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "center",
+      "backgroundColor": "#F3F4F6",
+      "borderRadius": 12,
+      "flexDirection": "row",
+      "justifyContent": "center",
+      "opacity": 1,
+      "paddingHorizontal": 17,
+      "paddingVertical": 8.5,
+    }
+  }
+>
+  <Text
+    style={
+      [
+        {
+          "color": "#374151",
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.3,
+        },
+        {
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Annuler
+  </Text>
+</View>
+`;

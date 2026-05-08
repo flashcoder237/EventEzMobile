@@ -1,0 +1,415 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`ErrorState snapshots renders default (no retry callback) 1`] = `
+<View
+  accessibilityLabel="Oups !. Une erreur est survenue. Veuillez reessayer."
+  accessibilityRole="alert"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 42.5,
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#FEE2E2",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#EF4444"
+      name="alert-circle-outline"
+      size={64}
+    >
+      alert-circle-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#111827",
+        },
+      ]
+    }
+  >
+    Oups !
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_400Regular",
+          "fontSize": 14,
+          "lineHeight": 20,
+          "maxWidth": 280,
+          "textAlign": "center",
+        },
+        {
+          "color": "#4B5563",
+        },
+      ]
+    }
+  >
+    Une erreur est survenue. Veuillez reessayer.
+  </Text>
+</View>
+`;
+
+exports[`ErrorState snapshots renders with custom title + message 1`] = `
+<View
+  accessibilityLabel="Connexion impossible. Verifiez votre connexion internet."
+  accessibilityRole="alert"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 42.5,
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#FEE2E2",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#EF4444"
+      name="alert-circle-outline"
+      size={64}
+    >
+      alert-circle-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#111827",
+        },
+      ]
+    }
+  >
+    Connexion impossible
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_400Regular",
+          "fontSize": 14,
+          "lineHeight": 20,
+          "maxWidth": 280,
+          "textAlign": "center",
+        },
+        {
+          "color": "#4B5563",
+        },
+      ]
+    }
+  >
+    Verifiez votre connexion internet.
+  </Text>
+</View>
+`;
+
+exports[`ErrorState snapshots renders with retry button 1`] = `
+<View
+  accessibilityLabel="Erreur reseau. Impossible de charger les donnees."
+  accessibilityRole="alert"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 42.5,
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#FEE2E2",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#EF4444"
+      name="alert-circle-outline"
+      size={64}
+    >
+      alert-circle-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#111827",
+        },
+      ]
+    }
+  >
+    Erreur reseau
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_400Regular",
+          "fontSize": 14,
+          "lineHeight": 20,
+          "maxWidth": 280,
+          "textAlign": "center",
+        },
+        {
+          "color": "#4B5563",
+        },
+      ]
+    }
+  >
+    Impossible de charger les donnees.
+  </Text>
+  <View
+    style={
+      {
+        "marginTop": 25.5,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Reessayer"
+      accessibilityRole="button"
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "alignItems": "center",
+          "backgroundColor": "transparent",
+          "borderColor": "#E5E7EB",
+          "borderRadius": 12,
+          "borderWidth": 1.5,
+          "flexDirection": "row",
+          "justifyContent": "center",
+          "opacity": 1,
+          "paddingHorizontal": 25.5,
+          "paddingVertical": 12.5,
+        }
+      }
+    >
+      <Text
+        color="#4F46E5"
+        name="refresh-outline"
+        size={18}
+        style={
+          {
+            "marginRight": 4,
+          }
+        }
+      >
+        refresh-outline
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#4F46E5",
+              "fontFamily": "Montserrat_600SemiBold",
+              "letterSpacing": 0.3,
+            },
+            {
+              "fontSize": 15,
+            },
+            undefined,
+          ]
+        }
+      >
+        Reessayer
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`ErrorState snapshots renders withCard variant + retry hidden 1`] = `
+<View
+  accessibilityLabel="Acces refuse. Vous n'avez pas la permission."
+  accessibilityRole="alert"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 12,
+        "borderWidth": 1,
+        "justifyContent": "center",
+        "marginHorizontal": 12.5,
+        "marginVertical": 12.5,
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 34,
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+        "borderColor": "#EF444420",
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#FEE2E2",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#EF4444"
+      name="alert-circle-outline"
+      size={64}
+    >
+      alert-circle-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#111827",
+        },
+      ]
+    }
+  >
+    Acces refuse
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_400Regular",
+          "fontSize": 14,
+          "lineHeight": 20,
+          "maxWidth": 280,
+          "textAlign": "center",
+        },
+        {
+          "color": "#4B5563",
+        },
+      ]
+    }
+  >
+    Vous n'avez pas la permission.
+  </Text>
+</View>
+`;

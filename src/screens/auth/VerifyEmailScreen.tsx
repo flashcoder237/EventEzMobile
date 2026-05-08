@@ -13,6 +13,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAlert } from '../../contexts/AlertContext';
@@ -97,6 +98,7 @@ export default function VerifyEmailScreen() {
   const { colors, gradients } = useTheme();
   const { showSuccess, showError } = useAlert();
   const { refreshUser } = useAuth();
+  const { t } = useTranslation();
 
   const handleSkipForLater = useCallback(() => {
     if (returnScreen) {
@@ -150,13 +152,13 @@ export default function VerifyEmailScreen() {
     setResendLoading(true);
     try {
       await authAPI.resendVerificationEmail(email);
-      showSuccess('Email envoyé', `Un nouveau lien a été envoyé à ${email}.`);
+      showSuccess(t('auth.verifyEmailResentTitle'), t('auth.verifyEmailResentDetail', { email }));
       setEmailCooldown(RESEND_COOLDOWN);
     } catch (error: any) {
       const message =
         error.response?.data?.detail ||
-        "Impossible d'envoyer l'email. Veuillez réessayer.";
-      showError('Erreur', message);
+        t('auth.verifyEmailResentError');
+      showError(t('common.error'), message);
     } finally {
       setResendLoading(false);
     }
@@ -164,7 +166,7 @@ export default function VerifyEmailScreen() {
 
   const handleSendOTP = async () => {
     if (!phoneNumber.trim()) {
-      setPhoneError('Veuillez entrer votre numéro de téléphone.');
+      setPhoneError(t('auth.verifyByPhoneEnterNumber'));
       return;
     }
     setPhoneError(null);
@@ -178,7 +180,7 @@ export default function VerifyEmailScreen() {
       const msg =
         error.response?.data?.detail ||
         error.response?.data?.phone_number?.[0] ||
-        'Impossible d\'envoyer le SMS. Vérifiez le numéro.';
+        t('auth.verifyByPhoneSMSError');
       setPhoneError(msg);
       setPhoneStep('idle');
     }
@@ -193,11 +195,11 @@ export default function VerifyEmailScreen() {
       // Rafraîchir l'état local du user (#2) avant de naviguer
       await refreshUser();
       setPhoneStep('done');
-      showSuccess('Téléphone vérifié !', 'Votre compte est maintenant activé.');
+      showSuccess(t('auth.verifyByPhoneSuccessShortTitle'), t('auth.verifyByPhoneSuccessShortDetail'));
     } catch (error: any) {
       const msg =
         error.response?.data?.detail ||
-        'Code incorrect ou expiré.';
+        t('auth.verifyByPhoneCodeError');
       setPhoneError(msg);
       setPhoneStep('otp');
     }
@@ -213,7 +215,7 @@ export default function VerifyEmailScreen() {
       setOtpCode('');
       setPhoneCooldown(RESEND_COOLDOWN);
     } catch (error: any) {
-      const msg = error.response?.data?.detail || 'Impossible de renvoyer le SMS.';
+      const msg = error.response?.data?.detail || t('auth.verifyByPhoneResendError');
       setPhoneError(msg);
       setPhoneStep('otp');
     }
@@ -245,7 +247,7 @@ export default function VerifyEmailScreen() {
           <View style={[styles.mandatoryBadge, { backgroundColor: colors.success + '15', borderColor: colors.success + '30' }]}>
             <Ionicons name="shield-checkmark" size={16} color={colors.success} />
             <Text style={[styles.mandatoryText, { color: colors.success }]}>
-              {skippable ? 'Vérification recommandée' : 'Étape obligatoire pour activer votre compte'}
+              {skippable ? t('auth.verifyMandatoryRecommended') : t('auth.verifyMandatoryRequired')}
             </Text>
           </View>
 
@@ -262,19 +264,18 @@ export default function VerifyEmailScreen() {
               </LinearGradient>
             </View>
 
-            <Text style={[styles.eyebrow, { color: colors.accent }]}>Confirme par email</Text>
-            <Text style={[styles.cardTitle, { color: colors.gray900 }]}>Vérifier par email</Text>
+            <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.verifyByEmailEyebrow')}</Text>
+            <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{t('auth.verifyByEmailTitle')}</Text>
             <Text style={[styles.cardSubtitle, { color: colors.gray500 }]}>
-              Lien envoyé à{' '}
-              <Text style={{ fontFamily: FontFamily.semiBold, color: colors.gray700 }}>{maskedEmail}</Text>.
-              Cliquez dessus pour activer.
+              {t('auth.verifyByEmailSubtitle')}{' '}
+              <Text style={{ fontFamily: FontFamily.semiBold, color: colors.gray700 }}>{maskedEmail}</Text>{t('auth.verifyByEmailSubtitleSuffix')}
             </Text>
 
             {/* Spam hint */}
             <View style={[styles.hintCard, { backgroundColor: colors.warningLight, borderColor: colors.warning + '30' }]}>
               <Ionicons name="information-circle-outline" size={14} color={colors.warning} />
               <Text style={[styles.hintText, { color: colors.warning }]}>
-                Vérifiez vos spams si vous ne trouvez pas l'email.
+                {t('auth.verifyEmailSpamHint')}
               </Text>
             </View>
 
@@ -283,13 +284,13 @@ export default function VerifyEmailScreen() {
               <View style={[styles.cooldownBadge, { backgroundColor: colors.gray100 }]}>
                 <Ionicons name="time-outline" size={14} color={colors.gray500} />
                 <Text style={[styles.cooldownText, { color: colors.gray500 }]}>
-                  Réessayer dans {emailCooldown}s
+                  {t('auth.verifyEmailRetryIn', { seconds: emailCooldown })}
                 </Text>
               </View>
             ) : (
               <EditorialPillCTA
-                eyebrow="Renvoyer"
-                label={resendLoading ? 'Envoi…' : 'Renvoyer le lien'}
+                eyebrow={t('auth.verifyEmailResendAction')}
+                label={resendLoading ? t('auth.verifyEmailResending') : t('auth.verifyEmailResendLabel')}
                 onPress={handleResendEmail}
                 disabled={resendLoading}
                 loading={resendLoading}
@@ -303,7 +304,7 @@ export default function VerifyEmailScreen() {
           {phoneStep !== 'done' && (
           <View style={styles.divider}>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
-            <Text style={[styles.dividerText, { color: colors.gray400 }]}>ou</Text>
+            <Text style={[styles.dividerText, { color: colors.gray400 }]}>{t('auth.verifyOr')}</Text>
             <View style={[styles.dividerLine, { backgroundColor: colors.gray200 }]} />
           </View>
           )}
@@ -319,10 +320,10 @@ export default function VerifyEmailScreen() {
                 >
                   <Ionicons name="checkmark-circle" size={40} color={Colors.white} />
                 </LinearGradient>
-                <Text style={[styles.eyebrow, { color: '#10B981' }]}>Compte activé</Text>
-                <Text style={[styles.cardTitle, { color: colors.gray900 }]}>Téléphone vérifié !</Text>
+                <Text style={[styles.eyebrow, { color: '#10B981' }]}>{t('auth.verifyByPhoneSuccessEyebrow')}</Text>
+                <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{t('auth.verifyByPhoneSuccessTitle')}</Text>
                 <Text style={[styles.cardSubtitle, { color: colors.gray500 }]}>
-                  Votre numéro a été confirmé. Votre compte est maintenant actif.
+                  {t('auth.verifyByPhoneSuccessSubtitle')}
                 </Text>
                 <AnimatedPressable
                   onPress={() => {
@@ -344,7 +345,7 @@ export default function VerifyEmailScreen() {
                   scaleValue={0.97}
                 >
                   <LinearGradient colors={['#10B981', '#34D399']} style={styles.successButtonGradient}>
-                    <Text style={styles.successButtonText}>Accéder à mon compte</Text>
+                    <Text style={styles.successButtonText}>{t('auth.verifyByPhoneSuccessCTA')}</Text>
                   </LinearGradient>
                 </AnimatedPressable>
               </View>
@@ -361,13 +362,13 @@ export default function VerifyEmailScreen() {
                 </View>
 
                 <Text style={[styles.eyebrow, { color: '#4F46E5' }]}>
-                  {phoneStep === 'otp' || phoneStep === 'verifying' ? 'Saisis le code' : 'Confirme par SMS'}
+                  {phoneStep === 'otp' || phoneStep === 'verifying' ? t('auth.verifyByPhoneEyebrowEnter') : t('auth.verifyByPhoneEyebrowSend')}
                 </Text>
-                <Text style={[styles.cardTitle, { color: colors.gray900 }]}>Vérifier par SMS</Text>
+                <Text style={[styles.cardTitle, { color: colors.gray900 }]}>{t('auth.verifyByPhoneTitle')}</Text>
                 <Text style={[styles.cardSubtitle, { color: colors.gray500 }]}>
                   {phoneStep === 'otp' || phoneStep === 'verifying'
-                    ? `Code envoyé au ${otpPhone}`
-                    : 'Entrez votre numéro pour recevoir un code de vérification.'}
+                    ? t('auth.verifyByPhoneSubtitleSent', { phone: otpPhone })
+                    : t('auth.verifyByPhoneSubtitleEnter')}
                 </Text>
 
                 {phoneError && (
@@ -381,7 +382,7 @@ export default function VerifyEmailScreen() {
                   <>
                     <TextInput
                       style={[styles.phoneInput, { borderColor: colors.gray200, color: colors.gray900, backgroundColor: colors.background }]}
-                      placeholder="+237 6XX XXX XXX"
+                      placeholder={t('auth.verifyByPhonePlaceholder')}
                       placeholderTextColor={colors.gray400}
                       value={phoneNumber}
                       onChangeText={setPhoneNumber}
@@ -389,7 +390,7 @@ export default function VerifyEmailScreen() {
                       autoComplete="tel"
                     />
                     <Text style={[styles.formatHint, { color: colors.gray400 }]}>
-                      Format international requis, ex. +237 6XXXXXXXX
+                      {t('auth.verifyByPhoneFormatHint')}
                     </Text>
                     <AnimatedPressable
                       onPress={handleSendOTP}
@@ -404,7 +405,7 @@ export default function VerifyEmailScreen() {
                         ) : (
                           <>
                             <Ionicons name="send" size={16} color={Colors.white} />
-                            <Text style={styles.sendButtonText}>Envoyer le code SMS</Text>
+                            <Text style={styles.sendButtonText}>{t('auth.verifyByPhoneSend')}</Text>
                           </>
                         )}
                       </LinearGradient>
@@ -431,7 +432,7 @@ export default function VerifyEmailScreen() {
                         ) : (
                           <>
                             <Ionicons name="checkmark-circle" size={16} color={Colors.white} />
-                            <Text style={styles.sendButtonText}>Confirmer le code</Text>
+                            <Text style={styles.sendButtonText}>{t('auth.verifyByPhoneConfirm')}</Text>
                           </>
                         )}
                       </LinearGradient>
@@ -439,14 +440,14 @@ export default function VerifyEmailScreen() {
 
                     <View style={styles.otpActions}>
                       <TouchableOpacity onPress={() => { setPhoneStep('idle'); setOtpCode(''); setPhoneError(null); }}>
-                        <Text style={[styles.otpActionText, { color: colors.gray500 }]}>Changer de numéro</Text>
+                        <Text style={[styles.otpActionText, { color: colors.gray500 }]}>{t('auth.verifyByPhoneChangeNumber')}</Text>
                       </TouchableOpacity>
                       {phoneCooldown > 0 ? (
-                        <Text style={[styles.otpActionText, { color: colors.gray400 }]}>Renvoyer dans {phoneCooldown}s</Text>
+                        <Text style={[styles.otpActionText, { color: colors.gray400 }]}>{t('auth.verifyByPhoneResendIn', { seconds: phoneCooldown })}</Text>
                       ) : (
                         <TouchableOpacity onPress={handleResendOTP}>
                           <Text style={[styles.otpActionText, { color: '#7C3AED', fontFamily: FontFamily.semiBold }]}>
-                            Renvoyer le code
+                            {t('auth.verifyByPhoneResend')}
                           </Text>
                         </TouchableOpacity>
                       )}
@@ -462,8 +463,8 @@ export default function VerifyEmailScreen() {
             style={styles.wrongEmailRow}
             onPress={() => navigation.replace('Register', { returnScreen: returnScreen ?? undefined, returnParams })}
           >
-            <Text style={[styles.wrongEmailText, { color: colors.gray500 }]}>Mauvais email ? </Text>
-            <Text style={[styles.wrongEmailLink, { color: colors.primary }]}>Corriger et s'inscrire</Text>
+            <Text style={[styles.wrongEmailText, { color: colors.gray500 }]}>{t('auth.verifyWrongEmail')}</Text>
+            <Text style={[styles.wrongEmailLink, { color: colors.primary }]}>{t('auth.verifyWrongEmailLink')}</Text>
           </TouchableOpacity>
 
           {/* Skip for later — visible uniquement quand le user vient de se connecter
@@ -474,15 +475,15 @@ export default function VerifyEmailScreen() {
               onPress={handleSkipForLater}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel="Vérifier plus tard et continuer vers l'accueil"
+              accessibilityLabel={t('auth.verifySkipAccessibility')}
             >
               <Ionicons name="time-outline" size={16} color={colors.gray700} />
               <View style={{ flex: 1 }}>
                 <Text style={[styles.skipBtnText, { color: colors.gray900 }]}>
-                  Je vérifie mon compte plus tard
+                  {t('auth.verifySkipTitle')}
                 </Text>
                 <Text style={[styles.skipBtnHint, { color: colors.gray500 }]}>
-                  Tu pourras explorer les événements et vérifier au moment d'acheter
+                  {t('auth.verifySkipHint')}
                 </Text>
               </View>
               <Ionicons name="arrow-forward" size={16} color={colors.gray400} />

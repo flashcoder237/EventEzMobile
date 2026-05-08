@@ -1,0 +1,1399 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MessageBubble snapshots renders deleted message placeholder 1`] = `
+<View
+  accessibilityLabel="Message supprime"
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row",
+      "marginBottom": 8.5,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#E5E7EB",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 8.5,
+          "width": 40,
+        },
+        {
+          "backgroundColor": "#E5E7EB",
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#4B5563",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 14,
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      AD
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+            "opacity": 0.8,
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+        ]
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "gap": 6,
+          }
+        }
+      >
+        <Text
+          color="#9CA3AF"
+          name="trash-outline"
+          size={14}
+        >
+          trash-outline
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#9CA3AF",
+                "fontSize": 14,
+                "fontStyle": "italic",
+              },
+              {
+                "color": "#9CA3AF",
+              },
+            ]
+          }
+        >
+          Ce message a été supprimé
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageBubble snapshots renders edited message with edited label 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row",
+      "marginBottom": 8.5,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#E5E7EB",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 8.5,
+          "width": 40,
+        },
+        {
+          "backgroundColor": "#E5E7EB",
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#4B5563",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 14,
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      AD
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          [
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderBottomLeftRadius": 4,
+            },
+            {
+              "backgroundColor": "#FFE4EC",
+            },
+          ],
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Alice Doe: Bonjour ! Comment ca va ?"
+        accessibilityRole="text"
+        style={
+          [
+            {
+              "color": "#111827",
+              "fontSize": 16,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Bonjour ! Comment ca va ?
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 10,
+              "fontStyle": "italic",
+              "marginRight": 4,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        modifie
+      </Text>
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageBubble snapshots renders grouped message (avatar masque) 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row",
+      "marginBottom": 2,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "marginRight": 8.5,
+        "width": 40,
+      }
+    }
+  />
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          [
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderBottomLeftRadius": 4,
+            },
+            {
+              "backgroundColor": "#FFE4EC",
+            },
+          ],
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Alice Doe: Bonjour ! Comment ca va ?"
+        accessibilityRole="text"
+        style={
+          [
+            {
+              "color": "#111827",
+              "fontSize": 16,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Bonjour ! Comment ca va ?
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageBubble snapshots renders message with image attachment 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row",
+      "marginBottom": 8.5,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#E5E7EB",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 8.5,
+          "width": 40,
+        },
+        {
+          "backgroundColor": "#E5E7EB",
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#4B5563",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 14,
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      AD
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Piece jointe"
+      style={
+        {
+          "marginBottom": 4,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "position": "relative",
+          }
+        }
+      >
+        <Image
+          cachePolicy="memory-disk"
+          contentFit="cover"
+          source="https://test.local/media/img.jpg"
+          style={
+            [
+              {
+                "backgroundColor": "#F3F4F6",
+                "borderRadius": 8,
+                "height": 150,
+                "width": 200,
+              },
+              {
+                "backgroundColor": "#F3F4F6",
+              },
+            ]
+          }
+          transition={200}
+        />
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          [
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderBottomLeftRadius": 4,
+            },
+            {
+              "backgroundColor": "#FFE4EC",
+            },
+          ],
+          {
+            "marginTop": 4,
+          },
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Alice Doe: Regarde ca"
+        accessibilityRole="text"
+        style={
+          [
+            {
+              "color": "#111827",
+              "fontSize": 16,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Regarde ca
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageBubble snapshots renders message with reactions 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row",
+      "marginBottom": 8.5,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#E5E7EB",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 8.5,
+          "width": 40,
+        },
+        {
+          "backgroundColor": "#E5E7EB",
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#4B5563",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 14,
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      AD
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          [
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderBottomLeftRadius": 4,
+            },
+            {
+              "backgroundColor": "#FFE4EC",
+            },
+          ],
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Alice Doe: Bonjour ! Comment ca va ?"
+        accessibilityRole="text"
+        style={
+          [
+            {
+              "color": "#111827",
+              "fontSize": 16,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Bonjour ! Comment ca va ?
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "flexDirection": "row",
+            "flexWrap": "wrap",
+            "gap": 4,
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "alignItems": "center",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#E5E7EB",
+              "borderRadius": 12,
+              "borderWidth": 1,
+              "flexDirection": "row",
+              "paddingHorizontal": 6,
+              "paddingVertical": 2,
+            },
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#E5E7EB",
+            },
+          ]
+        }
+      >
+        <Text
+          style={
+            {
+              "fontSize": 14,
+            }
+          }
+        >
+          ❤️
+        </Text>
+        <Text
+          style={
+            [
+              {
+                "color": "#4B5563",
+                "fontFamily": "Montserrat_500Medium",
+                "fontSize": 11,
+                "marginLeft": 2,
+              },
+              {
+                "color": "#4B5563",
+              },
+            ]
+          }
+        >
+          2
+        </Text>
+      </View>
+      <View
+        style={
+          [
+            {
+              "alignItems": "center",
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#E5E7EB",
+              "borderRadius": 12,
+              "borderWidth": 1,
+              "flexDirection": "row",
+              "paddingHorizontal": 6,
+              "paddingVertical": 2,
+            },
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderColor": "#E5E7EB",
+            },
+          ]
+        }
+      >
+        <Text
+          style={
+            {
+              "fontSize": 14,
+            }
+          }
+        >
+          😂
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageBubble snapshots renders message with reply preview 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row",
+      "marginBottom": 8.5,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#E5E7EB",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 8.5,
+          "width": 40,
+        },
+        {
+          "backgroundColor": "#E5E7EB",
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#4B5563",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 14,
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      AD
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "backgroundColor": "#F3F4F6",
+            "borderRadius": 8,
+            "flexDirection": "row",
+            "marginBottom": 4,
+            "padding": 8.5,
+          },
+          {
+            "backgroundColor": "#F3F4F6",
+          },
+          false,
+        ]
+      }
+    >
+      <View
+        style={
+          [
+            {
+              "backgroundColor": "#4F46E5",
+              "borderRadius": 2,
+              "marginRight": 8.5,
+              "width": 3,
+            },
+            {
+              "backgroundColor": "#4F46E5",
+            },
+            false,
+          ]
+        }
+      />
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      >
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": "#4F46E5",
+                "fontFamily": "Montserrat_600SemiBold",
+                "fontSize": 11.5,
+                "marginBottom": 2,
+              },
+              {
+                "color": "#4F46E5",
+              },
+              false,
+            ]
+          }
+        >
+          Bob
+        </Text>
+        <Text
+          numberOfLines={1}
+          style={
+            [
+              {
+                "color": "#4B5563",
+                "fontSize": 11.5,
+              },
+              {
+                "color": "#4B5563",
+              },
+              false,
+            ]
+          }
+        >
+          Message original cite
+        </Text>
+      </View>
+    </View>
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          [
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderBottomLeftRadius": 4,
+            },
+            {
+              "backgroundColor": "#FFE4EC",
+            },
+          ],
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Alice Doe: Reponse au message"
+        accessibilityRole="text"
+        style={
+          [
+            {
+              "color": "#111827",
+              "fontSize": 16,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Reponse au message
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageBubble snapshots renders other user message (peer) 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row",
+      "marginBottom": 8.5,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "backgroundColor": "#E5E7EB",
+          "borderRadius": 20,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 8.5,
+          "width": 40,
+        },
+        {
+          "backgroundColor": "#E5E7EB",
+        },
+      ]
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "color": "#4B5563",
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 14,
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      AD
+    </Text>
+  </View>
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          [
+            {
+              "backgroundColor": "#FFFFFF",
+              "borderBottomLeftRadius": 4,
+            },
+            {
+              "backgroundColor": "#FFE4EC",
+            },
+          ],
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Alice Doe: Bonjour ! Comment ca va ?"
+        accessibilityRole="text"
+        style={
+          [
+            {
+              "color": "#111827",
+              "fontSize": 16,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#111827",
+            },
+          ]
+        }
+      >
+        Bonjour ! Comment ca va ?
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          false,
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`MessageBubble snapshots renders own message (mine) 1`] = `
+<View
+  accessibilityState={
+    {
+      "busy": undefined,
+      "checked": undefined,
+      "disabled": undefined,
+      "expanded": undefined,
+      "selected": undefined,
+    }
+  }
+  accessibilityValue={
+    {
+      "max": undefined,
+      "min": undefined,
+      "now": undefined,
+      "text": undefined,
+    }
+  }
+  accessible={true}
+  collapsable={false}
+  focusable={false}
+  onClick={[Function]}
+  onResponderGrant={[Function]}
+  onResponderMove={[Function]}
+  onResponderRelease={[Function]}
+  onResponderTerminate={[Function]}
+  onResponderTerminationRequest={[Function]}
+  onStartShouldSetResponder={[Function]}
+  style={
+    {
+      "alignItems": "flex-end",
+      "flexDirection": "row-reverse",
+      "marginBottom": 8.5,
+      "opacity": 1,
+    }
+  }
+>
+  <View
+    style={
+      {
+        "maxWidth": "75%",
+      }
+    }
+  >
+    <View
+      style={
+        [
+          {
+            "borderRadius": 12,
+            "padding": 12.5,
+          },
+          [
+            {
+              "backgroundColor": "#4F46E5",
+              "borderBottomRightRadius": 4,
+            },
+            {
+              "backgroundColor": "#4F46E5",
+            },
+          ],
+          false,
+        ]
+      }
+    >
+      <Text
+        accessibilityLabel="Alice Doe: Bonjour ! Comment ca va ?"
+        accessibilityRole="text"
+        style={
+          [
+            {
+              "color": "#111827",
+              "fontSize": 16,
+              "lineHeight": 22,
+            },
+            {
+              "color": "#FFFFFF",
+            },
+          ]
+        }
+      >
+        Bonjour ! Comment ca va ?
+      </Text>
+    </View>
+    <View
+      style={
+        [
+          {
+            "alignItems": "center",
+            "flexDirection": "row",
+            "marginTop": 4,
+          },
+          {
+            "justifyContent": "flex-end",
+          },
+        ]
+      }
+    >
+      <Text
+        style={
+          [
+            {
+              "color": "#9CA3AF",
+              "fontSize": 11.5,
+            },
+            {
+              "color": "#9CA3AF",
+            },
+          ]
+        }
+      >
+        14:30
+      </Text>
+      <View
+        style={
+          {
+            "marginLeft": 4,
+          }
+        }
+      >
+        <Text
+          data-status="read"
+        >
+          read
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;

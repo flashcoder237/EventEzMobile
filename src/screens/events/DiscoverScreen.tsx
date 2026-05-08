@@ -28,6 +28,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Image } from 'expo-image';
 
+import { useTranslation } from 'react-i18next';
 import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, getMediaUrl } from '../../api';
 import type { AdvertisementPublic } from '../../api';
 import { Event, Category, RootStackParamList, MainTabParamList } from '../../types';
@@ -113,6 +114,7 @@ function daysUntil(iso: string): number | null {
 // Reanimated. Pointer-events: none → ne bloque pas les taps en dessous.
 // ============================================================================
 function NetworkStatusPill({ isOffline, isSlow }: { isOffline: boolean; isSlow: boolean }) {
+  const { t } = useTranslation();
   const visible = isOffline || isSlow;
   if (!visible) return null;
 
@@ -120,7 +122,7 @@ function NetworkStatusPill({ isOffline, isSlow }: { isOffline: boolean; isSlow: 
   const isCritical = isOffline;
   const bg = isCritical ? '#1F1F1F' : '#1F1F1F';
   const accent = isCritical ? '#F87171' : '#FBBF24';
-  const label = isCritical ? 'Hors-ligne' : 'Connexion lente';
+  const label = isCritical ? t('discover.offline') : t('discover.slowConnection');
   const iconName = isCritical ? 'cloud-offline' : 'cellular-outline';
 
   return (
@@ -182,6 +184,7 @@ export default function DiscoverScreen() {
   const route = useRoute<RouteProp<MainTabParamList, 'Discover'>>();
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
+  const { t } = useTranslation();
   const { currency: platformCurrency } = useCommissionConfig();
   const { unreadNotificationCount } = useUnreadCounts();
   const { isSlowCellular, isOffline } = useNetworkSpeed();
@@ -249,13 +252,13 @@ export default function DiscoverScreen() {
   // === Rotating placeholder suggestions ===
   const placeholderSuggestions = useMemo(
     () => [
-      'Concert à Douala...',
-      'Festival ce weekend...',
-      'Conférence tech...',
-      'Atelier cuisine...',
-      'Soirée networking...',
+      t('discover.searchPh1'),
+      t('discover.searchPh2'),
+      t('discover.searchPh3'),
+      t('discover.searchPh4'),
+      t('discover.searchPh5'),
     ],
-    [],
+    [t],
   );
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   useEffect(() => {
@@ -584,7 +587,7 @@ export default function DiscoverScreen() {
           activeOpacity={TOUCH_OPACITY}
           style={[styles.seeAllBtn, { backgroundColor: colors.gray100 }]}
         >
-          <Text style={[styles.seeAllText, { color: colors.gray700 }]}>Voir tout</Text>
+          <Text style={[styles.seeAllText, { color: colors.gray700 }]}>{t('common.seeAll')}</Text>
           <Ionicons name="arrow-forward" size={13} color={colors.gray700} />
         </TouchableOpacity>
       )}
@@ -637,7 +640,7 @@ export default function DiscoverScreen() {
             <Ionicons name="star" size={11} color={colors.accent} />
             {/* Texte sur fond blanc fixe → couleur ink statique (Colors.gray900),
                 NE PAS utiliser colors.text qui s'inverse en dark mode */}
-            <Text style={[styles.heroEyebrowText, { color: Colors.gray900 }]}>EN VEDETTE</Text>
+            <Text style={[styles.heroEyebrowText, { color: Colors.gray900 }]}>{t('discover.featured')}</Text>
           </View>
           {/* (Decorative bookmark removed — see FollowEventButton on EventDetails for real follow action) */}
           {/* Title overlay */}
@@ -676,7 +679,7 @@ export default function DiscoverScreen() {
             <View style={styles.heroMetaRow}>
               <Ionicons name="location" size={12} color={colors.gray400} />
               <Text style={[styles.heroMetaText, { color: colors.gray600 }]} numberOfLines={1}>
-                {ev.location_city || ev.location_address || 'Lieu à confirmer'}
+                {ev.location_city || ev.location_address || t('discover.placeIfPlaceMissing')}
               </Text>
             </View>
             {!!eventTime(ev) && (
@@ -703,10 +706,10 @@ export default function DiscoverScreen() {
               ]}
             >
               {isFree
-                ? 'Gratuit'
+                ? t('common.free')
                 : range?.min
                 ? `${range.min} ${ev.currency || platformCurrency || ''}`
-                : 'Voir'}
+                : t('discover.viewAction')}
             </Text>
           </View>
         </View>
@@ -796,7 +799,7 @@ export default function DiscoverScreen() {
             <View style={styles.nearbyMetaRow}>
               <Ionicons name="location" size={11} color={colors.gray400} />
               <Text style={[styles.nearbyMetaText, { color: colors.gray500 }]} numberOfLines={1}>
-                {item.location_city || 'À confirmer'}
+                {item.location_city || t('discover.placeShortIfMissing')}
               </Text>
             </View>
           </View>
@@ -861,7 +864,7 @@ export default function DiscoverScreen() {
                   <View style={styles.incomingMetaRow}>
                     <Ionicons name="location" size={11} color={colors.gray400} />
                     <Text style={[styles.incomingMetaText, { color: colors.gray500 }]} numberOfLines={1}>
-                      {ev.location_city || 'À confirmer'}
+                      {ev.location_city || t('discover.placeShortIfMissing')}
                     </Text>
                     {!!eventTime(ev) && (
                       <>
@@ -957,15 +960,15 @@ export default function DiscoverScreen() {
         />
         <View style={styles.freeSectionHeader}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>ZÉRO FRANC</Text>
-            <Text style={[styles.sectionTitle, { color: colors.text }]}>Gratuit, sans condition</Text>
+            <Text style={[styles.sectionEyebrow, { color: colors.primary }]}>{t('discover.freeEyebrow')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('discover.freeTitle')}</Text>
           </View>
           <TouchableOpacity
             onPress={() => activateSearch()}
             activeOpacity={TOUCH_OPACITY}
             style={[styles.seeAllBtn, { backgroundColor: colors.card }]}
           >
-            <Text style={[styles.seeAllText, { color: colors.primary }]}>Voir tout</Text>
+            <Text style={[styles.seeAllText, { color: colors.primary }]}>{t('common.seeAll')}</Text>
             <Ionicons name="arrow-forward" size={13} color={colors.primary} />
           </TouchableOpacity>
         </View>
@@ -1005,13 +1008,13 @@ export default function DiscoverScreen() {
                 <View style={[styles.freeCardPerf, { borderLeftColor: colors.gray200 }]} />
                 <View style={styles.freeCardBody}>
                   <View style={[styles.freeBadge, { backgroundColor: `${colors.primary}15` }]}>
-                    <Text style={[styles.freeBadgeText, { color: colors.primary }]}>GRATUIT</Text>
+                    <Text style={[styles.freeBadgeText, { color: colors.primary }]}>{t('discover.freeBadge')}</Text>
                   </View>
                   <Text style={[styles.freeTitle, { color: colors.text }]} numberOfLines={2}>
                     {item.title}
                   </Text>
                   <Text style={[styles.freeVenue, { color: colors.gray500 }]} numberOfLines={1}>
-                    {item.location_city || 'À confirmer'}
+                    {item.location_city || t('discover.placeShortIfMissing')}
                   </Text>
                 </View>
               </AnimatedPressable>
@@ -1076,7 +1079,7 @@ export default function DiscoverScreen() {
             <View style={styles.recMetaRow}>
               <Ionicons name="location" size={11} color={colors.gray400} />
               <Text style={[styles.recMetaText, { color: colors.gray500 }]} numberOfLines={1}>
-                {ev.location_city || 'À confirmer'}
+                {ev.location_city || t('discover.placeShortIfMissing')}
               </Text>
             </View>
           </View>
@@ -1135,8 +1138,8 @@ export default function DiscoverScreen() {
                   accessibilityRole="button"
                   accessibilityLabel={
                     unreadNotificationCount > 0
-                      ? `Notifications, ${unreadNotificationCount} non lue${unreadNotificationCount > 1 ? 's' : ''}`
-                      : 'Notifications'
+                      ? `${t('notifications.title')}, ${unreadNotificationCount}`
+                      : t('notifications.title')
                   }
                 >
                   <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
@@ -1168,7 +1171,7 @@ export default function DiscoverScreen() {
                     activeOpacity={0.75}
                   >
                     <Ionicons name="flash" size={11} color={Colors.white} />
-                    <Text style={[styles.compactChipText, { color: Colors.white }]}>Tout</Text>
+                    <Text style={[styles.compactChipText, { color: Colors.white }]}>{t('common.all')}</Text>
                   </TouchableOpacity>
                   {categories.slice(0, 8).map((cat) => (
                     <TouchableOpacity
@@ -1239,7 +1242,7 @@ export default function DiscoverScreen() {
                         onPress={() => navigation.navigate('EventCreate' as any)}
                         style={[styles.headerBtnCreate, Shadows.buttonPrimary]}
                         accessibilityRole="button"
-                        accessibilityLabel="Creer un evenement"
+                        accessibilityLabel={t('discover.createEvent')}
                       >
                         <LinearGradient
                           colors={[colors.primary, colors.primaryDark]}
@@ -1259,8 +1262,8 @@ export default function DiscoverScreen() {
                       accessibilityRole="button"
                       accessibilityLabel={
                         unreadNotificationCount > 0
-                          ? `Notifications, ${unreadNotificationCount} non lue${unreadNotificationCount > 1 ? 's' : ''}`
-                          : 'Notifications'
+                          ? `${t('notifications.title')}, ${unreadNotificationCount}`
+                          : t('notifications.title')
                       }
                     >
                       <Ionicons name="notifications-outline" size={18} color={colors.gray600} />
@@ -1295,7 +1298,7 @@ export default function DiscoverScreen() {
                   onPress={() => activateSearch()}
                   activeOpacity={0.85}
                   accessibilityRole="search"
-                  accessibilityLabel="Rechercher un evenement"
+                  accessibilityLabel={t('discover.searchAccessibility')}
                 >
                   <Ionicons
                     name="search"
@@ -1334,7 +1337,7 @@ export default function DiscoverScreen() {
                       activeOpacity={0.75}
                     >
                       <Ionicons name="flash" size={13} color={Colors.white} />
-                      <Text style={[styles.chipText, { color: Colors.white }]}>Tout</Text>
+                      <Text style={[styles.chipText, { color: Colors.white }]}>{t('common.all')}</Text>
                     </TouchableOpacity>
                     {categories.slice(0, 8).map((cat) => (
                       <TouchableOpacity
@@ -1404,7 +1407,7 @@ export default function DiscoverScreen() {
                     <TouchableOpacity
                       onPress={onRefresh}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel="Reessayer"
+                      accessibilityLabel={t('discover.retry')}
                       style={{
                         padding: 6,
                         borderRadius: BorderRadius.full,
@@ -1416,7 +1419,7 @@ export default function DiscoverScreen() {
                     <TouchableOpacity
                       onPress={() => setSlowBannerDismissed(true)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      accessibilityLabel="Masquer"
+                      accessibilityLabel={t('discover.hide')}
                       style={{ padding: 4 }}
                     >
                       <Ionicons name="close" size={16} color={colors.gray500} />
@@ -1509,7 +1512,7 @@ export default function DiscoverScreen() {
                   <View style={styles.section}>
                     <SectionHeader
                       eyebrow="PRÈS DE TOI"
-                      title="Populaire dans le coin"
+                      title={t('discover.popularNearbyTitle')}
                       onSeeAll={() => activateSearch()}
                     />
                     <FlatList
@@ -1535,7 +1538,7 @@ export default function DiscoverScreen() {
                   <View style={styles.section}>
                     <SectionHeader
                       eyebrow="POUR TOI"
-                      title="Recommandé"
+                      title={t('discover.recommendedTitle')}
                       onSeeAll={() => activateSearch()}
                     />
                     <View style={{ paddingHorizontal: Spacing.lg }}>{renderRecCard()}</View>
@@ -1600,7 +1603,7 @@ export default function DiscoverScreen() {
               {categories.length > 0 && (
                 <SectionEntrance delay={540}>
                   <View style={styles.section}>
-                    <SectionHeader eyebrow="TOUS LES GENRES" title="Explorer" />
+                    <SectionHeader eyebrow={t('discover.allGenresEyebrow')} title={t('discover.allGenresTitle')} />
                     <View style={{ paddingHorizontal: Spacing.lg }}>{renderCategories()}</View>
                   </View>
                 </SectionEntrance>
@@ -1690,17 +1693,17 @@ export default function DiscoverScreen() {
                       ? getMediaUrl((ev.organizer as any).profile_picture || (ev.organizer as any).image)
                       : null;
                     const locationLabel = ev.location_type === 'online'
-                      ? 'En ligne'
+                      ? t('discover.online')
                       : (ev.location_city || ev.location_name || '');
                     // Label prix formaté : "Gratuit" / "5 000 FCFA" / "dès 5 000 FCFA"
                     const priceRange = getEventPriceRange(ev);
                     const priceLabel = priceRange === undefined
                       ? ''
                       : priceRange.max === 0
-                        ? 'Gratuit'
+                        ? t('common.free')
                         : priceRange.min === priceRange.max
                           ? `${priceRange.min.toLocaleString()} ${platformCurrency}`
-                          : `dès ${priceRange.min.toLocaleString()} ${platformCurrency}`;
+                          : `${t('events.startingFrom')} ${priceRange.min.toLocaleString()} ${platformCurrency}`;
                     const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
                     // Une ad inline injectée à idx=4 pour ne pas spammer
                     const inlineAd = idx === 4
@@ -1843,7 +1846,7 @@ export default function DiscoverScreen() {
                                 }).catch(() => { /* user cancelled */ });
                               }}
                               activeOpacity={0.7}
-                              accessibilityLabel="Partager"
+                              accessibilityLabel={t('discover.share')}
                               hitSlop={8}
                             >
                               <Ionicons name="share-outline" size={16} color={colors.gray600} />
@@ -1855,9 +1858,9 @@ export default function DiscoverScreen() {
                               style={[styles.feedCardActionPrimary, { backgroundColor: colors.primary }]}
                               onPress={() => navigateToEvent(ev.id, img)}
                               activeOpacity={0.85}
-                              accessibilityLabel="Voir l'événement"
+                              accessibilityLabel={t('discover.viewEvent')}
                             >
-                              <Text style={styles.feedCardActionPrimaryText}>Voir l'événement</Text>
+                              <Text style={styles.feedCardActionPrimaryText}>{t('discover.viewEvent')}</Text>
                               <Ionicons name="arrow-forward" size={14} color="#FFFFFF" />
                             </TouchableOpacity>
                           </View>

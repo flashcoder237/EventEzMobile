@@ -1,0 +1,345 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Badge snapshots renders default variant md 1`] = `
+<View
+  accessibilityLabel="Default"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "#EEF2FF",
+        "borderColor": undefined,
+        "borderWidth": 0,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 4,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#4F46E5",
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Default
+  </Text>
+</View>
+`;
+
+exports[`Badge snapshots renders destructive variant 1`] = `
+<View
+  accessibilityLabel="Erreur"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "#FEE2E2",
+        "borderColor": undefined,
+        "borderWidth": 0,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 4,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#EF4444",
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Erreur
+  </Text>
+</View>
+`;
+
+exports[`Badge snapshots renders info variant 1`] = `
+<View
+  accessibilityLabel="Info"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "#DBEAFE",
+        "borderColor": undefined,
+        "borderWidth": 0,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 4,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#1E40AF",
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Info
+  </Text>
+</View>
+`;
+
+exports[`Badge snapshots renders outline variant 1`] = `
+<View
+  accessibilityLabel="Outline"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "transparent",
+        "borderColor": "#E5E7EB",
+        "borderWidth": 1,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 4,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#374151",
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Outline
+  </Text>
+</View>
+`;
+
+exports[`Badge snapshots renders secondary variant 1`] = `
+<View
+  accessibilityLabel="Secondary"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "#F3F4F6",
+        "borderColor": undefined,
+        "borderWidth": 0,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 4,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#374151",
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Secondary
+  </Text>
+</View>
+`;
+
+exports[`Badge snapshots renders small size 1`] = `
+<View
+  accessibilityLabel="Small"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "#D1FAE5",
+        "borderColor": undefined,
+        "borderWidth": 0,
+        "paddingHorizontal": 8.5,
+        "paddingVertical": 2,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#065F46",
+          "fontSize": 11.5,
+        },
+        undefined,
+      ]
+    }
+  >
+    Small
+  </Text>
+</View>
+`;
+
+exports[`Badge snapshots renders success variant 1`] = `
+<View
+  accessibilityLabel="Valide"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "#D1FAE5",
+        "borderColor": undefined,
+        "borderWidth": 0,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 4,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#065F46",
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Valide
+  </Text>
+</View>
+`;
+
+exports[`Badge snapshots renders warning variant 1`] = `
+<View
+  accessibilityLabel="Attention"
+  accessibilityRole="text"
+  accessible={true}
+  style={
+    [
+      {
+        "alignSelf": "flex-start",
+        "borderRadius": 9999,
+      },
+      {
+        "backgroundColor": "#FEF3C7",
+        "borderColor": undefined,
+        "borderWidth": 0,
+        "paddingHorizontal": 12.5,
+        "paddingVertical": 4,
+      },
+      undefined,
+    ]
+  }
+>
+  <Text
+    numberOfLines={1}
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_600SemiBold",
+          "letterSpacing": 0.2,
+        },
+        {
+          "color": "#92400E",
+          "fontSize": 14,
+        },
+        undefined,
+      ]
+    }
+  >
+    Attention
+  </Text>
+</View>
+`;

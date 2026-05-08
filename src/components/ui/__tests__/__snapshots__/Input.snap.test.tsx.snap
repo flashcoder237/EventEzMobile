@@ -1,0 +1,712 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Input snapshots renders default with placeholder 1`] = `
+<View
+  style={
+    [
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 14,
+          "flexDirection": "row",
+          "minHeight": 50,
+          "paddingHorizontal": 17,
+        },
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#E0E7FF",
+          "borderWidth": 1,
+        },
+        false,
+      ]
+    }
+  >
+    <TextInput
+      accessibilityLabel="Email"
+      accessible={true}
+      editable={true}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      placeholder="Email"
+      placeholderTextColor="#6B7280"
+      style={
+        [
+          {
+            "flex": 1,
+            "fontFamily": "Montserrat_400Regular",
+            "fontSize": 16,
+            "paddingVertical": 12.5,
+          },
+          false,
+          {
+            "color": "#111827",
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+  </View>
+</View>
+`;
+
+exports[`Input snapshots renders disabled 1`] = `
+<View
+  style={
+    [
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8.5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": 0.8,
+            "textTransform": "uppercase",
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      Lecture seule
+    </Text>
+  </View>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 14,
+          "flexDirection": "row",
+          "minHeight": 50,
+          "paddingHorizontal": 17,
+        },
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#E0E7FF",
+          "borderWidth": 1,
+        },
+        {
+          "opacity": 0.5,
+        },
+      ]
+    }
+  >
+    <TextInput
+      accessibilityLabel="Lecture seule"
+      accessibilityState={
+        {
+          "disabled": true,
+        }
+      }
+      accessible={true}
+      editable={false}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      placeholderTextColor="#6B7280"
+      style={
+        [
+          {
+            "flex": 1,
+            "fontFamily": "Montserrat_400Regular",
+            "fontSize": 16,
+            "paddingVertical": 12.5,
+          },
+          false,
+          {
+            "color": "#111827",
+          },
+          undefined,
+          undefined,
+        ]
+      }
+      value="abc@test.com"
+    />
+  </View>
+</View>
+`;
+
+exports[`Input snapshots renders secureTextEntry (password) 1`] = `
+<View
+  style={
+    [
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8.5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": 0.8,
+            "textTransform": "uppercase",
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      Mot de passe
+    </Text>
+  </View>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 14,
+          "flexDirection": "row",
+          "minHeight": 50,
+          "paddingHorizontal": 17,
+        },
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#E0E7FF",
+          "borderWidth": 1,
+        },
+        false,
+      ]
+    }
+  >
+    <TextInput
+      accessibilityLabel="Mot de passe"
+      accessible={true}
+      editable={true}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      placeholder="••••••"
+      placeholderTextColor="#6B7280"
+      secureTextEntry={true}
+      style={
+        [
+          {
+            "flex": 1,
+            "fontFamily": "Montserrat_400Regular",
+            "fontSize": 16,
+            "paddingVertical": 12.5,
+          },
+          false,
+          {
+            "color": "#111827",
+          },
+          undefined,
+          {
+            "paddingRight": 0,
+          },
+        ]
+      }
+    />
+    <View
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": undefined,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      hitSlop={
+        {
+          "bottom": 10,
+          "left": 10,
+          "right": 10,
+          "top": 10,
+        }
+      }
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "marginLeft": 8.5,
+          "opacity": 1,
+        }
+      }
+    >
+      <Text
+        color="#9CA3AF"
+        name="eye-outline"
+        size={20}
+      >
+        eye-outline
+      </Text>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`Input snapshots renders title variant with labelTrailing 1`] = `
+<View
+  style={
+    [
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8.5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": 0.8,
+            "textTransform": "uppercase",
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      Titre
+    </Text>
+    <Text
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_500Medium",
+            "fontSize": 11,
+          },
+          {
+            "color": "#9CA3AF",
+          },
+        ]
+      }
+    >
+      0/100
+    </Text>
+  </View>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 14,
+          "flexDirection": "row",
+          "minHeight": 50,
+          "paddingHorizontal": 17,
+        },
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#E0E7FF",
+          "borderWidth": 1,
+        },
+        false,
+      ]
+    }
+  >
+    <TextInput
+      accessibilityLabel="Titre"
+      accessible={true}
+      editable={true}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      placeholder="Titre de l'evenement"
+      placeholderTextColor="#6B7280"
+      style={
+        [
+          {
+            "flex": 1,
+            "fontFamily": "Montserrat_400Regular",
+            "fontSize": 16,
+            "paddingVertical": 12.5,
+          },
+          {
+            "fontFamily": "FunnelDisplay_600SemiBold",
+            "fontSize": 18,
+            "letterSpacing": -0.3,
+            "paddingVertical": 16,
+          },
+          {
+            "color": "#111827",
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+  </View>
+</View>
+`;
+
+exports[`Input snapshots renders with error state 1`] = `
+<View
+  style={
+    [
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8.5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": 0.8,
+            "textTransform": "uppercase",
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      Mot de passe
+    </Text>
+  </View>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 14,
+          "flexDirection": "row",
+          "minHeight": 50,
+          "paddingHorizontal": 17,
+        },
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#EF4444",
+          "borderWidth": 1,
+        },
+        false,
+      ]
+    }
+  >
+    <TextInput
+      accessibilityLabel="Mot de passe"
+      accessible={true}
+      editable={true}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      placeholderTextColor="#6B7280"
+      style={
+        [
+          {
+            "flex": 1,
+            "fontFamily": "Montserrat_400Regular",
+            "fontSize": 16,
+            "paddingVertical": 12.5,
+          },
+          false,
+          {
+            "color": "#111827",
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_500Medium",
+          "fontSize": 11.5,
+          "lineHeight": 16,
+          "marginTop": 4,
+        },
+        {
+          "color": "#EF4444",
+        },
+      ]
+    }
+  >
+    Mot de passe trop court
+  </Text>
+</View>
+`;
+
+exports[`Input snapshots renders with label + icon + hint 1`] = `
+<View
+  style={
+    [
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8.5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": 0.8,
+            "textTransform": "uppercase",
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      Email
+    </Text>
+  </View>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 14,
+          "flexDirection": "row",
+          "minHeight": 50,
+          "paddingHorizontal": 17,
+        },
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#E0E7FF",
+          "borderWidth": 1,
+        },
+        false,
+      ]
+    }
+  >
+    <Text
+      color="#9CA3AF"
+      name="mail-outline"
+      size={20}
+      style={
+        {
+          "marginRight": 8.5,
+        }
+      }
+    >
+      mail-outline
+    </Text>
+    <TextInput
+      accessibilityHint="Votre email professionnel"
+      accessibilityLabel="Email"
+      accessible={true}
+      editable={true}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      placeholderTextColor="#6B7280"
+      style={
+        [
+          {
+            "flex": 1,
+            "fontFamily": "Montserrat_400Regular",
+            "fontSize": 16,
+            "paddingVertical": 12.5,
+          },
+          false,
+          {
+            "color": "#111827",
+          },
+          {
+            "paddingLeft": 0,
+          },
+          undefined,
+        ]
+      }
+    />
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_500Medium",
+          "fontSize": 11.5,
+          "lineHeight": 16,
+          "marginTop": 4,
+        },
+        {
+          "color": "#6B7280",
+        },
+      ]
+    }
+  >
+    Votre email professionnel
+  </Text>
+</View>
+`;
+
+exports[`Input snapshots renders with success state 1`] = `
+<View
+  style={
+    [
+      {},
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      {
+        "alignItems": "flex-end",
+        "flexDirection": "row",
+        "justifyContent": "space-between",
+        "marginBottom": 8.5,
+      }
+    }
+  >
+    <Text
+      style={
+        [
+          {
+            "fontFamily": "Montserrat_700Bold",
+            "fontSize": 11,
+            "letterSpacing": 0.8,
+            "textTransform": "uppercase",
+          },
+          {
+            "color": "#4B5563",
+          },
+        ]
+      }
+    >
+      Email
+    </Text>
+  </View>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 14,
+          "flexDirection": "row",
+          "minHeight": 50,
+          "paddingHorizontal": 17,
+        },
+        {
+          "backgroundColor": "#FFFFFF",
+          "borderColor": "#10B981",
+          "borderWidth": 1,
+        },
+        false,
+      ]
+    }
+  >
+    <TextInput
+      accessibilityLabel="Email"
+      accessible={true}
+      editable={true}
+      onBlur={[Function]}
+      onFocus={[Function]}
+      placeholderTextColor="#6B7280"
+      style={
+        [
+          {
+            "flex": 1,
+            "fontFamily": "Montserrat_400Regular",
+            "fontSize": 16,
+            "paddingVertical": 12.5,
+          },
+          false,
+          {
+            "color": "#111827",
+          },
+          undefined,
+          undefined,
+        ]
+      }
+    />
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_500Medium",
+          "fontSize": 11.5,
+          "lineHeight": 16,
+          "marginTop": 4,
+        },
+        {
+          "color": "#10B981",
+        },
+      ]
+    }
+  >
+    Email valide
+  </Text>
+</View>
+`;

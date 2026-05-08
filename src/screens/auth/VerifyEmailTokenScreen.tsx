@@ -14,6 +14,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -41,6 +42,7 @@ export default function VerifyEmailTokenScreen() {
   const { colors } = useTheme();
   const { isAuthenticated, user, refreshUser } = useAuth();
   const { showError, showSuccess } = useAlert();
+  const { t } = useTranslation();
 
   const [state, setState] = useState<VerifyState>('loading');
   const [resending, setResending] = useState(false);
@@ -88,17 +90,17 @@ export default function VerifyEmailTokenScreen() {
     // Priorité : email du user connecté, sinon email saisi dans le champ inline.
     const email = user?.email || fallbackEmail.trim();
     if (!email || !email.includes('@')) {
-      showError('Email requis', 'Entre ton adresse email pour recevoir un nouveau lien.');
+      showError(t('auth.verifyTokenExpiredEmailRequired'), t('auth.verifyTokenExpiredEmailRequiredDetail'));
       return;
     }
     setResending(true);
     try {
       await authAPI.resendVerificationEmail(email);
-      showSuccess('Email envoyé', `Un nouveau lien a été envoyé à ${email}.`);
+      showSuccess(t('auth.verifyTokenExpiredResentTitle'), t('auth.verifyTokenExpiredResentDetail', { email }));
       navigation.navigate('VerifyEmail', { email });
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || 'Impossible de renvoyer le lien.';
-      showError('Erreur', msg);
+      const msg = err?.response?.data?.detail || t('auth.verifyTokenExpiredResendError');
+      showError(t('common.error'), msg);
     } finally {
       setResending(false);
     }
@@ -112,10 +114,10 @@ export default function VerifyEmailTokenScreen() {
           {state === 'loading' && (
             <>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.eyebrow, { color: colors.accent }]}>VÉRIFICATION</Text>
-              <Text style={[styles.title, { color: colors.gray900 }]}>Un instant…</Text>
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.verifyTokenLoadingEyebrow')}</Text>
+              <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.verifyTokenLoadingTitle')}</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                On confirme ton adresse email avec le serveur.
+                {t('auth.verifyTokenLoadingSubtitle')}
               </Text>
             </>
           )}
@@ -125,16 +127,15 @@ export default function VerifyEmailTokenScreen() {
               <View style={[styles.iconCircle, { backgroundColor: '#10B98115' }]}>
                 <Ionicons name="checkmark-circle" size={48} color="#10B981" />
               </View>
-              <Text style={[styles.eyebrow, { color: '#10B981' }]}>COMPTE ACTIVÉ</Text>
-              <Text style={[styles.title, { color: colors.gray900 }]}>Email vérifié !</Text>
+              <Text style={[styles.eyebrow, { color: '#10B981' }]}>{t('auth.verifyTokenSuccessEyebrow')}</Text>
+              <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.verifyTokenSuccessTitleShort')}</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                Ton adresse email est maintenant confirmée.{' '}
-                {isAuthenticated ? 'Tu peux continuer à utiliser l\'app.' : 'Tu peux te connecter.'}
+                {isAuthenticated ? t('auth.verifyTokenSuccessSubtitleAuth') : t('auth.verifyTokenSuccessSubtitleNoAuth')}
               </Text>
               <View style={styles.ctaWrap}>
                 <EditorialPillCTA
-                  eyebrow="Continuer"
-                  label={isAuthenticated ? 'Aller à l\'accueil' : 'Se connecter'}
+                  eyebrow={t('auth.verifyTokenSuccessAction')}
+                  label={isAuthenticated ? t('auth.verifyTokenSuccessHomeAuth') : t('auth.verifyTokenSuccessHomeNoAuth')}
                   onPress={goHome}
                   icon="arrow-forward"
                   tone="primary"
@@ -148,30 +149,29 @@ export default function VerifyEmailTokenScreen() {
               <View style={[styles.iconCircle, { backgroundColor: '#F59E0B15' }]}>
                 <Ionicons name="time-outline" size={48} color="#F59E0B" />
               </View>
-              <Text style={[styles.eyebrow, { color: '#F59E0B' }]}>LIEN EXPIRÉ</Text>
-              <Text style={[styles.title, { color: colors.gray900 }]}>Trop tard…</Text>
+              <Text style={[styles.eyebrow, { color: '#F59E0B' }]}>{t('auth.verifyTokenExpiredEyebrow')}</Text>
+              <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.verifyTokenExpiredTitle')}</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                Ce lien de vérification n'est plus valide. On peut t'en envoyer
-                un nouveau immédiatement.
+                {t('auth.verifyTokenExpiredSubtitle')}
               </Text>
               {/* Champ email inline quand non connecté — évite le tunnel sans issue (#5) */}
               {!isAuthenticated && !user?.email && (
                 <TextInput
                   style={[styles.emailInput, { borderColor: colors.gray200, color: colors.gray900, backgroundColor: colors.gray50 }]}
-                  placeholder="ton@email.com"
+                  placeholder={t('auth.verifyTokenExpiredFallbackPlaceholder')}
                   placeholderTextColor={colors.gray400}
                   value={fallbackEmail}
                   onChangeText={setFallbackEmail}
                   keyboardType="email-address"
                   autoCapitalize="none"
                   autoCorrect={false}
-                  accessibilityLabel="Adresse email pour recevoir un nouveau lien"
+                  accessibilityLabel={t('auth.verifyTokenExpiredFallbackAccessibility')}
                 />
               )}
               <View style={styles.ctaWrap}>
                 <EditorialPillCTA
-                  eyebrow="Nouveau lien"
-                  label={resending ? 'Envoi…' : 'Recevoir un nouveau lien'}
+                  eyebrow={t('auth.verifyTokenExpiredAction')}
+                  label={resending ? t('auth.verifyTokenExpiredCTASending') : t('auth.verifyTokenExpiredCTA')}
                   onPress={handleResend}
                   loading={resending}
                   disabled={resending}
@@ -181,7 +181,7 @@ export default function VerifyEmailTokenScreen() {
               </View>
               <TouchableOpacity onPress={goHome} style={styles.secondaryLink}>
                 <Text style={[styles.secondaryLinkText, { color: colors.gray500 }]}>
-                  Retour à la connexion
+                  {t('auth.verifyTokenExpiredBackToLogin')}
                 </Text>
               </TouchableOpacity>
             </>
@@ -192,16 +192,15 @@ export default function VerifyEmailTokenScreen() {
               <View style={[styles.iconCircle, { backgroundColor: '#EF444415' }]}>
                 <Ionicons name="close-circle" size={48} color="#EF4444" />
               </View>
-              <Text style={[styles.eyebrow, { color: '#EF4444' }]}>LIEN INVALIDE</Text>
-              <Text style={[styles.title, { color: colors.gray900 }]}>Hum…</Text>
+              <Text style={[styles.eyebrow, { color: '#EF4444' }]}>{t('auth.verifyTokenInvalidEyebrow')}</Text>
+              <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.verifyTokenInvalidTitle')}</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                Ce lien est invalide. Il a peut-être déjà été utilisé, ou il
-                provient d'une ancienne adresse email.
+                {t('auth.verifyTokenInvalidSubtitle')}
               </Text>
               <View style={styles.ctaWrap}>
                 <EditorialPillCTA
-                  eyebrow="Continuer"
-                  label="Retour à la connexion"
+                  eyebrow={t('auth.verifyTokenInvalidAction')}
+                  label={t('auth.verifyTokenInvalidCTA')}
                   onPress={goHome}
                   icon="arrow-forward"
                   tone="primary"

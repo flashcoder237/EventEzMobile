@@ -9,6 +9,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '../../api';
 import { useAlert } from '../../contexts/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -29,6 +30,7 @@ export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
   const { showError } = useAlert();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -36,11 +38,11 @@ export default function ForgotPasswordScreen() {
 
   const validateEmail = () => {
     if (!email.trim()) {
-      setError('L\'email est requis');
+      setError(t('auth.emailRequired'));
       return false;
     }
     if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Email invalide');
+      setError(t('auth.emailInvalid'));
       return false;
     }
     setError('');
@@ -57,9 +59,9 @@ export default function ForgotPasswordScreen() {
     } catch (err: any) {
       const errorData = err.response?.data;
       if (errorData?.email) {
-        showError('Erreur', Array.isArray(errorData.email) ? errorData.email[0] : errorData.email);
+        showError(t('common.error'), Array.isArray(errorData.email) ? errorData.email[0] : errorData.email);
       } else if (errorData?.detail) {
-        showError('Erreur', errorData.detail);
+        showError(t('common.error'), errorData.detail);
       } else {
         // On affiche un succès même si l'email n'existe pas (sécurité)
         setIsSuccess(true);
@@ -77,18 +79,18 @@ export default function ForgotPasswordScreen() {
           <View style={[styles.successIcon, { backgroundColor: colors.gray50 }]}>
             <Ionicons name="mail-outline" size={48} color={colors.primary} />
           </View>
-          <Text style={[styles.eyebrow, { color: colors.accent, textAlign: 'center' }]}>Email envoyé</Text>
-          <Text style={[styles.successTitle, { color: colors.gray900 }]}>Check ta boîte mail</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent, textAlign: 'center' }]}>{t('auth.resetSuccessEyebrow')}</Text>
+          <Text style={[styles.successTitle, { color: colors.gray900 }]}>{t('auth.resetSuccessTitle')}</Text>
           <Text style={[styles.successText, { color: colors.gray600 }]}>
-            Si un compte existe avec l'adresse {email}, vous recevrez un email avec les instructions pour réinitialiser votre mot de passe.
+            {t('auth.resetSuccessText', { email })}
           </Text>
           <Text style={[styles.successHint, { color: colors.gray400 }]}>
-            Vérifiez également votre dossier spam.
+            {t('auth.resetSuccessHint')}
           </Text>
           <View style={styles.successButtonWrap}>
             <EditorialPillCTA
-              eyebrow="Revenir"
-              label="Retour à la connexion"
+              eyebrow={t('auth.resetBackAction')}
+              label={t('auth.resetBack')}
               onPress={() => navigation.navigate('Login')}
               icon="arrow-back"
             />
@@ -128,24 +130,24 @@ export default function ForgotPasswordScreen() {
 
             {/* Header */}
             <View style={styles.headerContainer}>
-              <Text style={[styles.eyebrow, { color: colors.accent }]}>Réinitialisation</Text>
-              <Text style={[styles.title, { color: colors.gray900 }]}>Mot de passe oublié ?</Text>
+              <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.resetEyebrow')}</Text>
+              <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.resetTitle')}</Text>
               <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-                Entrez votre adresse email et nous vous enverrons un lien pour réinitialiser votre mot de passe.
+                {t('auth.forgotPasswordSubtitle')}
               </Text>
             </View>
 
             {/* Form */}
             <View style={styles.form}>
               <View style={styles.inputContainer}>
-                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>Email</Text>
+                <Text style={[styles.inputLabel, { color: colors.gray700 }]}>{t('auth.email')}</Text>
                 <View style={[styles.inputWrapper, { backgroundColor: colors.gray50, borderColor: colors.gray200 }, error && [styles.inputError, { backgroundColor: colors.errorLight }]]}>
                   <View style={styles.inputIconContainer}>
                     <Ionicons name="mail-outline" size={20} color={colors.gray400} />
                   </View>
                   <TextInput
                     style={[styles.input, { color: colors.gray900 }]}
-                    placeholder="votre@email.com"
+                    placeholder={t('auth.emailPlaceholder')}
                     placeholderTextColor={colors.gray400}
                     value={email}
                     onChangeText={(text) => {
@@ -168,8 +170,8 @@ export default function ForgotPasswordScreen() {
 
               <View style={styles.submitButtonWrap}>
                 <EditorialPillCTA
-                  eyebrow="Envoyer"
-                  label="Envoyer le lien"
+                  eyebrow={t('auth.sendLinkAction')}
+                  label={t('auth.sendLink')}
                   onPress={handleSubmit}
                   loading={isLoading}
                   icon="send"
@@ -179,13 +181,13 @@ export default function ForgotPasswordScreen() {
 
             {/* Login Link */}
             <View style={styles.loginContainer}>
-              <Text style={[styles.loginText, { color: colors.gray500 }]}>Vous vous souvenez ?</Text>
+              <Text style={[styles.loginText, { color: colors.gray500 }]}>{t('auth.rememberQuestion')}</Text>
               <AnimatedPressable
                 onPress={() => navigation.navigate('Login')}
                 animationType="scale"
                 scaleValue={0.95}
               >
-                <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
+                <Text style={[styles.loginLink, { color: colors.primary }]}> {t('auth.loginButton')}</Text>
               </AnimatedPressable>
             </View>
       </KeyboardAwareScrollView>

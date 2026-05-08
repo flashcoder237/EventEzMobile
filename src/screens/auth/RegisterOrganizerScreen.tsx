@@ -11,6 +11,7 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { authAPI, setTokens } from '../../api';
 import { usersAPI } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -65,6 +66,7 @@ export default function RegisterOrganizerScreen() {
   const { setUser } = useAuth();
   const { showError, showSuccess } = useAlert();
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -104,22 +106,22 @@ export default function RegisterOrganizerScreen() {
 
     if (formData.organizer_type === 'individual') {
       if (!formData.first_name.trim()) {
-        newErrors.first_name = 'Le prénom est requis';
+        newErrors.first_name = t('validation.firstNameRequired');
       }
       if (!formData.last_name.trim()) {
-        newErrors.last_name = 'Le nom est requis';
+        newErrors.last_name = t('validation.lastNameRequired');
       }
     } else {
       if (!formData.company_name.trim()) {
-        newErrors.company_name = 'Le nom de l\'entreprise est requis';
+        newErrors.company_name = t('auth.registerOrganizerErrorCompanyRequired');
       }
       if (!formData.registration_number.trim()) {
-        newErrors.registration_number = 'Le numéro SIRET/RC est requis';
+        newErrors.registration_number = t('auth.registerOrganizerErrorSiretRequired');
       }
     }
 
     if (!formData.phone.trim()) {
-      newErrors.phone = 'Le téléphone est requis';
+      newErrors.phone = t('auth.registerOrganizerErrorPhoneRequired');
     }
 
     setErrors(newErrors);
@@ -130,27 +132,27 @@ export default function RegisterOrganizerScreen() {
     const newErrors: FormErrors = {};
 
     if (!formData.username.trim()) {
-      newErrors.username = 'Le nom d\'utilisateur est requis';
+      newErrors.username = t('auth.registerOrganizerErrorUsernameRequired');
     } else if (formData.username.length < 3) {
-      newErrors.username = 'Minimum 3 caractères';
+      newErrors.username = t('auth.registerOrganizerErrorUsernameShort');
     } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-      newErrors.username = 'Lettres, chiffres et _ uniquement';
+      newErrors.username = t('auth.registerOrganizerErrorUsernameInvalid');
     }
 
     if (!formData.email.trim()) {
-      newErrors.email = 'L\'email est requis';
+      newErrors.email = t('auth.emailRequired');
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email invalide';
+      newErrors.email = t('auth.emailInvalid');
     }
 
     if (!formData.password) {
-      newErrors.password = 'Le mot de passe est requis';
+      newErrors.password = t('auth.registerOrganizerErrorPasswordRequired');
     } else if (formData.password.length < 8) {
-      newErrors.password = 'Minimum 8 caractères';
+      newErrors.password = t('auth.registerOrganizerErrorPasswordShort');
     }
 
     if (formData.password !== formData.confirm_password) {
-      newErrors.confirm_password = 'Les mots de passe ne correspondent pas';
+      newErrors.confirm_password = t('auth.passwordsDontMatch');
     }
 
     setErrors(newErrors);
@@ -193,16 +195,16 @@ export default function RegisterOrganizerScreen() {
       const userResponse = await usersAPI.getCurrentUser();
       await setUser(userResponse.data);
 
-      showSuccess('Bienvenue !', 'Votre compte organisateur a été créé avec succès.');
+      showSuccess(t('auth.registerOrganizerSuccessTitle'), t('auth.registerOrganizerSuccessDetail'));
     } catch (error: any) {
       const errorData = error.response?.data;
-      let message = 'Une erreur est survenue lors de l\'inscription';
+      let message = t('auth.registerOrganizerErrorGeneric');
 
       if (errorData) {
         if (errorData.email) {
-          message = Array.isArray(errorData.email) ? errorData.email[0] : 'Cet email est déjà utilisé';
+          message = Array.isArray(errorData.email) ? errorData.email[0] : t('auth.registerOrganizerErrorEmailUsed');
         } else if (errorData.username) {
-          message = Array.isArray(errorData.username) ? errorData.username[0] : 'Ce nom d\'utilisateur est déjà pris';
+          message = Array.isArray(errorData.username) ? errorData.username[0] : t('auth.registerOrganizerErrorUsernameTaken');
         } else if (errorData.password) {
           message = Array.isArray(errorData.password) ? errorData.password.join('\n') : errorData.password;
         } else if (errorData.detail) {
@@ -212,7 +214,7 @@ export default function RegisterOrganizerScreen() {
         }
       }
 
-      showError('Erreur d\'inscription', message);
+      showError(t('auth.registerError'), message);
     } finally {
       setIsLoading(false);
     }
@@ -290,7 +292,7 @@ export default function RegisterOrganizerScreen() {
 
   const renderTypeSelector = () => (
     <View style={styles.typeSelectorContainer}>
-      <Text style={[styles.sectionLabel, { color: colors.gray700 }]}>Type d'organisateur</Text>
+      <Text style={[styles.sectionLabel, { color: colors.gray700 }]}>{t('auth.registerOrganizerTypeLabel')}</Text>
       <View style={styles.typeOptions}>
         <AnimatedPressable
           onPress={() => updateField('organizer_type', 'individual')}
@@ -318,10 +320,10 @@ export default function RegisterOrganizerScreen() {
             { color: colors.gray700 },
             formData.organizer_type === 'individual' && { color: colors.primary },
           ]}>
-            Particulier
+            {t('auth.registerOrganizerIndividual')}
           </Text>
           <Text style={[styles.typeOptionDescription, { color: colors.gray500 }]}>
-            Organisateur indépendant
+            {t('auth.registerOrganizerIndividualSubtitle')}
           </Text>
         </AnimatedPressable>
 
@@ -351,10 +353,10 @@ export default function RegisterOrganizerScreen() {
             { color: colors.gray700 },
             formData.organizer_type === 'organization' && { color: colors.primary },
           ]}>
-            Organisation
+            {t('auth.registerOrganizerCompany')}
           </Text>
           <Text style={[styles.typeOptionDescription, { color: colors.gray500 }]}>
-            Entreprise / Association
+            {t('auth.registerOrganizerCompanySubtitle')}
           </Text>
         </AnimatedPressable>
       </View>
@@ -370,7 +372,7 @@ export default function RegisterOrganizerScreen() {
           {/* Name Row */}
           <View style={styles.row}>
             <View style={styles.halfInput}>
-              {renderInput('first_name', 'Prénom', 'person-outline', {
+              {renderInput('first_name', t('auth.firstName'), 'person-outline', {
                 autoCapitalize: 'words',
               })}
               {errors.first_name && (
@@ -378,7 +380,7 @@ export default function RegisterOrganizerScreen() {
               )}
             </View>
             <View style={styles.halfInput}>
-              {renderInput('last_name', 'Nom', 'person-outline', {
+              {renderInput('last_name', t('auth.lastName'), 'person-outline', {
                 autoCapitalize: 'words',
               })}
               {errors.last_name && (
@@ -391,7 +393,7 @@ export default function RegisterOrganizerScreen() {
         <>
           {/* Company Name */}
           <View style={styles.inputContainer}>
-            {renderInput('company_name', 'Nom de l\'entreprise', 'business-outline', {
+            {renderInput('company_name', t('auth.registerOrganizerCompanyName'), 'business-outline', {
               autoCapitalize: 'words',
             })}
             {errors.company_name && (
@@ -401,7 +403,7 @@ export default function RegisterOrganizerScreen() {
 
           {/* Registration Number */}
           <View style={styles.inputContainer}>
-            {renderInput('registration_number', 'Numéro SIRET / RC', 'document-text-outline')}
+            {renderInput('registration_number', t('auth.registerOrganizerSiret'), 'document-text-outline')}
             {errors.registration_number && (
               <Text style={styles.errorText}>{errors.registration_number}</Text>
             )}
@@ -411,7 +413,7 @@ export default function RegisterOrganizerScreen() {
 
       {/* Phone */}
       <View style={styles.inputContainer}>
-        {renderInput('phone', 'Téléphone', 'call-outline', {
+        {renderInput('phone', t('auth.phone'), 'call-outline', {
           keyboardType: 'phone-pad',
         })}
         {errors.phone && (
@@ -421,8 +423,8 @@ export default function RegisterOrganizerScreen() {
 
       <View style={styles.submitButtonWrap}>
         <EditorialPillCTA
-          eyebrow="Suivant"
-          label="Continuer"
+          eyebrow={t('auth.registerOrganizerNextEyebrow')}
+          label={t('auth.registerOrganizerNext')}
           onPress={handleNextStep}
           icon="arrow-forward"
         />
@@ -434,7 +436,7 @@ export default function RegisterOrganizerScreen() {
     <View style={styles.form}>
       {/* Username */}
       <View style={styles.inputContainer}>
-        {renderInput('username', 'Nom d\'utilisateur', 'at-outline')}
+        {renderInput('username', t('auth.username'), 'at-outline')}
         {errors.username && (
           <Text style={styles.errorText}>{errors.username}</Text>
         )}
@@ -442,7 +444,7 @@ export default function RegisterOrganizerScreen() {
 
       {/* Email */}
       <View style={styles.inputContainer}>
-        {renderInput('email', 'votre@email.com', 'mail-outline', {
+        {renderInput('email', t('auth.emailPlaceholder'), 'mail-outline', {
           keyboardType: 'email-address',
           onChangeText: handleEmailChange,
         })}
@@ -453,7 +455,7 @@ export default function RegisterOrganizerScreen() {
 
       {/* Password */}
       <View style={styles.inputContainer}>
-        {renderInput('password', 'Mot de passe', 'lock-closed-outline', {
+        {renderInput('password', t('auth.password'), 'lock-closed-outline', {
           secureTextEntry: !showPassword,
           showPasswordToggle: true,
           showPassword,
@@ -466,7 +468,7 @@ export default function RegisterOrganizerScreen() {
 
       {/* Confirm Password */}
       <View style={styles.inputContainer}>
-        {renderInput('confirm_password', 'Confirmer le mot de passe', 'lock-closed-outline', {
+        {renderInput('confirm_password', t('auth.confirmPassword'), 'lock-closed-outline', {
           secureTextEntry: !showConfirmPassword,
           showPasswordToggle: true,
           showPassword: showConfirmPassword,
@@ -479,9 +481,9 @@ export default function RegisterOrganizerScreen() {
 
       {/* Terms */}
       <Text style={[styles.termsText, { color: colors.gray500 }]}>
-        En vous inscrivant, vous acceptez nos{' '}
-        <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>Conditions d'utilisation</Text> et notre{' '}
-        <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>Politique de confidentialité</Text>
+        {t('auth.termsAcceptRegister')}{' '}
+        <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Terms')}>{t('auth.termsLink')}</Text> {t('auth.termsAnd')}{' '}
+        <Text style={[styles.termsLink, { color: colors.primary }]} onPress={() => navigation.navigate('Privacy')}>{t('auth.privacyLink')}</Text>
       </Text>
 
       <View style={styles.buttonRow}>
@@ -492,13 +494,13 @@ export default function RegisterOrganizerScreen() {
           scaleValue={0.95}
         >
           <Ionicons name="arrow-back" size={20} color={colors.gray600} />
-          <Text style={[styles.backStepText, { color: colors.gray600 }]}>Retour</Text>
+          <Text style={[styles.backStepText, { color: colors.gray600 }]}>{t('auth.registerOrganizerStepBack')}</Text>
         </AnimatedPressable>
 
         <View style={styles.submitButtonFlex}>
           <EditorialPillCTA
-            eyebrow="Valider"
-            label="Créer mon compte"
+            eyebrow={t('auth.registerOrganizerSubmitEyebrow')}
+            label={t('auth.registerOrganizerSubmit')}
             onPress={handleRegister}
             loading={isLoading}
             icon="checkmark"
@@ -540,10 +542,10 @@ export default function RegisterOrganizerScreen() {
 
         {/* Header */}
         <View style={styles.headerContainer}>
-          <Text style={[styles.eyebrow, { color: colors.accent }]}>Passe pro / Étape {step}</Text>
-          <Text style={[styles.title, { color: colors.gray900 }]}>Devenir Organisateur</Text>
+          <Text style={[styles.eyebrow, { color: colors.accent }]}>{t('auth.registerOrganizerEyebrowStep', { step })}</Text>
+          <Text style={[styles.title, { color: colors.gray900 }]}>{t('auth.registerOrganizerTitle')}</Text>
           <Text style={[styles.subtitle, { color: colors.gray500 }]}>
-            Crée et gère tes propres événements sur EventEz
+            {t('auth.registerOrganizerSubtitle')}
           </Text>
         </View>
 
@@ -552,20 +554,20 @@ export default function RegisterOrganizerScreen() {
           <View style={[styles.progressBar, { backgroundColor: colors.gray200 }]}>
             <View style={[styles.progressFill, { width: step === 1 ? '50%' : '100%', backgroundColor: colors.primary }]} />
           </View>
-          <Text style={[styles.progressText, { color: colors.gray500 }]}>Étape {step} sur 2</Text>
+          <Text style={[styles.progressText, { color: colors.gray500 }]}>{t('auth.registerOrganizerProgress', { step })}</Text>
         </View>
 
         {step === 1 ? renderStep1() : renderStep2()}
 
         {/* Login Link */}
         <View style={styles.loginContainer}>
-          <Text style={[styles.loginText, { color: colors.gray500 }]}>Déjà un compte ?</Text>
+          <Text style={[styles.loginText, { color: colors.gray500 }]}>{t('auth.hasAccount')}</Text>
           <AnimatedPressable
             onPress={() => navigation.replace('Login')}
             animationType="scale"
             scaleValue={0.95}
           >
-            <Text style={[styles.loginLink, { color: colors.primary }]}> Se connecter</Text>
+            <Text style={[styles.loginLink, { color: colors.primary }]}> {t('auth.loginButton')}</Text>
           </AnimatedPressable>
         </View>
       </KeyboardAwareScrollView>

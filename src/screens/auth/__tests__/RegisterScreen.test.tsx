@@ -144,7 +144,7 @@ describe('RegisterScreen', () => {
     fireEvent.press(getByText('Créer mon compte'));
 
     // first_name est validé en premier
-    expect(await findByText(/prenom est requis/i)).toBeTruthy();
+    expect(await findByText(/pr[eé]nom est requis/i)).toBeTruthy();
     expect(mockRegister).not.toHaveBeenCalled();
   });
 

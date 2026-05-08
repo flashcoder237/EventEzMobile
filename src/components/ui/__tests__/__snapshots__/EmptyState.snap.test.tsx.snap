@@ -1,0 +1,431 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`EmptyState snapshots renders default with title only 1`] = `
+<View
+  accessibilityLabel="Aucun evenement"
+  accessibilityRole="text"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 42.5,
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#F9FAFB",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#D1D5DB"
+      name="folder-open-outline"
+      size={64}
+    >
+      folder-open-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#374151",
+        },
+      ]
+    }
+  >
+    Aucun evenement
+  </Text>
+</View>
+`;
+
+exports[`EmptyState snapshots renders with action button 1`] = `
+<View
+  accessibilityLabel="Aucun favori. Ajoutez des evenements a vos favoris"
+  accessibilityRole="text"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 42.5,
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#F9FAFB",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#D1D5DB"
+      name="folder-open-outline"
+      size={64}
+    >
+      folder-open-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#374151",
+        },
+      ]
+    }
+  >
+    Aucun favori
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_400Regular",
+          "fontSize": 14,
+          "lineHeight": 20,
+          "maxWidth": 280,
+          "textAlign": "center",
+        },
+        {
+          "color": "#6B7280",
+        },
+      ]
+    }
+  >
+    Ajoutez des evenements a vos favoris
+  </Text>
+  <View
+    style={
+      {
+        "marginTop": 25.5,
+      }
+    }
+  >
+    <View
+      accessibilityLabel="Decouvrir"
+      accessibilityRole="button"
+      accessibilityState={
+        {
+          "busy": undefined,
+          "checked": undefined,
+          "disabled": false,
+          "expanded": undefined,
+          "selected": undefined,
+        }
+      }
+      accessibilityValue={
+        {
+          "max": undefined,
+          "min": undefined,
+          "now": undefined,
+          "text": undefined,
+        }
+      }
+      accessible={true}
+      collapsable={false}
+      focusable={true}
+      onClick={[Function]}
+      onResponderGrant={[Function]}
+      onResponderMove={[Function]}
+      onResponderRelease={[Function]}
+      onResponderTerminate={[Function]}
+      onResponderTerminationRequest={[Function]}
+      onStartShouldSetResponder={[Function]}
+      style={
+        {
+          "borderRadius": 12,
+          "elevation": 3,
+          "opacity": 1,
+          "shadowColor": "#4F46E5",
+          "shadowOffset": {
+            "height": 4,
+            "width": 0,
+          },
+          "shadowOpacity": 0.15,
+          "shadowRadius": 16,
+        }
+      }
+    >
+      <View
+        colors={
+          [
+            "#4F46E5",
+            "#7C3AED",
+          ]
+        }
+        end={
+          {
+            "x": 1,
+            "y": 0,
+          }
+        }
+        start={
+          {
+            "x": 0,
+            "y": 0,
+          }
+        }
+        style={
+          [
+            {
+              "alignItems": "center",
+              "flexDirection": "row",
+              "justifyContent": "center",
+              "overflow": "hidden",
+            },
+            {
+              "paddingHorizontal": 25.5,
+              "paddingVertical": 12.5,
+            },
+            {
+              "borderRadius": 12,
+            },
+          ]
+        }
+      >
+        <Text
+          style={
+            [
+              {
+                "color": "#FFFFFF",
+                "fontFamily": "Montserrat_600SemiBold",
+                "letterSpacing": 0.3,
+              },
+              {
+                "fontSize": 15,
+              },
+              undefined,
+            ]
+          }
+        >
+          Decouvrir
+        </Text>
+      </View>
+    </View>
+  </View>
+</View>
+`;
+
+exports[`EmptyState snapshots renders with title + description + custom icon 1`] = `
+<View
+  accessibilityLabel="Aucun evenement. Revenez plus tard pour decouvrir les nouveautes."
+  accessibilityRole="text"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "flex": 1,
+        "justifyContent": "center",
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 42.5,
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#F9FAFB",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#D1D5DB"
+      name="calendar-outline"
+      size={64}
+    >
+      calendar-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#374151",
+        },
+      ]
+    }
+  >
+    Aucun evenement
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_400Regular",
+          "fontSize": 14,
+          "lineHeight": 20,
+          "maxWidth": 280,
+          "textAlign": "center",
+        },
+        {
+          "color": "#6B7280",
+        },
+      ]
+    }
+  >
+    Revenez plus tard pour decouvrir les nouveautes.
+  </Text>
+</View>
+`;
+
+exports[`EmptyState snapshots renders withCard variant 1`] = `
+<View
+  accessibilityLabel="Boite vide. Aucun message"
+  accessibilityRole="text"
+  style={
+    [
+      {
+        "alignItems": "center",
+        "borderRadius": 12,
+        "justifyContent": "center",
+        "marginHorizontal": 12.5,
+        "marginVertical": 12.5,
+        "paddingHorizontal": 25.5,
+        "paddingVertical": 34,
+      },
+      {
+        "backgroundColor": "#FFFFFF",
+      },
+      {
+        "elevation": 2,
+        "shadowColor": "#000",
+        "shadowOffset": {
+          "height": 2,
+          "width": 0,
+        },
+        "shadowOpacity": 0.04,
+        "shadowRadius": 6,
+      },
+      undefined,
+    ]
+  }
+>
+  <View
+    style={
+      [
+        {
+          "alignItems": "center",
+          "borderRadius": 50,
+          "height": 100,
+          "justifyContent": "center",
+          "marginBottom": 21,
+          "width": 100,
+        },
+        {
+          "backgroundColor": "#F9FAFB",
+        },
+      ]
+    }
+  >
+    <Text
+      color="#D1D5DB"
+      name="folder-open-outline"
+      size={64}
+    >
+      folder-open-outline
+    </Text>
+  </View>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "FunnelDisplay_700Bold",
+          "fontSize": 18,
+          "letterSpacing": -0.3,
+          "marginBottom": 8.5,
+          "textAlign": "center",
+        },
+        {
+          "color": "#374151",
+        },
+      ]
+    }
+  >
+    Boite vide
+  </Text>
+  <Text
+    style={
+      [
+        {
+          "fontFamily": "Montserrat_400Regular",
+          "fontSize": 14,
+          "lineHeight": 20,
+          "maxWidth": 280,
+          "textAlign": "center",
+        },
+        {
+          "color": "#6B7280",
+        },
+      ]
+    }
+  >
+    Aucun message
+  </Text>
+</View>
+`;
