@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "599399479534",
-    "project_id": "eventez-6dd37",
-    "storage_bucket": "eventez-6dd37.firebasestorage.app"
+    "project_number": "811220905834",
+    "project_id": "eventez-bc719",
+    "storage_bucket": "eventez-bc719.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:599399479534:android:9d052626a867059d9e9bff",
+        "mobilesdk_app_id": "1:811220905834:android:aab9ca46940a7a4213ff13",
         "android_client_info": {
           "package_name": "com.eventez.mobile"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDAjEI_0gmpBJJzTg6p5iwcJbhu9mAZceo"
+          "current_key": "AIzaSyAiZnDOvHVJudsc2zNYJoqppagJLxdgMm4"
         }
       ],
       "services": {
