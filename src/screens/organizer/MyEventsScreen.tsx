@@ -591,14 +591,21 @@ export default function MyEventsScreen() {
         >
           {/* === BANNER WITH OVERLAY === */}
           <View style={styles.imageWrap}>
+            {/* Workaround LQIP : placeholder en source de fond. */}
+            {(item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder) && (
+              <Image
+                source={{ uri: item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder || '' }}
+                contentFit="cover"
+                style={[styles.eventImage, StyleSheet.absoluteFillObject]}
+              />
+            )}
             <Image
               source={
                 getMediaUrl(item.banner_image || item.category?.default_event_image || item.display_image)
                   || require('../../../assets/defaults/default-event.png')
               }
-              placeholder={item.banner_placeholder || item.category?.default_event_image_placeholder || item.display_placeholder || undefined}
-              placeholderContentFit="cover"
-              style={[styles.eventImage, { backgroundColor: colors.gray200 }]}
+              contentFit="cover"
+              style={[styles.eventImage, { backgroundColor: 'transparent' }]}
               cachePolicy="memory-disk"
               transition={300}
             />

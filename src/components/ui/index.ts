@@ -18,6 +18,7 @@ export {
   CategoryCardSkeleton,
   TicketCardSkeleton,
   MessageSkeleton,
+  ConversationSkeleton,
   ConversationItemSkeleton,
   ProfileSkeleton,
   TextLineSkeleton,

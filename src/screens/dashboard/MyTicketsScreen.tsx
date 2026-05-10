@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect, useCallback, useMemo } from 'react';
+import React, { useReducer, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -23,7 +23,7 @@ import Svg, { Circle } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import ExportButton from '../../components/common/ExportButton';
 import { EditorialCanvas, WatermarkNumeral } from '../../components/ui/editorial';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -43,6 +43,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { MyTicketsScreenSkeleton } from '../../components/ui/Skeleton';
 import { StaggeredItem } from '../../components/ui/Animations';
 import { useOfflineTickets } from '../../hooks/useOfflineTickets';
+import { useNetworkSpeed } from '../../hooks/useNetworkSpeed';
 import CacheService from '../../services/CacheService';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -289,6 +290,11 @@ export default function MyTicketsScreen() {
   const { user } = useAuth();
   const { colors, isDark } = useTheme();
   const { cacheMultipleTickets, cachedTicketCount } = useOfflineTickets();
+  const { isOffline } = useNetworkSpeed();
+  // Tracks one-shot auto-redirect to OfflineTickets per offline session.
+  // Reset quand l'utilisateur repasse online — si la connexion retombe,
+  // on re-redirige une fois.
+  const offlineRedirectedRef = useRef(false);
   const { t } = useTranslation();
   const [state, dispatch] = useReducer(ticketsReducer, initialState);
   const {
@@ -307,9 +313,64 @@ export default function MyTicketsScreen() {
   // Canvas: warm light gray in light mode, dark slate in dark mode
   const canvasBg = isDark ? colors.background : CANVAS_LIGHT;
 
+  // Reset le drapeau d'auto-redirect quand on repasse online — comme ca si la
+  // connexion retombe plus tard, on redirige a nouveau.
+  useEffect(() => {
+    if (!isOffline) {
+      offlineRedirectedRef.current = false;
+    }
+  }, [isOffline]);
+
+  // Auto-redirect vers OfflineTickets quand l'ecran est focus, l'utilisateur
+  // est offline ET a des billets en cache. One-shot par session offline.
+  useFocusEffect(
+    useCallback(() => {
+      if (
+        isOffline &&
+        cachedTicketCount > 0 &&
+        !offlineRedirectedRef.current
+      ) {
+        offlineRedirectedRef.current = true;
+        navigation.navigate('OfflineTickets');
+      }
+    }, [isOffline, cachedTicketCount, navigation])
+  );
+
   useEffect(() => {
     fetchRegistrations();
   }, [user?.id]);
+
+  // Extrait du fetch : transforme la liste de registrations en payload pour
+  // useOfflineTickets et lance le caching. Idempotent (cacheTicket dedup
+  // par id), donc safe a appeler sur cache hit ET sur API hit.
+  const refreshOfflineTicketCache = useCallback((data: any[]) => {
+    const ticketsToCache = data
+      .filter((r: any) => r.status === 'confirmed' && r.tickets?.length > 0)
+      .flatMap((r: any) =>
+        r.tickets
+          .filter((tk: any) => tk.qr_code)
+          .map((tk: any) => ({
+            id: tk.id,
+            registration: {
+              id: r.id,
+              reference_code: r.reference_code,
+              event: {
+                id: r.event_details?.id || r.event,
+                title: r.event_details?.title || t('tickets.eventFallback'),
+                start_date: r.event_details?.start_date || '',
+              },
+            },
+            ticket_type_name: tk.ticket_type_name || tk.type_name,
+            quantity: tk.quantity || 1,
+            qr_code: tk.qr_code,
+          }))
+      );
+    if (ticketsToCache.length > 0) {
+      cacheMultipleTickets(ticketsToCache).catch((e: any) => {
+        if (__DEV__) console.error(e);
+      });
+    }
+  }, [cacheMultipleTickets, t]);
 
   const fetchRegistrations = async (bypassCache = false) => {
     const cacheKey = `my-tickets:${user?.id}`;
@@ -319,6 +380,10 @@ export default function MyTicketsScreen() {
         if (cached) {
           dispatch({ type: 'SET_REGISTRATIONS', payload: cached.data });
           dispatch({ type: 'SET_LOADING', payload: false });
+          // Important : alimenter le cache offline meme sur cache hit, pour
+          // garantir que les billets sont toujours dispos hors-ligne
+          // independamment du TTL de CacheService (2 min).
+          refreshOfflineTicketCache(cached.data as any[]);
           if (!cached.isStale) return;
         }
       }
@@ -328,32 +393,7 @@ export default function MyTicketsScreen() {
         CacheService.set(cacheKey, data, 2 * 60 * 1000);
       }
       dispatch({ type: 'SET_REGISTRATIONS', payload: data });
-      const ticketsToCache = data
-        .filter((r: any) => r.status === 'confirmed' && r.tickets?.length > 0)
-        .flatMap((r: any) =>
-          r.tickets
-            .filter((t: any) => t.qr_code)
-            .map((t: any) => ({
-              id: t.id,
-              registration: {
-                id: r.id,
-                reference_code: r.reference_code,
-                event: {
-                  id: r.event_details?.id || r.event,
-                  title: r.event_details?.title || t('tickets.eventFallback'),
-                  start_date: r.event_details?.start_date || '',
-                },
-              },
-              ticket_type_name: t.ticket_type_name || t.type_name,
-              quantity: t.quantity || 1,
-              qr_code: t.qr_code,
-            }))
-        );
-      if (ticketsToCache.length > 0) {
-        cacheMultipleTickets(ticketsToCache).catch((e: any) => {
-          if (__DEV__) console.error(e);
-        });
-      }
+      refreshOfflineTicketCache(data);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement inscriptions:', error);
     } finally {
@@ -1392,14 +1432,21 @@ export default function MyTicketsScreen() {
           </Animated.View>
         )}
 
-        {/* Offline indicator */}
+        {/* Offline indicator — clickable, navigates to OfflineTicketsScreen */}
         {cachedTicketCount > 0 && (
-          <View style={[styles.offlineIndicator, { backgroundColor: colors.successLight }]}>
+          <TouchableOpacity
+            style={[styles.offlineIndicator, { backgroundColor: colors.successLight }]}
+            onPress={() => navigation.navigate('OfflineTickets')}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Voir ${cachedTicketCount} billet${cachedTicketCount > 1 ? 's' : ''} hors-ligne`}
+          >
             <Ionicons name="cloud-done-outline" size={14} color={colors.success} />
             <Text style={[styles.offlineIndicatorText, { color: colors.successDark }]}>
               {cachedTicketCount} billet{cachedTicketCount > 1 ? 's' : ''} hors-ligne
             </Text>
-          </View>
+            <Ionicons name="chevron-forward" size={14} color={colors.success} style={{ marginLeft: 'auto' }} />
+          </TouchableOpacity>
         )}
 
         {/* Tickets list */}

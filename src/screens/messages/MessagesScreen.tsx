@@ -543,6 +543,16 @@ export default function MessagesScreen() {
   // `wsConnected` alimente le polling fallback + l'indicateur visuel.
   const { isConnected: wsConnected } = useMessagingWebSocket({
     onNewMessage: (msg) => {
+      if (__DEV__) {
+        // Log diagnostic : permet de verifier que le handler fire bien et
+        // que le lookup map fonctionne. A retirer si verbose.
+        console.log('[Inbox] message.new received', {
+          convId: msg.conversation,
+          msgId: msg.id,
+          mapSize: conversationIdxMapRef.current.size,
+          mapHasConv: conversationIdxMapRef.current.has(String(msg.conversation)),
+        });
+      }
       // Toast / haptic léger quand un message arrive depuis l'inbox
       // (l'utilisateur n'est pas dans la conversation correspondante puisqu'il
       // est sur la liste). On évite l'haptic si c'est un message envoyé par
@@ -560,6 +570,9 @@ export default function MessagesScreen() {
           // ignore — haptic non critique
         }
       }
+      // Toujours invalider le cache : la prochaine lecture (focus, AppState
+      // active, mount d'un autre ecran) doit voir la donnee fraiche.
+      CacheService.invalidate(`convos:${user?.id}`);
       // Met à jour la conversation correspondante.
       // Optim : lookup O(1) via la Map indexée (vs findIndex O(n) précédemment).
       // Cas gérés :
@@ -568,14 +581,15 @@ export default function MessagesScreen() {
       //    localement, ou conversation créée pendant qu'on était hors-ligne)
       //  - conv déjà en tête (idx === 0) → update in-place sans reorder
       //  - conv au milieu → bring-to-top en construisant le nouveau tableau en O(n) une seule fois
+      let convFound = false;
       setConversations(prev => {
         const convId = String(msg.conversation);
         const idx = conversationIdxMapRef.current.get(convId);
         if (idx === undefined || idx < 0 || idx >= prev.length) {
-          // Conv inconnue → refetch async (hors setState callback)
-          setTimeout(() => fetchConversations(true), 0);
+          // Conv inconnue → on signale pour declencher un refetch hors callback
           return prev;
         }
+        convFound = true;
         const updated = { ...prev[idx] };
         updated.last_message = msg;
         updated.last_message_at = msg.created_at;
@@ -597,6 +611,12 @@ export default function MessagesScreen() {
         }
         return next;
       });
+      // Refetch si la conv n'a pas ete trouvee (DM d'un nouvel interlocuteur,
+      // conv creee pendant qu'on etait hors-ligne, etc.). Hors du setState
+      // callback pour eviter un setState pendant render.
+      if (!convFound) {
+        setTimeout(() => fetchConversations(true).catch(() => {}), 0);
+      }
     },
     onPresenceChanged: (data) => {
       setPresenceMap(prev => {

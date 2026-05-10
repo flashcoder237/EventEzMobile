@@ -164,6 +164,9 @@ export interface Event {
   banner_placeholder?: string; // Data URI JPEG blurre (LQIP) pour chargement progressif
   display_image?: string; // SerializerMethodField
   display_placeholder?: string; // LQIP correspondant a display_image
+  cover_video?: string | null; // URL absolue de la video uploadee
+  cover_video_url?: string; // URL externe (YouTube/Vimeo) brute
+  cover_video_embed?: string; // URL embed prete pour iframe/WebView (genere serveur)
   gallery_images?: EventImage[];
   // Relations
   category?: Category;
@@ -512,6 +515,8 @@ export interface PaymentMethodOption {
   name: string;
   channel: string;
   type: 'mobile_money' | 'card' | 'bank_transfer';
+  /** Plafond par transaction (string Decimal) ou null si pas de limite. */
+  max_amount?: string | null;
 }
 
 export interface CountryPaymentConfig {

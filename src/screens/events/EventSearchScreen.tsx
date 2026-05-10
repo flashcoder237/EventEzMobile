@@ -287,6 +287,16 @@ export default function EventSearchScreen() {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const inputRef = useRef<TextInput>(null);
 
+  // Viewport tracking pour autoplay video sur cards visibles
+  const visibleIdsRef = useRef<Set<string>>(new Set());
+  const [visibleVersion, setVisibleVersion] = useState(0);
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 60 }).current;
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    const next = new Set<string>(viewableItems.map((v) => String(v.item?.id)).filter(Boolean));
+    visibleIdsRef.current = next;
+    setVisibleVersion((v) => v + 1);
+  }).current;
+
   // === Compact mode on scroll direction (only search bar stays) ===
   const [headerH, setHeaderH] = useState(220);
   const lastY = useSharedValue(0);
@@ -591,11 +601,15 @@ export default function EventSearchScreen() {
             variant={columns > 1 ? 'grid' : 'default'}
             fullWidth={columns === 1}
             onPress={() => handleEventPress(item)}
+            coverVideo={item.cover_video}
+            coverVideoEmbed={item.cover_video_embed}
+            isVisible={visibleIdsRef.current.has(item.id)}
           />
         </View>
       );
     },
-    [columns, platformCurrency, navigation]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [columns, platformCurrency, navigation, visibleVersion]
   );
 
   // === ACTIVE FILTER CHIPS (removable, shown when filters active) ===
@@ -938,6 +952,8 @@ export default function EventSearchScreen() {
             onEndReachedThreshold={0.3}
             onScroll={onScroll}
             scrollEventThrottle={16}
+            viewabilityConfig={viewabilityConfig}
+            onViewableItemsChanged={onViewableItemsChanged}
             contentContainerStyle={{
               paddingHorizontal: containerPadding,
               paddingTop: headerH + Spacing.sm,

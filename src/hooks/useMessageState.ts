@@ -189,7 +189,29 @@ function messageReducer(state: MessageState, action: MessageAction): MessageStat
         });
         if (matchIdx !== -1) {
           const next = state.messages.slice();
-          next[matchIdx] = incoming;
+          // Bug fix : eviter le flicker visuel sur les attachments media. Le
+          // tempMessage utilise les URI locales (file://) que expo-image a
+          // deja chargees ; le real message arrive avec les URLs serveur
+          // (https://). Sans merge, expo-image relance un download → frame
+          // blanc → image rechargee. On preserve la URI locale comme `file`
+          // affiche, et on garde l'URL serveur dans `_server_file` pour
+          // les rechargements futurs (apres restart de l'app).
+          const tempMessage = state.messages[matchIdx];
+          const tempAttachments = tempMessage.attachments || [];
+          const incomingAttachments = incoming.attachments || [];
+          const mergedAttachments = incomingAttachments.map((real: any, idx: number) => {
+            const temp: any = tempAttachments[idx];
+            const localUri = temp?.file;
+            if (typeof localUri === 'string' && localUri.startsWith('file://')) {
+              return {
+                ...real,
+                file: localUri,
+                _server_file: real.file,
+              };
+            }
+            return real;
+          });
+          next[matchIdx] = { ...incoming, attachments: mergedAttachments };
           return { ...state, messages: next };
         }
       }

@@ -189,6 +189,19 @@ interface PaymentMethodOption {
   description: string;
   channel?: string;
   type?: string;
+  /** Plafond par transaction ou null si pas de limite. */
+  maxAmount?: number | null;
+}
+
+function formatMoney(amount: number, currency: string): string {
+  const isZeroDecimal = currency === 'XAF' || currency === 'XOF' || currency === 'UGX';
+  try {
+    return new Intl.NumberFormat('fr-FR', {
+      maximumFractionDigits: isZeroDecimal ? 0 : 2,
+    }).format(amount);
+  } catch {
+    return String(amount);
+  }
 }
 
 // Fallback Cameroun (utilisé si l'API échoue)
@@ -241,6 +254,9 @@ export default function PaymentScreen() {
   const [dynamicMethods, setDynamicMethods] = useState<PaymentMethodOption[]>(FALLBACK_METHODS);
   // Drapeau pour afficher un bandeau "Méthodes par défaut affichées" quand le fetch a échoué
   const [methodsFetchFailed, setMethodsFetchFailed] = useState(false);
+  // Loader pendant le refetch sur changement de pays — sinon les anciennes
+  // methodes restent affichees jusqu'au swap brutal.
+  const [methodsLoading, setMethodsLoading] = useState(false);
   // Pays du payeur : choix manuel (AsyncStorage) > locale device > pays événement
   const [payerCountry, setPayerCountry] = useState<string>(() => {
     const detected = detectUserCountry();
@@ -443,7 +459,12 @@ export default function PaymentScreen() {
   // Fetch dynamic payment methods based on payer's country (not event's country)
   useEffect(() => {
     if (!countryHydrated) return;
+    let cancelled = false;
     const fetchPaymentMethods = async () => {
+      setMethodsLoading(true);
+      // Reset selection : les methodes du nouveau pays peuvent etre differentes.
+      setSelectedMethod(null);
+      setDynamicMethods([]);
       try {
         // Si 'Autre pays', on passe la devise de l'événement pour que le backend
         // décide si PayPal est disponible (dépend de la devise).
@@ -451,6 +472,7 @@ export default function PaymentScreen() {
         const eventCountry = eventObj?.location_country_code || eventObj?.location_country;
         const currency = payerCountry === INTL_CODE ? getEventCurrency(eventCountry) : undefined;
         const response = await paymentsAPI.getPaymentMethods(payerCountry, currency);
+        if (cancelled) return;
         const config: CountryPaymentConfig = response.data;
         setCountryConfig(config);
 
@@ -463,11 +485,13 @@ export default function PaymentScreen() {
             description: METHOD_DESCRIPTIONS[m.id] || `Paiement via ${m.name}`,
             channel: m.channel,
             type: m.type,
+            maxAmount: m.max_amount != null ? Number(m.max_amount) : null,
           }));
           setDynamicMethods(methods);
           setMethodsFetchFailed(false);
         }
       } catch (error) {
+        if (cancelled) return;
         if (__DEV__) console.error('[Payment] Error fetching payment methods:', error);
         // Afficher une erreur au lieu d'un fallback silencieux Cameroun
         showError(
@@ -476,10 +500,15 @@ export default function PaymentScreen() {
         );
         setDynamicMethods(FALLBACK_METHODS);
         setMethodsFetchFailed(true);
+      } finally {
+        if (!cancelled) setMethodsLoading(false);
       }
     };
 
     fetchPaymentMethods();
+    return () => {
+      cancelled = true;
+    };
   }, [payerCountry, countryHydrated, registration]);
 
   // Auto-select last used payment method for the selected type
@@ -1286,8 +1315,31 @@ export default function PaymentScreen() {
                 />
               )}
 
-              {dynamicMethods.map((method, idx) => {
+              {methodsLoading && [0, 1, 2].map((i) => (
+                <View
+                  key={`method-skel-${i}`}
+                  style={[
+                    styles.methodCardE,
+                    { backgroundColor: colors.card, borderColor: 'rgba(0,0,0,0.04)', opacity: 0.6 },
+                    Shadows.sm,
+                  ]}
+                >
+                  <View style={styles.methodIndexCol}>
+                    <Text style={[styles.methodIndex, { color: colors.gray300 }]}>0{i + 1}</Text>
+                  </View>
+                  <View style={[styles.methodIconE, { backgroundColor: colors.gray100 }]} />
+                  <View style={styles.methodInfoE}>
+                    <View style={{ height: 14, width: '60%', backgroundColor: colors.gray100, borderRadius: 4, marginBottom: 6 }} />
+                    <View style={{ height: 10, width: '85%', backgroundColor: colors.gray100, borderRadius: 4 }} />
+                  </View>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ))}
+
+              {!methodsLoading && dynamicMethods.map((method, idx) => {
                 const isSelected = selectedMethod === method.id;
+                const overLimit =
+                  method.maxAmount != null && finalTotal > method.maxAmount;
                 return (
                   <AnimatedPressable
                     key={method.id}
@@ -1295,15 +1347,23 @@ export default function PaymentScreen() {
                       styles.methodCardE,
                       {
                         backgroundColor: colors.card,
-                        borderColor: isSelected ? colors.primary : 'rgba(0,0,0,0.06)',
+                        borderColor: isSelected
+                          ? colors.primary
+                          : overLimit
+                            ? '#F59E0B'
+                            : 'rgba(0,0,0,0.06)',
+                        opacity: overLimit ? 0.6 : 1,
                       },
                       isSelected ? Shadows.buttonPrimary : Shadows.sm,
                     ]}
-                    onPress={() => setSelectedMethod(method.id)}
+                    onPress={() => {
+                      if (overLimit) return;
+                      setSelectedMethod(method.id);
+                    }}
                     animationType="scale"
-                    scaleValue={0.98}
+                    scaleValue={overLimit ? 1 : 0.98}
                     accessibilityRole="radio"
-                    accessibilityState={{ selected: isSelected }}
+                    accessibilityState={{ selected: isSelected, disabled: overLimit }}
                     accessibilityLabel={method.name}
                   >
                     {/* Index badge */}
@@ -1321,9 +1381,15 @@ export default function PaymentScreen() {
                     {/* Info */}
                     <View style={styles.methodInfoE}>
                       <Text style={[styles.methodNameE, { color: colors.text }]}>{method.name}</Text>
-                      <Text style={[styles.methodDescriptionE, { color: colors.gray500 }]} numberOfLines={1}>
-                        {method.description}
-                      </Text>
+                      {overLimit ? (
+                        <Text style={[styles.methodDescriptionE, { color: '#B45309' }]} numberOfLines={2}>
+                          Plafond&nbsp;: {formatMoney(method.maxAmount!, eventCurrencyCode)} {eventCurrencyLabel}. Utilisez une carte.
+                        </Text>
+                      ) : (
+                        <Text style={[styles.methodDescriptionE, { color: colors.gray500 }]} numberOfLines={1}>
+                          {method.description}
+                        </Text>
+                      )}
                     </View>
 
                     {/* Radio */}

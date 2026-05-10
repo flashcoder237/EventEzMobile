@@ -82,6 +82,8 @@ export interface EventFormState {
   selectedTagIds: number[];
   customTags: string[];
   bannerImage: string | null;
+  coverVideo: string | null; // chemin local (file://...) si nouveau, sinon URL serveur
+  coverVideoUrl: string; // URL externe YouTube/Vimeo
   galleryImages: string[];
 
   // Step 2 - Date & Location
@@ -168,6 +170,9 @@ export interface UseEventFormReturn {
   handleCustomTagRemove: (tag: string) => void;
   pickImage: () => Promise<void>;
   setBannerImage: (value: string | null) => void;
+  pickCoverVideo: () => Promise<void>;
+  setCoverVideo: (value: string | null) => void;
+  setCoverVideoUrl: (value: string) => void;
   pickGalleryImages: () => Promise<void>;
   removeGalleryImage: (index: number) => void;
   setVisibility: (value: 'public' | 'unlisted' | 'invite_only') => void;
@@ -263,6 +268,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [customTags, setCustomTags] = useState<string[]>([]);
   const [bannerImage, setBannerImage] = useState<string | null>(null);
+  const [coverVideo, setCoverVideo] = useState<string | null>(null);
+  const [coverVideoUrl, setCoverVideoUrl] = useState<string>('');
   const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   // Step 2 - Date & Location
@@ -322,7 +329,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
 
   const form: EventFormState = {
     currentStep, loading, title, description, shortDescription, eventType,
-    categoryId, selectedTagIds, customTags, bannerImage, galleryImages,
+    categoryId, selectedTagIds, customTags, bannerImage, coverVideo, coverVideoUrl, galleryImages,
     startDate, endDate, registrationDeadline, hasRegistrationDeadline,
     locationType, locationName, locationCity, locationAddress, locationCountry,
     onlineUrl, onlinePlatform, onlineInstructions, onlineMeetingId, onlinePasscode,
@@ -575,6 +582,30 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     }
   }, [showAlert]);
 
+  const pickCoverVideo = useCallback(async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      showAlert('Permission requise', "Veuillez autoriser l'acces a la galerie", undefined, 'warning');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Videos,
+      allowsEditing: true,
+      videoMaxDuration: 30,
+      quality: 0.7,
+    });
+    if (!result.canceled && result.assets[0]) {
+      const asset = result.assets[0];
+      // Verifier la taille (max 20 MB)
+      if (asset.fileSize && asset.fileSize > 20 * 1024 * 1024) {
+        showAlert('Video trop lourde', 'La video doit faire moins de 20 Mo.', undefined, 'warning');
+        return;
+      }
+      setCoverVideo(asset.uri);
+      setCoverVideoUrl(''); // mutuellement exclusif avec URL externe
+    }
+  }, [showAlert]);
+
   const pickGalleryImages = useCallback(async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -692,6 +723,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     if (data.selectedTagIds !== undefined) setSelectedTagIds(data.selectedTagIds);
     if (data.customTags !== undefined) setCustomTags(data.customTags);
     if (data.bannerImage !== undefined) setBannerImage(data.bannerImage);
+    if (data.coverVideo !== undefined) setCoverVideo(data.coverVideo);
+    if (data.coverVideoUrl !== undefined) setCoverVideoUrl(data.coverVideoUrl);
     if (data.galleryImages !== undefined) setGalleryImages(data.galleryImages);
     if (data.startDate !== undefined) setStartDate(data.startDate);
     if (data.endDate !== undefined) setEndDate(data.endDate);
@@ -757,6 +790,8 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
           onlineMeetingId: event.online_meeting_id || '',
           onlinePasscode: event.online_passcode || '',
           bannerImage: event.banner_image || null,
+          coverVideo: event.cover_video || null,
+          coverVideoUrl: event.cover_video_url || '',
           maxParticipants: event.max_participants ? String(event.max_participants) : '',
           autoApproveRegistrations: event.auto_approve_registrations ?? true,
           feeBearer: event.fee_bearer || 'participant',
@@ -783,6 +818,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     setTitle(''); setDescription(''); setShortDescription('');
     setCategoryId(null); setSelectedTagIds([]); setCustomTags([]);
     setBannerImage(null);
+    setCoverVideo(null); setCoverVideoUrl('');
     setStartDate(new Date()); setEndDate(new Date(Date.now() + 3600000));
     setRegistrationDeadline(null); setHasRegistrationDeadline(false);
     setLocationType('in_person');
@@ -810,7 +846,7 @@ export function useEventForm(alertActions: AlertActions, editEventId?: string): 
     goToNextStep, goToPrevStep, goToStep, validateStep,
     setTitle, setDescription, setShortDescription, setEventType,
     setCategoryId, setSelectedTagIds, handleCustomTagAdd, handleCustomTagRemove,
-    pickImage, setBannerImage, pickGalleryImages, removeGalleryImage,
+    pickImage, setBannerImage, pickCoverVideo, setCoverVideo, setCoverVideoUrl, pickGalleryImages, removeGalleryImage,
     setVisibility, setAccessCode,
     setStartDate, setEndDate, setRegistrationDeadline, setHasRegistrationDeadline,
     setLocationType, setLocationName, setLocationCity, setLocationAddress, setLocationCountry,

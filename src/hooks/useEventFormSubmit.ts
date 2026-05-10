@@ -114,6 +114,22 @@ function buildFormData(form: EventFormState): FormData {
     } as any);
   }
 
+  // Cover video : fichier local OU URL externe (mutuellement exclusif)
+  if (form.coverVideo && form.coverVideo.startsWith('file://')) {
+    const filename = form.coverVideo.split('/').pop() || 'cover.mp4';
+    const match = /\.(\w+)$/.exec(filename);
+    const ext = (match ? match[1] : 'mp4').toLowerCase();
+    const type = ext === 'mov' ? 'video/quicktime' : ext === 'webm' ? 'video/webm' : 'video/mp4';
+    formData.append('cover_video', {
+      uri: form.coverVideo,
+      name: filename,
+      type,
+    } as any);
+    formData.append('cover_video_url', '');
+  } else if (form.coverVideoUrl) {
+    formData.append('cover_video_url', form.coverVideoUrl);
+  }
+
   return formData;
 }
 

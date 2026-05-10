@@ -6,6 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Modal,
+  Linking,
+  Pressable,
+  Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -58,6 +62,24 @@ export default function VerificationScreen() {
   const [documents, setDocuments] = useState<DocItem[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  // URI de l'image affichee en plein ecran. null = modal ferme.
+  const [zoomedImageUri, setZoomedImageUri] = useState<string | null>(null);
+
+  const handlePreviewPress = async (file: { uri: string; type: string; name: string }) => {
+    if (file.type.startsWith('image/')) {
+      setZoomedImageUri(file.uri);
+      return;
+    }
+    // PDF (ou autre) : ouverture systeme.
+    try {
+      await Linking.openURL(file.uri);
+    } catch {
+      showError(
+        t('common.error'),
+        t('verificationForm.pdfOpenError', { defaultValue: 'Impossible d\'ouvrir le document.' })
+      );
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -376,16 +398,43 @@ export default function VerificationScreen() {
 
                   {doc.file ? (
                     <View style={[styles.docFileRow, { backgroundColor: colors.gray100 }]}>
-                      {doc.file.type.startsWith('image/') ? (
-                        <Image source={doc.file.uri} style={styles.docThumb} transition={200} />
-                      ) : (
-                        <View style={[styles.docThumb, { backgroundColor: `${colors.primary}12`, alignItems: 'center', justifyContent: 'center' }]}>
-                          <Ionicons name="document-outline" size={18} color={colors.primary} />
+                      <TouchableOpacity
+                        onPress={() => handlePreviewPress(doc.file!)}
+                        activeOpacity={0.85}
+                        accessibilityRole="imagebutton"
+                        accessibilityLabel={
+                          doc.file.type.startsWith('image/')
+                            ? t('verificationForm.zoomImageA11y', { defaultValue: 'Agrandir l\'image' })
+                            : t('verificationForm.openPdfA11y', { defaultValue: 'Ouvrir le PDF' })
+                        }
+                        style={{ position: 'relative' }}
+                      >
+                        {doc.file.type.startsWith('image/') ? (
+                          <Image source={doc.file.uri} style={styles.docThumb} transition={200} contentFit="cover" />
+                        ) : (
+                          <View style={[styles.docThumb, { backgroundColor: `${colors.primary}12`, alignItems: 'center', justifyContent: 'center' }]}>
+                            <Ionicons name="document-outline" size={32} color={colors.primary} />
+                          </View>
+                        )}
+                        {/* Petit indicateur "tap to zoom" en overlay */}
+                        <View style={styles.docZoomBadge}>
+                          <Ionicons
+                            name={doc.file.type.startsWith('image/') ? 'expand-outline' : 'open-outline'}
+                            size={12}
+                            color="#FFFFFF"
+                          />
                         </View>
-                      )}
-                      <Text style={[styles.docFileName, { color: colors.text }]} numberOfLines={1}>
-                        {doc.file.name}
-                      </Text>
+                      </TouchableOpacity>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.docFileName, { color: colors.text }]} numberOfLines={1}>
+                          {doc.file.name}
+                        </Text>
+                        <Text style={[styles.docFileHint, { color: colors.gray500 }]} numberOfLines={1}>
+                          {doc.file.type.startsWith('image/')
+                            ? t('verificationForm.tapToZoom', { defaultValue: 'Toucher pour agrandir' })
+                            : t('verificationForm.tapToOpen', { defaultValue: 'Toucher pour ouvrir' })}
+                        </Text>
+                      </View>
                       <TouchableOpacity
                         onPress={() => setDocuments(prev =>
                           prev.map(d => d.key === doc.key ? { ...d, file: null } : d)
@@ -442,6 +491,37 @@ export default function VerificationScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* === ZOOM MODAL — preview plein ecran d'une image uploadee === */}
+      <Modal
+        visible={zoomedImageUri !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setZoomedImageUri(null)}
+        statusBarTranslucent
+      >
+        <Pressable
+          style={styles.zoomBackdrop}
+          onPress={() => setZoomedImageUri(null)}
+          accessibilityLabel={t('common.close', { defaultValue: 'Fermer' })}
+        >
+          {zoomedImageUri && (
+            <Image
+              source={zoomedImageUri}
+              style={styles.zoomImage}
+              contentFit="contain"
+              transition={150}
+            />
+          )}
+          <TouchableOpacity
+            style={styles.zoomCloseBtn}
+            onPress={() => setZoomedImageUri(null)}
+            hitSlop={{ top: 12, right: 12, bottom: 12, left: 12 }}
+          >
+            <Ionicons name="close" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+        </Pressable>
+      </Modal>
     </EditorialCanvas>
   );
 }
@@ -663,26 +743,63 @@ const styles = StyleSheet.create({
   docFileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 12,
+    gap: Spacing.md,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
   },
   docThumb: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  docZoomBadge: {
+    position: 'absolute',
+    bottom: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   docFileName: {
-    flex: 1,
     fontFamily: FontFamily.semiBold,
-    fontSize: 11,
+    fontSize: 13,
     letterSpacing: -0.1,
   },
+  docFileHint: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    letterSpacing: -0.05,
+    marginTop: 2,
+  },
   docRemoveBtn: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  zoomImage: {
+    width: Dimensions.get('window').width,
+    height: Dimensions.get('window').height * 0.85,
+  },
+  zoomCloseBtn: {
+    position: 'absolute',
+    top: 48,
+    right: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
   },

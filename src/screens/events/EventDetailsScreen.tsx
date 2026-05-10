@@ -34,11 +34,11 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // Wrapper anime autour d'expo-image pour garder parallax + placeholder LQIP
-const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 import { RootStackParamList } from '../../types';
 import { Colors, FontFamily, FontSizes, BorderRadius, Spacing, Shadows, TextStyles } from '../../constants/theme';
 import BlurHeader from '../../components/ui/BlurHeader';
 import FollowEventButton from '../../components/events/FollowEventButton';
+import EventCoverMedia from '../../components/events/EventCoverMedia';
 import FollowUserButton from '../../components/common/FollowUserButton';
 import AddToCalendarButton from '../../components/events/AddToCalendarButton';
 // Tabs visibles immédiatement (above-the-fold) : import statique.
@@ -272,15 +272,26 @@ export default function EventDetailsScreen() {
           </TouchableOpacity>
 
           {event.banner_image && (
-            <Image
-              source={getMediaUrl(event.banner_image)!}
-              placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
-              placeholderContentFit="cover"
-              contentFit="cover"
-              style={visibilityStyles.gateBanner}
-              cachePolicy="memory-disk"
-              transition={300}
-            />
+            <View style={visibilityStyles.gateBanner}>
+              {/* Workaround expo-image v3 : placeholder LQIP rendu comme
+                  source de fond (contentFit="cover" garanti) sous l'image
+                  réelle. placeholderContentFit n'est pas honoré pour les
+                  data URIs petits sur natif. */}
+              {(event.banner_placeholder || event.category?.default_event_image_placeholder) && (
+                <Image
+                  source={{ uri: event.banner_placeholder || event.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL }}
+                  contentFit="cover"
+                  style={StyleSheet.absoluteFillObject}
+                />
+              )}
+              <Image
+                source={getMediaUrl(event.banner_image)!}
+                contentFit="cover"
+                style={StyleSheet.absoluteFillObject}
+                cachePolicy="memory-disk"
+                transition={300}
+              />
+            </View>
           )}
 
           <Text style={[visibilityStyles.gateTitle, { color: colors.gray900 }]}>{event.title}</Text>
@@ -383,20 +394,43 @@ export default function EventDetailsScreen() {
             4. Hint visuel "1/N" ou "Agrandir" (pointerEvents none, laisse passer)
             5. Header overlay (boutons back/share/follow, box-none pour les zones vides) */}
         <View style={styles.bannerContainer}>
-          {/* 1. Image */}
-          <AnimatedExpoImage
-            source={
-              getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)
-                ? { uri: getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)! }
-                : require('../../../assets/defaults/default-event.png')
-            }
-            placeholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
-            placeholderContentFit="cover"
-            contentFit="cover"
-            transition={400}
-            cachePolicy="memory-disk"
-            style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}
-          />
+          {/* 1. Image OU video */}
+          {(event?.cover_video || event?.cover_video_embed) ? (
+            <Animated.View style={[styles.bannerImage, bannerAnimatedStyle]}>
+              <EventCoverMedia
+                event={event}
+                mode="hero"
+                shouldPlay
+                style={{ width: '100%', height: '100%' }}
+                fallbackImageUri={getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)}
+                fallbackPlaceholder={event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL}
+              />
+            </Animated.View>
+          ) : (
+            <Animated.View style={[styles.bannerImage, { backgroundColor: colors.gray200 }, bannerAnimatedStyle]}>
+              {/* Workaround expo-image v3 : placeholder LQIP rendu comme
+                  source de fond pour garantir le remplissage du conteneur
+                  (placeholderContentFit ignoré sur petits data URIs en natif). */}
+              {(event?.banner_placeholder || event?.category?.default_event_image_placeholder) && (
+                <Image
+                  source={{ uri: event?.banner_placeholder || event?.category?.default_event_image_placeholder || DEFAULT_BLUR_DATA_URL }}
+                  contentFit="cover"
+                  style={StyleSheet.absoluteFillObject}
+                />
+              )}
+              <Image
+                source={
+                  getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)
+                    ? { uri: getMediaUrl(event?.banner_image || event?.category?.default_event_image || routeImageUrl)! }
+                    : require('../../../assets/defaults/default-event.png')
+                }
+                contentFit="cover"
+                transition={400}
+                cachePolicy="memory-disk"
+                style={StyleSheet.absoluteFillObject}
+              />
+            </Animated.View>
+          )}
 
           {/* 2. Triple gradient overlay (visuel uniquement) */}
           <LinearGradient

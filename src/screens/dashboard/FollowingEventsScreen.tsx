@@ -197,13 +197,20 @@ function HeroCardComponent({
       style={[styles.heroCard, { backgroundColor: colors.card }, Shadows.lg]}
       onPress={() => onPress(event)}
     >
+      {/* Workaround LQIP : placeholder rendu comme `source` de fond
+          (placeholderContentFit non honoré sur petits data URIs en natif). */}
+      {(event.banner_placeholder || event.category?.default_event_image_placeholder) && (
+        <Image
+          source={{ uri: event.banner_placeholder || event.category?.default_event_image_placeholder || '' }}
+          contentFit="cover"
+          style={StyleSheet.absoluteFillObject}
+        />
+      )}
       <Image
         source={
           getMediaUrl(event.banner_image || event.category?.default_event_image) ||
           require('../../../assets/defaults/default-event.png')
         }
-        placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
-        placeholderContentFit="cover"
         style={StyleSheet.absoluteFillObject}
         contentFit="cover"
         cachePolicy="memory-disk"
@@ -314,13 +321,19 @@ function MasonryCardComponent({
     >
       {hasImage && (
         <View style={[styles.masonryImageWrap, { height: imageHeight }]}>
+          {/* Workaround LQIP : placeholder en source de fond. */}
+          {(event.banner_placeholder || event.category?.default_event_image_placeholder) && (
+            <Image
+              source={{ uri: event.banner_placeholder || event.category?.default_event_image_placeholder || '' }}
+              contentFit="cover"
+              style={StyleSheet.absoluteFillObject}
+            />
+          )}
           <Image
             source={
               getMediaUrl(event.banner_image || event.category?.default_event_image) ||
               require('../../../assets/defaults/default-event.png')
             }
-            placeholder={event.banner_placeholder || event.category?.default_event_image_placeholder || undefined}
-            placeholderContentFit="cover"
             style={StyleSheet.absoluteFillObject}
             contentFit="cover"
             cachePolicy="memory-disk"

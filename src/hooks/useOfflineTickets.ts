@@ -107,9 +107,19 @@ export function useOfflineTickets() {
     // chaque visite de RegistrationDetails. loadCacheIndex purge déjà les
     // entrées au-delà de CACHE_EXPIRY_DAYS, donc la présence dans l'index
     // garantit la fraîcheur. options.force=true pour invalidation explicite.
-    if (!options?.force && ticket.id in cachedTickets) {
-      if (__DEV__) console.log(`[OfflineTickets] ${ticket.id} déjà caché — skip download`);
-      return true;
+    // On lit AsyncStorage directement pour éviter une closure stale en cas
+    // d'appels enchaînés (cacheMultipleTickets).
+    if (!options?.force) {
+      try {
+        const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+        const freshIndex: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
+        if (ticket.id in freshIndex) {
+          if (__DEV__) console.log(`[OfflineTickets] ${ticket.id} déjà caché — skip download`);
+          return true;
+        }
+      } catch {
+        // si lecture échoue, on continue le téléchargement par sécurité
+      }
     }
 
     try {
@@ -162,9 +172,16 @@ export function useOfflineTickets() {
         JSON.stringify(cachedTicket)
       );
 
-      // Mettre à jour l'index
-      const newIndex = {
-        ...cachedTickets,
+      // Mettre à jour l'index — on relit AsyncStorage frais plutôt que
+      // d'utiliser `cachedTickets` du closure, sinon en cas d'appels
+      // parallèles (Promise.all dans cacheMultipleTickets) chaque appel
+      // écrase l'index des autres.
+      const currentIndexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const currentIndex: CachedTicketIndex = currentIndexJson
+        ? JSON.parse(currentIndexJson)
+        : {};
+      const newIndex: CachedTicketIndex = {
+        ...currentIndex,
         [ticket.id]: {
           registrationId: ticket.registration.id,
           eventTitle: ticket.registration.event.title,
@@ -182,7 +199,7 @@ export function useOfflineTickets() {
       if (__DEV__) console.error('Erreur mise en cache ticket:', error);
       return false;
     }
-  }, [cachedTickets]);
+  }, []);
 
   // Récupérer un ticket depuis le cache
   const getCachedTicket = useCallback(async (ticketId: string): Promise<CachedTicket | null> => {
@@ -198,12 +215,16 @@ export function useOfflineTickets() {
     }
   }, []);
 
-  // Récupérer tous les tickets en cache
+  // Récupérer tous les tickets en cache — lit l'index AsyncStorage en frais
+  // pour éviter les closures stales (notamment après cacheMultipleTickets
+  // appelé juste avant loadTickets dans OfflineTicketsScreen).
   const getAllCachedTickets = useCallback(async (): Promise<CachedTicket[]> => {
     try {
+      const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const index: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
       const tickets: CachedTicket[] = [];
 
-      for (const ticketId of Object.keys(cachedTickets)) {
+      for (const ticketId of Object.keys(index)) {
         const ticket = await getCachedTicket(ticketId);
         if (ticket) {
           tickets.push(ticket);
@@ -218,14 +239,17 @@ export function useOfflineTickets() {
       if (__DEV__) console.error('Erreur récupération tous les tickets:', error);
       return [];
     }
-  }, [cachedTickets, getCachedTicket]);
+  }, [getCachedTicket]);
 
-  // Supprimer un ticket du cache
+  // Supprimer un ticket du cache — relit l'index frais pour éviter les
+  // closures stales.
   const removeCachedTicket = useCallback(async (ticketId: string): Promise<boolean> => {
     try {
       await AsyncStorage.removeItem(`${CACHE_KEY_PREFIX}${ticketId}`);
 
-      const newIndex = { ...cachedTickets };
+      const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const currentIndex: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
+      const newIndex = { ...currentIndex };
       delete newIndex[ticketId];
 
       await AsyncStorage.setItem(CACHE_INDEX_KEY, JSON.stringify(newIndex));
@@ -236,12 +260,16 @@ export function useOfflineTickets() {
       if (__DEV__) console.error('Erreur suppression ticket cache:', error);
       return false;
     }
-  }, [cachedTickets]);
+  }, []);
 
-  // Vider tout le cache
+  // Vider tout le cache — relit l'index frais pour s'assurer de purger
+  // toutes les entrées (y compris celles ajoutées hors-React state).
   const clearCache = useCallback(async (): Promise<boolean> => {
     try {
-      for (const ticketId of Object.keys(cachedTickets)) {
+      const indexJson = await AsyncStorage.getItem(CACHE_INDEX_KEY);
+      const currentIndex: CachedTicketIndex = indexJson ? JSON.parse(indexJson) : {};
+
+      for (const ticketId of Object.keys(currentIndex)) {
         await AsyncStorage.removeItem(`${CACHE_KEY_PREFIX}${ticketId}`);
       }
 
@@ -253,12 +281,18 @@ export function useOfflineTickets() {
       if (__DEV__) console.error('Erreur vidage cache:', error);
       return false;
     }
-  }, [cachedTickets]);
+  }, []);
 
-  // Mettre en cache plusieurs tickets
+  // Mettre en cache plusieurs tickets — séquentiel pour éviter que des
+  // écritures concurrentes sur l'index AsyncStorage ne s'écrasent entre elles
+  // (cf. fix race condition dans cacheTicket).
   const cacheMultipleTickets = useCallback(async (tickets: Parameters<typeof cacheTicket>[0][]) => {
-    const results = await Promise.all(tickets.map(ticket => cacheTicket(ticket)));
-    return results.filter(Boolean).length;
+    let synced = 0;
+    for (const ticket of tickets) {
+      const ok = await cacheTicket(ticket);
+      if (ok) synced += 1;
+    }
+    return synced;
   }, [cacheTicket]);
 
   // Vérifier si un ticket est en cache

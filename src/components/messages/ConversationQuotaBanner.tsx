@@ -65,7 +65,7 @@ export default function ConversationQuotaBanner({
   conversationType,
   onQuotaUpdate,
 }: Props) {
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const { showSuccess, showError } = useAlert();
   const [state, setState] = useState<QuotaState | null>(null);
@@ -212,18 +212,34 @@ export default function ConversationQuotaBanner({
           )}
 
           {state.auto_delete_at && !state.is_read_only && state.days_until_delete != null && (
-            <View style={styles.metaPill}>
-              <Ionicons name="calendar-outline" size={11} color="#7c3aed" />
-              <Text style={styles.metaPillText}>
+            <View
+              style={[
+                styles.metaPill,
+                {
+                  backgroundColor: isDark ? colors.gray100 : '#fff',
+                  borderColor: isDark ? colors.border : '#e5e7eb',
+                },
+              ]}
+            >
+              <Ionicons name="calendar-outline" size={11} color={isDark ? '#a78bfa' : '#7c3aed'} />
+              <Text style={[styles.metaPillText, { color: colors.text }]}>
                 {t('componentsMessages.quotaDeleteIn', { count: state.days_until_delete })}
               </Text>
             </View>
           )}
 
           {lastExportAt && (
-            <View style={[styles.metaPill, { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }]}>
-              <Ionicons name="download-outline" size={11} color="#059669" />
-              <Text style={[styles.metaPillText, { color: '#065f46' }]}>
+            <View
+              style={[
+                styles.metaPill,
+                {
+                  backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5',
+                  borderColor: isDark ? 'rgba(16,185,129,0.35)' : '#a7f3d0',
+                },
+              ]}
+            >
+              <Ionicons name="download-outline" size={11} color={isDark ? '#34d399' : '#059669'} />
+              <Text style={[styles.metaPillText, { color: isDark ? '#6ee7b7' : '#065f46' }]}>
                 {t('componentsMessages.quotaSavedRelative', { relative: formatRelativeFr(lastExportAt, t) })}
               </Text>
             </View>
@@ -236,7 +252,11 @@ export default function ConversationQuotaBanner({
             disabled={exporting}
             style={({ pressed }) => [
               styles.actionButtonSecondary,
-              { opacity: pressed || exporting ? 0.7 : 1, borderColor: colors.gray200 },
+              {
+                opacity: pressed || exporting ? 0.7 : 1,
+                backgroundColor: isDark ? colors.gray100 : '#fff',
+                borderColor: isDark ? colors.border : colors.gray200,
+              },
             ]}
           >
             {exporting ? (
@@ -310,16 +330,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 999,
   },
   metaPillText: {
     fontSize: 10,
-    color: '#374151',
     fontWeight: '500',
   },
   actionButtonPrimary: {
@@ -340,7 +357,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#fff',
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,

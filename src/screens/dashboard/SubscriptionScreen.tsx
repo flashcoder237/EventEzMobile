@@ -233,7 +233,7 @@ export default function SubscriptionScreen() {
     stopVerification: stopSubscriptionVerification,
   } = usePaymentVerification({
     pollInterval: 5000,
-    maxAttempts: 60,
+    maxAttempts: 120, // 10 min (Mobile Money peut prendre jusqu'a 10 min)
     maxConsecutiveErrors: 10,
     // Use the subscription-specific verify endpoint
     verifyFn: (paymentId: string) => subscriptionsAPI.verifyPayment(paymentId),
@@ -298,10 +298,10 @@ export default function SubscriptionScreen() {
                   visible: true,
                   step: 'select-method',
                   plan,
-                  paymentId: data.payment_id,
+                  paymentId: data.payment?.id ?? data.payment_id,
                   method: null,
                   phone: '',
-                  amount: data.amount || price,
+                  amount: data.calculated_price ?? data.payment?.amount ?? data.amount ?? price,
                   errorMessage: '',
                 });
               } else {
@@ -356,21 +356,25 @@ export default function SubscriptionScreen() {
       const fullPhone = phone ? `${phonePrefix}${phone.replace(new RegExp(`^\\+?${prefixDigits}`), '')}` : '';
       const res = await subscriptionsAPI.processPayment(currentPaymentId, method, fullPhone);
       const data = res.data;
+      // Backend retourne { success, payment: { status }, authorization_url? }
+      const subStatus = (data.payment?.status || data.status || '').toLowerCase();
 
-      if (data.status === 'processing' || data.status === 'pending') {
-        startSubscriptionVerification(currentPaymentId);
-      } else if (data.authorization_url) {
-        Linking.openURL(data.authorization_url);
-        startSubscriptionVerification(currentPaymentId);
-      } else if (data.status === 'completed') {
-        setPayment((prev) => ({ ...prev, step: 'success' }));
-        loadData();
-      } else {
+      if (data.success === false) {
         setPayment((prev) => ({
           ...prev,
           step: 'failed',
           errorMessage: data.message || t('subscriptionForm.paymentDefaultError'),
         }));
+      } else if (data.authorization_url) {
+        // Carte : ouvrir le navigateur + poller
+        Linking.openURL(data.authorization_url);
+        startSubscriptionVerification(currentPaymentId);
+      } else if (subStatus === 'completed') {
+        setPayment((prev) => ({ ...prev, step: 'success' }));
+        loadData();
+      } else {
+        // Mobile Money en cours : polling jusqu'a confirmation OTP
+        startSubscriptionVerification(currentPaymentId);
       }
     } catch (err: any) {
       const errorMessage =

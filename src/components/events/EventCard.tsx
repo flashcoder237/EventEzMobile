@@ -7,6 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
+import { Video, ResizeMode } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +92,13 @@ interface EventCardProps {
   fullWidth?: boolean;
   onPress?: () => void;
   onLikePress?: () => void;
+  /** Cover video uploadee (URL absolue ou chemin relatif) */
+  coverVideo?: string | null;
+  /** Cover video embed (URL YouTube/Vimeo iframe-ready) */
+  coverVideoEmbed?: string;
+  /** Si la card est actuellement visible dans le viewport (pour autoplay video).
+   *  Doit etre fourni par le parent via FlatList viewabilityConfig. Defaut: false. */
+  isVisible?: boolean;
 }
 
 function EventCardComponent({
@@ -115,13 +123,21 @@ function EventCardComponent({
   fullWidth = false,
   onPress,
   onLikePress,
+  coverVideo,
+  coverVideoEmbed,
+  isVisible = false,
 }: EventCardProps) {
   const { colors, isDark } = useTheme();
   const { t } = useTranslation();
   const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
 
   const resolvedImageUrl = getMediaUrl(imageUrl);
+  const resolvedVideoUrl = coverVideo ? getMediaUrl(coverVideo) : null;
   const blurPlaceholder = imagePlaceholder || DEFAULT_BLUR_DATA_URL;
+  const hasCardVideo = !!resolvedVideoUrl;
+  // Note: pour les cards on n'utilise PAS l'embed YouTube/Vimeo (WebView dans une FlatList = trop lourd).
+  // Si seul cover_video_embed est fourni (pas d'upload), on retombe sur l'image + petit badge "Video".
+  const hasEmbedOnly = !hasCardVideo && !!coverVideoEmbed;
 
   // === Derived values ===
   const priceParams = { isFree, price, priceMax, currency, eventType, t };
@@ -139,6 +155,34 @@ function EventCardComponent({
   const locIcon: keyof typeof Ionicons.glyphMap =
     locationType === 'online' ? 'videocam-outline' :
     locationType === 'hybrid' ? 'globe-outline' : 'location-outline';
+
+  // VideoOverlay : a poser RIGHT AFTER chaque <ExpoImage /> dans les variants
+  // pour que la video uploadee s'affiche par-dessus, et un badge "Video" si seul un embed est dispo.
+  const VideoOverlay = () => {
+    if (hasCardVideo) {
+      return (
+        <Video
+          source={{ uri: resolvedVideoUrl! }}
+          posterSource={resolvedImageUrl ? { uri: resolvedImageUrl } : undefined}
+          usePoster
+          shouldPlay={isVisible}
+          isMuted
+          isLooping
+          resizeMode={ResizeMode.COVER}
+          style={StyleSheet.absoluteFill as any}
+        />
+      );
+    }
+    if (hasEmbedOnly) {
+      return (
+        <View style={styles.videoBadge}>
+          <Ionicons name="play-circle" size={12} color="#fff" />
+          <Text style={styles.videoBadgeText}>Video</Text>
+        </View>
+      );
+    }
+    return null;
+  };
 
   // ============================================================
   // HORIZONTAL VARIANT — list item with date tile + body + bookmark
@@ -162,15 +206,24 @@ function EventCardComponent({
       >
         {/* Image with floating date tile */}
         <View style={styles.horizontalImageWrap}>
+          {/* Placeholder LQIP rendu comme source de fond (workaround
+              expo-image v3 : placeholderContentFit ignoré sur petits data
+              URIs en natif → l'image apparaissait minuscule). */}
+          {blurPlaceholder && (
+            <ExpoImage
+              source={{ uri: blurPlaceholder }}
+              contentFit="cover"
+              style={[styles.horizontalImage, StyleSheet.absoluteFillObject]}
+            />
+          )}
           <ExpoImage
             source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            placeholder={blurPlaceholder}
-            placeholderContentFit="cover"
             contentFit="cover"
             transition={300}
             cachePolicy="memory-disk"
-            style={[styles.horizontalImage, { backgroundColor: colors.gray100 }]}
+            style={[styles.horizontalImage, { backgroundColor: 'transparent' }]}
           />
+          <VideoOverlay />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.35)']}
             style={StyleSheet.absoluteFill}
@@ -254,15 +307,21 @@ function EventCardComponent({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.compactImageWrap}>
+          {blurPlaceholder && (
+            <ExpoImage
+              source={{ uri: blurPlaceholder }}
+              contentFit="cover"
+              style={[styles.compactImage, StyleSheet.absoluteFillObject]}
+            />
+          )}
           <ExpoImage
             source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            placeholder={blurPlaceholder}
-            placeholderContentFit="cover"
             contentFit="cover"
             transition={300}
             cachePolicy="memory-disk"
-            style={[styles.compactImage, { backgroundColor: colors.gray100 }]}
+            style={[styles.compactImage, { backgroundColor: 'transparent' }]}
           />
+          <VideoOverlay />
           <View style={[styles.dateTileFloatSmall, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
             <Text style={[styles.dateTileDaySmall, { color: Colors.gray900 }]}>{day}</Text>
             <Text style={[styles.dateTileMonthSmall, { color: colors.accent }]}>{month}</Text>
@@ -311,15 +370,21 @@ function EventCardComponent({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.featuredImageContainer}>
+          {blurPlaceholder && (
+            <ExpoImage
+              source={{ uri: blurPlaceholder }}
+              contentFit="cover"
+              style={[styles.featuredImage, StyleSheet.absoluteFillObject]}
+            />
+          )}
           <ExpoImage
             source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            placeholder={blurPlaceholder}
-            placeholderContentFit="cover"
             contentFit="cover"
             transition={300}
             cachePolicy="memory-disk"
-            style={[styles.featuredImage, { backgroundColor: colors.gray100 }]}
+            style={[styles.featuredImage, { backgroundColor: 'transparent' }]}
           />
+          <VideoOverlay />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.55)']}
             style={StyleSheet.absoluteFill}
@@ -425,15 +490,21 @@ function EventCardComponent({
         accessibilityHint={eventAccessibilityHint}
       >
         <View style={styles.gridImageWrap}>
+          {blurPlaceholder && (
+            <ExpoImage
+              source={{ uri: blurPlaceholder }}
+              contentFit="cover"
+              style={[styles.gridImage, StyleSheet.absoluteFillObject]}
+            />
+          )}
           <ExpoImage
             source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-            placeholder={blurPlaceholder}
-            placeholderContentFit="cover"
             contentFit="cover"
             transition={300}
             cachePolicy="memory-disk"
-            style={[styles.gridImage, { backgroundColor: colors.gray100 }]}
+            style={[styles.gridImage, { backgroundColor: 'transparent' }]}
           />
+          <VideoOverlay />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.35)']}
             style={StyleSheet.absoluteFill}
@@ -506,15 +577,21 @@ function EventCardComponent({
       accessibilityHint={eventAccessibilityHint}
     >
       <View style={styles.defaultImageWrap}>
+        {blurPlaceholder && (
+          <ExpoImage
+            source={{ uri: blurPlaceholder }}
+            contentFit="cover"
+            style={[styles.defaultImage, StyleSheet.absoluteFillObject]}
+          />
+        )}
         <ExpoImage
           source={resolvedImageUrl ? { uri: resolvedImageUrl } : DEFAULT_EVENT_IMAGE}
-          placeholder={blurPlaceholder}
-          placeholderContentFit="cover"
           contentFit="cover"
           transition={300}
           cachePolicy="memory-disk"
-          style={[styles.defaultImage, { backgroundColor: colors.gray100 }]}
+          style={[styles.defaultImage, { backgroundColor: 'transparent' }]}
         />
+        <VideoOverlay />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.45)']}
           style={StyleSheet.absoluteFill}
@@ -593,6 +670,25 @@ function EventCardComponent({
 }
 
 const styles = StyleSheet.create({
+  // === VIDEO INDICATORS (overlay sur card quand video presente) ===
+  videoBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  videoBadgeText: {
+    color: '#fff',
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10,
+    letterSpacing: 0.5,
+  },
   // === SHARED ATOMS ===
   eyebrowPill: {
     alignSelf: 'flex-start',

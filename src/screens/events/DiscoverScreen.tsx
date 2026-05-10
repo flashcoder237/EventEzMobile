@@ -29,6 +29,7 @@ import Animated, {
 import { Image } from 'expo-image';
 
 import { useTranslation } from 'react-i18next';
+import EventCoverMedia from '../../components/events/EventCoverMedia';
 import { eventsAPI, categoriesAPI, recommendationsAPI, advertisementsAPI, getMediaUrl } from '../../api';
 import type { AdvertisementPublic } from '../../api';
 import { Event, Category, RootStackParamList, MainTabParamList } from '../../types';
@@ -201,6 +202,16 @@ export default function DiscoverScreen() {
 
   // === Ads (géo-ciblées admin/modérateur) ===
   const [ads, setAds] = useState<AdvertisementPublic[]>([]);
+
+  // === Viewport tracking pour autoplay video sur cards visibles ===
+  const visibleIdsRef = React.useRef<Set<string>>(new Set());
+  const [visibleVersion, setVisibleVersion] = useState(0);
+  const viewabilityConfig = React.useRef({ itemVisiblePercentThreshold: 60 }).current;
+  const onViewableItemsChanged = React.useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    const next = new Set<string>(viewableItems.map((v) => String(v.item?.id)).filter(Boolean));
+    visibleIdsRef.current = next;
+    setVisibleVersion((v) => v + 1);
+  }).current;
 
   // === "Pour vous" : section paginée infinite-scroll en bas du feed ===
   // Distincte de `recommendations` (top, limit=10) — celle-ci pagine sans
@@ -618,18 +629,14 @@ export default function DiscoverScreen() {
         ]}
       >
         <View style={styles.heroImageWrap}>
-          {img ? (
-            <Image
-              source={{ uri: img }}
-              placeholder={ph}
-              style={styles.heroImage}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={300}
-            />
-          ) : (
-            <View style={[styles.heroImage, { backgroundColor: colors.primary }]} />
-          )}
+          <EventCoverMedia
+            event={ev}
+            mode="hero"
+            shouldPlay
+            style={styles.heroImage}
+            fallbackImageUri={img}
+            fallbackPlaceholder={ph}
+          />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.55)']}
             style={StyleSheet.absoluteFill}
@@ -739,18 +746,14 @@ export default function DiscoverScreen() {
           ]}
         >
           <View style={styles.nearbyImageWrap}>
-            {img ? (
-              <Image
-                source={{ uri: img }}
-                placeholder={ph}
-                style={styles.nearbyImage}
-                contentFit="cover"
-                cachePolicy="memory-disk"
-                transition={250}
-              />
-            ) : (
-              <View style={[styles.nearbyImage, { backgroundColor: colors.primary }]} />
-            )}
+            <EventCoverMedia
+              event={item}
+              mode="card"
+              shouldPlay={visibleIdsRef.current.has(item.id)}
+              style={styles.nearbyImage}
+              fallbackImageUri={img}
+              fallbackPlaceholder={ph}
+            />
             <View
               style={[
                 styles.nearbyDateTile,
@@ -920,6 +923,7 @@ export default function DiscoverScreen() {
                   <Image
                     source={{ uri: img }}
                     placeholder={cat.image_placeholder}
+                    placeholderContentFit="cover"
                     style={StyleSheet.absoluteFill}
                     contentFit="cover"
                     cachePolicy="memory-disk"
@@ -1046,18 +1050,14 @@ export default function DiscoverScreen() {
         ]}
       >
         <View style={styles.recImageWrap}>
-          {img ? (
-            <Image
-              source={{ uri: img }}
-              placeholder={ph}
-              style={styles.recImage}
-              contentFit="cover"
-              cachePolicy="memory-disk"
-              transition={300}
-            />
-          ) : (
-            <View style={[styles.recImage, { backgroundColor: colors.primary }]} />
-          )}
+          <EventCoverMedia
+            event={ev}
+            mode="hero"
+            shouldPlay
+            style={styles.recImage}
+            fallbackImageUri={img}
+            fallbackPlaceholder={ph}
+          />
           {ev.category?.name && (
             <View style={[styles.recReasonPill, { backgroundColor: 'rgba(255,255,255,0.95)' }]}>
               <Ionicons name="sparkles" size={11} color={colors.accent} />
@@ -1528,6 +1528,9 @@ export default function DiscoverScreen() {
                       initialNumToRender={3}
                       maxToRenderPerBatch={6}
                       windowSize={5}
+                      viewabilityConfig={viewabilityConfig}
+                      onViewableItemsChanged={onViewableItemsChanged}
+                      extraData={visibleVersion}
                       getItemLayout={(_, i) => ({ length: NEARBY_ITEM_LENGTH, offset: NEARBY_ITEM_LENGTH * i, index: i })}
                     />
                   </View>
@@ -1762,24 +1765,15 @@ export default function DiscoverScreen() {
                               </View>
                             </View>
 
-                            {/* Hero image full-width 16:9 */}
-                            {img ? (
-                              <Image
-                                source={{ uri: img }}
-                                placeholder={placeholder}
-                                style={styles.feedCardImage}
-                                contentFit="cover"
-                                transition={300}
-                                cachePolicy="memory-disk"
-                              />
-                            ) : (
-                              <View
-                                style={[
-                                  styles.feedCardImage,
-                                  { backgroundColor: colors.gray100 },
-                                ]}
-                              />
-                            )}
+                            {/* Hero image OU video full-width 16:9 (autoplay si visible dans viewport) */}
+                            <EventCoverMedia
+                              event={ev}
+                              mode="card"
+                              shouldPlay={visibleIdsRef.current.has(ev.id)}
+                              style={styles.feedCardImage}
+                              fallbackImageUri={img}
+                              fallbackPlaceholder={placeholder}
+                            />
 
                             {/* Body */}
                             <View style={styles.feedCardBody}>

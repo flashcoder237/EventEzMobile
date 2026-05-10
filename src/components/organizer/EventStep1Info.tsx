@@ -63,6 +63,8 @@ interface EventStep1InfoProps {
   selectedTagIds: number[];
   customTags: string[];
   bannerImage: string | null;
+  coverVideo: string | null;
+  coverVideoUrl: string;
 
   // Reference data
   categories: Category[];
@@ -88,6 +90,9 @@ interface EventStep1InfoProps {
   onCustomTagRemove: (tag: string) => void;
   onPickImage: () => void;
   onRemoveImage: () => void;
+  onPickCoverVideo: () => void;
+  onRemoveCoverVideo: () => void;
+  onCoverVideoUrlChange: (value: string) => void;
   galleryImages: string[];
   onPickGalleryImages: () => void;
   onRemoveGalleryImage: (index: number) => void;
@@ -125,6 +130,8 @@ export default function EventStep1Info({
   selectedTagIds,
   customTags,
   bannerImage,
+  coverVideo,
+  coverVideoUrl,
   categories,
   availableTags,
   aiEnabled,
@@ -144,6 +151,9 @@ export default function EventStep1Info({
   onCustomTagRemove,
   onPickImage,
   onRemoveImage,
+  onPickCoverVideo,
+  onRemoveCoverVideo,
+  onCoverVideoUrlChange,
   galleryImages,
   onPickGalleryImages,
   onRemoveGalleryImage,
@@ -224,6 +234,68 @@ export default function EventStep1Info({
           message={t('componentsOrganizer.step1.encouragementMessage')}
         />
       )}
+
+      {/* Cover Video (optionnel) */}
+      <View style={styles.inputGroup}>
+        <Text style={[styles.label, themed.label]}>Video de couverture (optionnel)</Text>
+
+        {/* URL externe */}
+        <View style={{ marginBottom: Spacing.sm }}>
+          <Text style={[styles.label, themed.label, { fontSize: 12, marginBottom: 6 }]}>Lien YouTube ou Vimeo</Text>
+          <View style={[styles.imagePickerPlaceholder, themed.imagePickerPlaceholder, { paddingVertical: 8, paddingHorizontal: 12, opacity: coverVideo ? 0.4 : 1 }]}>
+            <Ionicons name="link-outline" size={18} color={themed.imagePickerIconColor} />
+            <TextInput
+              value={coverVideoUrl}
+              onChangeText={(v) => onCoverVideoUrlChange(v)}
+              editable={!coverVideo}
+              placeholder="https://youtube.com/watch?v=..."
+              placeholderTextColor={themed.imagePickerSubtext.color}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+              style={{ flex: 1, marginLeft: 8, fontFamily: FontFamily.regular, fontSize: 14, color: themed.label.color, paddingVertical: 8 }}
+            />
+          </View>
+        </View>
+
+        {/* Separateur */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: Spacing.sm }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: themed.imagePickerPlaceholder.backgroundColor }} />
+          <Text style={{ marginHorizontal: 12, fontFamily: FontFamily.semiBold, fontSize: 11, color: themed.imagePickerSubtext.color, letterSpacing: 1.5 }}>OU</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: themed.imagePickerPlaceholder.backgroundColor }} />
+        </View>
+
+        {/* Upload */}
+        <TouchableOpacity
+          style={[styles.imagePickerButton, themed.imagePickerButton, { opacity: coverVideoUrl ? 0.4 : 1 }]}
+          onPress={onPickCoverVideo}
+          disabled={!!coverVideoUrl}
+        >
+          {coverVideo ? (
+            <View style={styles.imagePreviewContainer}>
+              <View style={[styles.imagePreview, { backgroundColor: '#0F172A', alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="videocam" size={48} color="#fff" />
+                <Text style={{ color: '#fff', fontFamily: FontFamily.semiBold, fontSize: 12, marginTop: 8 }}>
+                  {coverVideo.startsWith('file://') ? 'Video selectionnee' : 'Video actuelle'}
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.removeImageButton} onPress={onRemoveCoverVideo}>
+                <Ionicons name="close-circle" size={24} color={colors.error} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={[styles.imagePickerPlaceholder, themed.imagePickerPlaceholder]}>
+              <View style={[styles.imagePickerIconBubble, themed.imagePickerIconBubble]}>
+                <Ionicons name="videocam-outline" size={26} color={themed.imagePickerIconColor} />
+              </View>
+              <View style={styles.imagePickerTextGroup}>
+                <Text style={[styles.imagePickerText, themed.imagePickerText]}>Telecharger une video</Text>
+                <Text style={[styles.imagePickerSubtext, themed.imagePickerSubtext]}>Max 30s, 20 Mo (mp4/webm)</Text>
+              </View>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
 
       {/* Gallery Images */}
       <View style={styles.inputGroup}>

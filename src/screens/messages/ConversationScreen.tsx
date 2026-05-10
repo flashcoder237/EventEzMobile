@@ -63,7 +63,7 @@ import {
   TOUCH_OPACITY,
   Shadows,
 } from '../../constants/theme';
-import { SkeletonList, MessageSkeleton } from '../../components/ui/Skeleton';
+import { ConversationSkeleton } from '../../components/ui/Skeleton';
 import {
   MESSAGE_AVATAR_SIZE,
   formatMessageDate,
@@ -1665,9 +1665,7 @@ export default function ConversationScreen() {
         <WatermarkNumeral>{t('conversation.watermark')}</WatermarkNumeral>
         <View style={{ flex: 1, zIndex: 1 }}>
           {renderCustomHeader()}
-          <View style={styles.loadingContainer}>
-            <SkeletonList count={6} Component={MessageSkeleton} />
-          </View>
+          <ConversationSkeleton />
         </View>
       </EditorialCanvas>
     );

@@ -593,16 +593,147 @@ export const TicketCardSkeleton = memo(function TicketCardSkeleton() {
 
 // ============================================
 // MESSAGE SKELETON
-// Matches conversation bubble: avatar + bubble with 2 text lines
+// Matches conversation bubble: avatar (only when not grouped) + bubble with
+// variable line count + width. Mimics real chat où certains messages sont
+// courts (hi 👋), d'autres longs, et grouped messages n'ont pas d'avatar.
 // ============================================
-export const MessageSkeleton = memo(function MessageSkeleton({ isOwn = false }: { isOwn?: boolean }) {
-  const { colors } = useTheme();
+interface MessageSkeletonProps {
+  isOwn?: boolean;
+  /** Number of text lines inside the bubble (default 2). */
+  lines?: number;
+  /** Bubble width in px (default depends on isOwn + lines). */
+  bubbleWidth?: number;
+  /** If true, hide avatar (grouped consecutive messages). */
+  grouped?: boolean;
+}
+export const MessageSkeleton = memo(function MessageSkeleton({
+  isOwn = false,
+  lines = 2,
+  bubbleWidth,
+  grouped = false,
+}: MessageSkeletonProps) {
+  const { colors, isDark } = useTheme();
+  const ownBg = isDark ? `${colors.primary}33` : `${colors.primary}1A`;
+  const otherBg = colors.gray100;
+  const radius = BorderRadius.lg;
+  const cornerNotch = isOwn ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 };
+  const lineWidths = [
+    bubbleWidth ?? (isOwn ? 160 : 200),
+    bubbleWidth ? bubbleWidth - 30 : (isOwn ? 110 : 140),
+    bubbleWidth ? bubbleWidth - 60 : (isOwn ? 70 : 90),
+  ];
+
   return (
     <View style={[styles.message, isOwn && styles.messageOwn]}>
-      {!isOwn && <Skeleton width={32} height={32} borderRadius={16} style={{ marginRight: Spacing.sm }} />}
-      <View style={[styles.messageBubble, { backgroundColor: colors.gray100 }]}>
-        <Skeleton width={isOwn ? 150 : 180} height={14} style={{ marginBottom: Spacing.xs }} />
-        <Skeleton width={isOwn ? 100 : 120} height={14} />
+      {!isOwn && !grouped ? (
+        <Skeleton width={28} height={28} borderRadius={14} style={{ marginRight: Spacing.sm }} />
+      ) : !isOwn ? (
+        <View style={{ width: 28, marginRight: Spacing.sm }} />
+      ) : null}
+      <View
+        style={[
+          styles.messageBubble,
+          { backgroundColor: isOwn ? ownBg : otherBg, borderRadius: radius, ...cornerNotch },
+        ]}
+      >
+        {Array.from({ length: lines }).map((_, i) => (
+          <Skeleton
+            key={i}
+            width={lineWidths[i] ?? lineWidths[lineWidths.length - 1]}
+            height={12}
+            borderRadius={4}
+            style={{ marginBottom: i < lines - 1 ? 6 : 0 }}
+          />
+        ))}
+      </View>
+    </View>
+  );
+});
+
+// ============================================
+// CONVERSATION SKELETON
+// Full chat skeleton : date pill + alternating bubbles (variable widths,
+// some grouped without avatar) + input bar at bottom. Plus fidèle qu'un
+// simple SkeletonList car reproduit la sensation visuelle d'un chat bottom-
+// aligned avec messages courts/longs/groupés.
+// ============================================
+export const ConversationSkeleton = memo(function ConversationSkeleton() {
+  const { colors, isDark } = useTheme();
+  const hairline = isDark ? colors.gray200 : 'rgba(0,0,0,0.06)';
+
+  // Simulate realistic chat: mix of own/other, varied lengths, some grouped
+  const messages: MessageSkeletonProps[] = [
+    { isOwn: false, lines: 2, bubbleWidth: 220 },
+    { isOwn: false, lines: 1, bubbleWidth: 110, grouped: true },
+    { isOwn: true, lines: 1, bubbleWidth: 90 },
+    { isOwn: true, lines: 3, bubbleWidth: 240, grouped: true },
+    { isOwn: false, lines: 2, bubbleWidth: 180 },
+    { isOwn: true, lines: 1, bubbleWidth: 130 },
+    { isOwn: false, lines: 1, bubbleWidth: 70, grouped: false },
+  ];
+
+  return (
+    <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+      {/* Date separator pill — stylé comme dans la conv réelle */}
+      <View style={{ alignItems: 'center', marginVertical: Spacing.md }}>
+        <Skeleton width={90} height={20} borderRadius={10} />
+      </View>
+
+      <View style={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.sm }}>
+        {messages.map((m, idx) => (
+          <View key={idx} style={{ marginBottom: m.grouped ? 2 : Spacing.sm }}>
+            <MessageSkeleton {...m} />
+          </View>
+        ))}
+      </View>
+
+      {/* Typing indicator (someone typing) */}
+      <View style={[styles.message, { paddingHorizontal: Spacing.md }]}>
+        <Skeleton width={28} height={28} borderRadius={14} style={{ marginRight: Spacing.sm }} />
+        <View
+          style={[
+            styles.messageBubble,
+            {
+              backgroundColor: colors.gray100,
+              flexDirection: 'row',
+              gap: 4,
+              paddingVertical: 10,
+            },
+          ]}
+        >
+          <Skeleton width={6} height={6} borderRadius={3} />
+          <Skeleton width={6} height={6} borderRadius={3} />
+          <Skeleton width={6} height={6} borderRadius={3} />
+        </View>
+      </View>
+
+      {/* Input toolbar fake */}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: Spacing.sm,
+          paddingHorizontal: Spacing.md,
+          paddingVertical: Spacing.sm,
+          borderTopWidth: 1,
+          borderTopColor: hairline,
+          backgroundColor: colors.card,
+        }}
+      >
+        <Skeleton width={36} height={36} borderRadius={18} />
+        <View
+          style={{
+            flex: 1,
+            height: 40,
+            borderRadius: 20,
+            backgroundColor: colors.gray100,
+            paddingHorizontal: Spacing.md,
+            justifyContent: 'center',
+          }}
+        >
+          <Skeleton width="55%" height={12} borderRadius={4} />
+        </View>
+        <Skeleton width={36} height={36} borderRadius={18} />
       </View>
     </View>
   );

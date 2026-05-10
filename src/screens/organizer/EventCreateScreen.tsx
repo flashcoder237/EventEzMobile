@@ -74,6 +74,9 @@ export default function EventCreateScreen() {
     handleCustomTagRemove,
     pickImage,
     setBannerImage,
+    pickCoverVideo,
+    setCoverVideo,
+    setCoverVideoUrl,
     pickGalleryImages,
     removeGalleryImage,
     setVisibility,
@@ -512,6 +515,11 @@ export default function EventCreateScreen() {
                 selectedTagIds={form.selectedTagIds}
                 customTags={form.customTags}
                 bannerImage={form.bannerImage}
+                coverVideo={form.coverVideo}
+                coverVideoUrl={form.coverVideoUrl}
+                onPickCoverVideo={pickCoverVideo}
+                onRemoveCoverVideo={() => setCoverVideo(null)}
+                onCoverVideoUrlChange={setCoverVideoUrl}
                 categories={form.categories}
                 availableTags={form.availableTags}
                 aiEnabled={form.aiEnabled}
