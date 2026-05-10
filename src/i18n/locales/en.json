@@ -1427,6 +1427,8 @@
     "headerEyebrow": "EXCHANGES • {{count}}",
     "headerEyebrowAllRead": "ALL READ",
     "headerEyebrowUnread": "{{count}} UNREAD",
+    "liveOn": "Live connection active",
+    "liveReconnecting": "Reconnecting",
     "searchPlaceholder": "Search a conversation or message…",
     "userPlaceholder": "User",
     "newConversationTitle": "New",

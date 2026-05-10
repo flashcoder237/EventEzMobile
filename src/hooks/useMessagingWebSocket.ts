@@ -114,6 +114,45 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     onServerError,
   } = options;
 
+  // Stabilise les callbacks via une ref unique mise a jour a chaque render.
+  // Sans ca, `handleMessage` rebuild a chaque render parent (deps change)
+  // et la WS, configuree une seule fois au mount via useEffect([], () =>
+  // connect()), garde le PREMIER handleMessage capture. Resultat : les
+  // callbacks ulterieurs (apres re-render parent, login, etc.) ne sont jamais
+  // appeles et la liste reste stale. Pattern : ref + handleMessage([] deps).
+  const cbRef = useRef({
+    onNewMessage,
+    onTypingIndicator,
+    onMessageRead,
+    onReactionAdded,
+    onReactionRemoved,
+    onConnectionChange,
+    onMessageDeleted,
+    onMessageUpdated,
+    onPresenceChanged,
+    onUnreadDecrement,
+    onConversationAdded,
+    onConversationRemoved,
+    onServerError,
+  });
+  useEffect(() => {
+    cbRef.current = {
+      onNewMessage,
+      onTypingIndicator,
+      onMessageRead,
+      onReactionAdded,
+      onReactionRemoved,
+      onConnectionChange,
+      onMessageDeleted,
+      onMessageUpdated,
+      onPresenceChanged,
+      onUnreadDecrement,
+      onConversationAdded,
+      onConversationRemoved,
+      onServerError,
+    };
+  });
+
   const [isConnected, setIsConnected] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -263,20 +302,20 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         case 'message.new':
-          if (data.message && onNewMessage) {
-            onNewMessage(data.message);
+          if (data.message && cbRef.current.onNewMessage) {
+            cbRef.current.onNewMessage(data.message);
           }
           break;
 
         case 'message.deleted':
-          if (data.message_id && onMessageDeleted) {
-            onMessageDeleted({ messageId: data.message_id, userId: data.user_id || 0 });
+          if (data.message_id && cbRef.current.onMessageDeleted) {
+            cbRef.current.onMessageDeleted({ messageId: data.message_id, userId: data.user_id || 0 });
           }
           break;
 
         case 'message.edited':
-          if (data.message_id && onMessageUpdated) {
-            onMessageUpdated({
+          if (data.message_id && cbRef.current.onMessageUpdated) {
+            cbRef.current.onMessageUpdated({
               messageId: data.message_id,
               content: data.content || '',
               editedAt: data.edited_at || new Date().toISOString(),
@@ -338,8 +377,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
               clearTypingTimeout(`${conversationKey}-${data.user_id}`);
             }
 
-            if (onTypingIndicator) {
-              onTypingIndicator({
+            if (cbRef.current.onTypingIndicator) {
+              cbRef.current.onTypingIndicator({
                 conversationId: data.conversation_id,
                 userName: data.user_name,
                 isTyping,
@@ -350,8 +389,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         }
 
         case 'message.read':
-          if (onMessageRead && data.message_id && data.user_id && data.read_at) {
-            onMessageRead({
+          if (cbRef.current.onMessageRead && data.message_id && data.user_id && data.read_at) {
+            cbRef.current.onMessageRead({
               messageId: data.message_id,
               userId: data.user_id,
               readAt: data.read_at,
@@ -360,8 +399,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         case 'reaction.add':
-          if (onReactionAdded && data.message_id && data.user_id && data.emoji) {
-            onReactionAdded({
+          if (cbRef.current.onReactionAdded && data.message_id && data.user_id && data.emoji) {
+            cbRef.current.onReactionAdded({
               messageId: data.message_id,
               userId: data.user_id,
               emoji: data.emoji,
@@ -370,8 +409,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         case 'reaction.remove':
-          if (onReactionRemoved && data.message_id && data.user_id && data.emoji) {
-            onReactionRemoved({
+          if (cbRef.current.onReactionRemoved && data.message_id && data.user_id && data.emoji) {
+            cbRef.current.onReactionRemoved({
               messageId: data.message_id,
               userId: data.user_id,
               emoji: data.emoji,
@@ -380,8 +419,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         case 'presence.changed':
-          if (onPresenceChanged && data.user_id) {
-            onPresenceChanged({
+          if (cbRef.current.onPresenceChanged && data.user_id) {
+            cbRef.current.onPresenceChanged({
               userId: data.user_id,
               status: data.status || 'offline',
               lastSeen: data.last_seen || new Date().toISOString(),
@@ -390,8 +429,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
           break;
 
         case 'unread.decrement':
-          if (onUnreadDecrement) {
-            onUnreadDecrement({
+          if (cbRef.current.onUnreadDecrement) {
+            cbRef.current.onUnreadDecrement({
               messageIds: data.message_ids || [],
               conversationIds: data.conversation_ids || [],
             });
@@ -402,14 +441,14 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         // d'être ajouté à une conversation. Le client refetch sa liste pour
         // l'afficher immédiatement, plutôt que d'attendre un refresh manuel.
         case 'conversation.added':
-          if (onConversationAdded && data.conversation_id !== undefined) {
-            onConversationAdded({ conversationId: data.conversation_id });
+          if (cbRef.current.onConversationAdded && data.conversation_id !== undefined) {
+            cbRef.current.onConversationAdded({ conversationId: data.conversation_id });
           }
           break;
 
         case 'conversation.removed':
-          if (onConversationRemoved && data.conversation_id !== undefined) {
-            onConversationRemoved({ conversationId: data.conversation_id });
+          if (cbRef.current.onConversationRemoved && data.conversation_id !== undefined) {
+            cbRef.current.onConversationRemoved({ conversationId: data.conversation_id });
           }
           break;
 
@@ -423,8 +462,8 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
             setConnectionError(errData.error || 'Trop de connexions ouvertes');
           }
           // Propagate all error codes to caller for user-facing feedback
-          if (onServerError && errData.code) {
-            onServerError(errData.code, errData.error || 'Erreur serveur');
+          if (cbRef.current.onServerError && errData.code) {
+            cbRef.current.onServerError(errData.code, errData.error || 'Erreur serveur');
           }
           break;
         }
@@ -459,22 +498,10 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
     } catch (error) {
       if (__DEV__) console.error('Error parsing WebSocket message:', error);
     }
-  }, [
-    onNewMessage,
-    onTypingIndicator,
-    onMessageRead,
-    onReactionAdded,
-    onReactionRemoved,
-    onMessageDeleted,
-    onMessageUpdated,
-    onPresenceChanged,
-    onUnreadDecrement,
-    onConversationAdded,
-    onConversationRemoved,
-    onServerError,
-    clearTypingTimeout,
-    startHeartbeat,
-  ]);
+    // Deps reduites a [] grace au cbRef. handleMessage est maintenant stable
+    // pour la duree de vie du hook → la WS connectee une fois au mount voit
+    // toujours les callbacks parent les plus recents via la ref.
+  }, [clearTypingTimeout, startHeartbeat]);
 
   // Connect to WebSocket
   const connect = useCallback(async () => {
@@ -540,7 +567,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         // Ne PAS reset reconnectAttemptsRef ici — le backend accepte toujours
         // le WS avant d'authentifier, donc onopen ne signifie pas "session OK".
         // Le reset se fait dans le case 'auth.success' de handleMessage.
-        onConnectionChange?.(true);
+        cbRef.current.onConnectionChange?.(true);
 
         // Envoyer l'authentification via le premier message
         ws?.send(JSON.stringify({
@@ -559,7 +586,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         stopHeartbeat();
         setIsConnected(false);
         setIsAuthenticated(false);
-        onConnectionChange?.(false);
+        cbRef.current.onConnectionChange?.(false);
 
         // Si on est en train de refresh manuellement le token après auth.error,
         // ne pas enclencher la reconnexion auto — elle sera faite par le .then()
@@ -617,7 +644,7 @@ export function useMessagingWebSocket(options: UseMessagingWebSocketOptions = {}
         }
       }
     }
-  }, [handleMessage, onConnectionChange, stopHeartbeat]);
+  }, [handleMessage, stopHeartbeat]);
 
   // Synchronise connectRef avec la dernière version de connect (utilisé par
   // handleMessage.auth.error qui ne peut pas capturer connect directement

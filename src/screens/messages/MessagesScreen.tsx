@@ -14,11 +14,13 @@ import {
   Modal,
   Platform,
   ActivityIndicator,
+  AppState,
+  AppStateStatus,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -538,7 +540,8 @@ export default function MessagesScreen() {
   // les unread.decrement (déclenchés quand l'user marque comme lu depuis un
   // autre device). Côté inbox, on met à jour les compteurs et la preview en
   // place sans refresh complet.
-  useMessagingWebSocket({
+  // `wsConnected` alimente le polling fallback + l'indicateur visuel.
+  const { isConnected: wsConnected } = useMessagingWebSocket({
     onNewMessage: (msg) => {
       // Toast / haptic léger quand un message arrive depuis l'inbox
       // (l'utilisateur n'est pas dans la conversation correspondante puisqu'il
@@ -626,6 +629,54 @@ export default function MessagesScreen() {
       CacheService.invalidate(`convos:${user?.id}`);
     },
   });
+
+  // Refresh quand l'ecran reprend le focus (retour depuis ConversationScreen,
+  // changement d'onglet, etc.). Sans ca, l'inbox restait sur l'etat du dernier
+  // fetch — meme si la WS etait deconnectee entre temps. bypassCache=true
+  // pour ne pas servir du cache potentiellement stale au focus.
+  useFocusEffect(
+    useCallback(() => {
+      // Skip le tout premier focus (le mount useEffect le fait deja).
+      // On le detecte via `loading=true` initial vs apres premier fetch.
+      let cancelled = false;
+      const t = setTimeout(() => {
+        if (!cancelled) {
+          fetchConversations(true).catch(() => {});
+        }
+      }, 0);
+      return () => {
+        cancelled = true;
+        clearTimeout(t);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id]),
+  );
+
+  // AppState : si l'app revient de background → fetch frais + sync presence.
+  // Sans ca, apres un verrouillage ecran ou un switch d'app, la liste reste
+  // figee meme si la WS s'est reconnectee silencieusement.
+  useEffect(() => {
+    const handleAppStateChange = (nextState: AppStateStatus) => {
+      if (nextState === 'active') {
+        fetchConversations(true).catch(() => {});
+        fetchPresence();
+      }
+    };
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => sub.remove();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // Polling fallback : si la WS n'est pas connectee, on poll toutes les 15s
+  // pour rattraper les messages manques. Quand WS revient, on stoppe le poll.
+  useEffect(() => {
+    if (wsConnected) return;
+    const interval = setInterval(() => {
+      fetchConversations(true).catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wsConnected, user?.id]);
 
   // Search globale messages : debounce + appel REST
   useEffect(() => {
@@ -719,8 +770,11 @@ export default function MessagesScreen() {
           ? Boolean(next)
           : Array.isArray(results) && results.length === PAGE_SIZE,
       );
-      // On ne cache que la première page (pas la totalité paginée)
-      CacheService.set(cacheKey, results, 30 * 1000);
+      // On ne cache que la première page (pas la totalité paginée).
+      // TTL = 10s : court pour minimiser la stale data, mais suffisant pour
+      // absorber les double-fetch (focus + AppState + initial mount qui
+      // peuvent se chevaucher en quelques ms).
+      CacheService.set(cacheKey, results, 10 * 1000);
     } catch (error) {
       if (__DEV__) console.error('Erreur chargement conversations:', error);
     } finally {
@@ -974,7 +1028,23 @@ export default function MessagesScreen() {
             <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
               {t('messages.headerEyebrow', { count: unreadCount > 0 ? t('messages.headerEyebrowUnread', { count: unreadCount }) : t('messages.headerEyebrowAllRead') })}
             </Text>
-            <Text style={[styles.headerTitle, { color: colors.text }]}>{t('messages.headerInbox')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[styles.headerTitle, { color: colors.text }]}>{t('messages.headerInbox')}</Text>
+              {/* Indicateur de connexion temps reel : pastille verte (live)
+                  ou orange clignotant (reconnexion en cours). Donne au user
+                  la confiance que les messages arrivent en push, ou l'alerte
+                  qu'ils sont en pull (polling fallback). */}
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: wsConnected ? '#10B981' : '#F59E0B',
+                  opacity: wsConnected ? 1 : 0.7,
+                }}
+                accessibilityLabel={wsConnected ? t('messages.liveOn') : t('messages.liveReconnecting')}
+              />
+            </View>
           </View>
           <TouchableOpacity
             onPress={() => setSearchOpen(s => !s)}
